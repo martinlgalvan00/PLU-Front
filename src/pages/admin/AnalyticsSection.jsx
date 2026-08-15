@@ -631,13 +631,20 @@ export default function AnalyticsSection({
             </dd>
           </div>
         </dl>
-        <p className="admin-analytics__summary">
-          {t('admin.analytics.summary', {
-            sessions: count(overview?.sessions, locale),
-            duration: duration(overview?.avgDurationSeconds),
-            interactions: count(overview?.interactions, locale),
-          })}
-        </p>
+        <dl className="admin-analytics__metrics admin-analytics__metrics--secondary">
+          <div>
+            <dt>{t('admin.analytics.metrics.sessions')}</dt>
+            <dd>{count(overview?.sessions, locale)}</dd>
+          </div>
+          <div>
+            <dt>{t('admin.analytics.metrics.duration')}</dt>
+            <dd>{duration(overview?.avgDurationSeconds)}</dd>
+          </div>
+          <div>
+            <dt>{t('admin.analytics.metrics.interactions')}</dt>
+            <dd>{count(overview?.interactions, locale)}</dd>
+          </div>
+        </dl>
       </section>
 
       {operationalAlerts.length ? (

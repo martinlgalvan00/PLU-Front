@@ -301,4 +301,22 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
     expect(onNavigate).toHaveBeenCalledWith('registrations', null)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
+
+  it('nombra como afiliación requerida la validación previa al check-in', () => {
+    renderQueue([
+      {
+        id: 'action-gate-1',
+        type: 'registration_gate',
+        priority: 'medium',
+        subject: 'Sebastian Alfaro',
+        summary: 'Confirmada sin afiliación vigente',
+        detail: 'Pitbull Classic',
+        meta: 'Raw',
+        section: 'registrations',
+      },
+    ])
+
+    expect(screen.getByText('Afiliación requerida')).toBeTruthy()
+    expect(screen.queryByText('Puerta')).toBeNull()
+  })
 })

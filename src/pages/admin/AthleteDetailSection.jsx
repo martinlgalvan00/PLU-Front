@@ -142,6 +142,7 @@ export default function AthleteDetailSection({
         flat
         metaLayout="inline"
         name={athlete.fullName}
+        photoUrl={athlete.photoUrl}
         documentId={athlete.documentId}
         gym={athlete.gym}
         status={athlete.status}

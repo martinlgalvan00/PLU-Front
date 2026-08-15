@@ -42,6 +42,16 @@ const listQuerySchema = z.object({
     .refine((value) => value.length > 0)
     .optional(),
   before: z.string().datetime({ offset: true }).optional(),
+  // Complemento del cursor: sin él, las filas que empatan `created_at` con el
+  // último registro de la página (típico de una transacción que audita varios
+  // efectos con el mismo `now()`) quedan fuera de la página siguiente.
+  beforeId: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .regex(/^[\w-]+$/)
+    .optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
 })
 
@@ -62,13 +72,13 @@ export function createAuditRoutes({ getPrisma, getSupabaseAdmin, repository }) {
       const parsed = listQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Parámetros de auditoría inválidos.')
       const entries = await repo().list(parsed.data)
+      const isFullPage = entries.length === parsed.data.limit
       res.json({
         entries,
         // El cursor sale del último registro devuelto: la UI lo reenvía como
-        // `before` para pedir la página siguiente.
-        nextCursor: entries.length === parsed.data.limit
-          ? entries[entries.length - 1].created_at
-          : null,
+        // `before`/`beforeId` para pedir la página siguiente.
+        nextCursor: isFullPage ? entries[entries.length - 1].created_at : null,
+        nextCursorId: isFullPage ? entries[entries.length - 1].id : null,
       })
     } catch (error) {
       next(error)

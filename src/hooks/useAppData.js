@@ -28,6 +28,7 @@ import {
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
 import { env } from '../config/env.js'
+import { sessionDisplayName } from '../lib/format.js'
 import { markSignedOut } from '../lib/sessionNotice.js'
 import {
   FEATURE_KEYS,
@@ -149,9 +150,11 @@ import {
   upsertDiscountCodeRequest,
 } from '../services/pricingAdminService.js'
 import {
+  deleteRegistrationAccessGate as deleteRegistrationAccessGateRequest,
   fetchRegistrationAccessConfiguration,
   saveRegistrationAccessGate as saveRegistrationAccessGateRequest,
 } from '../services/registrationAccessAdminService.js'
+import { establishSupabaseSession } from '../services/supabaseSessionService.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import {
   deleteShopProduct,
@@ -165,28 +168,11 @@ import {
 // autorizada, nunca intenta confirmar una afiliación o inscripción localmente.
 const LIVE_ATHLETE_SYNC_MS = 5_000
 const LIVE_STAFF_SYNC_MS = 15_000
-const LIVE_PUBLIC_CATALOG_SYNC_MS = 15_000
-
-// El login de esta app corre sobre Prisma/Auth0, nunca sobre supabase.auth
-// -- sin esto, auth.uid() es siempre null en el navegador y ninguna RPC
-// protegida por is_admin()/can_check_in() puede autorizar a nadie, ni
-// siquiera a un admin real logueado (ver server/services/supabaseAuthBridge.js).
-// El backend genera un magic-link de un solo uso al loguear staff; acá lo
-// canjeamos para tener una sesión real de Supabase Auth en el cliente.
-async function establishSupabaseSession(supabaseAuth) {
-  if (!supabaseAuth || !isSupabaseConfigured) return
-
-  try {
-    const supabase = await getSupabaseClient()
-    await supabase.auth.verifyOtp({
-      email: supabaseAuth.email,
-      token: supabaseAuth.tokenHash,
-      type: 'magiclink',
-    })
-  } catch (error) {
-    console.warn('No se pudo establecer la sesión de Supabase.', error)
-  }
-}
+// El cambio de estado hecho por un staff en otra sesión debe alcanzar la
+// landing sin requerir una recarga manual. La misma sesión se actualiza en el
+// acto desde `setAdminEventState`; este sondeo corto cubre las demás pestañas
+// y dispositivos sin exponer acceso directo del navegador a Supabase.
+const LIVE_PUBLIC_CATALOG_SYNC_MS = 5_000
 
 export function useAppData() {
   const oauth = usePluOAuth()
@@ -739,6 +725,7 @@ export function useAppData() {
         registration.athlete?.fullName?.toLowerCase().includes(query) ||
         registration.athlete?.documentId?.toLowerCase().includes(query) ||
         registration.athlete?.email?.toLowerCase().includes(query) ||
+        registration.athlete?.gym?.toLowerCase().includes(query) ||
         registration.event?.toLowerCase().includes(query) ||
         registration.category?.toLowerCase().includes(query) ||
         registration.division?.toLowerCase().includes(query)
@@ -1819,7 +1806,9 @@ export function useAppData() {
   const logout = useCallback(async ({ notify = true } = {}) => {
     const currentSession = session
     setSession(null)
-    if (notify) markSignedOut()
+    // El nombre del toast se captura antes de limpiar la sesión: el aviso
+    // tiene que decir quién salió, no un genérico.
+    if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
 
     if (currentSession?.role === 'athlete_plu' && !isDemoSession(currentSession)) {
       await logoutAthleteSession().catch((error) => {
@@ -2388,6 +2377,19 @@ export function useAppData() {
     }
   }, [refreshRegistrationAccessConfiguration, session])
 
+  const deleteRegistrationAccessGate = useCallback(async (gateId) => {
+    if (!hasPermission(session, 'admin.registration_access.write')) {
+      return { error: 'No tenés permisos para gestionar tandas privadas.' }
+    }
+    try {
+      const deletedGate = await deleteRegistrationAccessGateRequest(gateId)
+      await refreshRegistrationAccessConfiguration()
+      return { deletedGate }
+    } catch (error) {
+      return { error: error?.message ?? 'No pudimos eliminar la tanda.' }
+    }
+  }, [refreshRegistrationAccessConfiguration, session])
+
   const setDiscountCodeActive = useCallback(async (codeId, active) => {
     if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
       return { error: 'La configuración económica está disponible próximamente.' }
@@ -2497,6 +2499,7 @@ export function useAppData() {
     registrationAccessError,
     refreshRegistrationAccessConfiguration,
     saveRegistrationAccessGate,
+    deleteRegistrationAccessGate,
     refreshPricingConfiguration,
     createMembershipPlanVersion,
     setMembershipPlanActive,

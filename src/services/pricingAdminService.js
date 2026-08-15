@@ -45,6 +45,37 @@ export function mapDiscountCode(row) {
   }
 }
 
+/**
+ * Proyección operativa de un cupón para el panel. El conteo definitivo vive
+ * en Postgres y se actualiza al crear la orden; este helper sólo traduce esa
+ * respuesta canónica a estados legibles, sin intentar reservar usos en React.
+ */
+export function getDiscountCodeAvailability(code = {}, now = new Date()) {
+  const maxRedemptions = Number(code.maxRedemptions)
+  const hasLimit = Number.isInteger(maxRedemptions) && maxRedemptions > 0
+  const redeemedCount = Math.max(0, Number(code.redeemedCount) || 0)
+  const remaining = hasLimit ? Math.max(0, maxRedemptions - redeemedCount) : null
+  const exhausted = hasLimit && remaining === 0
+  const expired = Boolean(code.expiresAt) && new Date(code.expiresAt) < now
+
+  let status = 'active'
+  // El cupón se desactiva automáticamente al llegar al límite. Se prioriza
+  // "agotado" por encima de "inactivo" para explicarle al operador qué pasó.
+  if (exhausted) status = 'exhausted'
+  else if (code.active === false) status = 'inactive'
+  else if (expired) status = 'expired'
+
+  return {
+    hasLimit,
+    maxRedemptions: hasLimit ? maxRedemptions : null,
+    redeemedCount,
+    remaining,
+    exhausted,
+    progress: hasLimit ? Math.min(100, (redeemedCount / maxRedemptions) * 100) : 0,
+    status,
+  }
+}
+
 export function mapPricingConfiguration(payload = {}) {
   return {
     plans: (payload.plans ?? []).map(mapMembershipPlan),

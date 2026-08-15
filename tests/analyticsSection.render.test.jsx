@@ -123,6 +123,14 @@ afterEach(() => {
 
 describe('cabecera y cifras', () => {
   it('muestra el período y las cifras en una sola ficha', async () => {
+    overview.mockResolvedValue({
+      visitors: 40,
+      pageviews: 120,
+      sessions: 55,
+      bounceRate: 0.4,
+      avgDurationSeconds: 317,
+      interactions: 5011,
+    })
     renderSection()
 
     expect(await screen.findByRole('button', { name: 'Últimos 30 días' })).toBeTruthy()
@@ -130,7 +138,15 @@ describe('cabecera y cifras', () => {
     expect(pulse).toBeTruthy()
     expect(pulse.textContent).toContain('Visitantes únicos')
     expect(pulse.textContent).toContain('40')
-    expect(pulse.textContent).toContain('sesiones')
+
+    const secondary = pulse.querySelector('.admin-analytics__metrics--secondary')
+    expect(secondary).toBeTruthy()
+    expect(secondary.textContent).toContain('Sesiones')
+    expect(secondary.textContent).toContain('55')
+    expect(secondary.textContent).toContain('Duración promedio')
+    expect(secondary.textContent).toContain('5m 17s')
+    expect(secondary.textContent).toContain('Interacciones')
+    expect(secondary.textContent).toContain('5.011')
   })
 })
 

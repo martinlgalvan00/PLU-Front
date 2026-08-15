@@ -249,7 +249,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
           {/* Acciones */}
           {isGenerating ? (
             <div className="card-modal__generating">
-              <div className="card-modal__spinner" aria-hidden />
+              <div className="plu-spinner plu-spinner--lg card-modal__spinner" aria-hidden />
               {t('cardModal.generating')}
             </div>
           ) : (

@@ -192,10 +192,44 @@ describe('API de auditoría (/api/audit)', () => {
       const full = await fetch(`${target.url}/api/audit`, { headers: { Cookie: cookie } })
       const fullBody = await full.json()
       expect(fullBody.nextCursor).toBe(rows.at(-1).created_at)
+      expect(fullBody.nextCursorId).toBe(rows.at(-1).id)
 
       const partial = await fetch(`${target.url}/api/audit?limit=200`, { headers: { Cookie: cookie } })
       const partialBody = await partial.json()
       expect(partialBody.nextCursor).toBeNull()
+      expect(partialBody.nextCursorId).toBeNull()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('propaga el cursor compuesto (before + beforeId) al repositorio', async () => {
+    const { target, cookie, audit } = await setup()
+
+    try {
+      await fetch(
+        `${target.url}/api/audit?before=${encodeURIComponent('2026-08-02T12:00:00.000Z')}&beforeId=row-42`,
+        { headers: { Cookie: cookie } },
+      )
+
+      expect(audit.list).toHaveBeenCalledWith(
+        expect.objectContaining({ before: '2026-08-02T12:00:00.000Z', beforeId: 'row-42' }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un beforeId con caracteres de sintaxis PostgREST', async () => {
+    const { target, cookie, audit } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/audit?beforeId=row-42),or(`, {
+        headers: { Cookie: cookie },
+      })
+
+      expect(response.status).toBe(400)
+      expect(audit.list).not.toHaveBeenCalled()
     } finally {
       await target.close()
     }

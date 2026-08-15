@@ -149,3 +149,21 @@ export function formatRelativeTime(iso, locale = 'es', now = Date.now()) {
 export function generateId(prefix, index) {
   return `${prefix}-${String(index).padStart(3, '0')}`
 }
+
+/**
+ * El operador de puerta coteja el número contra el documento físico: decirle
+ * qué tipo esperar (DNI para el padrón argentino, ID/pasaporte para el resto)
+ * evita pedirle un DNI a un extranjero. El tipo se infiere del formato: el
+ * registro solo acepta 7 u 8 dígitos como DNI.
+ */
+export function documentKind(documentId) {
+  const value = String(documentId ?? '').trim()
+  if (!value) return ''
+  return /^\d{7,8}$/.test(value.replace(/[.\-\s]/g, '')) ? 'DNI' : 'ID'
+}
+
+export function formatDocumentWithKind(documentId) {
+  const value = String(documentId ?? '').trim()
+  if (!value) return ''
+  return `${documentKind(value)} ${value}`
+}

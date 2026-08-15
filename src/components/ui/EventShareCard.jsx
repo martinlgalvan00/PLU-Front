@@ -251,19 +251,21 @@ export default function EventShareCard({
             organización, que repetía la marca del header y usaba el peso de un
             titular para un dato administrativo. */}
         {isMembership ? (
+          // Una sola línea de credencial en vez de una grilla de 2 campos: la
+          // temporada y la vigencia son un mismo hecho ("estás cubierto hasta
+          // tal fecha"), no dos inputs de formulario separados.
           <dl className="share-card__fields">
             <div className="share-card__field">
               <dt className="share-card__field-label">{t('shareCard.membershipAnnual')}</dt>
               <dd className="share-card__field-value">
                 {t('shareCard.membershipSeason', { season: membershipSeason })}
+                {membershipExpiration && (
+                  <span className="share-card__field-detail">
+                    {t('shareCard.membershipValidUntil', { date: membershipExpiration })}
+                  </span>
+                )}
               </dd>
             </div>
-            {membershipExpiration && (
-              <div className="share-card__field">
-                <dt className="share-card__field-label">{t('shareCard.membershipValidUntilLabel')}</dt>
-                <dd className="share-card__field-value">{membershipExpiration}</dd>
-              </div>
-            )}
           </dl>
         ) : (
           <div className="share-card__event-section">

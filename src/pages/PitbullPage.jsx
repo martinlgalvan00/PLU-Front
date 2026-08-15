@@ -560,10 +560,27 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
       ) : (
         <ol className="pitbull-recent__list">
           {recent.map((item, index) => {
-            const line = [item.displayName, item.gym].filter(Boolean).join(' · ')
+            const initial = item.displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?'
             return (
               <li key={`${item.displayName}-${item.registeredAt ?? index}`} className="pitbull-recent__row">
-                <span className="pitbull-recent__name">{line}</span>
+                <span className="pitbull-recent__portrait" aria-hidden="true">
+                  {item.photoUrl ? (
+                    <img
+                      src={item.photoUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        event.currentTarget.hidden = true
+                      }}
+                    />
+                  ) : null}
+                  <span>{initial}</span>
+                </span>
+                <span className="pitbull-recent__identity">
+                  <strong className="pitbull-recent__name">{item.displayName}</strong>
+                  {item.gym ? <span className="pitbull-recent__gym">{item.gym}</span> : null}
+                </span>
                 <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
                   {formatRelativeTime(item.registeredAt, locale)}
                 </time>

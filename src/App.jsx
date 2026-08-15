@@ -524,6 +524,7 @@ export default function App() {
           registrationAccessError={app.registrationAccessError}
           onRefreshRegistrationAccess={app.refreshRegistrationAccessConfiguration}
           onSaveRegistrationAccessGate={app.saveRegistrationAccessGate}
+          onDeleteRegistrationAccessGate={app.deleteRegistrationAccessGate}
           onRefreshPricing={app.refreshPricingConfiguration}
           onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
           onDeleteMembershipPlan={app.deleteMembershipPlan}
@@ -729,7 +730,7 @@ export default function App() {
           Se monta acá, fuera de PageTransition, para que el aviso no se pierda
           al cambiar de vista. */}
       <EmailVerificationNotice />
-      <SessionNotice />
+      <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
       <DocumentMetaSync
         view={view}
@@ -772,7 +773,7 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
   return (
     <div className="app-shell">
       <EmailVerificationNotice />
-      <SessionNotice />
+      <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
       <DocumentMetaSync view={view} />
       <AnalyticsTracker view={view} />

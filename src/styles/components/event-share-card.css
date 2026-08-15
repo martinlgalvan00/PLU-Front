@@ -332,6 +332,19 @@
   border-color: rgba(242, 183, 5, 0.6);
 }
 
+/* El retrato es el protagonista de la afiliación: más grande que en event/
+   ticket, donde el nombre y el dato del evento compiten por atención.
+   Unified queda afuera (comparte la clase membership pero mantiene el
+   layout de evento, más apretado). */
+.share-card--membership:not(.share-card--unified) .share-card__avatar {
+  width: 196px;
+  height: 196px;
+}
+
+.share-card--membership:not(.share-card--unified) .share-card__avatar--initials {
+  font-size: 54px;
+}
+
 .share-card--ticket .share-card__avatar {
   border-color: rgba(116, 172, 223, 0.5);
 }
@@ -738,14 +751,13 @@
 }
 
 /* ─── Ficha de datos de la afiliación ────────────────────────────
-   Label + valor en dos columnas: el lenguaje de una credencial oficial.
-   Sin caja ni filo de acento — el chip del QR es la única caja de la
-   composición, y el filo izquierdo queda reservado para la variante de
-   evento (y para unified, que sigue usando __event-section). */
+   Una sola línea de credencial (temporada + vigencia como un mismo hecho),
+   no una grilla de campos de formulario. Sin caja ni filo de acento — el
+   chip del QR es la única caja de la composición, y el filo izquierdo
+   queda reservado para la variante de evento (y para unified, que sigue
+   usando __event-section). */
 .share-card__fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px 48px;
+  display: block;
   margin: 0;
 }
 
@@ -773,8 +785,19 @@
   color: var(--card-text);
 }
 
-.share-card--story .share-card__fields {
-  gap: 32px 56px;
+/* Detalle inline dentro del mismo valor (ej. vigencia junto a la temporada):
+   tamaño relativo (em) para heredar el font-size del campo que lo contiene,
+   en vez de un segundo campo/columna independiente. */
+.share-card__field-detail {
+  font-size: 0.44em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 14px;
+}
+
+.share-card__field-detail::before {
+  content: '· ';
 }
 
 .share-card--story .share-card__field-label {
@@ -825,25 +848,42 @@
   padding-top: 48px;
 }
 
-/* 52px es el techo: a 58px "Temporada 2026" ya no entra en su columna de
-   432px y parte en dos líneas. */
+/* Con una sola línea de credencial (ya no una columna de 432px), el valor
+   puede leerse con más peso: es el único dato duro de la pieza. */
 .share-card--membership:not(.share-card--unified).share-card--story .share-card__field-value {
-  font-size: 52px;
+  font-size: 60px;
 }
 
-/* Protagonista con más presencia: en 1920px de alto el medallón y el nombre
-   sostienen la mitad superior sin necesidad de rellenar con elementos. */
+/* Retrato arriba, nombre abajo: composición de certificado en vez de fila
+   de tabla. Con una sola línea de credencial, la fila horizontal (avatar a
+   la izquierda) dejaba un vacío grande sin resolver en los 1920px de alto;
+   apilar y centrar deja que el retrato ocupe el espacio que antes quedaba
+   vacío, y sostiene el momento de orgullo — es lo primero que se lee al
+   abrir la historia. Solo story: en square la fila funciona porque el
+   lienzo es más ancho que alto. */
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__athlete-section--with-avatar {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 56px;
+}
+
 .share-card--membership:not(.share-card--unified).share-card--story .share-card__avatar {
-  width: 232px;
-  height: 232px;
+  width: 420px;
+  height: 420px;
 }
 
 .share-card--membership:not(.share-card--unified).share-card--story .share-card__avatar--initials {
-  font-size: 70px;
+  font-size: 128px;
 }
 
 .share-card--membership:not(.share-card--unified).share-card--story .share-card__athlete-text {
+  align-items: center;
   gap: 26px;
+}
+
+.share-card--membership:not(.share-card--unified).share-card--story .share-card__fields {
+  text-align: center;
 }
 
 /* Footer membership: sin placa — QR + firma fina sobre una regla. */
@@ -1113,17 +1153,11 @@
   font-size: 13px;
 }
 
+/* Spinner de generación — primitivo `.plu-spinner` (states.css) con acento
+   dorado sobre superficie oscura del modal. */
 .card-modal__spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #f2b705;
-  border-radius: 50%;
-  animation: card-spin 700ms linear infinite;
-}
-
-@keyframes card-spin {
-  to { transform: rotate(360deg); }
+  --spinner-accent: var(--color-brand-gold, #f2b705);
+  --spinner-track: rgba(255, 255, 255, 0.12);
 }
 
 /* Botón de generar card (ConfirmationScreen y perfil) */

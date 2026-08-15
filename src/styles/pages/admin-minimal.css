@@ -664,15 +664,48 @@
   overflow-wrap: normal;
 }
 
+.admin-shell .admin-list-shell--registrations .data-table-card--compact {
+  background: var(--admin-surface);
+  border-color: var(--admin-hairline);
+  gap: 10px 14px;
+  padding: 12px 14px;
+}
+
+.admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact {
+  padding: 12px 14px;
+}
+
+.admin-shell .admin-list-shell--registrations .data-table-card--compact:hover,
+.admin-shell .admin-list-shell--registrations .data-table-card--compact:focus-visible {
+  background: var(--admin-row-hover, var(--admin-surface));
+  border-color: color-mix(in srgb, var(--admin-brand) 34%, var(--admin-hairline));
+  box-shadow: inset 2px 0 0 var(--admin-brand);
+}
+
 .admin-shell .admin-list-shell--registrations .data-table-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  grid-template-columns: none;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr);
+}
+
+.admin-shell .admin-list-shell--registrations .data-table-card__meta-label {
+  color: var(--admin-muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
 }
 
 .admin-shell .admin-list-shell--registrations .data-table-card__meta-value {
   color: var(--admin-text-secondary);
+  white-space: nowrap;
+}
+
+.admin-shell .admin-list-shell--registrations .data-table-card__meta-value .admin-muted-text {
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-list-shell--registrations .data-table__identity-copy strong {
+  color: var(--admin-ink);
 }
 
 .admin-shell .data-table__identity {
@@ -3344,9 +3377,40 @@
     display: none;
   }
 
-  .admin-shell .data-table-card__meta,
-  .admin-shell .admin-list-shell--registrations .data-table-card__meta {
+  .admin-shell .data-table-card__meta {
     grid-template-columns: 1fr;
+  }
+
+  .admin-shell .admin-list-shell--registrations .data-table-card--compact {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .admin-shell .admin-list-shell--registrations .data-table-card__top {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-shell .admin-list-shell--registrations .data-table-card__badges {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .admin-shell .admin-list-shell--registrations .data-table-card__meta {
+    gap: 8px 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-shell .admin-list-shell--registrations .data-table-card__meta-item[data-column='event'],
+  .admin-shell .admin-list-shell--registrations .data-table-card__meta-item[data-column='schedule'] {
+    grid-column: 1 / -1;
+  }
+
+  .admin-shell .admin-list-shell--registrations .data-table-card__meta-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -5797,6 +5861,83 @@
   padding: 10px 0 10px 18px;
 }
 
+.admin-shell .admin-list-shell--events .admin-event-state__workflow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__workflow-label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__workflow-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action,
+.admin-shell .admin-list-shell--events .admin-event-state__registration-live {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  gap: 6px;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action {
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out), color var(--motion-fast) var(--ease-out);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--admin-brand) 55%, var(--admin-hairline));
+  color: var(--admin-brand);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action--open {
+  background: var(--color-brand-action);
+  border-color: var(--color-brand-action);
+  color: var(--color-on-brand-action, var(--color-bg-primary));
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action--open:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brand-action) 88%, var(--admin-ink));
+  border-color: var(--color-brand-action);
+  color: var(--color-on-brand-action, var(--color-bg-primary));
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__registration-live {
+  border-color: color-mix(in srgb, var(--admin-status-success) 42%, var(--admin-hairline));
+  color: var(--admin-status-success);
+}
+
 .admin-shell .admin-list-shell--events .admin-event-state__controls {
   align-items: stretch;
   display: flex;
@@ -5902,7 +6043,8 @@
 
 @media (pointer: coarse) {
   .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
-  .admin-shell .admin-list-shell--events .admin-event-state__visibility {
+  .admin-shell .admin-list-shell--events .admin-event-state__visibility,
+  .admin-shell .admin-list-shell--events .admin-event-state__registration-action {
     min-height: 44px;
   }
 }
@@ -5945,6 +6087,11 @@
 
 .admin-shell .admin-list-shell--events .admin-event-state__note--error {
   color: var(--admin-status-danger);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__note svg {
+  margin-right: 5px;
+  vertical-align: -2px;
 }
 
 /* Marca de evento sin publicar en la fila: mismo peso visual que la estrella
@@ -6510,6 +6657,41 @@
     .admin-shell .data-table-mobile-toolbar--single {
       display: flex;
     }
+
+    /* Inscripciones: ficha premium cuando el panel muestra cards (< 900). */
+    .admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact {
+      gap: 10px 14px;
+      grid-template-columns: minmax(0, 1fr);
+      padding: 12px 14px;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card__top {
+      align-items: flex-start;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card__meta {
+      display: grid;
+      gap: 8px 12px;
+      grid-column: 1 / -1;
+      grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr);
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) .data-table-card__meta {
+      grid-column: 1;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card__footer {
+      align-self: end;
+      border-top: 0;
+      grid-column: 2;
+      grid-row: 2;
+      margin-top: 0;
+      padding-top: 0;
+    }
   }
 
   @container admin-panel (min-width: 900px) {
@@ -6559,6 +6741,42 @@
     .admin-shell .data-table-card--admin.data-table-card--compact {
       gap: 6px;
       padding: 8px 10px;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact,
+    .admin-shell .admin-list-shell--registrations .data-table-card--admin.data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) {
+      gap: 8px 10px;
+      grid-template-columns: minmax(0, 1fr);
+      padding: 10px 12px;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card__meta,
+    .admin-shell .admin-list-shell--registrations .data-table-card--compact:has(.data-table-card__footer .admin-icon-btn) .data-table-card__meta {
+      display: grid;
+      gap: 8px 10px;
+      grid-column: 1 / -1;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card__meta-item[data-column='event'],
+    .admin-shell .admin-list-shell--registrations .data-table-card__meta-item[data-column='schedule'] {
+      grid-column: 1 / -1;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card__footer {
+      border-top: 1px solid var(--admin-hairline);
+      grid-column: 1 / -1;
+      grid-row: auto;
+      justify-content: flex-end;
+      margin-top: 2px;
+      padding-top: 8px;
+    }
+
+    .admin-shell .admin-list-shell--registrations .data-table-card__badges {
+      align-items: flex-start;
+      flex-direction: row;
+      flex-wrap: wrap;
+      max-width: min(58%, 220px);
     }
 
     .admin-shell .data-table-card--compact .data-table-card__top {

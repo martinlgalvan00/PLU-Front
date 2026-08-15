@@ -99,7 +99,9 @@ describe('verificación de credencial en la puerta', () => {
     renderPage()
 
     expect(await screen.findByText('Ana Torres')).toBeTruthy()
-    expect(screen.getByText('Documento')).toBeTruthy()
+    // El label del documento anticipa el tipo físico que hay que cotejar:
+    // DNI para el padrón argentino, ID / Pasaporte para el resto.
+    expect(screen.getByText('DNI')).toBeTruthy()
     expect(screen.getByText('30111222')).toBeTruthy()
     expect(screen.getByText('Nacimiento')).toBeTruthy()
     expect(screen.getByText(/01 de ene de 1995/i)).toBeTruthy()
@@ -111,6 +113,25 @@ describe('verificación de credencial en la puerta', () => {
     expect(screen.getByText(/Hasta/)).toBeTruthy()
     // Sin foto: iniciales del nombre en el retrato.
     expect(screen.getByText('AT')).toBeTruthy()
+  })
+
+  it('etiqueta el documento de un extranjero como ID / Pasaporte', async () => {
+    getMembershipByCodeOrToken.mockResolvedValue(
+      credential({
+        athlete: {
+          id: 'ath-2',
+          fullName: 'John Smith',
+          documentId: 'X1234567',
+          birthDate: '1990-06-15',
+          photoUrl: null,
+        },
+      }),
+    )
+    renderPage()
+
+    expect(await screen.findByText('John Smith')).toBeTruthy()
+    expect(screen.getByText('ID / Pasaporte')).toBeTruthy()
+    expect(screen.getByText('X1234567')).toBeTruthy()
   })
 
   it('muestra la foto del atleta cuando la verificación la trae', async () => {

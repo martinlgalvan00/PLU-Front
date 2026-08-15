@@ -29,9 +29,14 @@ function readCssColor(name, fallback) {
   return value || fallback
 }
 
-function buildBrickVisual() {
-  const isLight = typeof document !== 'undefined'
+function currentThemeIsLight() {
+  return typeof document !== 'undefined'
     && document.documentElement.getAttribute('data-theme') === 'light'
+}
+
+// `isLight` decide la variante ('default'/'dark') que arma el resto de los
+// customVariables.
+function buildBrickVisual(isLight) {
   return {
     font: BRICK_FONT,
     hideFormTitle: true,
@@ -48,6 +53,9 @@ function buildBrickVisual() {
         outlinePrimaryColor: readCssColor('--color-border', isLight ? 'rgba(15, 17, 23, 0.10)' : 'rgba(255, 255, 255, 0.14)'),
         outlineSecondaryColor: readCssColor('--color-border-subtle', isLight ? 'rgba(15, 17, 23, 0.06)' : 'rgba(255, 255, 255, 0.08)'),
         errorColor: readCssColor('--color-danger-text', isLight ? '#b42318' : '#ff8b86'),
+        // Sin esto, el badge "Cuotas sin interés"/"Cuotas disponibles" cae al
+        // verde por defecto de Mercado Pago, un acento ajeno a la paleta PLU.
+        successColor: readCssColor('--color-success-text', '#2d7a4a'),
         borderRadiusSmall: '6px',
         borderRadiusMedium: '10px',
         borderRadiusLarge: '10px',
@@ -222,7 +230,25 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const [preferenceReady, setPreferenceReady] = useState(() => (
     isRealMercadoPagoPreferenceId(resolvePreferenceId(order))
   ))
-  const [brickVisual] = useState(buildBrickVisual)
+  // Si crear la preferencia embebida falla dos veces seguidas, el checkout de
+  // tarjeta sigue funcionando (fallback silencioso a `PAYMENT_METHODS`), pero
+  // la opción de cuenta MP se pierde sin que nadie se entere. Este estado le
+  // da a la persona una salida visible en vez de un botón que simplemente
+  // nunca aparece.
+  const [walletPreferenceError, setWalletPreferenceError] = useState(false)
+  const [preferenceRetrying, setPreferenceRetrying] = useState(false)
+  const [preferenceRetryNonce, setPreferenceRetryNonce] = useState(0)
+  // Sin memoizar a propósito: el Brick real tarda en montar (la preferencia
+  // embebida reintenta con espera antes de asentarse — ver el efecto de
+  // `preferenceReady` más abajo), y ese margen es lo que deja que
+  // `readCssColor` lea los tokens ya resueltos por el CSS del tema en vez de
+  // los del primer render, cuando la hoja de estilos puede no estar aplicada
+  // todavía. Memoizar por tema congelaba esa primera lectura para siempre.
+  // El objeto es liviano; recalcularlo en cada render no pesa, y el Brick de
+  // Mercado Pago solo lee `customization` al montar (no se reconstruye si
+  // cambia en un render posterior), así que esto no dispara remontajes ni
+  // pierde una tarjeta a medio completar.
+  const brickVisual = buildBrickVisual(currentThemeIsLight())
   const brickRef = useRef(null)
   const reactId = useId().replaceAll(':', '')
   const orderId = order?.paymentId ?? order?.orderId
@@ -303,33 +329,61 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     }
 
     let cancelled = false
-    void createPreferenceRequest({
-      paymentId: orderId,
-      orderAccessToken: order?.orderAccessToken,
-    })
-      .then((response) => {
-        const preferenceId = response?.preference?.id ?? response?.paymentOrder?.preferenceId ?? null
-        if (!cancelled && isRealMercadoPagoPreferenceId(preferenceId)) {
-          setWalletPreferenceId(preferenceId)
-        }
-      })
-      .catch((preferenceError) => {
-        if (!env.appProduction) {
-          console.info('[mp-checkout] no se pudo preparar la preferencia embebida', {
-            orderId,
-            status: preferenceError?.status,
-            message: preferenceError?.message,
+    setWalletPreferenceError(false)
+    setPreferenceRetrying(true)
+
+    // Un solo reintento inmediato antes de rendirse: cubre el hipo transitorio
+    // típico (red, cold start) sin hacer esperar de más a quien sí puede pagar
+    // con tarjeta mientras tanto (`preferenceReady` se cumple igual al final).
+    async function loadPreference() {
+      const maxAttempts = 2
+      let lastError = null
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        if (cancelled) return
+        try {
+          const response = await createPreferenceRequest({
+            paymentId: orderId,
+            orderAccessToken: order?.orderAccessToken,
           })
+          const preferenceId = response?.preference?.id ?? response?.paymentOrder?.preferenceId ?? null
+          if (!cancelled && isRealMercadoPagoPreferenceId(preferenceId)) {
+            setWalletPreferenceId(preferenceId)
+          }
+          lastError = null
+          break
+        } catch (preferenceError) {
+          lastError = preferenceError
+          if (attempt < maxAttempts) await new Promise((resolve) => setTimeout(resolve, 1500))
         }
-      })
-      .finally(() => {
-        if (!cancelled) setPreferenceReady(true)
-      })
+      }
+      if (cancelled) return
+      if (lastError) {
+        setWalletPreferenceError(true)
+        void reportPaymentClientEvent({
+          paymentOrderId: orderId,
+          orderAccessToken: order?.orderAccessToken,
+          stage: 'preference',
+          errorCode: lastError?.name ?? 'preference_creation_error',
+          message: lastError?.message ?? 'No se pudo preparar la preferencia embebida.',
+        }).catch(() => {
+          // La telemetria es best-effort: no debe tapar el estado de error visible.
+        })
+      }
+      setPreferenceRetrying(false)
+      setPreferenceReady(true)
+    }
+
+    void loadPreference()
 
     return () => {
       cancelled = true
     }
-  }, [isMock, isSubscription, order?.orderAccessToken, orderId, realPreferenceId])
+  }, [isMock, isSubscription, order?.orderAccessToken, orderId, preferenceRetryNonce, realPreferenceId])
+
+  const retryWalletPreference = useCallback(() => {
+    setWalletPreferenceError(false)
+    setPreferenceRetryNonce((current) => current + 1)
+  }, [])
 
   // Paso del embudo "abrio el checkout". Es el eslabon que faltaba entre ver la
   // pantalla de afiliacion e intentar pagar: sin el, el informe no podia
@@ -663,12 +717,23 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       {!result && !isMock && (
         <div className="mp-embedded-checkout__real-options">
           {canRenderWallet ? (
-            <div className="mp-embedded-checkout__wallet-panel">
-              <div className="mp-embedded-checkout__option-heading">
-                <strong>{t('payments.walletTitle')}</strong>
-                <span>{t('payments.walletLead')}</span>
-              </div>
-              <PaymentBrickErrorBoundary key={`wallet-${brickVersion}`} onError={handleRenderError}>
+            // El Wallet Brick vive en su propio widget del SDK (no se puede
+            // reescribir su HTML interno), pero se envuelve con el mismo
+            // marco visual que los selectores del Payment Brick de abajo
+            // para que ambos se lean como una sola lista de medios de pago,
+            // no como dos bloques separados.
+            <PaymentBrickErrorBoundary key={`wallet-${brickVersion}`} onError={handleRenderError}>
+              <div className="mp-embedded-checkout__wallet-tile">
+                <div className="mp-embedded-checkout__wallet-tile-copy">
+                  <strong>{t('payments.walletTitle')}</strong>
+                  {/* El salto a Mercado Pago no es opcional: el saldo de la
+                      cuenta requiere iniciar sesión ahí. Anunciarlo antes
+                      evita que la persona crea que perdió el checkout. */}
+                  <span>
+                    <ExternalLink size={12} aria-hidden />
+                    {t('payments.walletRedirectNote')}
+                  </span>
+                </div>
                 <div className="mp-embedded-checkout__wallet">
                   <Wallet
                     key={`wallet-brick-${brickVersion}`}
@@ -680,20 +745,25 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
                     onError={handleRenderError}
                   />
                 </div>
-              </PaymentBrickErrorBoundary>
-              {/* El salto a Mercado Pago no es opcional: el saldo de la cuenta
-                  requiere iniciar sesión ahí. Anunciarlo antes evita que la
-                  persona crea que perdió el checkout. */}
-              <p className="mp-embedded-checkout__wallet-note">
-                <ExternalLink size={13} aria-hidden />
-                {t('payments.walletRedirectNote')}
-              </p>
-            </div>
-          ) : null}
-
-          {canRenderWallet ? (
-            <div className="mp-embedded-checkout__divider" role="separator">
-              <span>{t('payments.cardOptionDivider')}</span>
+              </div>
+            </PaymentBrickErrorBoundary>
+          ) : walletPreferenceError ? (
+            // No bloquea el pago con tarjeta (sigue debajo, intacto): solo
+            // avisa que la cuenta de Mercado Pago no se pudo ofrecer esta vez
+            // y ofrece reintentarlo, en vez de desaparecer sin explicación.
+            <div className="mp-embedded-checkout__wallet-tile mp-embedded-checkout__wallet-tile--notice">
+              <div className="mp-embedded-checkout__wallet-tile-copy">
+                <strong>{t('payments.walletUnavailableTitle')}</strong>
+                <span>{t('payments.walletUnavailableNote')}</span>
+              </div>
+              <button
+                type="button"
+                className="btn btn--small btn--outline"
+                onClick={retryWalletPreference}
+                disabled={preferenceRetrying}
+              >
+                <RefreshCw size={14} aria-hidden /> {t('payments.retryWalletPreference')}
+              </button>
             </div>
           ) : null}
 
@@ -716,7 +786,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
                   />
                 ) : (
                   <Payment
-                    key={brickVersion}
+                    // Si un reintento de Wallet recupera la preferencia después de que
+                    // este Brick ya montó con el fallback (medios sin filtrar), hay que
+                    // remontarlo — el SDK no reconfigura `paymentMethods` en caliente,
+                    // y sin esto "Mercado Pago" quedaría ofrecido dos veces.
+                    key={`${brickVersion}-${canRenderWallet}`}
                     id={`payment-brick-${reactId}-${brickVersion}`}
                     initialization={initialization}
                     customization={paymentCustomization}

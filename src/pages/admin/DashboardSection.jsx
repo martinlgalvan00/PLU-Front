@@ -57,6 +57,18 @@ const QUICK_ACTIONS = [
   { section: 'memberships', labelKey: 'admin.nav.memberships' },
 ]
 
+const LAUNCH_SOURCE_LABEL_KEYS = {
+  pitbull_page: 'admin.dashboard.launchInterest.sources.pitbullPage',
+  launch_teaser: 'admin.dashboard.launchInterest.sources.launchTeaser',
+}
+
+function humanizeLaunchSource(source, t) {
+  const labelKey = LAUNCH_SOURCE_LABEL_KEYS[source]
+  if (labelKey) return t(labelKey)
+  const words = String(source ?? '').trim().replace(/[_-]+/g, ' ')
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : t('admin.dashboard.launchInterest.unknownSource')
+}
+
 function mapMetrics(items, t, locale) {
   return items.map((item) => {
     let hint = null
@@ -252,7 +264,17 @@ function RecentAthletesCard({ athletes, locale, onNavigate, onSelectAthlete, t }
               onClick={() => onSelectAthlete?.(athlete.id)}
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
-                {initials(athlete.fullName)}
+                {athlete.photoUrl ? (
+                  <img
+                    className="admin-ops__recent-avatar-photo"
+                    src={athlete.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : null}
+                <span>{initials(athlete.fullName)}</span>
               </span>
               <span className="admin-ops__recent-body">
                 <strong>{athlete.fullName}</strong>
@@ -340,7 +362,17 @@ function RecentMembershipsCard({
               onClick={() => onSelectAthlete?.(membership.athleteId)}
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
-                {initials(membership.fullName)}
+                {membership.photoUrl ? (
+                  <img
+                    className="admin-ops__recent-avatar-photo"
+                    src={membership.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : null}
+                <span>{initials(membership.fullName)}</span>
               </span>
               <span className="admin-ops__recent-body">
                 <strong>{membership.fullName}</strong>
@@ -419,7 +451,17 @@ function RecentRegistrationsCard({ registrations, locale, onNavigate, onSelectAt
               onClick={() => onSelectAthlete?.(registration.athleteId)}
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
-                {initials(registration.fullName)}
+                {registration.photoUrl ? (
+                  <img
+                    className="admin-ops__recent-avatar-photo"
+                    src={registration.photoUrl}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                ) : null}
+                <span>{initials(registration.fullName)}</span>
               </span>
               <span className="admin-ops__recent-body">
                 <strong>{registration.fullName}</strong>
@@ -484,6 +526,7 @@ function LeaderboardCard({
 }
 
 function LaunchInterestWidget() {
+  const { t } = useI18n()
   const [summary, setSummary] = useState([])
   const [loading, setLoading] = useState(true)
   const [notifying, setNotifying] = useState(null)
@@ -530,46 +573,52 @@ function LaunchInterestWidget() {
     <section className="admin-ops__recent" aria-label="Lanzamientos">
       <header className="admin-ops__chart-head">
         <div>
-          <p className="admin-ops__eyebrow">Waitlists & Lanzamientos</p>
-          <h3>Interesados Pendientes</h3>
-          <p>Usuarios esperando la apertura de inscripciones o ventas.</p>
+          <p className="admin-ops__eyebrow">{t('admin.dashboard.launchInterest.eyebrow')}</p>
+          <h3>{t('admin.dashboard.launchInterest.title')}</h3>
+          <p>{t('admin.dashboard.launchInterest.subtitle')}</p>
         </div>
       </header>
       <ul className="admin-ops__recent-list">
-        {summary.map((item) => (
-          <li key={item.source} className="admin-ops__recent-item admin-ops__recent-item--actionable">
-            <div className="admin-ops__recent-open" style={{ cursor: 'default' }}>
-              <span className="admin-ops__recent-avatar" aria-hidden>
-                {item.source.charAt(0).toUpperCase()}
-              </span>
-              <span className="admin-ops__recent-body">
-                <strong>{item.source}</strong>
-                <span>Total: {item.total}</span>
-              </span>
-              <span className="admin-ops__recent-date">
-                <StatusBadge value={item.pending > 0 ? 'pendiente' : 'aprobado'} />
-                <span>{item.pending} sin notificar</span>
-              </span>
-            </div>
-            {item.pending > 0 ? (
-              <AdminIconButton
-                icon={Send}
-                label={`Notificar ${item.pending}`}
-                onClick={() => {
-                  setNotifyError('')
-                  setConfirmSource(item.source)
-                }}
-                disabled={notifying === item.source}
-                variant="primary"
-              />
-            ) : null}
-          </li>
-        ))}
+        {summary.map((item) => {
+          const sourceLabel = humanizeLaunchSource(item.source, t)
+          return (
+            <li key={item.source} className="admin-ops__recent-item admin-ops__recent-item--actionable">
+              <div className="admin-ops__recent-open admin-ops__recent-open--static">
+                <span className="admin-ops__recent-avatar" aria-hidden>
+                  {sourceLabel.charAt(0).toUpperCase()}
+                </span>
+                <span className="admin-ops__recent-body">
+                  <strong>{sourceLabel}</strong>
+                  <span>{t('admin.dashboard.launchInterest.total', { count: item.total })}</span>
+                </span>
+                <span className="admin-ops__recent-date">
+                  <StatusBadge value={item.pending > 0 ? 'pendiente' : 'aprobado'} />
+                  <span>{t('admin.dashboard.launchInterest.pending', { count: item.pending })}</span>
+                </span>
+              </div>
+              {item.pending > 0 ? (
+                <AdminIconButton
+                  icon={Send}
+                  label={t('admin.dashboard.launchInterest.notify', {
+                    count: item.pending,
+                    source: sourceLabel,
+                  })}
+                  onClick={() => {
+                    setNotifyError('')
+                    setConfirmSource(item.source)
+                  }}
+                  disabled={notifying === item.source}
+                  variant="primary"
+                />
+              ) : null}
+            </li>
+          )
+        })}
       </ul>
 
       {confirmSource ? (
         <LaunchInterestConfirmDialog
-          source={confirmSource}
+          sourceLabel={humanizeLaunchSource(confirmSource, t)}
           pending={summary.find((item) => item.source === confirmSource)?.pending ?? 0}
           busy={notifying === confirmSource}
           error={notifyError}
@@ -581,7 +630,7 @@ function LaunchInterestWidget() {
   )
 }
 
-function LaunchInterestConfirmDialog({ source, pending, busy, error, onCancel, onConfirm }) {
+function LaunchInterestConfirmDialog({ sourceLabel, pending, busy, error, onCancel, onConfirm }) {
   const panelRef = useAdminModal(onCancel)
 
   return createPortal(
@@ -605,7 +654,7 @@ function LaunchInterestConfirmDialog({ source, pending, busy, error, onCancel, o
         </span>
         <div className="admin-user-delete-dialog__copy">
           <h2 id="launch-interest-confirm-title">Enviar aviso de lanzamiento</h2>
-          <p>{`¿Enviar aviso a los ${pending} pendientes de "${source}"?`}</p>
+          <p>{`¿Enviar aviso a los ${pending} pendientes de "${sourceLabel}"?`}</p>
           {error ? (
             <p className="admin-user-delete-dialog__error" role="alert">
               {error}
@@ -849,16 +898,8 @@ export default function DashboardSection({
           <div className="admin-ops__work">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
-                <div className="admin-ops__work-title-row">
-                  <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
-                  {hasWork ? (
-                    <span className="admin-ops__work-count" aria-hidden>
-                      {pendingActions.length || finance.pendingCount}
-                    </span>
-                  ) : null}
-                </div>
-                <h3>{t('admin.dashboard.workTitle')}</h3>
-                <p>{workSubtitle}</p>
+                <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
+                <h3>{workSubtitle}</h3>
               </div>
               {hasWork ? (
                 <button

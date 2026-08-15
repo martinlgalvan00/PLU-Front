@@ -34,6 +34,7 @@ export function createSupabaseAuditRepository(
       search,
       limit = 100,
       before,
+      beforeId,
     } = {}) {
       let query = client
         .from('operational_audit_events')
@@ -42,6 +43,10 @@ export function createSupabaseAuditRepository(
         )
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false })
+        // Desempate determinístico: una transacción audita varios efectos con
+        // el mismo `now()`, así que el orden por fecha sola no es total y la
+        // página siguiente podría saltear filas empatadas.
+        .order('id', { ascending: false })
         .limit(limit)
 
       if (action) query = query.eq('action', action)
@@ -56,8 +61,15 @@ export function createSupabaseAuditRepository(
       if (status) query = query.eq('status', status)
       // Paginación por cursor y no por offset: la tabla crece por el final y
       // un offset se corre solo cuando entra un registro nuevo mientras se
-      // pagina.
-      if (before) query = query.lt('created_at', before)
+      // pagina. Con `beforeId` el cursor es compuesto: excluye lo ya visto
+      // por fecha E id, sin perder las filas que comparten timestamp.
+      if (before && beforeId) {
+        query = query.or(
+          `created_at.lt.${before},and(created_at.eq.${before},id.lt.${beforeId})`,
+        )
+      } else if (before) {
+        query = query.lt('created_at', before)
+      }
       if (search) query = query.or(`entity_id.ilike.%${search}%,actor_id.ilike.%${search}%`)
 
       // Sin `await` el builder llega crudo a assertSupabaseResult, `data` queda

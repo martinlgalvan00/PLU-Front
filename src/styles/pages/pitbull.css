@@ -6897,24 +6897,73 @@
 }
 
 .pitbull-recent__row {
-  align-items: baseline;
+  align-items: center;
   border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   display: flex;
-  gap: 16px;
-  justify-content: space-between;
-  padding: 14px 0;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 0;
+}
+
+.pitbull-recent__portrait {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-brand-celeste) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-brand-celeste) 28%, transparent);
+  border-radius: 50%;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  height: 40px;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  width: 40px;
+}
+
+.pitbull-recent__portrait img {
+  background: var(--color-bg-surface);
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+}
+
+.pitbull-recent__identity {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
 }
 
 .pitbull-recent__name {
   color: var(--color-text-primary);
-  font-size: 14.5px;
-  font-weight: 500;
-  letter-spacing: -0.012em;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.25;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pitbull-recent__gym {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pitbull-recent__time {
   color: var(--color-text-muted);
+  margin-left: auto;
+  min-width: max-content;
   flex-shrink: 0;
   font-family: var(--font-display);
   font-size: 11px;
