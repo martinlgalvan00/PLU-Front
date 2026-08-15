@@ -311,6 +311,7 @@ export default {
     statusHQ: 'Headquarters',
     statusHQValue: 'Argentina',
     statusLive: 'Pitbull Classic registration opening soon',
+    statusRegistrationOpen: 'Registration is open',
     stat2026: '2026',
     stat2026Label: 'Current season',
     statPluUsa: 'PLU USA',
