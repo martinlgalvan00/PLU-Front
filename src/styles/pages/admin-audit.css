@@ -1312,3 +1312,303 @@
     width: 152px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Detalle de un evento de auditoría
+ * ---------------------------------------------------------------------------
+ *
+ * La tabla mostraba el mensaje del error y nada más. Acá se abre lo que ya se
+ * venía guardando y no se podía ver: código, status HTTP, archivo y línea de
+ * origen, stack completo, cadena de causas, y lo que la persona venía haciendo
+ * antes de la falla.
+ *
+ * El panel es una lectura larga, no un formulario: ancho de lectura acotado,
+ * bloques separados por regla y no por cards anidadas, y todo lo monoespaciado
+ * con su propio scroll para que un stack largo no empuje el layout.
+ */
+
+.audit-detail__panel {
+  max-width: 860px;
+  width: min(860px, 100%);
+}
+
+.audit-detail__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.audit-detail__block + .audit-detail__block {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-lg);
+}
+
+.audit-detail__block h3 {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: flex;
+  font-size: 14px;
+  gap: 8px;
+  margin: 0 0 var(--space-sm);
+}
+
+.audit-detail__block h4 {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  margin: var(--space-md) 0 4px;
+}
+
+/* Hechos duros en dos columnas; colapsan a una cuando no entran. */
+.audit-detail__facts {
+  display: grid;
+  gap: var(--space-xs) var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 0;
+}
+
+.audit-detail__facts dt {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.audit-detail__facts dd {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.audit-detail__facts code,
+.audit-detail__origin {
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  padding: 1px 5px;
+}
+
+/* El mensaje del error lidera el bloque: es lo primero que se lee. */
+.audit-detail__message {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 var(--space-sm);
+  text-wrap: pretty;
+}
+
+.audit-detail__block--failure .audit-detail__message {
+  border-left: 2px solid var(--color-danger-text);
+  padding-left: var(--space-sm);
+}
+
+.audit-detail__why p,
+.audit-detail__causes li {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0 0 4px;
+  text-wrap: pretty;
+}
+
+.audit-detail__causes ol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Sangría creciente: la causa más profunda es la que está más adentro. */
+.audit-detail__causes li + li {
+  border-left: 1px solid var(--color-border-subtle);
+  margin-left: 10px;
+  padding-left: 10px;
+}
+
+.audit-detail__causes code {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  margin-right: 6px;
+}
+
+.audit-detail__stack pre,
+.audit-detail__raw pre {
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--space-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.audit-detail__stack summary,
+.audit-detail__raw summary {
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.audit-detail__axis + .audit-detail__axis {
+  margin-top: var(--space-md);
+}
+
+.audit-detail__axis-hint {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0 0 6px;
+  text-wrap: pretty;
+}
+
+.audit-detail__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.audit-detail__timeline li {
+  align-items: center;
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 8px;
+  padding: 5px 8px;
+}
+
+.audit-detail__timeline li:nth-child(odd) {
+  background: var(--color-bg-secondary);
+}
+
+/* El evento que se está mirando, marcado dentro de su propia cronología. */
+.audit-detail__timeline li.is-current {
+  box-shadow: inset 2px 0 0 var(--color-brand-celeste);
+}
+
+.audit-detail__timeline time {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.audit-detail__timeline-entity {
+  color: var(--color-text-secondary);
+}
+
+/*
+ * El error baja a su propia línea, pero después del botón: sin el `order`, un
+ * `flex-basis: 100%` en medio del renglón empujaba "Abrir" a una tercera línea
+ * y dejaba un hueco vertical en el medio de la fila.
+ */
+.audit-detail__timeline-error {
+  color: var(--color-danger-text);
+  flex-basis: 100%;
+  font-size: 11px;
+  line-height: 1.4;
+  order: 2;
+}
+
+.audit-detail__timeline button {
+  background: none;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  font-size: 11px;
+  margin-left: auto;
+  /* Target táctil: la fila es densa, pero el área de toque no puede serlo. */
+  min-height: 44px;
+  order: 1;
+  padding: 0 4px;
+}
+
+.audit-detail__empty {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.audit-detail__error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+}
+
+.audit-detail__footer {
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-md);
+}
+
+/* La fila de la tabla abre el detalle: tiene que verse accionable. */
+.admin-data-table--audit tbody tr {
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .audit-detail__timeline li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .audit-detail__timeline button {
+    margin-left: 0;
+    min-height: 44px;
+  }
+}
+
+/*
+ * Diagnóstico del catálogo de fallas: título, causa y pasos concretos. Ya
+ * estaba escrito en `paymentFailureCatalog.js` y el panel nunca lo mostró.
+ */
+.audit-detail__diagnosis-title {
+  align-items: center;
+  color: var(--color-text-primary) !important;
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.audit-detail__tag {
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-wide);
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+.audit-detail__tag--ok {
+  color: var(--color-success-text);
+}
+
+.audit-detail__fix {
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  gap: 4px;
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.audit-detail__fix li {
+  text-wrap: pretty;
+}

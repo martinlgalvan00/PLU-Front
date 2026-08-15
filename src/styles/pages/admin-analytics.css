@@ -131,6 +131,19 @@
   margin: 4px 0 0;
 }
 
+/*
+ * Aclaración al pie de una métrica cuyo número no se explica solo. La usa
+ * "Sesiones con atención", que sin el criterio a la vista es un valor absoluto
+ * sin referencia: 341 no dice nada hasta saber sobre cuántas y bajo qué corte.
+ */
+.admin-analytics__metric-hint {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  margin: 4px 0 0;
+  text-wrap: pretty;
+}
+
 .admin-analytics__metric-delta {
   font-size: 11px;
   font-variant-numeric: tabular-nums;

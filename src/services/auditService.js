@@ -124,7 +124,118 @@ function summarize(metadata) {
   )
 }
 
+/**
+ * Campos de metadata que ya no hace falta repetir en el volcado crudo del
+ * detalle: `describeAuditError` los sube a bloques con nombre propio.
+ */
+const ERROR_METADATA_FIELDS = new Set([
+  'error', 'diagnosis', 'reason', 'statusDetail', 'errorCode', 'stage', 'entrypoint', 'requestId',
+])
+
+/**
+ * Cadena de causas de un error, de la más externa a la más profunda.
+ *
+ * Un `HttpError: no se pudo cobrar` con `cause` de red es dos hechos distintos:
+ * el que ve la persona y el que hay que arreglar. Aplanarlos a un solo mensaje
+ * pierde justo el segundo.
+ */
+function causeChain(error, depth = 0) {
+  // Tope de profundidad: una cadena circular colgaría el render del panel.
+  if (!error || typeof error !== 'object' || depth > 5) return []
+  const current = {
+    name: typeof error.name === 'string' ? error.name : null,
+    message: typeof error.message === 'string' ? error.message : null,
+    code: error.code ?? null,
+    stack: typeof error.stack === 'string' ? error.stack : null,
+  }
+  const rest = error.cause ? causeChain(error.cause, depth + 1) : []
+  return current.message || current.stack ? [current, ...rest] : rest
+}
+
+/**
+ * Diagnóstico de `paymentFailureCatalog.js`. No es texto: trae título, causa en
+ * castellano, pasos concretos de arreglo, alcance y si conviene reintentar.
+ *
+ * Aplastarlo con `String(...)` daba "[object Object]" — justamente el campo que
+ * contesta "por qué falló" y "qué hago con esto" quedaba ilegible.
+ */
+function normalizeDiagnosis(value) {
+  if (!value) return null
+  if (typeof value === 'string') return { title: null, cause: value, fix: [], code: null }
+  if (typeof value !== 'object') return null
+  return {
+    title: typeof value.title === 'string' ? value.title : null,
+    cause: typeof value.cause === 'string' ? value.cause : null,
+    fix: Array.isArray(value.fix) ? value.fix.filter((step) => typeof step === 'string') : [],
+    code: value.code ?? null,
+    scope: value.scope ?? null,
+    severity: value.severity ?? null,
+    // `false` es información y no ausencia: dice que reintentar no sirve.
+    retryable: typeof value.retryable === 'boolean' ? value.retryable : null,
+  }
+}
+
+/**
+ * Todo lo que hace falta para diagnosticar una falla, sacado de la metadata.
+ *
+ * El backend ya venía guardando código, status HTTP, archivo y línea de origen,
+ * stack completo y cadena de causas; la fila de la tabla se quedaba con
+ * `error.message` y el resto no se podía ver desde ningún lado.
+ */
+export function describeAuditError(metadata) {
+  if (!metadata || typeof metadata !== 'object') return null
+
+  const raw = metadata.error
+  const error = raw !== null && typeof raw === 'object' ? raw : null
+  // `email.bounced` guarda `error` como texto plano, no como objeto.
+  const message = error
+    ? (typeof error.message === 'string' ? error.message : null)
+    : (typeof raw === 'string' && raw.trim() ? raw.trim() : null)
+
+  const origin = error?.origin && typeof error.origin === 'object' ? error.origin : null
+  const chain = causeChain(error?.cause)
+  const diagnosis = normalizeDiagnosis(metadata.diagnosis)
+
+  const detail = {
+    message,
+    name: error?.name ?? null,
+    code: error?.code ?? metadata.errorCode ?? null,
+    httpStatus: Number.isFinite(Number(error?.status)) ? Number(error.status) : null,
+    provider: error?.provider ?? null,
+    stack: typeof error?.stack === 'string' ? error.stack : null,
+    origin: origin
+      ? {
+        file: origin.file ?? null,
+        line: origin.line ?? null,
+        column: origin.column ?? null,
+        function: origin.function ?? null,
+      }
+      : null,
+    causes: chain,
+    // Por qué falló, en el lenguaje del negocio y no del stack.
+    diagnosis,
+    reason: metadata.reason ?? null,
+    statusDetail: metadata.statusDetail ?? null,
+    stage: metadata.stage ?? null,
+    entrypoint: metadata.entrypoint ?? null,
+    requestId: metadata.requestId ?? null,
+  }
+
+  const hasSomething = Object.entries(detail).some(([key, value]) =>
+    key === 'causes' ? value.length > 0 : value != null && value !== '')
+  return hasSomething ? detail : null
+}
+
+/** Metadata que no quedó cubierta por los bloques con nombre propio. */
+export function residualMetadata(metadata) {
+  if (!metadata || typeof metadata !== 'object') return {}
+  return Object.fromEntries(
+    Object.entries(metadata).filter(([key]) => !ERROR_METADATA_FIELDS.has(key)),
+  )
+}
+
 export function normalizeAuditEntry(row) {
+  const metadata = row.metadata ?? {}
   return {
     id: row.id,
     source: row.source ?? 'domain',
@@ -135,10 +246,29 @@ export function normalizeAuditEntry(row) {
     actorId: row.actor_id ?? null,
     status: row.status ?? null,
     severity: row.severity ?? null,
-    metadata: row.metadata ?? {},
-    summary: summarize(row.metadata),
+    metadata,
+    summary: summarize(metadata),
+    errorDetail: describeAuditError(metadata),
     tone: row.severity ?? auditActionTone(row.action),
     createdAt: row.created_at,
+  }
+}
+
+/**
+ * Evento completo con lo que pasó alrededor: la misma llamada HTTP, lo que la
+ * persona venía haciendo antes, lo que hizo después y la historia de la entidad.
+ */
+export async function fetchAuditEventContext(id) {
+  const { event, context } = await apiGet(`/api/audit/${encodeURIComponent(id)}/context`)
+  const list = (rows) => (Array.isArray(rows) ? rows.map(normalizeAuditEntry) : [])
+  return {
+    event: normalizeAuditEntry(event),
+    context: {
+      request: list(context?.request),
+      actorBefore: list(context?.actorBefore),
+      actorAfter: list(context?.actorAfter),
+      entity: list(context?.entity),
+    },
   }
 }
 

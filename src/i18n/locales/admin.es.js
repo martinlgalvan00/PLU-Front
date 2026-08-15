@@ -1155,6 +1155,54 @@ export default {
     proofAttached: 'Comprobante',
     proofMissing: 'Sin adjuntar',
   },
+  auditDetail: {
+    eyebrow: 'Evento de auditoría',
+    title: 'Detalle del evento',
+    open: 'Abrir',
+    loading: 'Cargando el evento y su contexto…',
+    loadError: 'No se pudo cargar el detalle del evento.',
+    closeOverlay: 'Cerrar el detalle',
+    copy: 'Copiar el evento completo',
+    copied: 'Copiado',
+    copyError: 'No se pudo copiar al portapapeles.',
+
+    whatTitle: 'Qué pasó',
+    factEntity: 'Entidad',
+    factActor: 'Actor',
+    factSeverity: 'Severidad',
+    factRequestId: 'ID de request',
+
+    failureTitle: 'Qué falló',
+    factCode: 'Código',
+    factHttp: 'Status HTTP',
+    factErrorName: 'Tipo de error',
+    factStage: 'Etapa',
+    factEntrypoint: 'Punto de entrada',
+    factProvider: 'Proveedor',
+
+    whyTitle: 'Por qué falló',
+    fixTitle: 'Cómo se resuelve',
+    retryable: 'Reintentable',
+    notRetryable: 'Reintentar no sirve',
+    whereTitle: 'Dónde falló',
+    causesTitle: 'Cadena de causas',
+    stackTitle: 'Stack trace completo',
+
+    contextTitle: 'Qué venía pasando',
+    axisRequest: 'En la misma operación',
+    axisRequestHint:
+      'Todo lo que ocurrió dentro de la misma llamada al servidor. Es la cadena real de causas, no una coincidencia de horario.',
+    axisBefore: 'Qué hizo antes esta persona',
+    axisBeforeHint: 'Sus últimas acciones en las 24 horas previas, de la más vieja a la más reciente.',
+    axisBeforeEmpty: 'No hay acciones previas de este actor en las últimas 24 horas.',
+    axisAfter: 'Qué hizo después',
+    axisEntity: 'Historia de esta entidad',
+    axisEntityHint: 'Todo lo que le pasó a este mismo objeto, sin importar quién lo haya tocado.',
+    axisEmpty: 'Sin eventos relacionados.',
+
+    rawTitle: 'Metadata completa del evento',
+  },
+
   paymentTrace: {
     open: 'Ver traza del cobro',
     eyebrow: 'Auditoría',
@@ -1716,6 +1764,10 @@ export default {
     alertsTitle: 'Alertas operativas',
     alertsResolve: 'Revisar y resolver',
     usageLoading: 'Cargando recorridos…',
+    summary:
+      '{{sessions}} sesiones · {{activeTime}} de atención media, sobre {{duration}} con la pestaña abierta · {{interactions}} interacciones registradas.',
+    summaryNoActiveTime:
+      '{{sessions}} sesiones · {{duration}} con la pestaña abierta · {{interactions}} interacciones registradas. El tiempo de atención real se mide desde que se publicó la medición, así que este período todavía no lo tiene.',
     metricsAria: 'Cifras del período',
     metrics: {
       visitors: 'Visitantes únicos',
@@ -1725,7 +1777,9 @@ export default {
       sessions: 'Sesiones',
       duration: 'Duración promedio',
       interactions: 'Interacciones',
+      engaged: 'Sesiones con atención',
     },
+    metricsEngagedHint: '{{rate}} de las sesiones · 10s a la vista, 2 páginas o una conversión',
     metricsDeltaAria: '{{value}} contra el período anterior',
     metricsDeltaCaption: 'vs. período anterior',
     funnelTitle: 'Embudo de afiliación',
@@ -1733,7 +1787,7 @@ export default {
     funnelStepRate: '{{rate}} del paso anterior · {{dropoff}} se cayeron acá',
     funnelBarAlt: '{{rate}} del total que entró al embudo',
     funnelSteps: {
-      landingView: 'Vio la portada',
+      landingView: 'Entró al sitio',
       membershipView: 'Vio afiliación',
       checkoutOpened: 'Abrió el checkout',
       paymentSubmitted: 'Envió el pago',

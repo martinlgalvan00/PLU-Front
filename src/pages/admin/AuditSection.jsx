@@ -4,6 +4,7 @@ import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AuditEventBody from '../../components/admin/AuditEventBody.jsx'
+import AuditEventDialog from '../../components/admin/AuditEventDialog.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
@@ -86,6 +87,7 @@ export default function AuditSection() {
   // errores" (el tono sale de `severity` o de un mapa de acción → tono en el
   // browser, no es una columna filtrable). Se aplica sobre lo ya cargado.
   const [onlyIncidents, setOnlyIncidents] = useState(false)
+  const [detailEventId, setDetailEventId] = useState(null)
 
   const filters = useMemo(
     () => ({
@@ -304,7 +306,12 @@ export default function AuditSection() {
               <AdminIconButton
                 icon={Route}
                 label={t('admin.paymentTrace.open')}
-                onClick={() => setTraceOrderId(row.entityId)}
+                // La fila entera abre el detalle del evento; sin esto, pedir la
+                // traza de la orden abriría además el diálogo de al lado.
+                onClick={(clickEvent) => {
+                  clickEvent.stopPropagation()
+                  setTraceOrderId(row.entityId)
+                }}
                 variant="ghost"
               />
             ) : null}
@@ -498,6 +505,10 @@ export default function AuditSection() {
                 ? t('admin.audit.onlyIncidentsEmpty')
                 : t('admin.audit.empty')
             }
+            // Toda la fila abre el detalle: el error completo, el stack y lo que
+            // la persona venía haciendo antes. La celda mostraba el mensaje y
+            // nada más, y el resto había que ir a buscarlo a la base.
+            onRowClick={(row) => setDetailEventId(row.id)}
           />
           {cursor ? (
             <div className="audit-loadmore">
@@ -513,6 +524,10 @@ export default function AuditSection() {
           ) : null}
         </>
       )}
+
+      {detailEventId ? (
+        <AuditEventDialog eventId={detailEventId} onClose={() => setDetailEventId(null)} />
+      ) : null}
 
       {traceOrderId ? (
         <PaymentTraceDialog orderId={traceOrderId} onClose={() => setTraceOrderId(null)} />
