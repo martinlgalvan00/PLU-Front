@@ -6,21 +6,33 @@ import {
   buildCredentialUrl,
   generateCredentialQr,
 } from '../../lib/credentialQr.js'
+import { inlineImageAsDataUrl } from '../../services/eventCardService.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 /**
  * EventShareCard — PLU ARG
  *
- * Elemento HTML/CSS 1080×1080 que se captura como PNG para compartir en redes.
- * Se monta fuera del viewport cuando está en modo "capture"; en modo "preview"
- * se escala para entrar en el modal.
+ * Elemento HTML/CSS 1080×1080 (o 1080×1920) que se captura como PNG para
+ * compartir en redes. Se monta fuera del viewport cuando está en modo
+ * "capture"; en modo "preview" se escala para entrar en el modal.
+ *
+ * Composición: póster personal, no comprobante. Una sola familia con dos
+ * materiales según el atleta tenga foto o no —
+ *
+ *   · Con foto  → retrato a sangre en todo el lienzo, velo vertical que lo
+ *                 funde al grafito y bloque de identidad anclado abajo.
+ *   · Sin foto  → sello de iniciales arriba y el mismo bloque anclado abajo;
+ *                 el aire superior queda ocupado, no vacío.
+ *
+ * Anclar el contenido al pie (en vez de centrarlo) es lo que elimina los
+ * huecos muertos que tenía la versión anterior en los dos formatos.
  *
  * Props:
  *   athleteName      string  — nombre completo
  *   athleteCode      string? — código de atleta (ej. "PLU-AR-0042"). También se
  *                              usa como identificador para el QR de verificación.
- *   athletePhotoUrl  string? — foto de perfil opcional; sin ella, la card sigue
- *                              usando el monograma de iniciales de fondo.
+ *   athletePhotoUrl  string? — foto de perfil opcional; sin ella, la card usa
+ *                              el sello de iniciales.
  *   eventTitle       string  — nombre del evento
  *   eventDate        string  — ej. "12-13 Dic 2026"
  *   eventVenue       string  — ej. "Maximal Strength Club"
@@ -74,20 +86,47 @@ export default function EventShareCard({
   const wrapRef = useRef(null)
   const [scale, setScale] = useState(1)
 
-  // Nombres largos bajan de tamaño en vez de arriesgar un wrap de 2 líneas feo.
-  // La historia tiene más alto disponible, así que el nombre puede ser más grande.
-  // Con foto de perfil el nombre tiene menos ancho disponible (el avatar se
-  // lleva una franja fija a la izquierda), así que baja un escalón más.
-  // Con el medallón de iniciales o la foto a la izquierda, el nombre tiene
-  // menos ancho disponible: baja un escalón en vez de arriesgar wraps feos.
-  const nameLength = resolvedAthleteName.trim().length
-  const avatarSizeAdjust = isStory ? 16 : 12
-  const nameSize =
-    (isStory
-      ? (nameLength > 22 ? 100 : nameLength > 16 ? 124 : 144)
-      : (nameLength > 22 ? 76 : nameLength > 16 ? 96 : 112)) - avatarSizeAdjust
+  // Retrato: se inlinea a data: URL antes de pintarlo. Ver
+  // inlineImageAsDataUrl — sin eso, la foto firmada de Storage se ve en el
+  // preview y desaparece del PNG. Mientras no esté resuelta se muestra el
+  // sello de iniciales, así el preview y el PNG nunca difieren.
+  const [photoData, setPhotoData] = useState(null)
+  const [photoSettled, setPhotoSettled] = useState(() => !athletePhotoUrl)
 
-  // Iniciales del atleta para el medallón cuando no hay foto — la
+  useEffect(() => {
+    if (!athletePhotoUrl) {
+      setPhotoData(null)
+      setPhotoSettled(true)
+      return undefined
+    }
+    let cancelled = false
+    setPhotoSettled(false)
+    inlineImageAsDataUrl(athletePhotoUrl)
+      .then((dataUrl) => {
+        if (cancelled) return
+        setPhotoData(dataUrl)
+        setPhotoSettled(true)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setPhotoData(null)
+        setPhotoSettled(true)
+      })
+    return () => { cancelled = true }
+  }, [athletePhotoUrl])
+
+  const hasPhoto = Boolean(photoData)
+
+  // Nombres largos bajan de tamaño en vez de arriesgar un wrap feo. El nombre
+  // ocupa el ancho útil completo (ya no comparte franja con un avatar), así
+  // que la escala es más generosa que antes; la historia tiene más alto y
+  // sube otro escalón.
+  const nameLength = resolvedAthleteName.trim().length
+  const nameSize = isStory
+    ? (nameLength > 22 ? 112 : nameLength > 16 ? 136 : 158)
+    : (nameLength > 22 ? 84 : nameLength > 16 ? 104 : 120)
+
+  // Iniciales del atleta para el sello cuando no hay foto — la
   // personalización de la pieza sin superponer texto alguno.
   const initials = resolvedAthleteName
     .trim()
@@ -147,6 +186,16 @@ export default function EventShareCard({
   useEffect(() => {
     if (!preview || !wrapRef.current) return undefined
     const el = wrapRef.current
+
+    // Sin ResizeObserver (jsdom, browsers viejos) la card seguía a 1080px y
+    // desbordaba su contenedor. Una medición puntual alcanza para el caso
+    // estático; lo que se pierde es el reescalado al cambiar el viewport.
+    if (typeof ResizeObserver === 'undefined') {
+      const width = el.clientWidth
+      if (width) setScale(width / 1080)
+      return undefined
+    }
+
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width
       if (width) setScale(width / 1080)
@@ -163,13 +212,26 @@ export default function EventShareCard({
         `share-card--${variant}`,
         isUnified ? 'share-card--membership' : '',
         isStory ? 'share-card--story' : 'share-card--square',
+        hasPhoto ? 'share-card--portrait' : 'share-card--seal',
       ].join(' ')}
       style={preview ? { transform: `scale(${scale})` } : undefined}
       aria-hidden={!preview}
-      data-capture-ready={qrSettled ? '1' : '0'}
+      data-capture-ready={qrSettled && photoSettled ? '1' : '0'}
     >
       {/* ── Fondo con gradiente ── */}
       <div className="share-card__bg" />
+
+      {/* ── Retrato a sangre + velo que lo funde al grafito ──
+          El velo va como capa aparte (no como mask-image): html2canvas
+          rasteriza gradientes de fondo, pero ignora las máscaras CSS. */}
+      {hasPhoto && (
+        <>
+          <div className="share-card__photo" aria-hidden>
+            <img src={photoData} alt="" className="share-card__photo-img" />
+          </div>
+          <div className="share-card__veil" aria-hidden />
+        </>
+      )}
 
       {/* ── Marco interior fino (gesto credencial impresa) ── */}
       <div className="share-card__frame" aria-hidden />
@@ -177,8 +239,9 @@ export default function EventShareCard({
       {/* ── Franja de acento superior ── */}
       <div className="share-card__stripe-top" />
 
-      {/* ── Textura sutil: sheen diagonal + líneas finas, look "foil" ── */}
-      <div className="share-card__texture" aria-hidden />
+      {/* ── Textura sutil: líneas finas, look "foil". Sobre un retrato
+             sobra material, así que solo entra en la variante con sello. ── */}
+      {!hasPhoto && <div className="share-card__texture" aria-hidden />}
 
       {/* ── Header: marca + estado ── */}
       <header className="share-card__header">
@@ -206,19 +269,24 @@ export default function EventShareCard({
         </span>
       </header>
 
-      {/* ── Cuerpo: nombre + datos ── */}
+      {/* ── Cuerpo: sello (sin foto) + identidad + datos, anclado al pie ── */}
       <main className="share-card__body">
-        <div className="share-card__athlete-section share-card__athlete-section--with-avatar">
-          {athletePhotoUrl ? (
-            <div className="share-card__avatar">
-              <img src={athletePhotoUrl} alt="" className="share-card__avatar-img" crossOrigin="anonymous" />
-            </div>
-          ) : (
-            <div className="share-card__avatar share-card__avatar--initials" aria-hidden>
-              {initials}
-            </div>
-          )}
-          <div className="share-card__athlete-text">
+        {!hasPhoto && (
+          <div className="share-card__seal-mark" aria-hidden>
+            {initials}
+          </div>
+        )}
+
+        {/* Plinto: identidad + datos sobre su propio fondo. Con retrato, el
+            velo global no alcanza — cuánto ocupa este bloque depende de la
+            variante y del largo del nombre, así que un velo calibrado a mano
+            dejaba el nombre a caballo de la transición sobre fotos claras.
+            El plinto arrastra su degradado con él y siempre cierra opaco
+            debajo del texto, sin importar cuánto crezca. */}
+        <div className="share-card__plate">
+          {hasPhoto && <div className="share-card__plate-veil" aria-hidden />}
+
+          <div className="share-card__identity">
             {/* La afiliación no lleva eyebrow: el estado ya vive en el header y
                 la ficha de abajo da el contexto. Un tercer rótulo sobre el
                 nombre solo repetía "socio" tres veces en la misma pieza. */}
@@ -242,53 +310,53 @@ export default function EventShareCard({
               </span>
             )}
           </div>
-        </div>
 
-        <div className="share-card__divider" aria-hidden />
+          <div className="share-card__divider" aria-hidden />
 
-        {/* Afiliación: ficha de campos (label + valor), el lenguaje de una
-            credencial oficial. Reemplaza al eyebrow + título + nombre de la
-            organización, que repetía la marca del header y usaba el peso de un
-            titular para un dato administrativo. */}
-        {isMembership ? (
-          <dl className="share-card__fields">
-            <div className="share-card__field">
-              <dt className="share-card__field-label">{t('shareCard.membershipAnnual')}</dt>
-              <dd className="share-card__field-value">
-                {t('shareCard.membershipSeason', { season: membershipSeason })}
-              </dd>
-            </div>
-            {membershipExpiration && (
+          {/* Afiliación: ficha de campos (label + valor), el lenguaje de una
+              credencial oficial. Reemplaza al eyebrow + título + nombre de la
+              organización, que repetía la marca del header y usaba el peso de
+              un titular para un dato administrativo. */}
+          {isMembership ? (
+            <dl className="share-card__fields">
               <div className="share-card__field">
-                <dt className="share-card__field-label">{t('shareCard.membershipValidUntilLabel')}</dt>
-                <dd className="share-card__field-value">{membershipExpiration}</dd>
+                <dt className="share-card__field-label">{t('shareCard.membershipAnnual')}</dt>
+                <dd className="share-card__field-value">
+                  {t('shareCard.membershipSeason', { season: membershipSeason })}
+                </dd>
               </div>
-            )}
-          </dl>
-        ) : (
-          <div className="share-card__event-section">
-            <span className="share-card__event-eyebrow">
-              {isTicket ? t('shareCard.ticketValidFor') : t('shareCard.competingIn')}
-            </span>
-            <p className="share-card__event-title">{resolvedEventTitle}</p>
-            {eventDate && eventVenue && (
-              <p className="share-card__event-meta">
-                {eventDate} · {eventVenue}
-                {eventLocation ? `, ${eventLocation}` : ''}
-              </p>
-            )}
-            {(category || division || dayPassLabel || isUnified) && (
-              <p className="share-card__event-category">
-                {[
-                  isUnified ? t('shareCard.unifiedMembershipActive') : null,
-                  category,
-                  division,
-                  dayPassLabel,
-                ].filter(Boolean).join(' · ')}
-              </p>
-            )}
-          </div>
-        )}
+              {membershipExpiration && (
+                <div className="share-card__field">
+                  <dt className="share-card__field-label">{t('shareCard.membershipValidUntilLabel')}</dt>
+                  <dd className="share-card__field-value">{membershipExpiration}</dd>
+                </div>
+              )}
+            </dl>
+          ) : (
+            <div className="share-card__event-section">
+              <span className="share-card__event-eyebrow">
+                {isTicket ? t('shareCard.ticketValidFor') : t('shareCard.competingIn')}
+              </span>
+              <p className="share-card__event-title">{resolvedEventTitle}</p>
+              {eventDate && eventVenue && (
+                <p className="share-card__event-meta">
+                  {eventDate} · {eventVenue}
+                  {eventLocation ? `, ${eventLocation}` : ''}
+                </p>
+              )}
+              {(category || division || dayPassLabel || isUnified) && (
+                <p className="share-card__event-category">
+                  {[
+                    isUnified ? t('shareCard.unifiedMembershipActive') : null,
+                    category,
+                    division,
+                    dayPassLabel,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* ── Footer: QR de verificación + firma de marca ── */}
