@@ -24,6 +24,13 @@ export function createSupabaseRegistrationAccessRepository(
         'No se pudo guardar la tanda de habilitación.',
       ),
 
+    remove: (gateId, actor) =>
+      rpc(
+        'staff_delete_registration_access_gate',
+        { p_gate_id: gateId, p_actor: actor },
+        'No se pudo eliminar la tanda de habilitación.',
+      ),
+
     async findActiveGate({ scope, eventSlug = null }) {
       const current = nowIso()
       let query = client

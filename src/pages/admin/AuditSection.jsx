@@ -79,8 +79,14 @@ export default function AuditSection() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
+  // Cursor compuesto { createdAt, id }: la fecha sola no desempata filas del
+  // mismo instante y "Cargar más" las saltearía.
   const [cursor, setCursor] = useState(null)
   const [traceOrderId, setTraceOrderId] = useState(null)
+  // Recorte del lado del cliente: no hay forma de pedirle al backend "solo
+  // errores" (el tono sale de `severity` o de un mapa de acción → tono en el
+  // browser, no es una columna filtrable). Se aplica sobre lo ya cargado.
+  const [onlyIncidents, setOnlyIncidents] = useState(false)
   const [detailEventId, setDetailEventId] = useState(null)
 
   const filters = useMemo(
@@ -102,7 +108,9 @@ export default function AuditSection() {
     try {
       const result = await fetchAuditEntries(filters)
       setEntries(result.entries)
-      setCursor(result.nextCursor)
+      setCursor(
+        result.nextCursor ? { createdAt: result.nextCursor, id: result.nextCursorId ?? null } : null,
+      )
     } catch (loadError) {
       setError(loadError?.message ?? t('admin.audit.loadError'))
     } finally {
@@ -147,7 +155,11 @@ export default function AuditSection() {
     if (!cursor) return
     setLoadingMore(true)
     try {
-      const result = await fetchAuditEntries({ ...filters, before: cursor })
+      const result = await fetchAuditEntries({
+        ...filters,
+        before: cursor.createdAt,
+        beforeId: cursor.id ?? undefined,
+      })
       setEntries((current) => [...current, ...result.entries])
       setCursor(result.nextCursor)
     } catch (loadError) {
@@ -332,6 +344,18 @@ export default function AuditSection() {
     overview.activeMembershipsWithoutConfirmation + overview.approvedOrdersWithoutActiveMembership
   const attentionCount = overview.emailAttention + overview.paymentAttention + affiliationIncidents
 
+  // `attentionCount` es el conteo real del servidor (toda la bitácora); esto
+  // es cuántas de esas filas están además en lo que ya bajamos a pantalla.
+  // Los nombres del toggle dejan claro que el recorte es sobre lo cargado.
+  const loadedErrorCount = useMemo(
+    () => entries.filter((entry) => entry.tone === 'danger').length,
+    [entries],
+  )
+  const displayedEntries = useMemo(
+    () => (onlyIncidents ? entries.filter((entry) => entry.tone === 'danger') : entries),
+    [entries, onlyIncidents],
+  )
+
   const health = (
     <section
       className={`audit-health audit-health--${overview.status}`}
@@ -373,7 +397,20 @@ export default function AuditSection() {
         <div className={attentionCount > 0 ? 'is-attention' : ''}>
           {attentionCount > 0 ? <CircleAlert size={17} aria-hidden /> : <BadgeCheck size={17} aria-hidden />}
           <dt>{t('admin.audit.healthIncidents')}</dt>
-          <dd>{attentionCount}</dd>
+          {loadedErrorCount > 0 ? (
+            <dd>
+              <button
+                type="button"
+                className="audit-health__metric-action"
+                aria-pressed={onlyIncidents}
+                onClick={() => setOnlyIncidents((current) => !current)}
+              >
+                {attentionCount}
+              </button>
+            </dd>
+          ) : (
+            <dd>{attentionCount}</dd>
+          )}
         </div>
       </dl>
 
@@ -413,7 +450,7 @@ export default function AuditSection() {
   return (
     <AdminListSection
       variant="audit"
-      filteredCount={entries.length}
+      filteredCount={displayedEntries.length}
       placeholder={t('admin.audit.searchPlaceholder')}
       query={query}
       showHeader
@@ -425,10 +462,25 @@ export default function AuditSection() {
       beforeFilters={health}
       filters={filterOptions}
       filterActions={
-        <button type="button" className="btn btn--secondary btn--small" onClick={() => void refresh()}>
-          <RefreshCw size={15} aria-hidden />
-          {t('admin.audit.refresh')}
-        </button>
+        <>
+          <button
+            type="button"
+            className={`audit-incidents-toggle${onlyIncidents ? ' is-active' : ''}`}
+            aria-pressed={onlyIncidents}
+            disabled={loadedErrorCount === 0 && !onlyIncidents}
+            onClick={() => setOnlyIncidents((current) => !current)}
+          >
+            <CircleAlert size={14} aria-hidden />
+            {t('admin.audit.onlyIncidents')}
+            {loadedErrorCount > 0 ? (
+              <span className="audit-incidents-toggle__count">{loadedErrorCount}</span>
+            ) : null}
+          </button>
+          <button type="button" className="btn btn--secondary btn--small" onClick={() => void refresh()}>
+            <RefreshCw size={15} aria-hidden />
+            {t('admin.audit.refresh')}
+          </button>
+        </>
       }
       onQueryChange={setQuery}
     >
@@ -447,8 +499,12 @@ export default function AuditSection() {
           <AdminDataTable
             className="admin-data-table--audit"
             columns={columns}
-            rows={entries}
-            emptyMessage={t('admin.audit.empty')}
+            rows={displayedEntries}
+            emptyMessage={
+              onlyIncidents && entries.length > 0
+                ? t('admin.audit.onlyIncidentsEmpty')
+                : t('admin.audit.empty')
+            }
             // Toda la fila abre el detalle: el error completo, el stack y lo que
             // la persona venía haciendo antes. La celda mostraba el mensaje y
             // nada más, y el resto había que ir a buscarlo a la base.

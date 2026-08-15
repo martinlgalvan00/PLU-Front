@@ -349,22 +349,7 @@
   transition: transform var(--motion-fast) var(--ease-out);
 }
 
-.plu-checkout__submit-spinner {
-  animation: plu-checkout-spin 620ms linear infinite;
-  block-size: 15px;
-  border: 1.75px solid color-mix(in oklab, currentColor 28%, transparent);
-  border-radius: 50%;
-  border-top-color: currentColor;
-  display: block;
-  flex: none;
-  inline-size: 15px;
-}
-
-@keyframes plu-checkout-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* Spinner del submit — primitivo global `.plu-spinner` (states.css). */
 
 [data-theme='light'] .plu-checkout__offer,
 [data-theme='light'] .plu-checkout__pill,

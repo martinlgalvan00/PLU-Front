@@ -1050,17 +1050,11 @@
   font-size: 13px;
 }
 
+/* Spinner de generación — primitivo `.plu-spinner` (states.css) con acento
+   dorado sobre superficie oscura del modal. */
 .card-modal__spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #f2b705;
-  border-radius: 50%;
-  animation: card-spin 700ms linear infinite;
-}
-
-@keyframes card-spin {
-  to { transform: rotate(360deg); }
+  --spinner-accent: var(--color-brand-gold, #f2b705);
+  --spinner-track: rgba(255, 255, 255, 0.12);
 }
 
 /* Botón de generar card (ConfirmationScreen y perfil) */

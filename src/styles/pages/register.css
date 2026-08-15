@@ -1020,6 +1020,17 @@
   color: rgba(255, 255, 255, 0.28);
 }
 
+/* El documento espera la nacionalidad: el estado deshabilitado tiene que
+   leerse como "todavía no", no como un campo roto. La opacidad funciona
+   igual en light y dark sin duplicar la paleta. */
+.register-page--profile .register-card .field:has(input:disabled) {
+  opacity: 0.55;
+}
+
+.register-page--profile .register-card .field input:disabled {
+  cursor: not-allowed;
+}
+
 .register-page--profile .register-card .field--select .field__select select {
   padding-right: 1.75rem;
 }
@@ -1155,23 +1166,8 @@
   box-shadow: none;
 }
 
-/* Spinner del CTA — mismo lenguaje que el de acceso */
-.register-card__submit-spinner {
-  animation: register-submit-spin 620ms linear infinite;
-  block-size: 15px;
-  border: 1.75px solid color-mix(in oklab, currentColor 28%, transparent);
-  border-radius: 50%;
-  border-top-color: currentColor;
-  display: block;
-  flex: none;
-  inline-size: 15px;
-}
-
-@keyframes register-submit-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* Spinner del CTA — primitivo global `.plu-spinner` (states.css), mismo
+   lenguaje que el de acceso. */
 
 /* Los dos pasos comparten celda durante el crossfade (mode="sync"): apilados
    en flujo normal la tarjeta duplicaba su alto en cada cambio de paso. */

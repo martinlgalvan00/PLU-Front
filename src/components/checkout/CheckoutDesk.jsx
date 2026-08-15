@@ -198,7 +198,7 @@ export function CheckoutBar({
         >
           {ctaLabel}
           {submitting ? (
-            <span className="plu-checkout__submit-spinner" aria-hidden />
+            <span className="plu-spinner" aria-hidden />
           ) : (
             <ArrowRight size={16} className="plu-checkout__submit-arrow" aria-hidden />
           )}

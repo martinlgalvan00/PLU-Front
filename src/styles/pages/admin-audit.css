@@ -103,6 +103,32 @@
   margin: 0;
 }
 
+/* Métrica de incidencias accionable: mismo tamaño que un `dd` normal, con
+   affordance de clic para saltar al recorte "Solo errores" de la lista. */
+.audit-health__metric-action {
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.audit-health__metric-action:hover {
+  text-decoration-color: currentColor;
+}
+
+.audit-health__metric-action:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
 .audit-health__notice {
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-danger-text);
@@ -234,6 +260,59 @@
 
 .admin-shell .admin-filters--audit .admin-filters__advanced-toggle.is-open .admin-filters__toggle-icon {
   transform: rotate(180deg);
+}
+
+/* Recorte "Solo errores": vive junto a Actualizar, no en el bloque de
+   filtros de servidor -- filtra lo ya cargado, no vuelve a pedirle nada
+   al backend (ver AuditSection.jsx, `loadedErrorCount`). */
+.audit-incidents-toggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.audit-incidents-toggle:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand-red) 30%, var(--color-border-subtle));
+  color: var(--color-text-primary);
+}
+
+.audit-incidents-toggle:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.audit-incidents-toggle.is-active {
+  background: color-mix(in srgb, var(--color-brand-red) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-red) 36%, transparent);
+  color: var(--color-brand-red);
+}
+
+.audit-incidents-toggle:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.audit-incidents-toggle__count {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+  .audit-incidents-toggle {
+    min-height: 44px;
+  }
 }
 
 @media (min-width: 900px) {
@@ -463,6 +542,42 @@
    La card compacta genérica aplasta entidad/actor/detalle en una sola línea
    con separadores; acá cada bloque recupera su filas y el espacio horizontal. */
 @media (max-width: 720px) {
+  /* El patrón "rails" (admin-minimal.css) fija todo el shell a 100dvh con
+     overflow:hidden y espera que solo `.admin-list-shell__body` scrollee: le
+     funciona a Atletas/Afiliaciones porque su chrome (buscador + filtros) es
+     corto. En Auditoría el chrome incluye el health card, que es alto y
+     variable -- en mobile podía comerse toda la altura disponible y no
+     dejaba ni ver la tabla ni scrollear la página para llegar a ella (ni la
+     página ni el body interno respondían al gesto). Auditoría vuelve al
+     scroll de documento normal en mobile: salud, filtros y tabla fluyen en
+     una sola columna scrolleable. */
+  .admin-shell:has(.admin-page > .admin-list-section--audit) {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .admin-shell:has(.admin-page > .admin-list-section--audit) .admin-shell__main {
+    overflow: visible;
+  }
+
+  .admin-shell .admin-page:has(> .admin-list-section--audit) {
+    overflow: visible;
+  }
+
+  .admin-shell .admin-page > .admin-list-section--audit {
+    overflow: visible;
+  }
+
+  .admin-shell .admin-page > .admin-list-section--audit > .admin-list-shell {
+    overflow: visible;
+  }
+
+  .admin-shell .admin-page > .admin-list-section--audit .admin-list-shell__body {
+    flex: none;
+    overflow: visible;
+  }
+
   .audit-health {
     padding: var(--space-md);
   }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { CheckCircle2, AlertCircle, ChevronDown, Trash2, UserRound } from 'lucide-react'
+import { CheckCircle2, ChevronDown, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { Field } from '../../components/ui/FormFields.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
@@ -132,32 +132,40 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
 
   return (
     <section id="account-personal-data" className="account-section account-section--gold">
-      <div className="account-section__heading">
-        <div className="account-section__icon account-section__icon--gold"><UserRound size={21} /></div>
-        <div>
-          <span>{t('account.personalData.eyebrow')}</span>
-          <h2>{t('account.personalData.title')}</h2>
+      <header className="account-section__heading account-section__heading--personal">
+        <div className="account-section__heading-copy">
+          <span className="account-section__eyebrow">{t('account.personalData.eyebrow')}</span>
+          <h2>
+            {t('account.personalData.title')}
+            {profileStatus.complete ? (
+              <span
+                className="account-profile-status account-profile-status--ok"
+                title={t('account.personalData.profileComplete')}
+              >
+                <CheckCircle2 size={16} strokeWidth={2} aria-hidden />
+                <span className="visually-hidden">{t('account.personalData.profileComplete')}</span>
+              </span>
+            ) : null}
+          </h2>
+          {!profileStatus.complete ? (
+            <p className="account-profile-status account-profile-status--pending" role="status">
+              {t(`account.personalData.profileIncomplete_${profileStatus.missing.length === 1 ? 'one' : 'other'}`, {
+                count: profileStatus.missing.length,
+              })}
+            </p>
+          ) : null}
         </div>
-        <div
-          className={`account-profile-completeness ${profileStatus.complete ? 'is-complete' : 'is-incomplete'}`}
-          aria-label={profileStatus.complete ? t('account.personalData.profileComplete') : undefined}
-        >
-          {profileStatus.complete ? (
-            <>
-              <CheckCircle2 size={14} aria-hidden />
-              <span>{t('account.personalData.profileComplete')}</span>
-            </>
-          ) : (
-            <>
-              <AlertCircle size={14} aria-hidden />
-              <span>{t(`account.personalData.profileIncomplete_${profileStatus.missing.length === 1 ? 'one' : 'other'}`, { count: profileStatus.missing.length })}</span>
-            </>
-          )}
-        </div>
-      </div>
+      </header>
 
       {!profileStatus.complete && (
-        <div className="account-profile-progress" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Completitud del perfil">
+        <div
+          className="account-profile-progress"
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={t('account.personalData.progressLabel')}
+        >
           <div className="account-profile-progress__track">
             <div
               className="account-profile-progress__bar"

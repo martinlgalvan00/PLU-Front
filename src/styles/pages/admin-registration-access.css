@@ -242,6 +242,18 @@
   color: var(--color-text-on-light, #12151c);
 }
 
+.admin-registration-access__button--danger:hover:not(:disabled) {
+  border-color: var(--color-danger, #e87575);
+  color: var(--color-danger, #e87575);
+}
+
+.admin-registration-access__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .admin-registration-access__form {
   border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 34%, transparent);
   border-left: 2px solid var(--color-brand-celeste);

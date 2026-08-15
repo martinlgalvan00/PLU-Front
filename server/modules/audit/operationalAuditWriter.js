@@ -56,9 +56,15 @@ export async function recordOperationalAuditEvent(
     if (result?.error) throw result.error
     return true
   } catch (error) {
-    console.warn('[audit] no se pudo registrar el evento operativo', {
+    // `error` y no `warn`: un asiento de auditoría perdido es un incidente
+    // observable (alertas de Vercel lo capturan), aunque el flujo principal
+    // (login/checkout) sigue su curso.
+    console.error('[audit] no se pudo registrar el evento operativo', {
       source,
       action,
+      entityType,
+      entityId,
+      actorType,
       message: error?.message ?? String(error),
     })
     return false

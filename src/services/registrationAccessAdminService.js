@@ -34,3 +34,10 @@ export async function saveRegistrationAccessGate(gate) {
   })
   return mapGate(result.gate)
 }
+
+export async function deleteRegistrationAccessGate(gateId) {
+  const result = await apiRequest(`/api/registration-access/${encodeURIComponent(gateId)}`, {
+    method: 'DELETE',
+  })
+  return result.deletedGate
+}
