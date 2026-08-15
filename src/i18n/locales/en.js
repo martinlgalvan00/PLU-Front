@@ -136,6 +136,9 @@ export default {
     mockOrderStatus: 'Status',
     mockProcessing: 'Processing…',
     paymentApproved: 'Payment approved and recorded.',
+    sealApprovedEyebrow: 'Payment credited',
+    sealApprovedTitle: 'All set, it’s paid',
+    sealSubscriptionTitle: 'Your subscription is active',
     subscriptionAuthorized:
       'Subscription authorized. Membership will activate after the first charge is credited.',
     subscriptionPendingCharge:
@@ -2526,6 +2529,10 @@ export default {
       competitionShareCard: 'Download and share my card',
       competitionCardEyebrow: 'Your spot is confirmed',
       competitionCardDesc: 'Take your card with the event, your category and your entry QR.',
+      sealMembershipEyebrow: 'Membership credited',
+      sealMembershipTitle: 'You’re part of PLU Argentina',
+      sealMembershipDetail: 'Your credential is issued and you can register for meets.',
+      sealRegistrationEyebrow: 'Registration confirmed',
       membershipGoProfile: 'Go to my profile',
       membershipGoProfileCredential: 'View unified credential',
       membershipRequiredTitle: 'Membership for gate access',

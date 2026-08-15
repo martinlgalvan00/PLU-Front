@@ -1,6 +1,7 @@
 import { ArrowRight, Share2 } from 'lucide-react'
 import { m } from 'motion/react'
 import StatusPill from './StatusPill.jsx'
+import ConfirmationSeal from './ConfirmationSeal.jsx'
 import EventShareCard from './EventShareCard.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
@@ -80,6 +81,27 @@ export default function RegisterMembershipConfirmation({
           ? t('pages.register.membershipConfirmedActiveTitle')
           : t('pages.register.membershipConfirmedPendingTitle')}
       </h2>
+
+      {/* ── El sello ──
+          Solo cuando la afiliación quedó acreditada de verdad (`isActive`):
+          con la orden pendiente esto sería festejar un pago que todavía puede
+          rechazarse. El bloque abre la pantalla porque es la respuesta a lo
+          que la persona vino a hacer; los datos de la orden siguen abajo. */}
+      {isActive ? (
+        <Block className="register-membership-confirmation__seal" {...riseProps}>
+          <ConfirmationSeal
+            variant="membership"
+            eyebrow={t('pages.register.sealMembershipEyebrow')}
+            seal={memberCode ?? undefined}
+            title={t('pages.register.sealMembershipTitle')}
+            detail={
+              membershipExpiration
+                ? t('shareCard.membershipValidUntil', { date: membershipExpiration })
+                : t('pages.register.sealMembershipDetail')
+            }
+          />
+        </Block>
+      ) : null}
 
       {/* ── La pieza: la card real, no una miniatura decorativa ──
           Es el mismo componente que se descarga como PNG, así que lo que el

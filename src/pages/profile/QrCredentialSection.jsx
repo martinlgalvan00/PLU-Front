@@ -144,6 +144,7 @@ export default function QrCredentialSection({
       }
       qrSrc={qrSrc}
       qrAlt={t('account.qr.imageAlt')}
+      qrFailed={qrFailed}
       qrCaption={t('account.qr.cardScanHint')}
       validUntil={validUntil ? t('account.qr.validUntil', { date: validUntil }) : null}
       flipToBackLabel={t('account.qr.cardFlipToBack')}

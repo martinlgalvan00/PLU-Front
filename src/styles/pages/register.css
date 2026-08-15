@@ -2205,29 +2205,15 @@
    completa (el resto del bloque es un grid de dos columnas), se separa
    con una regla y lleva la única acción principal de la pantalla. */
 
+/* El eyebrow y la bajada los pone ConfirmationSeal: acá quedó solo el
+   asiento del bloque dentro del grid de dos columnas del estado de orden. */
 .register-status__celebration {
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
-  gap: 6px;
+  gap: 12px;
   grid-column: 1 / -1;
   margin-top: 12px;
   padding-top: 14px;
-}
-
-.register-status__celebration-label {
-  color: var(--color-brand-gold);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.register-status__celebration-copy {
-  color: var(--color-text-muted);
-  font-size: 12.5px;
-  line-height: 1.55;
-  margin: 0;
-  max-width: 42ch;
 }
 
 .register-status__celebration-cta {
@@ -3728,6 +3714,15 @@
 
 /* La card y su acción se leen como una sola unidad: mismo ancho, mismo
    eje. Un CTA más ancho que la pieza la deja flotando sobre el bloque. */
+/* ── El sello de afiliación acreditada ──
+   Abre la confirmación: es la respuesta a lo que la persona vino a hacer.
+   Va contra el borde izquierdo del bloque aunque la card de abajo esté
+   centrada — el sello se lee, la card se mira. */
+.register-membership-confirmation__seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
 .register-membership-confirmation__piece {
   display: grid;
   gap: 14px;
