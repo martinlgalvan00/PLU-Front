@@ -326,7 +326,7 @@ function DrawerRow({ active = false, children, delay = 0, description, feature =
         initial: reducedMotion ? false : { opacity: 0, y: 8 },
         animate: { opacity: 1, y: 0 },
         transition: {
-          duration: reducedMotion ? 0.01 : 0.22,
+          duration: reducedMotion ? 0.01 : 0.26,
           ease: [0.22, 1, 0.36, 1],
           delay: reducedMotion ? 0 : Math.min(delay, 0.12),
         },
@@ -927,8 +927,11 @@ export default function NavbarPublic({
                 animate={{ opacity: 1, x: 0 }}
                 exit={reducedMotion
                   ? { opacity: 0, transition: { duration: 0.01 } }
-                  : { opacity: 0, x: '100%', transition: { duration: 0.2, ease: [0.4, 0, 1, 1] } }}
-                transition={{ duration: reducedMotion ? 0.01 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  : { opacity: 0, x: '100%', transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }}
+                // Settle cinematográfico: el panel desliza y frena suave, sin
+                // rebote — la superficie es grande y un spring se leería
+                // elástico, no lujoso.
+                transition={{ duration: reducedMotion ? 0.01 : 0.34, ease: MOTION_EASE.cinematic }}
               >
             <m.header
               className="plu-drawer__head"

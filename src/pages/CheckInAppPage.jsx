@@ -23,6 +23,7 @@ import BrandLogo from '../components/ui/BrandLogo.jsx'
 import LanguageToggle from '../components/ui/LanguageToggle.jsx'
 import ThemeToggle from '../components/ui/ThemeToggle.jsx'
 import { useCheckInWorkspace } from '../hooks/useCheckInWorkspace.js'
+import { formatDocumentWithKind } from '../lib/format.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
 function CheckinMetric({ icon: Icon, label, tone = 'neutral', value }) {
@@ -277,7 +278,7 @@ export default function CheckInAppPage({
                   key: 'name',
                   label: t('admin.columns.attendee'),
                   mobile: 'primary',
-                  render: (row) => <AdminIdentityCell name={row.name} sub={row.document} subMono />,
+                  render: (row) => <AdminIdentityCell name={row.name} sub={formatDocumentWithKind(row.document)} subMono />,
                 },
                 {
                   key: 'type',

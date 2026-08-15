@@ -35,6 +35,8 @@
 /* =============================================
    LOADING STATE (editorial, CSS-only)
    Loop de la regla: estado operativo, no decoración.
+   El sweep tiene pausa respirada (dwell): la regla cruza, descansa en el
+   borde y vuelve a cruzar. Menos maquinal que un vaivén constante.
    ============================================= */
 
 .loading-state {
@@ -55,6 +57,7 @@
 }
 
 .loading-state__mark {
+  animation: loading-state-mark-rise 0.4s var(--ease-out) both;
   color: var(--color-text-primary);
   font-family: var(--font-display);
   font-size: clamp(18px, 2.2vw, 22px);
@@ -67,16 +70,16 @@
 }
 
 .loading-state__rail {
-  background: color-mix(in srgb, var(--color-brand-gold) 40%, transparent);
+  background: color-mix(in srgb, var(--color-brand-gold) 30%, transparent);
   display: block;
   height: 1px;
   overflow: hidden;
   position: relative;
-  width: 4.5rem;
+  width: 5rem;
 }
 
 .loading-state__rule {
-  animation: loading-state-sweep var(--duration-xslow) var(--ease-in-out) infinite;
+  animation: loading-state-sweep 1.9s cubic-bezier(0.45, 0, 0.25, 1) infinite;
   background: var(--color-brand-gold);
   display: block;
   height: 100%;
@@ -84,7 +87,7 @@
   position: absolute;
   top: 0;
   transform: translateX(-100%);
-  width: 45%;
+  width: 38%;
 }
 
 .loading-state__label {
@@ -106,24 +109,86 @@
   }
 }
 
+@keyframes loading-state-mark-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dwell: 0-12% entra, 12-64% cruza con ease, 64-100% sale y descansa. */
 @keyframes loading-state-sweep {
   0% {
     transform: translateX(-100%);
   }
 
+  64% {
+    transform: translateX(300%);
+  }
+
   100% {
-    transform: translateX(220%);
+    transform: translateX(300%);
+  }
+}
+
+/* =============================================
+   PLU SPINNER — primitivo único de espera activa
+   Anillo hairline con acento en currentColor: hereda el color del botón o
+   superficie donde vive. Cada contexto puede sobre-escribir los tokens
+   (--spinner-size / --spinner-thickness / --spinner-accent / --spinner-track)
+   sin volver a dibujar el anillo ni duplicar keyframes.
+   ============================================= */
+
+.plu-spinner {
+  animation: plu-spinner-rotate 720ms linear infinite;
+  block-size: var(--spinner-size, 15px);
+  border: var(--spinner-thickness, 1.5px) solid
+    var(--spinner-track, color-mix(in oklab, currentColor 26%, transparent));
+  border-radius: 50%;
+  border-top-color: var(--spinner-accent, currentColor);
+  display: block;
+  flex: none;
+  inline-size: var(--spinner-size, 15px);
+}
+
+.plu-spinner--lg {
+  --spinner-size: 22px;
+  --spinner-thickness: 2px;
+}
+
+@keyframes plu-spinner-rotate {
+  to {
+    transform: rotate(360deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* El spinner comunica una operación real en curso, pero sin giro: queda
+     el anillo estático con el acento visible. Mismo criterio que el CTA
+     de acceso. */
+  .plu-spinner {
+    animation: none;
+    transform: rotate(40deg);
+  }
+
   .loading-state,
+  .loading-state__mark,
   .loading-state__rule {
     animation: none !important;
   }
 
   .loading-state {
     opacity: 1;
+  }
+
+  .loading-state__mark {
+    opacity: 1;
+    transform: none;
   }
 
   .loading-state__rule {
@@ -763,6 +828,20 @@
   justify-content: center;
   letter-spacing: 0.02em;
   width: 44px;
+}
+
+.member-profile-card__avatar {
+  overflow: hidden;
+  position: relative;
+}
+
+.member-profile-card__avatar-photo {
+  background: var(--color-bg-surface);
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
 }
 
 .member-profile-card__titles {

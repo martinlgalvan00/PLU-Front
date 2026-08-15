@@ -643,6 +643,20 @@ export default function AnalyticsSection({
             </p>
           </div>
         </dl>
+        <dl className="admin-analytics__metrics admin-analytics__metrics--secondary">
+          <div>
+            <dt>{t('admin.analytics.metrics.sessions')}</dt>
+            <dd>{count(overview?.sessions, locale)}</dd>
+          </div>
+          <div>
+            <dt>{t('admin.analytics.metrics.duration')}</dt>
+            <dd>{duration(overview?.avgDurationSeconds)}</dd>
+          </div>
+          <div>
+            <dt>{t('admin.analytics.metrics.interactions')}</dt>
+            <dd>{count(overview?.interactions, locale)}</dd>
+          </div>
+        </dl>
         <p className="admin-analytics__summary">
           {/*
             Sin tiempo activo el resumen no puede decir "0s de atención media":

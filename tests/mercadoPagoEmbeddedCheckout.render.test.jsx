@@ -244,6 +244,36 @@ describe('presentación settle embebida', () => {
     ).toBeNull()
   })
 
+  it('si falla preparar la preferencia dos veces, avisa y permite reintentar', async () => {
+    paymentApi.createPreference
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce({ preference: { id: 'pref-recovered' } })
+
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={{ ...ORDER, preferenceId: null }} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    await screen.findByTestId('payment-brick', {}, { timeout: 4000 })
+    expect(
+      await screen.findByText('Cuenta de Mercado Pago no disponible', {}, { timeout: 4000 }),
+    ).toBeTruthy()
+    expect(paymentApi.reportPaymentClientEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: 'preference' }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    // Recuperada la preferencia, el Brick se remonta y la cuenta de Mercado
+    // Pago vuelve a la lista de medios: no hay una superficie aparte que mirar.
+    await waitFor(() => {
+      expect(sdk.payment.mock.calls.at(-1)[0].customization.paymentMethods.mercadoPago)
+        .toEqual(['wallet_purchase'])
+    })
+    expect(screen.queryByText('Cuenta de Mercado Pago no disponible')).toBeNull()
+  })
+
   it('en la presentación default también lista Mercado Pago dentro del formulario', async () => {
     renderCheckout()
 

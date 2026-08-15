@@ -21,7 +21,7 @@ import {
   heroTitleLine,
 } from '../../motion/variants.ts'
 
-export default function HeroSection({ onNavigate }) {
+export default function HeroSection({ onNavigate, event }) {
   const { t } = useI18n()
   const { reducedMotion, tier } = useMotionConfig()
   // Cascada propia del hero (no la heroStaggerContainer compartida con
@@ -146,7 +146,7 @@ export default function HeroSection({ onNavigate }) {
                 <div className="hero__actions">{actions}</div>
               </div>
               <div className="hero__proof">
-                <HeroStatusCard onSelect={() => onNavigate('pitbull')} />
+                <HeroStatusCard event={event} onSelect={() => onNavigate('pitbull')} />
               </div>
             </div>
           ) : (
@@ -184,7 +184,7 @@ export default function HeroSection({ onNavigate }) {
                 animate="visible"
                 variants={heroProofItem}
               >
-                <HeroStatusCard onSelect={() => onNavigate('pitbull')} />
+                <HeroStatusCard event={event} onSelect={() => onNavigate('pitbull')} />
               </m.div>
             </div>
           )}

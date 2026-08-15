@@ -97,25 +97,6 @@ export function safeUrl(value) {
   }
 }
 
-function isUnreachableEmailHost(appUrl) {
-  const base = String(appUrl ?? '').trim()
-  if (!base) return true
-  try {
-    const { hostname, protocol } = new URL(base)
-    if (protocol !== 'http:' && protocol !== 'https:') return true
-    const host = hostname.toLowerCase()
-    return (
-      host === 'localhost'
-      || host === '127.0.0.1'
-      || host === '0.0.0.0'
-      || host === '::1'
-      || host.endsWith('.local')
-    )
-  } catch {
-    return true
-  }
-}
-
 /**
  * Embebe el PNG del logo como data URI. Los clientes de correo no pueden
  * pedir imágenes a localhost; sin esto el header muestra el ícono roto.

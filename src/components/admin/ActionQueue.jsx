@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, BadgeCheck, ClipboardList, CreditCard, Eye, Ticket } from 'lucide-react'
+import {
+  ArrowRight,
+  BadgeCheck,
+  ClipboardList,
+  CreditCard,
+  Eye,
+  ShieldCheck,
+  Ticket,
+} from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import PaymentValidationDialog from './PaymentValidationDialog.jsx'
 
@@ -8,6 +16,7 @@ const PRIORITY_ORDER = ['high', 'medium', 'low']
 const TYPE_ICONS = {
   payment: CreditCard,
   registration: ClipboardList,
+  registration_gate: ShieldCheck,
   membership: BadgeCheck,
   ticket_order: Ticket,
 }

@@ -980,6 +980,35 @@
   .admin-ops__work-cta {
     align-self: center;
   }
+
+  /* La cola vive en un rail angosto: conserva tipo + tarea como lectura
+     vertical y deja la acción alineada a la derecha, sin convertir cada fila
+     en una card alta de cuatro renglones. */
+  .admin-ops__work .action-queue__card {
+    align-items: center;
+    gap: 3px 16px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: 11px;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__type,
+  .admin-ops__work .action-queue__card .action-queue__card-body {
+    grid-column: 1;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__amount {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+    padding-top: 1px;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__actions {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    justify-content: flex-end;
+  }
 }
 
 @container admin-ops (max-width: 480px) {
@@ -1122,6 +1151,10 @@
   transition: background var(--transition-fast, 160ms ease);
 }
 
+.admin-ops__recent-open--static {
+  cursor: default;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .admin-ops__recent-open:hover {
     background: color-mix(in srgb, var(--admin-ink) 4%, transparent);
@@ -1151,7 +1184,18 @@
   height: 34px;
   justify-content: center;
   letter-spacing: -0.02em;
+  overflow: hidden;
+  position: relative;
   width: 34px;
+}
+
+.admin-ops__recent-avatar-photo {
+  background: var(--admin-surface, var(--color-bg-surface));
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
 }
 
 .admin-ops__recent-body {

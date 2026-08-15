@@ -1388,6 +1388,33 @@
   grid-template-columns: 1fr;
 }
 
+.account-section__heading--personal {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.account-section__heading-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-section__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.account-section__heading--personal h2 {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
 .account-section__icon {
   align-items: center;
   background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
@@ -2011,6 +2038,162 @@
   line-height: 1.45;
   margin: 0;
   max-width: 42ch;
+}
+
+/* Código de descuento — disclosure discreto en el checkout de afiliación.
+   Antes no tenía estilos: el input y el botón salían nativos del browser. */
+.account-discount {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.account-discount__toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.account-discount__toggle:hover:not(:disabled) {
+  color: var(--color-brand-gold);
+}
+
+.account-discount__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.account-discount__toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.account-discount__field {
+  display: grid;
+  gap: 7px;
+  max-width: 380px;
+  width: 100%;
+}
+
+.account-discount__field > label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-discount__row {
+  display: flex;
+  gap: 8px;
+}
+
+.account-discount__row input {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  flex: 1;
+  font: inherit;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 14px;
+  text-transform: uppercase;
+  transition: border-color var(--transition-fast);
+}
+
+.account-discount__row input:focus-visible {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline: none;
+}
+
+.account-discount__row input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.account-discount__row button {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 16px;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.account-discount__row button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  color: var(--color-brand-gold);
+}
+
+.account-discount__row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.account-discount__row button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.account-discount__error {
+  color: var(--color-brand-red);
+  font-size: 12px;
+  margin: 0;
+}
+
+.account-discount__applied {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+}
+
+.account-discount__applied button {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  margin-left: auto;
+  min-height: 44px;
+  padding: 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-discount__applied button:hover:not(:disabled) {
+  color: var(--color-text-secondary);
+}
+
+.account-discount__applied button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Estilos de .segmented-switch--membership: components/segmented-switch.css
@@ -3769,7 +3952,7 @@
 }
 
 @media (max-width: 720px) {
-  .account-section__heading {
+  .account-section__heading:not(.account-section__heading--personal):not(.account-section__heading--simple) {
     grid-template-columns: auto 1fr;
   }
 
@@ -3798,6 +3981,10 @@
 
   .account-membership__checkout {
     position: static;
+  }
+
+  .account-discount__field {
+    max-width: none;
   }
 
   .account-membership-status {
@@ -4220,28 +4407,26 @@
    PERFIL â€” COMPLETITUD Y WARNING
    ============================================= */
 
-/* Badge de completitud en el heading de PersonalDataSection */
-.account-profile-completeness {
+/* Estado de completitud — tipografía, sin pill */
+.account-profile-status {
   align-items: center;
-  border-radius: 999px;
   display: inline-flex;
-  font-size: 11.5px;
-  font-weight: 600;
-  gap: 5px;
-  letter-spacing: 0.01em;
-  padding: 5px 11px;
+  gap: 6px;
+  margin: 0;
 }
 
-.account-profile-completeness.is-complete {
-  background: color-mix(in srgb, #3d9a62 12%, transparent);
-  border: 1px solid color-mix(in srgb, #3d9a62 32%, transparent);
-  color: #4fbe79;
-}
-
-.account-profile-completeness.is-incomplete {
-  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+.account-profile-status--ok {
   color: var(--color-brand-gold);
+  flex: none;
+}
+
+.account-profile-status--pending {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: none;
 }
 
 /* Barra de progreso de completitud del perfil */

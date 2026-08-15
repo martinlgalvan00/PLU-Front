@@ -91,6 +91,14 @@ describe('vigencia de la afiliación', () => {
     expect(filterMemberships([stale], { status: 'vencida', today: TODAY })).toEqual([stale])
   })
 
+  it('encuentra afiliaciones por gimnasio para operar el padrón', () => {
+    const item = membership({
+      athlete: { fullName: 'Ana Torres', documentId: '30111222', gym: 'Fuerza Sur' },
+    })
+
+    expect(filterMemberships([item], { query: 'fuerza sur', today: TODAY })).toEqual([item])
+  })
+
   it('calcula el vencimiento próximo contra el día recibido, sin depender del reloj real', () => {
     expect(isExpiringSoon('2026-09-06', 30, TODAY)).toBe(true)
     expect(isExpiringSoon('2026-09-07', 30, TODAY)).toBe(false)

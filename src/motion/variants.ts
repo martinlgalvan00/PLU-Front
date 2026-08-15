@@ -111,11 +111,14 @@ export const drawerBackdropTransition: Variants = {
 }
 
 export const pageSectionTransition: Variants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: MOTION_DURATION.page, ease: MOTION_EASE.out },
+    // Cinematic (settle largo): la página entra subiendo y frena suave,
+    // sin rebote. La salida es quiet — solo disolución — para que nunca
+    // haya dos superficies desplazándose a la vez.
+    transition: { duration: MOTION_DURATION.page, ease: MOTION_EASE.cinematic },
   },
   exit: {
     opacity: 0,

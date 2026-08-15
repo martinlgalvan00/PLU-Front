@@ -1,0 +1,46 @@
+import { describe, expect, it, vi } from 'vitest'
+
+const apiGet = vi.fn()
+
+vi.mock('../src/lib/api.js', () => ({
+  apiGet,
+  apiPost: vi.fn(),
+}))
+
+const { fetchEventRegistrationSummary } = await import('../src/services/eventRegistrationApi.js')
+
+describe('fetchEventRegistrationSummary', () => {
+  it('conserva la foto temporal del atleta sin exponer una ruta de storage', async () => {
+    apiGet.mockResolvedValue({
+      summary: {
+        capacity: 80,
+        registered: 1,
+        remaining: 79,
+        recent: [
+          {
+            displayName: 'Ana T.',
+            gym: 'Fuerza Sur',
+            photoUrl: 'https://storage.example.test/portrait?token=temporary',
+            photoPath: 'ath-1/private-photo.jpg',
+            registeredAt: '2026-08-21T12:00:00Z',
+          },
+        ],
+      },
+    })
+
+    await expect(fetchEventRegistrationSummary('pitbull-classic-2026')).resolves.toEqual({
+      capacity: 80,
+      registered: 1,
+      remaining: 79,
+      recent: [
+        {
+          displayName: 'Ana T.',
+          gym: 'Fuerza Sur',
+          photoUrl: 'https://storage.example.test/portrait?token=temporary',
+          registeredAt: '2026-08-21T12:00:00Z',
+        },
+      ],
+    })
+    expect(apiGet).toHaveBeenCalledWith('/api/events/pitbull-classic-2026/registration-summary')
+  })
+})

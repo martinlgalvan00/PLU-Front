@@ -1,5 +1,6 @@
 import { Clock3, History, Trash2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { formatDocumentWithKind } from '../../lib/format.js'
 
 export default function AdminCheckinScanHistory({ items = [], onClear, onSelect }) {
   const { t } = useI18n()
@@ -63,7 +64,7 @@ export default function AdminCheckinScanHistory({ items = [], onClear, onSelect 
               </span>
               <span className="admin-checkin-history__person">
                 {item.name || t('admin.checkin.history.unknown')}
-                {item.document ? ` · ${item.document}` : ''}
+                {item.document ? ` · ${formatDocumentWithKind(item.document)}` : ''}
               </span>
               {item.type && (
                 <span className="admin-checkin-history__type">

@@ -17,6 +17,7 @@ export async function fetchEventRegistrationSummary(eventSlug) {
       ? summary.recent.map((item) => ({
           displayName: String(item.displayName ?? item.display_name ?? '').trim() || 'Atleta',
           gym: String(item.gym ?? '').trim(),
+          photoUrl: typeof item.photoUrl === 'string' && item.photoUrl.trim() ? item.photoUrl : null,
           registeredAt: item.registeredAt ?? item.registered_at ?? null,
         }))
       : [],

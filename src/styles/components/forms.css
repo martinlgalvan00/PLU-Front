@@ -308,7 +308,7 @@
   padding: clamp(1rem, 2vw, 1.5rem);
   border: 1px solid color-mix(in srgb, var(--color-border, #d8d8d8) 82%, transparent);
   border-radius: 0.75rem;
-  background: var(--color-surface, #fff);
+  background: var(--color-bg-surface, #fff);
 }
 
 .mp-embedded-checkout--settle {
@@ -322,6 +322,49 @@
 .mp-embedded-checkout__real-options {
   display: grid;
   gap: 0.85rem;
+}
+
+/* La cuenta de Mercado Pago ya no es una superficie aparte: es una fila más
+   del Payment Brick. Lo único que sobrevive del tile es el aviso de cuando
+   no se pudo preparar la preferencia y esa fila no se puede ofrecer. */
+.mp-embedded-checkout__wallet-tile {
+  align-items: start;
+  border: 1px solid var(--color-border-subtle, #d8d8d8);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  min-width: 0;
+  padding: 14px;
+}
+
+.mp-embedded-checkout__wallet-tile-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.mp-embedded-checkout__wallet-tile-copy strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.mp-embedded-checkout__wallet-tile-copy span {
+  color: var(--color-text-muted, #666);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* Preparar la preferencia embebida falló dos veces: se avisa en vez de
+   desaparecer en silencio, sin bloquear el pago con tarjeta de abajo. */
+.mp-embedded-checkout__wallet-tile--notice {
+  background: var(--color-warning-bg);
+  border-color: color-mix(in srgb, var(--color-warning-text) 35%, transparent);
+}
+
+.mp-embedded-checkout__wallet-tile--notice .mp-embedded-checkout__wallet-tile-copy strong {
+  color: var(--color-warning-text);
 }
 
 .mp-embedded-checkout__redirect-note {
@@ -443,7 +486,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mp-embedded-checkout [class*='mp-checkout-bricks__selector'] {
+  .mp-embedded-checkout
+    [class*='mp-checkout-bricks__payment-option']
+    > [class*='mp-checkout-bricks__selector'] {
     transition: none;
   }
 }

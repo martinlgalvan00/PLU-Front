@@ -3,8 +3,13 @@ import { BadgeCheck, ClipboardList, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
+import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
-import { AdminIdentityCell, AdminPaymentCell, AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
+import {
+  AdminIdentityCell,
+  AdminPaymentCell,
+  AdminTableActions,
+} from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -32,16 +37,20 @@ function formatRegistrationWeight(registration) {
 function canValidateRegistrationPayment(row, canEdit) {
   return Boolean(
     canEdit &&
-      row.paymentId &&
-      row.paymentMethod !== 'mercado_pago' &&
-      row.paymentStatus !== 'aprobado',
+    row.paymentId &&
+    row.paymentMethod !== 'mercado_pago' &&
+    row.paymentStatus !== 'aprobado',
   )
 }
 
 function matchesRegistrationFilter(registration, payment, filter, gatePendingIds) {
   if (filter === 'all') return true
   if (filter === 'gate_pending') return gatePendingIds.has(registration.id)
-  return registration.status === filter || registration.paymentStatus === filter || payment?.status === filter
+  return (
+    registration.status === filter ||
+    registration.paymentStatus === filter ||
+    payment?.status === filter
+  )
 }
 
 function countRegistrationsByFilter(registrations, resolvePayment, filter, gatePendingIds) {
@@ -65,9 +74,11 @@ export default function RegistrationsSection({
   onExportPluUsa,
   onGoToEvents,
   onScheduleAssigned,
+  onSelectAthlete,
   onSetFilters,
   onDelete,
   canDelete = false,
+  unreconciledPayments = [],
 }) {
   const { locale, t } = useI18n()
   const total = registrationsCount ?? registrations.length
@@ -116,7 +127,12 @@ export default function RegistrationsSection({
   const statusCounts = useMemo(() => {
     const counts = {}
     for (const [value] of REGISTRATION_FILTER_STATUSES) {
-      counts[value] = countRegistrationsByFilter(registrations, resolvePayment, value, gatePendingIds)
+      counts[value] = countRegistrationsByFilter(
+        registrations,
+        resolvePayment,
+        value,
+        gatePendingIds,
+      )
     }
     return counts
   }, [registrations, resolvePayment, gatePendingIds])
@@ -150,7 +166,10 @@ export default function RegistrationsSection({
         return {
           id: reg.id,
           athlete: reg.athlete?.fullName,
+          athleteId: reg.athleteId,
           document: reg.athlete?.documentId,
+          gym: reg.athlete?.gym ?? '',
+          photoUrl: reg.athlete?.photoUrl ?? null,
           event: reg.event,
           eventSlug: reg.eventSlug ?? eventSlugByTitle.get(reg.event) ?? null,
           category: `${reg.category} · ${reg.division}`,
@@ -274,265 +293,297 @@ export default function RegistrationsSection({
         }
 
   return (
-    <AdminListSection
-      variant="registrations"
-      eyebrow={t('admin.sections.registrations.eyebrow')}
-      filteredCount={registrationRows.length}
-      placeholder={t('admin.search.registration')}
-      query={filters.query ?? ''}
-      showHeader
-      showStats={!isGloballyEmpty}
-      showFilters={!isGloballyEmpty}
-      stats={
-        isGloballyEmpty
-          ? []
-          : [
-              {
-                label: t('admin.registrations.stats.total'),
-                value: statusCounts.all ?? total,
-                tone: 'default',
-              },
-              {
-                label: t('admin.registrations.stats.pending'),
-                value: statusCounts.pendiente_pago ?? 0,
-                tone: 'warning',
-              },
-              {
-                label: t('admin.registrations.stats.manual'),
-                value: statusCounts.validacion_manual ?? 0,
-                tone: 'warning',
-              },
-              {
-                label: t('admin.registrations.stats.confirmed'),
-                value: statusCounts.confirmada ?? 0,
-                tone: 'success',
-              },
-            ]
-      }
-      title={t('admin.sections.registrations.title')}
-      subtitle={t('admin.sections.registrations.subtitle')}
-      totalCount={total}
-      actions={
-        isGloballyEmpty ? null : (
+    <>
+      <AdminPaymentReconciliationAlert
+        entries={unreconciledPayments}
+        onSelectAthlete={onSelectAthlete}
+      />
+      <AdminListSection
+        variant="registrations"
+        eyebrow={t('admin.sections.registrations.eyebrow')}
+        filteredCount={registrationRows.length}
+        placeholder={t('admin.search.registration')}
+        query={filters.query ?? ''}
+        showHeader
+        showStats={!isGloballyEmpty}
+        showFilters={!isGloballyEmpty}
+        stats={
+          isGloballyEmpty
+            ? []
+            : [
+                {
+                  label: t('admin.registrations.stats.total'),
+                  value: statusCounts.all ?? total,
+                  tone: 'default',
+                },
+                {
+                  label: t('admin.registrations.stats.pending'),
+                  value: statusCounts.pendiente_pago ?? 0,
+                  tone: 'warning',
+                },
+                {
+                  label: t('admin.registrations.stats.manual'),
+                  value: statusCounts.validacion_manual ?? 0,
+                  tone: 'warning',
+                },
+                {
+                  label: t('admin.registrations.stats.confirmed'),
+                  value: statusCounts.confirmada ?? 0,
+                  tone: 'success',
+                },
+              ]
+        }
+        title={t('admin.sections.registrations.title')}
+        subtitle={t('admin.sections.registrations.subtitle')}
+        totalCount={total}
+        actions={
+          isGloballyEmpty ? null : (
+            <>
+              <ExportButton
+                label={t('admin.actions.exportCsvShort')}
+                ariaLabel={t('admin.actions.exportCsvAdmin')}
+                onClick={onExportAdmin}
+                disabled={!canEdit}
+              />
+              <ExportButton
+                label={t('admin.actions.exportPluUsaShort')}
+                ariaLabel={t('admin.actions.exportPluUsa')}
+                onClick={onExportPluUsa}
+                variant="gold"
+              />
+            </>
+          )
+        }
+        filters={
+          isGloballyEmpty
+            ? []
+            : [
+                eventFilter,
+                {
+                  id: 'status',
+                  label: t('admin.filters.status'),
+                  showLabel: true,
+                  value: filters.status,
+                  onChange: handleStatusChange,
+                  options: statusOptions,
+                },
+              ].filter(Boolean)
+        }
+        onQueryChange={handleQueryChange}
+      >
+        {isGloballyEmpty ? (
+          <div className="admin-empty admin-empty--registrations">
+            <span className="admin-empty__icon" aria-hidden>
+              <ClipboardList size={22} strokeWidth={1.6} />
+            </span>
+            <h2 className="admin-empty__title">{t('admin.sections.registrations.emptyTitle')}</h2>
+            <p className="admin-empty__lead">{t('admin.sections.registrations.emptyLead')}</p>
+            {onGoToEvents ? (
+              <Button type="button" variant="outline" onClick={onGoToEvents}>
+                {t('admin.sections.registrations.emptyCta')}
+              </Button>
+            ) : null}
+          </div>
+        ) : isFilteredEmpty ? (
+          <div className="admin-empty admin-empty--filtered">
+            <span className="admin-empty__icon" aria-hidden>
+              <ClipboardList size={20} strokeWidth={1.6} />
+            </span>
+            <h2 className="admin-empty__title">
+              {t('admin.sections.registrations.emptyFilteredTitle')}
+            </h2>
+            <p className="admin-empty__lead">{t('admin.sections.registrations.emptyFiltered')}</p>
+            <button type="button" className="admin-empty__text-link" onClick={handleClearFilters}>
+              {t('admin.sections.registrations.clearFilters')}
+            </button>
+          </div>
+        ) : (
           <>
-            <ExportButton
-              label={t('admin.actions.exportCsvShort')}
-              ariaLabel={t('admin.actions.exportCsvAdmin')}
-              onClick={onExportAdmin}
-              disabled={!canEdit}
-            />
-            <ExportButton
-              label={t('admin.actions.exportPluUsaShort')}
-              ariaLabel={t('admin.actions.exportPluUsa')}
-              onClick={onExportPluUsa}
-              variant="gold"
-            />
-          </>
-        )
-      }
-      filters={
-        isGloballyEmpty
-          ? []
-          : [
-              eventFilter,
-              {
-                id: 'status',
-                label: t('admin.filters.status'),
-                showLabel: true,
-                value: filters.status,
-                onChange: handleStatusChange,
-                options: statusOptions,
-              },
-            ].filter(Boolean)
-      }
-      onQueryChange={handleQueryChange}
-    >
-      {isGloballyEmpty ? (
-        <div className="admin-empty admin-empty--registrations">
-          <span className="admin-empty__icon" aria-hidden>
-            <ClipboardList size={22} strokeWidth={1.6} />
-          </span>
-          <h2 className="admin-empty__title">{t('admin.sections.registrations.emptyTitle')}</h2>
-          <p className="admin-empty__lead">{t('admin.sections.registrations.emptyLead')}</p>
-          {onGoToEvents ? (
-            <Button type="button" variant="outline" onClick={onGoToEvents}>
-              {t('admin.sections.registrations.emptyCta')}
-            </Button>
-          ) : null}
-        </div>
-      ) : isFilteredEmpty ? (
-        <div className="admin-empty admin-empty--filtered">
-          <span className="admin-empty__icon" aria-hidden>
-            <ClipboardList size={20} strokeWidth={1.6} />
-          </span>
-          <h2 className="admin-empty__title">{t('admin.sections.registrations.emptyFilteredTitle')}</h2>
-          <p className="admin-empty__lead">{t('admin.sections.registrations.emptyFiltered')}</p>
-          <button type="button" className="admin-empty__text-link" onClick={handleClearFilters}>
-            {t('admin.sections.registrations.clearFilters')}
-          </button>
-        </div>
-      ) : (
-        <>
-          {canAssignSchedule && (
-            <AdminScheduleAssigner
-              assigning={assigning}
-              days={days}
-              sessions={sessions}
-              mixedEvents={mixedEvents}
-              onAssign={handleAssign}
-              onClearSelection={clearSelection}
-              scheduleStatus={scheduleStatus}
-              selectedCount={visibleSelectedRows.length}
-              targetEventName={visibleSelectedRows[0]?.event ?? ''}
-            />
-          )}
-          <AdminDataTable
-            columns={[
-              ...(canAssignSchedule
-                ? [
-                    {
-                      key: 'select',
-                      mobile: 'select',
-                      mobileLabel: '',
-                      label: (
-                        <label className="admin-schedule-select">
-                          <input
-                            type="checkbox"
-                            checked={allVisibleSelected}
-                            onChange={toggleAllVisible}
-                            aria-label={t('admin.schedule.selectAll')}
-                          />
-                        </label>
-                      ),
-                      render: (row) => (
-                        <label className="admin-schedule-select">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(row.id)}
-                            onChange={() => toggleRow(row.id)}
-                            aria-label={t('admin.schedule.selectRow', { name: row.athlete ?? '' })}
-                          />
-                        </label>
-                      ),
-                    },
-                  ]
-                : []),
-              {
-                key: 'athlete',
-                label: t('admin.columns.athlete'),
-                mobile: 'primary',
-                sortable: true,
-                render: (row) => (
-                  <AdminIdentityCell name={row.athlete} sub={row.document} subMono />
-                ),
-              },
-              {
-                key: 'event',
-                label: t('admin.columns.event'),
-                mobile: 'default',
-                mobileMeta: 'labeled',
-                sortable: true,
-              },
-              {
-                key: 'category',
-                label: t('admin.columns.category'),
-                mobile: 'default',
-                mobileMeta: 'labeled',
-                mobileSortable: false,
-                sortable: true,
-              },
-              {
-                key: 'bodyweight',
-                label: t('admin.columns.weight'),
-                mobile: 'default',
-                mobileMeta: 'labeled',
-                mobileSortable: false,
-                sortable: false,
-                render: (row) => row.bodyweight || null,
-              },
-              {
-                // Qué día compite. Ordena por el resumen, así las no asignadas
-                // quedan juntas y se ven de un vistazo las que faltan repartir.
-                key: 'schedule',
-                label: t('admin.columns.schedule'),
-                mobile: 'default',
-                mobileMeta: 'labeled',
-                mobileSortable: false,
-                sortable: true,
-                sortAccessor: (row) => formatScheduleSummary(row.schedule, locale),
-                render: (row) =>
-                  formatScheduleSummary(row.schedule, locale) || (
-                    <span className="admin-muted-text">{t('admin.schedule.unassignedShort')}</span>
+            {canAssignSchedule && (
+              <AdminScheduleAssigner
+                assigning={assigning}
+                days={days}
+                sessions={sessions}
+                mixedEvents={mixedEvents}
+                onAssign={handleAssign}
+                onClearSelection={clearSelection}
+                scheduleStatus={scheduleStatus}
+                selectedCount={visibleSelectedRows.length}
+                targetEventName={visibleSelectedRows[0]?.event ?? ''}
+              />
+            )}
+            <AdminDataTable
+              columns={[
+                ...(canAssignSchedule
+                  ? [
+                      {
+                        key: 'select',
+                        mobile: 'select',
+                        mobileLabel: '',
+                        label: (
+                          <label
+                            className="admin-schedule-select"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={allVisibleSelected}
+                              onChange={toggleAllVisible}
+                              aria-label={t('admin.schedule.selectAll')}
+                            />
+                          </label>
+                        ),
+                        render: (row) => (
+                          <label
+                            className="admin-schedule-select"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(row.id)}
+                              onChange={() => toggleRow(row.id)}
+                              aria-label={t('admin.schedule.selectRow', {
+                                name: row.athlete ?? '',
+                              })}
+                            />
+                          </label>
+                        ),
+                      },
+                    ]
+                  : []),
+                {
+                  key: 'athlete',
+                  label: t('admin.columns.athlete'),
+                  mobile: 'primary',
+                  sortable: true,
+                  render: (row) => (
+                    <AdminIdentityCell
+                      name={row.athlete}
+                      photoUrl={row.photoUrl}
+                      sub={row.gym || row.document}
+                      subMono={!row.gym}
+                    />
                   ),
-              },
-              {
-                key: 'status',
-                label: t('admin.columns.status'),
-                mobile: 'badge',
-                sortable: true,
-                render: (row) => <StatusBadge value={row.status} />,
-              },
-              {
-                key: 'payment',
-                label: t('admin.columns.payment'),
-                mobile: 'badge',
-                mobileSortable: false,
-                sortable: true,
-                sortAccessor: (row) => row.amount,
-                render: (row) => <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />,
-              },
-              {
-                key: 'action',
-                label: t('admin.columns.action'),
-                mobile: 'action',
-                render: (row) =>
-                  (canValidateRegistrationPayment(row, canEdit) || canDelete) ? (
-                    <AdminTableActions>
-                      {canValidateRegistrationPayment(row, canEdit) ? (
-                        <AdminIconButton
-                          icon={BadgeCheck}
-                          label={t('admin.actions.validate')}
-                          onClick={() => onApprovePayment(row.paymentId)}
-                          variant="celeste"
-                        />
-                      ) : null}
-                      {canDelete ? (
-                        <AdminIconButton
-                          icon={Trash2}
-                          label="Eliminar inscripción"
-                          onClick={() => {
-                            setDeleteError('')
-                            setDeleteTarget(row)
-                          }}
-                          variant="danger"
-                        />
-                      ) : null}
-                    </AdminTableActions>
-                  ) : null,
-              },
-            ]}
-            rows={registrationRows}
-            emptyMessage={t('admin.sections.registrations.empty')}
-          />
-          {deleteTarget ? (
-            <AdminDeleteConfirmDialog
-              busy={deleting}
-              error={deleteError}
-              onCancel={() => {
-                if (!deleting) setDeleteTarget(null)
-              }}
-              onConfirm={deleteRegistration}
-              title="Eliminar inscripción"
-              description={`Vas a eliminar definitivamente la inscripción de ${deleteTarget.athlete} a ${deleteTarget.event}.`}
-              warning="También se eliminará su acreditación. Los pagos y la auditoría se conservan."
-              cancelLabel="Cancelar"
-              confirmLabel="Eliminar definitivamente"
-              busyLabel="Eliminando…"
+                },
+                {
+                  key: 'event',
+                  label: t('admin.columns.event'),
+                  mobile: 'default',
+                  mobileMeta: 'labeled',
+                  sortable: true,
+                },
+                {
+                  key: 'category',
+                  label: t('admin.columns.category'),
+                  mobile: 'default',
+                  mobileMeta: 'labeled',
+                  mobileSortable: false,
+                  sortable: true,
+                },
+                {
+                  key: 'bodyweight',
+                  label: t('admin.columns.weight'),
+                  mobile: 'default',
+                  mobileMeta: 'labeled',
+                  mobileSortable: false,
+                  sortable: false,
+                  render: (row) => row.bodyweight || null,
+                },
+                {
+                  // Qué día compite. Ordena por el resumen, así las no asignadas
+                  // quedan juntas y se ven de un vistazo las que faltan repartir.
+                  key: 'schedule',
+                  label: t('admin.columns.schedule'),
+                  mobile: 'default',
+                  mobileMeta: 'labeled',
+                  mobileSortable: false,
+                  sortable: true,
+                  sortAccessor: (row) => formatScheduleSummary(row.schedule, locale),
+                  render: (row) =>
+                    formatScheduleSummary(row.schedule, locale) || (
+                      <span className="admin-muted-text">
+                        {t('admin.schedule.unassignedShort')}
+                      </span>
+                    ),
+                },
+                {
+                  key: 'status',
+                  label: t('admin.columns.status'),
+                  mobile: 'badge',
+                  sortable: true,
+                  render: (row) => <StatusBadge value={row.status} />,
+                },
+                {
+                  key: 'payment',
+                  label: t('admin.columns.payment'),
+                  mobile: 'badge',
+                  mobileSortable: false,
+                  sortable: true,
+                  sortAccessor: (row) => row.amount,
+                  render: (row) => (
+                    <AdminPaymentCell amount={row.amount} status={row.paymentStatus} />
+                  ),
+                },
+                {
+                  key: 'action',
+                  label: t('admin.columns.action'),
+                  mobile: 'action',
+                  render: (row) =>
+                    canValidateRegistrationPayment(row, canEdit) || canDelete ? (
+                      <AdminTableActions onClick={(event) => event.stopPropagation()}>
+                        {canValidateRegistrationPayment(row, canEdit) ? (
+                          <AdminIconButton
+                            icon={BadgeCheck}
+                            label={t('admin.actions.validate')}
+                            onClick={() => onApprovePayment(row.paymentId)}
+                            variant="celeste"
+                          />
+                        ) : null}
+                        {canDelete ? (
+                          <AdminIconButton
+                            icon={Trash2}
+                            label="Eliminar inscripción"
+                            onClick={() => {
+                              setDeleteError('')
+                              setDeleteTarget(row)
+                            }}
+                            variant="danger"
+                          />
+                        ) : null}
+                      </AdminTableActions>
+                    ) : null,
+                },
+              ]}
+              rows={registrationRows}
+              emptyMessage={t('admin.sections.registrations.empty')}
+              onRowClick={
+                onSelectAthlete
+                  ? (row) => row.athleteId && onSelectAthlete(row.athleteId)
+                  : undefined
+              }
+              rowClassName={
+                onSelectAthlete ? 'data-table__row--clickable data-table__row--registration' : ''
+              }
             />
-          ) : null}
-        </>
-      )}
-    </AdminListSection>
+            {deleteTarget ? (
+              <AdminDeleteConfirmDialog
+                busy={deleting}
+                error={deleteError}
+                onCancel={() => {
+                  if (!deleting) setDeleteTarget(null)
+                }}
+                onConfirm={deleteRegistration}
+                title="Eliminar inscripción"
+                description={`Vas a eliminar definitivamente la inscripción de ${deleteTarget.athlete} a ${deleteTarget.event}.`}
+                warning="También se eliminará su acreditación. Los pagos y la auditoría se conservan."
+                cancelLabel="Cancelar"
+                confirmLabel="Eliminar definitivamente"
+                busyLabel="Eliminando…"
+              />
+            ) : null}
+          </>
+        )}
+      </AdminListSection>
+    </>
   )
 }
-

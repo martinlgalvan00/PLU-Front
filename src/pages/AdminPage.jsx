@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import '../styles/layout/admin-shell.css'
 import '../styles/pages/admin.css'
 import '../styles/pages/admin-institutional.css'
@@ -19,6 +19,7 @@ import ErrorState from '../components/ui/ErrorState.jsx'
 // Roles, Auditoría, Tienda o PLU USA.
 import DashboardSection from './admin/DashboardSection.jsx'
 import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
+import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
 
 const AthleteDetailSection = lazy(() => import('./admin/AthleteDetailSection.jsx'))
 const AthletesSection = lazy(() => import('./admin/AthletesSection.jsx'))
@@ -122,6 +123,7 @@ export default function AdminPage({
   registrationAccessError,
   onRefreshRegistrationAccess,
   onSaveRegistrationAccessGate,
+  onDeleteRegistrationAccessGate,
   athletes,
   registrations,
   tickets,
@@ -149,6 +151,29 @@ export default function AdminPage({
   const pendingPayments = payments.filter(
     (payment) => payment.status === 'pendiente' || payment.status === 'validacion_manual',
   ).length
+
+  // Pagos aprobados (plata cobrada) sin la afiliación/inscripción que
+  // deberían haber activado -- ver paymentReconciliationService. Se calcula
+  // acá porque memberships/registrations/payments/athletes ya están todos
+  // cargados en el snapshot admin; las secciones solo filtran su mitad.
+  const unreconciledPayments = useMemo(
+    () =>
+      findUnreconciledApprovedPayments({
+        memberships: enrichedMemberships,
+        registrations,
+        payments,
+        athletes,
+      }),
+    [enrichedMemberships, registrations, payments, athletes],
+  )
+  const unreconciledMembershipPayments = useMemo(
+    () => unreconciledPayments.filter((entry) => entry.missingMembership),
+    [unreconciledPayments],
+  )
+  const unreconciledRegistrationPayments = useMemo(
+    () => unreconciledPayments.filter((entry) => entry.missingRegistration),
+    [unreconciledPayments],
+  )
 
   useEffect(() => {
     if (allowedSections.length > 0 && !allowedSections.includes(section)) {
@@ -260,6 +285,7 @@ export default function AdminPage({
       return (
         <MembershipsSection
           memberships={enrichedMemberships}
+          unreconciledPayments={unreconciledMembershipPayments}
           onSelectAthlete={handleSelectAthlete}
           onSetMembershipStatus={onSetMembershipStatus}
           canManage={hasPermission(authorization, 'admin.memberships.write')}
@@ -283,6 +309,7 @@ export default function AdminPage({
           payments={payments}
           registrations={registrations}
           registrationsCount={registrations.length}
+          unreconciledPayments={unreconciledRegistrationPayments}
           onApprovePayment={onApprovePayment}
           canDelete={canDeleteRegistrations && Boolean(onDeleteRegistration)}
           onDelete={onDeleteRegistration}
@@ -290,6 +317,7 @@ export default function AdminPage({
           onExportPluUsa={onExportPluUsa}
           onGoToEvents={() => setSection('events')}
           onScheduleAssigned={onScheduleAssigned}
+          onSelectAthlete={handleSelectAthlete}
           onSetFilters={onSetFilters}
         />
       )
@@ -388,7 +416,8 @@ export default function AdminPage({
         />
       )
     }
-    if (section === 'finance') return <FinanceSection canEdit={hasPermission(authorization, 'admin.payments.approve')} />
+    if (section === 'finance')
+      return <FinanceSection canEdit={hasPermission(authorization, 'admin.payments.approve')} />
 
     if (section === 'pricing') {
       return (
@@ -425,6 +454,7 @@ export default function AdminPage({
           isLoading={registrationAccessLoading}
           onRefresh={onRefreshRegistrationAccess}
           onSave={onSaveRegistrationAccessGate}
+          onDelete={onDeleteRegistrationAccessGate}
         />
       )
     }
