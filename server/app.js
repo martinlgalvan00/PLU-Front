@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import compression from 'compression'
 import helmet from 'helmet'
 import cookieParser from 'cookie-parser'
 import { createHealthRoutes } from './routes/health.js'
@@ -58,6 +59,14 @@ export function createApp(deps = {}) {
       contentSecurityPolicy: false,
     }),
   )
+  // El CDN de Vercel comprime los estáticos, pero **no** la salida de la
+  // función: las respuestas de la API viajaban en texto plano. El panel
+  // repregunta el snapshot completo (atletas, membresías, inscripciones y
+  // órdenes) cada minuto, y ese JSON es la mayor parte del egress del proyecto
+  // -- comprimido baja alrededor de un 85 %. El umbral por defecto (1 KB) deja
+  // pasar sin tocar las respuestas chicas, donde comprimir costaría más CPU de
+  // lo que ahorra en bytes.
+  app.use(compression())
   app.use(cors({ origin: corsOrigin, credentials: true }))
   // Primero de la cadena util: todo lo que se loguee de aca en adelante
   // -- incluido el stack de una falla de cobro -- queda atado al mismo
