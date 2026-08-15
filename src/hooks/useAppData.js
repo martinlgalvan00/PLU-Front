@@ -232,6 +232,9 @@ export function useAppData() {
   })
   const [registrationAccessLoading, setRegistrationAccessLoading] = useState(false)
   const [registrationAccessError, setRegistrationAccessError] = useState(null)
+  const [checkoutAvailability, setCheckoutAvailability] = useState(
+    DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY,
+  )
   const [billingSubscriptions, setBillingSubscriptions] = useState([])
   const [billingSubscriptionsLoading, setBillingSubscriptionsLoading] = useState(false)
   const [billingSubscriptionsError, setBillingSubscriptionsError] = useState(null)
@@ -2512,6 +2515,8 @@ export function useAppData() {
     registrationAccessConfiguration,
     registrationAccessLoading,
     registrationAccessError,
+    checkoutAvailability,
+    refreshCheckoutAvailability,
     refreshRegistrationAccessConfiguration,
     saveRegistrationAccessGate,
     deleteRegistrationAccessGate,

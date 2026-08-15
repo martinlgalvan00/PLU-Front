@@ -18,12 +18,15 @@ export default function UpcomingEventsSection({
   onNavigate,
   athlete,
   onNavigateSection,
+  checkoutAvailability = {},
 }) {
   const { t } = useI18n()
   const hasActiveMembership = isMembershipCurrent(membership)
+  const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
   const [incompleteWarningEvent, setIncompleteWarningEvent] = useState(null)
 
   function handleRegisterClick(event) {
+    if (!registrationCheckoutEnabled) return
     if (!athlete) {
       onNavigate('competition')
       return
@@ -133,12 +136,14 @@ export default function UpcomingEventsSection({
                   type="button"
                   className={`account-events-list__cta${registered ? ' is-registered' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
                   onClick={() => !registered && handleRegisterClick(event)}
-                  disabled={registered}
+                  disabled={registered || !registrationCheckoutEnabled}
                   aria-describedby={showingWarningForThis ? 'account-profile-incomplete-warning' : undefined}
                 >
                   {registered
                     ? t('account.events.alreadyRegistered')
-                    : t('account.events.register')}
+                    : registrationCheckoutEnabled
+                      ? t('account.events.register')
+                      : t('pages.members.ctaCheckoutSoon')}
                 </button>
               </article>
             )

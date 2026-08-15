@@ -343,6 +343,10 @@ export default function App() {
 
   function selectEvent(event) {
     setSelectedEvent(event)
+    if (app.checkoutAvailability?.registrationEnabled === false) {
+      navigate('events', event?.slug ? { eventSlug: event.slug } : {})
+      return
+    }
     if (getSession()?.role !== 'athlete_plu') {
       // Conserva el evento elegido mientras la persona crea su ficha. Al
       // terminar el alta, `navigate('profile')` retoma automáticamente la
@@ -600,6 +604,7 @@ export default function App() {
           onSubmit: app.registerAthlete,
           onUpdateForm: app.updateForm,
           total: 0,
+          checkoutAvailability: app.checkoutAvailability,
         }
       : view === 'login'
         ? { onNavigate: navigate, onLogin: app.login }
@@ -612,6 +617,7 @@ export default function App() {
               session: app.session,
               memberships: app.memberships,
               registrations: app.registrations,
+              checkoutAvailability: app.checkoutAvailability,
             }
           : view === 'home'
             ? {
@@ -620,6 +626,7 @@ export default function App() {
                 events: publicEvents,
                 session: app.session,
                 memberships: app.memberships,
+                checkoutAvailability: app.checkoutAvailability,
               }
               : view === 'pitbull'
                 ? {
@@ -628,6 +635,7 @@ export default function App() {
                     events: publicEvents,
                     session: app.session,
                     memberships: app.memberships,
+                    checkoutAvailability: app.checkoutAvailability,
                   }
               : view === 'shop'
                 ? { onNavigate: navigate, events: publicEvents, products: app.shopProducts }
@@ -651,6 +659,7 @@ export default function App() {
                           onSelectEvent: selectEvent,
                           session: app.session,
                           events: publicEvents,
+                          checkoutAvailability: app.checkoutAvailability,
                         }
                       : { onNavigate: navigate }
 
@@ -682,6 +691,7 @@ export default function App() {
             events={publicEvents}
             initialTab={view === 'membership' ? ACCOUNT_MEMBERSHIP_TAB : profileTab}
             tabNonce={profileTabNonce}
+            checkoutAvailability={app.checkoutAvailability}
           />
         </Suspense>
       </PrivateLayout>
@@ -714,6 +724,7 @@ export default function App() {
             onSubmit={app.submitCompetition}
             onUpdateForm={app.updateForm}
             registrations={app.registrations}
+            checkoutAvailability={app.checkoutAvailability}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.

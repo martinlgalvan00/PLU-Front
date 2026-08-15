@@ -20,6 +20,7 @@ import {
   LockKeyhole,
   ShieldCheck,
   Tag,
+  CalendarClock,
 } from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
 import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFields.jsx'
@@ -45,6 +46,7 @@ import {
   verifyAthleteEmailCode,
 } from '../services/athleteApi.js'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
+import FeatureComingSoon from '../components/ui/FeatureComingSoon.jsx'
 import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/RegisterSettle.jsx'
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
 import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
@@ -371,6 +373,7 @@ export default function RegisterPage({
   onUpdateForm,
   registrations = [],
   total,
+  checkoutAvailability = {},
 }) {
   const { locale, t } = useI18n()
   const formOptions = useMemo(() => getFormOptions(t), [t])
@@ -411,6 +414,10 @@ export default function RegisterPage({
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
   const [accessRequirements, setAccessRequirements] = useState({ membership: false, registration: false })
+  const [accessRequirementsLoading, setAccessRequirementsLoading] = useState(
+    () => ['membership', 'competition'].includes(flow),
+  )
+  const [accessRequirementsError, setAccessRequirementsError] = useState('')
   const [membershipAccessCode, setMembershipAccessCode] = useState('')
   const [registrationAccessCode, setRegistrationAccessCode] = useState('')
   const [accessUnlocked, setAccessUnlocked] = useState(false)
@@ -558,13 +565,20 @@ export default function RegisterPage({
   )
   const comboEnabled = flow === 'competition' && comboAvailability.enabled
   const comboComingSoon = flow === 'competition' && comboAvailability.comingSoon
-  const paidCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
-    checkoutKind: flow === 'membership'
-      ? 'membership'
-      : purchaseType === 'combo'
-        ? 'combo'
-        : 'registration',
-  })
+  const checkoutKind = flow === 'membership'
+    ? 'membership'
+    : purchaseType === 'combo'
+      ? 'combo'
+      : 'registration'
+  const conceptCheckoutEnabled = checkoutKind === 'membership'
+    ? checkoutAvailability.membershipEnabled !== false
+    : checkoutKind === 'combo'
+      ? checkoutAvailability.membershipEnabled !== false &&
+        checkoutAvailability.registrationEnabled !== false
+      : checkoutAvailability.registrationEnabled !== false
+  const paidCheckoutOpen =
+    conceptCheckoutEnabled &&
+    isPaidCheckoutOpen(event, env, new Date(), { checkoutKind })
   const checkoutFlowsLocked =
     (flow === 'competition' || flow === 'membership') && !paidCheckoutOpen
   const effectivePurchaseType = comboEnabled && purchaseType === 'combo'
@@ -626,18 +640,45 @@ export default function RegisterPage({
   useEffect(() => {
     if (!['membership', 'competition'].includes(flow)) {
       setAccessRequirements({ membership: false, registration: false })
+      setAccessRequirementsLoading(false)
+      setAccessRequirementsError('')
       return undefined
     }
     let active = true
+    setAccessRequirementsLoading(true)
+    setAccessRequirementsError('')
     fetchRegistrationAccessRequirements({ eventSlug: flow === 'competition' ? event?.slug : undefined })
       .then((requirements) => {
-        if (active) setAccessRequirements(requirements)
+        if (!active) return
+        setAccessRequirements(requirements)
+        setAccessRequirementsError('')
       })
       .catch(() => {
-        if (active) setAccessRequirements({ membership: false, registration: false })
+        if (!active) return
+        setAccessRequirements({ membership: false, registration: false })
+        setAccessRequirementsError(t('pages.register.accessGate.requirementsUnavailable'))
+      })
+      .finally(() => {
+        if (active) setAccessRequirementsLoading(false)
       })
     return () => { active = false }
-  }, [event?.slug, flow])
+  }, [
+    checkoutAvailability.membershipEnabled,
+    checkoutAvailability.membershipManualEnabled,
+    checkoutAvailability.registrationEnabled,
+    checkoutAvailability.registrationManualEnabled,
+    event?.slug,
+    flow,
+    t,
+  ])
+
+  useEffect(() => {
+    if (!accessRequirementsLoading && !accessRequirementsError) {
+      setSubmitError((current) =>
+        current === t('pages.register.accessGate.requirementsChecking') ? '' : current,
+      )
+    }
+  }, [accessRequirementsError, accessRequirementsLoading, t])
 
   const needsMembershipAccessCode = accessRequirements.membership && (
     flow === 'membership' || effectivePurchaseType === 'combo'
@@ -683,6 +724,8 @@ export default function RegisterPage({
   // inscripción en la misma orden. Ausente = abierto: un fetch fallido no puede
   // dejar la pantalla sin medio de pago manual.
   const manualPaymentEnabled =
+    checkoutAvailability.membershipManualEnabled !== false &&
+    (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
     accessRequirements.membershipManualEnabled !== false &&
     (flow !== 'competition' || accessRequirements.registrationManualEnabled !== false)
   const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
@@ -966,6 +1009,14 @@ export default function RegisterPage({
       setSubmitError(t('pages.register.checkoutSoon'))
       return
     }
+    if (accessRequirementsLoading) {
+      setSubmitError(t('pages.register.accessGate.requirementsChecking'))
+      return
+    }
+    if (accessRequirementsError) {
+      setSubmitError(accessRequirementsError)
+      return
+    }
     // Puerta de tanda privada: sin contraseña validada no se dispara el pago.
     // El backend igual la vuelve a pedir al crear la orden; esto evita que el
     // atleta llegue hasta Mercado Pago para recibir un 403.
@@ -1055,6 +1106,14 @@ export default function RegisterPage({
 
   async function switchToTransfer() {
     if (submitting || submissionInFlightRef.current || checkoutFlowsLocked) return
+    if (accessRequirementsLoading) {
+      setSubmitError(t('pages.register.accessGate.requirementsChecking'))
+      return
+    }
+    if (accessRequirementsError) {
+      setSubmitError(accessRequirementsError)
+      return
+    }
     // Cambiar a transferencia también crea la orden: la misma puerta aplica.
     if (accessLocked) {
       setAccessGateOpen(true)
@@ -1086,6 +1145,21 @@ export default function RegisterPage({
       submissionInFlightRef.current = false
     }
     applyRegisterSubmitResult(result, { requestedPaymentMethod: 'manual_link' })
+  }
+
+  function startPaymentMethodChange(nextMethod = 'mercado_pago') {
+    setTransferOpen(false)
+    setChangingMethod(true)
+    setSubmitError('')
+    onUpdateForm({ target: { name: 'paymentMethod', value: nextMethod } })
+  }
+
+  function cancelPaymentMethodChange() {
+    setChangingMethod(false)
+    setSubmitError('')
+    if (visibleOrder?.paymentMethod) {
+      onUpdateForm({ target: { name: 'paymentMethod', value: visibleOrder.paymentMethod } })
+    }
   }
 
   async function resendVerification() {
@@ -1215,7 +1289,7 @@ export default function RegisterPage({
             <StatusPill value={visibleOrder.status} />
             <code>{visibleOrder.reference}</code>
             {visibleOrder.paymentMethod === 'mercado_pago' ? null : (
-              <>
+              <div className="register-status__manual-actions">
                 <p className="manual-note">{t('pages.register.manualNote')}</p>
                 {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
                   <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
@@ -1231,7 +1305,7 @@ export default function RegisterPage({
                     {t('pages.register.transferOpen')}
                   </button>
                 ) : null}
-              </>
+              </div>
             )}
             {cardData && (
               <>
@@ -1385,11 +1459,26 @@ export default function RegisterPage({
                 />
               )}
             </div>
+          ) : checkoutFlowsLocked && flow === 'competition' ? (
+            <div className="register-card register-card--launch-gate">
+              <FeatureComingSoon
+                actionLabel={t('pages.register.registrationCheckoutSoonAction')}
+                className="register-feature-locked"
+                eyebrow={t('pages.register.registrationCheckoutSoonEyebrow')}
+                icon={CalendarClock}
+                lead={t('pages.register.registrationCheckoutSoonLead', { event: event?.title ?? t('nav.events') })}
+                role="status"
+                title={t('pages.register.registrationCheckoutSoonTitle')}
+                variant="inline"
+                onAction={() => onNavigate?.('events')}
+              />
+            </div>
           ) : checkoutFlowsLocked ? (
             <div className="register-card register-card--launch-gate">
               <LaunchRegistrationTeaser
                 event={event}
                 onNavigate={onNavigate}
+                registrationCheckoutEnabled={checkoutAvailability.registrationEnabled !== false}
                 variant="compact"
                 source={flow === 'membership' ? 'register_membership' : 'register_competition'}
               />
@@ -1402,7 +1491,7 @@ export default function RegisterPage({
                     <button
                       type="button"
                       className="register-topbar__back register-settle__back"
-                      onClick={() => setChangingMethod(true)}
+                      onClick={() => startPaymentMethodChange('manual_link')}
                     >
                       <ArrowLeft size={15} aria-hidden />
                       {t('pages.register.changePaymentMethod')}
@@ -1424,7 +1513,30 @@ export default function RegisterPage({
                     settle
                   />
                 </div>
-              ) : null}
+              ) : (
+                <div className="register-settle__toolbar">
+                  <div className="register-settle__nav">
+                    <button
+                      type="button"
+                      className="register-topbar__back register-settle__back"
+                      onClick={() => startPaymentMethodChange('mercado_pago')}
+                    >
+                      <ArrowLeft size={15} aria-hidden />
+                      {t('pages.register.changePaymentMethod')}
+                    </button>
+                    <button
+                      type="button"
+                      className="register-topbar__link register-settle__alt"
+                      onClick={() => {
+                        setTransferOrderId(visibleOrder?.paymentId ?? visibleOrder?.id ?? null)
+                        setTransferOpen(true)
+                      }}
+                    >
+                      {t('pages.register.transferOpen')}
+                    </button>
+                  </div>
+                </div>
+              )}
               {mpSettling ? (
                 <MercadoPagoEmbeddedCheckout order={visibleOrder} presentation="settle" />
               ) : (
@@ -1701,13 +1813,12 @@ export default function RegisterPage({
                 <button
                   type="button"
                   className="register-topbar__back"
-                  onClick={() => {
-                    setChangingMethod(false)
-                    setSubmitError('')
-                  }}
+                  onClick={cancelPaymentMethodChange}
                 >
                   <ArrowLeft size={15} aria-hidden />
-                  {t('pages.register.backToMercadoPago')}
+                  {visibleOrder?.paymentMethod === 'manual_link'
+                    ? t('pages.register.backToTransfer')
+                    : t('pages.register.backToMercadoPago')}
                 </button>
                 <FormSection
                   title={t('pages.register.competitionPaymentTitle')}
@@ -1967,6 +2078,7 @@ export default function RegisterPage({
                           : packageLabel
                       }
                       submitting={submitting}
+                      disabled={accessRequirementsLoading}
                     />
                   ) : (
                     <>
@@ -1985,7 +2097,11 @@ export default function RegisterPage({
                         ]
                           .filter(Boolean)
                           .join(' ')}
-                        disabled={submitting || (flow === 'profile' && Boolean(visibleOrder))}
+                        disabled={
+                          submitting ||
+                          accessRequirementsLoading ||
+                          (flow === 'profile' && Boolean(visibleOrder))
+                        }
                         aria-busy={submitting || undefined}
                       >
                         {submitting ? t('common.loading') : content[2]}
