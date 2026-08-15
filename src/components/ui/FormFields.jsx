@@ -135,6 +135,7 @@ export function Select({ className = '', error, icon: Icon, label, options, ...p
 /** Opciones binarias / pocas (radios) — p. ej. sexo competitivo. */
 export function ChoiceField({
   className = '',
+  disabled = false,
   error,
   label,
   name,
@@ -162,6 +163,7 @@ export function ChoiceField({
             <label key={optionValue} className={`field__choice${active ? ' is-active' : ''}`.trim()}>
               <input
                 checked={active}
+                disabled={disabled}
                 name={name}
                 type="radio"
                 value={optionValue}

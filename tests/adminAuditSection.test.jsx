@@ -48,6 +48,7 @@ vi.mock('../src/services/paymentService.js', () => ({
 vi.mock('../src/lib/credentialQr.js', () => ({
   buildCredentialUrl: ({ code }) => `https://plu-arg.com/?credencial=${code}`,
   generateCredentialQr: vi.fn(async () => 'data:image/png;base64,QR'),
+  generateStyledAthleteCredentialQr: vi.fn(async () => 'data:image/png;base64,QR'),
 }))
 
 const { fetchAuditEntries, fetchAuditFacets, fetchAuditOverview, normalizeAuditEntry } = await import(

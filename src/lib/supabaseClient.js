@@ -25,7 +25,7 @@ assertBrowserSupabaseKeyIsPublic(env.supabase.anonKey)
 
 export const isSupabaseConfigured = env.supabase.configured
 
-if (!isSupabaseConfigured && env.isDev) {
+if (!isSupabaseConfigured && env.isDev && import.meta.env.MODE !== 'test') {
   console.warn(
     'Supabase no está configurado (faltan VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). ' +
       'Las funciones que dependen de Supabase van a usar fallback local hasta que se configuren.',

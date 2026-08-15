@@ -1738,6 +1738,23 @@
   }
 }
 
+.account-membership__combo {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin: 4px auto 20px;
+  max-width: 560px;
+  padding-bottom: 24px;
+  width: 100%;
+}
+
+.account-membership__combo-kicker {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
 .account-membership__plan-title {
   color: var(--color-text-muted);
   font-size: 10px;
@@ -1755,12 +1772,28 @@
   padding: 0;
 }
 
+/* Tres datos cortos que introducen el checkout: se leen como una línea de
+   crédito centrada y cierran con una regla breve, no con un borde de ancho
+   completo que los convertía en encabezado de tabla. */
 .account-benefits--inline {
-  border-bottom: 1px solid var(--color-border-subtle);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
-  padding-bottom: 20px;
+  gap: 10px 28px;
+  justify-content: center;
+  padding-bottom: 22px;
+  position: relative;
+  text-align: center;
+}
+
+.account-benefits--inline::after {
+  background: var(--color-border-subtle);
+  bottom: 0;
+  content: '';
+  height: 1px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 72px;
 }
 
 .account-benefits li,
@@ -1778,7 +1811,7 @@
   color: var(--color-text-muted);
   font-size: 12.5px;
   gap: 7px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
 .account-benefits svg {
@@ -1786,14 +1819,28 @@
   flex: none;
 }
 
+/* Los pasos de configuración (volver, modalidad, descuento) se agrupan con un
+   ritmo corto y el desk de cobro entra con más aire: es el cierre de la
+   decisión y ya trae su propia regla superior. */
 .account-membership__checkout {
   background: transparent;
   border: 0;
   border-radius: 0;
   display: grid;
-  gap: 24px;
+  gap: 18px;
   padding: 0;
   position: static;
+}
+
+.account-membership__checkout > .plu-checkout {
+  margin-top: 8px;
+}
+
+/* Volver es el control más liviano de la pantalla, pero como hijo directo de
+   un grid se estiraba a todo el ancho y se leía como un campo vacío con el
+   texto arrinconado. Ocupa lo que mide su contenido, igual que en el settle. */
+.account-membership__checkout > .account-membership__settle-back {
+  justify-self: start;
 }
 
 .account-membership__decision--solo .account-membership__checkout {
@@ -1970,41 +2017,38 @@
   margin: -4px 0 0;
 }
 
-.account-membership__checkout-foot {
+/* Cierre del checkout de afiliación. `CheckoutDesk` es compartido con registro
+   e inscripción, así que la presencia del precio se resuelve como variante
+   local: el total es el ancla de la decisión y se apila (etiqueta chica arriba,
+   monto grande abajo) en vez de repartirse a los extremos del renglón. El monto
+   va en texto primario porque el oro ya lo usa el CTA, que es la acción. */
+.account-membership__bar {
   align-items: end;
-  border-top: 1px solid var(--color-border-subtle);
+  gap: 16px 24px;
+}
+
+.account-membership__bar .plu-checkout__total {
   display: grid;
-  gap: 18px;
-  margin-top: 2px;
-  padding-top: 22px;
+  gap: 3px;
+  justify-items: start;
 }
 
-.account-membership__total {
-  align-items: baseline;
-  display: flex;
-  gap: 14px;
-  justify-content: space-between;
-}
-
-.account-membership__total span {
-  color: var(--color-text-muted);
+.account-membership__bar .plu-checkout__total span {
   font-size: 11px;
-  font-weight: 600;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
-.account-membership__total strong {
+.account-membership__bar .plu-checkout__total strong,
+/* `checkout-desk.css` pinta el total en oro para el tema claro con la misma
+   especificidad que la regla de arriba, así que sin este selector el monto
+   quedaba blanco en dark y oro en light. */
+[data-theme='light'] .account-membership__bar .plu-checkout__total strong {
   color: var(--color-text-primary);
   font-family: var(--font-display);
   font-size: clamp(28px, 3.4vw, 36px);
   font-weight: 550;
   letter-spacing: -0.04em;
   line-height: 1;
-}
-
-.account-membership__actions {
-  margin-top: 0;
 }
 
 .account-membership__billing {
@@ -4701,6 +4745,11 @@
   border-top: 1px solid var(--color-border-subtle);
   margin-top: 22px;
   padding-top: 22px;
+}
+
+#account-personal-data .account-data-group--official-completion {
+  display: grid;
+  gap: 10px;
 }
 
 .account-data-group__meta {

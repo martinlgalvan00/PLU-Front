@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink, FileWarning, LoaderCircle, BadgeCheck, XCircle } from 'lucide-react'
+import { ExternalLink, FileWarning, BadgeCheck, XCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getAthletePaymentProofUrl } from '../../services/athleteApi.js'
@@ -241,7 +241,7 @@ export default function PaymentValidationDialog({
 
           {hasProof && proofLoading ? (
             <div className="payment-validation-dialog__loading" role="status">
-              <LoaderCircle size={18} aria-hidden className="is-spinning" />
+              <span className="plu-spinner plu-spinner--lg" aria-hidden="true" />
               <span>{t('admin.paymentValidation.proofLoading')}</span>
             </div>
           ) : null}
@@ -336,7 +336,7 @@ export default function PaymentValidationDialog({
                 onClick={() => onReject(rejectReason.trim())}
               >
                 {busy ? (
-                  <LoaderCircle size={15} aria-hidden className="is-spinning" />
+                  <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
                 ) : (
                   <XCircle size={15} aria-hidden />
                 )}
@@ -365,7 +365,7 @@ export default function PaymentValidationDialog({
                   ) : null}
                   <Button type="button" disabled={busy || !canDecide} onClick={onConfirm}>
                     {busy ? (
-                      <LoaderCircle size={15} aria-hidden className="is-spinning" />
+                      <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
                     ) : (
                       <BadgeCheck size={15} aria-hidden />
                     )}

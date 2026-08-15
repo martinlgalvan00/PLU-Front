@@ -15,6 +15,7 @@ import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
 import { createPricingRoutes } from './routes/pricing.js'
 import { createRegistrationAccessRoutes } from './routes/registrationAccess.js'
+import { createAdminQueueRoutes } from './routes/adminQueue.js'
 import { createPlatformSettingsRoutes } from './routes/platformSettings.js'
 import { createFinanceRoutes } from './routes/finance.js'
 import { createCommunityRoutes } from './routes/community.js'
@@ -149,6 +150,14 @@ export function createApp(deps = {}) {
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       repository: deps.registrationAccessRepository,
+    }),
+  )
+  app.use(
+    '/api/admin-queue',
+    createAdminQueueRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      repository: deps.adminQueueRepository,
     }),
   )
   app.use(

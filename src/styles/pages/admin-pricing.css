@@ -429,6 +429,11 @@
   gap: 0.28rem;
 }
 
+.admin-pricing__plan-meta-date--urgent {
+  color: var(--color-warning-text);
+  font-weight: 650;
+}
+
 .admin-pricing__plan-amount {
   flex: none;
   font-family: var(--font-display, var(--font-family));

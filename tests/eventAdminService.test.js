@@ -131,6 +131,27 @@ describe('eventAdminService', () => {
     ])
   })
 
+  it('usa el count agregado del catálogo público sin traer filas de inscripciones', () => {
+    const event = mapSupabaseEventRow({
+      id: '11111111-1111-4111-8111-111111111111',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal',
+      location: 'Buenos Aires',
+      starts_at: '2026-08-15T12:00:00.000Z',
+      ends_at: '2026-08-15T20:00:00.000Z',
+      capacity: 120,
+      price: 75000,
+      currency: 'ARS',
+      rules: {},
+      eventRegistrations: [{ count: 48 }],
+      eventDays: [],
+      ticketTypes: [],
+    })
+
+    expect(event.registered).toBe(48)
+  })
+
   it('filtra sin romperse ante datos parciales del backend', () => {
     const events = [
       { id: 'one', title: 'Open', venue: null, location: null, slug: null, status: 'proximamente' },

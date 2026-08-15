@@ -27,11 +27,14 @@ import {
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
-import { cheapestTicketTypePrice, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import { cheapestTicketTypePrice, resolveEventPricing, ticketPricingFromEvent } from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
+import { getEventComboAvailability } from '../services/comboOfferService.js'
+import { hasCurrentMembership } from '../services/membershipService.js'
+import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 
 function EventStatusBadge({ status, t }) {
   const { label, tone } = getStatusMeta(status, t)
@@ -45,6 +48,8 @@ function EventsDetailPanel({
   onViewEvent,
   registerLabel,
   athleteStatus = null,
+  comboOffer = null,
+  comboPricing = null,
   t,
   minimal = false,
 }) {
@@ -93,6 +98,9 @@ function EventsDetailPanel({
       : athleteStatus === 'pending_payment'
         ? t('pages.events.athleteStatusAction.pending_payment')
         : registerLabel
+  // El combo se muestra solo junto al CTA de inscripción real: si el registro
+  // está cerrado o ya se completó, la promo tampoco tiene sentido.
+  const showCombo = Boolean(comboOffer) && canRegister
 
   if (minimal) {
     const hasHint =
@@ -129,6 +137,17 @@ function EventsDetailPanel({
 
         {hasHint ? (
           <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
+        ) : null}
+
+        {showCombo ? (
+          <SeasonComboOffer
+            variant="compact"
+            className="events-detail__combo-offer"
+            membershipPrice={comboPricing?.membership}
+            registrationPrice={comboPricing?.registration}
+            comboPrice={comboOffer.price}
+            endsAt={comboOffer.endsAt}
+          />
         ) : null}
 
         <div className="events-detail__actions">
@@ -196,6 +215,17 @@ function EventsDetailPanel({
       {athleteStatusLabel ? <p className="events-detail__athlete-status">{athleteStatusLabel}</p> : null}
       {athleteStatusHint && athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}` ? (
         <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
+      ) : null}
+
+      {showCombo ? (
+        <SeasonComboOffer
+          variant="compact"
+          className="events-detail__combo-offer"
+          membershipPrice={comboPricing?.membership}
+          registrationPrice={comboPricing?.registration}
+          comboPrice={comboOffer.price}
+          endsAt={comboOffer.endsAt}
+        />
       ) : null}
 
       <div className="events-detail__actions">
@@ -471,6 +501,12 @@ export default function EventsPage({
 
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
   const registerLabel = isAthleteLoggedIn ? t('pages.events.register') : t('pages.events.registerAndCreateProfile')
+  const hasActiveMembership = hasCurrentMembership(memberships, session?.athleteId)
+  const selectedComboAvailability = selected
+    ? getEventComboAvailability(selected, { hasActiveMembership })
+    : { offer: null, enabled: false }
+  const selectedComboOffer = selectedComboAvailability.enabled ? selectedComboAvailability.offer : null
+  const selectedComboPricing = selectedComboOffer ? resolveEventPricing(selected) : null
 
   function handleRegister(event) {
     onSelectEvent?.(event)
@@ -627,6 +663,8 @@ export default function EventsPage({
                   onRegister={selected ? () => handleRegister(selected) : undefined}
                   onViewEvent={selected ? () => openEvent(selected) : undefined}
                   registerLabel={registerLabel}
+                  comboOffer={selectedComboOffer}
+                  comboPricing={selectedComboPricing}
                   t={t}
                 />
               </MotionContentSwap>

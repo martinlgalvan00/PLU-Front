@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { AlertTriangle, ArrowRight } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Trophy } from 'lucide-react'
 import PitbullBrandMark from '../../components/ui/PitbullBrandMark.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { EVENT_STATUS } from '../../lib/events.js'
 import { isPitbullClassicEvent } from '../../lib/eventNavigation.js'
+import { resolveComboDeal, resolveEventPricing } from '../../lib/eventPricing.js'
+import { money } from '../../lib/format.js'
 import { isMembershipCurrent } from '../../services/membershipService.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { getEventComboAvailability } from '../../services/comboOfferService.js'
 
 function eventRequiresMembership(event) {
   return Boolean(event?.requiresMembership)
@@ -16,16 +19,27 @@ export default function UpcomingEventsSection({
   athleteRegistrations,
   membership,
   onNavigate,
+  onSelectEvent,
   athlete,
   onNavigateSection,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const hasActiveMembership = isMembershipCurrent(membership)
   const [incompleteWarningEvent, setIncompleteWarningEvent] = useState(null)
 
+  function goToRegistration(event) {
+    // `onSelectEvent` fija el evento de la fila clickeada antes de navegar;
+    // sin él, el wizard podía quedarse con el `selectedEvent` global viejo.
+    if (onSelectEvent) {
+      onSelectEvent(event)
+      return
+    }
+    onNavigate('competition')
+  }
+
   function handleRegisterClick(event) {
     if (!athlete) {
-      onNavigate('competition')
+      goToRegistration(event)
       return
     }
     const profileStatus = isProfileComplete(athlete)
@@ -34,7 +48,7 @@ export default function UpcomingEventsSection({
       return
     }
     setIncompleteWarningEvent(null)
-    onNavigate('competition')
+    goToRegistration(event)
   }
 
   function handleGoToProfile() {
@@ -62,7 +76,7 @@ export default function UpcomingEventsSection({
     <section id="account-events" className="account-section account-section--events">
       <div className="account-section__heading">
         <div className="account-section__icon account-section__icon--gold" aria-hidden>
-          <span style={{ fontSize: 18 }}>🏆</span>
+          <Trophy size={21} strokeWidth={1.75} />
         </div>
         <div>
           <span>{t('account.events.eyebrow')}</span>
@@ -100,6 +114,16 @@ export default function UpcomingEventsSection({
             const isPitbull = isPitbullClassicEvent(event)
             const profileStatus = athlete ? isProfileComplete(athlete) : { complete: true }
             const showingWarningForThis = incompleteWarningEvent === event.slug
+            const comboAvailability = membershipPending
+              ? getEventComboAvailability(event, { hasActiveMembership: false })
+              : { offer: null, enabled: false }
+            const comboDeal = comboAvailability.offer
+              ? resolveComboDeal({
+                  ...resolveEventPricing(event),
+                  combo: comboAvailability.offer.price,
+                })
+              : null
+            const showComboNote = comboAvailability.enabled && comboDeal?.live
 
             return (
               <article key={event.slug} className={`account-events-list__row${showingWarningForThis ? ' is-warning-active' : ''}`}>
@@ -116,7 +140,13 @@ export default function UpcomingEventsSection({
                   <p>
                     {event.venue} · {event.location}
                   </p>
-                  {membershipPending ? (
+                  {showComboNote ? (
+                    <p className="account-event-membership-note account-event-membership-note--combo">
+                      {t('account.events.comboAvailableText', {
+                        amount: money(comboDeal.savings, locale),
+                      })}
+                    </p>
+                  ) : membershipPending ? (
                     <p className="account-event-membership-note">
                       {t('account.events.membershipRequiredText')}
                     </p>

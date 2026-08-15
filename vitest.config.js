@@ -22,9 +22,6 @@ export default defineConfig({
       extends: true,
       // Sin esto, los .jsx de src/ que renderiza un test se transforman con el
       // runtime clásico y fallan con "React is not defined".
-      esbuild: {
-        jsx: 'automatic'
-      },
       test: {
         name: 'default',
         environment: 'jsdom',

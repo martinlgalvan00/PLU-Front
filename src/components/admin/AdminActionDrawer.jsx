@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { AnimatePresence, m } from 'motion/react'
-import { X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import ActionQueue from './ActionQueue.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { drawerBackdropTransition, drawerTransition } from '../../motion/variants.ts'
@@ -17,6 +17,8 @@ export default function AdminActionDrawer({
   onApproveTicketOrder,
   onRejectTicketOrder,
   canEdit,
+  canDismiss,
+  onDismissItem,
 }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
@@ -55,7 +57,7 @@ export default function AdminActionDrawer({
           >
             <header className="admin-action-drawer__head">
               <div className="admin-action-drawer__head-copy">
-                <span className="admin-action-drawer__eyebrow">{t('admin.dashboard.title')}</span>
+                <span className="admin-action-drawer__eyebrow">{t('admin.actionQueue.eyebrow')}</span>
                 <h2>{t('admin.actionQueue.title')}</h2>
                 {items.length > 0 && (
                   <p className="admin-action-drawer__subtitle">
@@ -70,30 +72,52 @@ export default function AdminActionDrawer({
                   </p>
                 )}
               </div>
-              <button
-                type="button"
-                className="admin-action-drawer__close"
-                aria-label={t('admin.actionQueue.close')}
-                onClick={onClose}
-              >
-                <X size={18} aria-hidden />
-              </button>
+              <div className="admin-action-drawer__head-side">
+                {items.length > 0 ? (
+                  <div className="admin-action-drawer__count">
+                    <strong className="admin-action-drawer__count-value">{items.length}</strong>
+                    <span className="admin-action-drawer__count-label">
+                      {t('admin.actionQueue.countLabel')}
+                    </span>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="admin-action-drawer__close"
+                  aria-label={t('admin.actionQueue.close')}
+                  onClick={onClose}
+                >
+                  <X size={18} aria-hidden />
+                </button>
+              </div>
             </header>
 
-            <div className="admin-action-drawer__body">
-              <ActionQueue
-                compact
-                embedded
-                showHeader={false}
-                items={items}
-                onNavigate={handleNavigate}
-                onApprovePayment={onApprovePayment}
-                onRejectPayment={onRejectPayment}
-                onApproveTicketOrder={onApproveTicketOrder}
-                onRejectTicketOrder={onRejectTicketOrder}
-                canEdit={canEdit}
-              />
-            </div>
+            {items.length === 0 ? (
+              <div className="admin-action-drawer__empty">
+                <span className="admin-action-drawer__empty-mark" aria-hidden="true">
+                  <Check size={16} strokeWidth={2.25} />
+                </span>
+                <h3>{t('admin.actionQueue.emptyTitle')}</h3>
+                <p>{t('admin.actionQueue.empty')}</p>
+              </div>
+            ) : (
+              <div className="admin-action-drawer__body">
+                <ActionQueue
+                  compact
+                  embedded
+                  showHeader={false}
+                  items={items}
+                  onNavigate={handleNavigate}
+                  onApprovePayment={onApprovePayment}
+                  onRejectPayment={onRejectPayment}
+                  onApproveTicketOrder={onApproveTicketOrder}
+                  onRejectTicketOrder={onRejectTicketOrder}
+                  canEdit={canEdit}
+                  canDismiss={canDismiss}
+                  onDismissItem={onDismissItem}
+                />
+              </div>
+            )}
           </m.aside>
         </>
       ) : null}

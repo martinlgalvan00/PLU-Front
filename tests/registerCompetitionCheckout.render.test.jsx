@@ -1,5 +1,4 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { useState } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -99,14 +98,16 @@ const pendingOrder = {
 function renderCompetition({
   createdOrder = null,
   form = {},
+  athleteData = athlete,
   onNavigate = () => {},
   onSubmit = vi.fn(async () => ({})),
   onUpdateForm = () => {},
+  registrations = [],
 } = {}) {
   return render(
     <I18nProvider>
       <RegisterPage
-        athlete={athlete}
+        athlete={athleteData}
         createdOrder={createdOrder}
         event={event}
         flow="competition"
@@ -114,11 +115,11 @@ function renderCompetition({
           division: 'Open',
           category: 'Raw',
           estimatedWeight: '83',
-          paymentMethod: 'manual_link',
+          paymentMethod: 'mercado_pago',
           ...form,
         }}
         memberships={[]}
-        registrations={[]}
+        registrations={registrations}
         total={75000}
         onNavigate={onNavigate}
         onSubmit={onSubmit}
@@ -128,18 +129,71 @@ function renderCompetition({
   )
 }
 
-describe('RegisterPage — link de pago de inscripción', () => {
-  it('abre el modal de transferencia al generar la orden', async () => {
-    const onSubmit = vi.fn(async () => ({ createdOrder: pendingOrder, payment: pendingOrder }))
-    renderCompetition({ onSubmit })
+describe('RegisterPage competition profile summary', () => {
+  it('renders the incomplete profile as a clear summary without raw translation keys', () => {
+    const onNavigate = vi.fn()
+    renderCompetition({ onNavigate })
 
-    fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
+    expect(screen.getByRole('heading', { name: /perfil de competencia/i })).toBeTruthy()
+    expect(screen.getByText(/datos pendientes/i)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /completar perfil/i })).toBeTruthy()
+    expect(screen.queryByText(/pages\.register\./i)).toBeNull()
 
-    await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: /completar tu inscripción/i })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /completar perfil/i }))
+    expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-personal-data' })
+  })
+
+  it('shows the completed profile and its available competition details', () => {
+    renderCompetition({
+      athleteData: {
+        ...athlete,
+        birthDate: '1999-11-03',
+        sex: 'Masculino',
+        gym: 'Maximal Strength Club',
+        phone: '+54 9 11 2500 7894',
+        country: 'Argentina',
+        province: 'Buenos Aires',
+        city: 'Quilmes',
+      },
     })
-    expect(screen.getByText('plu.arg')).toBeTruthy()
-    expect(screen.queryByText(/ya estas inscripto/i)).toBeNull()
+
+    expect(screen.getByText(/perfil completo/i)).toBeTruthy()
+    expect(screen.getByText(/tus datos están listos/i)).toBeTruthy()
+    expect(screen.getByRole('button', { name: /revisar perfil/i })).toBeTruthy()
+    expect(screen.getByText('Maximal Strength Club')).toBeTruthy()
+  })
+
+  it('muestra y bloquea el compromiso competitivo de una inscripción ya creada', () => {
+    const onUpdateForm = vi.fn()
+    renderCompetition({
+      form: { division: 'Open', category: 'Raw', estimatedWeight: '83' },
+      registrations: [{
+        id: 'reg-1',
+        athleteId: athlete.id,
+        eventSlug: event.slug,
+        status: 'pendiente',
+        division: 'Junior',
+        category: 'Equipped',
+        bodyweightKg: 74.5,
+      }],
+      onUpdateForm,
+    })
+
+    expect(screen.getByText(/peso declarados.*asentados/i)).toBeTruthy()
+    expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(true)
+    expect(screen.getByLabelText(/peso corporal/i).disabled).toBe(true)
+    expect(onUpdateForm).toHaveBeenCalledWith({ target: { name: 'estimatedWeight', value: '74.5' } })
+  })
+})
+
+describe('RegisterPage — link de pago de inscripción', () => {
+  it('ofrece únicamente Mercado Pago para una inscripción nueva', () => {
+    renderCompetition()
+
+    expect(screen.getByRole('radio', { name: /mercado pago/i }).checked).toBe(true)
+    expect(screen.queryByRole('radio', { name: /transferencia/i })).toBeNull()
+    expect(screen.queryByRole('radio', { name: /efectivo/i })).toBeNull()
+    expect(screen.getByText(/mercado pago.*próximamente/i)).toBeTruthy()
   })
 
   it('no muestra el texto crudo de PLU08 si la inscripción ya está confirmada', async () => {
@@ -200,69 +254,13 @@ describe('RegisterPage — link de pago de inscripción', () => {
 
     expect(screen.getByRole('heading', { name: /pagá con mercado pago/i })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /continuar al pago/i })).toBeNull()
-    expect(screen.getByRole('button', { name: /elegir otro medio/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /pagar por transferencia/i })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /elegir otro medio/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /pagar por transferencia/i })).toBeNull()
     expect(document.querySelector('.register-settle-bar .plu-checkout__total')).toBeTruthy()
     expect(document.querySelector('form.athlete-form')).toBeNull()
   })
 
-  it('permite volver a elegir transferencia desde el brick de Mercado Pago', async () => {
-    const onSubmit = vi.fn(async () => ({
-      createdOrder: pendingOrder,
-      payment: pendingOrder,
-    }))
-
-    function Harness() {
-      const [createdOrder, setCreatedOrder] = useState({
-        ...pendingOrder,
-        paymentMethod: 'mercado_pago',
-        status: 'pendiente',
-      })
-      const [form, setForm] = useState({
-        division: 'Open',
-        category: 'Raw',
-        estimatedWeight: '83',
-        paymentMethod: 'mercado_pago',
-      })
-      return (
-        <I18nProvider>
-          <RegisterPage
-            athlete={athlete}
-            createdOrder={createdOrder}
-            event={event}
-            flow="competition"
-            form={form}
-            memberships={[]}
-            registrations={[]}
-            total={75000}
-            onNavigate={() => {}}
-            onSubmit={async (...args) => {
-              const result = await onSubmit(...args)
-              if (result?.createdOrder) setCreatedOrder(result.createdOrder)
-              return result
-            }}
-            onUpdateForm={(event) => {
-              setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
-            }}
-          />
-        </I18nProvider>
-      )
-    }
-
-    render(<Harness />)
-
-    fireEvent.click(screen.getByRole('button', { name: /pagar por transferencia/i }))
-
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalled()
-    })
-    expect(onSubmit.mock.calls[0][2]).toMatchObject({ paymentMethod: 'manual_link' })
-    await waitFor(() => {
-      expect(screen.getByRole('dialog', { name: /completar tu inscripción/i })).toBeTruthy()
-    })
-  })
-
-  it('vuelve al formulario de medio de pago sin perder la orden', () => {
+  it('no permite cambiar a un medio manual desde el brick de Mercado Pago', () => {
     renderCompetition({
       createdOrder: {
         ...pendingOrder,
@@ -272,10 +270,8 @@ describe('RegisterPage — link de pago de inscripción', () => {
       form: { paymentMethod: 'mercado_pago' },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /elegir otro medio/i }))
-
-    expect(screen.getByRole('button', { name: /continuar al pago/i })).toBeTruthy()
-    expect(screen.getByRole('button', { name: /volver a mercado pago/i })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: /pagá con mercado pago/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /elegir otro medio/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /pagar por transferencia/i })).toBeNull()
+    expect(screen.getByRole('heading', { name: /pagá con mercado pago/i })).toBeTruthy()
   })
 })

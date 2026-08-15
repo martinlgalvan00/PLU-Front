@@ -201,7 +201,7 @@ describe('pantalla de Acceso y habilitación', () => {
     expect(screen.getByLabelText('Cierra').value).toBe('')
     expect(screen.getByRole('checkbox', { name: /habilitar tanda/i }).checked).toBe(true)
 
-    fireEvent.change(screen.getByLabelText(/^Código/), { target: { value: 'NUEVO-CODIGO-2026' } })
+    fireEvent.change(screen.getByLabelText(/^Código/), { target: { value: ' NUEVO-CODIGO-2026 ' } })
     fireEvent.click(screen.getByRole('button', { name: /guardar tanda/i }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({

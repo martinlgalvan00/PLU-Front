@@ -9,6 +9,8 @@ import '../styles/pages/admin-analytics.css'
 import '../styles/pages/admin-pricing.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
+import AdminActionToasts from '../components/admin/AdminActionToasts.jsx'
+import AdminLiveSyncBadge from '../components/admin/AdminLiveSyncBadge.jsx'
 import PageLoadFallback from '../components/ui/PageLoadFallback.jsx'
 import LoadingState from '../components/ui/LoadingState.jsx'
 import ErrorState from '../components/ui/ErrorState.jsx'
@@ -46,6 +48,8 @@ export default function AdminPage({
   adminEventsLoading,
   adminEventsError,
   athleteDataLoading = false,
+  athleteDataRefreshing = false,
+  athleteDataSyncedAt = null,
   athleteDataError = null,
   allowedSections = [],
   authorization,
@@ -61,6 +65,9 @@ export default function AdminPage({
   gatePendingIds,
   enrichedMemberships,
   pendingActions,
+  dismissedQueueItemsLoading,
+  onDismissQueueItem,
+  onUndismissQueueItem,
   adminNavBadges,
   getAthleteDetail,
   onApprovePayment,
@@ -95,6 +102,7 @@ export default function AdminPage({
   onDeleteAthlete,
   onDeleteMembership,
   onDeleteRegistration,
+  onSetRegistrationPublicVisibility,
   onDeleteEvent,
   onFetchEventDeleteImpact,
   onCreateRole,
@@ -249,6 +257,10 @@ export default function AdminPage({
           onApproveTicketOrder={onApproveTicketPurchase}
           onRejectTicketOrder={onRejectTicketOrder}
           canEdit={hasPermission(authorization, 'admin.payments.approve')}
+          canDismissQueueItems={hasPermission(authorization, 'admin.dashboard.write')}
+          onDismissItem={onDismissQueueItem}
+          onUndismissItem={onUndismissQueueItem}
+          dismissedQueueItemsLoading={dismissedQueueItemsLoading}
           canDeleteAthletes={canDeleteAthletes}
           onDeleteAthlete={onDeleteAthlete}
           onSelectAthlete={handleSelectAthlete}
@@ -313,6 +325,8 @@ export default function AdminPage({
           onApprovePayment={onApprovePayment}
           canDelete={canDeleteRegistrations && Boolean(onDeleteRegistration)}
           onDelete={onDeleteRegistration}
+          canManageVisibility={hasPermission(authorization, 'admin.registrations.write')}
+          onSetPublicVisibility={onSetRegistrationPublicVisibility}
           onExportAdmin={onExportAdmin}
           onExportPluUsa={onExportPluUsa}
           onGoToEvents={() => setSection('events')}
@@ -525,12 +539,14 @@ export default function AdminPage({
           onClose={() => setAccountOpen(false)}
         />
       ) : null}
+      <AdminLiveSyncBadge refreshing={athleteDataRefreshing} syncedAt={athleteDataSyncedAt} />
       <div
         className="admin-page admin-section-enter"
         key={`${section}-${selectedAthleteId ?? 'list'}`}
       >
         <Suspense fallback={<PageLoadFallback />}>{renderSection()}</Suspense>
       </div>
+      <AdminActionToasts />
     </AdminShell>
   )
 }
