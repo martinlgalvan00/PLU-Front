@@ -13,10 +13,12 @@ import {
 import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, money } from '../../lib/format.js'
+import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
 import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
+import { getEventComboAvailability } from '../../services/comboOfferService.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
@@ -26,6 +28,8 @@ import CheckoutDesk, { CheckoutBar } from '../../components/checkout/CheckoutDes
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
+import Reveal from '../../components/ui/Reveal.jsx'
+import SeasonComboOffer from '../../components/ui/SeasonComboOffer.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
@@ -39,6 +43,8 @@ export default function MembershipPurchaseSection({
   onStartMembershipPayment,
   demoMode = false,
   gateEvent = null,
+  events = [],
+  onSelectEvent,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -71,9 +77,9 @@ export default function MembershipPurchaseSection({
   const discountInputRef = useRef(null)
   const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
   const [membershipCheckoutEnabled, setMembershipCheckoutEnabled] = useState(true)
-  // Canal manual cerrado desde el panel: transferencia y efectivo salen del
-  // selector en vez de aparecer y fallar con 409 al enviar.
-  const [manualChannelEnabled, setManualChannelEnabled] = useState(true)
+  // Mercado Pago es el único canal inicial. Transferencia y efectivo requieren
+  // una habilitación explícita desde Administración.
+  const [manualChannelEnabled, setManualChannelEnabled] = useState(false)
   const [membershipAccessCode, setMembershipAccessCode] = useState('')
   const [accessUnlocked, setAccessUnlocked] = useState(false)
   const [accessGateOpen, setAccessGateOpen] = useState(false)
@@ -96,6 +102,17 @@ export default function MembershipPurchaseSection({
   const paidCheckoutOpen = isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) && membershipCheckoutEnabled
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
+  // El combo se ofrece antes de vender la afiliación sola: el próximo evento
+  // con oferta vigente es el candidato natural, no cualquiera del calendario.
+  const comboEvent = useMemo(() => {
+    if (!membershipCanPurchase) return null
+    const eligible = events
+      .filter((event) => getEventComboAvailability(event, { hasActiveMembership: false }).enabled)
+      .sort((a, b) => new Date(a.dateISO ?? a.date ?? 0) - new Date(b.dateISO ?? b.date ?? 0))
+    return eligible[0] ?? null
+  }, [events, membershipCanPurchase])
+  const comboOffer = comboEvent?.comboOffer ?? null
+  const comboPricing = comboEvent ? resolveEventPricing(comboEvent) : null
   const cardData = membershipActive
     ? {
         athleteName: athlete.fullName,
@@ -223,7 +240,10 @@ export default function MembershipPurchaseSection({
         setManualChannelEnabled(requirements.membershipManualEnabled)
       })
       .catch(() => {
-        if (active) setMembershipAccessRequired(false)
+        if (active) {
+          setMembershipAccessRequired(false)
+          setManualChannelEnabled(false)
+        }
       })
     return () => { active = false }
   }, [])
@@ -569,6 +589,22 @@ export default function MembershipPurchaseSection({
         />
       ) : null}
 
+      {showPurchaseCheckout && comboEvent && comboOffer ? (
+        <Reveal className="account-membership__combo" variant="up">
+          <p className="account-membership__combo-kicker">
+            {t('account.membership.comboKicker', { event: comboEvent.title })}
+          </p>
+          <SeasonComboOffer
+            variant="band"
+            membershipPrice={comboPricing?.membership}
+            registrationPrice={comboPricing?.registration}
+            comboPrice={comboOffer.price}
+            endsAt={comboOffer.endsAt}
+            onCta={() => onSelectEvent?.(comboEvent)}
+          />
+        </Reveal>
+      ) : null}
+
       {showPurchaseCheckout && (
         <div className="account-membership__decision account-membership__decision--solo">
           <ul className="account-benefits account-benefits--inline" aria-label={t('account.membership.includes')}>
@@ -732,6 +768,7 @@ export default function MembershipPurchaseSection({
                 bar={
                   selectedPlan ? (
                     <CheckoutBar
+                      className="account-membership__bar"
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
@@ -762,6 +799,7 @@ export default function MembershipPurchaseSection({
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
                 methodsLegend={t('account.membership.paymentLegend')}
+                paymentHint={!manualChannelEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : ''}
                 offers={
                   selectedPlan
                     ? [

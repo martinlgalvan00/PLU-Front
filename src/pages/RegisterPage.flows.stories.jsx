@@ -13,6 +13,13 @@ const athlete = {
   fullName: 'Ana Torres',
   documentId: '30111222',
   email: 'ana.torres@plu.test',
+  birthDate: '1999-11-03',
+  sex: 'Femenino',
+  gym: 'Maximal Strength Club',
+  phone: '+54 9 11 2500 7894',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'Quilmes',
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000002',
 }
 

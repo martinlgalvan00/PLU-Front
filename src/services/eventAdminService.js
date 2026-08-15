@@ -579,9 +579,14 @@ export function mapSupabaseEventRow(row) {
     : (row.comboOffer ?? row.combo_offer ?? null)
   const { eventDays, ticketTypes } = mapSupabaseTicketCatalog(row)
   const registrationRows = row.eventRegistrations ?? row.event_registrations
-  const registrationCount = Array.isArray(registrationRows)
-    ? countActiveRegistrations(registrationRows)
-    : (row.registrationCount ?? row.registration_count ?? 0)
+  const embeddedRegistrationCount = Array.isArray(registrationRows)
+    ? registrationRows.find((item) => Number.isFinite(Number(item?.count)))?.count
+    : null
+  const registrationCount = Number.isFinite(Number(embeddedRegistrationCount))
+    ? Number(embeddedRegistrationCount)
+    : Array.isArray(registrationRows)
+      ? countActiveRegistrations(registrationRows)
+      : (row.registrationCount ?? row.registration_count ?? 0)
 
   return {
     id: row.id,
@@ -656,11 +661,16 @@ function mapAdminEventRow(row, index = 0) {
 }
 
 const PUBLISHED_EVENTS_SELECT = `
-  *,
-  eventDays:event_days(*),
-  comboOffer:event_combo_offers(*),
+  id, slug, title, description, venue, location,
+  starts_at, ends_at,
+  registration_opens_at, registration_closes_at,
+  ticket_sales_opens_at, ticket_sales_closes_at,
+  capacity, status, published, requires_membership, price, currency, rules,
+  live_stream_url, live_stream_provider, live_status, created_at, updated_at,
+  eventDays:event_days(id, day_index, label, date),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, currency, active, starts_at, ends_at),
   ticketTypes:ticket_types(
-    *,
+    id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
     includedAddons:ticket_type_included_addons(addon_id)
   )

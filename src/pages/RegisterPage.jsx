@@ -426,6 +426,14 @@ export default function RegisterPage({
     () => (flow === 'competition' && athlete ? getMissingCompetitionProfileFields(athlete) : []),
     [athlete, flow],
   )
+  const committedCompetitionRegistration = useMemo(() => {
+    if (flow !== 'competition' || !athlete || !event?.slug) return null
+    return registrations.find((registration) => (
+      registration.athleteId === athlete.id &&
+      registration.eventSlug === event.slug &&
+      !['cancelada', 'cancelled'].includes(String(registration.status ?? '').toLowerCase())
+    )) ?? null
+  }, [athlete, event?.slug, flow, registrations])
   const competitionProfileDetails = useMemo(() => {
     if (flow !== 'competition' || !athlete) return []
     const age = ageAtEvent(athlete.birthDate, event?.startsAt ?? event?.starts_at)
@@ -487,6 +495,22 @@ export default function RegisterPage({
       }
     })
   }, [athlete, flow, onUpdateForm])
+
+  // La categoría, división y peso declarados pertenecen a la inscripción, no
+  // a las preferencias del perfil. Si ya existe una inscripción activa para
+  // este evento, se muestran exactamente esos datos y quedan sólo de lectura.
+  useEffect(() => {
+    if (!committedCompetitionRegistration) return
+    ;[
+      ['division', committedCompetitionRegistration.division],
+      ['category', committedCompetitionRegistration.category],
+      ['estimatedWeight', committedCompetitionRegistration.bodyweightKg],
+    ].forEach(([name, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        onUpdateForm({ target: { name, value: String(value) } })
+      }
+    })
+  }, [committedCompetitionRegistration, onUpdateForm])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -679,12 +703,11 @@ export default function RegisterPage({
     setAccessGateOpen(false)
   }
 
-  // El combo necesita los dos canales abiertos porque acredita afiliación e
-  // inscripción en la misma orden. Ausente = abierto: un fetch fallido no puede
-  // dejar la pantalla sin medio de pago manual.
+  // Mercado Pago es el canal inicial. Transferencia y efectivo requieren una
+  // habilitación explícita de ambos alcances para el combo.
   const manualPaymentEnabled =
-    accessRequirements.membershipManualEnabled !== false &&
-    (flow !== 'competition' || accessRequirements.registrationManualEnabled !== false)
+    accessRequirements.membershipManualEnabled === true &&
+    (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
   const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
 
   // El canal manual se cerró mientras la pantalla estaba abierta: la selección
@@ -1386,22 +1409,26 @@ export default function RegisterPage({
               {mpSettling ? (
                 <div className="register-settle__toolbar">
                   <div className="register-settle__nav">
-                    <button
-                      type="button"
-                      className="register-topbar__back register-settle__back"
-                      onClick={() => setChangingMethod(true)}
-                    >
-                      <ArrowLeft size={15} aria-hidden />
-                      {t('pages.register.changePaymentMethod')}
-                    </button>
-                    <button
-                      type="button"
-                      className="register-topbar__link register-settle__alt"
-                      disabled={submitting}
-                      onClick={() => void switchToTransfer()}
-                    >
-                      {t('pages.register.payByTransfer')}
-                    </button>
+                    {manualPaymentEnabled ? (
+                      <>
+                        <button
+                          type="button"
+                          className="register-topbar__back register-settle__back"
+                          onClick={() => setChangingMethod(true)}
+                        >
+                          <ArrowLeft size={15} aria-hidden />
+                          {t('pages.register.changePaymentMethod')}
+                        </button>
+                        <button
+                          type="button"
+                          className="register-topbar__link register-settle__alt"
+                          disabled={submitting}
+                          onClick={() => void switchToTransfer()}
+                        >
+                          {t('pages.register.payByTransfer')}
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                   <RegisterCheckoutBar
                     checkoutTotal={visibleOrder.amount ?? checkoutTotal}
@@ -1712,30 +1739,48 @@ export default function RegisterPage({
               </div>
             ) : flow === 'competition' ? (
               <div className="register-competition-form">
-                <section className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}>
-                  <div>
-                    <strong>{t('pages.register.competitionProfileTitle')}</strong>
-                    <p>
-                      {competitionProfileMissing.length
-                        ? t('pages.register.competitionProfileMissing')
-                      : t('pages.register.competitionProfileReady')}
-                    </p>
-                    {competitionProfileDetails.length ? (
-                      <dl className="register-profile-readiness__details">
-                        {competitionProfileDetails.map(([label, value]) => (
-                          <div key={label}>
-                            <dt>{label}</dt>
-                            <dd>{value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : null}
+                <section
+                  aria-labelledby="competition-profile-title"
+                  className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}
+                >
+                  <div className="register-profile-readiness__header">
+                    <div>
+                      <span className="register-profile-readiness__state">
+                        <Check aria-hidden size={13} strokeWidth={2.5} />
+                        {competitionProfileMissing.length
+                          ? t('pages.register.competitionProfileStateIncomplete')
+                          : t('pages.register.competitionProfileStateReady')}
+                      </span>
+                      <h2 id="competition-profile-title">{t('pages.register.competitionProfileTitle')}</h2>
+                      <p>
+                        {competitionProfileMissing.length
+                          ? t('pages.register.competitionProfileMissing')
+                          : t('pages.register.competitionProfileReady')}
+                      </p>
+                    </div>
+                    <button
+                      className="register-profile-readiness__action"
+                      type="button"
+                      onClick={() => onNavigate?.('profile', { tab: 'account-personal-data' })}
+                    >
+                      <span>
+                        {competitionProfileMissing.length
+                          ? t('pages.register.competitionProfileAction')
+                          : t('pages.register.competitionProfileReview')}
+                      </span>
+                      <ArrowRight aria-hidden size={15} strokeWidth={2.25} />
+                    </button>
                   </div>
-                  <button type="button" onClick={() => onNavigate?.('profile')}>
-                    {competitionProfileMissing.length
-                      ? t('pages.register.competitionProfileAction')
-                      : t('pages.register.competitionProfileReview')}
-                  </button>
+                  {competitionProfileDetails.length ? (
+                    <dl className="register-profile-readiness__details">
+                      {competitionProfileDetails.map(([label, value]) => (
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd title={value}>{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
                 </section>
                 {/* Sin `step`: la inscripción tiene una sola sección. El "01"
                     prometía una secuencia que no existe. */}
@@ -1743,9 +1788,15 @@ export default function RegisterPage({
                   title={t('pages.register.competitionFormTitle')}
                   description={t('pages.register.competitionFormDesc')}
                 >
+                  {committedCompetitionRegistration ? (
+                    <p className="register-competition-commitment" role="status">
+                      {t('pages.register.competitionCommitmentLocked')}
+                    </p>
+                  ) : null}
                   <div className="register-competition-fields">
                     <ChoiceField
                       className="register-competition-choice register-competition-choice--division"
+                      disabled={Boolean(committedCompetitionRegistration)}
                       error={errors.division}
                       label={t('pages.register.division')}
                       name="division"
@@ -1756,6 +1807,7 @@ export default function RegisterPage({
                     />
                     <ChoiceField
                       className="register-competition-choice register-competition-choice--category"
+                      disabled={Boolean(committedCompetitionRegistration)}
                       error={errors.category}
                       label={t('pages.register.category')}
                       name="category"
@@ -1766,6 +1818,7 @@ export default function RegisterPage({
                     />
                     <Field
                       className="register-competition-weight"
+                      disabled={Boolean(committedCompetitionRegistration)}
                       error={errors.estimatedWeight}
                       inputMode="decimal"
                       label={t('pages.register.bodyWeight')}

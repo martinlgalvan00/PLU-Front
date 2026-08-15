@@ -13,9 +13,9 @@ export default function RegisterSettle({
   comboEnabled = false,
   comboOffer = null,
   comboSavings = 0,
-  // Interruptor de canal manual del panel. Default abierto: un consumidor que
-  // todavía no lo pasa mantiene transferencia y efectivo.
-  manualPaymentEnabled = true,
+  // Mercado Pago es la apertura inicial. Los canales manuales requieren una
+  // habilitación explícita desde Administración.
+  manualPaymentEnabled = false,
   membershipPrice = 0,
   onPaymentBlur,
   onPaymentChange,
@@ -102,7 +102,7 @@ export default function RegisterSettle({
       offerName="competition-purchase-type"
       offers={offers}
       paymentError={paymentError}
-      paymentHint={paymentHint}
+      paymentHint={paymentHint || (!manualPaymentEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : '')}
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}
       onOfferChange={onPurchaseTypeChange}

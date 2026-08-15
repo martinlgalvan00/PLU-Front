@@ -6,6 +6,8 @@
  * cualquier hosting está sin depender de reglas de rewrite/SPA fallback del server.
  */
 
+import { BRAND } from './brand.js'
+
 /**
  * Arma la URL pública de verificación de una credencial.
  * @param {{ code: string, eventSlug?: string, type?: 'ticket' }} params
@@ -73,6 +75,69 @@ export function generateCredentialQr(url) {
     })
 
   qrDataUrlCache.set(url, pending)
+  return pending
+}
+
+/**
+ * Genera el QR con tratamiento de marca (puntos redondeados, esquinas
+ * "extra-rounded", isotipo PLU al centro) para la credencial de socio del
+ * panel admin. Usado únicamente ahí -- `generateCredentialQr` sigue siendo
+ * el QR plano que usan seguridad, entradas y el resto de las superficies,
+ * sin este tratamiento.
+ *
+ * Nivel de corrección de errores 'H' (máximo) porque el isotipo tapa el
+ * centro del código: sin eso el logo degrada el escaneo.
+ *
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
+const styledQrDataUrlCache = new Map()
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el QR generado.'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+export function generateStyledAthleteCredentialQr(url) {
+  const cached = styledQrDataUrlCache.get(url)
+  if (cached) return cached
+
+  const pending = import('qr-code-styling')
+    .then(async (module) => {
+      const QRCodeStyling = module.default ?? module
+      const qr = new QRCodeStyling({
+        width: 320,
+        height: 320,
+        type: 'canvas',
+        data: url,
+        margin: 8,
+        qrOptions: { errorCorrectionLevel: 'H' },
+        image: BRAND.logoArgentinaUrl,
+        imageOptions: {
+          crossOrigin: 'anonymous',
+          hideBackgroundDots: true,
+          imageSize: 0.22,
+          margin: 4,
+        },
+        dotsOptions: { type: 'rounded', color: '#0d0e11' },
+        cornersSquareOptions: { type: 'extra-rounded', color: '#0d0e11' },
+        cornersDotOptions: { type: 'dot', color: '#0d0e11' },
+        backgroundOptions: { color: '#ffffff' },
+      })
+      const blob = await qr.getRawData('png')
+      if (!blob) throw new Error('No se pudo generar el QR estilizado.')
+      return blobToDataUrl(blob)
+    })
+    .catch((error) => {
+      styledQrDataUrlCache.delete(url)
+      throw error
+    })
+
+  styledQrDataUrlCache.set(url, pending)
   return pending
 }
 

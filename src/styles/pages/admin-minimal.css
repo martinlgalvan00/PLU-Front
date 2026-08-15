@@ -6049,21 +6049,7 @@
   }
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__spinner {
-  animation: admin-event-state-spin 900ms linear infinite;
-}
-
-@keyframes admin-event-state-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .admin-shell .admin-list-shell--events .admin-event-state__spinner {
-    animation: none;
-  }
-
   .admin-shell .admin-list-shell--events .admin-event-state__visibility {
     transition: none;
   }

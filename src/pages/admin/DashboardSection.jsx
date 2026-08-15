@@ -5,6 +5,8 @@ import {
   BadgeCheck,
   CalendarDays,
   ClipboardList,
+  CircleAlert,
+  CircleCheck,
   MapPin,
   Send,
   Shield,
@@ -23,6 +25,7 @@ import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { formatDayMonth, formatShortMemberCode, initials, money } from '../../lib/format.js'
@@ -193,6 +196,95 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
       ) : (
         <p className="admin-ops__chart-empty">{t('admin.dashboard.breakdownEmpty')}</p>
       )}
+    </section>
+  )
+}
+
+/**
+ * Una lectura corta de los circuitos evita que el administrador tenga que
+ * inferir, cruzando los gráficos, qué sigue su curso y qué requiere una
+ * decisión humana. No reemplaza las tablas ni ejecuta mutaciones.
+ */
+function OperationalFlows({ flows, onNavigate, t }) {
+  const items = [
+    {
+      id: 'payments',
+      section: 'payments',
+      title: t('admin.dashboard.flowPaymentsTitle'),
+      progressing: flows.payments.reconciliationPending,
+      progressingLabel: t('admin.dashboard.flowPaymentsProgressing'),
+      attention: flows.payments.manualValidation,
+      attentionLabel: t('admin.dashboard.flowPaymentsManual'),
+    },
+    {
+      id: 'registrations',
+      section: 'registrations',
+      title: t('admin.dashboard.flowRegistrationsTitle'),
+      progressing: flows.registrations.confirmed,
+      progressingLabel: t('admin.dashboard.flowRegistrationsConfirmed'),
+      attention: flows.registrations.observed + flows.registrations.gatePending,
+      attentionLabel: t('admin.dashboard.flowRegistrationsAttention'),
+    },
+    {
+      id: 'memberships',
+      section: 'memberships',
+      title: t('admin.dashboard.flowMembershipsTitle'),
+      progressing: flows.memberships.active,
+      progressingLabel: t('admin.dashboard.flowMembershipsActive'),
+      attention: flows.memberships.expiring,
+      attentionLabel: t('admin.dashboard.flowMembershipsExpiring'),
+    },
+    {
+      id: 'events',
+      section: 'events',
+      title: t('admin.dashboard.flowEventsTitle'),
+      progressing: flows.events.open,
+      progressingLabel: t('admin.dashboard.flowEventsOpen'),
+      attention: flows.events.limited,
+      attentionLabel: t('admin.dashboard.flowEventsLimited'),
+    },
+  ]
+
+  return (
+    <section className="admin-ops__flows" aria-labelledby="admin-operational-flows-title">
+      <header className="admin-ops__flows-head">
+        <div>
+          <span className="admin-ops__eyebrow">{t('admin.dashboard.flowsEyebrow')}</span>
+          <h3 id="admin-operational-flows-title">{t('admin.dashboard.flowsTitle')}</h3>
+          <p>{t('admin.dashboard.flowsSubtitle')}</p>
+        </div>
+      </header>
+      <ul className="admin-ops__flows-list">
+        {items.map((item) => {
+          const needsAttention = item.attention > 0
+          const StateIcon = needsAttention ? CircleAlert : CircleCheck
+          return (
+            <li key={item.id} className={needsAttention ? 'is-attention' : 'is-clear'}>
+              <span className="admin-ops__flow-state" aria-hidden>
+                <StateIcon size={16} strokeWidth={1.8} />
+              </span>
+              <div className="admin-ops__flow-copy">
+                <strong>{item.title}</strong>
+                <span>
+                  {item.progressing} {item.progressingLabel}
+                </span>
+              </div>
+              <div className="admin-ops__flow-attention">
+                <strong>{item.attention}</strong>
+                <span>{item.attentionLabel}</span>
+              </div>
+              <button
+                type="button"
+                className="admin-ops__flow-open"
+                onClick={() => onNavigate?.(item.section)}
+              >
+                <span>{t('admin.dashboard.flowOpen')}</span>
+                <ArrowRight size={14} aria-hidden />
+              </button>
+            </li>
+          )
+        })}
+      </ul>
     </section>
   )
 }
@@ -685,6 +777,9 @@ export default function DashboardSection({
   onApproveTicketOrder,
   onRejectTicketOrder,
   canEdit,
+  canDismissQueueItems = false,
+  onDismissItem,
+  onUndismissItem,
   canDeleteAthletes = false,
   onDeleteAthlete,
   onSelectAthlete,
@@ -696,6 +791,40 @@ export default function DashboardSection({
   const { locale, t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
 
+  // Validación rápida desde la lista de pendientes de cobros: sin esto el
+  // botón disparaba la acción sin esperarse ni avisar el resultado.
+  async function handleQuickValidate(paymentId) {
+    try {
+      const result = await onApprovePayment?.(paymentId)
+      if (result?.error) notifyError(result.error)
+      else notifySuccess(t('admin.toasts.paymentApproved'))
+    } catch (error) {
+      notifyError(error?.message ?? t('admin.toasts.actionError'))
+    }
+  }
+
+  // Descartar es reversible: el toast de éxito ofrece "Deshacer" por si el
+  // click fue un error, sin obligar a ir a buscar el ítem de vuelta.
+  async function handleDismiss(itemKey, itemType) {
+    try {
+      const result = await onDismissItem?.(itemKey, itemType)
+      if (result?.error) {
+        notifyError(result.error)
+        return
+      }
+      notifySuccess(t('admin.actionQueue.dismissed'), {
+        label: t('admin.actionQueue.undo'),
+        onClick: () => {
+          void onUndismissItem?.(itemKey).then((undoResult) => {
+            if (undoResult?.error) notifyError(undoResult.error)
+          })
+        },
+      })
+    } catch (error) {
+      notifyError(error?.message ?? t('admin.actionQueue.dismissError'))
+    }
+  }
+
   const {
     breakdowns,
     eventLeaderboard,
@@ -706,6 +835,7 @@ export default function DashboardSection({
     recentRegistrations,
     spotlightEvent,
     topGyms,
+    operationalFlows,
   } = dashboardOverview
 
   const primaryMetrics = useMemo(
@@ -756,6 +886,8 @@ export default function DashboardSection({
         onApproveTicketOrder={onApproveTicketOrder}
         onRejectTicketOrder={onRejectTicketOrder}
         canEdit={canEdit}
+        canDismiss={canDismissQueueItems}
+        onDismissItem={handleDismiss}
       />
 
       <div className="admin-ops" aria-label={t('admin.dashboard.metricsAria')}>
@@ -895,6 +1027,8 @@ export default function DashboardSection({
             </div>
           </div>
 
+          <OperationalFlows flows={operationalFlows} onNavigate={onNavigate} t={t} />
+
           <div className="admin-ops__work">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
@@ -928,6 +1062,8 @@ export default function DashboardSection({
                 onApproveTicketOrder={onApproveTicketOrder}
                 onRejectTicketOrder={onRejectTicketOrder}
                 canEdit={canEdit}
+                canDismiss={canDismissQueueItems}
+                onDismissItem={handleDismiss}
               />
             ) : null}
 
@@ -944,7 +1080,7 @@ export default function DashboardSection({
                       <button
                         type="button"
                         className="admin-ops__pending-action"
-                        onClick={() => onApprovePayment?.(item.id)}
+                        onClick={() => void handleQuickValidate(item.id)}
                       >
                         {t('admin.actions.validate')}
                       </button>

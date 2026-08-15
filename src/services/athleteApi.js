@@ -105,6 +105,7 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
     category: registration.category,
     division: registration.division,
     bodyweight: registration.bodyweight_kg,
+    publicVisible: registration.public_visible ?? registration.publicVisible ?? true,
     status: registration.status,
     paymentOrderId: registration.payment_order_id,
     createdAt: registration.created_at ?? registration.createdAt ?? null,
@@ -607,6 +608,15 @@ export async function deleteMembershipRequest(membershipId) {
 export async function deleteRegistrationRequest(registrationId) {
   const result = await apiDelete(`/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}`)
   return { deletedRegistration: result.deletedRegistration }
+}
+
+/** Publica u oculta una inscripción del padrón público del evento. */
+export async function setRegistrationPublicVisibility(registrationId, publicVisible) {
+  const { registration } = await apiPost(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}/public-visibility`,
+    { publicVisible },
+  )
+  return { registration: toCamelRegistrationEntry({ registration }) }
 }
 
 /** Rota la credencial de la persona: invalida la card impresa de ese atleta. */

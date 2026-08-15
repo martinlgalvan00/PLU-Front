@@ -8,10 +8,11 @@ export async function fetchRegistrationAccessRequirements({ eventSlug } = {}) {
     registration: result?.registration === true,
     membershipEnabled: result?.membershipEnabled !== false,
     registrationEnabled: result?.registrationEnabled !== false,
-    // Canal manual: con esto apagado el checkout no ofrece transferencia ni
-    // efectivo, en vez de dejar que el 409 aparezca al enviar el formulario.
-    membershipManualEnabled: result?.membershipManualEnabled !== false,
-    registrationManualEnabled: result?.registrationManualEnabled !== false,
+    // Mercado Pago es el único canal disponible hasta una habilitación
+    // explícita desde Administración. Ante una respuesta incompleta tampoco se
+    // deben ofrecer transferencia ni efectivo.
+    membershipManualEnabled: result?.membershipManualEnabled === true,
+    registrationManualEnabled: result?.registrationManualEnabled === true,
   }
 }
 

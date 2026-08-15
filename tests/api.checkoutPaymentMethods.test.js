@@ -172,7 +172,9 @@ describe('afiliación — medio de pago elegido vs. orden persistida', () => {
     storedMethod,
     manualChannel,
   ) => {
-    const { target, createMembershipOrder } = buildApp()
+    const { target, createMembershipOrder } = buildApp({
+      toggles: paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
+    })
     try {
       const response = await post(target, '/api/athletes/me/membership-orders', membershipBody(paymentMethod))
       expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
@@ -195,7 +197,9 @@ describe('afiliación — medio de pago elegido vs. orden persistida', () => {
   it('cobra menos por transferencia y efectivo que por Mercado Pago', async () => {
     const amounts = {}
     for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
-      const { target, createMembershipOrder } = buildApp()
+      const { target, createMembershipOrder } = buildApp({
+        toggles: paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
+      })
       try {
         await post(target, '/api/athletes/me/membership-orders', membershipBody(paymentMethod))
         amounts[paymentMethod] = createMembershipOrder.mock.calls[0][1].orderAmount
@@ -233,7 +237,9 @@ describe('inscripción a torneo — medio de pago elegido vs. orden persistida',
     storedMethod,
     manualChannel,
   ) => {
-    const { target, createRegistration } = buildApp()
+    const { target, createRegistration } = buildApp({
+      toggles: paymentMethod === 'mercado_pago' ? {} : { registrationManualEnabled: true },
+    })
     try {
       const response = await post(target, '/api/athletes/me/registrations', registrationBody(paymentMethod))
       expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
@@ -264,7 +270,11 @@ describe('combo afiliación + inscripción — medio de pago elegido vs. orden p
     storedMethod,
     manualChannel,
   ) => {
-    const { target, createRegistrationCombo } = buildApp()
+    const { target, createRegistrationCombo } = buildApp({
+      toggles: paymentMethod === 'mercado_pago'
+        ? {}
+        : { membershipManualEnabled: true, registrationManualEnabled: true },
+    })
     try {
       const response = await post(target, '/api/athletes/me/registration-combos', registrationBody(paymentMethod))
       expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
@@ -345,8 +355,8 @@ describe('interruptores del panel sobre los medios de pago', () => {
     }
   })
 
-  it('el canal manual cerrado en inscripción no afecta a la afiliación', async () => {
-    const toggles = { registrationManualEnabled: false }
+  it('el canal manual de inscripción no afecta a la afiliación habilitada', async () => {
+    const toggles = { membershipManualEnabled: true, registrationManualEnabled: false }
 
     const membership = buildApp({ toggles })
     try {
@@ -391,13 +401,16 @@ describe('interruptores del panel sobre los medios de pago', () => {
     }
   })
 
-  it('sin interruptores definidos la plataforma queda abierta', async () => {
-    // El default es abierto a propósito: una lectura incompleta de Supabase no
-    // puede dejar a la organización sin cobrar.
+  it('sin interruptores definidos Mercado Pago sigue abierto y el manual se rechaza', async () => {
     const { target, createMembershipOrder } = buildApp({ toggles: undefined })
     try {
       const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('cash_pitbull'))
-      expect(response.status).toBe(201)
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: 'MEMBERSHIP_MANUAL_DISABLED' })
+      expect(createMembershipOrder).not.toHaveBeenCalled()
+
+      const mercadoPago = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      expect(mercadoPago.status).toBe(201)
       expect(createMembershipOrder).toHaveBeenCalledOnce()
     } finally {
       await target.close()
@@ -426,12 +439,12 @@ describe('requisitos que lee el checkout público', () => {
     }
   }
 
-  it('anuncia todo abierto cuando no hay ningún interruptor apagado', async () => {
+  it('anuncia Mercado Pago como único canal manual si no hay configuración', async () => {
     expect(await requirements({})).toMatchObject({
       membershipEnabled: true,
       registrationEnabled: true,
-      membershipManualEnabled: true,
-      registrationManualEnabled: true,
+      membershipManualEnabled: false,
+      registrationManualEnabled: false,
     })
   })
 
@@ -439,7 +452,7 @@ describe('requisitos que lee el checkout público', () => {
     expect(await requirements({ membershipManualEnabled: false })).toMatchObject({
       membershipEnabled: true,
       membershipManualEnabled: false,
-      registrationManualEnabled: true,
+      registrationManualEnabled: false,
     })
   })
 
@@ -471,7 +484,11 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
         env: { PAID_CHECKOUT_ENABLED: 'true' },
         supabaseAdmin: authenticatedSupabase(),
         registrationAccessRepository: { findActiveGate: vi.fn().mockResolvedValue(null), recordUse: vi.fn() },
-        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        platformSettingsRepository: {
+          get: vi.fn().mockResolvedValue(
+            paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
+          ),
+        },
         athleteRepository: {
           findContact: vi.fn().mockResolvedValue({ email_verified_at: null }),
           findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
@@ -496,7 +513,11 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
         env: { PAID_CHECKOUT_ENABLED: 'true' },
         supabaseAdmin: authenticatedSupabase(),
         registrationAccessRepository: { findActiveGate: vi.fn().mockResolvedValue(null), recordUse: vi.fn() },
-        platformSettingsRepository: { get: vi.fn().mockResolvedValue({}) },
+        platformSettingsRepository: {
+          get: vi.fn().mockResolvedValue(
+            paymentMethod === 'mercado_pago' ? {} : { registrationManualEnabled: true },
+          ),
+        },
         athleteRepository: {
           findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
           findCompetitionProfile: vi.fn().mockResolvedValue({ ...COMPLETE_COMPETITION_PROFILE, sex: '' }),
@@ -516,7 +537,9 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
 
   it('no deja cobrar sin sesión de atleta por ningún medio', async () => {
     for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
-      const { target, createMembershipOrder } = buildApp()
+      const { target, createMembershipOrder } = buildApp({
+        toggles: paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
+      })
       try {
         const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
           method: 'POST',

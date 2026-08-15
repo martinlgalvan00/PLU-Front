@@ -506,7 +506,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: '¿Cómo pago afiliación o inscripción?',
-    a: 'Mediante Mercado Pago desde el formulario web. Si tenés un inconveniente con el pago online, el equipo PLU ARG puede validar manualmente tu comprobante.',
+    a: 'Por el momento, las afiliaciones e inscripciones se pagan únicamente con Mercado Pago desde el formulario web. La transferencia bancaria y el efectivo en Pitbull se habilitarán próximamente.',
   },
   {
     q: '¿Qué es Pitbull Classic?',

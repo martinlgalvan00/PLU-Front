@@ -469,9 +469,9 @@ describe('sección de afiliación de la cuenta', () => {
     await waitFor(() => {
       expect(screen.getByTestId('mp-payment-brick')).toBeTruthy()
     })
-    // La cuenta de Mercado Pago se ofrece al lado de la tarjeta: quien tiene
-    // saldo o medios guardados puede usarlos sin salir del flujo de afiliación.
-    expect(screen.getByTestId('mp-wallet-brick')).toBeTruthy()
+    // La cuenta de Mercado Pago ya no necesita un widget aparte: viaja como un
+    // medio más de la lista del propio Brick, habilitada por la preferencia.
+    expect(screen.queryByTestId('mp-wallet-brick')).toBeNull()
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(onStartMembershipPayment).toHaveBeenCalledTimes(1)
 

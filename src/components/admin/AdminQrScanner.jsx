@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import jsQR from 'jsqr'
-import { CameraOff, Loader2, Smartphone, Volume2, VolumeX } from 'lucide-react'
+import { CameraOff, Smartphone, Volume2, VolumeX } from 'lucide-react'
 import SegmentedSwitch from '../ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
@@ -275,7 +275,7 @@ export default function AdminQrScanner({
 
             {busy && (
               <div className="admin-checkin-scanner__busy" aria-live="polite">
-                <Loader2 size={20} className="admin-checkin-scanner__spinner" aria-hidden />
+                <span className="plu-spinner plu-spinner--lg" aria-hidden="true" />
                 <span>{t('admin.checkin.scanner.verifying')}</span>
               </div>
             )}

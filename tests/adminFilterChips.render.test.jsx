@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.jsx'
@@ -218,5 +218,39 @@ describe('Inscripciones — rieles etiquetados', () => {
 
     const csv = screen.getByRole('button', { name: 'Exportar inscripciones' })
     expect(csv.querySelector('.export-btn__label')?.textContent).toBe('CSV')
+  })
+
+  it('permite retirar una inscripción del padrón público sin borrarla', () => {
+    const onSetPublicVisibility = vi.fn().mockResolvedValue({})
+    const registrations = [{
+      id: 'reg-visible',
+      athleteId: 'ath-1',
+      athlete: { fullName: 'Ana Torres', documentId: '30111222' },
+      event: 'Pitbull Classic 2026',
+      eventSlug: 'pitbull-classic-2026',
+      category: 'Raw',
+      division: 'Open',
+      status: 'confirmada',
+      publicVisible: true,
+    }]
+    render(
+      <I18nProvider>
+        <RegistrationsSection
+          canEdit
+          canManageVisibility
+          filters={{ event: 'all', status: 'all', query: '' }}
+          filteredRegistrations={registrations}
+          onExportAdmin={() => {}}
+          onExportPluUsa={() => {}}
+          onSetFilters={() => {}}
+          onSetPublicVisibility={onSetPublicVisibility}
+          payments={[]}
+          registrations={registrations}
+        />
+      </I18nProvider>,
+    )
+
+    fireEvent.click(screen.getAllByRole('button', { name: /ocultar del padrón público/i })[0])
+    expect(onSetPublicVisibility).toHaveBeenCalledWith('reg-visible', false)
   })
 })

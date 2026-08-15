@@ -70,6 +70,7 @@ en `.env`. Vite proxyea `/api` al mismo `PORT`.
 | `npm run build` | Build producción |
 | `npm run lint` | Oxlint |
 | `npm run test` | Vitest |
+| `npm run test:check` | Lint + tests unitarios/Storybook + build |
 | `npm run test:integration` | Integración contra Supabase (local en CI) |
 | `npm run db:migrate` | Migraciones de datos sobre Supabase |
 | `npm run db:seed` | Seeds (cuando existan) |
