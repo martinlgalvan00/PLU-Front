@@ -406,15 +406,64 @@
   padding: 0 !important;
 }
 
+/* Mayor separación vertical entre los campos del formulario (tarjeta, titular, etc.)
+   para que no queden pegados, respetando el grid interno de Mercado Pago. */
+.mp-embedded-checkout [data-testid='payment-form'] > * + * {
+  margin-top: 1.5rem !important;
+}
+
 /* ── Lista única de medios ────────────────────────────────────────
    Mercado Pago, tarjeta de crédito y tarjeta de débito llegan como filas
    del mismo grupo de radios. Se tratan como una sola familia de opciones
    comparables: misma altura, mismo peso tipográfico y una sola marca de
    selección. El acento oro sólo aparece en la fila elegida. */
-.mp-embedded-checkout [class*='mp-checkout-bricks__payment-option'] {
+.mp-embedded-checkout [class*='mp-checkout-bricks__payment-options'] {
+  display: grid !important;
+  gap: var(--space-md) !important;
+}
+
+/* `payment-option` es substring de `payment-options`: excluimos el contenedor
+   para no empujar el bloque entero con margin/padding extra.
+   El contenido desplegado (wallet o formulario de tarjeta) llegaba al ras de
+   los bordes, alineado con la caja de la fila y no con su texto: el padding
+   lateral lo indenta contra el ícono del medio elegido. */
+.mp-embedded-checkout
+  [class*='mp-checkout-bricks__payment-option']:not([class*='mp-checkout-bricks__payment-options']) {
   background: transparent !important;
   display: grid !important;
-  gap: 8px !important;
+  gap: var(--space-md) !important;
+  padding: var(--space-sm) var(--space-md) var(--space-md) !important;
+}
+
+/* Wallet expandido: el Brick apila título, bajada, íconos y aviso de e-mail
+   sin aire propio. Los hijos no tienen clase estable, así que el ritmo se da
+   por posición dentro de los contenedores que sí exponen `data-testid`. */
+.mp-embedded-checkout [data-testid='wallet-form'] > * + *,
+.mp-embedded-checkout [data-testid='wallet-form-content'] > * + * {
+  margin-top: var(--space-sm) !important;
+}
+
+.mp-embedded-checkout [data-testid='wallet-form-content'] {
+  margin-bottom: var(--space-sm) !important;
+}
+
+.mp-embedded-checkout [data-testid='payment-method-icon-list'],
+.mp-embedded-checkout [class*='wallet-form-list'] {
+  margin-top: var(--space-md) !important;
+  margin-bottom: var(--space-md) !important;
+}
+
+.mp-embedded-checkout [class*='wallet-form-footer'] {
+  margin-top: var(--space-md) !important;
+}
+
+/* El formulario de tarjeta se monta anidado y con `data-testid` vacío, así que
+   la separación entre campos del form de arriba no lo alcanzaba. */
+.mp-embedded-checkout
+  [class*='mp-checkout-bricks__payment-option']:not([class*='mp-checkout-bricks__payment-options'])
+  form
+  > * + * {
+  margin-top: var(--space-md) !important;
 }
 
 /* El Brick anida nodos que comparten el prefijo `__selector` dentro de cada

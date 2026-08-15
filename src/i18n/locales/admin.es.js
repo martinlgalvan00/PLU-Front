@@ -1256,6 +1256,18 @@ export default {
     copy: 'Copiar informe',
     copied: 'Informe copiado',
     copyError: 'No se pudo copiar el informe.',
+    cancellation: {
+      checkoutOpened: 'Checkout abierto',
+      cancelledAt: 'Cancelada automÃ¡ticamente',
+      paymentEvidence: 'Evidencia de pago',
+      paymentEvidencePresent: 'Hay actividad de pago; revisala antes de crear otra orden.',
+      paymentEvidenceAbsent: 'No se registrÃ³ intento ni cobro.',
+      expiredWithoutPayment: {
+        title: 'Vencimiento automÃ¡tico sin pago',
+        summary: 'La ventana de pago venciÃ³ el {{expiresAt}}.',
+        action: 'No acreditar manualmente. Pedile a la persona que genere una nueva orden. Si informa un dÃ©bito, revalidÃ¡ primero contra Mercado Pago.',
+      },
+    },
   },
   registrationStatus: {
     title: 'Corregir estado de la inscripción',
@@ -2286,4 +2298,3 @@ export default {
     actionError: 'La acción no se pudo completar',
   },
 }
-

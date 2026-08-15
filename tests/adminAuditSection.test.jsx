@@ -322,9 +322,17 @@ describe('sección de auditoría', () => {
       nextCursor: null,
     })
     getPaymentOrderAudit.mockResolvedValue({
-      verdict: { state: 'blocked', summary: 'El cobro se cortó por una falla.', action: null },
-      stageReached: 'provider_submitted',
+      verdict: { state: 'closed', summary: 'La orden vencio automaticamente sin un pago iniciado.', action: null },
+      stageReached: 'checkout_opened',
       timeline: [],
+      cancellation: {
+        code: 'expired_without_payment',
+        expiresAt: '2026-08-13T22:28:00.000Z',
+        cancelledAt: '2026-08-13T22:28:31.000Z',
+        checkoutOpenedAt: '2026-08-13T21:58:00.000Z',
+        paymentEvidence: false,
+        providerPaymentStarted: false,
+      },
     })
 
     renderWithI18n(<AuditSection />)
@@ -333,7 +341,11 @@ describe('sección de auditoría', () => {
     traceButton.click()
 
     await waitFor(() => expect(getPaymentOrderAudit).toHaveBeenCalledWith('order-99'))
-    expect(await screen.findByText('El cobro se cortó por una falla.')).toBeTruthy()
+    expect(await screen.findByText('La orden vencio automaticamente sin un pago iniciado.')).toBeTruthy()
+    expect(await screen.findByText(/Vencimiento/)).toBeTruthy()
+    expect(await screen.findByText(/La ventana de pago venc/)).toBeTruthy()
+    expect(screen.queryByText(/\{expiresAt\}/)).toBeNull()
+    expect(await screen.findByText(/No se registr/)).toBeTruthy()
   })
 })
 

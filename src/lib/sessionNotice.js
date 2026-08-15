@@ -41,3 +41,9 @@ export function consumeSignedOutFlag() {
 }
 
 export { SIGNED_OUT_EVENT }
+
+export const SIGNED_IN_EVENT = 'plu:session-signed-in'
+
+export function markSignedIn(displayName = '') {
+  window.dispatchEvent(new CustomEvent(SIGNED_IN_EVENT, { detail: { name: String(displayName ?? '').trim() } }))
+}
