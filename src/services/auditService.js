@@ -274,7 +274,7 @@ export async function fetchAuditEventContext(id) {
 
 export async function fetchAuditEntries(filters = {}) {
   const params = new URLSearchParams()
-  for (const key of ['action', 'entityType', 'entityId', 'actorType', 'source', 'status', 'search', 'before', 'beforeId']) {
+  for (const key of ['action', 'category', 'entityType', 'entityId', 'actorType', 'source', 'status', 'search', 'before', 'beforeId']) {
     if (filters[key]) params.set(key, filters[key])
   }
   if (filters.entityIds?.length) params.set('entityIds', filters.entityIds.join(','))

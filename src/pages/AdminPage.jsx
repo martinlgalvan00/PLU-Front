@@ -64,8 +64,10 @@ export default function AdminPage({
   adminNavBadges,
   getAthleteDetail,
   onApprovePayment,
+  onForceSettlePayment,
   onRejectPayment,
   onSetMembershipStatus,
+  onSetRegistrationStatus,
   onApproveTicketPurchase,
   onRejectTicketOrder,
   onRefreshPendingTicketOrders,
@@ -311,6 +313,10 @@ export default function AdminPage({
           registrationsCount={registrations.length}
           unreconciledPayments={unreconciledRegistrationPayments}
           onApprovePayment={onApprovePayment}
+          onForceSettlePayment={onForceSettlePayment}
+          onSetRegistrationStatus={onSetRegistrationStatus}
+          canSetStatus={hasPermission(authorization, 'admin.registrations.write')}
+          canForceSettle={hasPermission(authorization, 'admin.payments.approve')}
           canDelete={canDeleteRegistrations && Boolean(onDeleteRegistration)}
           onDelete={onDeleteRegistration}
           onExportAdmin={onExportAdmin}
@@ -409,6 +415,7 @@ export default function AdminPage({
           isLoading={pendingTicketOrdersLoading}
           loadError={pendingTicketOrdersError}
           onApprovePayment={onApprovePayment}
+          onForceSettlePayment={onForceSettlePayment}
           onRejectPayment={onRejectPayment}
           onApproveTicketOrder={onApproveTicketPurchase}
           onRejectTicketOrder={onRejectTicketOrder}

@@ -80,6 +80,7 @@ export default function PaymentsOperationsSection({
   isLoading: manualLoading,
   loadError: manualError,
   onApprovePayment,
+  onForceSettlePayment,
   onRejectPayment,
   onApproveTicketOrder,
   onRejectTicketOrder,
@@ -463,9 +464,11 @@ export default function PaymentsOperationsSection({
 
       <AthletePaymentOrdersSection
         canEdit={canEdit}
+        canForceSettle={canEdit && Boolean(onForceSettlePayment)}
         validationEnabled={validation}
         highlightOrderId={highlightOrderId}
         onApprovePayment={onApprovePayment}
+        onForceSettlePayment={onForceSettlePayment}
         onRejectPayment={onRejectPayment}
         onSummaryChange={handleAthleteSummaryChange}
         refreshKey={athleteRefreshKey}

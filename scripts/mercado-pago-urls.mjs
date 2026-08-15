@@ -10,10 +10,21 @@
  *   npm run mercado-pago:urls
  */
 
+import { OFFICIAL_APP_URL } from '../server/lib/deploymentEnvironment.js'
+
 const OK = 'OK'
 const FAIL = 'FALLA'
 const WARN = 'AVISO'
 
+/**
+ * PROD sale de `OFFICIAL_APP_URL` y no de una constante propia.
+ *
+ * Cuando este script tenia la URL escrita a mano, verificaba `www` mientras el
+ * backend le mandaba a Mercado Pago el apex: el chequeo daba OK con produccion
+ * rota, porque comprobaba una URL distinta de la que se usaba de verdad. Atarlo
+ * al valor del runtime es lo que hace que el script pueda detectar el problema
+ * en vez de taparlo.
+ */
 const ENVIRONMENTS = [
   {
     name: 'DEV (preview rama dev)',
@@ -22,7 +33,7 @@ const ENVIRONMENTS = [
   },
   {
     name: 'PROD',
-    appUrl: 'https://www.powerliftingunited.ar',
+    appUrl: OFFICIAL_APP_URL,
     mpEnv: 'production',
   },
 ]
@@ -96,6 +107,13 @@ for (const env of ENVIRONMENTS) {
   const health = await probe(`${env.appUrl}/api/health`)
   if (health.status === 200) {
     ok(`/api/health → ${health.status}`)
+  } else if (health.status >= 300 && health.status < 400 && health.status !== 302) {
+    // Mismo diagnóstico que el webhook, pero se detecta antes: si /api/health
+    // redirige, la base entera está mal y no hace falta llegar al webhook.
+    fail(
+      `/api/health redirige (HTTP ${health.status} → ${health.location ?? 'destino desconocido'}).`,
+      'Esa base no sirve la API: usá el destino final como APP_URL/API_URL.',
+    )
   } else if (health.status === 401 || health.status === 403 || health.status === 302) {
     fail(
       `/api/health bloqueado (HTTP ${health.status}).`,
@@ -126,7 +144,26 @@ for (const env of ENVIRONMENTS) {
   // 400/401/422 de la app = ruta viva y pública (firma/secret incompletos).
   // 403 con body de nuestra API también puede ser allowlist; 302 típico de Protection.
   const hookBody = String(hook.text ?? '').slice(0, 160)
-  if (hook.status === 400 || hook.status === 401 || hook.status === 422) {
+  /**
+   * Un redirect es una falla, no un aviso.
+   *
+   * Mercado Pago espera 200/201 en la `notification_url` y **no sigue
+   * redirects**: un 308 del apex hacia `www` —invisible en un navegador— le
+   * cuenta como entrega fallida. Eso tuvo `payment_integration_events` en cero
+   * durante toda la vida del sistema, con pagos reales acreditados por el
+   * Brick, así que nada se veía roto hasta que hacía falta un cobro de
+   * acreditación diferida, un contracargo o un reembolso.
+   *
+   * Se chequea antes que el resto de los casos porque un 3xx de Deployment
+   * Protection y uno de dominio se ven igual en el status y se distinguen por
+   * el destino.
+   */
+  if (hook.status >= 300 && hook.status < 400 && hook.status !== 302) {
+    fail(
+      `/api/payments/webhook/mercadopago redirige (HTTP ${hook.status} → ${hook.location ?? 'destino desconocido'}).`,
+      'Mercado Pago no sigue redirects: cada notificación se da por fallida. Usá el destino final como APP_URL/API_URL.',
+    )
+  } else if (hook.status === 400 || hook.status === 401 || hook.status === 422) {
     ok(`/api/payments/webhook/mercadopago alcanzable (HTTP ${hook.status})`)
   } else if (hook.status === 503) {
     warn(

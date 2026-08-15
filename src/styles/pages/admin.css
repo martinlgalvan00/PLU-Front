@@ -7858,7 +7858,8 @@
   margin: 0;
 }
 
-.payment-validation-dialog__reject-form {
+.payment-validation-dialog__reject-form,
+.payment-validation-dialog__settle-form {
   display: grid;
   gap: var(--space-sm);
   margin-top: var(--space-md);
@@ -7866,26 +7867,61 @@
   border-top: 1px solid var(--color-border-subtle);
 }
 
-.payment-validation-dialog__reject-form label {
+.payment-validation-dialog__reject-form label,
+.payment-validation-dialog__settle-form label {
   color: var(--admin-ink, var(--color-text-primary));
   font-size: 12.5px;
   font-weight: 650;
 }
 
-.payment-validation-dialog__reject-form textarea {
+.payment-validation-dialog__reject-form textarea,
+.payment-validation-dialog__settle-form textarea,
+.payment-validation-dialog__settle-form input {
   background: var(--admin-surface, var(--color-bg-elevated));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-md);
   color: var(--admin-ink, var(--color-text-primary));
   font-family: var(--font-family);
   font-size: 13.5px;
+  /* En mobile el alto que dan `rows` y el padding se quedaba en 43px, apenas
+     debajo del target táctil mínimo. */
+  min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   resize: vertical;
 }
 
-.payment-validation-dialog__reject-form textarea:focus-visible {
+.payment-validation-dialog__settle-form input {
+  /* El input de referencia no se redimensiona: `resize` sobre un campo de una
+     línea no hace nada y confunde al leer la regla compartida. */
+  resize: none;
+}
+
+.payment-validation-dialog__reject-form textarea:focus-visible,
+.payment-validation-dialog__settle-form textarea:focus-visible,
+.payment-validation-dialog__settle-form input:focus-visible {
   border-color: var(--color-brand-gold);
   outline: none;
+}
+
+/* Acreditar por fuera del proveedor es una excepción, no un atajo: la nota
+   advierte antes de que el operador llegue al botón, sin gritar en rojo (no es
+   un error, es una acción deliberada que queda firmada). */
+.payment-validation-dialog__settle-note {
+  background: var(--color-warning-bg, color-mix(in srgb, var(--color-brand-gold) 12%, transparent));
+  border-left: 2px solid var(--color-brand-gold);
+  border-radius: var(--border-radius-sm);
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.payment-validation-dialog__settle-hint {
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin-top: calc(var(--space-sm) * -0.5);
 }
 
 .payment-validation-dialog__actions .btn--danger {
@@ -7965,6 +8001,223 @@
 
   .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
     height: min(48dvh, 360px);
+  }
+}
+
+/* Corrección de estado de inscripción — mismo material y escala que el diálogo
+   de validación de pagos. Las opciones se muestran como radios grandes y no
+   como un select: son tres, cada una necesita una línea de ayuda para que el
+   operador entienda qué implica, y un select las esconde. */
+.admin-status-dialog {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md);
+  position: fixed;
+  z-index: 1300;
+}
+
+.admin-status-dialog__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.admin-status-dialog__panel {
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
+  gap: var(--space-md);
+  max-height: min(92vh, 880px);
+  overflow: auto;
+  padding: clamp(var(--space-lg), 3.5vw, calc(var(--space-lg) + var(--space-sm)));
+  position: relative;
+  width: min(100%, 560px);
+}
+
+.admin-status-dialog__head {
+  align-items: start;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto 1fr;
+}
+
+.admin-status-dialog__head h2 {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-status-dialog__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.admin-status-dialog__lead {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: var(--space-xs) 0 0;
+}
+
+.admin-status-dialog__meta {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding-top: var(--space-md);
+}
+
+.admin-status-dialog__meta > div {
+  align-items: center;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: minmax(0, 9rem) 1fr;
+}
+
+.admin-status-dialog__meta dt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-status-dialog__meta dd {
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.admin-status-dialog__options {
+  border: 0;
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.admin-status-dialog__options legend {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  font-weight: 650;
+  margin-bottom: var(--space-xs);
+  padding: 0;
+}
+
+.admin-status-dialog__option {
+  align-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto 1fr;
+  /* 44px de alto mínimo: es un control táctil, no una fila de tabla. */
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  transition: border-color var(--motion-fast, 140ms) var(--ease-out, ease),
+    background-color var(--motion-fast, 140ms) var(--ease-out, ease);
+}
+
+.admin-status-dialog__option:hover:not(:has(input:disabled)) {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 40%, var(--color-border-subtle));
+}
+
+.admin-status-dialog__option.is-selected {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border-color: var(--color-brand-celeste);
+}
+
+.admin-status-dialog__option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-status-dialog__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Badge sobre la explicación, no al lado: en línea, la opción cuyo texto no
+   entraba envolvía a una segunda fila y las tres quedaban con alturas y
+   alineaciones distintas según el largo del copy. Apilado, las tres leen igual
+   y no dependen de cuánto mida cada etiqueta. */
+.admin-status-dialog__option-body {
+  display: grid;
+  gap: var(--space-xs);
+  justify-items: start;
+}
+
+.admin-status-dialog__option-body small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-status-dialog__field {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.admin-status-dialog__field label {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.admin-status-dialog__field textarea {
+  background: var(--admin-surface, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--admin-ink, var(--color-text-primary));
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  padding: var(--space-sm) var(--space-md);
+  resize: vertical;
+}
+
+.admin-status-dialog__field textarea:focus-visible {
+  border-color: var(--color-brand-gold);
+  outline: none;
+}
+
+.admin-status-dialog__error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+  margin: 0;
+}
+
+.admin-status-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+@media (max-width: 560px) {
+  .admin-status-dialog__meta > div {
+    gap: var(--space-xs);
+    grid-template-columns: 1fr;
+  }
+
+  .admin-status-dialog__actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-status-dialog__option {
+    transition: none;
   }
 }
 

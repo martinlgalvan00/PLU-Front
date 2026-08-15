@@ -469,6 +469,46 @@ export function createPaymentRoutes(deps = {}) {
   })
 
   /**
+   * El mismo recorrido, buscado por correo o documento.
+   *
+   * `buildAthleteTimeline` siempre supo resolver por esos dos campos, pero la
+   * unica ruta que lo exponia pedia el UUID del atleta. En soporte nadie tiene
+   * el UUID: llega un correo o un DNI, y para auditar habia que buscar primero
+   * la persona en otra pantalla, copiar el id y recien ahi pedir la traza. Este
+   * endpoint elimina ese salto, que era el que hacia que la traza no se usara.
+   *
+   * Va antes de `/:athleteId` porque Express resuelve por orden de declaracion
+   * y una ruta con parametro tomaria cualquier cosa que llegue en esa posicion.
+   */
+  router.get('/audit/athletes', ...athleteAuditGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const query = parseInput(
+        z
+          .object({
+            email: z.string().trim().email().max(160).optional(),
+            documentId: z.string().trim().min(6).max(20).regex(/^[\d.-]+$/).optional(),
+          })
+          .refine((value) => value.email || value.documentId, {
+            message: 'Indicá un correo o un documento.',
+          }),
+        req.query,
+      )
+
+      const client = resolveSupabaseAdmin()
+      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+      res.json(await buildAthleteTimeline(client, {
+        email: query.email ?? null,
+        // El documento se guarda sin puntos ni guiones; quien lo copia de un DNI
+        // los trae, y sin normalizar la busqueda no encontraba a nadie.
+        documentId: query.documentId ? query.documentId.replace(/[.-]/g, '') : null,
+        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+      }))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
    * Recorrido de afiliacion de un atleta: alta, verificacion de correo,
    * ordenes, pagos y membresia, con el eslabon donde se corto.
    */

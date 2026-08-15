@@ -19,6 +19,11 @@ function guessProofKind(...sources) {
  * Revisión de un pago desde la cola operativa.
  * `validate` muestra el comprobante y pide confirmación.
  * `view` solo inspecciona el adjunto; no acredita.
+ * `settle` acredita a mano una orden que el proveedor dio por perdida: mismo
+ * comprobante y misma revisión, pero exige motivo porque es la única acción del
+ * panel que suma un cobro al reporte financiero sin confirmación de Mercado
+ * Pago. Es un modo del mismo diálogo y no un componente aparte porque la
+ * evidencia que hay que mirar antes de decidir es exactamente la misma.
  */
 export default function PaymentValidationDialog({
   item,
@@ -33,6 +38,8 @@ export default function PaymentValidationDialog({
   const titleId = useId()
   const descriptionId = useId()
   const reasonId = useId()
+  const settleReasonId = useId()
+  const settleReferenceId = useId()
   const panelRef = useRef(null)
   const dialogStateRef = useRef({ busy, onCancel, rejecting: false })
 
@@ -46,7 +53,10 @@ export default function PaymentValidationDialog({
   const [imageExpanded, setImageExpanded] = useState(false)
   const [rejecting, setRejecting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [settleReason, setSettleReason] = useState('')
+  const [settleReference, setSettleReference] = useState('')
   const rejectReasonValid = rejectReason.trim().length >= 3
+  const settleReasonValid = settleReason.trim().length >= 3
   dialogStateRef.current = { busy, onCancel, rejecting }
 
   useEffect(() => {
@@ -133,6 +143,7 @@ export default function PaymentValidationDialog({
   if (!item) return null
 
   const isView = mode === 'view'
+  const isSettle = mode === 'settle'
   const typeLabel = t(`admin.actionQueue.types.${item.type}`)
   const previewKind = guessProofKind(item.paymentProofPath, proofUrl)
   const showImage = Boolean(
@@ -145,14 +156,21 @@ export default function PaymentValidationDialog({
   // El archivo tiene que haberse abierto correctamente antes de permitir una
   // decisión. La existencia de una ruta no alcanza como prueba revisada.
   const proofReadyForReview = hasProof && !proofLoading && Boolean(proofUrl) && !proofError
-  const canDecide = item.cashAtPitbull || proofReadyForReview
+  // Acreditar a mano siempre exige comprobante abierto: es la evidencia de que
+  // el dinero entró de verdad, y sin ella la acción es indistinguible de
+  // regalar una afiliación. El backend lo vuelve a exigir.
+  const canDecide = isSettle
+    ? proofReadyForReview && settleReasonValid
+    : item.cashAtPitbull || proofReadyForReview
   // El efectivo no trae archivo, así que el rechazo tampoco puede pedirlo: es
   // la única vía para devolver el cupo que reserva una orden presencial cuando
   // el atleta no se presenta a pagar. Se muestra desde el principio y se
   // habilita al estar lista la decisión, para no hacer saltar la botonera
   // cuando termina de cargar el comprobante.
-  const showReject = Boolean(onReject) && (hasProof || item.cashAtPitbull)
-  const noProofLead = item.cashAtPitbull
+  const showReject = Boolean(onReject) && !isSettle && (hasProof || item.cashAtPitbull)
+  const noProofLead = isSettle
+    ? t('admin.paymentValidation.settleNoProofLead')
+    : item.cashAtPitbull
     ? 'Confirmá que el efectivo fue recibido en Pitbull antes de acreditar la orden.'
     : isView
     ? t('admin.paymentValidation.viewNoProofLead')
@@ -178,10 +196,18 @@ export default function PaymentValidationDialog({
         <header className="payment-validation-dialog__head">
           <span className="payment-validation-dialog__eyebrow">{typeLabel}</span>
           <h2 id={titleId}>
-            {isView ? t('admin.paymentValidation.viewTitle') : t('admin.paymentValidation.title')}
+            {isSettle
+              ? t('admin.paymentValidation.settleTitle')
+              : isView
+                ? t('admin.paymentValidation.viewTitle')
+                : t('admin.paymentValidation.title')}
           </h2>
           <p id={descriptionId} className="payment-validation-dialog__lead">
-            {isView ? t('admin.paymentValidation.viewLead') : t('admin.paymentValidation.lead')}
+            {isSettle
+              ? t('admin.paymentValidation.settleLead')
+              : isView
+                ? t('admin.paymentValidation.viewLead')
+                : t('admin.paymentValidation.lead')}
           </p>
         </header>
 
@@ -309,6 +335,42 @@ export default function PaymentValidationDialog({
           </p>
         ) : null}
 
+        {isSettle ? (
+          <div className="payment-validation-dialog__settle-form">
+            <p className="payment-validation-dialog__settle-note" role="note">
+              {t('admin.paymentValidation.settleAuditNote')}
+            </p>
+            <label htmlFor={settleReasonId}>
+              {t('admin.paymentValidation.settleReasonLabel')}
+            </label>
+            <textarea
+              id={settleReasonId}
+              rows={3}
+              value={settleReason}
+              disabled={busy}
+              required
+              aria-describedby={`${settleReasonId}-hint`}
+              placeholder={t('admin.paymentValidation.settleReasonPlaceholder')}
+              onChange={(event) => setSettleReason(event.target.value)}
+            />
+            <span id={`${settleReasonId}-hint`} className="payment-validation-dialog__settle-hint">
+              {t('admin.paymentValidation.settleReasonHint')}
+            </span>
+            <label htmlFor={settleReferenceId}>
+              {t('admin.paymentValidation.settleReferenceLabel')}
+            </label>
+            <input
+              id={settleReferenceId}
+              type="text"
+              value={settleReference}
+              disabled={busy}
+              maxLength={120}
+              placeholder={t('admin.paymentValidation.settleReferencePlaceholder')}
+              onChange={(event) => setSettleReference(event.target.value)}
+            />
+          </div>
+        ) : null}
+
         {rejecting ? (
           <div className="payment-validation-dialog__reject-form">
             <label htmlFor={reasonId}>{t('admin.paymentValidation.rejectReasonLabel')}</label>
@@ -363,7 +425,18 @@ export default function PaymentValidationDialog({
                       {t('admin.paymentValidation.reject')}
                     </Button>
                   ) : null}
-                  <Button type="button" disabled={busy || !canDecide} onClick={onConfirm}>
+                  <Button
+                    type="button"
+                    disabled={busy || !canDecide}
+                    onClick={() =>
+                      isSettle
+                        ? onConfirm({
+                            reason: settleReason.trim(),
+                            reference: settleReference.trim(),
+                          })
+                        : onConfirm()
+                    }
+                  >
                     {busy ? (
                       <LoaderCircle size={15} aria-hidden className="is-spinning" />
                     ) : (
@@ -371,7 +444,9 @@ export default function PaymentValidationDialog({
                     )}
                     {busy
                       ? t('admin.paymentValidation.confirming')
-                      : t('admin.paymentValidation.confirm')}
+                      : isSettle
+                        ? t('admin.paymentValidation.settleConfirm')
+                        : t('admin.paymentValidation.confirm')}
                   </Button>
                 </>
               )}

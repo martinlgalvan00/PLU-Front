@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
-import { BadgeCheck, ClipboardList, Trash2 } from 'lucide-react'
+import { BadgeCheck, ClipboardList, PencilLine, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
+import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
@@ -76,6 +77,8 @@ export default function RegistrationsSection({
   onScheduleAssigned,
   onSelectAthlete,
   onSetFilters,
+  onSetRegistrationStatus,
+  canSetStatus = false,
   onDelete,
   canDelete = false,
   unreconciledPayments = [],
@@ -86,6 +89,9 @@ export default function RegistrationsSection({
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [statusTarget, setStatusTarget] = useState(null)
+  const [statusError, setStatusError] = useState('')
+  const [savingStatus, setSavingStatus] = useState(false)
   const isGloballyEmpty = total === 0
   const isFilteredEmpty = !isGloballyEmpty && filteredRegistrations.length === 0
 
@@ -259,6 +265,24 @@ export default function RegistrationsSection({
       setDeleteError(error?.message ?? 'No se pudo eliminar la inscripción.')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function saveRegistrationStatus(status, reason) {
+    if (!statusTarget || !onSetRegistrationStatus) return
+    setSavingStatus(true)
+    setStatusError('')
+    try {
+      const result = await onSetRegistrationStatus(statusTarget.id, status, reason)
+      if (result?.error) {
+        setStatusError(result.error)
+        return
+      }
+      setStatusTarget(null)
+    } catch (error) {
+      setStatusError(error?.message ?? 'No se pudo cambiar el estado de la inscripción.')
+    } finally {
+      setSavingStatus(false)
     }
   }
 
@@ -529,7 +553,7 @@ export default function RegistrationsSection({
                   label: t('admin.columns.action'),
                   mobile: 'action',
                   render: (row) =>
-                    canValidateRegistrationPayment(row, canEdit) || canDelete ? (
+                    canValidateRegistrationPayment(row, canEdit) || canSetStatus || canDelete ? (
                       <AdminTableActions onClick={(event) => event.stopPropagation()}>
                         {canValidateRegistrationPayment(row, canEdit) ? (
                           <AdminIconButton
@@ -537,6 +561,17 @@ export default function RegistrationsSection({
                             label={t('admin.actions.validate')}
                             onClick={() => onApprovePayment(row.paymentId)}
                             variant="celeste"
+                          />
+                        ) : null}
+                        {canSetStatus && onSetRegistrationStatus ? (
+                          <AdminIconButton
+                            icon={PencilLine}
+                            label={t('admin.registrationStatus.action')}
+                            onClick={() => {
+                              setStatusError('')
+                              setStatusTarget(row)
+                            }}
+                            variant="ghost"
                           />
                         ) : null}
                         {canDelete ? (
@@ -579,6 +614,17 @@ export default function RegistrationsSection({
                 cancelLabel="Cancelar"
                 confirmLabel="Eliminar definitivamente"
                 busyLabel="Eliminando…"
+              />
+            ) : null}
+            {statusTarget ? (
+              <RegistrationStatusDialog
+                registration={statusTarget}
+                busy={savingStatus}
+                error={statusError}
+                onCancel={() => {
+                  if (!savingStatus) setStatusTarget(null)
+                }}
+                onConfirm={saveRegistrationStatus}
               />
             ) : null}
           </>

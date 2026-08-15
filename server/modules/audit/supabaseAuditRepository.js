@@ -1,5 +1,12 @@
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
+import {
+  AUDIT_CATEGORY_KEYS,
+  UNCATEGORIZED,
+  auditCategoryPatterns,
+  categorizeAuditAction,
+  withAuditCategory,
+} from './auditActionCategories.js'
 
 /**
  * supabaseAuditRepository.js — PLU ARG
@@ -34,7 +41,7 @@ export function createSupabaseAuditRepository(
         await events().eq('id', id).limit(1),
         'No se pudo leer el evento de auditoría.',
       )
-      return rows?.[0] ?? null
+      return rows?.[0] ? withAuditCategory(rows)[0] : null
     },
 
     /**
@@ -121,15 +128,19 @@ export function createSupabaseAuditRepository(
 
       return {
         // Cronológico ascendente: se lee como lo que pasó, en el orden en que pasó.
-        request,
-        actorBefore: actorBefore.slice().reverse(),
-        actorAfter,
-        entity: entity.slice().reverse(),
+        // Los cuatro ejes llevan categoría igual que la tabla: es lo que permite
+        // ver de un vistazo que un `payment_webhook.failed` y un
+        // `payment.webhook_failed` del mismo requestId son el mismo hecho.
+        request: withAuditCategory(request),
+        actorBefore: withAuditCategory(actorBefore.slice().reverse()),
+        actorAfter: withAuditCategory(actorAfter),
+        entity: withAuditCategory(entity.slice().reverse()),
       }
     },
 
     async list({
       action,
+      category,
       entityType,
       entityId,
       entityIds,
@@ -155,6 +166,29 @@ export function createSupabaseAuditRepository(
         .limit(limit)
 
       if (action) query = query.eq('action', action)
+      /**
+       * Filtro por categoria: agrupa los nombres que describen el mismo hecho
+       * con distinta convencion (`payment.webhook_failed` del código y
+       * `payment_webhook.failed` del trigger). Se traduce a un `or(...like...)`
+       * sobre `action`, que usa el mismo índice que el filtro exacto.
+       *
+       * `otro` no se puede expresar como `like` —es el complemento de todas las
+       * demás categorías— así que se resuelve descartando filas sobre la página
+       * ya leída, más abajo.
+       */
+      const categoryPatterns = category && category !== UNCATEGORIZED
+        ? auditCategoryPatterns(category)
+        : null
+      if (categoryPatterns?.include?.length) {
+        query = query.or(
+          categoryPatterns.include.map((pattern) => `action.like.${pattern}`).join(','),
+        )
+        // Resta de las categorías anteriores: sin esto `cobro` (`payment.%`)
+        // arrastra los `payment.webhook_*` que ya pertenecen a `webhook`.
+        for (const pattern of categoryPatterns.exclude) {
+          query = query.not('action', 'like', pattern)
+        }
+      }
       if (entityType) query = query.eq('entity_type', entityType)
       if (entityId) query = query.eq('entity_id', entityId)
       // La actividad de un atleta se reparte entre su propia entidad y las de
@@ -179,7 +213,16 @@ export function createSupabaseAuditRepository(
 
       // Sin `await` el builder llega crudo a assertSupabaseResult, `data` queda
       // undefined y `/api/audit` explota al leer `entries.length` (500).
-      return assertSupabaseResult(await query, 'No se pudo leer la auditoría.')
+      const rows = withAuditCategory(
+        assertSupabaseResult(await query, 'No se pudo leer la auditoría.'),
+      )
+
+      // `otro` es el único filtro que no se puede empujar a la base. Se aplica
+      // acá asumiendo el costo: la página puede volver más corta que `limit`,
+      // que es preferible a devolver filas de otras categorías.
+      return category === UNCATEGORIZED
+        ? rows.filter((row) => row.category === UNCATEGORIZED)
+        : rows
     },
 
     /**
@@ -200,8 +243,16 @@ export function createSupabaseAuditRepository(
 
       const unique = (key) => [...new Set(rows.map((row) => row[key]).filter(Boolean))].sort()
 
+      /**
+       * Solo las categorías presentes, y en el orden canónico —no alfabético—
+       * para que el filtro no ofrezca opciones que devolverían cero filas ni
+       * cambie de orden entre aperturas del panel.
+       */
+      const present = new Set(rows.map((row) => categorizeAuditAction(row.action)))
+
       return {
         actions: unique('action'),
+        categories: AUDIT_CATEGORY_KEYS.filter((key) => present.has(key)),
         entityTypes: unique('entity_type'),
         actorTypes: unique('actor_type'),
         sources: unique('source'),
