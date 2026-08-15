@@ -11,7 +11,10 @@ import heroPhotoWebp1280 from '../../assets/DSC00346-display-1280.webp'
 import HeroStatusCard from '../ui/HeroStatusCard.jsx'
 import HomeQuickBand from '../ui/HomeQuickBand.jsx'
 import ResponsivePhoto from '../ui/ResponsivePhoto.jsx'
+import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
+import { isRegistrationOpen } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER_BY_TIER } from '../../motion/tokens.ts'
 import {
@@ -24,6 +27,16 @@ import {
 export default function HeroSection({ onNavigate, event }) {
   const { t } = useI18n()
   const { reducedMotion, tier } = useMotionConfig()
+  const eventStatus = event?.status ?? 'proximamente'
+  const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
+    checkoutKind: 'registration',
+  })
+  const registrationAvailable =
+    registrationCheckoutOpen &&
+    isRegistrationOpen(eventStatus)
+  const statusLabelOverride = registrationAvailable
+    ? t('hero.statusRegistrationOpen')
+    : undefined
   // Cascada propia del hero (no la heroStaggerContainer compartida con
   // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
   // sin afectar esas otras páginas. Ver src/motion/deviceTier.ts.
@@ -146,7 +159,11 @@ export default function HeroSection({ onNavigate, event }) {
                 <div className="hero__actions">{actions}</div>
               </div>
               <div className="hero__proof">
-                <HeroStatusCard event={event} onSelect={() => onNavigate('pitbull')} />
+                <HeroStatusCard
+                  event={event}
+                  onSelect={() => onNavigate('pitbull')}
+                  statusLabelOverride={statusLabelOverride}
+                />
               </div>
             </div>
           ) : (
@@ -184,7 +201,11 @@ export default function HeroSection({ onNavigate, event }) {
                 animate="visible"
                 variants={heroProofItem}
               >
-                <HeroStatusCard event={event} onSelect={() => onNavigate('pitbull')} />
+                <HeroStatusCard
+                  event={event}
+                  onSelect={() => onNavigate('pitbull')}
+                  statusLabelOverride={statusLabelOverride}
+                />
               </m.div>
             </div>
           )}

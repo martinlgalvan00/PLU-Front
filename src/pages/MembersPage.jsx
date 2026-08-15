@@ -57,6 +57,7 @@ export default function MembersPage({
   onSelectEvent,
   session,
   events = [],
+  checkoutAvailability = {},
 }) {
   const {
     MEMBERSHIP_ANNUAL_STEPS,
@@ -169,8 +170,15 @@ export default function MembersPage({
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
   const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
-  const paidCheckoutOpen = isPaidCheckoutOpen(featuredEvent, env, new Date(), { checkoutKind: 'membership' })
-  const comboCheckoutOpen = isPaidCheckoutOpen(featuredEvent, env, new Date(), { checkoutKind: 'combo' })
+  const membershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
+  const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
+  const paidCheckoutOpen =
+    membershipCheckoutEnabled &&
+    isPaidCheckoutOpen(featuredEvent, env, new Date(), { checkoutKind: 'membership' })
+  const comboCheckoutOpen =
+    membershipCheckoutEnabled &&
+    registrationCheckoutEnabled &&
+    isPaidCheckoutOpen(featuredEvent, env, new Date(), { checkoutKind: 'combo' })
   const checkoutLocked = !paidCheckoutOpen
   const comboLocked = !comboCheckoutOpen
   const showComboPromo = Boolean(liveComboOffer) && !hasActiveMembership
