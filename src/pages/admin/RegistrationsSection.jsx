@@ -180,7 +180,7 @@ export default function RegistrationsSection({
           gym: reg.athlete?.gym ?? '',
           photoUrl: reg.athlete?.photoUrl ?? null,
           event: reg.event,
-          eventSlug: reg.eventSlug ?? eventSlugByTitle.get(reg.event) ?? null,
+          eventSlug: reg.eventSlug ?? null,
           category: `${reg.category} · ${reg.division}`,
           bodyweight: formatRegistrationWeight(reg),
           publicVisible: reg.publicVisible !== false,

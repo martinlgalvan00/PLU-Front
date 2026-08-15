@@ -187,7 +187,7 @@ export function getEventConsistencyWarnings(draft, sourceEvent = null, now = new
     warnings.push('slotsFullButOpenStatus')
   }
 
-  if (draft.pricing?.ticketsEnabled !== false && ticketSalesClosesAt && ticketSalesClosesAt < now) {
+  if (draft.pricing?.ticketsEnabled === true && ticketSalesClosesAt && ticketSalesClosesAt < now) {
     warnings.push('ticketSalesClosedButEnabled')
   }
 

@@ -1,5 +1,21 @@
 import { HttpError } from '../lib/errors.js'
 
+function enabledFlag(value) {
+  return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
+}
+
+// Lanzamiento separado del toggle operativo: hasta que se habilite de forma
+// explícita en el entorno, ninguna configuración de evento puede abrir ventas
+// de espectadores por accidente. En tests se conserva abierto para ejercitar
+// los contratos de tickets existentes.
+export function isSpectatorTicketSalesLaunched(env = process.env) {
+  const raw = env?.TICKET_SALES_ENABLED ?? env?.ticketSalesEnabled
+  if (raw === undefined || raw === null || String(raw).trim() === '') {
+    return (env?.NODE_ENV ?? process.env.NODE_ENV) === 'test'
+  }
+  return enabledFlag(raw)
+}
+
 /**
  * Cortes controlados desde el panel, en tres ejes independientes:
  *
@@ -91,7 +107,12 @@ export function assertRegistrationCheckoutEnabled(toggles) {
   assertToggle(toggles, ALTA, 'registration')
 }
 
-export function assertTicketCheckoutEnabled(toggles) {
+export function assertTicketCheckoutEnabled(toggles, env = process.env) {
+  if (!isSpectatorTicketSalesLaunched(env)) {
+    throw new HttpError(409, 'La venta de entradas para espectadores estará disponible próximamente.', {
+      code: 'TICKET_SALES_COMING_SOON',
+    })
+  }
   assertToggle(toggles, ALTA, 'ticket')
 }
 
@@ -134,15 +155,16 @@ export function assertConceptValidationEnabled(toggles, concept) {
  * Lo que el checkout público necesita saber para no ofrecer un medio de pago que
  * el backend va a rechazar. `checkoutEnabled` es maestro: apagado, todo cierra.
  */
-export function resolvePublicCheckoutAvailability(toggles) {
+export function resolvePublicCheckoutAvailability(toggles, env = process.env) {
   const checkoutEnabled = toggles?.checkoutEnabled !== false
   const open = (key) => checkoutEnabled && toggles?.[key] !== false
+  const ticketLaunched = isSpectatorTicketSalesLaunched(env)
   return {
     membershipEnabled: open('membershipEnabled'),
     registrationEnabled: open('registrationEnabled'),
-    ticketEnabled: open('ticketEnabled'),
+    ticketEnabled: ticketLaunched && open('ticketEnabled'),
     membershipManualEnabled: open('membershipEnabled') && toggles?.membershipManualEnabled === true,
     registrationManualEnabled: open('registrationEnabled') && toggles?.registrationManualEnabled === true,
-    ticketManualEnabled: open('ticketEnabled') && toggles?.ticketManualEnabled !== false,
+    ticketManualEnabled: ticketLaunched && open('ticketEnabled') && toggles?.ticketManualEnabled !== false,
   }
 }

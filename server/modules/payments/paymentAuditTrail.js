@@ -235,7 +235,11 @@ export function createPaymentAuditTrail({
         actor_type: actorTypeFor(order),
         actor_id: order?.athleteId ?? externalPaymentId ?? null,
         status: 'failed',
-        severity: diagnosis.severity === 'expected' ? 'warning' : 'danger',
+        // El catálogo distingue entre una configuración que bloquea cobrar y
+        // una operación que el flujo ya contuvo. Ambas se registran como
+        // `failed`, pero la segunda no debe parecer un incidente crítico en
+        // el panel: no acreditó ni modificó la orden.
+        severity: diagnosis.severity === 'blocker' ? 'danger' : 'warning',
         metadata: {
           ...metadata,
           stage: stage ?? null,

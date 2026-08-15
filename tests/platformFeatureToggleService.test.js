@@ -51,6 +51,15 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
     expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true })).not.toThrow()
   })
 
+  it('exige habilitación explícita de lanzamiento para vender entradas al público', () => {
+    const production = { NODE_ENV: 'production' }
+    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, production)).toThrowError(
+      thrown('TICKET_SALES_COMING_SOON'),
+    )
+    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, { ...production, TICKET_SALES_ENABLED: 'true' }))
+      .not.toThrow()
+  })
+
   // Las altas siguen abiertas, pero afiliaciones e inscripciones no ofrecen
   // canal manual hasta que Administración lo habilite explícitamente.
   it('mantiene las altas abiertas y exige habilitación explícita para el canal manual', () => {
@@ -140,6 +149,15 @@ describe('disponibilidad publicada al checkout', () => {
       ticketEnabled: false,
       ticketManualEnabled: true,
     })
+    expect(availability.ticketEnabled).toBe(false)
+    expect(availability.ticketManualEnabled).toBe(false)
+  })
+
+  it('no publica venta de entradas antes del lanzamiento explícito', () => {
+    const availability = resolvePublicCheckoutAvailability(
+      { ticketEnabled: true, ticketManualEnabled: true },
+      { NODE_ENV: 'production' },
+    )
     expect(availability.ticketEnabled).toBe(false)
     expect(availability.ticketManualEnabled).toBe(false)
   })

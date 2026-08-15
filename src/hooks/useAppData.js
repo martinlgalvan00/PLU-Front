@@ -442,7 +442,7 @@ export function useAppData() {
     }
   }, [])
 
-  const refreshAthleteData = useCallback(async () => {
+  const refreshAthleteData = useCallback(async ({ silent = false } = {}) => {
     if (!session || isDemoSession(session)) return
 
     if (session.role === 'athlete_plu') {

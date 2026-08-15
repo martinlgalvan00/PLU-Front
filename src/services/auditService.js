@@ -55,9 +55,11 @@ const ACTION_TONES = {
   'email.retrying': 'warning',
   'email.suppressed': 'warning',
   'email.failed': 'danger',
-  'email.rejected': 'danger',
-  'email.bounced': 'danger',
-  'email.skipped': 'danger',
+  // Brevo puede rechazar/suprimir un destinatario sin que se caiga el flujo
+  // principal. Se conserva para seguimiento, pero no como incidente crítico.
+  'email.rejected': 'warning',
+  'email.bounced': 'warning',
+  'email.skipped': 'warning',
   'payment_webhook.processed': 'success',
   'payment_webhook.failed': 'danger',
   'payment_attempt.failed': 'danger',
@@ -101,6 +103,44 @@ const SUMMARY_FIELDS = [
 
 export function auditActionTone(action) {
   return ACTION_TONES[action] ?? 'default'
+}
+
+// Estas fallas se rechazan antes de acreditar o alterar la orden. Las filas
+// históricas se guardaron como `danger`, por lo que el tono se recalcula al
+// leerlas a partir de su diagnóstico para no conservar ese falso crítico.
+const CONTAINED_PAYMENT_FAILURE_CODES = new Set([
+  'MP_WEBHOOK_SIGNATURE_INVALID',
+  'ORDER_AMOUNT_MISMATCH',
+  'ORDER_PAYMENT_MISMATCH',
+  'ORDER_NOT_PAYABLE',
+])
+
+const CONTAINED_PAYMENT_REASONS = new Set(['signature_rejected'])
+
+function paymentFailureCode(metadata) {
+  const directCode = metadata?.diagnosis?.code ?? metadata?.errorCode ?? metadata?.error?.code
+  if (typeof directCode === 'string' && directCode) return directCode
+
+  const message = typeof metadata?.error === 'string'
+    ? metadata.error
+    : metadata?.error?.message
+  const match = typeof message === 'string' ? message.match(/\[([A-Z_]+)\]/) : null
+  return match?.[1] ?? null
+}
+
+export function auditEntryTone({ action, severity, metadata }) {
+  const diagnosisSeverity = metadata?.diagnosis?.severity
+  if (diagnosisSeverity === 'blocker') return 'danger'
+  if (diagnosisSeverity === 'degraded' || diagnosisSeverity === 'expected') return 'warning'
+
+  if (
+    CONTAINED_PAYMENT_FAILURE_CODES.has(paymentFailureCode(metadata))
+    || CONTAINED_PAYMENT_REASONS.has(metadata?.reason)
+  ) {
+    return 'warning'
+  }
+
+  return severity ?? auditActionTone(action)
 }
 
 /**
@@ -249,7 +289,7 @@ export function normalizeAuditEntry(row) {
     metadata,
     summary: summarize(metadata),
     errorDetail: describeAuditError(metadata),
-    tone: row.severity ?? auditActionTone(row.action),
+    tone: auditEntryTone({ action: row.action, severity: row.severity, metadata }),
     createdAt: row.created_at,
   }
 }
