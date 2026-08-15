@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { startAnalytics, trackEvent, trackPageView } from '../../services/analyticsService.js'
 
 /**
@@ -27,11 +27,28 @@ import { startAnalytics, trackEvent, trackPageView } from '../../services/analyt
  * `server/routes/analytics.js`: el backend rechaza cualquier otro.
  */
 const FUNNEL_VIEW_STEPS = {
-  home: 'landing_view',
   members: 'membership_view',
 }
 
+/**
+ * Primer paso del embudo. Se emite en la primera vista de **cualquier** pagina,
+ * no solo en la portada.
+ *
+ * Cuando dependia de `view === 'home'`, toda sesion que entrara directo a una
+ * landing profunda nunca lo emitia, y como el embudo exige arrancar por el paso
+ * 1, esas sesiones quedaban descartadas enteras —no del primer paso, del embudo
+ * completo—. Sobre el trafico real del sitio eran el 39%: 95 sesiones entrando
+ * por `/pitbull` y 51 por `/afiliacion`, en su mayoria desde Instagram, que
+ * linkea directo a la pagina de cada cosa y no a la portada.
+ */
+const ENTRY_FUNNEL_STEP = 'landing_view'
+
 export default function AnalyticsTracker({ view }) {
+  // Una vez por montaje. Volver a la portada a mitad de la navegacion no
+  // reabre el embudo, y el `min(occurred_at)` de la RPC absorbe el reemitido
+  // que produce una recarga completa.
+  const entryTracked = useRef(false)
+
   useEffect(() => startAnalytics(), [])
 
   // Se monta despues de `DocumentMetaSync` a proposito: React corre los efectos
@@ -39,6 +56,14 @@ export default function AnalyticsTracker({ view }) {
   // reves registraria cada vista con el titulo de la anterior.
   useEffect(() => {
     trackPageView({ route: view })
+
+    // Antes que el paso de pantalla: si alguien entra directo a `/afiliacion`,
+    // los dos pasos salen en el mismo lote y el embudo exige que el primero no
+    // sea posterior al segundo.
+    if (!entryTracked.current) {
+      entryTracked.current = true
+      trackEvent(ENTRY_FUNNEL_STEP)
+    }
 
     const step = FUNNEL_VIEW_STEPS[view]
     // El embudo cuenta visitantes unicos, asi que volver a entrar a la misma

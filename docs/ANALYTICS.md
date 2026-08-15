@@ -23,6 +23,16 @@ sostiene los cobros.
 
 - `analytics_sessions` — una fila por sesión (30 min de inactividad la cierra). Entrada, salida,
   referrer, campaña, dispositivo, duración y rebote.
+  - `active_seconds` — tiempo con la **pestaña visible**, acumulado por tramos desde el tracker.
+    `duration_seconds` es reloj de pared y cuenta también la pestaña en segundo plano: sobre
+    tráfico real daban 5m17s de permanencia media, que no era permanencia sino pestañas abiertas.
+  - `is_engaged` / `is_quality` — columnas **generadas**, no mantenidas por la aplicación.
+    `is_engaged` es el corte de GA4 (10s de atención, o 2 páginas, o una conversión);
+    `is_quality` es el mismo sin el término temporal, y es el único comparable contra lo
+    registrado antes de que existiera `active_seconds`.
+  - El rebote se deriva de `is_engaged`. La condición vieja (`page_count <= 1 and
+    event_count <= 1`) daba 8% porque el tracker emite scroll y clicks por su cuenta; casi
+    ninguna sesión calificaba.
 - `analytics_events` — el detalle: `pageview`, `click`, `scroll`, `conversion`, eventos de
   formulario y de negocio.
 - `analytics_daily_rollups` — agregados diarios por ruta. **Perpetuos** y ya anónimos: son
@@ -108,14 +118,23 @@ instrumentarlo, ese test falla.
 | `pageview` | `AnalyticsTracker` en cada cambio de vista |
 | `click` | Listener global del tracker (con coordenadas y tamaño del documento) |
 | `scroll` | Listener global; se descarga al salir de la vista |
-| `landing_view` | `AnalyticsTracker` cuando la vista es `home` |
+| `landing_view` | `AnalyticsTracker` en la **primera vista de cualquier página**, una vez por montaje |
 | `membership_view` | `AnalyticsTracker` cuando la vista es `members` |
 | `membership_checkout_opened` | `MercadoPagoEmbeddedCheckout` con orden de tipo `membership` |
 | `registration_checkout_opened` | Idem con orden de tipo `competition` (fuera del embudo canónico) |
 | `tickets_checkout_opened` | Idem con orden de tipo `tickets` (fuera del embudo canónico) |
-| `payment_submitted` | `MercadoPagoEmbeddedCheckout` al enviar el pago |
-| `payment_approved` | Idem cuando el estado vuelve aprobado |
+| `payment_submitted` | `MercadoPagoEmbeddedCheckout` al enviar el pago (los tres flujos) |
+| `membership_payment_submitted` | Idem, calificado por flujo — es el que usa el embudo |
+| `registration_payment_submitted` / `tickets_payment_submitted` | Idem para los otros dos flujos |
+| `payment_approved` | Idem cuando el estado vuelve aprobado (único `type: 'conversion'`) |
+| `membership_payment_approved` | Idem, calificado por flujo — es el que usa el embudo |
 | `payment_rejected` | Idem cuando vuelve rechazado |
+
+`landing_view` **no depende de la portada**. Atado a `view === 'home'`, toda sesión que entrara
+directo a una landing profunda nunca lo emitía, y como el embudo exige arrancar por el paso 1,
+esas sesiones quedaban descartadas del embudo completo. Sobre el tráfico real eran el **39%**:
+95 sesiones entrando por `/pitbull` y 51 por `/afiliacion`, en su mayoría desde Instagram, que
+linkea a la página de cada cosa y no a `/`.
 
 ## Embudo de afiliación
 
@@ -123,13 +142,24 @@ Pasos canónicos, definidos en `server/routes/analytics.js` para que el panel no
 nombres que el tracker nunca emite:
 
 ```text
-landing_view → membership_view → membership_checkout_opened → payment_submitted → payment_approved
+landing_view → membership_view → membership_checkout_opened
+             → membership_payment_submitted → membership_payment_approved
 ```
 
 El conteo es **monotónico**: un visitante cuenta en el paso *k* solo si hizo los *k-1* anteriores
 y en ese orden, comparando la primera vez de cada paso. Sin eso, quien entraba directo a
 `/afiliarse` sumaba al paso 2 sin haber pasado por el 1, el embudo crecía y las tasas pasaban el
 100% — un informe peor que no tener informe.
+
+La cadena se evalúa **dentro de cada sesión** y después se cuentan visitantes distintos. Con
+`min(occurred_at)` por visitante sobre la ventana entera, dos intentos de compra se pisaban:
+quien paga, vuelve y reabre el checkout termina con su primer `checkout_opened` posterior a su
+primer `payment_submitted`, la condición de orden falla y desaparece del embudo desde ahí.
+
+Los dos últimos pasos van **calificados por flujo**. `payment_submitted` a secas lo emiten por
+igual afiliación, inscripción y entradas: un pago de inscripción entraba al embudo de afiliación
+sin haber pasado por `membership_checkout_opened`, cortaba la cadena y el paso se reportaba en
+cero. El panel mostraba 0 pagos habiendo dos registrados.
 
 Para instrumentar un paso nuevo:
 

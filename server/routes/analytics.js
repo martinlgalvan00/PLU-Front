@@ -33,12 +33,18 @@ import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/ath
 
 // Pasos canonicos del embudo de afiliacion. Viven aca para que el panel no
 // pueda pedir un embudo con nombres que el tracker nunca emite.
+//
+// Los dos ultimos estan calificados por flujo. Con `payment_submitted` a secas
+// —que emiten por igual afiliacion, inscripcion y entradas— un pago de
+// inscripcion entraba al embudo de afiliacion sin haber pasado por
+// `membership_checkout_opened`, la cadena se cortaba ahi y el paso se
+// reportaba en cero. El panel mostraba 0 pagos habiendo dos registrados.
 export const MEMBERSHIP_FUNNEL_STEPS = Object.freeze([
   'landing_view',
   'membership_view',
   'membership_checkout_opened',
-  'payment_submitted',
-  'payment_approved',
+  'membership_payment_submitted',
+  'membership_payment_approved',
 ])
 
 const eventSchema = z.object({
@@ -65,24 +71,42 @@ const eventSchema = z.object({
   occurredAt: z.string().datetime({ offset: true }).optional(),
 })
 
-const collectSchema = z.object({
-  // Techo alineado con el de la RPC: el lote es lo que descarga el tracker de
-  // una, no una sesion entera.
-  events: z.array(eventSchema).min(1).max(50),
-  context: z
-    .object({
-      path: z.string().trim().max(500).optional(),
-      referrer: z.string().trim().max(500).optional(),
-      utmSource: z.string().trim().max(80).optional(),
-      utmMedium: z.string().trim().max(80).optional(),
-      utmCampaign: z.string().trim().max(120).optional(),
-      viewportWidth: z.coerce.number().int().min(0).max(20000).optional(),
-      viewportHeight: z.coerce.number().int().min(0).max(20000).optional(),
-      language: z.string().trim().max(20).optional(),
-    })
-    .optional()
-    .default({}),
-})
+const collectSchema = z
+  .object({
+    // Techo alineado con el de la RPC: el lote es lo que descarga el tracker de
+    // una, no una sesion entera. El piso es cero porque un lote puede traer
+    // solo tiempo activo: ver `activeMs`.
+    events: z.array(eventSchema).max(50),
+    context: z
+      .object({
+        path: z.string().trim().max(500).optional(),
+        referrer: z.string().trim().max(500).optional(),
+        utmSource: z.string().trim().max(80).optional(),
+        utmMedium: z.string().trim().max(80).optional(),
+        utmCampaign: z.string().trim().max(120).optional(),
+        viewportWidth: z.coerce.number().int().min(0).max(20000).optional(),
+        viewportHeight: z.coerce.number().int().min(0).max(20000).optional(),
+        language: z.string().trim().max(20).optional(),
+        /**
+         * Tiempo con la pestaña visible desde el lote anterior. Es propiedad de
+         * la sesion y no de un evento, por eso viaja en el contexto: alguien
+         * que lee sin tocar nada produce tiempo activo y cero eventos.
+         *
+         * El techo son 15 minutos, holgado frente al latido de 30s del tracker.
+         * Sirve contra un reloj que salta y contra un cliente que quiera
+         * inflar el tiempo de permanencia a mano.
+         */
+        activeMs: z.coerce.number().int().min(0).max(900_000).optional(),
+      })
+      .optional()
+      .default({}),
+  })
+  // Un lote sin eventos y sin tiempo activo no aporta nada y no deberia abrir
+  // una sesion.
+  .refine((body) => body.events.length > 0 || (body.context?.activeMs ?? 0) > 0, {
+    message: 'El lote no tiene eventos ni tiempo activo.',
+    path: ['events'],
+  })
 
 const rangeSchema = z.object({
   from: z.string().datetime({ offset: true }).optional(),
@@ -172,6 +196,7 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
           viewportWidth: context.viewportWidth ?? null,
           viewportHeight: context.viewportHeight ?? null,
           language: context.language ?? null,
+          activeMs: context.activeMs ?? 0,
           // Vercel resuelve el pais en el edge; sin el header queda nulo y el
           // informe simplemente no segmenta por geografia.
           country: req.get('x-vercel-ip-country') ?? null,

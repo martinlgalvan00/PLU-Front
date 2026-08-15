@@ -94,6 +94,37 @@ const CHECKOUT_OPENED_STEPS = {
   tickets: 'tickets_checkout_opened',
 }
 
+/**
+ * Pasos de pago separados por flujo.
+ *
+ * `payment_submitted` y `payment_approved` a secas los emiten los tres
+ * checkouts, y el embudo de afiliacion los tomaba como propios: alguien que
+ * pagaba una inscripcion aportaba un `payment_submitted` sin ningun
+ * `membership_checkout_opened` que lo precediera, la cadena se cortaba y el
+ * paso entero se reportaba en cero. Con datos reales el panel mostraba 0 pagos
+ * habiendo dos registrados.
+ *
+ * Los nombres van escritos enteros y no armados con plantilla a proposito: son
+ * el contrato con `MEMBERSHIP_FUNNEL_STEPS` de `server/routes/analytics.js`, y
+ * un `${prefijo}_payment_submitted` no se encuentra buscando el paso por su
+ * nombre —ni por grep, ni por el test que verifica que cada paso tenga quien lo
+ * emita—.
+ */
+const PAYMENT_FUNNEL_STEPS = {
+  membership: {
+    submitted: 'membership_payment_submitted',
+    approved: 'membership_payment_approved',
+  },
+  competition: {
+    submitted: 'registration_payment_submitted',
+    approved: 'registration_payment_approved',
+  },
+  tickets: {
+    submitted: 'tickets_payment_submitted',
+    approved: 'tickets_payment_approved',
+  },
+}
+
 // Motivo puntual de rechazo que manda Mercado Pago (`payment.status_detail`),
 // mapeado a un mensaje accionable en vez del genérico "reintentá con otro
 // medio" — así la persona sabe si tiene que revisar el CVV, llamar al banco
@@ -348,7 +379,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       if (!payload?.formData) throw new Error(t('payments.embeddedError'))
       // Pasos del embudo. Nunca viaja el token de tarjeta ni el medio de pago:
       // solo el hecho de que hubo un intento y como termino.
+      const flowSteps = PAYMENT_FUNNEL_STEPS[order?.type]
+      // El generico se conserva: es el que cuenta intentos de pago del sitio
+      // entero, sin importar que se estuviera pagando.
       trackEvent('payment_submitted', { metadata: { concept: order?.concept ?? null } })
+      if (flowSteps) trackEvent(flowSteps.submitted)
       const response = await processEmbeddedPayment({
         paymentOrderId: orderId,
         orderAccessToken: order?.orderAccessToken,
@@ -358,7 +393,10 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       setResult({ status, data: response })
       announcePaymentUpdate(orderId, status)
       if (status === 'approved') {
+        // Solo el generico viaja como conversion: duplicar el tipo inflaria el
+        // contador de conversiones del resumen al doble.
         trackConversion('payment_approved', { value: Number(order?.amount ?? 0) })
+        if (flowSteps) trackEvent(flowSteps.approved, { value: Number(order?.amount ?? 0) })
       } else if (status === 'rejected') {
         trackEvent('payment_rejected', { type: 'error' })
       }
@@ -368,7 +406,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       setError(controlledPaymentError(submitError, t))
       throw submitError
     }
-  }, [onResult, order?.amount, order?.concept, order?.orderAccessToken, orderId, t])
+  }, [onResult, order?.amount, order?.concept, order?.orderAccessToken, order?.type, orderId, t])
 
   const submitSubscription = useCallback(async (formData) => {
     setError('')

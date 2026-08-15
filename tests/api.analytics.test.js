@@ -215,7 +215,16 @@ describe('lectura del informe', () => {
 
       expect(analytics.funnel).toHaveBeenCalledWith(
         expect.objectContaining({
-          steps: ['landing_view', 'membership_view', 'membership_checkout_opened', 'payment_submitted', 'payment_approved'],
+          // Los pasos de pago van calificados por flujo: `payment_submitted` a
+          // secas lo emiten tambien inscripcion y entradas, y colarlo aca
+          // cortaba la cadena del embudo de afiliacion.
+          steps: [
+            'landing_view',
+            'membership_view',
+            'membership_checkout_opened',
+            'membership_payment_submitted',
+            'membership_payment_approved',
+          ],
         }),
       )
     } finally {
