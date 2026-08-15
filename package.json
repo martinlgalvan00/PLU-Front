@@ -33,6 +33,7 @@
     "db:migrate": "npm run setup:all",
     "db:seed": "node scripts/prisma-supabase.mjs seed",
     "db:verify:payments": "node scripts/verify-payment-database.mjs",
+    "db:verify:schema": "node scripts/verify-schema-posture.mjs",
     "supabase:assert": "node scripts/assert-supabase-connectivity.mjs",
     "supabase:diagnose": "node scripts/diagnose-supabase-integration.mjs",
     "email:doctor": "node scripts/email-doctor.mjs",

@@ -27,6 +27,7 @@ import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFiel
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
+import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
 import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
@@ -1351,12 +1352,12 @@ export default function RegisterPage({
                     ocupa la fila completa para no entrar en el grid de dos
                     columnas que arma el resto del estado. */}
                 <div className="register-status__celebration">
-                  <span className="register-status__celebration-label">
-                    {t('pages.register.competitionCardEyebrow')}
-                  </span>
-                  <p className="register-status__celebration-copy">
-                    {t('pages.register.competitionCardDesc')}
-                  </p>
+                  <ConfirmationSeal
+                    variant="registration"
+                    eyebrow={t('pages.register.sealRegistrationEyebrow')}
+                    title={t('pages.register.competitionCardEyebrow')}
+                    detail={t('pages.register.competitionCardDesc')}
+                  />
                   <button
                     type="button"
                     className="register-status__celebration-cta"

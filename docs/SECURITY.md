@@ -262,8 +262,18 @@ que no está en el panel propio no se mira.
 
 ```bash
 npm run test:unit -- tests/defenseLayer.test.js   # capa de defensa y contrato de las migraciones
+npm run test:unit -- tests/infra.databaseSchema.test.js  # postura de las 134 migraciones (texto)
+npm run test:unit -- tests/infra.apiSurface.test.js      # guards y limitadores de las 168 rutas
+npm run test:unit -- tests/infra.httpHardening.test.js   # cabeceras, CORS, 401 sin sesión
+npm run db:verify:schema                           # postura contra el catálogo real (solo lectura)
 npm run supabase:diagnose                          # conectividad y permisos contra la base hosteada
 ```
+
+Los tres primeros auditan lo que **dice** el repositorio; `db:verify:schema`
+pregunta lo que la base **tiene puesto**, que es distinto en cuanto una
+migración se aplica a medias o alguien cambia un privilegio desde el panel de
+Supabase. Los dos hacen falta y ambos corren en CI (los tests en el job
+`application`, la verificación de catálogo en `supabase-integration`).
 
 Contra la base, con la clave `anon`, un `DELETE` sobre cualquier tabla de
 `public` tiene que responder **401 con código `42501`** (permiso denegado), no

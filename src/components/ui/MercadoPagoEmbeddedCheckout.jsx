@@ -1,6 +1,6 @@
 import { Component, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { CardPayment, Payment, initMercadoPago } from '@mercadopago/sdk-react'
-import { CheckCircle2, Clock3, ExternalLink, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Clock3, ExternalLink, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { env } from '../../config/env.js'
 import { money } from '../../lib/format.js'
 import { syncMercadoPagoSubmitLabel } from '../../lib/mercadoPagoBrickUi.js'
@@ -14,6 +14,7 @@ import {
   reportPaymentClientEvent,
 } from '../../services/paymentService.js'
 import { trackConversion, trackEvent } from '../../services/analyticsService.js'
+import ConfirmationSeal from './ConfirmationSeal.jsx'
 
 let initializedPublicKey = null
 
@@ -849,9 +850,25 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
         </div>
       )}
 
-      {result && (
+      {/* Pago acreditado: el único momento del checkout que cierra algo. El
+          sello reemplaza al ícono + línea de texto que había antes —mismo
+          contenido, mismo `role="status"`— y estampa el monto como acuse.
+          Pendiente y rechazado conservan la fila sobria: no hay nada que
+          festejar mientras el banco todavía puede decir que no. */}
+      {result?.status === 'approved' && (
+        <div className="mp-embedded-checkout__result mp-embedded-checkout__result--approved">
+          <ConfirmationSeal
+            variant="payment"
+            eyebrow={t('payments.sealApprovedEyebrow')}
+            seal={formattedAmount}
+            title={t(isSubscription ? 'payments.sealSubscriptionTitle' : 'payments.sealApprovedTitle')}
+            detail={resultMessage}
+          />
+        </div>
+      )}
+      {result && result.status !== 'approved' && (
         <div className={`mp-embedded-checkout__result mp-embedded-checkout__result--${result.status}`} role="status">
-          {result.status === 'approved' ? <CheckCircle2 size={26} aria-hidden /> : <Clock3 size={20} aria-hidden />}
+          <Clock3 size={20} aria-hidden />
           <p>{resultMessage}</p>
         </div>
       )}

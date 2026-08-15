@@ -333,6 +333,22 @@ Complementos: `npm run mercado-pago:doctor` (credenciales),
 `npm run mercado-pago:urls` (webhooks a registrar),
 `npm run db:verify:payments` (maquina de estados transaccional).
 
+## Que verifica el CI del cobro
+
+Automatizado, en cada PR y en cada push a `main`:
+
+| Compuerta | Donde | Que prueba |
+|---|---|---|
+| `tests/paymentRevalidation.test.js` | job `application` | seleccion del pago canonico, revalidacion y barrido con dobles |
+| `tests/infra.apiSurface.test.js` | job `application` | que acreditar, corregir y revalidar sigan detras de `admin.payments.approve`, y que los dos paths del webhook verifiquen firma |
+| `tests/infra.httpHardening.test.js` | job `application` | la app levantada: 401 sin sesion en las rutas de plata, webhook sin firma rechazado |
+| `tests/integration/mercadoPagoWebhook.integration.test.js` | job `supabase-integration` | webhook firmado end-to-end contra Postgres: acredita, activa la afiliacion, no duplica, y rechaza monto que no coincide |
+| `tests/integration/paymentRevalidation.integration.test.js` | job `supabase-integration` | una orden cancelada vuelve a `aprobado` con el pago del proveedor, activa la membresia y queda asentada |
+| `npm run db:verify:payments` | job `supabase-integration` | smoke transaccional de la maquina de estados |
+| `npm run db:verify:schema` | job `supabase-integration` | las RPC de cobro existen y no las puede ejecutar el navegador |
+| `npm run mercado-pago:doctor` | job `integrations-live` | el token real responde (solo con secrets cargados) |
+| `deployment-smoke.yml` | post-deploy | health, readiness, ruta privada cerrada y webhook sin firma rechazado en la instancia publicada |
+
 ## Pruebas de aceptacion
 
 Antes de habilitar produccion verificar en sandbox:

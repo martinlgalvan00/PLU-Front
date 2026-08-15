@@ -136,6 +136,9 @@ export default {
     mockOrderStatus: 'Estado',
     mockProcessing: 'Procesando…',
     paymentApproved: 'Pago aprobado. La acreditación ya fue registrada.',
+    sealApprovedEyebrow: 'Pago acreditado',
+    sealApprovedTitle: 'Listo, quedó pago',
+    sealSubscriptionTitle: 'Tu suscripción quedó activa',
     subscriptionAuthorized:
       'Suscripción autorizada. La afiliación se activará al acreditarse el primer cobro.',
     subscriptionPendingCharge:
@@ -2538,6 +2541,10 @@ export default {
       competitionShareCard: 'Descargar y compartir mi card',
       competitionCardEyebrow: 'Tu lugar está confirmado',
       competitionCardDesc: 'Llevate tu card con el evento, tu categoría y tu QR de ingreso.',
+      sealMembershipEyebrow: 'Afiliación acreditada',
+      sealMembershipTitle: 'Ya sos parte de PLU Argentina',
+      sealMembershipDetail: 'Tu credencial ya está emitida y podés inscribirte a los meets.',
+      sealRegistrationEyebrow: 'Inscripción confirmada',
       membershipGoProfile: 'Ir a mi perfil',
       membershipGoProfileCredential: 'Ver credencial unificada',
       membershipRequiredTitle: 'Afiliación para el ingreso',
