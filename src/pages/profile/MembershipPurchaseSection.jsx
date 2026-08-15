@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
@@ -67,6 +67,8 @@ export default function MembershipPurchaseSection({
   const [discountPreview, setDiscountPreview] = useState(null)
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
+  const [discountOpen, setDiscountOpen] = useState(false)
+  const discountInputRef = useRef(null)
   const [membershipAccessRequired, setMembershipAccessRequired] = useState(false)
   const [membershipCheckoutEnabled, setMembershipCheckoutEnabled] = useState(true)
   // Canal manual cerrado desde el panel: transferencia y efectivo salen del
@@ -242,9 +244,14 @@ export default function MembershipPurchaseSection({
 
   useEffect(() => {
     if (paymentMethod === 'mercado_pago') return
-    // Plan recurrente o canal manual cerrado: en los dos casos el único medio
-    // posible es Mercado Pago, así que la selección vuelve ahí sola.
-    if (selectedPlan?.collectionMode === 'recurring' || !manualChannelEnabled) {
+    // Plan recurrente, canal manual cerrado o medios manuales en
+    // "próximamente": el único medio operable es Mercado Pago.
+    if (
+      selectedPlan?.collectionMode === 'recurring' ||
+      !manualChannelEnabled ||
+      paymentMethod === 'transferencia' ||
+      paymentMethod === 'cash_pitbull'
+    ) {
       setPaymentMethod('mercado_pago')
     }
   }, [manualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
@@ -277,7 +284,19 @@ export default function MembershipPurchaseSection({
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
+    setDiscountOpen(false)
   }
+
+  function openDiscountField() {
+    if (checkoutLocked) return
+    setDiscountOpen(true)
+    setDiscountError('')
+  }
+
+  useEffect(() => {
+    if (!discountOpen || discountPreview) return
+    discountInputRef.current?.focus()
+  }, [discountOpen, discountPreview])
 
   async function startMembershipPayment(methodOverride) {
     const method = methodOverride ?? paymentMethod
@@ -569,14 +588,6 @@ export default function MembershipPurchaseSection({
                   <ArrowLeft size={15} aria-hidden />
                   {t('account.membership.changePaymentMethod')}
                 </button>
-                <button
-                  type="button"
-                  className="account-membership__settle-alt"
-                  disabled={submitting}
-                  onClick={() => void startMembershipPayment('transferencia')}
-                >
-                  {t('account.membership.payByTransfer')}
-                </button>
               </div>
               <MercadoPagoEmbeddedCheckout order={embeddedOrder} presentation="settle" />
             </div>
@@ -639,13 +650,14 @@ export default function MembershipPurchaseSection({
                         {t('account.membership.discountRemove')}
                       </button>
                     </p>
-                  ) : (
+                  ) : discountOpen ? (
                     <div className="account-discount__field">
                       <label htmlFor="membership-discount-code">
                         {t('account.membership.discountLabel')}
                       </label>
                       <div className="account-discount__row">
                         <input
+                          ref={discountInputRef}
                           id="membership-discount-code"
                           type="text"
                           autoComplete="off"
@@ -654,6 +666,17 @@ export default function MembershipPurchaseSection({
                           value={discountCodeInput}
                           disabled={checkoutLocked || discountChecking}
                           onChange={(event) => setDiscountCodeInput(event.target.value.toUpperCase())}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault()
+                              void applyDiscountCode()
+                              return
+                            }
+                            if (event.key === 'Escape') {
+                              event.preventDefault()
+                              clearDiscountCode()
+                            }
+                          }}
                         />
                         <button
                           type="button"
@@ -667,6 +690,16 @@ export default function MembershipPurchaseSection({
                         <p className="account-discount__error" role="alert">{discountError}</p>
                       ) : null}
                     </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="account-discount__toggle"
+                      disabled={checkoutLocked}
+                      onClick={openDiscountField}
+                    >
+                      <Tag size={16} aria-hidden />
+                      {t('account.membership.discountToggle')}
+                    </button>
                   )}
                 </div>
               ) : null}
@@ -715,13 +748,13 @@ export default function MembershipPurchaseSection({
                     ? [
                         {
                           value: 'transferencia',
-                          label: t('account.membership.transfer'),
-                          disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                          label: t('account.membership.transferComingSoon'),
+                          disabled: true,
                         },
                         {
                           value: 'cash_pitbull',
-                          label: t('account.membership.cashPitbull'),
-                          disabled: !selectedPlan || selectedPlan.collectionMode === 'recurring',
+                          label: t('account.membership.cashPitbullComingSoon'),
+                          disabled: true,
                         },
                       ]
                     : []),

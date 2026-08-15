@@ -155,6 +155,11 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       id: order.id,
       athleteId: order.athlete_id,
       concept: eventTitle ? `Inscripción ${eventTitle}` : CONCEPT_LABELS[order.concept] ?? order.concept,
+      // Valor crudo ('membership' | 'registration' | 'combo'), distinto de
+      // `concept` (la etiqueta ya formateada arriba) -- lo necesita
+      // paymentReconciliationService para saber qué entitlement debería
+      // existir sin tener que parsear el label.
+      conceptType: order.concept,
       amount: order.amount,
       method: order.method,
       manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,

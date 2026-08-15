@@ -54,3 +54,25 @@ export const MembershipWithPhoto = {
     athletePhotoUrl: 'https://picsum.photos/seed/plu-arg/400/400',
   },
 }
+
+export const MembershipWithPhotoStory = {
+  args: {
+    ...MembershipWithPhoto.args,
+    format: 'story',
+  },
+}
+
+export const MembershipNoPhoto = {
+  args: {
+    variant: 'membership',
+    membershipSeason: '2026',
+    membershipExpiration: '31 dic 2026',
+  },
+}
+
+export const MembershipNoPhotoStory = {
+  args: {
+    ...MembershipNoPhoto.args,
+    format: 'story',
+  },
+}

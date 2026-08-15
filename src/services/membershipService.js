@@ -158,6 +158,7 @@ export function filterMemberships(items, filters = {}) {
       !query ||
       item.athlete?.fullName?.toLowerCase().includes(query) ||
       item.athlete?.documentId?.includes(query) ||
+      item.athlete?.gym?.toLowerCase().includes(query) ||
       item.memberCode?.toLowerCase().includes(query)
 
     return statusMatch && expiringMatch && queryMatch

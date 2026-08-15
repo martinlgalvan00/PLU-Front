@@ -4333,15 +4333,8 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   transform: none;
 }
 
-.login-submit__spinner {
-  animation: auth-spin 620ms linear infinite;
-  block-size: 15px;
-  border: 1.75px solid color-mix(in oklab, currentColor 28%, transparent);
-  border-radius: 50%;
-  border-top-color: currentColor;
-  display: block;
-  inline-size: 15px;
-}
+/* El spinner del CTA es el primitivo global `.plu-spinner` (states.css):
+   hereda currentColor del botón, sin dibujo propio acá. */
 
 /* Premium Labels & Grid */
 .auth-immersive-glass .login-field__label,
@@ -4633,12 +4626,6 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   }
 }
 
-@keyframes auth-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Foco: mismo anillo que la capa institucional, en toda la superficie de acceso */
 .auth-layout :where(button, a, input, select, [tabindex='0']):focus-visible,
 .auth-immersive-glass :where(button, a, input, select, [tabindex='0']):focus-visible {
@@ -4707,11 +4694,7 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     transform: none;
   }
 
-  /* El spinner comunica un estado real en curso: se conserva, pero sin giro
-     continuo — la etiqueta "Ingresando…" ya lo declara. */
-  .login-submit__spinner {
-    animation: none;
-    border-top-color: color-mix(in oklab, currentColor 28%, transparent);
-    opacity: 0.6;
-  }
+  /* El spinner de estado (`.plu-spinner`) ya quiebra el giro en el
+     reduced-motion global de states.css: la etiqueta "Ingresando…"
+     declara el estado, el anillo queda estático. */
 }

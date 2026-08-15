@@ -267,6 +267,7 @@ export function buildDashboardOverview({
       fullName: athlete.fullName,
       gym: athlete.gym,
       createdAt: athlete.createdAt,
+      photoUrl: athlete.photoUrl ?? null,
     }))
 
   // Afiliaciones recientes, distintas de `recentAthletes`: esa lista son altas
@@ -286,6 +287,7 @@ export function buildDashboardOverview({
         status: membership.status,
         startDate: membership.startDate,
         expirationDate: membership.expirationDate,
+        photoUrl: athlete?.photoUrl ?? null,
       }
     })
 
@@ -304,6 +306,7 @@ export function buildDashboardOverview({
         division: registration.division,
         status: registration.status,
         createdAt: registration.createdAt,
+        photoUrl: athlete?.photoUrl ?? null,
       }
     })
 

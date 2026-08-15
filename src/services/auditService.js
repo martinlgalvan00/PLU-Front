@@ -144,15 +144,23 @@ export function normalizeAuditEntry(row) {
 
 export async function fetchAuditEntries(filters = {}) {
   const params = new URLSearchParams()
-  for (const key of ['action', 'entityType', 'entityId', 'actorType', 'source', 'status', 'search', 'before']) {
+  for (const key of ['action', 'entityType', 'entityId', 'actorType', 'source', 'status', 'search', 'before', 'beforeId']) {
     if (filters[key]) params.set(key, filters[key])
   }
   if (filters.entityIds?.length) params.set('entityIds', filters.entityIds.join(','))
   if (filters.limit) params.set('limit', String(filters.limit))
 
   const query = params.toString()
-  const { entries, nextCursor } = await apiGet(`/api/audit${query ? `?${query}` : ''}`)
-  return { entries: entries.map(normalizeAuditEntry), nextCursor }
+  const { entries, nextCursor, nextCursorId } = await apiGet(
+    `/api/audit${query ? `?${query}` : ''}`,
+  )
+  return {
+    entries: entries.map(normalizeAuditEntry),
+    nextCursor,
+    // Cursor compuesto: `created_at` solo no desempata filas del mismo
+    // instante y la página siguiente las saltearía.
+    nextCursorId,
+  }
 }
 
 export async function fetchAuditFacets() {

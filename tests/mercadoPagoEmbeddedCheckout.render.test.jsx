@@ -181,11 +181,10 @@ describe('presentación settle embebida', () => {
 
     expect(await screen.findByTestId('payment-brick')).toBeTruthy()
     expect(screen.getByTestId('wallet-brick')).toBeTruthy()
-    expect(screen.getByText('Dinero en cuenta de Mercado Pago')).toBeTruthy()
-    expect(screen.getByText('O pagá con tarjeta')).toBeTruthy()
+    expect(screen.getByText('Mercado Pago')).toBeTruthy()
     // El salto a Mercado Pago se avisa antes de tocar el botón.
     expect(
-      screen.getByText('Se abre Mercado Pago para que inicies sesión y volvés acá al confirmar.'),
+      screen.getByText('Te redirigimos y volvés acá al finalizar.'),
     ).toBeTruthy()
   })
 
@@ -201,6 +200,7 @@ describe('presentación settle embebida', () => {
     expect(paymentMethods.mercadoPago).toBeUndefined()
     expect(paymentMethods.creditCard).toBe('all')
     expect(paymentMethods.debitCard).toBe('all')
+    expect(paymentMethods.prepaidCard).toBe('all')
   })
 
   it('sin preferencia no hay Wallet y el Payment Brick vuelve a ofrecer Mercado Pago', async () => {
@@ -220,12 +220,37 @@ describe('presentación settle embebida', () => {
     expect(sdk.payment.mock.calls[0][0].customization.paymentMethods.mercadoPago).toBe('all')
   })
 
+  it('si falla preparar la preferencia dos veces, avisa y permite reintentar', async () => {
+    paymentApi.createPreference
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockRejectedValueOnce(new Error('network down'))
+      .mockResolvedValueOnce({ preference: { id: 'pref-recovered' } })
+
+    render(
+      <I18nProvider>
+        <MercadoPagoEmbeddedCheckout order={{ ...ORDER, preferenceId: null }} presentation="settle" />
+      </I18nProvider>,
+    )
+
+    await screen.findByTestId('payment-brick', {}, { timeout: 4000 })
+    expect(
+      await screen.findByText('Cuenta de Mercado Pago no disponible', {}, { timeout: 4000 }),
+    ).toBeTruthy()
+    expect(paymentApi.reportPaymentClientEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ stage: 'preference' }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByTestId('wallet-brick')).toBeTruthy()
+    expect(screen.queryByText('Cuenta de Mercado Pago no disponible')).toBeNull()
+  })
+
   it('en la presentación default sí ofrece Wallet junto al Payment Brick', async () => {
     renderCheckout()
 
     expect(await screen.findByTestId('payment-brick')).toBeTruthy()
     expect(screen.getByTestId('wallet-brick')).toBeTruthy()
-    expect(screen.getByText('Dinero en cuenta de Mercado Pago')).toBeTruthy()
+    expect(screen.getByText('Mercado Pago')).toBeTruthy()
   })
 
   it('espera la preferencia antes de montar Payment Brick para no remountarlo', async () => {

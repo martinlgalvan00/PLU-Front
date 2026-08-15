@@ -5,7 +5,13 @@ import { formatShortDate } from '../../lib/format.js'
  * Celda de identidad: nombre primario + sublínea secundaria.
  * `subMono` tipifica documentos/IDs con números tabulares.
  */
-export function AdminIdentityCell({ accent = 'celeste', name, sub, subMono = false }) {
+export function AdminIdentityCell({
+  accent = 'celeste',
+  name,
+  photoUrl,
+  sub,
+  subMono = false,
+}) {
   const initial = name?.trim()?.charAt(0)?.toUpperCase() ?? '?'
 
   return (
@@ -14,7 +20,17 @@ export function AdminIdentityCell({ accent = 'celeste', name, sub, subMono = fal
         className={`data-table__avatar ${accent === 'gold' ? 'data-table__avatar--gold' : ''}`.trim()}
         aria-hidden
       >
-        {initial}
+        {photoUrl ? (
+          <img
+            className="data-table__avatar-photo"
+            src={photoUrl}
+            alt=""
+            onError={(event) => {
+              event.currentTarget.hidden = true
+            }}
+          />
+        ) : null}
+        <span>{initial}</span>
       </span>
       <div className="data-table__identity-copy">
         <strong className="data-table__identity-name">{name ?? '—'}</strong>

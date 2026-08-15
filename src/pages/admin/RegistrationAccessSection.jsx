@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { KeyRound, LockKeyhole, Power, RefreshCw, Save, ShieldCheck, XCircle } from 'lucide-react'
+import { KeyRound, LockKeyhole, Power, RefreshCw, Save, ShieldCheck, Trash2, XCircle } from 'lucide-react'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import { ApiError } from '../../lib/api.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { fetchPlatformFeatureToggles, savePlatformFeatureToggle } from '../../services/platformSettingsAdminService.js'
@@ -117,6 +118,12 @@ function gateStateKey(gate, now = new Date()) {
   return 'open'
 }
 
+function isGateReopenable(gate) {
+  if (!gate) return false
+  const state = gateStateKey(gate)
+  return state === 'closed' || state === 'expired'
+}
+
 function mapOperationalError(error, messages) {
   if (error instanceof ApiError) {
     if (error.status === 404) return messages.routeMissing
@@ -135,6 +142,7 @@ export default function RegistrationAccessSection({
   error = null,
   onRefresh,
   onSave,
+  onDelete,
 }) {
   const { locale, t } = useI18n()
   const [draft, setDraft] = useState(null)
@@ -147,6 +155,9 @@ export default function RegistrationAccessSection({
   const [togglesLoading, setTogglesLoading] = useState(true)
   const [togglesError, setTogglesError] = useState('')
   const [savingFeature, setSavingFeature] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const formRef = useRef(null)
   const triggerRef = useRef(null)
   const eventGates = configuration.eventGates ?? []
@@ -218,6 +229,7 @@ export default function RegistrationAccessSection({
     triggerRef.current = trigger
     setNotice('')
     setFormError('')
+    const reopening = isGateReopenable(gate)
     setDraft(
       gate
         ? {
@@ -225,9 +237,9 @@ export default function RegistrationAccessSection({
             eventSlug: gate.eventSlug ?? '',
             label: gate.label,
             code: '',
-            active: gate.active,
-            startsAt: toLocalDateTime(gate.startsAt),
-            endsAt: toLocalDateTime(gate.endsAt),
+            active: reopening ? true : gate.active,
+            startsAt: reopening ? '' : toLocalDateTime(gate.startsAt),
+            endsAt: reopening ? '' : toLocalDateTime(gate.endsAt),
           }
         : {
             ...EMPTY_GATE,
@@ -251,6 +263,8 @@ export default function RegistrationAccessSection({
     draft?.scope === 'membership'
       ? configuration.membershipGate
       : eventGates.find((gate) => gate.eventSlug === draft?.eventSlug) ?? null
+  const reopeningDraft = Boolean(draft && isGateReopenable(currentGate))
+  const requiresNewCode = Boolean(draft?.active && (!currentGate?.active || reopeningDraft))
 
   async function submit(event) {
     event.preventDefault()
@@ -264,7 +278,7 @@ export default function RegistrationAccessSection({
       setFormError(t('admin.sections.accessGates.eventRequired'))
       return
     }
-    if (draft.active && !draft.code && !currentGate?.active) {
+    if (requiresNewCode && !draft.code) {
       setFormError(t('admin.sections.accessGates.codeRequired'))
       return
     }
@@ -286,6 +300,20 @@ export default function RegistrationAccessSection({
     setDraft(null)
     triggerRef.current = null
     setNotice(t('admin.sections.accessGates.saved'))
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setDeleteError('')
+    const result = await onDelete?.(deleteTarget.id)
+    setDeleting(false)
+    if (result?.error) {
+      setDeleteError(result.error)
+      return
+    }
+    setDeleteTarget(null)
+    setNotice(t('admin.sections.accessGates.deleted'))
   }
 
   const gatesError = error
@@ -432,13 +460,26 @@ export default function RegistrationAccessSection({
             </p>
           </div>
           {canEdit ? (
-            <button
-              type="button"
-              className="admin-registration-access__button"
-              onClick={(event) => openEditor(configuration.membershipGate, 'membership', event.currentTarget)}
-            >
-              {t('admin.sections.accessGates.configure')}
-            </button>
+            <div className="admin-registration-access__actions">
+              <button
+                type="button"
+                className="admin-registration-access__button"
+                onClick={(event) => openEditor(configuration.membershipGate, 'membership', event.currentTarget)}
+              >
+                {isGateReopenable(configuration.membershipGate)
+                  ? t('admin.sections.accessGates.reopen')
+                  : t('admin.sections.accessGates.configure')}
+              </button>
+              {configuration.membershipGate ? (
+                <button
+                  type="button"
+                  className="admin-registration-access__button admin-registration-access__button--danger"
+                  onClick={() => setDeleteTarget(configuration.membershipGate)}
+                >
+                  <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </article>
 
@@ -481,13 +522,24 @@ export default function RegistrationAccessSection({
                     </p>
                   </div>
                   {canEdit ? (
-                    <button
-                      type="button"
-                      className="admin-registration-access__button"
-                      onClick={(event) => openEditor(gate, 'registration', event.currentTarget)}
-                    >
-                      {t('admin.sections.accessGates.edit')}
-                    </button>
+                    <div className="admin-registration-access__actions">
+                      <button
+                        type="button"
+                        className="admin-registration-access__button"
+                        onClick={(event) => openEditor(gate, 'registration', event.currentTarget)}
+                      >
+                        {isGateReopenable(gate)
+                          ? t('admin.sections.accessGates.reopen')
+                          : t('admin.sections.accessGates.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-registration-access__button admin-registration-access__button--danger"
+                        onClick={() => setDeleteTarget(gate)}
+                      >
+                        <Trash2 size={15} aria-hidden /> {t('admin.sections.accessGates.delete')}
+                      </button>
+                    </div>
                   ) : null}
                 </article>
               )
@@ -507,7 +559,7 @@ export default function RegistrationAccessSection({
                     ? t('admin.sections.accessGates.formTitleMembership')
                     : t('admin.sections.accessGates.formTitleRegistration')}
                 </h3>
-                <p>{t('admin.sections.accessGates.formLead')}</p>
+                <p>{t(reopeningDraft ? 'admin.sections.accessGates.formLeadReopen' : 'admin.sections.accessGates.formLead')}</p>
               </div>
             </header>
 
@@ -561,7 +613,9 @@ export default function RegistrationAccessSection({
               <label htmlFor="access-gate-code">
                 <span>
                   {t('admin.sections.accessGates.code')}
-                  {currentGate?.active ? (
+                  {requiresNewCode ? (
+                    <small> {t('admin.sections.accessGates.codeRequired')}</small>
+                  ) : currentGate?.active ? (
                     <small> {t('admin.sections.accessGates.codeKeepHint')}</small>
                   ) : null}
                 </span>
@@ -640,6 +694,22 @@ export default function RegistrationAccessSection({
           </form>
         ) : null}
       </section>
+      {deleteTarget ? (
+        <AdminDeleteConfirmDialog
+          busy={deleting}
+          error={deleteError}
+          onCancel={() => {
+            if (!deleting) setDeleteTarget(null)
+          }}
+          onConfirm={() => void handleDelete()}
+          title={t('admin.sections.accessGates.deleteTitle')}
+          description={t('admin.sections.accessGates.deleteDescription', { label: deleteTarget.label })}
+          warning={t('admin.sections.accessGates.deleteWarning')}
+          cancelLabel={t('admin.sections.accessGates.cancel')}
+          confirmLabel={t('admin.sections.accessGates.delete')}
+          busyLabel={t('admin.sections.accessGates.deleting')}
+        />
+      ) : null}
     </section>
   )
 }

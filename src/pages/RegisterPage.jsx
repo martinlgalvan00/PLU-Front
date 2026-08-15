@@ -120,7 +120,10 @@ function ageAtEvent(birthDate, eventDate) {
 
 function RegisterLiveCredential({ form, t }) {
   const name = form.fullName && form.fullName.trim() ? form.fullName.trim() : t('pages.register.fullNamePlaceholder') || 'Tu nombre y apellido'
-  const doc = form.documentId && form.documentId.trim() ? `DNI ${form.documentId.trim()}` : 'DNI —'
+  // La credencial en vivo refleja el mismo criterio del formulario: DNI para
+  // Argentina, ID o pasaporte para el resto.
+  const docLabel = form.country && form.country !== 'Argentina' ? 'ID' : 'DNI'
+  const doc = form.documentId && form.documentId.trim() ? `${docLabel} ${form.documentId.trim()}` : `${docLabel} —`
   const locationParts = [form.city, form.province, form.country]
     .map((value) => String(value ?? '').trim())
     .filter(Boolean)
@@ -192,10 +195,17 @@ function isFieldFilled(form, field) {
       return str.includes('@') && str.length >= 5
     case 'fullName':
       return str.length >= 3
-    case 'documentId':
-      // Mismo umbral que la validación real (7 u 8 dígitos): con 6 la barra de
-      // progreso daba el paso por completo y el error salía al continuar.
-      return /^\d{7,8}$/.test(str.replace(/[.\-\s]/g, ''))
+    case 'documentId': {
+      // Mismo umbral que la validación real, que depende de la nacionalidad:
+      // DNI de 7 u 8 dígitos para Argentina, ID/pasaporte de 5 a 20 caracteres
+      // para el resto. Con el umbral fijo de DNI, un extranjero con pasaporte
+      // nunca completaba el paso aunque su documento fuera válido.
+      const isArgentina = form.country === 'Argentina' || !form.country
+      const clean = str.replace(/[.\-\s]/g, '')
+      return isArgentina
+        ? /^\d{7,8}$/.test(clean)
+        : clean.length >= 5 && clean.length <= 20
+    }
     case 'birthDate':
       return /^\d{4}-\d{2}-\d{2}$/.test(str)
     case 'password':
@@ -740,6 +750,18 @@ export default function RegisterPage({
   function changeField(event) {
     const field = event.target.name
     onUpdateForm(event)
+    if (field === 'country') {
+      // La nacionalidad define qué documento se pide. Al cambiarla, el valor
+      // ya tipeado puede quedar inválido (letras en un DNI), así que se sanea
+      // hacia el formato del país elegido y el error de formato se replantea.
+      if (form.documentId) {
+        const clean = event.target.value === 'Argentina'
+          ? form.documentId.replace(/[^\d]/g, '')
+          : form.documentId
+        onUpdateForm({ target: { name: 'documentId', value: clean } })
+      }
+      if (errors.documentId) setErrors((current) => ({ ...current, documentId: '' }))
+    }
     if (errors[field]) setErrors((current) => ({ ...current, [field]: '' }))
     setSubmitError('')
     setEmailBlocked(false)
@@ -1511,7 +1533,7 @@ export default function RegisterPage({
                       <Select
                         error={visibleErrors.country}
                         icon={Globe}
-                        label={t('pages.register.country')}
+                        label={t('pages.register.nationalityLabel')}
                         name="country"
                         value={form.country}
                         onBlur={blurField}
@@ -1519,12 +1541,23 @@ export default function RegisterPage({
                         options={formOptions.country}
                       />
                       <Field
+                        disabled={!form.country}
                         error={visibleErrors.documentId}
                         icon={Hash}
-                        inputMode="numeric"
-                        label={form.country === 'Argentina' || !form.country ? t('pages.register.documentIdLabel') : t('pages.register.documentIdPassport')}
+                        inputMode={form.country && form.country !== 'Argentina' ? 'text' : 'numeric'}
+                        label={
+                          form.country && form.country !== 'Argentina'
+                            ? t('pages.register.documentIdPassport')
+                            : t('pages.register.documentIdLabel')
+                        }
                         name="documentId"
-                        placeholder={form.country === 'Argentina' || !form.country ? t('pages.register.documentPlaceholder') : t('pages.register.documentPlaceholderPassport')}
+                        placeholder={
+                          form.country
+                            ? form.country !== 'Argentina'
+                              ? t('pages.register.documentPlaceholderPassport')
+                              : t('pages.register.documentPlaceholder')
+                            : t('pages.register.documentPlaceholderWaiting')
+                        }
                         value={form.documentId}
                         onBlur={blurField}
                         onChange={changeField}
@@ -1904,7 +1937,7 @@ export default function RegisterPage({
                 >
                   {advancing ? t('common.loading') : t('pages.register.continue')}
                   {advancing ? (
-                    <span className="register-card__submit-spinner" aria-hidden />
+                    <span className="plu-spinner" aria-hidden />
                   ) : (
                     <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
                   )}
@@ -1944,7 +1977,7 @@ export default function RegisterPage({
                       >
                         {submitting ? t('common.loading') : content[2]}
                         {submitting ? (
-                          <span className="register-card__submit-spinner" aria-hidden />
+                          <span className="plu-spinner" aria-hidden />
                         ) : (
                           <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
                         )}

@@ -9,6 +9,7 @@ export default function MemberProfileCard({
   documentId,
   email,
   gym,
+  photoUrl,
   status,
   memberCode,
   onAction,
@@ -41,6 +42,16 @@ export default function MemberProfileCard({
       <header className="member-profile-card__header">
         <div className="member-profile-card__identity">
           <span className="member-profile-card__avatar" aria-hidden="true">
+            {photoUrl ? (
+              <img
+                className="member-profile-card__avatar-photo"
+                src={photoUrl}
+                alt=""
+                onError={(event) => {
+                  event.currentTarget.hidden = true
+                }}
+              />
+            ) : null}
             {avatar}
           </span>
           <div className="member-profile-card__titles">

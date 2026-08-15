@@ -39,7 +39,8 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
           !normalizedQuery ||
           athlete.fullName.toLowerCase().includes(normalizedQuery) ||
           athlete.documentId.includes(normalizedQuery) ||
-          athlete.email.toLowerCase().includes(normalizedQuery)
+          athlete.email.toLowerCase().includes(normalizedQuery) ||
+          athlete.gym?.toLowerCase().includes(normalizedQuery)
         return statusMatch && queryMatch
       })
       .map((athlete) => ({ ...athlete, id: athlete.id }))
@@ -99,7 +100,13 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
             desktop: 'primary',
             sortable: true,
             defaultSort: 'asc',
-            render: (row) => <AdminIdentityCell name={row.fullName} sub={row.email} />,
+            render: (row) => (
+              <AdminIdentityCell
+                name={row.fullName}
+                photoUrl={row.photoUrl}
+                sub={row.gym || row.email}
+              />
+            ),
           },
           {
             key: 'documentId',

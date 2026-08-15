@@ -1,5 +1,5 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import EventsSection from '../src/pages/admin/EventsSection.jsx'
@@ -187,6 +187,50 @@ describe('Eventos — CTA fuera de los filtros', () => {
 })
 
 describe('Inscripciones — exportaciones con etiqueta', () => {
+  it('muestra foto y gimnasio, y abre la ficha del atleta al seleccionar una inscripción', () => {
+    const onSelectAthlete = vi.fn()
+    const registrations = [
+      {
+        id: 'reg-portrait',
+        athleteId: 'ath-portrait',
+        athlete: {
+          fullName: 'Ana Torres',
+          documentId: '30111222',
+          gym: 'Fuerza Sur',
+          photoUrl: 'https://example.test/ana.jpg',
+        },
+        event: 'Pitbull Classic 2026',
+        eventSlug: 'pitbull-classic-2026',
+        category: 'Raw',
+        division: 'Open',
+        status: 'confirmada',
+      },
+    ]
+
+    const { container } = render(
+      <I18nProvider>
+        <RegistrationsSection
+          filters={{ event: 'all', status: 'all', query: '' }}
+          filteredRegistrations={registrations}
+          payments={[]}
+          registrations={registrations}
+          registrationsCount={1}
+          onExportAdmin={() => {}}
+          onExportPluUsa={() => {}}
+          onSelectAthlete={onSelectAthlete}
+          onSetFilters={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    const photo = container.querySelector('.data-table__avatar-photo')
+    expect(photo?.getAttribute('src')).toBe('https://example.test/ana.jpg')
+    expect(screen.getAllByText('Fuerza Sur').length).toBeGreaterThan(0)
+
+    fireEvent.click(container.querySelector('tbody tr'))
+    expect(onSelectAthlete).toHaveBeenCalledWith('ath-portrait')
+  })
+
   it('muestra CSV y PLU USA en vez de iconos mudos', () => {
     const registrations = [
       {

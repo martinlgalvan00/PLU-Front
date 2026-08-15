@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import '../styles/pages/credential.css'
 import { AlertTriangle, CheckCircle2, HelpCircle, RefreshCw, WifiOff, XCircle } from 'lucide-react'
 import { BRAND } from '../lib/brand.js'
-import { formatShortDate, initials } from '../lib/format.js'
+import { documentKind, formatShortDate, initials } from '../lib/format.js'
 import { formatScheduleSummary, formatSessionDetail } from '../lib/eventSchedule.js'
 import { getStatusMeta, isGateAccessReady, isRegistrationAdmitted } from '../lib/status.js'
 import { isPreviewCredentialCode } from '../lib/credentialQr.js'
@@ -207,7 +207,10 @@ function IdentityFacts({ facts }) {
 function buildAthleteIdentityFacts(athlete) {
   const facts = []
   if (athlete?.documentId) {
-    facts.push({ label: 'Documento', value: athlete.documentId })
+    // El tipo va en la etiqueta para que el operador sepa qué documento
+    // físico pedir: DNI para el padrón argentino, ID/pasaporte para el resto.
+    const kind = documentKind(athlete.documentId)
+    facts.push({ label: kind === 'DNI' ? 'DNI' : 'ID / Pasaporte', value: athlete.documentId })
   }
   if (athlete?.birthDate) {
     const age = ageFromBirthDate(athlete.birthDate)

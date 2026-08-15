@@ -56,11 +56,17 @@ export function isPublicCatalogStubEvent(event) {
 export const isHomeCalendarStubEvent = isPublicCatalogStubEvent
 
 export function getPublicCatalogEvents(events = [], _options = {}) {
-  // El catálogo público nunca lista stubs. `_options.includeDevelopmentStubs`
-  // se ignora a propósito: en Vite/Vitest `import.meta.env.DEV` es true y
-  // usarlo filtraría mal el sitio público (y el CI). El admin usa la lista cruda.
+  // El catálogo público nunca lista stubs ni eventos ocultos. `_options
+  // .includeDevelopmentStubs` se ignora a propósito: en Vite/Vitest
+  // `import.meta.env.DEV` es true y usarlo filtraría mal el sitio público
+  // (y el CI). El admin usa la lista cruda.
+  //
+  // La visibilidad se protege acá, además del filtro de la API y de App: así
+  // una pantalla pública nueva no puede publicar por accidente un evento que
+  // el staff acabó de ocultar. La ausencia de `published` se mantiene visible
+  // para los datos editoriales legacy que no conocen todavía ese campo.
   return (Array.isArray(events) ? events : []).filter(
-    (event) => event && !isPublicCatalogStubEvent(event),
+    (event) => event && event.published !== false && !isPublicCatalogStubEvent(event),
   )
 }
 
