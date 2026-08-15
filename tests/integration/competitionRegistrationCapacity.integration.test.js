@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { athleteSessionCookie, createTestAthlete } from './helpers/athleteSession.js'
+import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 const CAPACITY = 2
@@ -77,7 +78,11 @@ describe('inscripción a competencia respeta el cupo del evento (RPC create_comp
       cookies.push(await athleteSessionCookie(supabaseAdmin, athleteId))
     }
 
-    const target = listen(createApp({ supabaseAdmin }))
+    // El cupo se llena con inscripciones manuales: el canal va abierto por
+    // doble, que es la precondición del caso y no lo que se está probando.
+    const target = listen(
+      createApp({ supabaseAdmin, platformSettingsRepository: manualChannelsOpen() }),
+    )
 
     try {
       // En serie a propósito: en paralelo no probaría el conteo acumulado.

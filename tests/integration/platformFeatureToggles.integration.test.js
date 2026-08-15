@@ -56,6 +56,13 @@ describe('interruptores de plataforma contra Supabase', () => {
       const key = toggleKey(feature)
       const others = PLATFORM_FEATURES.filter((item) => item !== feature).map(toggleKey)
 
+      // El punto de partida es el que tenga la base, no "todo encendido": los
+      // canales manuales de afiliación e inscripción viven apagados a propósito
+      // mientras el lanzamiento vaya sólo con Mercado Pago. Lo que se prueba es
+      // que el UPDATE dinámico toque una columna y deje las demás como estaban.
+      const before = await admin.rpc('staff_get_platform_feature_toggles')
+      if (before.error) throw new Error(`${feature}: ${before.error.message}`)
+
       const off = await admin.rpc('staff_set_platform_feature_toggle', {
         p_feature: feature,
         p_enabled: false,
@@ -63,7 +70,9 @@ describe('interruptores de plataforma contra Supabase', () => {
       })
       if (off.error) throw new Error(`${feature}: ${off.error.message}`)
       expect(off.data[key], feature).toBe(false)
-      for (const other of others) expect(off.data[other], `${feature} -> ${other}`).toBe(true)
+      for (const other of others) {
+        expect(off.data[other], `${feature} -> ${other}`).toBe(before.data[other])
+      }
 
       const on = await admin.rpc('staff_set_platform_feature_toggle', {
         p_feature: feature,
@@ -72,6 +81,20 @@ describe('interruptores de plataforma contra Supabase', () => {
       })
       if (on.error) throw new Error(`${feature}: ${on.error.message}`)
       expect(on.data[key], feature).toBe(true)
+      for (const other of others) {
+        expect(on.data[other], `${feature} -> ${other}`).toBe(before.data[other])
+      }
+
+      // Se restaura acá y no sólo en el afterAll: la fila es compartida y el
+      // resto de la suite corre en paralelo contra ella.
+      if (before.data[key] !== true) {
+        const restored = await admin.rpc('staff_set_platform_feature_toggle', {
+          p_feature: feature,
+          p_enabled: before.data[key],
+          p_actor: original?.updatedBy ?? ACTOR,
+        })
+        if (restored.error) throw new Error(`${feature}: ${restored.error.message}`)
+      }
     }
   })
 
@@ -85,6 +108,16 @@ describe('interruptores de plataforma contra Supabase', () => {
   })
 
   it('deja el cambio en la auditoría con el valor anterior', async () => {
+    // El punto de partida se fija acá y con otro actor: el aserto es sobre el
+    // par false -> true que escribe ACTOR, y la consulta filtra por ese actor,
+    // así que este set no entra en la muestra ni depende de cómo esté la fila.
+    const setup = await admin.rpc('staff_set_platform_feature_toggle', {
+      p_feature: 'ticket_validation',
+      p_enabled: true,
+      p_actor: `${ACTOR}:setup`,
+    })
+    if (setup.error) throw new Error(setup.error.message)
+
     await admin.rpc('staff_set_platform_feature_toggle', {
       p_feature: 'ticket_validation',
       p_enabled: false,
@@ -118,6 +151,6 @@ describe('interruptores de plataforma contra Supabase', () => {
       .from('domain_audit_logs')
       .delete()
       .eq('action', 'platform_feature_toggle.updated')
-      .eq('actor_id', ACTOR)
+      .in('actor_id', [ACTOR, `${ACTOR}:setup`])
   })
 })
