@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Ban, CircleCheck, LoaderCircle, QrCode, Trash2 } from 'lucide-react'
+import { Ban, CircleCheck, QrCode, Trash2 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
@@ -299,7 +299,8 @@ export default function MembershipsSection({
                   {canManage && row.canActivate && (
                     <AdminIconButton
                       disabled={pendingId === row.id}
-                      icon={pendingId === row.id ? LoaderCircle : CircleCheck}
+                      icon={CircleCheck}
+                      spinning={pendingId === row.id}
                       label={
                         pendingId === row.id
                           ? t('admin.sections.memberships.applying')
@@ -312,7 +313,8 @@ export default function MembershipsSection({
                   {canManage && row.canCancel && (
                     <AdminIconButton
                       disabled={pendingId === row.id}
-                      icon={pendingId === row.id ? LoaderCircle : Ban}
+                      icon={Ban}
+                      spinning={pendingId === row.id}
                       label={
                         pendingId === row.id
                           ? t('admin.sections.memberships.applying')

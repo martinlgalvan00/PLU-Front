@@ -5,6 +5,7 @@ export default function AdminIconButton({
   label,
   onClick,
   size = 15,
+  spinning = false,
   type = 'button',
   variant = 'ghost',
 }) {
@@ -17,7 +18,11 @@ export default function AdminIconButton({
       disabled={disabled}
       onClick={onClick}
     >
-      <Icon size={size} aria-hidden />
+      {spinning ? (
+        <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
+      ) : (
+        <Icon size={size} aria-hidden />
+      )}
     </button>
   )
 }

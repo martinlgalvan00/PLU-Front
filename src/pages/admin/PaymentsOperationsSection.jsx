@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   BadgeDollarSign,
-  LoaderCircle,
   RefreshCw,
   RotateCcw,
   ScanSearch,
@@ -871,7 +870,8 @@ export default function PaymentsOperationsSection({
                     <AdminTableActions>
                       <AdminIconButton
                         disabled={retrying}
-                        icon={retrying ? LoaderCircle : RotateCcw}
+                        icon={RotateCcw}
+                        spinning={retrying}
                         label={t('admin.paymentOperations.retry')}
                         onClick={() => handleRetry(row)}
                         variant="ghost"

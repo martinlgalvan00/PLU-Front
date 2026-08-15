@@ -4,6 +4,14 @@ import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseR
 import { PROOF_BUCKET } from '../../lib/supabaseAdmin.js'
 
 const hash = (value) => createHash('sha256').update(value).digest('hex')
+const ORDER_ACCESS_SELECT = 'id,provider'
+const PENDING_MANUAL_ORDER_SELECT = `
+  id, event_id, buyer_name, buyer_email, buyer_phone, amount, currency,
+  provider, status, reference, payment_proof_path, payment_proof_uploaded_at,
+  created_at, updated_at,
+  event:events(slug,title),
+  tickets(attendee_name,attendee_dni)
+`
 
 export function createSupabaseTicketRepository(client) {
   requireSupabaseClient(client)
@@ -12,7 +20,7 @@ export function createSupabaseTicketRepository(client) {
   async function requireOrderAccess(orderId, accessToken) {
     if (!accessToken) throw new HttpError(401, 'Falta el token de acceso de la orden.')
     const order = assertSupabaseResult(
-      await client.from('ticket_orders').select('*').eq('id', orderId).eq('access_token_hash', hash(accessToken)).maybeSingle(),
+      await client.from('ticket_orders').select(ORDER_ACCESS_SELECT).eq('id', orderId).eq('access_token_hash', hash(accessToken)).maybeSingle(),
       'No se pudo validar la orden.',
     )
     if (!order) throw new HttpError(403, 'Token de orden invalido.')
@@ -53,7 +61,7 @@ export function createSupabaseTicketRepository(client) {
     redeemAddon: (qrToken, addonId, actor) => rpc('staff_redeem_ticket_addon', { p_qr_token: qrToken, p_addon_id: addonId, p_actor: actor }, 'No se pudo canjear el beneficio.'),
     async listPending() {
       const rows = assertSupabaseResult(
-        await client.from('ticket_orders').select('*, event:events(slug,title), tickets(attendee_name,attendee_dni)').eq('provider', 'manual').in('status', ['creado', 'pendiente']).order('created_at', { ascending: false }),
+        await client.from('ticket_orders').select(PENDING_MANUAL_ORDER_SELECT).eq('provider', 'manual').in('status', ['creado', 'pendiente']).order('created_at', { ascending: false }),
         'No se pudieron listar las ordenes pendientes.',
       )
       return rows.map((order) => ({

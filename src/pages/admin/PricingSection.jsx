@@ -64,6 +64,32 @@ function toLocalDateTime(value) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
+const DAY_MS = 86_400_000
+
+function describeExpiry(expiresAt, now, locale, t) {
+  if (!expiresAt) return { label: t('admin.sections.pricing.noExpiry'), urgent: false, expired: false }
+  const date = new Date(expiresAt)
+  const dateLabel = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date)
+  const diffDays = Math.floor((date.getTime() - now.getTime()) / DAY_MS)
+
+  if (diffDays < 0) {
+    const daysAgo = Math.abs(diffDays)
+    return {
+      label: daysAgo === 1
+        ? t('admin.sections.pricing.expiredYesterday')
+        : t('admin.sections.pricing.expiredDaysAgo', { count: daysAgo }),
+      urgent: true,
+      expired: true,
+    }
+  }
+  if (diffDays === 0) return { label: t('admin.sections.pricing.expiresToday'), urgent: true, expired: false }
+  if (diffDays === 1) return { label: t('admin.sections.pricing.expiresTomorrow'), urgent: true, expired: false }
+  if (diffDays <= 7) {
+    return { label: t('admin.sections.pricing.expiresInDays', { count: diffDays }), urgent: true, expired: false }
+  }
+  return { label: t('admin.sections.pricing.expiresOn', { date: dateLabel }), urgent: false, expired: false }
+}
+
 function planStatus(plan, now) {
   if (!plan.active || (plan.retiredAt && new Date(plan.retiredAt) <= now)) return 'inactive'
   if (plan.effectiveFrom && new Date(plan.effectiveFrom) > now) return 'scheduled'
@@ -248,8 +274,12 @@ export default function PricingSection({
     setComboError('')
   }, [oneTimePlans, selectedEvent])
 
+  // Dependemos de si el formulario está abierto, no del draft entero: el
+  // draft cambia en cada tecla y antes reenfocaba el primer campo en cada
+  // keystroke, sacando el cursor de donde el operador estaba escribiendo.
+  const planFormOpen = Boolean(planDraft)
   useEffect(() => {
-    if (!planDraft) return undefined
+    if (!planFormOpen) return undefined
     const form = planFormRef.current
     if (typeof form?.scrollIntoView === 'function') {
       form.scrollIntoView({ block: 'nearest' })
@@ -257,10 +287,11 @@ export default function PricingSection({
     const firstField = form?.querySelector('input:not([disabled]), textarea:not([disabled]), select:not([disabled])')
     firstField?.focus?.()
     return undefined
-  }, [planDraft])
+  }, [planFormOpen])
 
+  const codeFormOpen = Boolean(codeDraft)
   useEffect(() => {
-    if (!codeDraft) return undefined
+    if (!codeFormOpen) return undefined
     const form = codeFormRef.current
     if (typeof form?.scrollIntoView === 'function') {
       form.scrollIntoView({ block: 'nearest' })
@@ -268,7 +299,7 @@ export default function PricingSection({
     const firstField = form?.querySelector('input:not([disabled]), select:not([disabled])')
     firstField?.focus?.()
     return undefined
-  }, [codeDraft])
+  }, [codeFormOpen])
 
   function openPlanForm(source = null) {
     setNotice('')
@@ -1058,9 +1089,7 @@ export default function PricingSection({
           {discountCodes.map((code) => {
             const availability = getDiscountCodeAvailability(code, now)
             const { status } = availability
-            const expiresLabel = code.expiresAt
-              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(code.expiresAt))
-              : t('admin.sections.pricing.noExpiry')
+            const expiry = describeExpiry(code.expiresAt, now, locale, t)
             const usageLabel = availability.hasLimit
               ? t('admin.sections.pricing.redeemedOf', {
                 count: availability.redeemedCount,
@@ -1103,9 +1132,13 @@ export default function PricingSection({
                   <p className="admin-pricing__plan-meta">
                     <span>{t(`admin.sections.pricing.appliesTo.${code.appliesTo}`)}</span>
                     {!availability.hasLimit ? <span>{usageLabel}</span> : null}
-                    <span className="admin-pricing__plan-meta-date">
+                    <span
+                      className={`admin-pricing__plan-meta-date${
+                        expiry.urgent ? ' admin-pricing__plan-meta-date--urgent' : ''
+                      }`}
+                    >
                       <CalendarClock size={12} aria-hidden />
-                      {expiresLabel}
+                      {expiry.label}
                     </span>
                   </p>
                   {availability.hasLimit ? (
@@ -1230,6 +1263,7 @@ export default function PricingSection({
                   value={codeDraft.expiresAt}
                   onChange={(event) => setCodeDraft({ ...codeDraft, expiresAt: event.target.value })}
                 />
+                <small>{t('admin.sections.pricing.expiresAtHint')}</small>
               </label>
               <label className="admin-pricing__wide">
                 <span>{t('admin.sections.pricing.description')}</span>

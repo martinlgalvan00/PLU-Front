@@ -3,6 +3,10 @@
 
 # Los tests de migración comparan el SQL como texto plano con saltos \n:
 # con core.autocrlf=true en Windows el checkout los dejaba en CRLF y las
-# aserciones fallaban solo en local. Forzamos LF en disco.
+# aserciones fallaban solo en local. Forzamos LF en disco. Mismo motivo para
+# JS/JSX: tests como registrationCommitmentVisibility.test.js comparan
+# código fuente como texto plano.
 *.sql text eol=lf
 *.sh text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf

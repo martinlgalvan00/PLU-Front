@@ -235,6 +235,12 @@ const updateSchema = z.object({
     'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
   ),
   bestTotalKg: optionalDeclaredBestTotal,
+  fullName: z.string().trim().min(3).max(160).optional(),
+  birthDate: birthDateSchema.optional(),
+  country: z.string().trim().min(2).max(80).optional(),
+  // Puede faltar en cuentas creadas antes de que existiera el perfil
+  // competitivo. Es editable sólo para completar ese requisito de inscripción.
+  sex: z.enum(['Masculino', 'Femenino']).optional(),
 })
 const discountCodeField = z.string().trim().toUpperCase().max(32).optional()
 const registrationAccessCodeField = z.string().trim().max(72).optional()
@@ -397,8 +403,8 @@ export function createAthleteRoutes({
   const financeGuard = requirePermission('admin.payments.approve', { prisma })
   const financeReadGuard = requirePermission('admin.payments.read', { prisma })
   const membershipWriteGuard = requirePermission('admin.memberships.write', { prisma })
-  const membershipDeleteGuard = requirePermission('admin.memberships.delete', { prisma })
   const registrationWriteGuard = requirePermission('admin.registrations.write', { prisma })
+  const membershipDeleteGuard = requirePermission('admin.memberships.delete', { prisma })
   const registrationDeleteGuard = requirePermission('admin.registrations.delete', { prisma })
   const accountGuard = requirePermission('admin.athletes.write', { prisma })
   const athleteDeleteGuard = requirePermission('admin.athletes.delete', { prisma })
@@ -1219,11 +1225,19 @@ export function createAthleteRoutes({
 
   router.get('/admin', ...adminGuard, staffLimiter, async (req, res, next) => {
     try {
-      const data = await repo().adminData()
       const canReadAthletes = hasPermission(req.auth.user, 'admin.athletes.read')
       const canReadMemberships = hasPermission(req.auth.user, 'admin.memberships.read')
       const canReadRegistrations = hasPermission(req.auth.user, 'admin.registrations.read')
       const canReadPayments = hasPermission(req.auth.user, 'admin.payments.read')
+      // No leemos segmentos que el rol no puede recibir. Antes se cargaban
+      // las cuatro tablas y luego se descartaban del JSON: costaba base y
+      // transferencia aun para perfiles de alcance acotado.
+      const data = await repo().adminData({
+        athletes: canReadAthletes,
+        memberships: canReadMemberships,
+        registrations: canReadRegistrations,
+        paymentOrders: canReadPayments,
+      })
 
       res.json({
         athletes: canReadAthletes ? data.athletes : [],
@@ -1598,6 +1612,25 @@ export function createAthleteRoutes({
       res.json({ deletedRegistration: await repo().deleteRegistration(registrationId.data, actorLabel(req)) })
     } catch (error) { next(error) }
   })
+  router.post(
+    '/admin/registrations/:registrationId/public-visibility',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(z.object({ publicVisible: z.boolean() })),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        res.json({
+          registration: await repo().setRegistrationPublicVisibility(
+            registrationId.data,
+            req.validatedBody.publicVisible,
+            actorLabel(req),
+          ),
+        })
+      } catch (error) { next(error) }
+    },
+  )
   router.post('/admin/:athleteId/credential', ...accountGuard, staffLimiter, validateBody(
     z.object({ password: z.string().min(12).max(72) }),
   ), async (req, res, next) => {

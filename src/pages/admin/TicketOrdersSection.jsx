@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, LoaderCircle } from 'lucide-react'
+import { BadgeCheck } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
-import LoadingState from '../../components/ui/LoadingState.jsx'
+import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 
 function formatUploadedAt(value, locale) {
@@ -77,10 +78,13 @@ export default function TicketOrdersSection({
     try {
       await onApproveTicketOrder?.(orderId)
       await onRefresh?.()
+      notifySuccess(t('admin.toasts.ticketApproved'))
       return true
     } catch (error) {
       console.error('approve ticket order:', error)
-      setActionError(error.message ?? t('admin.ticketOrders.approveErrorFallback'))
+      const message = error.message ?? t('admin.ticketOrders.approveErrorFallback')
+      setActionError(message)
+      notifyError(message)
       return false
     } finally {
       setApprovingId(null)
@@ -95,13 +99,17 @@ export default function TicketOrdersSection({
       const result = await onRejectTicketOrder?.(orderId, reason)
       if (result?.error) {
         setActionError(result.error)
+        notifyError(result.error)
         return false
       }
       await onRefresh?.()
+      notifySuccess(t('admin.toasts.ticketRejected'))
       return true
     } catch (error) {
       console.error('reject ticket order:', error)
-      setActionError(error.message ?? t('admin.ticketOrders.approveErrorFallback'))
+      const message = error.message ?? t('admin.ticketOrders.approveErrorFallback')
+      setActionError(message)
+      notifyError(message)
       return false
     } finally {
       setApprovingId(null)
@@ -141,7 +149,7 @@ export default function TicketOrdersSection({
     >
       {actionError && <p className="form-submit-error">{actionError}</p>}
       {isLoading && rows.length === 0 ? (
-        <LoadingState label={t('admin.ticketOrders.loading')} />
+        <TableSkeleton rows={6} columns={7} label={t('admin.ticketOrders.loading')} />
       ) : loadError ? (
         <ErrorState message={loadError} onRetry={onRefresh} retryLabel={t('common.retry')} />
       ) : (
@@ -219,7 +227,8 @@ export default function TicketOrdersSection({
                     {canEdit ? (
                       <AdminIconButton
                         disabled={approving || !row.paymentProofPath}
-                        icon={approving ? LoaderCircle : BadgeCheck}
+                        icon={BadgeCheck}
+                        spinning={approving}
                         label={t('admin.actions.validate')}
                         onClick={() => {
                           setActionError(null)

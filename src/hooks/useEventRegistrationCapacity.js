@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { registrationSummaryStore } from '../services/eventLiveStore.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
-// La landing es una superficie de conversión: cinco segundos mantiene el
-// cupo prácticamente contemporáneo sin convertir cada visitante en un stream
-// permanente. El store sigue deduplicando Home + dossier y el polling se
-// apaga fuera de viewport o con la pestaña en segundo plano.
-export const LIVE_REGISTRATION_POLL_MS = 5_000
+// Realtime e invalidaciones locales actualizan el cupo inmediatamente. El
+// polling queda como red de seguridad cada 30 s y se apaga fuera de viewport
+// o con la pestaña en segundo plano.
+export const LIVE_REGISTRATION_POLL_MS = 30_000
 
 /**
  * Cupos de inscripción live.

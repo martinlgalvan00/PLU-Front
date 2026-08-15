@@ -9,9 +9,10 @@ import {
   AdminTableActions,
 } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
-import LoadingState from '../../components/ui/LoadingState.jsx'
+import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
+import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { listAthletePaymentOrders } from '../../services/athleteApi.js'
 import { revalidatePaymentOrder } from '../../services/paymentService.js'
@@ -181,6 +182,7 @@ export default function AthletePaymentOrdersSection({
       const result = await onApprovePayment?.(orderId)
       if (result?.error) {
         setError(result.error)
+        notifyError(result.error)
         return false
       }
       // El backend ya devuelve la orden actualizada: parchear la fila en vez
@@ -193,6 +195,7 @@ export default function AthletePaymentOrdersSection({
       } else {
         await load()
       }
+      notifySuccess(t('admin.toasts.paymentApproved'))
       return true
     } finally {
       setApprovingId(null)
@@ -254,6 +257,7 @@ export default function AthletePaymentOrdersSection({
       const result = await onRejectPayment?.(orderId, reason)
       if (result?.error) {
         setError(result.error)
+        notifyError(result.error)
         return false
       }
       if (result?.order) {
@@ -263,6 +267,7 @@ export default function AthletePaymentOrdersSection({
       } else {
         await load()
       }
+      notifySuccess(t('admin.toasts.paymentRejected'))
       return true
     } finally {
       setApprovingId(null)
@@ -349,7 +354,7 @@ export default function AthletePaymentOrdersSection({
       ) : null}
 
       {loading ? (
-        <LoadingState label={t('admin.athletePayments.loading')} />
+        <TableSkeleton rows={6} columns={8} label={t('admin.athletePayments.loading')} />
       ) : (
         <AdminDataTable
           className="admin-data-table--athlete-orders"

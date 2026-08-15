@@ -33,6 +33,7 @@ describe('normalización del padrón para el panel', () => {
             event_slug: 'test-2026',
             category: 'Raw',
             division: 'Open',
+            public_visible: false,
             status: 'pendiente_pago',
             payment_order_id: 'pay-1',
             created_at: '2026-08-11T13:20:00Z',
@@ -65,6 +66,7 @@ describe('normalización del padrón para el panel', () => {
       event: 'Test 2026',
       createdAt: '2026-08-11T13:20:00Z',
       paymentStatus: 'validacion_manual',
+      publicVisible: false,
     })
     expect(mapped.payments[0]).toMatchObject({
       paymentProofPath: 'pay-1/comprobante.pdf',

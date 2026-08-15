@@ -9,6 +9,15 @@ export const PERMISSION_CATALOG = [
     sortOrder: 10,
   },
   {
+    key: 'admin.dashboard.write',
+    module: 'dashboard',
+    moduleLabel: 'Resumen',
+    action: 'write',
+    actionLabel: 'Gestionar',
+    description: 'Descartar y restaurar ítems de la cola de trabajo compartida.',
+    sortOrder: 11,
+  },
+  {
     key: 'admin.athletes.read',
     module: 'athletes',
     moduleLabel: 'Atletas',
