@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
+import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 const mutationHeaders = {
@@ -439,6 +440,9 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
   const listenTarget = listen(createApp({
     supabaseAdmin: admin,
     notifyPaymentApplied: async () => {},
+    // El combo manual exige los dos canales abiertos; en la base compartida
+    // están cerrados porque el lanzamiento va sólo con Mercado Pago.
+    platformSettingsRepository: manualChannelsOpen(),
     env: {
       ...process.env,
       APP_PRODUCTION: 'false',

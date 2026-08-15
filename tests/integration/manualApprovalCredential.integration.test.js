@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { athleteSessionCookie, createTestAthlete } from './helpers/athleteSession.js'
+import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { authHeaders, buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
@@ -31,6 +32,9 @@ describe('validación manual de transferencia y credencial resultante', () => {
     createApp({
       supabaseAdmin: admin,
       prisma: createPrismaDouble(staffUsers),
+      // El caso entero es sobre transferencia: el canal manual va abierto por
+      // doble, porque la fila compartida lo tiene cerrado a propósito.
+      platformSettingsRepository: manualChannelsOpen(),
       // Sin doble, la aprobación dispara el mail real de confirmación de pago.
       brevo: { configured: false, send: async () => ({ messageId: 'integration-noop' }) },
       env: { ...process.env, APP_PRODUCTION: 'true', PAYMENTS_MOCK: 'false' },
