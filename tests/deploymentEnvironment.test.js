@@ -90,4 +90,48 @@ describe('deployment environment', () => {
       'conexión PostgreSQL válida',
     )
   })
+
+  const POOLER = 'postgresql://postgres.proj:clave@aws-1-sa-east-1.pooler.supabase.com:5432/postgres'
+
+  it('pasa el pooler a Transaction mode en serverless', () => {
+    const url = new URL(buildRuntimeDatabaseUrl(POOLER, { VERCEL: '1' }))
+
+    expect(url.port).toBe('6543')
+    expect(url.searchParams.get('pgbouncer')).toBe('true')
+    expect(url.searchParams.get('connection_limit')).toBe('1')
+    expect(url.searchParams.get('pool_timeout')).toBe('15')
+    expect(url.searchParams.get('connect_timeout')).toBe('10')
+  })
+
+  it('no cambia el puerto fuera de serverless ni en hosts que no son el pooler', () => {
+    expect(new URL(buildRuntimeDatabaseUrl(POOLER, {})).port).toBe('5432')
+    expect(
+      new URL(
+        buildRuntimeDatabaseUrl('postgresql://u:p@db.proj.supabase.co:5432/postgres', {
+          VERCEL: '1',
+        }),
+      ).port,
+    ).toBe('5432')
+  })
+
+  // La DATABASE_URL puesta a mano en Vercel ganaba sobre la derivada y el
+  // runtime quedaba sin pooling: es la configuracion que agota la base.
+  it('corrige el pooling de una DATABASE_URL provista por el entorno', () => {
+    const env = { VERCEL: '1', VERCEL_ENV: 'production', DATABASE_URL: POOLER }
+
+    applyDeploymentEnvironmentDefaults(env)
+
+    const url = new URL(env.DATABASE_URL)
+    expect(url.port).toBe('6543')
+    expect(url.searchParams.get('connection_limit')).toBe('1')
+    expect(url.hostname).toBe('aws-1-sa-east-1.pooler.supabase.com')
+  })
+
+  it('deja intacta una DATABASE_URL que no sabe interpretar', () => {
+    const env = { VERCEL: '1', DATABASE_URL: 'no-es-una-url' }
+
+    applyDeploymentEnvironmentDefaults(env)
+
+    expect(env.DATABASE_URL).toBe('no-es-una-url')
+  })
 })
