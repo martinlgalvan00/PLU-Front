@@ -118,11 +118,15 @@ const embeddedSubscriptionSchema = z.object({
 
 const webhookSchema = z
   .object({
-    id: z.union([z.string(), z.number()]),
+    id: z.union([z.string(), z.number()]).optional(),
     type: z.string().optional(),
     action: z.string().optional(),
     date_created: z.string().optional(),
-    data: z.object({ id: z.union([z.string(), z.number()]) }).passthrough(),
+    // La URL (no el body) es la fuente canónica de `data.id`: MP la firma y
+    // algunas notificaciones llegan con el body vacío o sin `data`. Exigirlo
+    // acá rechazaba la request antes de que `processPaymentWebhook` pudiera
+    // registrar el rechazo en la auditoría (ver su validación de `data.id`).
+    data: z.object({ id: z.union([z.string(), z.number()]).optional() }).passthrough().optional(),
   })
   .passthrough()
 
