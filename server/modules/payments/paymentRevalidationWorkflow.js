@@ -1,4 +1,5 @@
 import { HttpError } from '../../lib/errors.js'
+import { mapWithConcurrency } from '../../lib/concurrency.js'
 import { addBreadcrumb, logger } from '../../lib/logger.js'
 import { PAYMENT_TRAIL_ACTIONS } from './paymentAuditTrail.js'
 import { applyCanonicalPayment, mapMercadoPagoStatus } from './paymentWorkflow.js'
@@ -275,15 +276,6 @@ export async function revalidatePaymentOrder(target, options = {}) {
   }
 }
 
-async function processInChunks(items, concurrency, worker) {
-  const results = []
-  for (let index = 0; index < items.length; index += concurrency) {
-    const chunk = items.slice(index, index + concurrency)
-    results.push(...(await Promise.all(chunk.map(worker))))
-  }
-  return results
-}
-
 /**
  * Barrido: revalida las ordenes de Mercado Pago que todavia no estan aprobadas
  * y devuelve las que difieren de lo que dice el proveedor.
@@ -311,7 +303,7 @@ export async function revalidatePaymentOrders(options = {}) {
   const startedAt = Date.now()
   const candidates = await repository.listOrdersForRevalidation({ statuses, sinceDays, limit })
 
-  const outcomes = await processInChunks(candidates, concurrency, async (candidate) => {
+  const outcomeResults = await mapWithConcurrency(candidates, concurrency, async (candidate) => {
     try {
       // Se relee la orden completa: `listOrdersForRevalidation` trae lo justo
       // para elegir candidatas, y `applyCanonicalPayment` necesita el contrato
@@ -338,6 +330,9 @@ export async function revalidatePaymentOrders(options = {}) {
       }
     }
   })
+  // El worker ya atrapa sus propios errores (arriba), asi que `mapWithConcurrency`
+  // siempre devuelve resultados `fulfilled` acá; se desenvuelve el `.value`.
+  const outcomes = outcomeResults.map((result) => result.value)
 
   const divergences = outcomes.filter((item) => item.divergent || item.outcome === 'failed')
   const summary = {

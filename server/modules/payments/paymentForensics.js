@@ -157,6 +157,9 @@ export async function buildOrderTimeline(client, { orderId, organizationId }) {
       .eq('entity_id', orderId)
       .order('created_at'),
   ])
+  if (payments.error) throw new HttpError(503, payments.error.message)
+  if (attempts.error) throw new HttpError(503, attempts.error.message)
+  if (auditLogs.error) throw new HttpError(503, auditLogs.error.message)
 
   const paymentRows = payments.data ?? []
   const attemptRows = attempts.data ?? []
@@ -170,13 +173,16 @@ export async function buildOrderTimeline(client, { orderId, organizationId }) {
       ...attemptRows.map((attempt) => attempt.external_payment_id),
     ].filter(Boolean).map(String)),
   ]
-  const integrationEvents = resourceIds.length
-    ? (await client
-        .from('payment_integration_events')
-        .select('*')
-        .in('resource_id', resourceIds)
-        .order('received_at')).data ?? []
-    : []
+  let integrationEvents = []
+  if (resourceIds.length) {
+    const integrationResult = await client
+      .from('payment_integration_events')
+      .select('*')
+      .in('resource_id', resourceIds)
+      .order('received_at')
+    if (integrationResult.error) throw new HttpError(503, integrationResult.error.message)
+    integrationEvents = integrationResult.data ?? []
+  }
 
   const timeline = []
 
@@ -278,6 +284,8 @@ export async function buildOrderTimeline(client, { orderId, organizationId }) {
       client.from('memberships').select('*').eq('payment_order_id', orderId).maybeSingle(),
       client.from('event_registrations').select('*, event:events(title, slug)').eq('payment_order_id', orderId).maybeSingle(),
     ])
+    if (membership.error) throw new HttpError(503, membership.error.message)
+    if (registration.error) throw new HttpError(503, registration.error.message)
     if (membership.data) {
       fulfillment = { type: 'membership', status: membership.data.status, memberCode: membership.data.member_code }
       timeline.push(entry({
@@ -454,6 +462,10 @@ export async function buildAthleteTimeline(client, { athleteId, email, documentI
       .eq('entity_id', athlete.id)
       .order('created_at'),
   ])
+  if (orders.error) throw new HttpError(503, orders.error.message)
+  if (memberships.error) throw new HttpError(503, memberships.error.message)
+  if (registrations.error) throw new HttpError(503, registrations.error.message)
+  if (logs.error) throw new HttpError(503, logs.error.message)
 
   const timeline = [
     entry({

@@ -1,20 +1,12 @@
 import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
+import { assertSupabaseResult } from '../../lib/supabaseRpc.js'
+import { displayPaymentConcept } from '../notifications/paymentNotificationService.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
 
 function assertResult(result, fallbackMessage) {
-  if (result.error) {
-    throw new HttpError(503, result.error.message || fallbackMessage)
-  }
-  return result.data
-}
-
-function displayConcept(concept) {
-  if (concept === 'membership') return 'Afiliacion PLU'
-  if (concept === 'registration') return 'Inscripcion a competencia'
-  if (concept === 'combo') return 'Afiliacion + inscripcion'
-  return 'Pago PLU ARG'
+  return assertSupabaseResult(result, fallbackMessage)
 }
 
 export function createSupabasePaymentRepository(
@@ -47,7 +39,7 @@ export function createSupabasePaymentRepository(
         amount: data.amount,
         currency: data.currency,
         concept: data.concept,
-        displayConcept: displayConcept(data.concept),
+        displayConcept: displayPaymentConcept(data.concept),
         method: data.method,
         status: data.status,
         reference: data.reference,

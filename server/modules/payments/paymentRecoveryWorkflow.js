@@ -1,3 +1,4 @@
+import { mapWithConcurrency } from '../../lib/concurrency.js'
 import { logger } from '../../lib/logger.js'
 import {
   PAYMENT_TRAIL_ACTIONS,
@@ -6,21 +7,19 @@ import {
 } from './paymentAuditTrail.js'
 import { mapMercadoPagoStatus, processClaimedPaymentEvent, applyCanonicalPayment } from './paymentWorkflow.js'
 
-async function processInChunks(items, concurrency, worker) {
-  const results = []
-  for (let index = 0; index < items.length; index += concurrency) {
-    const chunk = items.slice(index, index + concurrency)
-    results.push(...await Promise.all(chunk.map(async (item) => {
-      try {
-        return { ok: true, value: await worker(item) }
-      } catch (error) {
-        // El id se conserva junto al motivo: sin esto el resumen decia
-        // "failed: 3" y no habia forma de saber cuales ni por que.
-        return { ok: false, id: item?.id ?? null, error: error?.message ?? String(error) }
-      }
-    })))
-  }
-  return results
+/**
+ * `mapWithConcurrency` ya aisla el fallo de cada item (no corta el lote); acá
+ * solo se recupera el `id` original -- el motivo por el que antes se
+ * reimplementaba el loop a mano -- y se lo re-empareja con el resultado por
+ * indice, que `mapWithConcurrency` conserva.
+ */
+function summarizeConcurrentResults(items, results) {
+  return results.map((result, index) => {
+    if (result.status === 'fulfilled') return { ok: true, value: result.value }
+    // El id se conserva junto al motivo: sin esto el resumen decia
+    // "failed: 3" y no habia forma de saber cuales ni por que.
+    return { ok: false, id: items[index]?.id ?? null, error: result.reason?.message ?? String(result.reason) }
+  })
 }
 
 export async function reconcileClaimedPaymentAttempt(attempt, options = {}) {
@@ -99,11 +98,17 @@ export async function recoverPaymentOperations(options = {}) {
     }
   }
 
-  const eventResults = await processInChunks(events, concurrency, (event) =>
-    processClaimedPaymentEvent(event, { repository, mercadoPago, notifyPaymentApplied, auditTrail }))
+  const eventResults = summarizeConcurrentResults(
+    events,
+    await mapWithConcurrency(events, concurrency, (event) =>
+      processClaimedPaymentEvent(event, { repository, mercadoPago, notifyPaymentApplied, auditTrail })),
+  )
 
-  const reconciliationResults = await processInChunks(attempts, concurrency, (attempt) =>
-    reconcileClaimedPaymentAttempt(attempt, { repository, mercadoPago, notifyPaymentApplied, auditTrail }))
+  const reconciliationResults = summarizeConcurrentResults(
+    attempts,
+    await mapWithConcurrency(attempts, concurrency, (attempt) =>
+      reconcileClaimedPaymentAttempt(attempt, { repository, mercadoPago, notifyPaymentApplied, auditTrail })),
+  )
 
   const summary = {
     claimErrors,

@@ -304,4 +304,61 @@ describe('processEmbeddedPayment con mock', () => {
     expect(result.payment.status).toBe('in_process')
     expect(result.order.status).toBe('pendiente')
   })
+
+  it('reconcilia contra el proveedor en vez de fallar cuando createPayment explota pero MP ya cobró', async () => {
+    const repository = createRepositoryFake()
+    const mercadoPago = {
+      createPayment: vi.fn(async () => {
+        throw new Error('socket hang up')
+      }),
+      searchPaymentsForOrder: vi.fn(async () => [{
+        id: 'mp-provider-side-charge',
+        status: 'approved',
+        status_detail: 'accredited',
+        transaction_amount: order.amount,
+        currency_id: order.currency,
+        external_reference: order.id,
+        payer: { email: order.payerEmail },
+      }]),
+    }
+
+    const result = await processEmbeddedPayment(
+      {
+        paymentOrderId: order.id,
+        formData: {
+          token: 'temporary-card-token',
+          payment_method_id: 'visa',
+          payer: { email: order.payerEmail },
+        },
+      },
+      { repository, mercadoPago },
+    )
+
+    expect(mercadoPago.searchPaymentsForOrder).toHaveBeenCalledOnce()
+    expect(result.duplicate).toBe(false)
+    expect(result.payment.id).toBe('mp-provider-side-charge')
+    expect(result.order.status).toBe('aprobado')
+  })
+
+  it('sigue fallando si createPayment explota y el proveedor no tiene ningún pago para la orden', async () => {
+    const repository = createRepositoryFake()
+    const mercadoPago = {
+      createPayment: vi.fn(async () => {
+        throw new Error('socket hang up')
+      }),
+      searchPaymentsForOrder: vi.fn(async () => []),
+    }
+
+    await expect(processEmbeddedPayment(
+      {
+        paymentOrderId: order.id,
+        formData: {
+          token: 'temporary-card-token',
+          payment_method_id: 'visa',
+          payer: { email: order.payerEmail },
+        },
+      },
+      { repository, mercadoPago },
+    )).rejects.toThrow('socket hang up')
+  })
 })
