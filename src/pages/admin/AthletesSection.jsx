@@ -6,12 +6,26 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAthletesTourSteps } from '../../lib/adminTourSteps.js'
-import { ATHLETE_FILTER_STATUSES } from '../../lib/constants.js'
+import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
+import {
+  createRegistrationPaymentIndex,
+  matchesRegistrationStatusFilter,
+  resolveRegistrationPayment,
+} from '../../services/registrationAdminService.js'
 
-export default function AthletesSection({ athletes, onSelectAthlete }) {
+const EMPTY_GATE_PENDING_IDS = new Set()
+
+export default function AthletesSection({
+  athletes,
+  registrations = [],
+  payments = [],
+  gatePendingIds = EMPTY_GATE_PENDING_IDS,
+  onSelectAthlete,
+}) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
+  const [registrationStatus, setRegistrationStatus] = useState('all')
   const { startTour } = useAdminTour()
 
   useEffect(() => {
@@ -37,22 +51,73 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
     [athletes.length, statusCounts, t],
   )
 
+  // Índice de pagos + inscripciones por atleta, una sola pasada cada uno
+  // (mismo patrón que RegistrationsSection): "¿este atleta tiene alguna
+  // inscripción que matchee el filtro X?" no debería recorrer todo el
+  // array de inscripciones por cada atleta.
+  const paymentIndex = useMemo(() => createRegistrationPaymentIndex(payments), [payments])
+  const registrationsByAthlete = useMemo(() => {
+    const map = new Map()
+    for (const registration of registrations) {
+      const list = map.get(registration.athleteId)
+      if (list) list.push(registration)
+      else map.set(registration.athleteId, [registration])
+    }
+    return map
+  }, [registrations])
+
+  function athleteMatchesRegistrationFilter(athleteId, filter) {
+    if (filter === 'all') return true
+    const athleteRegistrations = registrationsByAthlete.get(athleteId) ?? []
+    return athleteRegistrations.some((registration) =>
+      matchesRegistrationStatusFilter(
+        registration,
+        resolveRegistrationPayment(paymentIndex, registration),
+        filter,
+        gatePendingIds,
+      ),
+    )
+  }
+
+  const registrationStatusCounts = useMemo(() => {
+    const counts = Object.fromEntries(REGISTRATION_FILTER_STATUSES.map(([value]) => [value, 0]))
+    for (const athlete of athletes) {
+      for (const [value] of REGISTRATION_FILTER_STATUSES) {
+        if (athleteMatchesRegistrationFilter(athlete.id, value)) counts[value] += 1
+      }
+    }
+    return counts
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- athleteMatchesRegistrationFilter depende de paymentIndex/registrationsByAthlete/gatePendingIds, ya listados
+  }, [athletes, paymentIndex, registrationsByAthlete, gatePendingIds])
+
+  const registrationStatusOptions = useMemo(
+    () =>
+      translateFilterOptions(REGISTRATION_FILTER_STATUSES, t).map(([value, label]) => [
+        value,
+        label,
+        registrationStatusCounts[value] ?? 0,
+      ]),
+    [registrationStatusCounts, t],
+  )
+
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
     return athletes
       .filter((athlete) => {
         const statusMatch = status === 'all' || athlete.status === status
+        const registrationMatch = athleteMatchesRegistrationFilter(athlete.id, registrationStatus)
         const queryMatch =
           !normalizedQuery ||
           athlete.fullName.toLowerCase().includes(normalizedQuery) ||
           athlete.documentId.includes(normalizedQuery) ||
           athlete.email.toLowerCase().includes(normalizedQuery) ||
           athlete.gym?.toLowerCase().includes(normalizedQuery)
-        return statusMatch && queryMatch
+        return statusMatch && registrationMatch && queryMatch
       })
       .map((athlete) => ({ ...athlete, id: athlete.id }))
-  }, [athletes, query, status])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- athleteMatchesRegistrationFilter depende de paymentIndex/registrationsByAthlete/gatePendingIds, ya listados
+  }, [athletes, query, status, registrationStatus, paymentIndex, registrationsByAthlete, gatePendingIds])
 
   const stats = useMemo(
     () => [
@@ -90,10 +155,18 @@ export default function AthletesSection({ athletes, onSelectAthlete }) {
       filters={[
         {
           id: 'status',
-          label: t('admin.filters.status'),
+          label: t('admin.filters.affiliation'),
           value: status,
           onChange: setStatus,
           options: statusOptions,
+        },
+        {
+          id: 'registrationStatus',
+          label: t('admin.filters.registrationStatus'),
+          value: registrationStatus,
+          onChange: setRegistrationStatus,
+          options: registrationStatusOptions,
+          advanced: true,
         },
       ]}
       onQueryChange={setQuery}

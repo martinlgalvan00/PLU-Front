@@ -660,42 +660,71 @@ export function createSupabaseAthleteRepository(
       )
       return { path, token: signed.token }
     },
-    async adminData(scope = {}) {
+    /**
+     * `filters` es opcional y hoy nadie lo manda desde el frontend (el panel
+     * sigue pidiendo el snapshot completo: dashboard y badges de navegación
+     * necesitan ver todo). Sirve para dejar la capacidad de recorte
+     * server-side lista sin tener que tocar este método de nuevo cuando algún
+     * listado la necesite de verdad.
+     */
+    async adminData(scope = {}, filters = {}) {
       const read = {
         athletes: scope.athletes !== false,
         memberships: scope.memberships !== false,
         registrations: scope.registrations !== false,
         paymentOrders: scope.paymentOrders !== false,
       }
+      // Encadenan solo si el filtro/paginación vino en la query; sin params
+      // el resultado es exactamente el mismo query de siempre (sin `.range()`).
+      const withStatus = (query, status) => (status ? query.eq('status', status) : query)
+      const withRange = (query) =>
+        filters.limit != null
+          ? query.range(filters.offset ?? 0, (filters.offset ?? 0) + filters.limit - 1)
+          : query
       const [athletes, memberships, registrations, paymentOrders] = await Promise.all([
         read.athletes
-          ? client
-              .from('athletes')
-              .select('id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token')
-              .eq('organization_id', organizationId)
-              .order('created_at', { ascending: false })
+          ? withRange(
+              withStatus(
+                client
+                  .from('athletes')
+                  .select('id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token')
+                  .eq('organization_id', organizationId)
+                  .order('created_at', { ascending: false }),
+                filters.athleteStatus,
+              ),
+            )
           : Promise.resolve({ data: [], error: null }),
         read.memberships
-          ? client
-              .from('memberships')
-              .select('id, athlete_id, year, status, start_date, expiration_date, member_code, qr_token, payment_order_id, created_at, updated_at')
-              .eq('organization_id', organizationId)
-              .order('created_at', { ascending: false })
+          ? withRange(
+              withStatus(
+                client
+                  .from('memberships')
+                  .select('id, athlete_id, year, status, start_date, expiration_date, member_code, qr_token, payment_order_id, created_at, updated_at')
+                  .eq('organization_id', organizationId)
+                  .order('created_at', { ascending: false }),
+                filters.membershipStatus,
+              ),
+            )
           : Promise.resolve({ data: [], error: null }),
         read.registrations
-          ? client
-              .from('event_registrations')
-              .select(
-                `
-                  id, athlete_id, category, division, bodyweight_kg, public_visible, status, payment_order_id, created_at, updated_at,
-                  event:events(title, slug, starts_at, ends_at, requires_membership),
-                  checkIn:check_ins(scanned_at),
-                  eventDay:event_days(id, day_index, label, date),
-                  eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
-                `,
-              )
-              .eq('organization_id', organizationId)
-              .order('created_at', { ascending: false })
+          ? withRange(
+              withStatus(
+                client
+                  .from('event_registrations')
+                  .select(
+                    `
+                      id, athlete_id, category, division, bodyweight_kg, public_visible, status, payment_order_id, created_at, updated_at,
+                      event:events(title, slug, starts_at, ends_at, requires_membership),
+                      checkIn:check_ins(scanned_at),
+                      eventDay:event_days(id, day_index, label, date),
+                      eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
+                    `,
+                  )
+                  .eq('organization_id', organizationId)
+                  .order('created_at', { ascending: false }),
+                filters.registrationStatus,
+              ),
+            )
           : Promise.resolve({ data: [], error: null }),
         read.paymentOrders
           ? client

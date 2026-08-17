@@ -294,7 +294,15 @@ export default function AdminPage({
         )
       }
 
-      return <AthletesSection athletes={athletes} onSelectAthlete={handleSelectAthlete} />
+      return (
+        <AthletesSection
+          athletes={athletes}
+          registrations={registrations}
+          payments={payments}
+          gatePendingIds={gatePendingIds}
+          onSelectAthlete={handleSelectAthlete}
+        />
+      )
     }
 
     if (section === 'memberships') {
