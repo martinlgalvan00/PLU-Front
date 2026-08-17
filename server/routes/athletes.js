@@ -324,6 +324,21 @@ const paymentOrdersQuerySchema = z.object({
   concept: z.enum(['membership', 'registration', 'combo']).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
 })
+/**
+ * Filtros/paginación opcionales del snapshot admin. Sin query params el
+ * comportamiento es idéntico al actual (trae todo, sin `.range()`): el
+ * dashboard y los badges de navegación siguen necesitando el snapshot
+ * completo. Esto solo deja la capacidad lista en el backend para cuando
+ * algún listado quiera pedir un recorte filtrado en vez de filtrar en el
+ * cliente sobre el array completo.
+ */
+const adminDataQuerySchema = z.object({
+  athleteStatus: z.enum(['pre_registrado', 'registrado', 'afiliado_activo', 'afiliado_vencido', 'bloqueado']).optional(),
+  membershipStatus: z.enum(['pendiente_pago', 'activa', 'vencida', 'cancelada', 'reembolsada']).optional(),
+  registrationStatus: z.enum(['borrador', 'pendiente_pago', 'pagada', 'confirmada', 'observada', 'cancelada']).optional(),
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+})
 
 const FORGOT_OK_MESSAGE =
   'Si existe una cuenta con ese correo, te enviamos un enlace para restablecer la contraseña.'
@@ -1255,6 +1270,8 @@ export function createAthleteRoutes({
 
   router.get('/admin', ...adminGuard, staffLimiter, async (req, res, next) => {
     try {
+      const parsedFilters = adminDataQuerySchema.safeParse(req.query)
+      if (!parsedFilters.success) throw new HttpError(400, 'Filtros de panel inválidos.')
       const canReadAthletes = hasPermission(req.auth.user, 'admin.athletes.read')
       const canReadMemberships = hasPermission(req.auth.user, 'admin.memberships.read')
       const canReadRegistrations = hasPermission(req.auth.user, 'admin.registrations.read')
@@ -1262,12 +1279,15 @@ export function createAthleteRoutes({
       // No leemos segmentos que el rol no puede recibir. Antes se cargaban
       // las cuatro tablas y luego se descartaban del JSON: costaba base y
       // transferencia aun para perfiles de alcance acotado.
-      const data = await repo().adminData({
-        athletes: canReadAthletes,
-        memberships: canReadMemberships,
-        registrations: canReadRegistrations,
-        paymentOrders: canReadPayments,
-      })
+      const data = await repo().adminData(
+        {
+          athletes: canReadAthletes,
+          memberships: canReadMemberships,
+          registrations: canReadRegistrations,
+          paymentOrders: canReadPayments,
+        },
+        parsedFilters.data,
+      )
 
       res.json({
         athletes: canReadAthletes ? data.athletes : [],

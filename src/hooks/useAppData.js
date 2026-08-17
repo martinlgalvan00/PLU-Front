@@ -140,6 +140,7 @@ import {
   updateAdminEvent,
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
+import { matchesRegistrationStatusFilter } from '../services/registrationAdminService.js'
 import {
   cancelBillingSubscriptionRequest,
   createMembershipPlanVersionRequest,
@@ -279,7 +280,12 @@ export function useAppData() {
   const [roleActivity, setRoleActivity] = useState([])
   const [permissionCatalog, setPermissionCatalog] = useState(PERMISSION_CATALOG)
   const [form, setForm] = useState(DEFAULT_FORM)
-  const [filters, setFilters] = useState({ status: 'all', event: 'all', query: '' })
+  const [filters, setFilters] = useState({
+    status: 'all',
+    event: 'all',
+    affiliationStatus: 'all',
+    query: '',
+  })
   const membershipAttemptRef = useRef(null)
   const registrationAttemptRef = useRef(null)
   const ticketAttemptRef = useRef(null)
@@ -760,8 +766,8 @@ export function useAppData() {
   )
 
   const enrichedMemberships = useMemo(
-    () => enrichMemberships(memberships, athletes),
-    [memberships, athletes],
+    () => enrichMemberships(memberships, athletesById),
+    [memberships, athletesById],
   )
 
   const dismissedQueueItemKeys = useMemo(
@@ -830,12 +836,14 @@ export function useAppData() {
 
   const filteredRegistrations = useMemo(() => {
     return enrichedRegistrations.filter((registration) => {
-      const statusMatch =
-        filters.status === 'all' ||
-        (filters.status === 'gate_pending'
-          ? gatePendingIds.has(registration.id)
-          : registration.status === filters.status || registration.paymentStatus === filters.status)
+      // `registration.paymentStatus` ya trae el status del pago resuelto
+      // (`mapAthleteData`), así que no hace falta resolver `payment` acá.
+      const statusMatch = matchesRegistrationStatusFilter(registration, null, filters.status, gatePendingIds)
       const eventMatch = filters.event === 'all' || registration.event === filters.event
+      const affiliationMatch =
+        !filters.affiliationStatus ||
+        filters.affiliationStatus === 'all' ||
+        registration.athlete?.status === filters.affiliationStatus
       const query = filters.query.trim().toLowerCase()
       const queryMatch =
         !query ||
@@ -846,7 +854,7 @@ export function useAppData() {
         registration.event?.toLowerCase().includes(query) ||
         registration.category?.toLowerCase().includes(query) ||
         registration.division?.toLowerCase().includes(query)
-      return statusMatch && eventMatch && queryMatch
+      return statusMatch && eventMatch && affiliationMatch && queryMatch
     })
   }, [enrichedRegistrations, filters, gatePendingIds])
 

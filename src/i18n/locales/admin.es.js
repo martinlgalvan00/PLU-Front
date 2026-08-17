@@ -222,6 +222,8 @@ export default {
   },
   filters: {
     status: 'Estado',
+    affiliation: 'Afiliación',
+    registrationStatus: 'Inscripción',
     event: 'Evento',
     expiration: 'Vencimiento',
     allStatuses: 'Todos los estados',

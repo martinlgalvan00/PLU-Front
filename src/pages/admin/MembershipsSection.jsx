@@ -22,10 +22,9 @@ import {
 import { formatShortMemberCode } from '../../lib/format.js'
 import {
   filterMemberships,
-  getMembershipLifecycle,
-  getMembershipOperationalStatus,
   getMembershipStats,
   MEMBERSHIP_LIFECYCLE,
+  projectMembershipStatus,
 } from '../../services/membershipService.js'
 
 export default function MembershipsSection({
@@ -88,14 +87,21 @@ export default function MembershipsSection({
     }
   }
 
+  // Proyecta lifecycle + operationalStatus una sola vez por afiliación: antes
+  // se recalculaban por separado en statusCounts, adentro de filterMemberships
+  // y de nuevo al armar cada fila visible.
+  const projectedMemberships = useMemo(
+    () => memberships.map((item) => ({ ...item, ...projectMembershipStatus(item) })),
+    [memberships],
+  )
+
   const statusCounts = useMemo(() => {
     const counts = Object.create(null)
-    for (const item of memberships) {
-      const operationalStatus = getMembershipOperationalStatus(item)
-      counts[operationalStatus] = (counts[operationalStatus] ?? 0) + 1
+    for (const item of projectedMemberships) {
+      counts[item.operationalStatus] = (counts[item.operationalStatus] ?? 0) + 1
     }
     return counts
-  }, [memberships])
+  }, [projectedMemberships])
 
   const statusOptions = useMemo(
     () =>
@@ -121,34 +127,31 @@ export default function MembershipsSection({
 
   const rows = useMemo(
     () =>
-      filterMemberships(memberships, { query, status, expiring }).map((item) => {
-        const lifecycle = getMembershipLifecycle(item)
-        return {
-          id: item.id,
-          athlete: item.athlete?.fullName ?? '—',
-          athleteId: item.athleteId,
-          document: item.athlete?.documentId ?? '—',
-          gym: item.athlete?.gym ?? '',
-          photoUrl: item.athlete?.photoUrl ?? null,
-          memberCode: item.memberCode,
-          year: item.year,
-          status: item.status,
-          operationalStatus: getMembershipOperationalStatus(item),
-          lifecycle,
-          startDate: item.startDate,
-          expirationDate: item.expirationDate,
-          canViewCredential: [MEMBERSHIP_LIFECYCLE.CURRENT, MEMBERSHIP_LIFECYCLE.EXPIRING].includes(
-            lifecycle,
-          ),
-          canActivate: item.status !== 'activa' && lifecycle !== MEMBERSHIP_LIFECYCLE.REFUNDED,
-          canCancel: [
-            MEMBERSHIP_LIFECYCLE.CURRENT,
-            MEMBERSHIP_LIFECYCLE.EXPIRING,
-            MEMBERSHIP_LIFECYCLE.SCHEDULED,
-          ].includes(lifecycle),
-        }
-      }),
-    [memberships, query, status, expiring],
+      filterMemberships(projectedMemberships, { query, status, expiring }).map((item) => ({
+        id: item.id,
+        athlete: item.athlete?.fullName ?? '—',
+        athleteId: item.athleteId,
+        document: item.athlete?.documentId ?? '—',
+        gym: item.athlete?.gym ?? '',
+        photoUrl: item.athlete?.photoUrl ?? null,
+        memberCode: item.memberCode,
+        year: item.year,
+        status: item.status,
+        operationalStatus: item.operationalStatus,
+        lifecycle: item.lifecycle,
+        startDate: item.startDate,
+        expirationDate: item.expirationDate,
+        canViewCredential: [MEMBERSHIP_LIFECYCLE.CURRENT, MEMBERSHIP_LIFECYCLE.EXPIRING].includes(
+          item.lifecycle,
+        ),
+        canActivate: item.status !== 'activa' && item.lifecycle !== MEMBERSHIP_LIFECYCLE.REFUNDED,
+        canCancel: [
+          MEMBERSHIP_LIFECYCLE.CURRENT,
+          MEMBERSHIP_LIFECYCLE.EXPIRING,
+          MEMBERSHIP_LIFECYCLE.SCHEDULED,
+        ].includes(item.lifecycle),
+      })),
+    [projectedMemberships, query, status, expiring],
   )
 
   // Métricas de gestión, no un recuento de estados: lo que el admin necesita

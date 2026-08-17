@@ -222,6 +222,8 @@ export default {
   },
   filters: {
     status: 'Status',
+    affiliation: 'Affiliation',
+    registrationStatus: 'Registration status',
     event: 'Event',
     expiration: 'Expiration',
     allStatuses: 'All statuses',

@@ -1,7 +1,8 @@
-export function enrichMemberships(memberships, athletes) {
+/** `athletesById` es el Map ya construido en `useAppData` — evita un `.find()` lineal por afiliación. */
+export function enrichMemberships(memberships, athletesById) {
   return memberships.map((membership) => ({
     ...membership,
-    athlete: athletes.find((athlete) => athlete.id === membership.athleteId) ?? null,
+    athlete: athletesById.get(membership.athleteId) ?? null,
   }))
 }
 
@@ -60,9 +61,7 @@ export function getMembershipLifecycle(membership, today = new Date(), withinDay
   return MEMBERSHIP_LIFECYCLE.CURRENT
 }
 
-/** Estado que se muestra y filtra en operaciones, derivado de estado + fechas. */
-export function getMembershipOperationalStatus(membership, today = new Date()) {
-  const lifecycle = getMembershipLifecycle(membership, today)
+function operationalStatusFromLifecycle(lifecycle, membership) {
   if ([MEMBERSHIP_LIFECYCLE.CURRENT, MEMBERSHIP_LIFECYCLE.EXPIRING].includes(lifecycle)) {
     return 'activa'
   }
@@ -72,6 +71,21 @@ export function getMembershipOperationalStatus(membership, today = new Date()) {
   if (lifecycle === MEMBERSHIP_LIFECYCLE.CANCELLED) return 'cancelada'
   if (lifecycle === MEMBERSHIP_LIFECYCLE.REFUNDED) return 'reembolsada'
   return membership?.status ?? 'pendiente_pago'
+}
+
+/** Estado que se muestra y filtra en operaciones, derivado de estado + fechas. */
+export function getMembershipOperationalStatus(membership, today = new Date()) {
+  return operationalStatusFromLifecycle(getMembershipLifecycle(membership, today), membership)
+}
+
+/**
+ * `lifecycle` + `operationalStatus` en una sola pasada de fechas, para listados
+ * que hoy los recalculan por separado varias veces por fila (conteos, filtro,
+ * columnas). Ver `MembershipsSection.jsx`.
+ */
+export function projectMembershipStatus(membership, today = new Date()) {
+  const lifecycle = getMembershipLifecycle(membership, today)
+  return { lifecycle, operationalStatus: operationalStatusFromLifecycle(lifecycle, membership) }
 }
 
 /**
@@ -148,12 +162,14 @@ export function filterMemberships(items, filters = {}) {
   const today = filters.today ?? new Date()
 
   return items.filter((item) => {
-    const operationalStatus = getMembershipOperationalStatus(item, today)
+    // Si ya viene proyectado (`projectMembershipStatus`), reusarlo en vez de
+    // recalcular fechas/lifecycle otra vez por cada afiliación filtrada.
+    const operationalStatus = item.operationalStatus ?? getMembershipOperationalStatus(item, today)
     const statusMatch =
       !filters.status || filters.status === 'all' || operationalStatus === filters.status
     const expiringMatch =
       filters.expiring !== 'soon' ||
-      (isMembershipCurrent(item, today) && isExpiringSoon(item.expirationDate, 30, today))
+      (operationalStatus === 'activa' && isExpiringSoon(item.expirationDate, 30, today))
     const queryMatch =
       !query ||
       item.athlete?.fullName?.toLowerCase().includes(query) ||
