@@ -18,6 +18,8 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import { FEATURE_KEYS, isFeatureEnabled } from '../../lib/featureAvailability.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getPricingTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
 import { getDiscountCodeAvailability } from '../../services/pricingAdminService.js'
 
@@ -27,6 +29,7 @@ const EMPTY_PLAN = {
   name: '',
   description: '',
   price: '',
+  manualPrice: '',
   currency: 'ARS',
   billingFrequency: 'annual',
   collectionMode: 'one_time',
@@ -45,6 +48,7 @@ const EMPTY_DISCOUNT_CODE = {
   maxRedemptions: '',
   expiresAt: '',
   active: true,
+  enablesManualPayment: false,
 }
 
 const SUBSCRIPTION_STATUS_LABELS = {
@@ -135,6 +139,7 @@ export default function PricingSection({
   onSetPlanRetirement,
   onUpsertDiscountCode,
   onSetDiscountCodeActive,
+  onDeleteDiscountCode,
   subscriptions = [],
   subscriptionsLoading = false,
   subscriptionsError,
@@ -142,6 +147,13 @@ export default function PricingSection({
   onCancelSubscription,
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-pricing', getPricingTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
   const [planDraft, setPlanDraft] = useState(null)
   const [planError, setPlanError] = useState('')
   const [planToDelete, setPlanToDelete] = useState(null)
@@ -154,6 +166,7 @@ export default function PricingSection({
   const [comboDraft, setComboDraft] = useState({
     membershipPlanId: '',
     price: '',
+    manualPrice: '',
     startsAt: '',
     endsAt: '',
     active: false,
@@ -163,6 +176,8 @@ export default function PricingSection({
   const [codeDraft, setCodeDraft] = useState(null)
   const [codeError, setCodeError] = useState('')
   const [copiedCodeId, setCopiedCodeId] = useState(null)
+  const [codeToDelete, setCodeToDelete] = useState(null)
+  const [codeDeleteError, setCodeDeleteError] = useState('')
   const [cancelTarget, setCancelTarget] = useState(null)
   const [cancelError, setCancelError] = useState('')
   const planFormRef = useRef(null)
@@ -260,6 +275,15 @@ export default function PricingSection({
   const comboSavings =
     Number.isInteger(comboPriceValue) && comboPriceValue > 0 ? separatePrice - comboPriceValue : null
   const comboOverLimit = comboSavings != null && comboSavings < 0
+  // Mismo tope que aplica staff_save_event_combo_offer del lado del servidor:
+  // la suma de los precios manuales (o de catálogo si el plan/evento no tiene
+  // uno propio) del plan y el evento.
+  const separateManualPrice =
+    Number(selectedPlan?.manualPrice ?? selectedPlan?.price ?? 0) +
+    Number(selectedEvent?.registrationManualPrice ?? selectedEvent?.registrationPrice ?? 0)
+  const comboManualPriceValue = comboDraft.manualPrice === '' ? null : Number(comboDraft.manualPrice)
+  const comboManualOverLimit =
+    comboManualPriceValue != null && comboManualPriceValue > separateManualPrice
 
   useEffect(() => {
     if (!selectedEventSlug && events[0]) setSelectedEventSlug(events[0].slug)
@@ -271,6 +295,7 @@ export default function PricingSection({
     setComboDraft({
       membershipPlanId: offer?.membershipPlanId ?? oneTimePlans[0]?.id ?? '',
       price: offer?.price ?? '',
+      manualPrice: offer?.manualPrice ?? '',
       startsAt: toLocalDateTime(offer?.startsAt),
       endsAt: toLocalDateTime(offer?.endsAt),
       active: offer?.active === true,
@@ -316,6 +341,7 @@ export default function PricingSection({
             name: source.name,
             description: source.description,
             price: source.price,
+            manualPrice: source.manualPrice ?? '',
             currency: 'ARS',
             billingFrequency: source.billingFrequency,
             collectionMode: source.collectionMode,
@@ -332,6 +358,7 @@ export default function PricingSection({
     event.preventDefault()
     setPlanError('')
     const price = Number(planDraft.price)
+    const manualPrice = planDraft.manualPrice === '' ? undefined : Number(planDraft.manualPrice)
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(planDraft.familyCode)) {
       setPlanError(t('admin.sections.pricing.familyCodeHint'))
       return
@@ -340,9 +367,13 @@ export default function PricingSection({
       setPlanError(t('admin.sections.pricing.loadError'))
       return
     }
+    if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
+      setPlanError(t('admin.sections.pricing.loadError'))
+      return
+    }
 
     setPendingAction('plan')
-    const result = await onCreatePlanVersion?.({ ...planDraft, price })
+    const result = await onCreatePlanVersion?.({ ...planDraft, price, manualPrice })
     setPendingAction('')
     if (result?.error) {
       setPlanError(result.error)
@@ -395,6 +426,7 @@ export default function PricingSection({
             maxRedemptions: source.maxRedemptions ?? '',
             expiresAt: toLocalDateTime(source.expiresAt),
             active: source.active,
+            enablesManualPayment: source.enablesManualPayment ?? false,
           }
         : { ...EMPTY_DISCOUNT_CODE },
     )
@@ -438,6 +470,22 @@ export default function PricingSection({
     else setNotice(t('admin.sections.pricing.saved'))
   }
 
+  async function confirmDeleteCode() {
+    if (!codeToDelete) return
+    setPendingAction(`delete-code:${codeToDelete.id}`)
+    setCodeDeleteError('')
+    setNotice('')
+    const result = await onDeleteDiscountCode?.(codeToDelete.id)
+    setPendingAction('')
+    if (result?.error) {
+      setCodeDeleteError(result.error)
+      return
+    }
+    setCodeDraft((current) => (current?.id === codeToDelete.id ? null : current))
+    setCodeToDelete(null)
+    setNotice(t('admin.sections.pricing.codeDeleted'))
+  }
+
   async function confirmCancelSubscription() {
     if (!cancelTarget) return
     setPendingAction(`cancel-${cancelTarget.id}`)
@@ -472,6 +520,7 @@ export default function PricingSection({
     setComboError('')
     setNotice('')
     const price = Number(comboDraft.price)
+    const manualPrice = comboDraft.manualPrice === '' ? undefined : Number(comboDraft.manualPrice)
     const separatePrice = Number(selectedPlan?.price ?? 0) + Number(selectedEvent?.registrationPrice ?? 0)
     if (!selectedEvent || !selectedPlan || !Number.isInteger(price) || price <= 0) {
       setComboError(t('admin.sections.pricing.loadError'))
@@ -481,13 +530,21 @@ export default function PricingSection({
       setComboError(t('admin.eventEditor.validation.comboTooHigh'))
       return
     }
+    if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
+      setComboError(t('admin.sections.pricing.loadError'))
+      return
+    }
+    if (manualPrice !== undefined && manualPrice > separateManualPrice) {
+      setComboError(t('admin.eventEditor.validation.comboTooHigh'))
+      return
+    }
     if (comboDraft.startsAt && comboDraft.endsAt && comboDraft.endsAt < comboDraft.startsAt) {
       setComboError(t('admin.eventEditor.validation.registrationWindowInvalid'))
       return
     }
 
     setPendingAction('combo')
-    const result = await onSaveComboOffer?.(selectedEvent.slug, { ...comboDraft, price })
+    const result = await onSaveComboOffer?.(selectedEvent.slug, { ...comboDraft, price, manualPrice })
     setPendingAction('')
     if (result?.error) setComboError(result.error)
     else {
@@ -747,6 +804,19 @@ export default function PricingSection({
                   onChange={(event) => setPlanDraft({ ...planDraft, price: event.target.value })}
                   required
                 />
+              </label>
+              <label>
+                <span>{t('admin.sections.pricing.manualPrice')}</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="10000000"
+                  step="1"
+                  placeholder={t('admin.sections.pricing.manualPricePlaceholder')}
+                  value={planDraft.manualPrice}
+                  onChange={(event) => setPlanDraft({ ...planDraft, manualPrice: event.target.value })}
+                />
+                <small>{t('admin.sections.pricing.manualPriceHint')}</small>
               </label>
               <label>
                 <span>{t('admin.sections.pricing.currency')}</span>
@@ -1021,6 +1091,25 @@ export default function PricingSection({
               </div>
             ) : null}
 
+            <label>
+              <span>{t('admin.sections.pricing.manualPrice')}</span>
+              <input
+                type="number"
+                min="1"
+                max="10000000"
+                step="1"
+                placeholder={t('admin.sections.pricing.manualPricePlaceholder')}
+                value={comboDraft.manualPrice}
+                onChange={(event) => setComboDraft({ ...comboDraft, manualPrice: event.target.value })}
+                disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
+              />
+              <small>
+                {comboManualOverLimit
+                  ? t('admin.sections.pricing.comboOverLimit')
+                  : t('admin.sections.pricing.comboMax', { amount: money(separateManualPrice, locale) })}
+              </small>
+            </label>
+
             <fieldset
               className="admin-pricing__combo-window"
               disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
@@ -1060,7 +1149,10 @@ export default function PricingSection({
               <button
                 type="submit"
                 className="admin-pricing__btn admin-pricing__btn--primary"
-                disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0 || comboOverLimit}
+                disabled={
+                  locked || pendingAction === 'combo' || oneTimePlans.length === 0 ||
+                  comboOverLimit || comboManualOverLimit
+                }
               >
                 <Save size={15} aria-hidden />
                 {pendingAction === 'combo' ? t('admin.sections.pricing.saving') : t('admin.sections.pricing.saveCombo')}
@@ -1132,6 +1224,11 @@ export default function PricingSection({
                     <span className={`admin-pricing__status${status === 'active' ? ' admin-pricing__status--active' : ''}`}>
                       {t(`admin.sections.pricing.discountStatus.${status}`)}
                     </span>
+                    {code.enablesManualPayment ? (
+                      <span className="admin-pricing__status admin-pricing__status--manual">
+                        {t('admin.sections.pricing.enablesManualPaymentBadge')}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="admin-pricing__plan-meta">
                     <span>{t(`admin.sections.pricing.appliesTo.${code.appliesTo}`)}</span>
@@ -1178,6 +1275,20 @@ export default function PricingSection({
                   >
                     <Pencil size={14} aria-hidden />
                     {t('admin.sections.pricing.edit')}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet is-danger"
+                    onClick={() => {
+                      setCodeToDelete(code)
+                      setCodeDeleteError('')
+                      setNotice('')
+                    }}
+                    disabled={locked || pendingAction === `delete-code:${code.id}`}
+                    aria-label={t('admin.sections.pricing.deleteDiscountCodeAria', { code: code.code })}
+                  >
+                    <Trash2 size={14} aria-hidden />
+                    {t('admin.sections.pricing.deleteDiscountCode')}
                   </button>
                   <label
                     className={`admin-pricing__switch${code.active ? ' is-active' : ' is-cancelled'}`.trim()}
@@ -1276,6 +1387,15 @@ export default function PricingSection({
                   onChange={(event) => setCodeDraft({ ...codeDraft, description: event.target.value })}
                 />
               </label>
+              <label className="admin-pricing__toggle admin-pricing__wide">
+                <input
+                  type="checkbox"
+                  checked={codeDraft.enablesManualPayment}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, enablesManualPayment: event.target.checked })}
+                />
+                <span>{t('admin.sections.pricing.enablesManualPayment')}</span>
+              </label>
+              <small className="admin-pricing__wide">{t('admin.sections.pricing.enablesManualPaymentHint')}</small>
             </fieldset>
             {codeError ? <p className="admin-pricing__form-error" role="alert">{codeError}</p> : null}
             <div className="admin-pricing__form-actions">
@@ -1300,6 +1420,25 @@ export default function PricingSection({
           </form>
         ) : null}
       </section>
+
+      {codeToDelete ? (
+        <AdminDeleteConfirmDialog
+          busy={pendingAction === `delete-code:${codeToDelete.id}`}
+          error={codeDeleteError}
+          title={t('admin.sections.pricing.deleteCodeConfirmTitle', { code: codeToDelete.code })}
+          description={t('admin.sections.pricing.deleteCodeConfirmDescription', { code: codeToDelete.code })}
+          warning={t('admin.sections.pricing.deleteCodeConfirmWarning')}
+          cancelLabel={t('admin.sections.pricing.deleteCodeConfirmCancel')}
+          confirmLabel={t('admin.sections.pricing.deleteCodeConfirmConfirm')}
+          busyLabel={t('admin.sections.pricing.deleting')}
+          onCancel={() => {
+            if (pendingAction === `delete-code:${codeToDelete.id}`) return
+            setCodeToDelete(null)
+            setCodeDeleteError('')
+          }}
+          onConfirm={confirmDeleteCode}
+        />
+      ) : null}
 
       <section className="admin-pricing__block" aria-labelledby="pricing-subscriptions-title">
         <header className="admin-pricing__block-head">

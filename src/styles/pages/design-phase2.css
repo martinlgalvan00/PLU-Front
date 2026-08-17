@@ -3875,16 +3875,13 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
   /* Especificidad > .login-page__footer (position: relative) */
   .auth-layout__content .login-page__footer.auth-layout__footer {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
+    position: relative;
     width: 100%;
-    margin: 0;
-    padding: 0 var(--auth-panel-pad-x);
+    margin: auto 0 0 0;
+    padding: 32px 0 0 0;
     z-index: 20;
     letter-spacing: 0.04em;
-    white-space: nowrap;
+    white-space: normal;
     /* Alineado al borde izquierdo de la columna del formulario, no al centro
        del panel: centrado quedaba desfasado respecto del bloque de lectura. */
     text-align: left;
@@ -4695,6 +4692,199 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   }
 
   /* El spinner de estado (`.plu-spinner`) ya quiebra el giro en el
-     reduced-motion global de states.css: la etiqueta "Ingresando…"
-     declara el estado, el anillo queda estático. */
+      reduced-motion global de states.css: la etiqueta "Ingresando…"
+      declara el estado, el anillo queda estático. */
+}
+
+/* =========================================================================
+   AUTH — GUÍA DE ACCESO ("¿Cómo entro?")
+   Disclosure editorial bajo el submit: los tres caminos reales de entrada.
+   Se expande con grid-template-rows (sin animar height), los pasos entran
+   en stagger y el chevron rota — nada más se mueve.
+   ========================================================================= */
+
+.login-guide {
+  margin-top: 16px;
+}
+
+.login-guide__toggle {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 7px;
+  justify-content: center;
+  padding: 13px 0 4px;
+  transition: color 180ms var(--ease-out);
+  width: 100%;
+}
+
+.login-guide__toggle:hover {
+  color: var(--color-brand-celeste);
+}
+
+.login-guide__chevron {
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.login-guide[data-open='1'] .login-guide__chevron {
+  transform: rotate(180deg);
+}
+
+.login-guide__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--motion-base) var(--ease-out);
+}
+
+.login-guide[data-open='1'] .login-guide__panel {
+  grid-template-rows: 1fr;
+}
+
+.login-guide__panel-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.login-guide__title {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  margin: 12px 0 2px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.login-guide__steps {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 4px;
+}
+
+.login-guide__step {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  display: grid;
+  gap: 0 12px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  padding: 11px 0;
+}
+
+.login-guide__step:last-child {
+  border-bottom: none;
+}
+
+.login-guide__step-n {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  font-family: var(--font-mono, 'JetBrains Mono', 'Courier New', monospace);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  padding-top: 1px;
+}
+
+.login-guide__step-title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.login-guide__step-body {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 3px 0 0;
+}
+
+.login-guide__step-action {
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  margin-top: 7px;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 38%, transparent);
+  text-underline-offset: 3px;
+  transition: color 180ms var(--ease-out), text-decoration-color 180ms var(--ease-out);
+}
+
+.login-guide__step-action:hover {
+  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 62%, transparent);
+}
+
+.login-guide__step-action svg {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.login-guide__step-action:hover svg {
+  transform: translateX(2px);
+}
+
+/* Apertura: los pasos suben en stagger corto. Solo al abrir — al cerrar el
+   panel se pliega derecho, sin coreografía de salida. */
+@media (prefers-reduced-motion: no-preference) {
+  .login-guide[data-open='1'] .login-guide__step {
+    animation: login-guide-step 240ms var(--ease-out) both;
+  }
+
+  .login-guide[data-open='1'] .login-guide__step:nth-child(1) { animation-delay: 30ms; }
+  .login-guide[data-open='1'] .login-guide__step:nth-child(2) { animation-delay: 75ms; }
+  .login-guide[data-open='1'] .login-guide__step:nth-child(3) { animation-delay: 120ms; }
+}
+
+@keyframes login-guide-step {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Touch: el toggle y las acciones internas llegan a target cómodo sin mover
+   la maqueta (padding + margen negativo, mismo patrón que los links de servicio). */
+@media (pointer: coarse) {
+  .login-guide__toggle {
+    min-height: 44px;
+    padding-bottom: 8px;
+  }
+
+  .login-guide__step-action {
+    margin-bottom: -8px;
+    padding-bottom: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-guide__panel,
+  .login-guide__chevron,
+  .login-guide__step-action svg {
+    transition: none;
+  }
+
+  .login-guide[data-open='1'] .login-guide__step {
+    animation: none;
+  }
 }

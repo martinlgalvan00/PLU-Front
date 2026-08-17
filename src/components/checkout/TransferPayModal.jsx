@@ -61,6 +61,7 @@ export default function TransferPayModal({
 }) {
   const { t, locale } = useI18n()
   const panelRef = usePaymentModal(onClose)
+  const [notes, setNotes] = useState('')
   const isCompetition = purpose === 'competition'
   const askAdmin = t('account.membership.transferAskAdmin')
   const alias = env.payments.transferAlias || askAdmin
@@ -160,8 +161,18 @@ export default function TransferPayModal({
             {t('account.membership.transferVerifyWarning')}
           </p>
         </div>
+        <label className="account-transfer-notes">
+          <span>{t('account.membership.transferNotesLabel')}</span>
+          <textarea
+            maxLength={300}
+            placeholder={t('account.membership.transferNotesPlaceholder')}
+            rows={2}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+          />
+        </label>
         {orderId ? (
-          <TransferProofUpload orderId={orderId} />
+          <TransferProofUpload notes={notes} orderId={orderId} />
         ) : (
           <p className="account-payment-modal__footnote">
             {isCompetition

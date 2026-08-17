@@ -59,6 +59,7 @@ export default function AdminTopBar({
             <form
               className="admin-page-toolbar__search"
               role="search"
+              data-tour="dashboard-search"
               onSubmit={handleSearchSubmit}
             >
               <Search size={17} aria-hidden />

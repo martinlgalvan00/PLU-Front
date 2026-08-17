@@ -13,6 +13,15 @@ const paidMoneyField = z.coerce
   .min(1, 'priceMin')
   .max(10_000_000, 'priceMax')
 
+// Precio manual (transferencia/efectivo): vacío es válido — significa "cobra
+// igual que el precio de Mercado Pago" — pero si hay algo cargado tiene que
+// ser una plata válida.
+const optionalPaidMoneyField = z
+  .union([z.literal(''), paidMoneyField])
+  .optional()
+  .nullable()
+  .transform((value) => (value === '' || value == null ? undefined : value))
+
 const optionalText = (max, message) =>
   z
     .string()
@@ -129,6 +138,7 @@ export const adminEventDraftSchema = z
     pricing: z.object({
       membership: moneyField,
       registration: paidMoneyField,
+      registrationManual: optionalPaidMoneyField,
       combo: moneyField,
       ticketsEnabled: z.boolean().optional(),
       ticketAddons: z.array(ticketAddonSchema).max(30, 'ticketAddonsMax').optional(),
@@ -246,6 +256,7 @@ export function validateAdminEventDraft(draft, t) {
     pricing: {
       membership: draft?.pricing?.membership,
       registration: draft?.pricing?.registration,
+      registrationManual: draft?.pricing?.registrationManual,
       combo: draft?.pricing?.combo,
       ticketsEnabled: draft?.pricing?.ticketsEnabled,
       ticketAddons: draft?.pricing?.ticketAddons ?? [],

@@ -6,6 +6,10 @@ const migration = readFileSync(
   'supabase/migrations/20260819190000_atomic_checkout_pricing.sql',
   'utf8',
 )
+const manualPriceMigration = readFileSync(
+  'supabase/migrations/20260824100000_manual_price_per_channel.sql',
+  'utf8',
+)
 
 function rpcClient() {
   return {
@@ -43,7 +47,8 @@ describe('cotizacion atomica del checkout', () => {
       planCode: 'plu-annual-v6',
       idempotencyKey: '11111111-1111-4111-8111-111111111111',
       discountCode: null,
-      orderAmount: 75000,
+      defaultPrice: 85000,
+      manualPrice: 75000,
       manualPaymentChannel: 'bank_transfer',
     })
 
@@ -53,8 +58,33 @@ describe('cotizacion atomica del checkout', () => {
       p_plan_code: 'plu-annual-v6',
       p_idempotency_key: '11111111-1111-4111-8111-111111111111',
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 85000,
+      p_manual_price: 75000,
       p_manual_payment_channel: 'bank_transfer',
     })
+  })
+})
+
+describe('precio configurable por medio de pago (reemplaza la matriz hardcodeada)', () => {
+  it('ya no valida el importe contra una fecha ni una tabla de montos fijos', () => {
+    expect(manualPriceMigration).toContain('plu_private.resolve_channel_price')
+    expect(manualPriceMigration).not.toContain('v_presale_active')
+    expect(manualPriceMigration).not.toContain('2026-08-29')
+  })
+
+  it('agrega manual_price a los tres catálogos de precio', () => {
+    expect(manualPriceMigration).toMatch(/alter table public\.membership_plans[\s\S]*?manual_price/)
+    expect(manualPriceMigration).toMatch(/alter table public\.events[\s\S]*?manual_price/)
+    expect(manualPriceMigration).toMatch(/alter table public\.event_combo_offers[\s\S]*?manual_price/)
+  })
+
+  it('las tres RPC de checkout reciben precio por defecto y precio manual, no un importe ya decidido', () => {
+    expect(manualPriceMigration).toContain(
+      'create function public.create_membership_order_checkout(',
+    )
+    expect(manualPriceMigration).toMatch(/create_membership_order_checkout\([\s\S]*?p_default_price numeric,\s*\n\s*p_manual_price numeric/)
+    // Los comentarios sí pueden nombrar el parámetro viejo para explicar el
+    // cambio; ninguna declaración de función real puede seguir teniéndolo.
+    expect(manualPriceMigration).not.toMatch(/create function[\s\S]*?p_order_amount numeric/)
   })
 })

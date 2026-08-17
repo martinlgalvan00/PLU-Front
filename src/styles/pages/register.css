@@ -3964,6 +3964,65 @@
 }
 
 /* =============================================
+   PROFILE WELCOME — pantalla de bienvenida tras crear la cuenta
+   ============================================= */
+
+.register-profile-welcome {
+  display: grid;
+  gap: clamp(18px, 2.6vw, 24px);
+}
+
+.register-profile-welcome__seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
+.register-profile-welcome__list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.register-profile-welcome__step {
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 0 14px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  padding: 14px 0;
+}
+
+.register-profile-welcome__step:last-child {
+  border-bottom: none;
+}
+
+.register-profile-welcome__step-n {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
+  font-family: var(--font-mono, 'JetBrains Mono', 'Courier New', monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  padding-top: 1px;
+}
+
+.register-profile-welcome__step-title {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.register-profile-welcome__step-body {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 3px 0 0;
+}
+
+/* =============================================
    COMPETITION ENTRY — editorial conversion
    ============================================= */
 

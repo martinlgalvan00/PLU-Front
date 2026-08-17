@@ -1,6 +1,5 @@
-import { ChevronDown } from 'lucide-react'
+import { Select } from 'antd'
 
-/** Fallback select — usar solo si hay demasiadas opciones para chips. */
 export default function AdminFilterSelect({
   id,
   label,
@@ -13,30 +12,23 @@ export default function AdminFilterSelect({
   const accessibleName = ariaLabel || label
   const neutral = defaultValue ?? options[0]?.[0]
   const isActive = value !== neutral
-  const selectedLabel = options.find(([optionValue]) => optionValue === value)?.[1] ?? value
+
+  const selectOptions = options.map(([optionValue, optionLabel]) => ({
+    value: optionValue,
+    label: optionLabel,
+  }))
 
   return (
-    <label
-      className={`admin-filters__select${isActive ? ' is-active' : ''}`}
-      htmlFor={id}
-    >
-      {label ? <span className="admin-filters__select-label">{label}</span> : null}
-      <span className="admin-filters__select-control">
-        <select
-          id={id}
-          value={value}
-          title={selectedLabel}
-          aria-label={label ? undefined : accessibleName}
-          onChange={(event) => onChange(event.target.value)}
-        >
-          {options.map(([optionValue, optionLabel]) => (
-            <option key={optionValue} value={optionValue} title={optionLabel}>
-              {optionLabel}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="admin-filters__select-icon" size={14} aria-hidden />
-      </span>
-    </label>
+    <div className={`admin-filters__select${isActive ? ' is-active' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {label ? <span className="admin-filters__select-label" style={{ fontSize: 12, fontWeight: 500 }}>{label}</span> : null}
+      <Select
+        id={id}
+        value={value}
+        aria-label={label ? undefined : accessibleName}
+        onChange={(val) => onChange(val)}
+        options={selectOptions}
+        style={{ minWidth: 140 }}
+      />
+    </div>
   )
 }

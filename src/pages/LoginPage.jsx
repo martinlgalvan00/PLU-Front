@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Mail, Lock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, Eye, EyeOff, HelpCircle, AlertCircle, Mail, Lock } from 'lucide-react'
 import '../styles/pages/design-phase2.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
 import authVisualPhotoAvif from '../assets/DSC00286-display.avif'
@@ -40,6 +40,64 @@ function AuthSubmit({ busy, busyLabel, className = '', label, ...props }) {
         {busy ? <span className="plu-spinner" /> : <ArrowRight size={16} />}
       </span>
     </button>
+  )
+}
+
+/**
+ * Guía de acceso: los tres caminos reales para entrar (ficha propia, clave
+ * temporal, todavía sin cuenta). Disclosure editorial — no tooltip-tour: la
+ * persona que llega sin saber si tiene cuenta necesita el mapa completo a un
+ * toque, no un carrusel. Los pasos con acción la llevan directo al flujo
+ * (recuperar acceso / afiliarse) sin salir del login.
+ */
+function LoginAccessGuide({ onRecover, onJoin }) {
+  const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  const panelId = 'login-access-guide'
+
+  const steps = [
+    { n: '01', title: t('login.howToStep1Title'), body: t('login.howToStep1Body') },
+    { n: '02', title: t('login.howToStep2Title'), body: t('login.howToStep2Body'), action: onRecover, actionLabel: t('login.howToStep2Action') },
+    { n: '03', title: t('login.howToStep3Title'), body: t('login.howToStep3Body'), action: onJoin, actionLabel: t('login.howToStep3Action') },
+  ]
+
+  return (
+    <div className="login-guide" data-open={open ? '1' : '0'}>
+      <button
+        type="button"
+        className="login-guide__toggle"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <HelpCircle size={14} aria-hidden />
+        <span>{t('login.howToToggle')}</span>
+        <ChevronDown size={14} className="login-guide__chevron" aria-hidden />
+      </button>
+
+      <div id={panelId} className="login-guide__panel" role="region" aria-label={t('login.howToTitle')}>
+        <div className="login-guide__panel-inner">
+          <p className="login-guide__title">{t('login.howToTitle')}</p>
+          <ol className="login-guide__steps">
+            {steps.map(({ n, title, body, action, actionLabel }) => (
+              <li key={n} className="login-guide__step">
+                <span className="login-guide__step-n" aria-hidden>{n}</span>
+                <div className="login-guide__step-copy">
+                  <p className="login-guide__step-title">{title}</p>
+                  <p className="login-guide__step-body">{body}</p>
+                  {action ? (
+                    <button type="button" className="login-guide__step-action" onClick={action}>
+                      {actionLabel}
+                      <ArrowRight size={13} aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -379,6 +437,11 @@ export default function LoginPage({ onLogin, onNavigate }) {
                 busy={isSubmitting}
                 busyLabel={t('login.submitting')}
                 label={t('login.submit')}
+              />
+
+              <LoginAccessGuide
+                onRecover={openRecover}
+                onJoin={() => onNavigate('members')}
               />
               {recoverMessage ? (
                 <p className="login-form__notice" role="status">

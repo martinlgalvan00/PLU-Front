@@ -1,7 +1,3 @@
-// Es sólo la previsualización. La API repite esta política y es quien fija el
-// importe persistido antes de iniciar Mercado Pago.
-const PRE_SALE_END = new Date('2026-08-29T03:00:00.000Z')
-
 /**
  * La UI llama `transferencia` a lo que la API llama `manual_link`. Todo lo que
  * viaje al backend tiene que ir traducido: el preview de un cupón calculado
@@ -15,13 +11,15 @@ export function toApiPaymentMethod(paymentMethod) {
   return null
 }
 
-export function previewCheckoutPrice({ concept, paymentMethod, fallback, now = new Date() }) {
-  if (now >= PRE_SALE_END) return fallback
-  const bankTransfer = paymentMethod === 'manual_link' || paymentMethod === 'transferencia'
-  const cashAtPitbull = paymentMethod === 'cash_pitbull'
-  if (concept === 'combo') return bankTransfer || cashAtPitbull ? 120000 : 170000
-  if (concept === 'membership' || concept === 'registration') {
-    return bankTransfer || cashAtPitbull ? 75000 : 85000
-  }
+/**
+ * Sólo previsualización — la API vuelve a resolver el precio contra el plan/
+ * evento/combo antes de crear la orden, nunca confía en este cálculo. `manualPrice`
+ * es el precio de transferencia/efectivo del plan/evento/combo que ya está
+ * cargado en pantalla (`null` = cobra igual que `fallback` en cualquier canal).
+ */
+export function previewCheckoutPrice({ paymentMethod, manualPrice, fallback }) {
+  const isManualChannel =
+    paymentMethod === 'manual_link' || paymentMethod === 'transferencia' || paymentMethod === 'cash_pitbull'
+  if (isManualChannel && manualPrice != null) return manualPrice
   return fallback
 }

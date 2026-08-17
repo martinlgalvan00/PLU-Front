@@ -225,6 +225,7 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
         findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
         applyCheckoutPrice: vi.fn().mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
+        findEventComboOffer: vi.fn().mockResolvedValue({ price: 170000, manualPrice: null }),
         createRegistrationCombo,
       },
     }))
@@ -332,6 +333,8 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
         findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
         applyCheckoutPrice: vi.fn().mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
+        findEventPricing: vi.fn().mockResolvedValue({ price: 85000, manual_price: null }),
+        findEventComboOffer: vi.fn().mockResolvedValue({ price: 170000, manualPrice: null }),
         createRegistration,
         createRegistrationCombo,
       },

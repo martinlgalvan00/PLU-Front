@@ -60,7 +60,7 @@ export function useCredentialVerification(verify, { code, eventSlug = null, enab
         })
         if (signal.aborted) return
 
-        setState({ phase: 'verified', data, cache: null })
+        setState({ phase: 'verified', data, cache: null, verifiedAt: new Date() })
         void rememberCredential(code, eventSlug, data)
       } catch (error) {
         if (signal.aborted) return
@@ -136,6 +136,9 @@ export function useCredentialVerification(verify, { code, eventSlug = null, enab
     phase: state.phase,
     data: state.data,
     cache: state.cache,
+    // Marca de la última respuesta fresca. La puerta la usa para distinguir
+    // un veredicto en vivo de uno diferido (stale tiene su propia franja).
+    verifiedAt: state.phase === 'verified' ? state.verifiedAt : null,
     failure: state.failure ?? null,
     retrying,
     retry,

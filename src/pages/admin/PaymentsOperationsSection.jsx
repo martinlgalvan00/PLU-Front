@@ -18,6 +18,8 @@ import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTab
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getPaymentsTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
 import {
   getPaymentOperations,
@@ -90,6 +92,7 @@ export default function PaymentsOperationsSection({
   onRefresh: onRefreshManual,
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -145,6 +148,11 @@ export default function PaymentsOperationsSection({
   useEffect(() => {
     void loadValidation()
   }, [loadValidation])
+
+  useEffect(() => {
+    startTour('admin-payments', getPaymentsTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
 
   useEffect(() => {
     if (!ticketOrderEventScope || loading) return undefined

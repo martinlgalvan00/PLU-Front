@@ -6895,7 +6895,6 @@
   overscroll-behavior-x: contain;
   padding-bottom: 2px;
   scroll-padding-inline: 2px;
-  scroll-snap-type: x proximity;
   scrollbar-width: none;
   touch-action: pan-x;
   width: 100%;
@@ -6914,7 +6913,6 @@
 
 .admin-filters--inline .admin-filter-chip {
   flex: none;
-  scroll-snap-align: start;
 }
 
 .admin-filters--inline .admin-filters__search {
@@ -7394,7 +7392,13 @@
   min-height: 44px;
 }
 
-.admin-user-delete-dialog__confirm {
+/* `.admin-shell .btn` (admin-minimal.css) repinta cualquier botón al
+   celeste operativo; como carga después de este archivo, la confirmación
+   de borrado definitivo necesita ganarle por especificidad (3 clases sobre
+   el mismo elemento), no por orden -- este botón dispara borrados
+   irreversibles en todo el panel y no puede leerse como una acción
+   primaria más. */
+.admin-shell .btn.admin-user-delete-dialog__confirm {
   align-items: center;
   background: var(--color-danger-text);
   border-color: var(--color-danger-text);
@@ -7403,7 +7407,7 @@
   gap: var(--space-sm);
 }
 
-.admin-user-delete-dialog__confirm:hover:not(:disabled) {
+.admin-shell .btn.admin-user-delete-dialog__confirm:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-danger-text) 88%, var(--color-bg-primary));
   border-color: color-mix(in srgb, var(--color-danger-text) 88%, var(--color-bg-primary));
 }
@@ -14429,7 +14433,13 @@ button.action-queue__proof:focus-visible {
   max-width: 56ch;
 }
 
-.athlete-detail__danger-action {
+/* `.admin-shell .btn` (admin-minimal.css) repinta cualquier botón al
+   celeste operativo y no excluye variantes fuera de los modales de evento;
+   como carga después de este archivo necesita perder por especificidad
+   (3 clases sobre el mismo elemento), no por orden -- una acción
+   destructiva irreversible no puede quedar con el color de un botón
+   primario cualquiera. */
+.admin-shell .btn.athlete-detail__danger-action {
   align-items: center;
   background: transparent;
   border-color: color-mix(in srgb, var(--color-danger-text) 55%, transparent);
@@ -14439,7 +14449,7 @@ button.action-queue__proof:focus-visible {
   gap: var(--space-sm);
 }
 
-.athlete-detail__danger-action:hover:not(:disabled) {
+.admin-shell .btn.athlete-detail__danger-action:hover:not(:disabled) {
   background: var(--color-danger-text);
   border-color: var(--color-danger-text);
   color: var(--admin-on-action, var(--plu-ink-inverse));

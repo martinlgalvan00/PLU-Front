@@ -1,15 +1,23 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { AdminIdentityCell, AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getAthletesTourSteps } from '../../lib/adminTourSteps.js'
 import { ATHLETE_FILTER_STATUSES } from '../../lib/constants.js'
 
 export default function AthletesSection({ athletes, onSelectAthlete }) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-athletes', getAthletesTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
 
   const statusCounts = useMemo(() => {
     const counts = Object.create(null)

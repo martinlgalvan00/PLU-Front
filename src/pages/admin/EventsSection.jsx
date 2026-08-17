@@ -30,6 +30,8 @@ import Button from '../../components/ui/Button.jsx'
 import StatusPill from '../../components/ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getEventsTourSteps } from '../../lib/adminTourSteps.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { buildEventPagePath } from '../../lib/eventPageRoute.js'
 import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
@@ -223,9 +225,15 @@ export default function EventsSection({
   tickets = [],
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [selectedId, setSelectedId] = useState(adminEvents[0]?.id ?? null)
+
+  useEffect(() => {
+    startTour('admin-events', getEventsTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
   const [formOpen, setFormOpen] = useState(false)
   const [draft, setDraft] = useState(createAdminEventDraft)
   const [editorFocus, setEditorFocus] = useState('details')

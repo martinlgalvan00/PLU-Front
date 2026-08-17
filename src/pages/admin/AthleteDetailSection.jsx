@@ -197,6 +197,7 @@ export default function AthleteDetailSection({
               </div>
               <Button
                 type="button"
+                variant="danger"
                 className="athlete-detail__danger-action"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >

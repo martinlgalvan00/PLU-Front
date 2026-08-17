@@ -32,6 +32,9 @@ export const membershipPlanVersionSchema = z.object({
   name: z.string().trim().min(3).max(120),
   description: z.string().trim().max(400).optional().default(''),
   price: money,
+  // Precio para transferencia/efectivo. Vacío = cobra igual que `price` en
+  // cualquier canal.
+  manualPrice: money.optional(),
   currency: z.literal('ARS').default('ARS'),
   billingFrequency: z.enum(['monthly', 'annual']),
   collectionMode: z.enum(['one_time', 'recurring']),
@@ -62,6 +65,10 @@ export const discountCodeSchema = z.object({
   maxRedemptions: z.coerce.number().int().positive().optional(),
   expiresAt: optionalDateTime,
   active: z.boolean().default(true),
+  // Opt-in por cupón: no todos destraban transferencia/efectivo, sólo los que
+  // un operador marca explícitamente. No reemplaza el interruptor general de
+  // canal manual, lo salta puntualmente para quien use este cupón.
+  enablesManualPayment: z.boolean().default(false),
 })
 
 const discountCodeStatusSchema = z.object({ active: z.boolean() })
@@ -70,6 +77,7 @@ export const comboOfferSchema = z
   .object({
     membershipPlanId: z.string().uuid(),
     price: money,
+    manualPrice: money.optional(),
     active: z.boolean().default(false),
     startsAt: optionalDateTime,
     endsAt: optionalDateTime,
@@ -235,6 +243,26 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
         assertPricingWritesEnabled(env)
         const code = await repository().upsertDiscountCode(req.validatedBody, actor(req))
         res.status(201).json({ code })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.delete(
+    '/discount-codes/:codeId',
+    ...writeGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const codeId = parseRouteParam(
+          z.string().uuid(),
+          req.params.codeId,
+          'El identificador del código es inválido.',
+        )
+        const result = await repository().deleteDiscountCode(codeId, actor(req))
+        res.json(result)
       } catch (error) {
         next(error)
       }

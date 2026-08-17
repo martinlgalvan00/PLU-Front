@@ -15,6 +15,7 @@ export function mapMembershipPlan(row) {
     name: row.name,
     description: row.description ?? '',
     price: Number(row.price) || 0,
+    manualPrice: row.manual_price != null ? Number(row.manual_price) : (row.manualPrice ?? null),
     currency: row.currency ?? 'ARS',
     billingFrequency: row.billing_frequency ?? row.billingFrequency ?? 'annual',
     collectionMode: row.collection_mode ?? row.collectionMode ?? 'one_time',
@@ -39,6 +40,7 @@ export function mapDiscountCode(row) {
     maxRedemptions: row.max_redemptions ?? row.maxRedemptions ?? null,
     expiresAt: row.expires_at ?? row.expiresAt ?? null,
     active: row.active !== false,
+    enablesManualPayment: Boolean(row.enables_manual_payment ?? row.enablesManualPayment ?? false),
     redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: row.updated_at ?? row.updatedAt ?? null,
@@ -82,8 +84,17 @@ export function mapPricingConfiguration(payload = {}) {
     events: (payload.events ?? []).map((event) => ({
       ...event,
       registrationPrice: Number(event.registrationPrice) || 0,
+      registrationManualPrice: event.registrationManualPrice != null
+        ? Number(event.registrationManualPrice)
+        : null,
       comboOffer: event.comboOffer
-        ? { ...event.comboOffer, price: Number(event.comboOffer.price) || 0 }
+        ? {
+            ...event.comboOffer,
+            price: Number(event.comboOffer.price) || 0,
+            manualPrice: event.comboOffer.manualPrice != null
+              ? Number(event.comboOffer.manualPrice)
+              : null,
+          }
         : null,
     })),
     discountCodes: (payload.discountCodes ?? []).map(mapDiscountCode),
@@ -148,6 +159,10 @@ export async function setDiscountCodeActiveRequest(codeId, active) {
     { active },
   )
   return mapDiscountCode(result.code)
+}
+
+export async function deleteDiscountCodeRequest(codeId) {
+  return apiDelete(`/api/pricing/discount-codes/${encodeURIComponent(codeId)}`)
 }
 
 export async function fetchBillingSubscriptionsRequest(filters = {}) {

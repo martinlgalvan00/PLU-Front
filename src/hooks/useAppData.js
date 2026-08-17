@@ -144,6 +144,7 @@ import {
   cancelBillingSubscriptionRequest,
   createMembershipPlanVersionRequest,
   fetchBillingSubscriptionsRequest,
+  deleteDiscountCodeRequest,
   deleteMembershipPlanRequest,
   fetchPricingConfigurationRequest,
   saveEventComboOfferRequest,
@@ -865,6 +866,7 @@ export function useAppData() {
         setPayments([])
         const confirmation = {
           type: 'profile',
+          athleteId: athlete.id,
           athleteName: athlete.fullName,
           status: 'registrado',
         }
@@ -1061,9 +1063,8 @@ export function useAppData() {
         const createRegistrationRequest = purchaseType === 'combo'
           ? createCompetitionRegistrationComboRequest
           : createCompetitionRegistrationRequest
-        // El cupón queda fuera de scope para el combo por decisión de producto
-        // (ver create_membership_registration_combo_order): solo se reenvía en
-        // la inscripción simple.
+        // El cupón del combo sólo redime si tiene applies_to = 'both' (ver
+        // create_membership_registration_combo_order / apply_discount_code_to_order).
         const { order, registration, membership, plan, comboOffer } = await createRegistrationRequest({
           athleteId: athlete.id,
           eventSlug: selectedEvent.slug,
@@ -1080,7 +1081,7 @@ export function useAppData() {
                 registrationAccessCode: options.registrationAccessCode,
               }
             : { accessCode: options.registrationAccessCode }),
-          ...(purchaseType === 'combo' ? null : { discountCode: options.discountCode }),
+          discountCode: options.discountCode,
         })
         // El Payment Brick de inscripción se inicializa con amount. Crear una
         // preference de Checkout Pro escribe provider_preference_id y bloquea
@@ -2667,6 +2668,19 @@ export function useAppData() {
     }
   }, [refreshPricingConfiguration, session])
 
+  const deleteDiscountCode = useCallback(async (codeId) => {
+    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
+      return { error: 'La configuración económica está disponible próximamente.' }
+    }
+    try {
+      const result = await deleteDiscountCodeRequest(codeId)
+      await refreshPricingConfiguration()
+      return result
+    } catch (error) {
+      return { error: error?.message ?? 'No se pudo eliminar el código de descuento.' }
+    }
+  }, [refreshPricingConfiguration, session])
+
   const refreshBillingSubscriptions = useCallback(async (filters = {}) => {
     const currentSession = sessionRef.current
     if (!currentSession || !hasPermission(currentSession, 'admin.payments.read')) return null
@@ -2779,6 +2793,7 @@ export function useAppData() {
     setMembershipPlanRetirement,
     upsertDiscountCode,
     setDiscountCodeActive,
+    deleteDiscountCode,
     billingSubscriptions,
     billingSubscriptionsLoading,
     billingSubscriptionsError,

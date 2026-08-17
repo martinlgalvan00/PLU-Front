@@ -206,14 +206,15 @@ export function createSupabaseAthleteRepository(
       p_plan_code: data.planCode,
       p_idempotency_key: data.idempotencyKey,
       p_discount_code: data.discountCode || null,
-      p_order_amount: data.orderAmount,
+      p_default_price: data.defaultPrice,
+      p_manual_price: data.manualPrice ?? null,
       p_manual_payment_channel: data.manualPaymentChannel,
     }, 'No se pudo crear la orden de afiliacion.'),
     async findMembershipPlan(planCode) {
       const readPlan = async (column) => assertSupabaseResult(
         await client
           .from('membership_plans')
-          .select('id, code, family_code, version, collection_mode, active, price, currency')
+          .select('id, code, family_code, version, collection_mode, active, price, manual_price, currency')
           .eq('organization_id', organizationId)
           .eq(column, planCode)
           .eq('active', true)
@@ -233,12 +234,33 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('events')
-          .select('id, slug, price, currency')
+          .select('id, slug, price, manual_price, currency')
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
           .maybeSingle(),
         'No se pudo validar el evento.',
       )
+    },
+    // Precio vigente del combo (afiliación + inscripción) para el preview de
+    // cupón: mismo criterio de vigencia (active + ventana starts/ends) que ya
+    // aplica create_membership_registration_combo_order_core al validar la
+    // oferta antes de crear la orden.
+    async findEventComboOffer(eventSlug) {
+      const event = assertSupabaseResult(
+        await client
+          .from('events')
+          .select('id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at)')
+          .eq('organization_id', organizationId)
+          .eq('slug', eventSlug)
+          .maybeSingle(),
+        'No se pudo validar el combo del evento.',
+      )
+      const offer = Array.isArray(event?.comboOffer) ? event.comboOffer[0] : event?.comboOffer
+      if (!offer || !offer.active) return null
+      const now = new Date()
+      if (offer.starts_at && new Date(offer.starts_at) > now) return null
+      if (offer.ends_at && new Date(offer.ends_at) < now) return null
+      return { price: offer.price, manualPrice: offer.manual_price, currency: offer.currency }
     },
     previewDiscountCode: (athleteId, { code, appliesTo, baseAmount }) => rpc(
       'athlete_preview_discount_code',
@@ -251,6 +273,28 @@ export function createSupabaseAthleteRepository(
       },
       'No se pudo validar el código de descuento.',
     ),
+    // Lectura simple (no RPC): sólo decide si el canal manual se destraba
+    // para esta compra puntual. La redención real, con todas sus validaciones
+    // (vencido, agotado, ya usado por este atleta), sigue pasando únicamente
+    // por apply_discount_code_to_order dentro de la misma transacción que crea
+    // la orden — si el cupón resulta inválido ahí, la orden entera se cae, así
+    // que una lectura desactualizada acá nunca deja una orden manual sin
+    // cupón real detrás.
+    async discountCodeManualEligibility(code, scope) {
+      if (!code) return false
+      const row = assertSupabaseResult(
+        await client
+          .from('discount_codes')
+          .select('active, applies_to, expires_at, enables_manual_payment')
+          .eq('organization_id', organizationId)
+          .eq('code', String(code).trim().toUpperCase())
+          .maybeSingle(),
+        'No se pudo validar el cupón.',
+      )
+      if (!row || !row.active || !row.enables_manual_payment) return false
+      if (row.expires_at && new Date(row.expires_at) < new Date()) return false
+      return row.applies_to === scope || row.applies_to === 'both'
+    },
     createRegistration: (athleteId, data) => rpc('create_competition_registration_checkout', {
       p_athlete_id: athleteId,
       p_event_slug: data.eventSlug,
@@ -260,7 +304,8 @@ export function createSupabaseAthleteRepository(
       p_payment_method: data.paymentMethod,
       p_idempotency_key: data.idempotencyKey,
       p_discount_code: data.discountCode || null,
-      p_order_amount: data.orderAmount,
+      p_default_price: data.defaultPrice,
+      p_manual_price: data.manualPrice ?? null,
       p_manual_payment_channel: data.manualPaymentChannel,
     }, 'No se pudo crear la inscripcion.'),
     createRegistrationCombo: (athleteId, data) => rpc(
@@ -273,8 +318,10 @@ export function createSupabaseAthleteRepository(
         p_bodyweight_kg: data.bodyweightKg,
         p_payment_method: data.paymentMethod,
         p_idempotency_key: data.idempotencyKey,
-        p_order_amount: data.orderAmount,
+        p_default_price: data.defaultPrice,
+        p_manual_price: data.manualPrice ?? null,
         p_manual_payment_channel: data.manualPaymentChannel,
+        p_discount_code: data.discountCode || null,
       },
       'No se pudo crear el combo de afiliacion e inscripcion.',
     ),
@@ -462,10 +509,11 @@ export function createSupabaseAthleteRepository(
       )
       return { path, token: signed.token }
     },
-    registerPaymentProof: (athleteId, orderId, proofPath) => rpc('register_athlete_payment_proof', {
+    registerPaymentProof: (athleteId, orderId, proofPath, notes) => rpc('register_athlete_payment_proof', {
       p_order_id: orderId,
       p_athlete_id: athleteId,
       p_proof_path: proofPath,
+      p_notes: notes || null,
     }, 'No se pudo registrar el comprobante.'),
     async paymentProofUrl(orderId) {
       const order = assertSupabaseResult(
@@ -652,7 +700,7 @@ export function createSupabaseAthleteRepository(
         read.paymentOrders
           ? client
               .from('athlete_payment_orders')
-              .select('id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, created_at')
+              .select('id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at')
               .eq('organization_id', organizationId)
               .order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),

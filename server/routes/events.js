@@ -32,11 +32,11 @@ const CATALOG_EVENT_SELECT = `
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
-  capacity, status, published, requires_membership, price, currency, rules,
+  capacity, status, published, requires_membership, price, manual_price, currency, rules,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventRegistrations:event_registrations(count),
   eventDays:event_days(id, day_index, label, date),
-  comboOffer:event_combo_offers(id, membership_plan_id, price, currency, active, starts_at, ends_at),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
@@ -89,6 +89,9 @@ const pricingSchema = z
   .object({
     membership: boundedMoney,
     registration: paidMoney,
+    // Precio para transferencia/efectivo. Vacío = cobra igual que `registration`
+    // en cualquier canal.
+    registrationManual: paidMoney.optional(),
     combo: boundedMoney,
     ticketsEnabled: z.boolean().optional(),
     ticketAddons: z.array(ticketAddonSchema).max(30).optional(),

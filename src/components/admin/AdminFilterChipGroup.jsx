@@ -85,11 +85,24 @@ export default function AdminFilterChipGroup({
     }
 
     syncOverflow()
-    if (typeof ResizeObserver === 'undefined') return undefined
-
-    const observer = new ResizeObserver(syncOverflow)
-    observer.observe(el)
-    return () => observer.disconnect()
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(syncOverflow)
+      observer.observe(el)
+      
+      const handleWheel = (e) => {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+        if (e.deltaY !== 0) {
+          e.preventDefault()
+          el.scrollLeft += e.deltaY
+        }
+      }
+      el.addEventListener('wheel', handleWheel, { passive: false })
+      
+      return () => {
+        observer.disconnect()
+        el.removeEventListener('wheel', handleWheel)
+      }
+    }
   }, [allLabel, showAllChip, visibleOptions])
 
   const endDrag = useCallback((event) => {

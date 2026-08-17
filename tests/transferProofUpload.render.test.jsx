@@ -31,7 +31,7 @@ describe('TransferProofUpload', () => {
 
     await waitFor(() => {
       expect(uploadAthletePaymentProof).toHaveBeenCalledWith('order-1', file)
-      expect(registerAthletePaymentProof).toHaveBeenCalledWith('order-1', 'order-1/comprobante.pdf')
+      expect(registerAthletePaymentProof).toHaveBeenCalledWith('order-1', 'order-1/comprobante.pdf', undefined)
     })
     expect(screen.getByText(/administración lo valida en hasta 48 horas/i)).toBeTruthy()
     expect(onUploaded).toHaveBeenCalledWith({ id: 'order-1', status: 'validacion_manual' })

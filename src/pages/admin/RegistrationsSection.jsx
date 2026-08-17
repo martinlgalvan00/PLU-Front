@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BadgeCheck, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
@@ -16,6 +16,8 @@ import ExportButton from '../../components/ui/ExportButton.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getRegistrationsTourSteps } from '../../lib/adminTourSteps.js'
 import { useEventSchedule } from '../../hooks/useEventSchedule.js'
 import { REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import { formatScheduleSummary } from '../../lib/eventSchedule.js'
@@ -86,6 +88,7 @@ export default function RegistrationsSection({
   unreconciledPayments = [],
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
   const total = registrationsCount ?? registrations.length
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -95,6 +98,12 @@ export default function RegistrationsSection({
   const [statusTarget, setStatusTarget] = useState(null)
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
+
+  useEffect(() => {
+    startTour('admin-registrations', getRegistrationsTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
   const isGloballyEmpty = total === 0
   const isFilteredEmpty = !isGloballyEmpty && filteredRegistrations.length === 0
 

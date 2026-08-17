@@ -545,6 +545,7 @@ export default function App() {
           onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}
           onUpsertDiscountCode={app.upsertDiscountCode}
           onSetDiscountCodeActive={app.setDiscountCodeActive}
+          onDeleteDiscountCode={app.deleteDiscountCode}
           billingSubscriptions={app.billingSubscriptions}
           billingSubscriptionsLoading={app.billingSubscriptionsLoading}
           billingSubscriptionsError={app.billingSubscriptionsError}

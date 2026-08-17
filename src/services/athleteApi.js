@@ -88,6 +88,7 @@ function toCamelPaymentOrder(row) {
       row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
     discountCode: row.discount_code ?? row.discountCode ?? null,
     discountAmount: Number(row.discount_amount ?? row.discountAmount) || 0,
+    notes: row.notes ?? null,
     createdAt: row.created_at ?? row.createdAt ?? null,
   }
 }
@@ -395,6 +396,7 @@ export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug
     percentOff: preview.percentOff ?? null,
     discountAmount: preview.discountAmount ?? null,
     finalAmount: preview.finalAmount ?? null,
+    enablesManualPayment: Boolean(preview.enablesManualPayment),
   }
 }
 
@@ -407,6 +409,7 @@ export async function createCompetitionRegistrationCombo({
   idempotencyKey = crypto.randomUUID(),
   membershipAccessCode,
   registrationAccessCode,
+  discountCode,
 }) {
   const result = await apiPost('/api/athletes/me/registration-combos', {
     eventSlug,
@@ -415,6 +418,7 @@ export async function createCompetitionRegistrationCombo({
     bodyweightKg,
     paymentMethod,
     idempotencyKey,
+    discountCode: discountCode || undefined,
     membershipAccessCode: membershipAccessCode || undefined,
     registrationAccessCode: registrationAccessCode || undefined,
   })
@@ -593,8 +597,8 @@ export async function getAthletePaymentProofUrl(orderId) {
   return url
 }
 
-export async function registerAthletePaymentProof(orderId, proofPath) {
-  const { order } = await apiPost(`/api/athletes/me/payment-orders/${orderId}/proof`, { proofPath })
+export async function registerAthletePaymentProof(orderId, proofPath, notes) {
+  const { order } = await apiPost(`/api/athletes/me/payment-orders/${orderId}/proof`, { proofPath, notes })
   return { order: toCamelPaymentOrder(order) }
 }
 

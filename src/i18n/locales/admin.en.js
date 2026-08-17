@@ -15,11 +15,182 @@ export default {
     hideSidebar: 'Hide sidebar',
     showSidebar: 'Show sidebar',
     defaultSection: 'Panel',
+    breadcrumbRoot: 'Admin',
     navAria: 'Operations navigation',
     navBadgeAria: '{{label}}, {{count}} pending',
     goToDashboard: 'Go to overview',
     syncing: 'Syncing',
     updated: 'Updated',
+  },
+  tour: {
+    startAria: 'View guided panel tour',
+    close: 'Close tour',
+    skip: 'Skip',
+    back: 'Back',
+    next: 'Next',
+    finish: 'Got it',
+    stepOf: 'Step {{current}} of {{total}}',
+    menuReplay: 'View this tour',
+    menuModeLabel: 'Auto-show',
+    mode: {
+      once: 'Once (recommended)',
+      always: 'Always',
+      off: 'Never',
+    },
+    nav: {
+      title: 'Navigation',
+      body: 'This is where every section lives: roster, competition, billing, and access. The highlighted icon is the active section.',
+    },
+    search: {
+      title: 'Global search',
+      body: 'Search an athlete, a document ID, or an event without switching sections. Enter takes you straight to the result.',
+    },
+    kpis: {
+      title: 'Operational status',
+      body: 'These numbers summarize athletes, memberships, registrations, and pending payments in real time. Tap a card to jump straight to that section.',
+    },
+    quicklinks: {
+      title: 'Quick access',
+      body: 'Shortcuts to the sections you use most day to day, without going through the sidebar.',
+    },
+    queue: {
+      title: 'Pending items',
+      body: 'Anything that needs a decision from you -- payments to validate, registrations to review -- lists here, separate from what is already moving on its own.',
+    },
+    help: {
+      title: 'Replay this tour',
+      body: 'Come back to this guide anytime from this button. It also switches the panel theme and language.',
+    },
+    athletes: {
+      search: {
+        title: 'Search an athlete',
+        body: 'By name, gym, document ID, or email -- filters the list instantly, no page reload.',
+      },
+      filters: {
+        title: 'Athlete status',
+        body: 'All, active members, or registered-only without a membership. The number on each chip is the real count for that view.',
+      },
+      stats: {
+        title: 'Roster summary',
+        body: 'Active, expired, and blocked at a glance, before you dig into individual rows.',
+      },
+      table: {
+        title: 'Athlete file',
+        body: 'Tap any row to open the full file: contact details, memberships, registrations, payments, and credential.',
+      },
+    },
+    memberships: {
+      search: {
+        title: 'Search a membership',
+        body: "By the athlete's name, gym, or member code.",
+      },
+      filters: {
+        title: 'Status and expiration',
+        body: 'Filter by membership status, or flip the toggle to see only the ones expiring soon and due for renewal.',
+      },
+      stats: {
+        title: 'Membership health',
+        body: 'Active, new this month, expiring soon, and payment pending -- the four signals that tell you whether to chase renewals or collections.',
+      },
+      actions: {
+        title: 'Row actions',
+        body: 'View credential, activate, cancel, or delete -- based on your permission. Clicking the row opens the athlete file; these buttons do not.',
+      },
+    },
+    registrations: {
+      search: {
+        title: 'Search a registration',
+        body: 'By athlete, gym, document ID, or category, within the event you are viewing.',
+      },
+      filters: {
+        title: 'Event and status',
+        body: 'If more than one event has open registrations, pick which one to view. Status filters confirmed, pending payment, or missing membership.',
+      },
+      exports: {
+        title: 'Export',
+        body: 'A full-detail CSV, or the sheet formatted the way PLU USA expects it -- without touching data or over-exposing it.',
+      },
+      stats: {
+        title: "Event's registration pulse",
+        body: 'Total, pending payment, manual validation, and confirmed -- the pulse of registrations for this event.',
+      },
+      table: {
+        title: 'Validate and manage',
+        body: 'Approve a manual payment, show/hide from the public roster, change status, or delete -- all from the row, without leaving the list.',
+      },
+    },
+    events: {
+      create: {
+        title: 'New event',
+        body: 'Create a meet: date, venue, categories, and slots. The button next to it refreshes the list against the latest saved state.',
+      },
+      kpis: {
+        title: 'Competition pulse',
+        body: 'Upcoming, total registered, and fill rate -- to spot at a glance if an event is filling up.',
+      },
+      list: {
+        title: 'All meets',
+        body: 'Grouped by status. Tap one to see its detail and edit it on the right.',
+      },
+      preview: {
+        title: 'Event detail',
+        body: 'Registration state, public visibility, slots, and shortcuts to that event\'s tickets, registrations, and payments.',
+      },
+    },
+    payments: {
+      kpis: {
+        title: 'Collections radar',
+        body: 'Orders to validate, pending tickets, failed webhooks, reconciliations, and overall integrity -- tap any of them to jump to that queue.',
+      },
+      athletes: {
+        title: 'Athlete orders',
+        body: 'Mercado Pago transfers and settlements waiting for validation. Approve, reject, or force a manual settlement here.',
+      },
+      tickets: {
+        title: 'Tickets and transfers',
+        body: 'Manual ticket purchase orders waiting for proof or validation.',
+      },
+      ledger: {
+        title: 'Technical ledger',
+        body: 'Failed webhooks and pending reconciliations with Mercado Pago -- the detail you need to diagnose when something does not add up.',
+      },
+    },
+    pricing: {
+      intro: {
+        title: 'Pricing',
+        body: 'Everything that defines how much and how something is charged: membership plans, event combos, discount codes, and recurring subscriptions.',
+      },
+      plans: {
+        title: 'Membership plans',
+        body: 'Each plan has versions with their own price and validity window -- creating a new version does not erase the history of what was already charged. "Retire" pulls a plan from sale without touching active memberships.',
+      },
+      combos: {
+        title: 'Event + membership combos',
+        body: 'A special price when someone joins and registers for an event in the same purchase. Built per event, with its own validity window.',
+      },
+      codes: {
+        title: 'Discount codes',
+        body: 'Manual coupons by amount or percentage, with a usage cap and validity window. They can stack with automatic promotions or not, depending on how they are configured.',
+      },
+      subscriptions: {
+        title: 'Active subscriptions',
+        body: "Each recurring subscription's real status against Mercado Pago: next billing date, past due, and cancellation -- the provider is the source of truth, this is an operational mirror.",
+      },
+    },
+    accessGates: {
+      intro: {
+        title: 'Access and enablement',
+        body: 'The switches that decide whether someone can start a membership, a registration, or a ticket purchase right now -- before they even reach a form.',
+      },
+      toggles: {
+        title: 'General enablement',
+        body: 'A full cutoff per operation type (membership, registration, ticket, subscription). Turned off here, nobody can start that operation, code or no code.',
+      },
+      gates: {
+        title: 'Private batches',
+        body: 'Beyond the general cutoff, each batch within an event can require its own code to open gradually -- useful for presales or reserved slots ahead of the public opening.',
+      },
+    },
   },
   nav: {
     groups: {
@@ -297,6 +468,9 @@ export default {
       name: 'Public name',
       description: 'Description',
       price: 'Price',
+      manualPrice: 'Bank transfer/cash price',
+      manualPricePlaceholder: 'Same as the Mercado Pago price',
+      manualPriceHint: 'Optional. Leave it empty and transfer/cash charge the same as Mercado Pago.',
       currency: 'Currency',
       billingFrequency: 'Validity',
       collectionMode: 'Collection mode',
@@ -358,6 +532,18 @@ export default {
       code: 'Code',
       codeFormatHint: 'Uppercase letters, numbers and dashes.',
       percentOff: 'Discount (%)',
+      enablesManualPayment: 'Enables bank transfer/cash for this purchase',
+      enablesManualPaymentHint:
+        'Even if the manual channel is off globally, a code with this checked unlocks it only for whoever uses it.',
+      enablesManualPaymentBadge: 'Unlocks bank transfer',
+      deleteDiscountCode: 'Delete',
+      deleteDiscountCodeAria: 'Delete code {{code}}',
+      deleteCodeConfirmTitle: 'Delete {{code}}',
+      deleteCodeConfirmDescription: 'You are about to delete the discount code {{code}} from the catalog.',
+      deleteCodeConfirmWarning: 'Only possible without recorded redemptions. If it was already used, deactivate it instead.',
+      deleteCodeConfirmCancel: 'Keep code',
+      deleteCodeConfirmConfirm: 'Delete code',
+      codeDeleted: 'Discount code deleted.',
       appliesToLabel: 'Applies to',
       appliesTo: {
         membership: 'Memberships',
@@ -1298,6 +1484,7 @@ export default {
     document: 'Document',
     detail: 'Concept',
     amount: 'Amount',
+    notes: 'Athlete notes',
     proofReceivedAt: 'Receipt received',
     proofPending: 'File pending',
     noProofTitle: 'No receipt uploaded',
@@ -1548,6 +1735,8 @@ export default {
     publish: 'Publish event',
     priceMembership: 'Membership',
     priceRegistration: 'Registration',
+    priceRegistrationManual: 'Registration · bank transfer/cash',
+    priceRegistrationManualPlaceholder: 'Same as the Mercado Pago price',
     priceCombo: 'Membership + meet combo',
     pricingCatalogHint: 'Membership and combo offers are managed from Pricing to keep a single source of truth.',
     priceCurrency: 'ARS',

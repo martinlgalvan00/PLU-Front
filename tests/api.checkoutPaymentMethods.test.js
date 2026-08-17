@@ -1,15 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
-import { checkoutPriceFor } from '../server/modules/pricing/checkoutPricePolicy.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
 
 /**
  * Matriz de medios de pago por HTTP, sin Supabase.
  *
- * `checkoutPricePolicy.test.js` ya prueba la política de precios aislada y los
- * tests de integración prueban las RPC contra una base real. Lo que no estaba
- * cubierto es el tramo del medio: que la ruta traduzca lo que elige el atleta a
- * lo que se persiste. Esa traducción no es identidad y ahí es donde duele:
+ * Lo que no está cubierto en otro lado es el tramo del medio: que la ruta
+ * traduzca lo que elige el atleta a lo que se persiste, y que el precio por
+ * defecto y el precio manual del plan/evento/combo (`membership_plans`,
+ * `events`, `event_combo_offers` — columnas `price`/`manual_price`) lleguen
+ * intactos a la RPC. Cuál de los dos termina cobrándose ya no lo decide esta
+ * capa: lo decide `plu_private.configure_atomic_checkout_pricing` en la misma
+ * transacción que crea la orden (ver `atomicCheckoutPricing.test.js` y los
+ * tests de integración para esa parte).
  *
  *   elige "efectivo en Pitbull" (cash_pitbull)
  *     -> se guarda method = 'manual_link', canal = 'cash_pitbull'
@@ -21,11 +24,6 @@ import { listen } from './integration/helpers/supabaseTestClient.js'
  * El canal es el que decide después si `approve_athlete_payment_order` exige
  * comprobante. Un efectivo guardado como transferencia no se puede aprobar
  * nunca, porque espera un archivo que nadie va a subir.
- *
- * El importe se compara contra `checkoutPriceFor` y no contra un número fijo a
- * propósito: acá se verifica que la ruta aplique la política vigente, no cuál
- * es la política — eso ya tiene su test, con fecha congelada, y así esta suite
- * no se vuelve roja sola cuando vence la preventa.
  */
 
 /**
@@ -60,6 +58,10 @@ function athleteHeaders() {
 }
 
 const ATHLETE_ID = '11111111-1111-4111-8111-111111111111'
+const DEFAULT_PRICE = 85000
+const MANUAL_PRICE = 75000
+const COMBO_DEFAULT_PRICE = 170000
+const COMBO_MANUAL_PRICE = 120000
 
 function authenticatedSupabase() {
   return {
@@ -116,8 +118,19 @@ function buildApp({ toggles = {} } = {}) {
       findMembershipPlan: vi.fn().mockResolvedValue({
         code: 'plu-annual',
         collection_mode: 'one_time',
+        price: DEFAULT_PRICE,
+        manual_price: MANUAL_PRICE,
       }),
-      applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
+      findEventPricing: vi.fn().mockResolvedValue({
+        slug: 'pitbull-classic-2026',
+        price: DEFAULT_PRICE,
+        manual_price: MANUAL_PRICE,
+      }),
+      findEventComboOffer: vi.fn().mockResolvedValue({
+        price: COMBO_DEFAULT_PRICE,
+        manualPrice: COMBO_MANUAL_PRICE,
+      }),
+      discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
       createMembershipOrder,
       createRegistration,
       createRegistrationCombo,
@@ -166,7 +179,7 @@ describe('afiliación — medio de pago elegido vs. orden persistida', () => {
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
     ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
-  ])('%s crea la orden con el método y el canal correctos', async (
+  ])('%s crea la orden con el método, el canal y los precios correctos', async (
     _label,
     paymentMethod,
     storedMethod,
@@ -186,32 +199,13 @@ describe('afiliación — medio de pago elegido vs. orden persistida', () => {
           paymentMethod: storedMethod,
           manualPaymentChannel: manualChannel,
           planCode: 'plu-annual',
-          orderAmount: checkoutPriceFor({ concept: 'membership', paymentMethod }),
+          defaultPrice: DEFAULT_PRICE,
+          manualPrice: MANUAL_PRICE,
         }),
       )
     } finally {
       await target.close()
     }
-  })
-
-  it('cobra menos por transferencia y efectivo que por Mercado Pago', async () => {
-    const amounts = {}
-    for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
-      const { target, createMembershipOrder } = buildApp({
-        toggles: paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
-      })
-      try {
-        await post(target, '/api/athletes/me/membership-orders', membershipBody(paymentMethod))
-        amounts[paymentMethod] = createMembershipOrder.mock.calls[0][1].orderAmount
-      } finally {
-        await target.close()
-      }
-    }
-
-    // Los canales manuales no pagan comisión de pasarela, así que el beneficio
-    // tiene que llegar al importe de la orden y no quedarse en el cartel.
-    expect(amounts.manual_link).toBeLessThan(amounts.mercado_pago)
-    expect(amounts.cash_pitbull).toBeLessThan(amounts.mercado_pago)
   })
 
   it('rechaza un medio de pago que no existe', async () => {
@@ -231,7 +225,7 @@ describe('inscripción a torneo — medio de pago elegido vs. orden persistida',
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
     ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
-  ])('%s crea la inscripción con el método y el canal correctos', async (
+  ])('%s crea la inscripción con el método, el canal y los precios correctos', async (
     _label,
     paymentMethod,
     storedMethod,
@@ -250,7 +244,8 @@ describe('inscripción a torneo — medio de pago elegido vs. orden persistida',
           paymentMethod: storedMethod,
           manualPaymentChannel: manualChannel,
           eventSlug: 'pitbull-classic-2026',
-          orderAmount: checkoutPriceFor({ concept: 'registration', paymentMethod }),
+          defaultPrice: DEFAULT_PRICE,
+          manualPrice: MANUAL_PRICE,
         }),
       )
     } finally {
@@ -264,7 +259,7 @@ describe('combo afiliación + inscripción — medio de pago elegido vs. orden p
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
     ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
-  ])('%s crea el combo con el método y el canal correctos', async (
+  ])('%s crea el combo con el método, el canal y los precios correctos', async (
     _label,
     paymentMethod,
     storedMethod,
@@ -284,19 +279,12 @@ describe('combo afiliación + inscripción — medio de pago elegido vs. orden p
         expect.objectContaining({
           paymentMethod: storedMethod,
           manualPaymentChannel: manualChannel,
-          orderAmount: checkoutPriceFor({ concept: 'combo', paymentMethod }),
+          defaultPrice: COMBO_DEFAULT_PRICE,
+          manualPrice: COMBO_MANUAL_PRICE,
         }),
       )
     } finally {
       await target.close()
-    }
-  })
-
-  it('cotiza el combo por encima de una afiliación suelta en todos los medios', async () => {
-    for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
-      expect(checkoutPriceFor({ concept: 'combo', paymentMethod })).toBeGreaterThan(
-        checkoutPriceFor({ concept: 'membership', paymentMethod }),
-      )
     }
   })
 })
@@ -491,7 +479,10 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
         },
         athleteRepository: {
           findContact: vi.fn().mockResolvedValue({ email_verified_at: null }),
-          findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+          findMembershipPlan: vi.fn().mockResolvedValue({
+            code: 'plu-annual', collection_mode: 'one_time', price: DEFAULT_PRICE, manual_price: MANUAL_PRICE,
+          }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
           createMembershipOrder,
         },
       }))
@@ -521,6 +512,7 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
         athleteRepository: {
           findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
           findCompetitionProfile: vi.fn().mockResolvedValue({ ...COMPLETE_COMPETITION_PROFILE, sex: '' }),
+          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
           createRegistration,
         },
       }))
