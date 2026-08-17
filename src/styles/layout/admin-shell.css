@@ -9,6 +9,14 @@
   min-height: 100dvh;
 }
 
+/* El Menu de antd no oculta el título de grupo en modo inline-collapsed --
+   en el rail de 88px el texto completo ("Competencia", "Convenio") se
+   desborda contra el ícono. Los grupos igual quedan separados por el
+   margen entre bloques del propio Menu. */
+.ant-menu-inline-collapsed .ant-menu-item-group-title {
+  display: none;
+}
+
 .admin-shell__sidebar {
   background: var(--color-bg-secondary);
   border-right: 1px solid var(--color-border-subtle);
@@ -1080,13 +1088,9 @@
     width: var(--admin-sidebar-width);
   }
 
-  .admin-shell__main {
-    padding-left: var(--admin-sidebar-rail-width);
-  }
-
-  .admin-shell:not(.admin-shell--collapsed):not(.admin-shell--sidebar-hidden) .admin-shell__main {
-    padding-left: var(--admin-sidebar-width);
-  }
+  /* El Sider de antd es un hijo flex normal (no position: fixed), así que
+     Layout ya reserva su ancho real -- un padding-left manual acá duplicaba
+     el espacio y generaba un hueco muerto entre el rail y el contenido. */
 
   .admin-shell--sidebar-hidden .admin-shell__sidebar,
   .admin-shell--sidebar-hidden.admin-shell--collapsed .admin-shell__sidebar {

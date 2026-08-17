@@ -389,6 +389,10 @@
   color: var(--color-brand-celeste);
 }
 
+.admin-pricing__status--manual {
+  color: var(--color-brand-celeste);
+}
+
 .admin-pricing__plan-row h3 {
   font-family: var(--font-display, var(--font-family));
   font-size: 0.98rem;

@@ -39,7 +39,6 @@ import {
 } from '../lib/defense/identityGuard.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import {
-  checkoutPriceFor,
   isManualPaymentMethod,
   manualPaymentChannel,
   storagePaymentMethod,
@@ -262,9 +261,9 @@ const registrationSchema = z.object({
   discountCode: discountCodeField,
   accessCode: registrationAccessCodeField,
 })
-// comboRegistrationSchema hereda discountCode de registrationSchema, pero no
-// se reenvia al RPC de combo: los cupones quedan fuera de scope para el
-// combo por decision de producto (ver create_membership_registration_combo_order).
+// comboRegistrationSchema hereda discountCode de registrationSchema y sí se
+// reenvia al RPC de combo: sólo redime cupones con applies_to = 'both' (ver
+// create_membership_registration_combo_order / apply_discount_code_to_order).
 const comboRegistrationSchema = registrationSchema.extend({
   membershipAccessCode: registrationAccessCodeField,
   registrationAccessCode: registrationAccessCodeField,
@@ -284,7 +283,7 @@ const registrationAccessVerifySchema = z.object({
 
 const discountPreviewSchema = z.object({
   code: z.string().trim().toUpperCase().min(1).max(32),
-  appliesTo: z.enum(['membership', 'registration']),
+  appliesTo: z.enum(['membership', 'registration', 'combo']),
   planCode: z.string().trim().min(1).optional(),
   eventSlug: z.string().trim().min(1).optional(),
   // El precio vigente depende del canal (transferencia y efectivo pagan menos
@@ -303,7 +302,10 @@ const proofUploadSchema = z.object({
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
   size: z.number().int().positive().max(5 * 1024 * 1024),
 })
-const proofSchema = z.object({ proofPath: z.string().trim().min(3).max(300) })
+const proofSchema = z.object({
+  proofPath: z.string().trim().min(3).max(300),
+  notes: z.string().trim().max(300).optional(),
+})
 const rejectPaymentSchema = z.object({ reason: z.string().trim().min(3).max(500) })
 // El motivo es obligatorio: acreditar a mano una orden que el proveedor dio por
 // perdida es la única operación del panel que crea dinero en el reporte
@@ -1003,7 +1005,10 @@ export function createAthleteRoutes({
       assertCheckoutEnabled(toggles)
       assertMembershipCheckoutEnabled(toggles)
       if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-        assertManualChannelEnabled(toggles, 'membership')
+        const override = await repo().discountCodeManualEligibility(
+          req.validatedBody.discountCode, 'membership',
+        )
+        assertManualChannelEnabled(toggles, 'membership', { override })
       }
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
@@ -1018,7 +1023,8 @@ export function createAthleteRoutes({
         ...req.validatedBody,
         paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
         planCode: plan.code,
-        orderAmount: checkoutPriceFor({ concept: 'membership', paymentMethod: req.validatedBody.paymentMethod }),
+        defaultPrice: plan.price,
+        manualPrice: plan.manual_price,
         manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
       })
       await recordRegistrationAccessUse(accessGate, {
@@ -1046,11 +1052,16 @@ export function createAthleteRoutes({
       assertCheckoutEnabled(toggles)
       assertRegistrationCheckoutEnabled(toggles)
       if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-        assertManualChannelEnabled(toggles, 'registration')
+        const override = await repo().discountCodeManualEligibility(
+          req.validatedBody.discountCode, 'registration',
+        )
+        assertManualChannelEnabled(toggles, 'registration', { override })
       }
       const auth = await athlete(req)
       await assertEmailVerified(auth.athleteId)
       await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+      const event = await repo().findEventPricing(eventSlug)
+      if (!event) throw new HttpError(404, 'Evento no encontrado.')
       const accessGate = await assertRegistrationAccessCode(accessRepo(), {
         scope: 'registration',
         eventSlug,
@@ -1059,7 +1070,8 @@ export function createAthleteRoutes({
       const created = await repo().createRegistration(auth.athleteId, {
         ...req.validatedBody,
         paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-        orderAmount: checkoutPriceFor({ concept: 'registration', paymentMethod: req.validatedBody.paymentMethod }),
+        defaultPrice: event.price,
+        manualPrice: event.manual_price,
         manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
       })
       await recordRegistrationAccessUse(accessGate, {
@@ -1094,12 +1106,20 @@ export function createAthleteRoutes({
         assertMembershipCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
         if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          assertManualChannelEnabled(toggles, 'membership')
-          assertManualChannelEnabled(toggles, 'registration')
+          // El combo sólo destraba con un cupón applies_to = 'both': pasar
+          // scope 'combo' hace que discountCodeManualEligibility únicamente
+          // matchee ese caso (nunca 'membership' ni 'registration' solos).
+          const override = await repo().discountCodeManualEligibility(
+            req.validatedBody.discountCode, 'combo',
+          )
+          assertManualChannelEnabled(toggles, 'membership', { override })
+          assertManualChannelEnabled(toggles, 'registration', { override })
         }
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const comboOffer = await repo().findEventComboOffer(eventSlug)
+        if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
         const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'membership',
           code: req.validatedBody.membershipAccessCode,
@@ -1112,7 +1132,8 @@ export function createAthleteRoutes({
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          orderAmount: checkoutPriceFor({ concept: 'combo', paymentMethod: req.validatedBody.paymentMethod }),
+          defaultPrice: comboOffer.price,
+          manualPrice: comboOffer.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
         })
         await recordRegistrationAccessUse(membershipAccessGate, {
@@ -1144,25 +1165,32 @@ export function createAthleteRoutes({
       const auth = await athlete(req)
       const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
       let baseAmount
+      let manualPrice
       if (appliesTo === 'membership') {
         if (!planCode) throw new HttpError(400, 'Falta el plan de afiliación.')
         const plan = await repo().findMembershipPlan(planCode)
         if (!plan) throw new HttpError(404, 'Plan de afiliación no encontrado.')
         baseAmount = plan.price
+        manualPrice = plan.manual_price
+      } else if (appliesTo === 'combo') {
+        if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
+        const offer = await repo().findEventComboOffer(eventSlug)
+        if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
+        baseAmount = offer.price
+        manualPrice = offer.manualPrice
       } else {
         if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
         baseAmount = event.price
+        manualPrice = event.manual_price
       }
-      // Misma política que usa la creación de la orden: mientras la ventana
-      // Pitbull esté abierta el precio real lo fija el canal de pago, no el
-      // catálogo. Fuera de esa ventana `checkoutPriceFor` devuelve null y
-      // vuelve a mandar el precio de la tabla.
-      const checkoutAmount = paymentMethod
-        ? checkoutPriceFor({ concept: appliesTo, paymentMethod })
-        : null
-      if (checkoutAmount != null) baseAmount = checkoutAmount
+      // Misma política que usa la creación de la orden: el canal manual cotiza
+      // contra el precio manual del plan/evento/combo cuando está configurado,
+      // nunca contra el de Mercado Pago.
+      if (paymentMethod && isManualPaymentMethod(paymentMethod) && manualPrice != null) {
+        baseAmount = manualPrice
+      }
       const preview = await repo().previewDiscountCode(auth.athleteId, { code, appliesTo, baseAmount })
       res.json({ preview })
     } catch (error) {
@@ -1188,7 +1216,9 @@ export function createAthleteRoutes({
       const auth = await athlete(req)
       const orderId = z.string().uuid().safeParse(req.params.orderId)
       if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
-      res.json(await repo().registerPaymentProof(auth.athleteId, orderId.data, req.validatedBody.proofPath))
+      res.json(await repo().registerPaymentProof(
+        auth.athleteId, orderId.data, req.validatedBody.proofPath, req.validatedBody.notes,
+      ))
     } catch (error) { next(error) }
   })
   router.post('/me/photo-upload', athleteWriteLimiter, validateBody(uploadSchema), async (req, res, next) => {

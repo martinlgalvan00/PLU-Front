@@ -56,7 +56,9 @@ describe('tanda privada de afiliación — POST /me/membership-orders', () => {
       registrationAccessRepository: { findActiveGate, recordUse },
       athleteRepository: {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+        findMembershipPlan: vi.fn().mockResolvedValue({
+          code: 'plu-annual', collection_mode: 'one_time', price: 85000, manual_price: null,
+        }),
         applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
         createMembershipOrder,
       },
@@ -124,7 +126,8 @@ describe('tanda privada de afiliación — POST /me/membership-orders', () => {
         '11111111-1111-4111-8111-111111111111',
         expect.objectContaining({
           paymentMethod: 'mercado_pago',
-          orderAmount: 85000,
+          defaultPrice: 85000,
+          manualPrice: null,
           manualPaymentChannel: null,
         }),
       )

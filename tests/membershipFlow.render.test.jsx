@@ -266,7 +266,7 @@ describe('credencial de inscripción a torneo', () => {
   const cardActions = () =>
     screen.queryAllByRole('button', { name: /descargar y compartir mi card/i })
 
-  it('muestra ARS 85.000 como total de inscripción de Pitbull Classic con Mercado Pago', () => {
+  it('muestra ARS 75.000 como total de inscripción de Pitbull Classic con Mercado Pago', () => {
     const { container } = renderRegister({
       flow: 'competition',
       order: null,
@@ -281,7 +281,7 @@ describe('credencial de inscripción a torneo', () => {
 
     const displayedTotals = [...container.querySelectorAll('.register-competition-ticket__total strong')]
       .map((node) => node.textContent.replace(/\s/g, ''))
-    expect(displayedTotals.some((value) => value.includes('85.000'))).toBe(true)
+    expect(displayedTotals.some((value) => value.includes('75.000'))).toBe(true)
     expect(displayedTotals.some((value) => /^\$?2$/.test(value))).toBe(false)
   })
 
@@ -399,7 +399,7 @@ describe('sección de afiliación de la cuenta', () => {
     renderPurchaseSection(membership({ status: 'pendiente_pago' }))
 
     await waitFor(() => {
-      expect(screen.getAllByText(/85\.000/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/88\.000/).length).toBeGreaterThan(0)
     })
     expect(screen.queryByText(/75\.000/)).toBeNull()
   })

@@ -31,6 +31,32 @@ const VERDICT_META = {
 }
 
 const dateTime = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' })
+const timeOnly = new Intl.DateTimeFormat('es-AR', { timeStyle: 'short' })
+
+/**
+ * Estructura fantasma del panel mientras se resuelve la primera verificación.
+ * Estática a propósito: la fila ya está esperando y un skeleton animado no
+ *informa nada que la fila necesite saber. Su trabajo es sostener el alto del
+ * panel para que el veredicto no llegue con un salto de layout.
+ */
+function VerificationSkeleton() {
+  return (
+    <div className="credential-page__body credential-page__body--loading" aria-hidden>
+      <div className="credential-page__identity-hero">
+        <span className="credential-page__ghost credential-page__ghost--photo" />
+        <div className="credential-page__identity-hero-copy">
+          <span className="credential-page__ghost credential-page__ghost--name" />
+          <span className="credential-page__ghost credential-page__ghost--code" />
+        </div>
+      </div>
+      <div className="credential-page__ghost credential-page__ghost--schedule" />
+      <span className="credential-page__ghost credential-page__ghost--row" />
+      <span className="credential-page__ghost credential-page__ghost--row credential-page__ghost--row--short" />
+      <span className="credential-page__ghost credential-page__ghost--row credential-page__ghost--row--mid" />
+      <span className="credential-page__ghost credential-page__ghost--action" />
+    </div>
+  )
+}
 
 /** Edad civil a hoy, para cotejar el documento sin forzar cálculo mental. */
 function ageFromBirthDate(iso) {
@@ -274,10 +300,13 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
   const [checkInError, setCheckInError] = useState(null)
 
   const verify = useCallback((value) => getMembershipByCodeOrToken(value, eventSlug), [eventSlug])
-  const { phase, data, cache, retry, retrying, patchData } = useCredentialVerification(verify, {
-    code,
-    eventSlug,
-  })
+  const { phase, data, cache, retry, retrying, patchData, verifiedAt } = useCredentialVerification(
+    verify,
+    {
+      code,
+      eventSlug,
+    },
+  )
 
   if (phase === 'loading') {
     return (
@@ -286,7 +315,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
         verdictLabel="Verificando…"
         verdictClass="credential-page__verdict--warning"
       >
-        <div className="credential-page__body" />
+        <VerificationSkeleton />
       </CredentialShell>
     )
   }
@@ -432,7 +461,13 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
   }
 
   return (
-    <CredentialShell verdictIcon={Icon} verdictLabel={verdictLabel} verdictClass={verdictClass}>
+    <CredentialShell
+      verdictIcon={Icon}
+      verdictLabel={verdictLabel}
+      verdictClass={verdictClass}
+      code={code}
+      verifiedAt={verifiedAt}
+    >
       <div className="credential-page__body">
         {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
 
@@ -643,10 +678,8 @@ function TicketCredential({ code, onCheckIn }) {
   const [checkInError, setCheckInError] = useState(null)
 
   const verify = useCallback(async (value) => (await verifyTicketByQrToken(value)).ticket, [])
-  const { phase, data: ticket, cache, retry, retrying, patchData } = useCredentialVerification(
-    verify,
-    { code },
-  )
+  const { phase, data: ticket, cache, retry, retrying, patchData, verifiedAt } =
+    useCredentialVerification(verify, { code })
 
   if (phase === 'loading') {
     return (
@@ -655,7 +688,7 @@ function TicketCredential({ code, onCheckIn }) {
         verdictLabel="Verificando…"
         verdictClass="credential-page__verdict--warning"
       >
-        <div className="credential-page__body" />
+        <VerificationSkeleton />
       </CredentialShell>
     )
   }
@@ -716,7 +749,13 @@ function TicketCredential({ code, onCheckIn }) {
   }
 
   return (
-    <CredentialShell verdictIcon={Icon} verdictLabel={verdictLabel} verdictClass={verdictClass}>
+    <CredentialShell
+      verdictIcon={Icon}
+      verdictLabel={verdictLabel}
+      verdictClass={verdictClass}
+      code={code}
+      verifiedAt={verifiedAt}
+    >
       <div className="credential-page__body">
         {isStale && <StaleNotice cache={cache} onRetry={retry} retrying={retrying} />}
 
@@ -816,6 +855,8 @@ function CredentialShell({
   verdictLabel,
   verdictMeta,
   verdictClass,
+  code = null,
+  verifiedAt = null,
   brandMark = 'Verificación QR',
   backHomeLabel = 'Volver al sitio de PLU ARG',
 }) {
@@ -834,8 +875,16 @@ function CredentialShell({
           </div>
         </header>
 
-        <p className={`credential-page__verdict ${verdictClass}`} role="status">
-          <Icon size={18} aria-hidden />
+        {/* Key por veredicto: al cambiar de fase (verificando → válida) el
+            sello se re-estampa — la respuesta a la puerta leída como tal. */}
+        <p
+          key={`${verdictClass}__${verdictLabel}`}
+          className={`credential-page__verdict ${verdictClass}`}
+          role="status"
+        >
+          <span className="credential-page__verdict-seal" aria-hidden>
+            <Icon size={18} />
+          </span>
           <span className="credential-page__verdict-copy">
             {verdictMeta ? (
               <span className="credential-page__verdict-meta">{verdictMeta}</span>
@@ -847,6 +896,16 @@ function CredentialShell({
         {children}
 
         <footer className="credential-page__footer">
+          {(verifiedAt || code) && (
+            <p className="credential-page__footer-meta">
+              {verifiedAt && (
+                <span className="credential-page__footer-verified">
+                  {timeOnly.format(verifiedAt)}
+                </span>
+              )}
+              {code && <span className="credential-page__footer-code">{code}</span>}
+            </p>
+          )}
           <a href="/">{backHomeLabel}</a>
         </footer>
       </div>

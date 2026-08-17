@@ -17,6 +17,7 @@ export default function RegisterSettle({
   // habilitación explícita desde Administración.
   manualPaymentEnabled = false,
   membershipPrice = 0,
+  membershipManualPrice = null,
   onPaymentBlur,
   onPaymentChange,
   onPurchaseTypeChange,
@@ -25,6 +26,7 @@ export default function RegisterSettle({
   paymentMethod,
   purchaseType = 'combo',
   registrationPrice = 0,
+  registrationManualPrice = null,
   showPackage = false,
   showPayment = false,
 }) {
@@ -32,9 +34,15 @@ export default function RegisterSettle({
   if (!showPackage && !showPayment) return null
 
   const comboSelected = purchaseType === 'combo'
-  const displayedMembershipPrice = previewCheckoutPrice({ concept: 'membership', paymentMethod, fallback: membershipPrice })
-  const displayedRegistrationPrice = previewCheckoutPrice({ concept: 'registration', paymentMethod, fallback: registrationPrice })
-  const displayedComboPrice = previewCheckoutPrice({ concept: 'combo', paymentMethod, fallback: comboOffer?.price ?? 0 })
+  const displayedMembershipPrice = previewCheckoutPrice({
+    paymentMethod, manualPrice: membershipManualPrice, fallback: membershipPrice,
+  })
+  const displayedRegistrationPrice = previewCheckoutPrice({
+    paymentMethod, manualPrice: registrationManualPrice, fallback: registrationPrice,
+  })
+  const displayedComboPrice = previewCheckoutPrice({
+    paymentMethod, manualPrice: comboOffer?.manualPrice, fallback: comboOffer?.price ?? 0,
+  })
   const displayedDeal = resolveComboDeal({
     membership: displayedMembershipPrice,
     registration: displayedRegistrationPrice,

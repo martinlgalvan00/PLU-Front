@@ -15,11 +15,182 @@ export default {
     hideSidebar: 'Ocultar panel lateral',
     showSidebar: 'Mostrar panel lateral',
     defaultSection: 'Panel',
+    breadcrumbRoot: 'Admin',
     navAria: 'Navegación operativa',
     navBadgeAria: '{{label}}, {{count}} pendientes',
     goToDashboard: 'Ir al resumen',
     syncing: 'Sincronizando',
     updated: 'Actualizado',
+  },
+  tour: {
+    startAria: 'Ver recorrido guiado del panel',
+    close: 'Cerrar recorrido',
+    skip: 'Saltear',
+    back: 'Atrás',
+    next: 'Siguiente',
+    finish: 'Entendido',
+    stepOf: 'Paso {{current}} de {{total}}',
+    menuReplay: 'Ver este recorrido',
+    menuModeLabel: 'Mostrar automáticamente',
+    mode: {
+      once: 'Una vez (recomendado)',
+      always: 'Siempre',
+      off: 'Nunca',
+    },
+    nav: {
+      title: 'Navegación',
+      body: 'Acá vivís las secciones del panel: plantel, competencia, cobros y acceso. El ícono resaltado es la sección activa.',
+    },
+    search: {
+      title: 'Buscador global',
+      body: 'Buscá un atleta, un DNI o un evento sin cambiar de sección. Enter te lleva directo al resultado.',
+    },
+    kpis: {
+      title: 'Estado operativo',
+      body: 'Estos números resumen atletas, afiliaciones, inscripciones y pagos pendientes en tiempo real. Tocá una tarjeta para ir directo a esa sección.',
+    },
+    quicklinks: {
+      title: 'Accesos rápidos',
+      body: 'Atajos a las secciones que más se usan en el día a día, sin pasar por el menú lateral.',
+    },
+    queue: {
+      title: 'Pendientes',
+      body: 'Lo que necesita una decisión tuya -- pagos por validar, inscripciones a revisar -- queda listado acá, separado de lo que ya sigue su curso solo.',
+    },
+    help: {
+      title: 'Repetir este recorrido',
+      body: 'Cuando quieras, volvé a ver esta guía desde este botón. También cambia el tema y el idioma del panel.',
+    },
+    athletes: {
+      search: {
+        title: 'Buscá un atleta',
+        body: 'Por nombre, gimnasio, DNI o email -- filtra la lista al toque, sin recargar la página.',
+      },
+      filters: {
+        title: 'Estado del atleta',
+        body: 'Todos, afiliados activos o solo registrados sin afiliación. El número en cada chip es el conteo real de esa vista.',
+      },
+      stats: {
+        title: 'Resumen del plantel',
+        body: 'Activos, vencidos y bloqueados de un vistazo, antes de entrar a revisar fila por fila.',
+      },
+      table: {
+        title: 'Ficha del atleta',
+        body: 'Tocá cualquier fila para abrir la ficha completa: datos de contacto, afiliaciones, inscripciones, pagos y credencial.',
+      },
+    },
+    memberships: {
+      search: {
+        title: 'Buscá una afiliación',
+        body: 'Por nombre del atleta, gimnasio o código de socio.',
+      },
+      filters: {
+        title: 'Estado y vencimiento',
+        body: 'Filtrá por estado de la afiliación, o activá el toggle para ver solo las que vencen pronto y necesitan renovación.',
+      },
+      stats: {
+        title: 'Salud de las afiliaciones',
+        body: 'Activas, altas del mes, por vencer y con pago pendiente -- las cuatro señales que definen si hay que salir a cobrar o a renovar.',
+      },
+      actions: {
+        title: 'Acciones por fila',
+        body: 'Ver credencial, activar, dar de baja o eliminar -- según tu permiso. Un click en la fila abre la ficha del atleta; estos botones no.',
+      },
+    },
+    registrations: {
+      search: {
+        title: 'Buscá una inscripción',
+        body: 'Por atleta, gimnasio, DNI o categoría, dentro del evento que estés mirando.',
+      },
+      filters: {
+        title: 'Evento y estado',
+        body: 'Si hay más de un evento con inscripciones abiertas, elegí cuál mirar. El estado filtra confirmadas, pendientes de pago o sin afiliación.',
+      },
+      exports: {
+        title: 'Exportar',
+        body: 'CSV con todo el detalle operativo, o la planilla en el formato que espera PLU USA -- sin tocar datos ni exponer de más.',
+      },
+      stats: {
+        title: 'Estado de la caja',
+        body: 'Total, pendientes de pago, con validación manual y confirmadas -- el pulso de inscripciones del evento.',
+      },
+      table: {
+        title: 'Validar y gestionar',
+        body: 'Aprobar pago manual, mostrar/ocultar del padrón público, cambiar estado o eliminar -- todo desde la fila, sin salir de la lista.',
+      },
+    },
+    events: {
+      create: {
+        title: 'Nuevo evento',
+        body: 'Alta de un meet: fecha, sede, categorías y cupos. El botón de al lado refresca la lista contra lo último guardado.',
+      },
+      kpis: {
+        title: 'Pulso de competencias',
+        body: 'Próximos, inscriptos totales y ocupación -- para saber de un vistazo si un evento se está llenando.',
+      },
+      list: {
+        title: 'Todos los meets',
+        body: 'Agrupados por estado. Tocá uno para ver su detalle y editarlo a la derecha.',
+      },
+      preview: {
+        title: 'Detalle del evento',
+        body: 'Estado de inscripción, visibilidad pública, cupos y accesos directos a entradas, inscripciones y cobros de ese evento.',
+      },
+    },
+    payments: {
+      kpis: {
+        title: 'Radar de cobros',
+        body: 'Órdenes por validar, entradas pendientes, webhooks fallidos, conciliaciones e integridad general -- tocá cualquiera para ir directo a esa cola.',
+      },
+      athletes: {
+        title: 'Órdenes de atleta',
+        body: 'Transferencias y acreditaciones de Mercado Pago por validar. Acá aprobás, rechazás o forzás la acreditación manual.',
+      },
+      tickets: {
+        title: 'Entradas y transferencias',
+        body: 'Órdenes manuales de compra de entradas esperando comprobante o validación.',
+      },
+      ledger: {
+        title: 'Bitácora técnica',
+        body: 'Webhooks fallidos y conciliaciones pendientes con Mercado Pago -- el detalle para diagnosticar cuando algo no cuadra.',
+      },
+    },
+    pricing: {
+      intro: {
+        title: 'Tarifas',
+        body: 'Todo lo que define cuánto y cómo se cobra: planes de afiliación, combos con eventos, códigos de descuento y suscripciones recurrentes.',
+      },
+      plans: {
+        title: 'Planes de afiliación',
+        body: 'Cada plan tiene versiones con precio y vigencia propia -- crear una versión nueva no borra el historial de precios ya cobrados. "Retirar" saca un plan de la venta sin tocar las afiliaciones activas.',
+      },
+      combos: {
+        title: 'Combos evento + afiliación',
+        body: 'Precio especial cuando alguien se afilia e inscribe a un evento en la misma compra. Se arma por evento, con su propia ventana de vigencia.',
+      },
+      codes: {
+        title: 'Códigos de descuento',
+        body: 'Cupones manuales por monto o porcentaje, con tope de usos y vigencia. Se pueden combinar con las promociones automáticas o no, según cómo se configuren.',
+      },
+      subscriptions: {
+        title: 'Suscripciones activas',
+        body: 'El estado real de cada suscripción recurrente contra Mercado Pago: próximo cobro, mora y cancelación -- la fuente de verdad es el proveedor, esto es un espejo operativo.',
+      },
+    },
+    accessGates: {
+      intro: {
+        title: 'Acceso y habilitación',
+        body: 'Los interruptores que deciden si alguien puede empezar a afiliarse, inscribirse o comprar una entrada ahora mismo -- antes de que llegue a completar ningún formulario.',
+      },
+      toggles: {
+        title: 'Habilitación general',
+        body: 'Un corte total por tipo de operación (afiliación, inscripción, entrada, suscripción). Apagado acá, nadie puede arrancar esa operación, tenga o no tenga código.',
+      },
+      gates: {
+        title: 'Tandas privadas',
+        body: 'Además del corte general, cada tanda de un evento puede pedir un código propio para abrir de a poco -- útil para preventas o cupos reservados antes de la apertura pública.',
+      },
+    },
   },
   nav: {
     groups: {
@@ -297,6 +468,9 @@ export default {
       name: 'Nombre público',
       description: 'Descripción',
       price: 'Precio',
+      manualPrice: 'Precio por transferencia/efectivo',
+      manualPricePlaceholder: 'Igual que el precio de Mercado Pago',
+      manualPriceHint: 'Opcional. Si lo dejás vacío, transferencia y efectivo cobran lo mismo que Mercado Pago.',
       currency: 'Moneda',
       billingFrequency: 'Vigencia',
       collectionMode: 'Modalidad de cobro',
@@ -358,6 +532,18 @@ export default {
       code: 'Código',
       codeFormatHint: 'Mayúsculas, números y guiones.',
       percentOff: 'Descuento (%)',
+      enablesManualPayment: 'Habilita transferencia/efectivo para esta compra',
+      enablesManualPaymentHint:
+        'Aunque el canal manual esté apagado en general, un cupón con este check lo destraba sólo para quien lo use.',
+      enablesManualPaymentBadge: 'Habilita transferencia',
+      deleteDiscountCode: 'Eliminar',
+      deleteDiscountCodeAria: 'Eliminar código {{code}}',
+      deleteCodeConfirmTitle: 'Eliminar {{code}}',
+      deleteCodeConfirmDescription: 'Vas a borrar el código de descuento {{code}} del catálogo.',
+      deleteCodeConfirmWarning: 'Solo se puede eliminar si no tiene canjes registrados. Si ya se usó, desactivalo en su lugar.',
+      deleteCodeConfirmCancel: 'Conservar código',
+      deleteCodeConfirmConfirm: 'Eliminar código',
+      codeDeleted: 'Código de descuento eliminado.',
       appliesToLabel: 'Aplica a',
       appliesTo: {
         membership: 'Membresías',
@@ -1301,6 +1487,7 @@ export default {
     document: 'Documento',
     detail: 'Concepto',
     amount: 'Monto',
+    notes: 'Observaciones del atleta',
     proofReceivedAt: 'Comprobante recibido',
     proofPending: 'Archivo pendiente',
     noProofTitle: 'Sin comprobante cargado',
@@ -1552,6 +1739,8 @@ export default {
     publish: 'Publicar evento',
     priceMembership: 'Afiliación',
     priceRegistration: 'Inscripción',
+    priceRegistrationManual: 'Inscripción · transferencia/efectivo',
+    priceRegistrationManualPlaceholder: 'Igual que el precio de Mercado Pago',
     priceCombo: 'Combo afiliación + meet',
     pricingCatalogHint: 'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
     priceCurrency: 'ARS',

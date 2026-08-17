@@ -119,10 +119,16 @@ export function assertTicketCheckoutEnabled(toggles, env = process.env) {
 /**
  * `scope` es 'membership' | 'registration' | 'ticket'. El combo pasa por los dos
  * primeros: si cualquiera de los dos canales está cerrado no hay combo manual.
+ *
+ * `override` lo enciende un cupón puntual (`enables_manual_payment`) para una
+ * compra particular: no reemplaza el interruptor general, sólo lo salta para
+ * quien tiene el cupón. Queda a cargo de quien llama resolver ese override
+ * (lectura de discount_codes) antes de invocar este assert.
  */
-export function assertManualChannelEnabled(toggles, scope) {
+export function assertManualChannelEnabled(toggles, scope, { override = false } = {}) {
   const entry = MANUAL[scope]
   if (!entry) throw new HttpError(500, `Alcance de interruptor desconocido: ${scope}`)
+  if (override) return
   const [key, message, code] = entry
   // Afiliaciones e inscripciones empiezan solamente con Mercado Pago. Las
   // entradas conservan su contrato previo y sólo se cierran explícitamente.

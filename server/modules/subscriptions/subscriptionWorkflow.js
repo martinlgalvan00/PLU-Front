@@ -14,6 +14,7 @@ function normalizePlan(plan) {
     name: plan.name,
     description: plan.description,
     price: plan.price,
+    manualPrice: plan.manual_price ?? null,
     currency: plan.currency,
     billingFrequency: plan.billing_frequency,
     collectionMode: plan.collection_mode,

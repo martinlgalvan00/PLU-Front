@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Ban, CircleCheck, QrCode, Trash2 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
@@ -13,6 +13,8 @@ import {
 } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getMembershipsTourSteps } from '../../lib/adminTourSteps.js'
 import {
   MEMBERSHIP_EXPIRING_FILTER_OPTIONS,
   MEMBERSHIP_FILTER_STATUSES,
@@ -38,6 +40,12 @@ export default function MembershipsSection({
   const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-memberships', getMembershipsTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
   const [expiring, setExpiring] = useState('all')
   // Credencial abierta en modal. Guardamos id + nombre para el encabezado
   // sin esperar al fetch; solo una abierta a la vez.

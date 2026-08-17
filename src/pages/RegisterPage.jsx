@@ -29,6 +29,7 @@ import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
 import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
+import RegisterProfileWelcome from '../components/ui/RegisterProfileWelcome.jsx'
 import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -529,7 +530,7 @@ export default function RegisterPage({
     try {
       const preview = await previewDiscountCode({
         code,
-        appliesTo: 'registration',
+        appliesTo: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
         eventSlug: event.slug,
         paymentMethod: toApiPaymentMethod(form.paymentMethod),
       })
@@ -560,6 +561,15 @@ export default function RegisterPage({
     setDiscountError('')
   }
 
+  // Un cupón aplicado sobre 'registration' no necesariamente vale sobre
+  // 'combo' (sólo applies_to = 'both' cubre el combo) y viceversa: cambiar de
+  // paquete invalida el preview en pantalla en vez de dejarlo aplicado a un
+  // alcance que ya no corresponde.
+  useEffect(() => {
+    clearDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purchaseType])
+
   const content = {
     profile: [t('pages.register.profileTitle'), t('pages.register.profileDesc'), t('pages.register.profileSubmit')],
     competition: [
@@ -574,7 +584,7 @@ export default function RegisterPage({
     ],
   }[flow]
 
-  const visibleOrder = flow === 'profile' ? null : createdOrder?.type === flow ? createdOrder : null
+  const visibleOrder = createdOrder?.type === flow ? createdOrder : null
   // La vigente primero; si todavía no hay ninguna (la afiliación recién
   // creada está pendiente de pago) cae a la más reciente, que es la de esta
   // misma orden. Antes tomaba la primera del array sin mirar el estado, así
@@ -619,15 +629,17 @@ export default function RegisterPage({
   const effectivePurchaseType = comboEnabled && purchaseType === 'combo'
     ? 'combo'
     : 'registration'
-  const checkoutTotal = previewCheckoutPrice({
-    concept: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
-    paymentMethod: form.paymentMethod,
-    fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
-  })
   const eventPricing = useMemo(() => resolveEventPricing(event), [event])
   const membershipListPrice = Number(eventPricing.membership) || 0
   const registrationListPrice = Number(total) || Number(eventPricing.registration) || 0
   const comboListPrice = comboAvailability.offer ? Number(comboAvailability.offer.price) : 0
+  const checkoutTotal = previewCheckoutPrice({
+    paymentMethod: form.paymentMethod,
+    manualPrice: effectivePurchaseType === 'combo'
+      ? comboAvailability.offer.manualPrice
+      : eventPricing.registrationManual,
+    fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
+  })
   const comboSavings =
     comboAvailability.offer && membershipListPrice + registrationListPrice > comboListPrice
       ? membershipListPrice + registrationListPrice - comboListPrice
@@ -756,16 +768,18 @@ export default function RegisterPage({
   }
 
   // Mercado Pago es el canal inicial. Transferencia y efectivo requieren una
-  // habilitación explícita de ambos alcances para el combo.
+  // habilitación explícita de ambos alcances para el combo — salvo que el
+  // cupón aplicado la destrabe puntualmente (enablesManualPayment).
   const manualPaymentEnabled =
-    checkoutAvailability.membershipManualEnabled !== false &&
-    (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
-    // accessRequirements todavía no resolvió (arranca undefined): con !==
-    // false acá el selector mostraría transferencia/efectivo un instante y
-    // los sacaría al terminar de cargar, el mismo flash-y-409 que
-    // `manualChannelEnabled` evita en MembershipPurchaseSection.
-    accessRequirements.membershipManualEnabled === true &&
-    (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
+    Boolean(discountPreview?.enablesManualPayment) ||
+    (checkoutAvailability.membershipManualEnabled !== false &&
+      (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
+      // accessRequirements todavía no resolvió (arranca undefined): con !==
+      // false acá el selector mostraría transferencia/efectivo un instante y
+      // los sacaría al terminar de cargar, el mismo flash-y-409 que
+      // `manualChannelEnabled` evita en MembershipPurchaseSection.
+      accessRequirements.membershipManualEnabled === true &&
+      (flow !== 'competition' || accessRequirements.registrationManualEnabled === true))
   const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
 
   // El canal manual se cerró mientras la pantalla estaba abierta: la selección
@@ -1037,7 +1051,10 @@ export default function RegisterPage({
       } else {
         setChangingMethod(false)
       }
-    } else if (flow === 'profile') onNavigate?.('profile')
+    }
+    // flow === 'profile': sin navegación automática. `visibleOrder` pasa a
+    // reflejar la cuenta recién creada y la pantalla de bienvenida
+    // (RegisterProfileWelcome) es la que dispara el paso a 'profile'.
   }
 
   async function submit(eventObject) {
@@ -1129,7 +1146,7 @@ export default function RegisterPage({
       result = await onSubmit(eventObject, event, {
         purchaseType: effectivePurchaseType,
         paymentMethod: form.paymentMethod,
-        discountCode: effectivePurchaseType === 'registration' ? discountPreview?.code : undefined,
+        discountCode: ['registration', 'combo'].includes(effectivePurchaseType) ? discountPreview?.code : undefined,
         membershipAccessCode,
         registrationAccessCode,
       })
@@ -1171,7 +1188,7 @@ export default function RegisterPage({
         {
           purchaseType: effectivePurchaseType,
           paymentMethod: 'manual_link',
-          discountCode: effectivePurchaseType === 'registration' ? discountPreview?.code : undefined,
+          discountCode: ['registration', 'combo'].includes(effectivePurchaseType) ? discountPreview?.code : undefined,
           membershipAccessCode,
           registrationAccessCode,
         },
@@ -1245,11 +1262,18 @@ export default function RegisterPage({
   const membershipOrderConfirmed = flow === 'membership' && visibleOrder
   const membershipConfirmedActive =
     membershipOrderConfirmed && getStatusMeta(visibleOrder.status, t).tone === 'success'
+  const profileOrderConfirmed = flow === 'profile' && Boolean(visibleOrder)
   const competitionSettling = flow === 'competition' && Boolean(visibleOrder) && !changingMethod
   const mpSettling = competitionSettling && visibleOrder.paymentMethod === 'mercado_pago'
 
   const registerIntro =
-    membershipOrderConfirmed ? (
+    profileOrderConfirmed ? (
+      <header className="register-intro register-intro--profile register-intro--confirmed">
+        <p className="register-intro__eyebrow">{t('pages.register.profileWelcomeEyebrow')}</p>
+        <h1 className="register-intro__title">{t('pages.register.profileWelcomeTitle')}</h1>
+        <p className="register-intro__desc">{t('pages.register.profileWelcomeDesc')}</p>
+      </header>
+    ) : membershipOrderConfirmed ? (
       <header className="register-intro register-intro--membership register-intro--confirmed">
         <h1 className="register-intro__title">
           {membershipConfirmedActive
@@ -1423,7 +1447,7 @@ export default function RegisterPage({
                   ? t('nav.events')
                   : t('pages.register.backMembership')}
             </button>
-            {flow === 'profile' && (
+            {flow === 'profile' && !profileOrderConfirmed && (
               <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
                 {t('pages.register.haveAccount')}
                 <ArrowRight size={14} aria-hidden />
@@ -1470,7 +1494,11 @@ export default function RegisterPage({
             {(flow !== 'profile' || visibleOrder) && !(flow === 'membership' && visibleOrder) && registerStatus}
           </div>
 
-          {membershipOrderConfirmed ? (
+          {profileOrderConfirmed ? (
+            <div className="register-card register-card--confirmation">
+              <RegisterProfileWelcome athleteName={visibleOrder.athleteName} onNavigate={onNavigate} />
+            </div>
+          ) : membershipOrderConfirmed ? (
             <div className="register-card register-card--confirmation">
               <RegisterMembershipConfirmation
                 cardData={cardData}
@@ -1985,12 +2013,13 @@ export default function RegisterPage({
                     paymentMethod={form.paymentMethod}
                     purchaseType={effectivePurchaseType}
                     registrationPrice={registrationListPrice}
+                    registrationManualPrice={eventPricing.registrationManual}
                     showPackage={showComboChoice}
                     showPayment={isPaidCheckout}
                   />
                 ) : null}
 
-                {isPaidCheckout && effectivePurchaseType === 'registration' ? (
+                {isPaidCheckout && ['registration', 'combo'].includes(effectivePurchaseType) ? (
                   <div className="register-discount">
                     {discountPreview ? (
                       <p className="register-discount__applied">

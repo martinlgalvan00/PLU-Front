@@ -230,6 +230,12 @@ export default function PaymentValidationDialog({
               <dd>{item.documentId}</dd>
             </div>
           ) : null}
+          {item.notes ? (
+            <div>
+              <dt>{t('admin.paymentValidation.notes')}</dt>
+              <dd>{item.notes}</dd>
+            </div>
+          ) : null}
           {item.meta ? (
             <div>
               <dt>{t('admin.paymentValidation.amount')}</dt>

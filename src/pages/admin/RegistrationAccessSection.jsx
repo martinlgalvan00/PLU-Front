@@ -3,6 +3,8 @@ import { Inbox, KeyRound, LockKeyhole, Power, RefreshCw, Save, ShieldCheck, Tras
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import { ApiError } from '../../lib/api.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getAccessGatesTourSteps } from '../../lib/adminTourSteps.js'
 import { fetchPlatformFeatureToggles, savePlatformFeatureToggle } from '../../services/platformSettingsAdminService.js'
 import '../../styles/pages/admin-registration-access.css'
 
@@ -162,6 +164,13 @@ export default function RegistrationAccessSection({
   onToggleSaved,
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-access-gates', getAccessGatesTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
   const [draft, setDraft] = useState(null)
   const [notice, setNotice] = useState('')
   const [formError, setFormError] = useState('')

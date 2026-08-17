@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import AdminFilterBar from './AdminFilterBar.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRecordCount } from '../../i18n/adminHelpers.js'
+import { useHorizontalScroll } from '../../hooks/useHorizontalScroll.js'
 
 const COMPACT_STATS_MQ = '(max-width: 1100px)'
 
@@ -71,6 +72,7 @@ export default function AdminListSection({
   const [statsOpen, setStatsOpen] = useState(false)
   const bodyRef = useRef(null)
   const hasMountedFilters = useRef(false)
+  const statsScrollRef = useHorizontalScroll()
   const shellClass = [
     'admin-list-shell',
     variant ? `admin-list-shell--${variant}` : '',
@@ -239,7 +241,7 @@ export default function AdminListSection({
             )}
 
             {statsExpanded && (
-              <div className="admin-list-shell__stats-strip" aria-label={t('admin.summary.aria')}>
+              <div className="admin-list-shell__stats-strip" aria-label={t('admin.summary.aria')} ref={statsScrollRef}>
                 {stats.map(({ label, tone = 'default', value }) => (
                   <article key={label} className={`admin-list-stat admin-list-stat--${tone}`}>
                     <span className="admin-list-stat__value">{value}</span>

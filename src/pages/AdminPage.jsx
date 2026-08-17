@@ -88,6 +88,7 @@ export default function AdminPage({
   onSetMembershipPlanRetirement,
   onUpsertDiscountCode,
   onSetDiscountCodeActive,
+  onDeleteDiscountCode,
   billingSubscriptions,
   billingSubscriptionsLoading,
   billingSubscriptionsError,
@@ -457,6 +458,7 @@ export default function AdminPage({
           onSetPlanRetirement={onSetMembershipPlanRetirement}
           onUpsertDiscountCode={onUpsertDiscountCode}
           onSetDiscountCodeActive={onSetDiscountCodeActive}
+          onDeleteDiscountCode={onDeleteDiscountCode}
           subscriptions={billingSubscriptions}
           subscriptionsLoading={billingSubscriptionsLoading}
           subscriptionsError={billingSubscriptionsError}

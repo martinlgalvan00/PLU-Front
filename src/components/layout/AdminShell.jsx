@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Layout, Menu, Drawer, Button, Typography, Space, Badge, Dropdown } from 'antd'
 import {
   Activity,
   BadgeDollarSign,
   ArrowLeft,
   BadgeCheck,
   Calendar,
+  Check,
   ChevronLeft,
   ClipboardList,
   CreditCard,
@@ -14,26 +16,29 @@ import {
   LayoutGrid,
   Landmark,
   KeyRound,
-  Menu,
+  HelpCircle,
+  Menu as MenuIcon,
   PanelLeft,
   PanelLeftClose,
+  PlayCircle,
   ScanLine,
   ScrollText,
   Shield,
   ShoppingBag,
   Trophy,
   Users,
-  X,
 } from 'lucide-react'
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { TOUR_MODES, useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getAdminIntroTourSteps, getTourForSection } from '../../lib/adminTourSteps.js'
 import { ADMIN_NAV_GROUPS } from '../../lib/content.js'
 
-// Cada `icon` de ADMIN_NAV_GROUPS tiene que estar acá: el lookup no tiene
-// fallback, y una clave faltante devuelve undefined, que React rechaza como
-// tipo de elemento y tira toda la shell del panel, no solo ese ítem.
+const { Header, Sider, Content } = Layout;
+const { Text } = Typography;
+
 const ICONS = {
   Activity,
   BadgeDollarSign,
@@ -56,14 +61,6 @@ const ICONS = {
 }
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
-const NAV_BADGE_CAP = 99
-// `audit` salió de acá al dejar de ser un placeholder: ahora lee
-// `domain_audit_logs` a través de /api/audit.
-
-function formatNavBadgeCount(count) {
-  if (!Number.isFinite(count) || count < 1) return ''
-  return count > NAV_BADGE_CAP ? `${NAV_BADGE_CAP}+` : String(count)
-}
 const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'checkin'])
 const SIDEBAR_MODE_STORAGE_KEY = 'plu-admin-sidebar-mode'
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
@@ -93,8 +90,6 @@ function readStoredSidebarMode() {
   try {
     const stored = window.localStorage.getItem(SIDEBAR_MODE_STORAGE_KEY)
     if (SIDEBAR_MODES.includes(stored)) return stored
-
-    // Migración del flag booleano anterior.
     const legacy = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)
     if (legacy === null) return 'collapsed'
     return legacy === '1' ? 'collapsed' : 'expanded'
@@ -122,17 +117,48 @@ export default function AdminShell({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarMode, setSidebarMode] = useState(readStoredSidebarMode)
-  const sidebarRef = useRef(null)
-  const menuButtonRef = useRef(null)
   const { t } = useI18n()
+  const { replayTour, tourMode, setTourMode } = useAdminTour()
+
+  function handleReplayTour() {
+    const tour = getTourForSection(activeSection, t) ?? {
+      id: 'admin-intro',
+      steps: getAdminIntroTourSteps(t),
+    }
+    replayTour(tour.id, tour.steps)
+  }
+
+  // Un solo control hace las dos cosas que pidió el usuario: repetir el tour
+  // de la sección activa a demanda, y elegir si los tours se auto-abren una
+  // vez, siempre, o nunca -- sin ir a buscar una pantalla de ajustes aparte.
+  const tourMenuItems = [
+    {
+      key: 'replay',
+      label: t('admin.tour.menuReplay'),
+      icon: <PlayCircle size={14} aria-hidden />,
+    },
+    { type: 'divider' },
+    { key: 'mode-label', label: t('admin.tour.menuModeLabel'), disabled: true },
+    ...TOUR_MODES.map((mode) => ({
+      key: `mode-${mode}`,
+      label: t(`admin.tour.mode.${mode}`),
+      icon: tourMode === mode ? <Check size={14} aria-hidden /> : <span style={{ width: 14, display: 'inline-block' }} />,
+    })),
+  ]
+
+  function handleTourMenuClick({ key }) {
+    if (key === 'replay') {
+      handleReplayTour()
+      return
+    }
+    if (key.startsWith('mode-')) {
+      setTourMode(key.replace('mode-', ''))
+    }
+  }
 
   const collapsed = sidebarMode === 'collapsed'
   const sidebarHidden = sidebarMode === 'hidden'
   const isPhoneViewport = useMatchMedia(PHONE_DRAWER_MQ)
-  // Glyph cuando el chrome visible es el rail de 76px. En tablet `--nav-open`
-  // no ensancha el aside: el segment ES|EN no entra. Segment solo en el
-  // drawer phone (overlay a ancho completo).
-  const iconRail = (collapsed || sidebarHidden) && !(isPhoneViewport && sidebarOpen)
 
   const navGroups = useMemo(() => {
     let groups
@@ -161,10 +187,37 @@ export default function AdminShell({
       .filter((group) => group.items.length > 0)
   }, [allowedSections, restrictedNav])
 
-  const canGoDashboard = useMemo(
-    () => navGroups.some((group) => group.items.some(([key]) => key === 'dashboard')),
-    [navGroups],
-  )
+  const menuItems = useMemo(() => {
+    return navGroups.map((group) => ({
+      type: 'group',
+      label: t(group.labelKey),
+      key: group.labelKey,
+      children: group.items.map(([key, labelKey, iconName]) => {
+        const Icon = ICONS[iconName];
+        const badgeCount = Number(navBadges[key]) || 0;
+        const isAlert = ALERT_BADGE_KEYS.has(key);
+        
+        return {
+          key,
+          icon: <Icon size={16} strokeWidth={1.75} />,
+          label: (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{t(labelKey)}</span>
+              {badgeCount > 0 && (
+                <Badge 
+                  count={badgeCount} 
+                  style={{ 
+                    backgroundColor: isAlert ? 'var(--color-brand-red)' : 'var(--color-brand-celeste)',
+                    color: '#fff' 
+                  }} 
+                />
+              )}
+            </div>
+          ),
+        };
+      })
+    }));
+  }, [navGroups, navBadges, t]);
 
   const activeLabel = useMemo(() => {
     const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(([key]) => key === activeSection)
@@ -172,84 +225,16 @@ export default function AdminShell({
   }, [activeSection, t])
 
   const collapseToggleMeta = useMemo(() => {
-    if (sidebarMode === 'expanded') {
-      return {
-        label: t('admin.shell.collapseSidebar'),
-        icon: ChevronLeft,
-      }
-    }
-    if (sidebarMode === 'collapsed') {
-      return {
-        label: t('admin.shell.hideSidebar'),
-        icon: PanelLeftClose,
-      }
-    }
-    return {
-      label: t('admin.shell.showSidebar'),
-      icon: PanelLeft,
-    }
+    if (sidebarMode === 'expanded') return { label: t('admin.shell.collapseSidebar'), icon: ChevronLeft }
+    if (sidebarMode === 'collapsed') return { label: t('admin.shell.hideSidebar'), icon: PanelLeftClose }
+    return { label: t('admin.shell.showSidebar'), icon: PanelLeft }
   }, [sidebarMode, t])
-
-  useEffect(() => {
-    if (!sidebarOpen) return undefined
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [sidebarOpen])
-
-  // En phone el sidebar funciona como drawer real: atrapa el foco, cierra
-  // con Escape y lo devuelve al botón que lo abrió. En tablet/desktop es un
-  // rail persistente (no un overlay), así que no aplica.
-  useEffect(() => {
-    const isPhone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
-    if (!sidebarOpen || !isPhone) return undefined
-
-    const focusableSelector =
-      'button:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])'
-    const previousFocus = document.activeElement
-    // Copiado del ref acá adentro: para cuando corra el cleanup, `.current`
-    // puede haber cambiado (el botón se desmonta en `sidebarHidden`, etc.).
-    const menuButton = menuButtonRef.current
-    sidebarRef.current?.querySelector(focusableSelector)?.focus()
-
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        setSidebarOpen(false)
-        return
-      }
-      if (event.key !== 'Tab') return
-      const focusable = sidebarRef.current?.querySelectorAll(focusableSelector) ?? []
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      ;(previousFocus?.isConnected ? previousFocus : menuButton)?.focus?.()
-    }
-  }, [sidebarOpen])
 
   useEffect(() => {
     try {
       window.localStorage.setItem(SIDEBAR_MODE_STORAGE_KEY, sidebarMode)
-      // Compat con historias/tests que aún leen el flag viejo.
       window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, sidebarMode === 'expanded' ? '0' : '1')
-    } catch {
-      // localStorage puede no estar disponible (modo privado); no bloquea la UI.
-    }
+    } catch { }
   }, [sidebarMode])
 
   function handleSectionChange(key) {
@@ -258,238 +243,154 @@ export default function AdminShell({
   }
 
   const brandMark = (
-    <div className="admin-shell__brand-mark">
-      <BrandLogo
-        variant="argentina"
-        imgClassName="admin-shell__brand-logo"
-        height={28}
-      />
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40, width: 40, flexShrink: 0 }}>
+      <BrandLogo variant="argentina" height={28} />
     </div>
   )
 
   const CollapseIcon = collapseToggleMeta.icon
-  const revealMenuLabel = sidebarHidden
-    ? t('admin.shell.showSidebar')
-    : sidebarOpen
-      ? t('admin.shell.closeMenu')
-      : t('admin.shell.openMenu')
 
-  function handleChromeMenuClick() {
-    if (sidebarHidden) {
-      setSidebarMode('collapsed')
-      // En phone el rail no se ve: hay que abrir el drawer.
-      const isPhone =
-        typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
-      setSidebarOpen(isPhone)
-      return
-    }
-    setSidebarOpen((open) => !open)
-  }
-
-  return (
-    <div
-      className={`admin-shell${sidebarOpen ? ' admin-shell--nav-open' : ''}${
-        collapsed ? ' admin-shell--collapsed' : ''
-      }${sidebarHidden ? ' admin-shell--sidebar-hidden' : ''}`}
-    >
-      <button
-        type="button"
-        className="admin-shell__backdrop"
-        aria-label={t('admin.shell.closeMenu')}
-        onClick={() => setSidebarOpen(false)}
-      />
-      {!sidebarHidden ? (
-        <button
-          type="button"
-          className="admin-shell__collapse-toggle"
-          aria-label={collapseToggleMeta.label}
-          title={collapseToggleMeta.label}
-          aria-pressed={sidebarMode !== 'expanded'}
-          onClick={() => setSidebarMode((mode) => nextSidebarMode(mode))}
-        >
-          <CollapseIcon size={14} strokeWidth={2.2} />
-        </button>
-      ) : null}
-      <aside
-        ref={sidebarRef}
-        className={`admin-shell__sidebar${sidebarOpen ? ' is-open' : ''}`}
-        aria-hidden={sidebarHidden && !sidebarOpen ? true : undefined}
-      >
-        <div className="admin-shell__brand">
-          <div className="admin-shell__brand-inner">
-            {canGoDashboard ? (
-              <button
-                type="button"
-                className="admin-shell__brand-home"
-                aria-label={t('admin.shell.goToDashboard')}
-                title={iconRail ? t('admin.shell.goToDashboard') : undefined}
-                onClick={() => handleSectionChange('dashboard')}
-              >
-                {brandMark}
-              </button>
-            ) : (
-              brandMark
-            )}
-            <div className="admin-shell__brand-copy">
-              <span className="admin-shell__brand-name">{t('brand.name')}</span>
-              <span className="admin-shell__brand-subtitle">
-                {restrictedNav === 'pluUsa'
-                  ? t('admin.shell.brandTagPartner')
-                  : restrictedNav === 'checkin'
-                    ? t('admin.shell.brandSubtitleSecurity')
-                    : t('admin.shell.brandTag')}
-              </span>
-            </div>
+  const sidebarContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ padding: '16px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--color-border-subtle)', flexShrink: 0 }}>
+        {brandMark}
+        {(!collapsed || isPhoneViewport) && (
+          <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column' }}>
+            <Text strong style={{ color: 'var(--color-text-primary)', margin: 0, lineHeight: 1.2 }}>{t('brand.name')}</Text>
+            <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+              {restrictedNav === 'pluUsa' ? t('admin.shell.brandTagPartner') : restrictedNav === 'checkin' ? t('admin.shell.brandSubtitleSecurity') : t('admin.shell.brandTag')}
+            </Text>
           </div>
-          <button
-            type="button"
-            className="admin-shell__close"
-            aria-label={t('admin.shell.closeMenu')}
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X size={18} />
-          </button>
-        </div>
+        )}
+      </div>
 
-        <div className="admin-shell__nav-scroll">
-          <nav className="admin-shell__nav" aria-label={t('admin.shell.navAria')}>
-            {navGroups.map((group) => {
-              const groupLabel = t(group.labelKey)
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }} data-tour="admin-nav">
+        <Menu
+          mode="inline"
+          inlineCollapsed={collapsed && !isPhoneViewport}
+          selectedKeys={[activeSection]}
+          items={menuItems}
+          onClick={({ key }) => handleSectionChange(key)}
+          style={{ borderRight: 0 }}
+        />
+      </div>
 
-              return (
-                <div key={group.labelKey} className="admin-shell__group">
-                  <span className="admin-shell__group-label">{groupLabel}</span>
-                  {group.items.map(([key, labelKey, iconName]) => {
-                    const Icon = ICONS[iconName]
-                    const badge = navBadges[key]
-                    const label = t(labelKey)
-                    const badgeCount = Number(badge) || 0
-                    const accessibleLabel =
-                      badgeCount > 0
-                        ? t('admin.shell.navBadgeAria', { label, count: badgeCount })
-                        : label
-
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        className={activeSection === key ? 'active' : ''}
-                        aria-current={activeSection === key ? 'page' : undefined}
-                        aria-label={accessibleLabel}
-                        title={iconRail ? accessibleLabel : undefined}
-                        onClick={() => handleSectionChange(key)}
-                      >
-                        <span className="admin-shell__nav-icon" aria-hidden>
-                          <Icon size={iconRail ? 18 : 16} strokeWidth={1.75} />
-                        </span>
-                        <span className="admin-shell__nav-label">
-                          <span className="admin-shell__nav-label-meta">{groupLabel}</span>
-                          <span className="admin-shell__nav-label-text">{label}</span>
-                        </span>
-                        {badgeCount > 0 && (
-                          <em
-                            className={`admin-shell__badge${
-                              ALERT_BADGE_KEYS.has(key) ? ' admin-shell__badge--alert' : ''
-                            }`}
-                            aria-hidden
-                          >
-                            {formatNavBadgeCount(badgeCount)}
-                          </em>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )
-            })}
-          </nav>
-        </div>
-
-        <div className="admin-shell__footer">
-          <div className="admin-shell__session">
-            {/* El bloque de cuenta era un div decorativo. Es el lugar donde el
-                usuario ya busca lo suyo, así que ahora abre Mi cuenta (cambio
-                de email). Sin handler queda como estaba, no como botón muerto. */}
+      <div style={{ padding: '16px', borderTop: '1px solid var(--color-border-subtle)' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: (!collapsed || isPhoneViewport) ? 'flex-start' : 'center', width: '100%' }}>
             {onOpenAccount ? (
-              <button
-                type="button"
-                className="admin-shell__account admin-shell__account--action"
-                onClick={onOpenAccount}
-                title={iconRail ? t('staffAccount.dialogEyebrow') : undefined}
-                aria-label={t('staffAccount.openAria')}
-              >
-                <span className="admin-shell__account-mark" aria-hidden />
-                <div className="admin-shell__account-copy">
-                  <strong className="admin-shell__account-role">{roleLabel}</strong>
-                  <span className="admin-shell__account-hint">{t('staffAccount.dialogEyebrow')}</span>
-                </div>
-              </button>
+              <Button type="text" onClick={onOpenAccount} style={{ padding: 0, height: 'auto', textAlign: 'left', width: '100%' }}>
+                <Space>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--plu-success-400)' }} />
+                  {(!collapsed || isPhoneViewport) && (
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{roleLabel}</div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>{t('staffAccount.dialogEyebrow')}</div>
+                    </div>
+                  )}
+                </Space>
+              </Button>
             ) : (
-              <div
-                className="admin-shell__account"
-                title={iconRail ? roleLabel : undefined}
-              >
-                <span
-                  className="admin-shell__account-mark"
-                  role="img"
-                  aria-label={roleLabel}
-                  title={roleLabel}
-                />
-                <div className="admin-shell__account-copy">
-                  <strong className="admin-shell__account-role">{roleLabel}</strong>
-                  <span className="admin-shell__account-hint">{t('admin.shell.activeProfile')}</span>
-                </div>
-              </div>
+              <Space>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--plu-success-400)' }} />
+                {(!collapsed || isPhoneViewport) && (
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{roleLabel}</div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>{t('admin.shell.activeProfile')}</div>
+                  </div>
+                )}
+              </Space>
             )}
-
-            <div className="admin-shell__prefs" role="group" aria-label={t('admin.shell.prefsAria')}>
-              <ThemeToggle compact />
-              <LanguageToggle compact variant={iconRail ? 'glyph' : 'segment'} />
-            </div>
           </div>
 
-          <button
-            type="button"
-            className="admin-shell__exit"
+          <Button
+            type="text"
+            icon={<ArrowLeft size={16} />}
             onClick={onExit}
-            title={iconRail ? t('admin.shell.exit') : undefined}
-            aria-label={t('admin.shell.exit')}
+            block={!collapsed || isPhoneViewport}
+            style={{ marginTop: 8, justifyContent: (!collapsed || isPhoneViewport) ? 'flex-start' : 'center' }}
           >
-            <ArrowLeft size={14} strokeWidth={1.75} aria-hidden />
-            <span className="admin-shell__exit-label">{t('admin.shell.exit')}</span>
-          </button>
-        </div>
-      </aside>
-
-      <div className="admin-shell__main">
-        <header className={`admin-mobile-bar${sidebarHidden ? ' admin-mobile-bar--reveal' : ''}`}>
-          <button
-            ref={menuButtonRef}
-            type="button"
-            className={`admin-mobile-bar__menu${sidebarOpen ? ' is-active' : ''}${
-              sidebarHidden ? ' admin-mobile-bar__menu--reveal' : ''
-            }`}
-            aria-label={revealMenuLabel}
-            title={revealMenuLabel}
-            aria-expanded={sidebarHidden ? false : sidebarOpen}
-            onClick={handleChromeMenuClick}
-          >
-            {sidebarHidden ? (
-              <PanelLeft size={16} strokeWidth={1.9} />
-            ) : sidebarOpen ? (
-              <X size={20} />
-            ) : (
-              <Menu size={20} />
-            )}
-          </button>
-          <h1 className="admin-mobile-bar__title">{activeLabel}</h1>
-          <div className="admin-mobile-bar__actions">
-            <LanguageToggle compact variant="segment" />
-            <ThemeToggle compact />
-          </div>
-        </header>
-        {children}
+            {(!collapsed || isPhoneViewport) && t('admin.shell.exit')}
+          </Button>
+        </Space>
       </div>
     </div>
+  );
+
+  return (
+    <Layout
+      className={`admin-shell${sidebarHidden ? ' admin-shell--sidebar-hidden' : ''}${collapsed && !isPhoneViewport ? ' admin-shell--collapsed' : ''}`}
+      style={{ minHeight: '100vh' }}
+    >
+      {!isPhoneViewport && !sidebarHidden && (
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          width={260}
+          collapsedWidth={88}
+          style={{ position: 'sticky', top: 0, height: '100vh', zIndex: 100, borderRight: '1px solid var(--color-border-subtle)' }}
+        >
+          {sidebarContent}
+        </Sider>
+      )}
+
+      {isPhoneViewport && (
+        <Drawer
+          placement="left"
+          onClose={() => setSidebarOpen(false)}
+          open={sidebarOpen}
+          closable={false}
+          styles={{ body: { padding: 0 } }}
+          size={260}
+          className="admin-shell__drawer"
+        >
+          {sidebarContent}
+        </Drawer>
+      )}
+
+      <Layout className="admin-shell__main">
+        <Header style={{ display: 'flex', alignItems: 'center', padding: '0 16px', background: 'var(--color-bg-secondary)', borderBottom: '1px solid var(--color-border-subtle)' }}>
+          <Space>
+            {isPhoneViewport ? (
+              <Button type="text" icon={<MenuIcon size={20} />} onClick={() => setSidebarOpen(true)} />
+            ) : (
+              !sidebarHidden && (
+                <Button type="text" icon={<CollapseIcon size={16} />} onClick={() => setSidebarMode(nextSidebarMode(sidebarMode))} />
+              )
+            )}
+            <div style={{ marginLeft: 8, lineHeight: 'normal' }}>
+              <div style={{ fontSize: 12, lineHeight: 1.3, color: 'var(--color-text-muted)' }}>
+                {t('admin.shell.breadcrumbRoot')} / {activeLabel}
+              </div>
+              <Text strong style={{ fontSize: 16, lineHeight: 1.3 }}>{activeLabel}</Text>
+            </div>
+          </Space>
+          
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {sidebarHidden && !isPhoneViewport && (
+              <Button type="text" icon={<MenuIcon size={20} />} onClick={() => setSidebarMode('collapsed')} />
+            )}
+            <LanguageToggle compact variant="segment" />
+            <ThemeToggle compact />
+            <Dropdown
+              menu={{ items: tourMenuItems, onClick: handleTourMenuClick }}
+              trigger={['click']}
+              placement="bottomRight"
+            >
+              <Button
+                type="text"
+                icon={<HelpCircle size={18} />}
+                aria-label={t('admin.tour.startAria')}
+                data-tour="admin-help"
+              />
+            </Dropdown>
+          </div>
+        </Header>
+        <Content style={{ overflowY: 'auto' }}>
+          {children}
+        </Content>
+      </Layout>
+    </Layout>
   )
 }

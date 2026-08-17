@@ -169,6 +169,7 @@ export default function AthletePaymentOrdersSection({
       status: order.status,
       reference: order.reference,
       createdAt: order.createdAt,
+      notes: order.notes,
       hasProof: Boolean(order.paymentProofPath),
       paymentProofPath: order.paymentProofPath ?? null,
       proofUploadedAt: order.paymentProofUploadedAt,
@@ -288,6 +289,7 @@ export default function AthletePaymentOrdersSection({
       documentId: row.document,
       detail: `${row.concept} · ${row.reference}`,
       meta: money(row.amount, locale),
+      notes: row.notes,
     })
   }
 

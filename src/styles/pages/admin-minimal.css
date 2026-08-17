@@ -2120,14 +2120,17 @@
   transition:
     border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
     background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
+    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
   width: auto;
 }
 
 .admin-shell .admin-filters__search:focus-within {
   background: var(--admin-surface-raised);
-  border-color: var(--admin-brand-border);
-  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+  border-color: var(--admin-brand-border, var(--color-brand-celeste));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--admin-ink) 6%, transparent),
+              0 0 0 3px var(--admin-focus-soft);
+  transform: translateY(-1px);
 }
 
 .admin-shell .admin-filters__search input {
@@ -2338,7 +2341,11 @@
   mask-image: none;
 }
 
-/* Track premium: cápsula activa + count quieto. Sin subrayado ni línea de barra. */
+/* Track premium: cápsula activa + count quieto. Sin subrayado ni línea de barra.
+   `width: fit-content` -- antes forzaba 100% del row y el `flex: 1 0 auto` de
+   cada chip repartía ese ancho en partes iguales, dejando 2-3 opciones cortas
+   estiradas con mucho aire muerto alrededor. Con los chips a ancho natural,
+   la cápsula también se ajusta a su contenido en vez de ocupar la fila entera. */
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chips {
   align-items: stretch;
   background: color-mix(in srgb, var(--admin-control-bg) 82%, transparent);
@@ -2353,10 +2360,9 @@
   overscroll-behavior-x: contain;
   padding: 3px;
   scroll-padding-inline: 4px;
-  scroll-snap-type: x mandatory;
   scrollbar-width: none;
+  width: fit-content;
   -webkit-overflow-scrolling: touch;
-  width: 100%;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chips::-webkit-scrollbar {
@@ -2375,7 +2381,7 @@
   border-radius: 7px;
   box-shadow: none;
   color: var(--admin-muted);
-  flex: 1 0 auto;
+  flex: none;
   font-size: 12.5px;
   font-weight: 550;
   gap: 6px;
@@ -2385,12 +2391,12 @@
   min-width: max-content;
   padding: 5px 11px;
   position: relative;
-  scroll-snap-align: start;
   transform: none;
   transition:
     color var(--motion-fast, 160ms) var(--ease-standard, ease),
     background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
+    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip::after {
@@ -2411,11 +2417,11 @@
   background: color-mix(in srgb, var(--admin-surface-raised) 88%, var(--admin-brand) 12%);
   border: 0;
   box-shadow:
-    0 1px 2px color-mix(in srgb, var(--admin-ink) 8%, transparent),
+    0 2px 4px color-mix(in srgb, var(--admin-ink) 12%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--admin-brand) 28%, transparent);
   color: var(--admin-ink);
   font-weight: 650;
-  transform: none;
+  transform: translateY(-1px);
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip.is-active::after,

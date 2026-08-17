@@ -105,7 +105,10 @@ export default function MembershipPurchaseSection({
   const paidCheckoutOpen =
     isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) &&
     publicMembershipCheckoutEnabled
-  const effectiveManualChannelEnabled = manualChannelEnabled && publicManualChannelEnabled
+  // El interruptor general puede seguir apagado: un cupón con
+  // enablesManualPayment lo destraba puntualmente para quien lo usa.
+  const effectiveManualChannelEnabled =
+    Boolean(discountPreview?.enablesManualPayment) || (manualChannelEnabled && publicManualChannelEnabled)
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
@@ -141,7 +144,7 @@ export default function MembershipPurchaseSection({
   const availablePlans = plans
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
   const selectedPlanPrice = previewCheckoutPrice({
-    concept: 'membership', paymentMethod, fallback: selectedPlan?.price ?? 0,
+    paymentMethod, manualPrice: selectedPlan?.manualPrice, fallback: selectedPlan?.price ?? 0,
   })
   const checkoutLocked = submitting || (Boolean(embeddedOrder) && !changingMethod)
   // Tanda privada abierta por el admin y todavía sin contraseña validada.

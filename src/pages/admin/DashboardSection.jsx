@@ -25,6 +25,8 @@ import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getAdminIntroTourSteps } from '../../lib/adminTourSteps.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { METRIC_LABEL_KEYS } from '../../i18n/adminHelpers.js'
 import { getStatusMeta } from '../../lib/status.js'
@@ -790,6 +792,15 @@ export default function DashboardSection({
 }) {
   const { locale, t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
+  const { startTour } = useAdminTour()
+
+  // Arranca solo la primera vez que el navegador ve este panel (el provider
+  // chequea `localStorage`) -- el Dashboard es la primera pantalla que ve
+  // cualquier rol, así que es el punto de entrada natural del recorrido.
+  useEffect(() => {
+    startTour('admin-intro', getAdminIntroTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
 
   // Validación rápida desde la lista de pendientes de cobros: sin esto el
   // botón disparaba la acción sin esperarse ni avisar el resultado.
@@ -891,7 +902,7 @@ export default function DashboardSection({
       />
 
       <div className="admin-ops" aria-label={t('admin.dashboard.metricsAria')}>
-        <section className="admin-ops__kpis" aria-label={t('admin.dashboard.metricsAria')}>
+        <section className="admin-ops__kpis" aria-label={t('admin.dashboard.metricsAria')} data-tour="dashboard-kpis">
           {primaryMetrics.map((item) => (
             <DashboardKpiTile
               key={item.labelKey}
@@ -930,7 +941,7 @@ export default function DashboardSection({
                 </li>
               </ul>
             </div>
-            <nav className="admin-ops__links" aria-label={t('admin.dashboard.quickTitle')}>
+            <nav className="admin-ops__links" aria-label={t('admin.dashboard.quickTitle')} data-tour="dashboard-quicklinks">
               <div className="admin-ops__links-track">
                 {QUICK_ACTIONS.map(({ section, labelKey }) => (
                   <button
@@ -1029,7 +1040,7 @@ export default function DashboardSection({
 
           <OperationalFlows flows={operationalFlows} onNavigate={onNavigate} t={t} />
 
-          <div className="admin-ops__work">
+          <div className="admin-ops__work" data-tour="dashboard-queue">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
                 <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>

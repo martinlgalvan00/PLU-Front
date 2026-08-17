@@ -801,6 +801,36 @@ export default function AdminEventEditor({
                           </span>
                         ) : null}
                       </label>
+                      <label
+                        className={`admin-event-form__rate-card${err('pricing.registrationManual') ? ' is-invalid' : ''}`}
+                      >
+                        <span className="admin-event-form__rate-card-label">
+                          {t('admin.eventEditor.priceRegistrationManual')}
+                        </span>
+                        <span className="admin-event-form__rate-card-input">
+                          <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                          <input
+                            name="pricing.registrationManual"
+                            data-field="pricing.registrationManual"
+                            min={1}
+                            type="number"
+                            placeholder={t('admin.eventEditor.priceRegistrationManualPlaceholder')}
+                            value={draft.pricing?.registrationManual ?? ''}
+                            aria-invalid={Boolean(err('pricing.registrationManual'))}
+                            onChange={(event) =>
+                              patchDraft(
+                                updatePricingField(draft, 'registrationManual', event.target.value),
+                              )
+                            }
+                            disabled={!canEdit}
+                          />
+                        </span>
+                        {err('pricing.registrationManual') ? (
+                          <span className="admin-event-form__error" role="alert">
+                            {err('pricing.registrationManual')}
+                          </span>
+                        ) : null}
+                      </label>
                       <p className="admin-event-form__pricing-note">
                         {t('admin.eventEditor.pricingCatalogHint')}
                       </p>

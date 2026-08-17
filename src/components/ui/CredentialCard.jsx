@@ -119,6 +119,7 @@ export default function CredentialCard({
             aria-hidden={!isFlipped}
           >
             <span className="credential-card__frame" aria-hidden />
+            <span className="credential-card__grain" aria-hidden />
             <span className="credential-card__stripe" aria-hidden />
 
             <div className="credential-card__layer credential-card__layer--back">
@@ -133,7 +134,7 @@ export default function CredentialCard({
                   src={qrSrc}
                   alt={qrAlt}
                   failed={qrFailed}
-                  size="md"
+                  size="card"
                 />
                 <span className="credential-card__qr-caption">{qrCaption}</span>
                 {validUntil ? <span className="credential-card__qr-valid">{validUntil}</span> : null}
