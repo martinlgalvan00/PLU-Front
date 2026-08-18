@@ -29,6 +29,18 @@ vi.mock('../src/services/eventRegistrationApi.js', () => ({
   assignRegistrationSchedule: vi.fn(),
 }))
 
+vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    fetchPlatformFeatureToggles: vi.fn(async () => ({
+      membershipValidationEnabled: true,
+      registrationValidationEnabled: true,
+      ticketValidationEnabled: true,
+    })),
+  }
+})
+
 const { assignRegistrationSchedule, fetchEventSchedule } = await import(
   '../src/services/eventRegistrationApi.js'
 )

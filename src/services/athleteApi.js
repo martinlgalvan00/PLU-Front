@@ -83,6 +83,9 @@ function toCamelPaymentOrder(row) {
     manualPaymentChannel: row.manual_payment_channel ?? row.manualPaymentChannel ?? null,
     status: row.status,
     reference: row.reference,
+    rejectedBy: row.rejected_by ?? row.rejectedBy ?? null,
+    rejectionReason: row.rejection_reason ?? row.rejectionReason ?? null,
+    rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
     paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
     paymentProofUploadedAt:
       row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,

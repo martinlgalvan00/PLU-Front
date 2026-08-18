@@ -37,6 +37,21 @@ export function resolveRegistrationPayment(index, registration) {
   return index.byAthlete.get(registration.athleteId)
 }
 
+/**
+ * Inscripciones agrupadas por atleta, una sola pasada. Compartido por
+ * AthletesSection y MembershipsSection para responder "¿este atleta tiene
+ * alguna inscripción?" sin recorrer todo `registrations` por cada atleta.
+ */
+export function groupRegistrationsByAthlete(registrations = []) {
+  const map = new Map()
+  for (const registration of registrations) {
+    const list = map.get(registration.athleteId)
+    if (list) list.push(registration)
+    else map.set(registration.athleteId, [registration])
+  }
+  return map
+}
+
 /** Filtro único de estado de inscripción, compartido por RegistrationsSection, AthletesSection y useAppData. */
 export function matchesRegistrationStatusFilter(registration, payment, filter, gatePendingIds) {
   if (filter === 'all') return true

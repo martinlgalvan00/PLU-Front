@@ -56,7 +56,7 @@ $$;
 
 drop function if exists plu_private.configure_atomic_checkout_pricing(text, text, text, numeric);
 
-create function plu_private.configure_atomic_checkout_pricing(
+create or replace function plu_private.configure_atomic_checkout_pricing(
   p_concept text,
   p_payment_method text,
   p_manual_payment_channel text,
@@ -113,7 +113,7 @@ revoke all on function plu_private.configure_atomic_checkout_pricing(text, text,
 
 drop function if exists plu_private.settle_manual_checkout_pricing(uuid, text, text, numeric);
 
-create function plu_private.settle_manual_checkout_pricing(
+create or replace function plu_private.settle_manual_checkout_pricing(
   p_order_id uuid,
   p_payment_method text,
   p_manual_payment_channel text,
@@ -173,7 +173,7 @@ revoke all on function plu_private.settle_manual_checkout_pricing(uuid, text, te
 
 drop function if exists public.create_membership_order_checkout(uuid, text, text, text, text, numeric, text);
 
-create function public.create_membership_order_checkout(
+create or replace function public.create_membership_order_checkout(
   p_athlete_id uuid,
   p_payment_method text,
   p_plan_code text,
@@ -216,7 +216,7 @@ drop function if exists public.create_competition_registration_checkout(
   uuid, text, text, text, numeric, text, text, text, numeric, text
 );
 
-create function public.create_competition_registration_checkout(
+create or replace function public.create_competition_registration_checkout(
   p_athlete_id uuid,
   p_event_slug text,
   p_division text,
@@ -265,7 +265,7 @@ drop function if exists public.create_membership_registration_combo_checkout(
   uuid, text, text, text, numeric, text, text, numeric, text, text
 );
 
-create function public.create_membership_registration_combo_checkout(
+create or replace function public.create_membership_registration_combo_checkout(
   p_athlete_id uuid,
   p_event_slug text,
   p_division text,

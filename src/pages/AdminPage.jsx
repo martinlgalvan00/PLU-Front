@@ -309,6 +309,7 @@ export default function AdminPage({
       return (
         <MembershipsSection
           memberships={enrichedMemberships}
+          registrations={registrations}
           unreconciledPayments={unreconciledMembershipPayments}
           onSelectAthlete={handleSelectAthlete}
           onSetMembershipStatus={onSetMembershipStatus}

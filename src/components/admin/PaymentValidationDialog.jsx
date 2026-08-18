@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ExternalLink, FileWarning, BadgeCheck, XCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { formatRejectionActor } from '../../lib/paymentAudit.js'
 import { getAthletePaymentProofUrl } from '../../services/athleteApi.js'
 import { getTicketPaymentProofUrl } from '../../services/ticketApi.js'
 
@@ -246,6 +247,17 @@ export default function PaymentValidationDialog({
             <div>
               <dt>{t('admin.paymentValidation.proofReceivedAt')}</dt>
               <dd>{new Date(item.paymentProofUploadedAt).toLocaleString(locale === 'en' ? 'en-US' : 'es-AR')}</dd>
+            </div>
+          ) : null}
+          {/* Órdenes ya rechazadas: la decisión previa queda a la vista antes
+              de cualquier acción nueva — mismo dato que la bandeja. */}
+          {item.rejectedBy || item.rejectionReason ? (
+            <div className="payment-validation-dialog__rejection-row">
+              <dt>{t('admin.paymentValidation.rejectedByLabel')}</dt>
+              <dd>
+                <strong>{formatRejectionActor(item.rejectedBy, t)}</strong>
+                {item.rejectionReason ? <span>{item.rejectionReason}</span> : null}
+              </dd>
             </div>
           ) : null}
         </dl>

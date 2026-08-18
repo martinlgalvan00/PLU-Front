@@ -656,6 +656,7 @@ export default function PaymentsOperationsSection({
         onForceSettlePayment={onForceSettlePayment}
         onRejectPayment={onRejectPayment}
         onSummaryChange={handleAthleteSummaryChange}
+        onValidationStale={loadValidation}
         refreshKey={athleteRefreshKey}
         statusFilter={athleteStatusRequest}
       />

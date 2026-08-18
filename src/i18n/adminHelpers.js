@@ -9,6 +9,8 @@ const FILTER_LABEL_KEYS = {
   membershipRefunded: 'admin.filters.membershipRefunded',
   paymentApproved: 'admin.filters.paymentApproved',
   gatePending: 'admin.filters.gatePending',
+  allTournament: 'admin.filters.allTournament',
+  registeredToTournament: 'admin.filters.registeredToTournament',
 }
 
 export function translateFilterOptions(options, t) {

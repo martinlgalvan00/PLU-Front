@@ -80,11 +80,27 @@ describe('precio configurable por medio de pago (reemplaza la matriz hardcodeada
 
   it('las tres RPC de checkout reciben precio por defecto y precio manual, no un importe ya decidido', () => {
     expect(manualPriceMigration).toContain(
-      'create function public.create_membership_order_checkout(',
+      'create or replace function public.create_membership_order_checkout(',
     )
     expect(manualPriceMigration).toMatch(/create_membership_order_checkout\([\s\S]*?p_default_price numeric,\s*\n\s*p_manual_price numeric/)
     // Los comentarios sí pueden nombrar el parámetro viejo para explicar el
     // cambio; ninguna declaración de función real puede seguir teniéndolo.
     expect(manualPriceMigration).not.toMatch(/create function[\s\S]*?p_order_amount numeric/)
+  })
+})
+
+const staleComboOverloadMigration = readFileSync(
+  'supabase/migrations/20260824130000_drop_stale_combo_checkout_overloads.sql',
+  'utf8',
+)
+
+describe('overloads huérfanos del combo checkout', () => {
+  it('dropea cualquier firma que no sea la de 11 argumentos o que todavía hable de p_order_amount', () => {
+    expect(staleComboOverloadMigration).toContain("p.proname = 'create_membership_registration_combo_checkout'")
+    expect(staleComboOverloadMigration).toContain('p.pronargs <> 11')
+    expect(staleComboOverloadMigration).toContain("p.prosrc like '%p_order_amount%'")
+    expect(staleComboOverloadMigration).toContain(
+      'public.create_membership_registration_combo_checkout(uuid,text,text,text,numeric,text,text,numeric,numeric,text,text)',
+    )
   })
 })

@@ -170,6 +170,8 @@ export function filterMemberships(items, filters = {}) {
     const expiringMatch =
       filters.expiring !== 'soon' ||
       (operationalStatus === 'activa' && isExpiringSoon(item.expirationDate, 30, today))
+    const tournamentMatch =
+      filters.registeredToTournament !== 'yes' || item.hasTournamentRegistration === true
     const queryMatch =
       !query ||
       item.athlete?.fullName?.toLowerCase().includes(query) ||
@@ -177,6 +179,6 @@ export function filterMemberships(items, filters = {}) {
       item.athlete?.gym?.toLowerCase().includes(query) ||
       item.memberCode?.toLowerCase().includes(query)
 
-    return statusMatch && expiringMatch && queryMatch
+    return statusMatch && expiringMatch && tournamentMatch && queryMatch
   })
 }

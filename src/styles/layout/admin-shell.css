@@ -5,8 +5,11 @@
 .admin-shell {
   background: var(--color-bg-primary);
   display: flex;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* El Menu de antd no oculta el título de grupo en modo inline-collapsed --
@@ -33,11 +36,136 @@
   z-index: 200;
 }
 
+.admin-shell__sidebar-component.ant-layout-sider,
+.admin-shell__sidebar-component.ant-layout-sider-collapsed {
+  border-right: 1px solid var(--color-border-subtle);
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition:
+    width var(--motion-cinematic, 700ms) var(--ease-out),
+    min-width var(--motion-cinematic, 700ms) var(--ease-out),
+    max-width var(--motion-cinematic, 700ms) var(--ease-out),
+    flex var(--motion-cinematic, 700ms) var(--ease-out) !important;
+}
+
+.admin-shell__sidebar-component .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell__sidebar-inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.admin-shell__sidebar-component .admin-shell__brand,
+.admin-shell__drawer .admin-shell__brand {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.admin-shell__nav-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.admin-shell__nav-pin {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.admin-shell__pin-menu.ant-menu,
+.admin-shell__scroll-menu.ant-menu {
+  background: transparent;
+  border-inline-end: 0;
+}
+
+.admin-shell__pin-menu.ant-menu {
+  padding-block: 4px;
+}
+
+.admin-shell__menu-label {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell__header.ant-layout-header {
+  align-items: center;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-shrink: 0;
+  height: auto;
+  line-height: normal;
+  padding: 0 16px;
+}
+
+.admin-shell__header-copy {
+  line-height: normal;
+  margin-left: 8px;
+}
+
+.admin-shell__breadcrumb {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.admin-shell__header-title {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.admin-shell__header-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.admin-shell__content.ant-layout-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.admin-shell__drawer .ant-drawer-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
 .admin-shell__collapse-toggle {
   align-items: center;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
+  box-shadow: var(--elevation-sm);
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
@@ -47,12 +175,18 @@
   position: fixed;
   top: 56px;
   transition:
-    left var(--transition-base),
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
+    left var(--motion-cinematic, 700ms) var(--ease-out),
+    background var(--motion-fast, 160ms) var(--ease-out),
+    border-color var(--motion-fast, 160ms) var(--ease-out),
+    color var(--motion-fast, 160ms) var(--ease-out),
+    box-shadow var(--motion-fast, 160ms) var(--ease-out),
+    transform var(--motion-base, 240ms) var(--ease-spring);
   width: 24px;
   z-index: 210;
+}
+
+.admin-shell__collapse-icon {
+  transition: transform var(--motion-cinematic, 700ms) var(--ease-out);
 }
 
 .admin-shell--collapsed .admin-shell__collapse-toggle {
@@ -194,10 +328,16 @@
   background: var(--admin-glass-bg, var(--color-bg-surface));
   border-color: color-mix(
     in srgb,
-    var(--color-brand-celeste) 32%,
+    var(--color-brand-celeste) 40%,
     var(--admin-glass-border, var(--color-border-light))
   );
-  color: var(--color-text-primary);
+  box-shadow: var(--elevation-md);
+  color: var(--color-brand-celeste);
+  transform: scale(1.08);
+}
+
+.admin-shell__collapse-toggle:active {
+  transform: scale(0.95);
 }
 
 .admin-shell__collapse-toggle:focus-visible {
@@ -350,8 +490,21 @@
 .admin-shell__nav-scroll {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   position: relative;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+}
+
+.admin-shell__nav-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.admin-shell__nav-scroll::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 0;
 }
 
 .admin-shell__nav {
@@ -436,9 +589,14 @@
   position: relative;
   text-align: left;
   transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
+    background var(--motion-fast, 160ms) var(--ease-out),
+    color var(--motion-fast, 160ms) var(--ease-out),
+    transform var(--motion-fast, 160ms) var(--ease-spring);
   width: 100%;
+}
+
+.admin-shell__nav button:active {
+  transform: scale(0.97);
 }
 
 .admin-shell__nav-icon {
@@ -895,8 +1053,9 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-height: 0;
   min-width: 0;
-  overflow-x: clip;
+  overflow: hidden;
   padding-inline: max(0px, env(safe-area-inset-left, 0px))
     max(0px, env(safe-area-inset-right, 0px));
 }

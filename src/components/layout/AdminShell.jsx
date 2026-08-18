@@ -62,10 +62,54 @@ const ICONS = {
 
 const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
 const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'checkin'])
+const PINNED_NAV_KEY = 'dashboard'
 const SIDEBAR_MODE_STORAGE_KEY = 'plu-admin-sidebar-mode'
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
 const SIDEBAR_MODES = ['expanded', 'collapsed', 'hidden']
 const PHONE_DRAWER_MQ = '(max-width: 767px)'
+
+function splitPinnedNav(groups) {
+  let pinnedItem = null
+  const scrollGroups = []
+  for (const group of groups) {
+    const items = []
+    for (const item of group.items) {
+      if (item[0] === PINNED_NAV_KEY && pinnedItem == null) {
+        pinnedItem = item
+        continue
+      }
+      items.push(item)
+    }
+    if (items.length > 0) scrollGroups.push({ ...group, items })
+  }
+  return { pinnedItem, scrollGroups }
+}
+
+function toMenuItem([key, labelKey, iconName], navBadges, t) {
+  const Icon = ICONS[iconName]
+  const badgeCount = Number(navBadges[key]) || 0
+  const isAlert = ALERT_BADGE_KEYS.has(key)
+
+  return {
+    key,
+    title: t(labelKey),
+    icon: <Icon size={16} strokeWidth={1.75} />,
+    label: (
+      <div className="admin-shell__menu-label">
+        <span>{t(labelKey)}</span>
+        {badgeCount > 0 && (
+          <Badge
+            count={badgeCount}
+            style={{
+              backgroundColor: isAlert ? 'var(--color-brand-red)' : 'var(--color-brand-celeste)',
+              color: '#fff',
+            }}
+          />
+        )}
+      </div>
+    ),
+  }
+}
 
 function useMatchMedia(query) {
   const [matches, setMatches] = useState(() => {
@@ -187,37 +231,21 @@ export default function AdminShell({
       .filter((group) => group.items.length > 0)
   }, [allowedSections, restrictedNav])
 
+  const { pinnedItem, scrollGroups } = useMemo(() => splitPinnedNav(navGroups), [navGroups])
+
+  const pinnedMenuItems = useMemo(
+    () => (pinnedItem ? [toMenuItem(pinnedItem, navBadges, t)] : []),
+    [pinnedItem, navBadges, t],
+  )
+
   const menuItems = useMemo(() => {
-    return navGroups.map((group) => ({
+    return scrollGroups.map((group) => ({
       type: 'group',
       label: t(group.labelKey),
       key: group.labelKey,
-      children: group.items.map(([key, labelKey, iconName]) => {
-        const Icon = ICONS[iconName];
-        const badgeCount = Number(navBadges[key]) || 0;
-        const isAlert = ALERT_BADGE_KEYS.has(key);
-        
-        return {
-          key,
-          icon: <Icon size={16} strokeWidth={1.75} />,
-          label: (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{t(labelKey)}</span>
-              {badgeCount > 0 && (
-                <Badge 
-                  count={badgeCount} 
-                  style={{ 
-                    backgroundColor: isAlert ? 'var(--color-brand-red)' : 'var(--color-brand-celeste)',
-                    color: '#fff' 
-                  }} 
-                />
-              )}
-            </div>
-          ),
-        };
-      })
-    }));
-  }, [navGroups, navBadges, t]);
+      children: group.items.map((item) => toMenuItem(item, navBadges, t)),
+    }))
+  }, [scrollGroups, navBadges, t])
 
   const activeLabel = useMemo(() => {
     const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(([key]) => key === activeSection)
@@ -251,31 +279,45 @@ export default function AdminShell({
   const CollapseIcon = collapseToggleMeta.icon
 
   const sidebarContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '16px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--color-border-subtle)', flexShrink: 0 }}>
+    <div className="admin-shell__sidebar-inner">
+      <div className="admin-shell__brand">
         {brandMark}
         {(!collapsed || isPhoneViewport) && (
-          <div style={{ marginLeft: 10, display: 'flex', flexDirection: 'column' }}>
-            <Text strong style={{ color: 'var(--color-text-primary)', margin: 0, lineHeight: 1.2 }}>{t('brand.name')}</Text>
-            <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+          <div className="admin-shell__brand-copy">
+            <Text strong className="admin-shell__brand-name">{t('brand.name')}</Text>
+            <Text type="secondary" className="admin-shell__brand-subtitle">
               {restrictedNav === 'pluUsa' ? t('admin.shell.brandTagPartner') : restrictedNav === 'checkin' ? t('admin.shell.brandSubtitleSecurity') : t('admin.shell.brandTag')}
             </Text>
           </div>
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }} data-tour="admin-nav">
-        <Menu
-          mode="inline"
-          inlineCollapsed={collapsed && !isPhoneViewport}
-          selectedKeys={[activeSection]}
-          items={menuItems}
-          onClick={({ key }) => handleSectionChange(key)}
-          style={{ borderRight: 0 }}
-        />
+      <div className="admin-shell__nav-body" data-tour="admin-nav">
+        {pinnedMenuItems.length > 0 && (
+          <div className="admin-shell__nav-pin">
+            <Menu
+              className="admin-shell__pin-menu"
+              mode="inline"
+              inlineCollapsed={collapsed && !isPhoneViewport}
+              selectedKeys={[activeSection]}
+              items={pinnedMenuItems}
+              onClick={({ key }) => handleSectionChange(key)}
+            />
+          </div>
+        )}
+        <div className="admin-shell__nav-scroll">
+          <Menu
+            className="admin-shell__scroll-menu"
+            mode="inline"
+            inlineCollapsed={collapsed && !isPhoneViewport}
+            selectedKeys={[activeSection]}
+            items={menuItems}
+            onClick={({ key }) => handleSectionChange(key)}
+          />
+        </div>
       </div>
 
-      <div style={{ padding: '16px', borderTop: '1px solid var(--color-border-subtle)' }}>
+      <div className="admin-shell__footer">
         <Space orientation="vertical" style={{ width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: (!collapsed || isPhoneViewport) ? 'flex-start' : 'center', width: '100%' }}>
             {onOpenAccount ? (
@@ -320,19 +362,28 @@ export default function AdminShell({
   return (
     <Layout
       className={`admin-shell${sidebarHidden ? ' admin-shell--sidebar-hidden' : ''}${collapsed && !isPhoneViewport ? ' admin-shell--collapsed' : ''}`}
-      style={{ minHeight: '100vh' }}
     >
       {!isPhoneViewport && !sidebarHidden && (
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={collapsed}
-          width={260}
-          collapsedWidth={88}
-          style={{ position: 'sticky', top: 0, height: '100vh', zIndex: 100, borderRight: '1px solid var(--color-border-subtle)' }}
-        >
-          {sidebarContent}
-        </Sider>
+        <>
+          <Sider
+            trigger={null}
+            collapsible
+            collapsed={collapsed}
+            width={260}
+            collapsedWidth={88}
+            className="admin-shell__sidebar-component"
+          >
+            {sidebarContent}
+          </Sider>
+          <button
+            className="admin-shell__collapse-toggle"
+            onClick={() => setSidebarMode(nextSidebarMode(sidebarMode))}
+            title={collapseToggleMeta.label}
+            aria-label={collapseToggleMeta.label}
+          >
+            <CollapseIcon size={14} className="admin-shell__collapse-icon" />
+          </button>
+        </>
       )}
 
       {isPhoneViewport && (
@@ -341,7 +392,7 @@ export default function AdminShell({
           onClose={() => setSidebarOpen(false)}
           open={sidebarOpen}
           closable={false}
-          styles={{ body: { padding: 0 } }}
+          styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
           size={260}
           className="admin-shell__drawer"
         >
@@ -350,26 +401,29 @@ export default function AdminShell({
       )}
 
       <Layout className="admin-shell__main">
-        <Header style={{ display: 'flex', alignItems: 'center', padding: '0 16px', background: 'var(--color-bg-secondary)', borderBottom: '1px solid var(--color-border-subtle)' }}>
+        <Header className="admin-shell__header">
           <Space>
-            {isPhoneViewport ? (
+            {isPhoneViewport && (
               <Button type="text" icon={<MenuIcon size={20} />} onClick={() => setSidebarOpen(true)} />
-            ) : (
-              !sidebarHidden && (
-                <Button type="text" icon={<CollapseIcon size={16} />} onClick={() => setSidebarMode(nextSidebarMode(sidebarMode))} />
-              )
             )}
-            <div style={{ marginLeft: 8, lineHeight: 'normal' }}>
-              <div style={{ fontSize: 12, lineHeight: 1.3, color: 'var(--color-text-muted)' }}>
+            <div className="admin-shell__header-copy">
+              <div className="admin-shell__breadcrumb">
                 {t('admin.shell.breadcrumbRoot')} / {activeLabel}
               </div>
-              <Text strong style={{ fontSize: 16, lineHeight: 1.3 }}>{activeLabel}</Text>
+              <Text strong className="admin-shell__header-title">{activeLabel}</Text>
             </div>
           </Space>
           
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="admin-shell__header-actions">
             {sidebarHidden && !isPhoneViewport && (
-              <Button type="text" icon={<MenuIcon size={20} />} onClick={() => setSidebarMode('collapsed')} />
+              <button 
+                className="admin-mobile-bar__menu--reveal" 
+                onClick={() => setSidebarMode('collapsed')}
+                title={t('admin.shell.showSidebar')}
+                aria-label={t('admin.shell.showSidebar')}
+              >
+                <PanelLeft size={16} />
+              </button>
             )}
             <LanguageToggle compact variant="segment" />
             <ThemeToggle compact />
@@ -387,7 +441,7 @@ export default function AdminShell({
             </Dropdown>
           </div>
         </Header>
-        <Content style={{ overflowY: 'auto' }}>
+        <Content className="admin-shell__content">
           {children}
         </Content>
       </Layout>

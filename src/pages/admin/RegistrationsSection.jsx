@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
+import { AlertTriangle, BadgeCheck, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
@@ -10,6 +10,7 @@ import {
   AdminIdentityCell,
   AdminPaymentCell,
   AdminTableActions,
+  AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
@@ -27,6 +28,11 @@ import {
   matchesRegistrationStatusFilter,
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
+import {
+  fetchPlatformFeatureToggles,
+  VALIDATION_DISABLED_CODES,
+} from '../../services/platformSettingsAdminService.js'
+import { notifyError } from '../../lib/adminToast.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
@@ -107,10 +113,25 @@ export default function RegistrationsSection({
   const [statusTarget, setStatusTarget] = useState(null)
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
+  const [validationEnabled, setValidationEnabled] = useState(true)
 
   useEffect(() => {
     startTour('admin-registrations', getRegistrationsTourSteps(t))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPlatformFeatureToggles()
+      .then((toggles) => {
+        if (!cancelled) setValidationEnabled(toggles.registrationValidationEnabled !== false)
+      })
+      .catch(() => {
+        if (!cancelled) setValidationEnabled(true)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const isGloballyEmpty = total === 0
@@ -271,6 +292,24 @@ export default function RegistrationsSection({
     }
   }
 
+  // Antes el resultado se descartaba en silencio: si la validación estaba
+  // pausada (o cualquier otra falla), el botón "Validar" no hacía nada visible
+  // y el operador no tenía forma de saber por qué. Ahora avisa por toast y, si
+  // el 409 confirma el toggle apagado, sincroniza el estado local -- el fetch
+  // de arriba corre una sola vez al montar la sección.
+  async function handleApprovePayment(paymentId) {
+    const result = await onApprovePayment?.(paymentId)
+    if (result?.error) {
+      if (
+        result.code === VALIDATION_DISABLED_CODES.registration ||
+        result.code === VALIDATION_DISABLED_CODES.membership
+      ) {
+        setValidationEnabled(false)
+      }
+      notifyError(result.error)
+    }
+  }
+
   async function togglePublicVisibility(row) {
     if (!onSetPublicVisibility || visibilityChangingId) return
     setVisibilityChangingId(row.id)
@@ -354,6 +393,15 @@ export default function RegistrationsSection({
         entries={unreconciledPayments}
         onSelectAthlete={onSelectAthlete}
       />
+      {!validationEnabled ? (
+        <div className="admin-payments-ops-callout" role="status">
+          <AlertTriangle size={16} aria-hidden />
+          <div className="admin-payments-ops-callout__body">
+            <strong>{t('admin.sections.registrations.validationPaused')}</strong>
+            <p>{t('admin.sections.registrations.validationPausedLead')}</p>
+          </div>
+        </div>
+      ) : null}
       <AdminListSection
         variant="registrations"
         eyebrow={t('admin.sections.registrations.eyebrow')}
@@ -585,17 +633,23 @@ export default function RegistrationsSection({
                   key: 'action',
                   label: t('admin.columns.action'),
                   mobile: 'action',
-                  render: (row) =>
-                    canValidateRegistrationPayment(row, canEdit) ||
-                    canManageVisibility ||
-                    canSetStatus ||
-                    canDelete ? (
+                  render: (row) => {
+                    const canValidate = canValidateRegistrationPayment(row, canEdit)
+                    const hasActions =
+                      canValidate || canManageVisibility || canSetStatus || canDelete
+                    if (!hasActions) return <AdminTableActionsEmpty />
+                    return (
                       <AdminTableActions onClick={(event) => event.stopPropagation()}>
-                        {canValidateRegistrationPayment(row, canEdit) ? (
+                        {canValidate ? (
                           <AdminIconButton
+                            disabled={!validationEnabled}
                             icon={BadgeCheck}
-                            label={t('admin.actions.validate')}
-                            onClick={() => onApprovePayment(row.paymentId)}
+                            label={
+                              validationEnabled
+                                ? t('admin.actions.validate')
+                                : t('admin.athletePayments.validationPaused')
+                            }
+                            onClick={() => void handleApprovePayment(row.paymentId)}
                             variant="celeste"
                           />
                         ) : null}
@@ -610,7 +664,7 @@ export default function RegistrationsSection({
                             )}
                             onClick={() => void togglePublicVisibility(row)}
                             spinning={visibilityChangingId === row.id}
-                            variant={row.publicVisible ? 'ghost' : 'celeste'}
+                            variant="ghost"
                           />
                         ) : null}
                         {canSetStatus && onSetRegistrationStatus ? (
@@ -636,7 +690,8 @@ export default function RegistrationsSection({
                           />
                         ) : null}
                       </AdminTableActions>
-                    ) : null,
+                    )
+                  },
                 },
               ]}
               rows={registrationRows}

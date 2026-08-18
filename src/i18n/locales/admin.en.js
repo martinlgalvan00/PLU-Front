@@ -138,6 +138,7 @@ export default {
       },
     },
     payments: {
+      rejectionActorProvider: 'Mercado Pago',
       kpis: {
         title: 'Collections radar',
         body: 'Orders to validate, pending tickets, failed webhooks, reconciliations, and overall integrity -- tap any of them to jump to that queue.',
@@ -237,6 +238,8 @@ export default {
     membershipRefunded: 'Refunded',
     paymentApproved: 'Payment approved',
     gatePending: 'Confirmed without membership',
+    allTournament: 'All',
+    registeredToTournament: 'Registered to a tournament',
     toggle: 'Filters',
     activeCount: '{{count}} active filters',
     clearSearch: 'Clear search',
@@ -432,6 +435,10 @@ export default {
       cancelConfirmWarning: 'The credential will no longer grant entry and the athlete will receive an email about the change.',
       keepActive: 'Keep active',
       confirmCancel: 'Confirm deactivation',
+      registeredToTournamentBadge: 'Tournament',
+      validationPaused: 'Membership validation is paused from Access and enablement.',
+      validationPausedLead:
+        'Activate and deactivate stay blocked until that switch is turned back on.',
     },
     pricing: {
       eyebrow: 'Economic configuration',
@@ -733,6 +740,9 @@ export default {
       emptyFilteredTitle: 'No results',
       emptyFiltered: 'No registrations match your search or selected status.',
       clearFilters: 'Clear filters',
+      validationPaused: 'Registration validation is paused from Access and enablement.',
+      validationPausedLead:
+        'Approving a payment stays blocked until that switch is turned back on.',
     },
     events: {
       eyebrow: 'Competitions',
@@ -1488,6 +1498,7 @@ export default {
     amount: 'Amount',
     notes: 'Athlete notes',
     proofReceivedAt: 'Receipt received',
+    rejectedByLabel: 'Previous rejection',
     proofPending: 'File pending',
     noProofTitle: 'No receipt uploaded',
     noProofLead: 'A bank transfer can only be credited after a receipt is attached and reviewed.',
@@ -2361,6 +2372,7 @@ export default {
     filterManual: 'With receipt',
     filterApproved: 'Approved',
     filterAll: 'All',
+    rejectedBy: 'Rejected by {{actor}}',
     columnProof: 'Receipt',
     proofMissing: 'No receipt',
     proofError: 'Could not open the receipt.',
