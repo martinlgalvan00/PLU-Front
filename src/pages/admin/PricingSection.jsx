@@ -39,16 +39,26 @@ const EMPTY_PLAN = {
   retiresAt: '',
 }
 
+// Mercado Pago no se lista: está siempre disponible y no se puede apagar por
+// código. Sólo los canales manuales son opt-in.
+const MANUAL_PAYMENT_CHANNELS = ['bank_transfer', 'cash_pitbull']
+
 const EMPTY_DISCOUNT_CODE = {
   id: undefined,
   code: '',
   description: '',
+  // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final de
+  // la compra (promo tipo "afiliación + inscripción a $120.000").
+  kind: 'percent',
   percentOff: '',
+  fixedPrice: '',
   appliesTo: 'membership',
   maxRedemptions: '',
   expiresAt: '',
   active: true,
-  enablesManualPayment: false,
+  // Canales manuales que el código destraba, además de Mercado Pago (que
+  // siempre está disponible). Vacío = sólo Mercado Pago.
+  manualChannels: [],
 }
 
 const SUBSCRIPTION_STATUS_LABELS = {
@@ -442,12 +452,14 @@ export default function PricingSection({
             id: source.id,
             code: source.code,
             description: source.description,
-            percentOff: source.percentOff,
+            kind: source.kind ?? 'percent',
+            percentOff: source.kind === 'fixed_price' ? '' : source.percentOff,
+            fixedPrice: source.fixedPrice ?? '',
             appliesTo: source.appliesTo,
             maxRedemptions: source.maxRedemptions ?? '',
             expiresAt: toLocalDateTime(source.expiresAt),
             active: source.active,
-            enablesManualPayment: source.enablesManualPayment ?? false,
+            manualChannels: source.manualChannels ?? [],
           }
         : { ...EMPTY_DISCOUNT_CODE },
     )
@@ -456,13 +468,25 @@ export default function PricingSection({
   async function submitCode(event) {
     event.preventDefault()
     setCodeError('')
+    const isFixedPrice = codeDraft.kind === 'fixed_price'
     const percentOff = Number(codeDraft.percentOff)
+    const fixedPrice = Number(codeDraft.fixedPrice)
     if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(codeDraft.code.toUpperCase())) {
       setCodeError(t('admin.sections.pricing.codeFormatHint'))
       return
     }
-    if (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99) {
-      setCodeError(t('admin.sections.pricing.loadError'))
+    if (!isFixedPrice && (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99)) {
+      setCodeError(t('admin.sections.pricing.percentOffInvalid'))
+      return
+    }
+    if (isFixedPrice && (!Number.isInteger(fixedPrice) || fixedPrice < 1)) {
+      setCodeError(t('admin.sections.pricing.fixedPriceInvalid'))
+      return
+    }
+    // El servidor lo rechaza igual; adelantarlo acá evita el viaje y explica
+    // el porqué en el mismo formulario.
+    if (isFixedPrice && codeDraft.appliesTo === 'both') {
+      setCodeError(t('admin.sections.pricing.fixedPriceScopeInvalid'))
       return
     }
 
@@ -470,7 +494,8 @@ export default function PricingSection({
     const result = await onUpsertDiscountCode?.({
       ...codeDraft,
       code: codeDraft.code.toUpperCase(),
-      percentOff,
+      percentOff: isFixedPrice ? undefined : percentOff,
+      fixedPrice: isFixedPrice ? fixedPrice : undefined,
       maxRedemptions:
         codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
     })
@@ -1330,9 +1355,11 @@ export default function PricingSection({
                     >
                       {t(`admin.sections.pricing.discountStatus.${status}`)}
                     </span>
-                    {code.enablesManualPayment ? (
+                    {(code.manualChannels ?? []).length ? (
                       <span className="admin-pricing__status admin-pricing__status--manual">
-                        {t('admin.sections.pricing.enablesManualPaymentBadge')}
+                        {t(
+                          `admin.sections.pricing.manualChannelsBadge.${[...(code.manualChannels ?? [])].sort().join('+')}`,
+                        )}
                       </span>
                     ) : null}
                   </div>
@@ -1374,9 +1401,15 @@ export default function PricingSection({
                   ) : null}
                 </div>
 
-                <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
-                  −{code.percentOff}%
-                </strong>
+                {code.kind === 'fixed_price' ? (
+                  <strong className="admin-pricing__plan-amount">
+                    {money(code.fixedPrice ?? 0, locale)}
+                  </strong>
+                ) : (
+                  <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
+                    −{code.percentOff}%
+                  </strong>
+                )}
 
                 <div className="admin-pricing__plan-actions">
                   <button
@@ -1455,19 +1488,61 @@ export default function PricingSection({
                 <small>{t('admin.sections.pricing.codeFormatHint')}</small>
               </label>
               <label>
-                <span>{t('admin.sections.pricing.percentOff')}</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="99"
-                  step="1"
-                  value={codeDraft.percentOff}
-                  onChange={(event) =>
-                    setCodeDraft({ ...codeDraft, percentOff: event.target.value })
-                  }
-                  required
-                />
+                <span>{t('admin.sections.pricing.codeKindLabel')}</span>
+                <select
+                  value={codeDraft.kind}
+                  onChange={(event) => {
+                    const kind = event.target.value
+                    setCodeDraft({
+                      ...codeDraft,
+                      kind,
+                      // Un precio promocional necesita alcance único: si venía
+                      // en "afiliación e inscripción", se cae a afiliación.
+                      appliesTo:
+                        kind === 'fixed_price' && codeDraft.appliesTo === 'both'
+                          ? 'membership'
+                          : codeDraft.appliesTo,
+                    })
+                  }}
+                >
+                  <option value="percent">{t('admin.sections.pricing.codeKind.percent')}</option>
+                  <option value="fixed_price">
+                    {t('admin.sections.pricing.codeKind.fixed_price')}
+                  </option>
+                </select>
+                <small>{t('admin.sections.pricing.codeKindHint')}</small>
               </label>
+              {codeDraft.kind === 'fixed_price' ? (
+                <label>
+                  <span>{t('admin.sections.pricing.fixedPrice')}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={codeDraft.fixedPrice}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, fixedPrice: event.target.value })
+                    }
+                    required
+                  />
+                  <small>{t('admin.sections.pricing.fixedPriceHint')}</small>
+                </label>
+              ) : (
+                <label>
+                  <span>{t('admin.sections.pricing.percentOff')}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    step="1"
+                    value={codeDraft.percentOff}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, percentOff: event.target.value })
+                    }
+                    required
+                  />
+                </label>
+              )}
               <label>
                 <span>{t('admin.sections.pricing.appliesToLabel')}</span>
                 <select
@@ -1482,7 +1557,10 @@ export default function PricingSection({
                   <option value="registration">
                     {t('admin.sections.pricing.appliesTo.registration')}
                   </option>
-                  <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
+                  <option value="combo">{t('admin.sections.pricing.appliesTo.combo')}</option>
+                  {codeDraft.kind === 'fixed_price' ? null : (
+                    <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
+                  )}
                 </select>
               </label>
               <label>
@@ -1519,19 +1597,27 @@ export default function PricingSection({
                   }
                 />
               </label>
-              <label className="admin-pricing__toggle admin-pricing__wide">
-                <input
-                  type="checkbox"
-                  checked={codeDraft.enablesManualPayment}
-                  onChange={(event) =>
-                    setCodeDraft({ ...codeDraft, enablesManualPayment: event.target.checked })
-                  }
-                />
-                <span>{t('admin.sections.pricing.enablesManualPayment')}</span>
-              </label>
-              <small className="admin-pricing__wide">
-                {t('admin.sections.pricing.enablesManualPaymentHint')}
-              </small>
+              <fieldset className="admin-pricing__channels admin-pricing__wide">
+                <legend>{t('admin.sections.pricing.manualChannelsLegend')}</legend>
+                {MANUAL_PAYMENT_CHANNELS.map((channel) => (
+                  <label className="admin-pricing__toggle" key={channel}>
+                    <input
+                      type="checkbox"
+                      checked={(codeDraft.manualChannels ?? []).includes(channel)}
+                      onChange={(event) =>
+                        setCodeDraft({
+                          ...codeDraft,
+                          manualChannels: event.target.checked
+                            ? [...new Set([...(codeDraft.manualChannels ?? []), channel])]
+                            : (codeDraft.manualChannels ?? []).filter((item) => item !== channel),
+                        })
+                      }
+                    />
+                    <span>{t(`admin.sections.pricing.manualChannel.${channel}`)}</span>
+                  </label>
+                ))}
+                <small>{t('admin.sections.pricing.manualChannelsHint')}</small>
+              </fieldset>
             </fieldset>
             {codeError ? (
               <p className="admin-pricing__form-error" role="alert">

@@ -536,21 +536,43 @@ export default {
       retiresAtHint: 'Opcional. Después de esta fecha el plan deja de ofrecerse.',
       retiresOn: 'Vence {{date}}',
       scheduleRetirement: 'Programar vigencia',
-      discountCodesTitle: 'Códigos de descuento',
+      discountCodesTitle: 'Códigos de descuento y promoción',
       discountCodesLead:
-        'Creá cupos para las primeras personas que canjeen, con vencimiento y seguimiento en vivo.',
-      discountCodesEmpty: 'Todavía no hay códigos de descuento.',
+        'Descuentos por porcentaje o promos con precio fijo, con cupos, vencimiento y seguimiento en vivo.',
+      discountCodesEmpty: 'Todavía no hay códigos cargados.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
-      formTitleNewCode: 'Nuevo código de descuento',
+      formTitleNewCode: 'Nuevo código',
       formTitleEditCode: 'Editar {{code}}',
       code: 'Código',
       codeFormatHint: 'Mayúsculas, números y guiones.',
       percentOff: 'Descuento (%)',
-      enablesManualPayment: 'Habilita transferencia/efectivo para esta compra',
-      enablesManualPaymentHint:
-        'Aunque el canal manual esté apagado en general, un cupón con este check lo destraba sólo para quien lo use.',
-      enablesManualPaymentBadge: 'Habilita transferencia',
+      percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
+      codeKindLabel: 'Modalidad',
+      codeKindHint:
+        'El descuento resta un porcentaje del precio vigente. El precio promocional fija cuánto se paga, sin importar el medio de pago.',
+      codeKind: {
+        percent: 'Descuento por porcentaje',
+        fixed_price: 'Precio promocional fijo',
+      },
+      fixedPrice: 'Precio promocional (ARS)',
+      fixedPriceHint:
+        'Lo que paga quien use el código. Tiene que ser menor al precio vigente de lo que compra.',
+      fixedPriceInvalid: 'El precio promocional tiene que ser un número entero mayor a 0.',
+      fixedPriceScopeInvalid:
+        'Un precio promocional necesita un alcance único: afiliación, inscripción o combo.',
+      manualChannelsLegend: 'Medios de pago que habilita',
+      manualChannelsHint:
+        'Mercado Pago siempre está disponible. Marcá un canal para que este código lo destrabe sólo para quien lo use, aunque esté apagado en general. Sin marcar nada, la compra va únicamente por Mercado Pago.',
+      manualChannel: {
+        bank_transfer: 'Transferencia bancaria',
+        cash_pitbull: 'Efectivo en Pitbull',
+      },
+      manualChannelsBadge: {
+        bank_transfer: 'Habilita transferencia',
+        cash_pitbull: 'Habilita efectivo',
+        'bank_transfer+cash_pitbull': 'Habilita transferencia y efectivo',
+      },
       deleteDiscountCode: 'Eliminar',
       deleteDiscountCodeAria: 'Eliminar código {{code}}',
       deleteCodeConfirmTitle: 'Eliminar {{code}}',
@@ -562,9 +584,10 @@ export default {
       codeDeleted: 'Código de descuento eliminado.',
       appliesToLabel: 'Aplica a',
       appliesTo: {
-        membership: 'Membresías',
-        registration: 'Inscripciones',
-        both: 'Ambos',
+        membership: 'Afiliación',
+        registration: 'Inscripción',
+        combo: 'Combo (afiliación + inscripción)',
+        both: 'Afiliación e inscripción',
       },
       maxRedemptions: 'Límite de canjes',
       maxRedemptionsHint:

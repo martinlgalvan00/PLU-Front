@@ -878,6 +878,7 @@ export default {
       discountApply: 'Aplicar',
       discountChecking: 'Validando…',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
+      discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -886,6 +887,7 @@ export default {
         not_applicable: 'Ese código no aplica a este pago.',
         limit_reached: 'Ese código alcanzó el máximo de usos.',
         already_used: 'Ya usaste ese código.',
+        no_savings: 'Ese código no mejora el precio de esta compra.',
       },
       paymentLegend: 'Método de pago',
       planSelector: 'Plan de afiliación',
@@ -2543,6 +2545,7 @@ export default {
       discountApply: 'Aplicar',
       discountChecking: 'Validando...',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
+      discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -2551,6 +2554,7 @@ export default {
         not_applicable: 'Ese código no aplica a este pago.',
         limit_reached: 'Ese código alcanzó el máximo de usos.',
         already_used: 'Ya usaste ese código.',
+        no_savings: 'Ese código no mejora el precio de esta compra.',
       },
       competitionPaymentTitle: 'Cómo pagás',
       competitionPaymentDesc: 'Elegí el medio para generar la orden.',

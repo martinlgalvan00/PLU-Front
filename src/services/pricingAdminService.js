@@ -31,16 +31,28 @@ export function mapMembershipPlan(row) {
 }
 
 export function mapDiscountCode(row) {
+  const fixedPrice = row.fixed_price ?? row.fixedPrice ?? null
   return {
     id: row.id,
     code: row.code,
     description: row.description ?? '',
+    // Los cupones creados antes de que existiera el precio promocional no
+    // traen `kind`: son todos de porcentaje.
+    kind: row.kind ?? (fixedPrice != null ? 'fixed_price' : 'percent'),
     percentOff: Number(row.percent_off ?? row.percentOff) || 0,
+    fixedPrice: fixedPrice != null ? Number(fixedPrice) : null,
     appliesTo: row.applies_to ?? row.appliesTo ?? 'membership',
     maxRedemptions: row.max_redemptions ?? row.maxRedemptions ?? null,
     expiresAt: row.expires_at ?? row.expiresAt ?? null,
     active: row.active !== false,
-    enablesManualPayment: Boolean(row.enables_manual_payment ?? row.enablesManualPayment ?? false),
+    // Canales manuales que el código destraba. Los códigos anteriores a la
+    // lista sólo traen el booleano: `true` significaba los dos canales.
+    manualChannels:
+      row.manual_channels ??
+      row.manualChannels ??
+      ((row.enables_manual_payment ?? row.enablesManualPayment)
+        ? ['bank_transfer', 'cash_pitbull']
+        : []),
     redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: row.updated_at ?? row.updatedAt ?? null,
@@ -144,8 +156,15 @@ export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
 }
 
 export async function upsertDiscountCodeRequest(code) {
+  const kind = code.kind === 'fixed_price' ? 'fixed_price' : 'percent'
   const result = await apiPost('/api/pricing/discount-codes', {
     ...code,
+    kind,
+    // Cada modalidad manda sólo su campo: el schema del servidor descarta el
+    // otro, y un string vacío haría fallar la coerción numérica.
+    percentOff: kind === 'percent' ? code.percentOff : undefined,
+    fixedPrice: kind === 'fixed_price' ? code.fixedPrice : undefined,
+    manualChannels: code.manualChannels ?? [],
     expiresAt: dateTimeToIso(code.expiresAt),
   })
   return mapDiscountCode(result.code)

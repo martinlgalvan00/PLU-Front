@@ -9,6 +9,9 @@ import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
  * para el escritorio de cobro. No crea la orden.
  */
 export default function RegisterSettle({
+  // Cada canal manual se ofrece por separado: Administración puede abrirlos a
+  // todos, o un código de promoción destrabar sólo uno para quien lo use.
+  cashEnabled = false,
   comboComingSoon = false,
   comboEnabled = false,
   comboOffer = null,
@@ -29,6 +32,7 @@ export default function RegisterSettle({
   registrationManualPrice = null,
   showPackage = false,
   showPayment = false,
+  transferEnabled = false,
 }) {
   const { locale, t } = useI18n()
   if (!showPackage && !showPayment) return null
@@ -94,15 +98,18 @@ export default function RegisterSettle({
   }
 
   // Canal manual cerrado desde el panel: transferencia y efectivo no se ofrecen,
-  // en vez de aparecer y fallar con 409 al enviar.
+  // en vez de aparecer y fallar con 409 al enviar. `manualPaymentEnabled` es el
+  // compatible histórico: abre los dos salvo que se pase cada canal aparte.
+  const transferOffered = transferEnabled || manualPaymentEnabled
+  const cashOffered = cashEnabled || manualPaymentEnabled
   const methods = showPayment
     ? [
         { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-        ...(manualPaymentEnabled
-          ? [
-              { value: 'manual_link', label: t('pages.register.paymentTransferLabel') },
-              { value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') },
-            ]
+        ...(transferOffered
+          ? [{ value: 'manual_link', label: t('pages.register.paymentTransferLabel') }]
+          : []),
+        ...(cashOffered
+          ? [{ value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') }]
           : []),
       ]
     : []
@@ -118,7 +125,8 @@ export default function RegisterSettle({
       offers={offers}
       paymentError={paymentError}
       paymentHint={
-        paymentHint || (!manualPaymentEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : '')
+        paymentHint ||
+        (!transferOffered && !cashOffered ? t('pages.register.paymentMercadoPagoOnlyHint') : '')
       }
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}

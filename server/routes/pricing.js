@@ -47,29 +47,77 @@ export const membershipPlanVersionSchema = z.object({
 const planStatusSchema = z.object({ active: z.boolean() })
 const planRetirementSchema = z.object({ retiresAt: optionalDateTime })
 
-export const discountCodeSchema = z.object({
-  id: z.string().uuid().optional(),
-  code: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .min(3)
-    .max(32)
-    .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Usá letras mayúsculas, números y guiones.'),
-  description: z.string().trim().max(200).optional().default(''),
-  // Tope en 99: un cupón nunca puede dejar una orden en $0 — Mercado Pago no
-  // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
-  // gratuita. Ver apply_discount_code_to_order (rechaza descuento == importe).
-  percentOff: z.coerce.number().int().min(1).max(99),
-  appliesTo: z.enum(['membership', 'registration', 'both']),
-  maxRedemptions: z.coerce.number().int().positive().optional(),
-  expiresAt: optionalDateTime,
-  active: z.boolean().default(true),
-  // Opt-in por cupón: no todos destraban transferencia/efectivo, sólo los que
-  // un operador marca explícitamente. No reemplaza el interruptor general de
-  // canal manual, lo salta puntualmente para quien use este cupón.
-  enablesManualPayment: z.boolean().default(false),
-})
+export const discountCodeSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .min(3)
+      .max(32)
+      .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Usá letras mayúsculas, números y guiones.'),
+    description: z.string().trim().max(200).optional().default(''),
+    // 'percent' descuenta sobre el precio vigente; 'fixed_price' fija el
+    // importe final de la compra ("afiliación + inscripción a $120.000").
+    kind: z.enum(['percent', 'fixed_price']).default('percent'),
+    // Tope en 99: un cupón nunca puede dejar una orden en $0 — Mercado Pago no
+    // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
+    // gratuita. Ver apply_discount_code_to_order (rechaza descuento == importe).
+    percentOff: z.coerce.number().int().min(1).max(99).optional(),
+    // Mismo importe en todos los canales de pago: el precio promocional pisa
+    // la diferencia Mercado Pago / transferencia del catálogo.
+    fixedPrice: money.optional(),
+    appliesTo: z.enum(['membership', 'registration', 'combo', 'both']),
+    maxRedemptions: z.coerce.number().int().positive().optional(),
+    expiresAt: optionalDateTime,
+    active: z.boolean().default(true),
+    // Opt-in por cupón y por canal: Mercado Pago siempre está disponible, y
+    // acá se listan los canales manuales que este código destraba además. No
+    // reemplaza el interruptor general de canal manual, lo salta puntualmente
+    // para quien use este código. Lista vacía = sólo Mercado Pago.
+    manualChannels: z
+      .array(z.enum(['bank_transfer', 'cash_pitbull']))
+      .max(2)
+      .default([])
+      .transform((channels) => [...new Set(channels)]),
+  })
+  .superRefine((code, context) => {
+    if (code.kind === 'percent') {
+      if (code.percentOff == null) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['percentOff'],
+          message: 'Indicá el porcentaje de descuento.',
+        })
+      }
+      return
+    }
+    if (code.fixedPrice == null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fixedPrice'],
+        message: 'Indicá el precio promocional.',
+      })
+    }
+    // Un mismo importe fijo no significa lo mismo aplicado a una afiliación
+    // sola que a un combo: el precio promocional exige un alcance único.
+    if (code.appliesTo === 'both') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['appliesTo'],
+        message: 'Un precio promocional necesita un alcance único: afiliación, inscripción o combo.',
+      })
+    }
+  })
+  .transform((code) =>
+    // El campo de la modalidad que no corresponde se descarta acá: así editar
+    // un cupón de porcentaje a precio fijo (o al revés) no deja el valor viejo
+    // colgado en la fila.
+    code.kind === 'percent'
+      ? { ...code, fixedPrice: undefined }
+      : { ...code, percentOff: undefined },
+  )
 
 const discountCodeStatusSchema = z.object({ active: z.boolean() })
 

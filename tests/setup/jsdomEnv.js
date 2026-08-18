@@ -13,6 +13,21 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   }
 }
 
+// jsdom tampoco implementa pseudo-elementos en getComputedStyle: toda llamada
+// con segundo argumento emite "Not implemented: window.getComputedStyle(elt,
+// pseudoElt)" por la consola virtual. antd la usa para medir el scrollbar de
+// Table (@rc-component/util/getScrollBarSize hace
+// `getComputedStyle(el, '::-webkit-scrollbar')`), así que un puñado de tablas
+// ensucia la corrida con decenas de errores que no pertenecen a ningún test y
+// que vitest cuenta aparte de las aserciones. Se ignora el pseudo-elemento: la
+// medida queda en 0, que es lo que jsdom reporta para todo lo que no tiene
+// layout, y es exactamente el fallback que antd ya maneja.
+if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
+  const nativeGetComputedStyle = window.getComputedStyle.bind(window)
+  window.getComputedStyle = (element, pseudoElement) =>
+    pseudoElement ? nativeGetComputedStyle(element) : nativeGetComputedStyle(element)
+}
+
 // jsdom tampoco implementa matchMedia. antd lo usa para su Grid interno
 // (useBreakpoint, detrás de componentes como Menu/Layout) incluso cuando el
 // test no pregunta nada responsive a propósito.

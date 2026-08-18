@@ -169,4 +169,48 @@ describe('configuración económica administrativa', () => {
     )
     expect(discountCodeSchema.safeParse(discountCodePayload({ code: 'MAL@' })).success).toBe(false)
   })
+
+  it('acepta una promo de precio fijo con alcance único y descarta el porcentaje', () => {
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        code: 'PITBULL',
+        kind: 'fixed_price',
+        fixedPrice: 120000,
+        appliesTo: 'combo',
+        percentOff: 25,
+      }),
+    )
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.fixedPrice).toBe(120000)
+    // El porcentaje viaja en el payload pero no llega a la base: cada
+    // modalidad guarda sólo su propio campo.
+    expect(parsed.data.percentOff).toBeUndefined()
+  })
+
+  it('rechaza una promo de precio fijo sin importe o con alcance combinado', () => {
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ kind: 'fixed_price', appliesTo: 'combo', percentOff: undefined }),
+      ).success,
+    ).toBe(false)
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ kind: 'fixed_price', fixedPrice: 120000, appliesTo: 'both' }),
+      ).success,
+    ).toBe(false)
+  })
+
+  it('exige el porcentaje cuando el código es un descuento', () => {
+    expect(
+      discountCodeSchema.safeParse(discountCodePayload({ percentOff: undefined })).success,
+    ).toBe(false)
+  })
+
+  it('admite el alcance combo para un descuento por porcentaje', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload({ appliesTo: 'combo' }))
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.kind).toBe('percent')
+    expect(parsed.data.fixedPrice).toBeUndefined()
+  })
 })

@@ -404,10 +404,19 @@ export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug
     valid: preview.valid === true,
     reason: preview.reason ?? null,
     code: preview.code ?? null,
+    // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final.
+    kind: preview.kind ?? 'percent',
     percentOff: preview.percentOff ?? null,
+    fixedPrice: preview.fixedPrice ?? null,
     discountAmount: preview.discountAmount ?? null,
     finalAmount: preview.finalAmount ?? null,
-    enablesManualPayment: Boolean(preview.enablesManualPayment),
+    // Canales manuales que este código destraba (Mercado Pago siempre está
+    // disponible). Un código anterior a la lista sólo trae el booleano.
+    manualChannels: Array.isArray(preview.manualChannels)
+      ? preview.manualChannels
+      : preview.enablesManualPayment
+        ? ['bank_transfer', 'cash_pitbull']
+        : [],
   }
 }
 

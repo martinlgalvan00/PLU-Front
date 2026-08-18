@@ -106,11 +106,18 @@ export default function MembershipPurchaseSection({
   const paidCheckoutOpen =
     isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) &&
     publicMembershipCheckoutEnabled
-  // El interruptor general puede seguir apagado: un cupón con
-  // enablesManualPayment lo destraba puntualmente para quien lo usa.
-  const effectiveManualChannelEnabled =
-    Boolean(discountPreview?.enablesManualPayment) ||
-    (manualChannelEnabled && publicManualChannelEnabled)
+  // El interruptor general puede seguir apagado: un código de promoción
+  // destraba puntualmente los canales que declara, y sólo esos.
+  const codeChannels = discountPreview?.manualChannels ?? []
+  const manualChannelsOpenGlobally = manualChannelEnabled && publicManualChannelEnabled
+  // Transferencia y efectivo siguen anunciados como "próximamente" para el
+  // caso general (decisión de producto: la afiliación se cobra por Mercado
+  // Pago). Un código que los habilita explícitamente sí los vuelve operables:
+  // es exactamente para eso que existe.
+  const transferSelectable = codeChannels.includes('bank_transfer')
+  const cashSelectable = codeChannels.includes('cash_pitbull')
+  const transferOffered = transferSelectable || manualChannelsOpenGlobally
+  const cashOffered = cashSelectable || manualChannelsOpenGlobally
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
@@ -283,17 +290,14 @@ export default function MembershipPurchaseSection({
 
   useEffect(() => {
     if (paymentMethod === 'mercado_pago') return
-    // Plan recurrente, canal manual cerrado o medios manuales en
-    // "próximamente": el único medio operable es Mercado Pago.
-    if (
-      selectedPlan?.collectionMode === 'recurring' ||
-      !manualChannelEnabled ||
-      paymentMethod === 'transferencia' ||
-      paymentMethod === 'cash_pitbull'
-    ) {
-      setPaymentMethod('mercado_pago')
-    }
-  }, [effectiveManualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
+    // Plan recurrente, o un medio que no quedó operable (canal cerrado, o el
+    // código aplicado no habilita justo ese): el único medio es Mercado Pago.
+    const methodOperable =
+      selectedPlan?.collectionMode !== 'recurring' &&
+      ((paymentMethod === 'transferencia' && transferSelectable) ||
+        (paymentMethod === 'cash_pitbull' && cashSelectable))
+    if (!methodOperable) setPaymentMethod('mercado_pago')
+  }, [cashSelectable, paymentMethod, selectedPlan?.collectionMode, transferSelectable])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -738,10 +742,15 @@ export default function MembershipPurchaseSection({
                   {discountPreview ? (
                     <p className="account-discount__applied">
                       <Tag size={14} aria-hidden />
-                      {t('account.membership.discountApplied', {
-                        code: discountPreview.code,
-                        amount: money(discountPreview.discountAmount, locale),
-                      })}
+                      {discountPreview.kind === 'fixed_price'
+                        ? t('account.membership.discountAppliedFixed', {
+                            code: discountPreview.code,
+                            amount: money(discountPreview.finalAmount, locale),
+                          })
+                        : t('account.membership.discountApplied', {
+                            code: discountPreview.code,
+                            amount: money(discountPreview.discountAmount, locale),
+                          })}
                       <button type="button" onClick={clearDiscountCode} disabled={checkoutLocked}>
                         {t('account.membership.discountRemove')}
                       </button>
@@ -847,17 +856,25 @@ export default function MembershipPurchaseSection({
                 }
                 methods={[
                   { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-                  ...(effectiveManualChannelEnabled
+                  ...(transferOffered
                     ? [
                         {
                           value: 'transferencia',
-                          label: t('account.membership.transferComingSoon'),
-                          disabled: true,
+                          label: transferSelectable
+                            ? t('pages.register.paymentTransferLabel')
+                            : t('account.membership.transferComingSoon'),
+                          disabled: !transferSelectable,
                         },
+                      ]
+                    : []),
+                  ...(cashOffered
+                    ? [
                         {
                           value: 'cash_pitbull',
-                          label: t('account.membership.cashPitbullComingSoon'),
-                          disabled: true,
+                          label: cashSelectable
+                            ? t('pages.register.paymentCashPitbullLabel')
+                            : t('account.membership.cashPitbullComingSoon'),
+                          disabled: !cashSelectable,
                         },
                       ]
                     : []),
