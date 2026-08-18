@@ -670,7 +670,7 @@ export default function RegisterPage({
   const membershipListPrice = Number(eventPricing.membership) || 0
   const registrationListPrice = Number(total) || Number(eventPricing.registration) || 0
   const comboListPrice = comboAvailability.offer ? Number(comboAvailability.offer.price) : 0
-  const checkoutTotal = previewCheckoutPrice({
+  const checkoutListTotal = previewCheckoutPrice({
     paymentMethod: form.paymentMethod,
     manualPrice:
       effectivePurchaseType === 'combo'
@@ -678,6 +678,15 @@ export default function RegisterPage({
         : eventPricing.registrationManual,
     fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
   })
+  // Con un código aplicado, lo que se cobra es el importe del preview — sea un
+  // descuento porcentual o una promo de precio fijo. Mostrar el de lista dejaba
+  // el resumen y la barra de checkout diciendo un número que no era el de la
+  // orden. El importe definitivo sigue saliendo de la respuesta del POST.
+  const discountedTotal = Number(discountPreview?.finalAmount)
+  const checkoutTotal =
+    discountPreview?.valid && Number.isFinite(discountedTotal) && discountedTotal > 0
+      ? discountedTotal
+      : checkoutListTotal
   const comboSavings =
     comboAvailability.offer && membershipListPrice + registrationListPrice > comboListPrice
       ? membershipListPrice + registrationListPrice - comboListPrice
@@ -810,26 +819,35 @@ export default function RegisterPage({
 
   // Mercado Pago es el canal inicial. Transferencia y efectivo requieren una
   // habilitación explícita de ambos alcances para el combo — salvo que el
-  // cupón aplicado la destrabe puntualmente (enablesManualPayment).
-  const manualPaymentEnabled =
-    Boolean(discountPreview?.enablesManualPayment) ||
-    (checkoutAvailability.membershipManualEnabled !== false &&
-      (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
-      // accessRequirements todavía no resolvió (arranca undefined): con !==
-      // false acá el selector mostraría transferencia/efectivo un instante y
-      // los sacaría al terminar de cargar, el mismo flash-y-409 que
-      // `manualChannelEnabled` evita en MembershipPurchaseSection.
-      accessRequirements.membershipManualEnabled === true &&
-      (flow !== 'competition' || accessRequirements.registrationManualEnabled === true))
-  const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
+  // código aplicado destrabe ese canal puntualmente. Cada canal se decide por
+  // separado: un código puede abrir sólo transferencia, sólo efectivo o los dos.
+  const manualChannelsOpenGlobally =
+    checkoutAvailability.membershipManualEnabled !== false &&
+    (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
+    // accessRequirements todavía no resolvió (arranca undefined): con !==
+    // false acá el selector mostraría transferencia/efectivo un instante y
+    // los sacaría al terminar de cargar, el mismo flash-y-409 que
+    // `manualChannelEnabled` evita en MembershipPurchaseSection.
+    accessRequirements.membershipManualEnabled === true &&
+    (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
+  const codeChannels = discountPreview?.manualChannels ?? []
+  const transferEnabled = manualChannelsOpenGlobally || codeChannels.includes('bank_transfer')
+  const cashEnabled = manualChannelsOpenGlobally || codeChannels.includes('cash_pitbull')
+  const manualPaymentEnabled = transferEnabled || cashEnabled
+  const selectedMethodEnabled =
+    form.paymentMethod === 'manual_link'
+      ? transferEnabled
+      : form.paymentMethod === 'cash_pitbull'
+        ? cashEnabled
+        : true
 
-  // El canal manual se cerró mientras la pantalla estaba abierta: la selección
-  // vuelve a Mercado Pago para que el formulario no envíe un medio que el
-  // backend va a rechazar.
+  // El canal manual se cerró mientras la pantalla estaba abierta —o el código
+  // aplicado no habilita el que estaba elegido—: la selección vuelve a Mercado
+  // Pago para que el formulario no envíe un medio que el backend va a rechazar.
   useEffect(() => {
-    if (manualPaymentEnabled || !manualMethodSelected) return
+    if (selectedMethodEnabled) return
     onUpdateForm({ target: { name: 'paymentMethod', value: 'mercado_pago' } })
-  }, [manualMethodSelected, manualPaymentEnabled, onUpdateForm])
+  }, [selectedMethodEnabled, onUpdateForm])
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -1956,7 +1974,8 @@ export default function RegisterPage({
                     description={t('pages.register.changePaymentLead')}
                   >
                     <RegisterSettle
-                      manualPaymentEnabled={manualPaymentEnabled}
+                      cashEnabled={cashEnabled}
+                      transferEnabled={transferEnabled}
                       onPaymentBlur={blurField}
                       onPaymentChange={changeField}
                       paymentError={errors.paymentMethod}
@@ -2067,7 +2086,8 @@ export default function RegisterPage({
                       comboEnabled={comboEnabled}
                       comboOffer={comboAvailability.offer}
                       comboSavings={comboSavings}
-                      manualPaymentEnabled={manualPaymentEnabled}
+                      cashEnabled={cashEnabled}
+                      transferEnabled={transferEnabled}
                       membershipPrice={membershipListPrice}
                       onPaymentBlur={blurField}
                       onPaymentChange={changeField}
@@ -2087,10 +2107,15 @@ export default function RegisterPage({
                       {discountPreview ? (
                         <p className="register-discount__applied">
                           <Tag size={14} aria-hidden />
-                          {t('pages.register.discountApplied', {
-                            code: discountPreview.code,
-                            amount: money(discountPreview.discountAmount, locale),
-                          })}
+                          {discountPreview.kind === 'fixed_price'
+                            ? t('pages.register.discountAppliedFixed', {
+                                code: discountPreview.code,
+                                amount: money(discountPreview.finalAmount, locale),
+                              })
+                            : t('pages.register.discountApplied', {
+                                code: discountPreview.code,
+                                amount: money(discountPreview.discountAmount, locale),
+                              })}
                           <button type="button" onClick={clearDiscountCode} disabled={submitting}>
                             {t('pages.register.discountRemove')}
                           </button>
@@ -2183,7 +2208,8 @@ export default function RegisterPage({
               >
                 {flow === 'membership' ? (
                   <RegisterSettle
-                    manualPaymentEnabled={manualPaymentEnabled}
+                    cashEnabled={cashEnabled}
+                    transferEnabled={transferEnabled}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
                     paymentError={errors.paymentMethod}

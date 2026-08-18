@@ -878,6 +878,7 @@ export default {
       discountApply: 'Apply',
       discountChecking: 'Validating…',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
+      discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -886,6 +887,7 @@ export default {
         not_applicable: 'That code does not apply to this payment.',
         limit_reached: 'That code reached its use limit.',
         already_used: 'You already used that code.',
+        no_savings: 'That code does not improve the price of this purchase.',
       },
       paymentLegend: 'Payment method',
       planSelector: 'Membership plan',
@@ -2535,6 +2537,7 @@ export default {
       discountApply: 'Apply',
       discountChecking: 'Validating...',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
+      discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -2543,6 +2546,7 @@ export default {
         not_applicable: 'That code does not apply to this payment.',
         limit_reached: 'That code reached its use limit.',
         already_used: 'You already used that code.',
+        no_savings: 'That code does not improve the price of this purchase.',
       },
       competitionPaymentTitle: 'How you pay',
       competitionPaymentDesc: 'Choose how to generate the order.',

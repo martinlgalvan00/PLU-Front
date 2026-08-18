@@ -316,18 +316,21 @@ export function createSupabaseAthleteRepository(
     // la orden — si el cupón resulta inválido ahí, la orden entera se cae, así
     // que una lectura desactualizada acá nunca deja una orden manual sin
     // cupón real detrás.
-    async discountCodeManualEligibility(code, scope) {
-      if (!code) return false
+    async discountCodeManualEligibility(code, scope, channel) {
+      if (!code || !channel) return false
       const row = assertSupabaseResult(
         await client
           .from('discount_codes')
-          .select('active, applies_to, expires_at, enables_manual_payment')
+          .select('active, applies_to, expires_at, manual_channels')
           .eq('organization_id', organizationId)
           .eq('code', String(code).trim().toUpperCase())
           .maybeSingle(),
         'No se pudo validar el cupón.',
       )
-      if (!row || !row.active || !row.enables_manual_payment) return false
+      if (!row || !row.active) return false
+      // Un código que sólo destraba transferencia no habilita efectivo: el
+      // canal pedido tiene que estar en su lista.
+      if (!(row.manual_channels ?? []).includes(channel)) return false
       if (row.expires_at && new Date(row.expires_at) < new Date()) return false
       return row.applies_to === scope || row.applies_to === 'both'
     },

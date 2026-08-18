@@ -14,6 +14,16 @@ const STATUS_BY_CODE = {
   PLU11: 409,
   PLU12: 409,
   PLU13: 409,
+  // Canje de códigos de descuento/promoción: inválido, sin cupo, ya usado por
+  // este atleta, con canjes registrados (no se puede borrar) y sin mejora de
+  // precio. Son conflictos de negocio con mensaje propio; sin este mapeo caían
+  // en el 503 por defecto y el checkout mostraba "el servicio no está
+  // disponible" en vez de explicar qué pasó con el código.
+  PLU20: 409,
+  PLU21: 409,
+  PLU22: 409,
+  PLU23: 409,
+  PLU24: 409,
   23505: 409,
   23503: 409,
   23514: 400,

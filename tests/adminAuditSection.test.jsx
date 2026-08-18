@@ -234,10 +234,18 @@ describe('sección de auditoría', () => {
 
     screen.getByRole('button', { name: 'Más filtros' }).click()
 
-    expect(await screen.findByText('Acción')).toBeTruthy()
-    expect(screen.getByText('Actor')).toBeTruthy()
-    expect(screen.getByText('Entidad')).toBeTruthy()
-    expect(screen.getByText('Estado')).toBeTruthy()
+    // Por label y no por texto: "Acción", "Actor", "Entidad" y "Estado" son el
+    // mismo literal en tres lugares distintos de esta pantalla —el filtro
+    // (`admin.audit.filter*`), la columna de la bitácora (`admin.audit.column*`)
+    // y el detalle del evento (`admin.auditDetail.fact*`)—. `getByText` no
+    // distingue cuál encontró y explota con "Found multiple elements" en cuanto
+    // hay una tabla con filas o un detalle abierto; la simetría con las
+    // aserciones de arriba (`queryByLabelText`) es además la que expresa lo que
+    // el test quiere: que el filtro exista como control con label.
+    expect(await screen.findByLabelText('Acción')).toBeTruthy()
+    expect(screen.getByLabelText('Actor')).toBeTruthy()
+    expect(screen.getByLabelText('Entidad')).toBeTruthy()
+    expect(screen.getByLabelText('Estado')).toBeTruthy()
   })
 
   /**

@@ -293,8 +293,9 @@ const registrationSchema = z.object({
   accessCode: registrationAccessCodeField,
 })
 // comboRegistrationSchema hereda discountCode de registrationSchema y sí se
-// reenvia al RPC de combo: sólo redime cupones con applies_to = 'both' (ver
-// create_membership_registration_combo_order / apply_discount_code_to_order).
+// reenvia al RPC de combo: redime cupones con applies_to = 'combo' (promos del
+// paquete) o 'both' (ver create_membership_registration_combo_order /
+// apply_discount_code_to_order).
 const comboRegistrationSchema = registrationSchema.extend({
   membershipAccessCode: registrationAccessCodeField,
   registrationAccessCode: registrationAccessCodeField,
@@ -1140,6 +1141,7 @@ export function createAthleteRoutes({
           const override = await repo().discountCodeManualEligibility(
             req.validatedBody.discountCode,
             'membership',
+            manualPaymentChannel(req.validatedBody.paymentMethod),
           )
           assertManualChannelEnabled(toggles, 'membership', { override })
         }
@@ -1201,6 +1203,7 @@ export function createAthleteRoutes({
           const override = await repo().discountCodeManualEligibility(
             req.validatedBody.discountCode,
             'registration',
+            manualPaymentChannel(req.validatedBody.paymentMethod),
           )
           assertManualChannelEnabled(toggles, 'registration', { override })
         }
@@ -1258,12 +1261,14 @@ export function createAthleteRoutes({
         assertMembershipCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
         if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          // El combo sólo destraba con un cupón applies_to = 'both': pasar
-          // scope 'combo' hace que discountCodeManualEligibility únicamente
-          // matchee ese caso (nunca 'membership' ni 'registration' solos).
+          // El combo destraba con un código de alcance 'combo' o 'both': pasar
+          // scope 'combo' hace que discountCodeManualEligibility no matchee
+          // 'membership' ni 'registration' solos. El canal pedido también tiene
+          // que estar entre los que el código habilita.
           const override = await repo().discountCodeManualEligibility(
             req.validatedBody.discountCode,
             'combo',
+            manualPaymentChannel(req.validatedBody.paymentMethod),
           )
           assertManualChannelEnabled(toggles, 'membership', { override })
           assertManualChannelEnabled(toggles, 'registration', { override })
