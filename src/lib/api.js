@@ -76,7 +76,7 @@ export async function apiRequest(path, options = {}) {
       console.error(`[api] ${method} ${path} -> ${response.status} (requestId ${requestId})`)
     }
     throw new ApiError(
-      unavailable ? unavailableMessage : body?.error ?? `Error ${response.status}`,
+      unavailable ? unavailableMessage : (body?.error ?? `Error ${response.status}`),
       {
         status: response.status,
         body: typeof body === 'object' && body ? body : { error: body },
@@ -133,7 +133,9 @@ export function deactivateAllSecurityUsersRequest(eventId) {
 }
 
 export function createSecurityAccessLinkRequest(userId, sendEmail = false) {
-  return apiPost(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`, { sendEmail })
+  return apiPost(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`, {
+    sendEmail,
+  })
 }
 
 export function securityGateRequest(token) {

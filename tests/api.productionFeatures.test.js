@@ -131,14 +131,15 @@ function completeCompetitionProfile() {
 // cerrado" más abajo.
 describe('features publicas sin gates de pre-lanzamiento', () => {
   it('publica todos los planes, incluido el de débito automático', async () => {
-    const listPlans = vi.fn().mockResolvedValue([
-      plan('plu-annual', 'one_time'),
-      plan('plu-annual-auto', 'recurring'),
-    ])
-    const target = listen(createApp({
-      env: {},
-      paymentRepository: { listPlans },
-    }))
+    const listPlans = vi
+      .fn()
+      .mockResolvedValue([plan('plu-annual', 'one_time'), plan('plu-annual-auto', 'recurring')])
+    const target = listen(
+      createApp({
+        env: {},
+        paymentRepository: { listPlans },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/payments/plans`)
       const body = await response.json()
@@ -154,10 +155,12 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
     const paymentOrderId = crypto.randomUUID()
     const getOrder = vi.fn().mockResolvedValue({ id: paymentOrderId, kind: 'ticket' })
     const assertTicketOrderAccess = vi.fn().mockResolvedValue(undefined)
-    const target = listen(createApp({
-      env: {},
-      paymentRepository: { getOrder, assertTicketOrderAccess },
-    }))
+    const target = listen(
+      createApp({
+        env: {},
+        paymentRepository: { getOrder, assertTicketOrderAccess },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/payments/subscriptions/process`, {
         method: 'POST',
@@ -183,17 +186,25 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
     // La RPC real siempre envuelve la orden en `{ order }` (create_membership_order_v4,
     // supabase/migrations/20260819100000_discount_codes_and_plan_expiry.sql:639); el mock
     // tiene que respetar ese contrato para que applyPaymentPricing la reconozca.
-    const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-1', planCode: 'plu-annual-auto-v2' } })
-    const target = listen(createApp({
-      env: {},
-      supabaseAdmin: authenticatedSupabase(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual-auto-v2', collection_mode: 'recurring' }),
-        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1', planCode: 'plu-annual-auto-v2' }),
-        createMembershipOrder,
-      },
-    }))
+    const createMembershipOrder = vi
+      .fn()
+      .mockResolvedValue({ order: { id: 'order-1', planCode: 'plu-annual-auto-v2' } })
+    const target = listen(
+      createApp({
+        env: {},
+        supabaseAdmin: authenticatedSupabase(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findMembershipPlan: vi
+            .fn()
+            .mockResolvedValue({ code: 'plu-annual-auto-v2', collection_mode: 'recurring' }),
+          applyCheckoutPrice: vi
+            .fn()
+            .mockResolvedValue({ id: 'order-1', planCode: 'plu-annual-auto-v2' }),
+          createMembershipOrder,
+        },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
         method: 'POST',
@@ -218,17 +229,21 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
       membership: { id: '33333333-3333-4333-8333-333333333333' },
       registration: { id: '44444444-4444-4444-8444-444444444444' },
     })
-    const target = listen(createApp({
-      env: { APP_PRODUCTION: 'true', PAID_CHECKOUT_ENABLED: 'true' },
-      supabaseAdmin: authenticatedSupabase(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
-        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
-        findEventComboOffer: vi.fn().mockResolvedValue({ price: 170000, manualPrice: null }),
-        createRegistrationCombo,
-      },
-    }))
+    const target = listen(
+      createApp({
+        env: { APP_PRODUCTION: 'true', PAID_CHECKOUT_ENABLED: 'true' },
+        supabaseAdmin: authenticatedSupabase(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
+          applyCheckoutPrice: vi
+            .fn()
+            .mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
+          findEventComboOffer: vi.fn().mockResolvedValue({ price: 170000, manualPrice: null }),
+          createRegistrationCombo,
+        },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
         method: 'POST',
@@ -256,17 +271,21 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
     const createMembershipOrder = vi.fn()
     const createRegistration = vi.fn()
     const createRegistrationCombo = vi.fn()
-    const target = listen(createApp({
-      env: { APP_PRODUCTION: 'true', PAID_CHECKOUT_ENABLED: 'false' },
-      supabaseAdmin: authenticatedSupabase(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
-        createMembershipOrder,
-        createRegistration,
-        createRegistrationCombo,
-      },
-    }))
+    const target = listen(
+      createApp({
+        env: { APP_PRODUCTION: 'true', PAID_CHECKOUT_ENABLED: 'false' },
+        supabaseAdmin: authenticatedSupabase(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findMembershipPlan: vi
+            .fn()
+            .mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+          createMembershipOrder,
+          createRegistration,
+          createRegistrationCombo,
+        },
+      }),
+    )
     try {
       const membership = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
         method: 'POST',
@@ -323,22 +342,26 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
     const createRegistrationCombo = vi.fn().mockResolvedValue({
       order: { id: '22222222-2222-4222-8222-222222222222', concept: 'combo' },
     })
-    const target = listen(createApp({
-      env: {},
-      supabaseAdmin: supabaseWithEvents({
-        'evento-abierto': { registration_opens_at: '2000-01-01T00:00:00Z' },
-        'evento-cerrado': { registration_opens_at: '2999-01-01T00:00:00Z' },
+    const target = listen(
+      createApp({
+        env: {},
+        supabaseAdmin: supabaseWithEvents({
+          'evento-abierto': { registration_opens_at: '2000-01-01T00:00:00Z' },
+          'evento-cerrado': { registration_opens_at: '2999-01-01T00:00:00Z' },
+        }),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
+          applyCheckoutPrice: vi
+            .fn()
+            .mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
+          findEventPricing: vi.fn().mockResolvedValue({ price: 85000, manual_price: null }),
+          findEventComboOffer: vi.fn().mockResolvedValue({ price: 170000, manualPrice: null }),
+          createRegistration,
+          createRegistrationCombo,
+        },
       }),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
-        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
-        findEventPricing: vi.fn().mockResolvedValue({ price: 85000, manual_price: null }),
-        findEventComboOffer: vi.fn().mockResolvedValue({ price: 170000, manualPrice: null }),
-        createRegistration,
-        createRegistrationCombo,
-      },
-    }))
+    )
     try {
       const attendeeBody = {
         division: 'Open',
@@ -349,17 +372,29 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
       const pastDate = await fetch(`${target.url}/api/athletes/me/registrations`, {
         method: 'POST',
         headers: athleteHeaders,
-        body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-abierto', idempotencyKey: crypto.randomUUID() }),
+        body: JSON.stringify({
+          ...attendeeBody,
+          eventSlug: 'evento-abierto',
+          idempotencyKey: crypto.randomUUID(),
+        }),
       })
       const futureDate = await fetch(`${target.url}/api/athletes/me/registrations`, {
         method: 'POST',
         headers: athleteHeaders,
-        body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-cerrado', idempotencyKey: crypto.randomUUID() }),
+        body: JSON.stringify({
+          ...attendeeBody,
+          eventSlug: 'evento-cerrado',
+          idempotencyKey: crypto.randomUUID(),
+        }),
       })
       const comboPast = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
         method: 'POST',
         headers: athleteHeaders,
-        body: JSON.stringify({ ...attendeeBody, eventSlug: 'evento-abierto', idempotencyKey: crypto.randomUUID() }),
+        body: JSON.stringify({
+          ...attendeeBody,
+          eventSlug: 'evento-abierto',
+          idempotencyKey: crypto.randomUUID(),
+        }),
       })
 
       expect(pastDate.status).toBe(201)
@@ -376,20 +411,24 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
 describe('interruptores generales de cobro, afiliación e inscripción', () => {
   it('rechaza la compra de entradas cuando el interruptor maestro de cobros está apagado', async () => {
     const createOrder = vi.fn()
-    const target = listen(createApp({
-      env: {},
-      ticketRepository: { createOrder },
-      platformSettingsRepository: {
-        get: vi.fn().mockResolvedValue({ checkoutEnabled: false }),
-      },
-    }))
+    const target = listen(
+      createApp({
+        env: {},
+        ticketRepository: { createOrder },
+        platformSettingsRepository: {
+          get: vi.fn().mockResolvedValue({ checkoutEnabled: false }),
+        },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/tickets/orders`, {
         method: 'POST',
         headers: mutationHeaders,
         body: JSON.stringify({
           eventSlug: 'pitbull-classic-2026',
-          attendees: [{ fullName: 'Ana Torres', dni: '30111222', ticketTypeId: crypto.randomUUID() }],
+          attendees: [
+            { fullName: 'Ana Torres', dni: '30111222', ticketTypeId: crypto.randomUUID() },
+          ],
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -406,21 +445,25 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
     const createMembershipOrder = vi.fn()
     const createRegistration = vi.fn()
     const createRegistrationCombo = vi.fn()
-    const target = listen(createApp({
-      env: {},
-      supabaseAdmin: authenticatedSupabase(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
-        findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
-        createMembershipOrder,
-        createRegistration,
-        createRegistrationCombo,
-      },
-      platformSettingsRepository: {
-        get: vi.fn().mockResolvedValue({ membershipEnabled: false, registrationEnabled: false }),
-      },
-    }))
+    const target = listen(
+      createApp({
+        env: {},
+        supabaseAdmin: authenticatedSupabase(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findMembershipPlan: vi
+            .fn()
+            .mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+          findCompetitionProfile: vi.fn().mockResolvedValue(completeCompetitionProfile()),
+          createMembershipOrder,
+          createRegistration,
+          createRegistrationCombo,
+        },
+        platformSettingsRepository: {
+          get: vi.fn().mockResolvedValue({ membershipEnabled: false, registrationEnabled: false }),
+        },
+      }),
+    )
     try {
       const membership = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
         method: 'POST',
@@ -471,19 +514,23 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
 
   it('deja pasar afiliación e inscripción cuando los interruptores están prendidos', async () => {
     const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-1' } })
-    const target = listen(createApp({
-      env: {},
-      supabaseAdmin: authenticatedSupabase(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
-        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
-        createMembershipOrder,
-      },
-      platformSettingsRepository: {
-        get: vi.fn().mockResolvedValue({ membershipEnabled: true, registrationEnabled: true }),
-      },
-    }))
+    const target = listen(
+      createApp({
+        env: {},
+        supabaseAdmin: authenticatedSupabase(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findMembershipPlan: vi
+            .fn()
+            .mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+          applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
+          createMembershipOrder,
+        },
+        platformSettingsRepository: {
+          get: vi.fn().mockResolvedValue({ membershipEnabled: true, registrationEnabled: true }),
+        },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
         method: 'POST',

@@ -19,7 +19,13 @@ export const REQUIRED_FOR_REGISTRATION = ['phone', 'city', 'province', 'gym']
  * @returns {{ complete: boolean, missing: string[], filled: number, total: number }}
  */
 export function isProfileComplete(athlete) {
-  if (!athlete) return { complete: false, missing: REQUIRED_FOR_REGISTRATION, filled: 0, total: REQUIRED_FOR_REGISTRATION.length }
+  if (!athlete)
+    return {
+      complete: false,
+      missing: REQUIRED_FOR_REGISTRATION,
+      filled: 0,
+      total: REQUIRED_FOR_REGISTRATION.length,
+    }
 
   const missing = REQUIRED_FOR_REGISTRATION.filter((field) => {
     const value = athlete[field]

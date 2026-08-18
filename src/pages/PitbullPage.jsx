@@ -5,10 +5,7 @@ import '../styles/pages/pitbull-meet.css'
 import '../styles/pages/pitbull-categories.css'
 import '../styles/layout/design-page-notebook.css'
 import { useEffect, useRef, useState } from 'react'
-import {
-  ArrowRight,
-  FileText,
-} from 'lucide-react'
+import { ArrowRight, FileText } from 'lucide-react'
 import { m } from 'motion/react'
 import photoMeetFloor from '../assets/DSC00346-display.jpg'
 import photoMeetFloorAvif from '../assets/DSC00346-display.avif'
@@ -191,7 +188,9 @@ function PitbullInscriptionCounter({
         'pitbull-inscription-counter',
         isCompact ? 'pitbull-inscription-counter--compact' : '',
         softLaunch ? 'pitbull-inscription-counter--soon' : '',
-      ].filter(Boolean).join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="meter"
       aria-label={ariaLabel}
       aria-valuenow={showMeter ? registered : 0}
@@ -207,7 +206,10 @@ function PitbullInscriptionCounter({
             </>
           ) : (
             <>
-              <span className="pitbull-inscription-counter__value pitbull-inscription-counter__value--pending" aria-hidden>
+              <span
+                className="pitbull-inscription-counter__value pitbull-inscription-counter__value--pending"
+                aria-hidden
+              >
                 —
               </span>
               {slots > 0 ? (
@@ -220,7 +222,9 @@ function PitbullInscriptionCounter({
           </span>
         </div>
         {reducedMotion ? (
-          <span className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}>
+          <span
+            className={`pitbull-inscription-counter__badge pitbull-inscription-counter__badge--${statusTone}`}
+          >
             <span className="pitbull-inscription-counter__badge-dot" aria-hidden />
             {statusLabel}
           </span>
@@ -240,7 +244,10 @@ function PitbullInscriptionCounter({
       {showMeter ? (
         <div className="pitbull-inscription-counter__bar" aria-hidden>
           {reducedMotion ? (
-            <div className="pitbull-inscription-counter__fill" style={{ transform: `scaleX(${pct / 100})` }} />
+            <div
+              className="pitbull-inscription-counter__fill"
+              style={{ transform: `scaleX(${pct / 100})` }}
+            />
           ) : (
             <m.div
               className="pitbull-inscription-counter__fill"
@@ -252,7 +259,9 @@ function PitbullInscriptionCounter({
           )}
         </div>
       ) : (
-        <p className="pitbull-inscription-counter__hint">{t('pages.pitbull.inscriptionCounterPending')}</p>
+        <p className="pitbull-inscription-counter__hint">
+          {t('pages.pitbull.inscriptionCounterPending')}
+        </p>
       )}
     </div>
   )
@@ -316,8 +325,16 @@ function PitbullExperienceSection({ t }) {
             <figure className="pitbull-experience__media">
               <ResponsivePhoto
                 className="pitbull-experience__img"
-                avif={{ 640: photoMeetFloorAvif640, 1280: photoMeetFloorAvif1280, 2048: photoMeetFloorAvif }}
-                webp={{ 640: photoMeetFloorWebp640, 1280: photoMeetFloorWebp1280, 2048: photoMeetFloorWebp }}
+                avif={{
+                  640: photoMeetFloorAvif640,
+                  1280: photoMeetFloorAvif1280,
+                  2048: photoMeetFloorAvif,
+                }}
+                webp={{
+                  640: photoMeetFloorWebp640,
+                  1280: photoMeetFloorWebp1280,
+                  2048: photoMeetFloorWebp,
+                }}
                 src={photoMeetFloor}
                 alt=""
                 width={800}
@@ -480,11 +497,7 @@ function PitbullLocationSection({ event, venue, t }) {
 
 function PitbullTicketsBand({ onOpen, t }) {
   return (
-    <section
-      id="entradas"
-      className="pitbull-tickets-band"
-      aria-labelledby="pitbull-tickets-title"
-    >
+    <section id="entradas" className="pitbull-tickets-band" aria-labelledby="pitbull-tickets-title">
       <div className="pitbull-tickets-band__media" aria-hidden>
         <ResponsivePhoto
           className="pitbull-tickets-band__img"
@@ -563,7 +576,10 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
           {recent.map((item, index) => {
             const initial = item.displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?'
             return (
-              <li key={`${item.displayName}-${item.registeredAt ?? index}`} className="pitbull-recent__row">
+              <li
+                key={`${item.displayName}-${item.registeredAt ?? index}`}
+                className="pitbull-recent__row"
+              >
                 <span className="pitbull-recent__portrait" aria-hidden="true">
                   {item.photoUrl ? (
                     <img
@@ -624,12 +640,21 @@ function PitbullInscriptionSection({
   }
   const bodyEntryMotion = {
     hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0, transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out } },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: MOTION_DURATION.base, ease: MOTION_EASE.out },
+    },
   }
   const Body = reducedMotion ? 'div' : m.div
   const bodyProps = reducedMotion
     ? {}
-    : { variants: bodyGroupMotion, initial: 'hidden', whileInView: 'show', viewport: MOTION_VIEWPORT }
+    : {
+        variants: bodyGroupMotion,
+        initial: 'hidden',
+        whileInView: 'show',
+        viewport: MOTION_VIEWPORT,
+      }
   const Pricing = reducedMotion ? 'dl' : m.dl
   const Footer = reducedMotion ? 'div' : m.div
   const childProps = reducedMotion ? {} : { variants: bodyEntryMotion }
@@ -667,7 +692,9 @@ function PitbullInscriptionSection({
           softLaunch ? 'pitbull-inscription-shell--soon' : '',
           comboLive ? 'pitbull-inscription-shell--combo' : '',
           hasActiveMembership ? 'pitbull-inscription-shell--affiliated' : '',
-        ].filter(Boolean).join(' ')}
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         <PitbullInscriptionCounter
           capacityLive={capacityLive}
@@ -720,7 +747,9 @@ function PitbullInscriptionSection({
             className={[
               'pitbull-inscription-shell__footer',
               comboLive ? 'pitbull-inscription-shell__footer--combo' : '',
-            ].filter(Boolean).join(' ')}
+            ]
+              .filter(Boolean)
+              .join(' ')}
             {...childProps}
           >
             {!comboLive ? (
@@ -784,7 +813,9 @@ function PitbullInscriptionSection({
                     className="pitbull-inscription__cta pitbull-inscription__cta--primary"
                     onClick={() => onNavigate(hasActiveMembership ? 'profile' : 'members')}
                   >
-                    {hasActiveMembership ? t('pages.pitbull.viewMyMembership') : t('pages.pitbull.joinNow')}
+                    {hasActiveMembership
+                      ? t('pages.pitbull.viewMyMembership')
+                      : t('pages.pitbull.joinNow')}
                     <ArrowRight size={14} aria-hidden />
                   </button>
                   <button
@@ -923,17 +954,13 @@ export default function PitbullPage({
   memberships = [],
   checkoutAvailability = {},
 }) {
-  const {
-    PITBULL_CLASSIC,
-    PITBULL_VENUE,
-  } = useContent()
+  const { PITBULL_CLASSIC, PITBULL_VENUE } = useContent()
   const { locale, t } = useI18n()
 
   // Esta es una pagina de un torneo concreto. `featured` controla la portada,
   // no la identidad de Pitbull: usarlo aca hizo que un evento de prueba a $2
   // contaminara precios, estado, cupo y links de esta pantalla.
-  const pitbullEvent =
-    getPitbullClassicEvent(events) ?? getPitbullClassicEvent(UPCOMING_EVENTS)
+  const pitbullEvent = getPitbullClassicEvent(events) ?? getPitbullClassicEvent(UPCOMING_EVENTS)
   const pitbullMapEvent = {
     ...pitbullEvent,
     date: pitbullEvent?.displayDate ?? PITBULL_CLASSIC.dateShort,
@@ -947,17 +974,23 @@ export default function PitbullPage({
   const paidCheckoutOpen =
     registrationCheckoutEnabled &&
     isPaidCheckoutOpen(pitbullEvent, env, new Date(), { checkoutKind: 'registration' })
-  const ticketCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), { checkoutKind: 'ticket' })
+  const ticketCheckoutOpen = isPaidCheckoutOpen(pitbullEvent, env, new Date(), {
+    checkoutKind: 'ticket',
+  })
   const checkoutLocked = !paidCheckoutOpen
-  const hasActiveMembership = session?.role === 'athlete_plu'
-    && hasCurrentMembership(memberships, session.athleteId)
+  const hasActiveMembership =
+    session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
   const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
   const liveComboOffer = hasActiveMembership ? null : resolveLiveComboOffer(pitbullEvent)
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
   const ticketCheckout = useTicketCheckoutAvailability(eventSlug)
-  const ticketsOpen = env.ticketSalesEnabled && ticketCheckoutOpen && eventPricing.ticketsEnabled === true && ticketCheckout.ticketEnabled
+  const ticketsOpen =
+    env.ticketSalesEnabled &&
+    ticketCheckoutOpen &&
+    eventPricing.ticketsEnabled === true &&
+    ticketCheckout.ticketEnabled
   const {
     status: capacityStatus,
     registered: liveRegistered,
@@ -1056,7 +1089,7 @@ export default function PitbullPage({
           />
 
           <PitbullExperienceSection t={t} />
-          
+
           <PitbullWeighInSnapshot />
 
           <PitbullCategoriesSection
@@ -1065,11 +1098,7 @@ export default function PitbullPage({
             t={t}
           />
 
-          <PitbullLocationSection
-            event={pitbullMapEvent}
-            venue={PITBULL_VENUE}
-            t={t}
-          />
+          <PitbullLocationSection event={pitbullMapEvent} venue={PITBULL_VENUE} t={t} />
 
           {ticketsOpen ? (
             <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">

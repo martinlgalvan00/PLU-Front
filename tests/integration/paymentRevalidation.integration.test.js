@@ -184,11 +184,14 @@ async function revalidate(orderId, body = {}) {
 
 describe('revalidacion contra el proveedor end-to-end', () => {
   it('exige sesion de staff', async () => {
-    const response = await fetch(`${target.url}/api/payments/orders/${cancelledOrderId}/revalidate`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({}),
-    })
+    const response = await fetch(
+      `${target.url}/api/payments/orders/${cancelledOrderId}/revalidate`,
+      {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      },
+    )
     expect(response.status).toBe(401)
   })
 
@@ -217,8 +220,15 @@ describe('revalidacion contra el proveedor end-to-end', () => {
     expect(body.resultStatus).toBe('aprobado')
 
     const [order, payments, membership, athlete] = await Promise.all([
-      admin.from('athlete_payment_orders').select('status, approved_at').eq('id', cancelledOrderId).single(),
-      admin.from('athlete_payments').select('external_payment_id, status').eq('order_id', cancelledOrderId),
+      admin
+        .from('athlete_payment_orders')
+        .select('status, approved_at')
+        .eq('id', cancelledOrderId)
+        .single(),
+      admin
+        .from('athlete_payments')
+        .select('external_payment_id, status')
+        .eq('order_id', cancelledOrderId),
       admin.from('memberships').select('status').eq('id', membershipId).single(),
       admin.from('athletes').select('status').eq('id', athleteId).single(),
     ])

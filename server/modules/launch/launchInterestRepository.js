@@ -15,8 +15,13 @@ export function createLaunchInterestRepository({ getSupabaseAdmin }) {
      * @returns {{ created: boolean, email: string }}
      */
     async upsertInterest({ email, source = 'launch_teaser', eventSlug = null }) {
-      const normalizedEmail = String(email ?? '').trim().toLowerCase()
-      const normalizedSource = String(source ?? 'launch_teaser').trim().slice(0, 80) || 'launch_teaser'
+      const normalizedEmail = String(email ?? '')
+        .trim()
+        .toLowerCase()
+      const normalizedSource =
+        String(source ?? 'launch_teaser')
+          .trim()
+          .slice(0, 80) || 'launch_teaser'
       const normalizedSlug = eventSlug ? String(eventSlug).trim().slice(0, 120) : null
 
       const { data: existing, error: lookupError } = await client()
@@ -56,14 +61,12 @@ export function createLaunchInterestRepository({ getSupabaseAdmin }) {
      * Devuelve el recuento de interesados agrupados por fuente (source).
      */
     async getSummary() {
-      // Supabase RPC o un conteo agrupado es ideal. 
+      // Supabase RPC o un conteo agrupado es ideal.
       // Si no hay RPC, traemos todos los registros relevantes y agrupamos en memoria
       // (asumiendo volumen moderado de waitlist). Para producción real con millones de filas,
       // se recomienda un view en postgres, pero aquí podemos agrupar.
-      const { data, error } = await client()
-        .from('launch_interest')
-        .select('source, notified_at')
-      
+      const { data, error } = await client().from('launch_interest').select('source, notified_at')
+
       if (error) throw error
 
       const grouped = {}
@@ -125,7 +128,7 @@ export function createLaunchInterestRepository({ getSupabaseAdmin }) {
             .from('launch_interest')
             .update({ notified_at: new Date().toISOString() })
             .eq('id', record.id)
-            
+
           notifiedCount++
         } catch (err) {
           console.error(`Failed to notify ${record.email} for ${source}:`, err)
@@ -134,6 +137,6 @@ export function createLaunchInterestRepository({ getSupabaseAdmin }) {
       }
 
       return { count: notifiedCount }
-    }
+    },
   }
 }

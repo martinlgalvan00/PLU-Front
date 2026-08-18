@@ -63,7 +63,10 @@ export function createSupabaseNotificationRepository(client) {
       return { emailLog: assertResult(result, 'No se pudo registrar el email.'), created: true }
     },
 
-    async completeEmail(id, { status, response = null, error = null, errorCode = null, attempt, nextRetryAt } = {}) {
+    async completeEmail(
+      id,
+      { status, response = null, error = null, errorCode = null, attempt, nextRetryAt } = {},
+    ) {
       const patch = {
         status,
         provider_message_id: response?.messageId ?? null,
@@ -93,7 +96,12 @@ export function createSupabaseNotificationRepository(client) {
         await client
           .from('email_suppressions')
           .select('email, reason, source, created_at')
-          .eq('email', String(email ?? '').trim().toLowerCase())
+          .eq(
+            'email',
+            String(email ?? '')
+              .trim()
+              .toLowerCase(),
+          )
           .maybeSingle(),
         'No se pudo consultar la lista de supresión.',
       )
@@ -105,7 +113,17 @@ export function createSupabaseNotificationRepository(client) {
      * Devuelve un Map para que el dispatcher resuelva en memoria.
      */
     async findSuppressions(emails) {
-      const unique = [...new Set((emails ?? []).map((e) => String(e ?? '').trim().toLowerCase()).filter(Boolean))]
+      const unique = [
+        ...new Set(
+          (emails ?? [])
+            .map((e) =>
+              String(e ?? '')
+                .trim()
+                .toLowerCase(),
+            )
+            .filter(Boolean),
+        ),
+      ]
       if (unique.length === 0) return new Map()
 
       const found = new Map()
@@ -131,7 +149,9 @@ export function createSupabaseNotificationRepository(client) {
           .from('email_suppressions')
           .upsert(
             {
-              email: String(email ?? '').trim().toLowerCase(),
+              email: String(email ?? '')
+                .trim()
+                .toLowerCase(),
               reason,
               source,
               detail,
@@ -150,7 +170,12 @@ export function createSupabaseNotificationRepository(client) {
         await client
           .from('email_suppressions')
           .delete()
-          .eq('email', String(email ?? '').trim().toLowerCase()),
+          .eq(
+            'email',
+            String(email ?? '')
+              .trim()
+              .toLowerCase(),
+          ),
         'No se pudo quitar la supresión.',
       )
     },
@@ -192,7 +217,10 @@ export function createSupabaseNotificationRepository(client) {
       if (email) query = query.eq('recipient_email', String(email).trim().toLowerCase())
 
       const result = await query
-      return { rows: assertResult(result, 'No se pudieron listar los emails.'), total: result.count ?? 0 }
+      return {
+        rows: assertResult(result, 'No se pudieron listar los emails.'),
+        total: result.count ?? 0,
+      }
     },
 
     // Tres hitos útiles: anticipación, recordatorio y vencimiento. Antes se

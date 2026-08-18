@@ -87,14 +87,13 @@ export default function LaunchRegistrationTeaser({
   const { reducedMotion } = useMotionConfig()
   const emailInputId = useId()
 
-  const openAt = useMemo(
-    () => resolveLaunchOpenAt({ targetDate, event }),
-    [targetDate, event],
-  )
+  const openAt = useMemo(() => resolveLaunchOpenAt({ targetDate, event }), [targetDate, event])
 
-  const [countdown, setCountdown] = useState(() => (
-    openAt ? getCountdownParts(openAt) : { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true }
-  ))
+  const [countdown, setCountdown] = useState(() =>
+    openAt
+      ? getCountdownParts(openAt)
+      : { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true },
+  )
   const [email, setEmail] = useState('')
   const [isNotified, setIsNotified] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -202,7 +201,7 @@ export default function LaunchRegistrationTeaser({
   // no apilar un segundo bloque "próximamente / inauguración".
   const showCountdownBlock = showTicker || !(isDossier && intro)
   const statusLabel = showTicker
-    ? (countdownLabel || t('launchTeaser.countdownTitle'))
+    ? countdownLabel || t('launchTeaser.countdownTitle')
     : scheduleHeld
       ? t('launchTeaser.countdownHeldTitle')
       : t('launchTeaser.countdownPendingTitle')
@@ -213,11 +212,11 @@ export default function LaunchRegistrationTeaser({
       : t('launchTeaser.countdownPending')
   const countdownAria = showTicker
     ? t('launchTeaser.countdownAria', {
-      days: countdown.days,
-      hours: countdown.hours,
-      minutes: countdown.minutes,
-      seconds: countdown.seconds,
-    })
+        days: countdown.days,
+        hours: countdown.hours,
+        minutes: countdown.minutes,
+        seconds: countdown.seconds,
+      })
     : scheduleHeld
       ? t('launchTeaser.countdownHeldAria')
       : t('launchTeaser.countdownPendingAria')
@@ -263,7 +262,9 @@ export default function LaunchRegistrationTeaser({
         inauguration ? 'launch-teaser--inauguration' : '',
         showTicker ? 'launch-teaser--live-clock' : '',
         className,
-      ].filter(Boolean).join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
       {...(reducedMotion
         ? {}
         : {
@@ -310,9 +311,7 @@ export default function LaunchRegistrationTeaser({
           </p>
 
           {intro ? (
-            <h2 className="launch-teaser__title launch-teaser__title--sentence">
-              {intro.title}
-            </h2>
+            <h2 className="launch-teaser__title launch-teaser__title--sentence">{intro.title}</h2>
           ) : (
             <>
               {eventLabel && !indexLabel ? (
@@ -456,7 +455,9 @@ export default function LaunchRegistrationTeaser({
           </AnimatePresence>
 
           {submitError ? (
-            <p className="launch-teaser__error" role="alert">{submitError}</p>
+            <p className="launch-teaser__error" role="alert">
+              {submitError}
+            </p>
           ) : null}
 
           {!isNotified ? (
@@ -465,18 +466,18 @@ export default function LaunchRegistrationTeaser({
 
           <div className="launch-teaser__secondary">
             {secondaryCta ? (
-              <button
-                type="button"
-                className="launch-teaser__link"
-                onClick={secondaryCta.onClick}
-              >
+              <button type="button" className="launch-teaser__link" onClick={secondaryCta.onClick}>
                 {secondaryCta.label}
               </button>
             ) : null}
 
             {!isCompact && !hideShare ? (
               <>
-                {secondaryCta ? <span className="launch-teaser__dot" aria-hidden>·</span> : null}
+                {secondaryCta ? (
+                  <span className="launch-teaser__dot" aria-hidden>
+                    ·
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   className="launch-teaser__link launch-teaser__link--quiet"

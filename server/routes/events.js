@@ -505,29 +505,24 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
    * `requiresForce` en true es la señal de que el evento ya movió plata o
    * gente: ahí el panel exige escribir el identificador antes de confirmar.
    */
-  router.get(
-    '/:eventSlug/delete-impact',
-    ...deleteGuard,
-    staffLimiter,
-    async (req, res, next) => {
-      try {
-        const slug = parseEventSlug(req.params.eventSlug)
-        const client = requireSupabaseClient(getSupabaseAdmin())
-        const impact = assertSupabaseResult(
-          await client.rpc('delete_event', {
-            p_event_slug: slug,
-            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
-            p_force: false,
-            p_dry_run: true,
-          }),
-          'No se pudo calcular el impacto del borrado.',
-        )
-        res.json({ impact })
-      } catch (error) {
-        next(error)
-      }
-    },
-  )
+  router.get('/:eventSlug/delete-impact', ...deleteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const impact = assertSupabaseResult(
+        await client.rpc('delete_event', {
+          p_event_slug: slug,
+          p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          p_force: false,
+          p_dry_run: true,
+        }),
+        'No se pudo calcular el impacto del borrado.',
+      )
+      res.json({ impact })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   /**
    * Borrado definitivo del evento y todo lo que cuelga de él. Exige

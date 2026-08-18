@@ -105,7 +105,7 @@ function withBoard(board) {
   return (Story) => {
     const original = globalThis.fetch
     globalThis.fetch = async (input, init) => {
-      const url = String(typeof input === 'string' ? input : input?.url ?? '')
+      const url = String(typeof input === 'string' ? input : (input?.url ?? ''))
 
       if (url.includes('/board')) {
         return new Response(JSON.stringify({ board }), {

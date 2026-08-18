@@ -13,11 +13,7 @@ export default function LoadingState({ label, variant = 'inline' }) {
 
   return (
     <div
-      className={
-        isPage
-          ? 'page-load-fallback loading-state loading-state--page'
-          : 'loading-state'
-      }
+      className={isPage ? 'page-load-fallback loading-state loading-state--page' : 'loading-state'}
       role="status"
       aria-live="polite"
       aria-busy="true"

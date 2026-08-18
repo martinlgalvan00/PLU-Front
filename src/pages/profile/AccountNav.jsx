@@ -57,7 +57,8 @@ export default function AccountNav({ activeId, onChange }) {
     updateOverflow()
     rail.addEventListener('scroll', updateOverflow, { passive: true })
 
-    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(updateOverflow) : null
+    const observer =
+      typeof ResizeObserver === 'function' ? new ResizeObserver(updateOverflow) : null
     observer?.observe(rail)
 
     const onWheel = (event) => {
@@ -65,7 +66,10 @@ export default function AccountNav({ activeId, onChange }) {
       const max = rail.scrollWidth - rail.clientWidth
       if (max <= OVERFLOW_EDGE) return
       const goingRight = event.deltaY > 0
-      if ((goingRight && rail.scrollLeft >= max - OVERFLOW_EDGE) || (!goingRight && rail.scrollLeft <= OVERFLOW_EDGE)) {
+      if (
+        (goingRight && rail.scrollLeft >= max - OVERFLOW_EDGE) ||
+        (!goingRight && rail.scrollLeft <= OVERFLOW_EDGE)
+      ) {
         return
       }
       event.preventDefault()
@@ -110,7 +114,9 @@ export default function AccountNav({ activeId, onChange }) {
                   aria-selected={isActive}
                   className={`account-nav__item${isActive ? ' is-active' : ''}`}
                   onClick={() => onChange(id)}
-                  onFocus={() => scrollTabIntoRail(railRef.current, itemRefs.current.get(id), reducedMotion)}
+                  onFocus={() =>
+                    scrollTabIntoRail(railRef.current, itemRefs.current.get(id), reducedMotion)
+                  }
                 >
                   {isActive ? (
                     <m.span

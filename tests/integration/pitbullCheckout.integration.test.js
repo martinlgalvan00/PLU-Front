@@ -15,14 +15,16 @@ const mutationHeaders = {
 describe('checkout real de Pitbull Classic contra Supabase', () => {
   const admin = createSupabaseTestClient()
   const athleteIds = []
-  const target = listen(createApp({
-    supabaseAdmin: admin,
-    notifyPaymentApplied: async () => {},
-    // Inscripción y combo se crean por transferencia: el canal manual va
-    // abierto por doble, no por el estado de la fila compartida.
-    platformSettingsRepository: manualChannelsOpen(),
-    env: { ...process.env, APP_PRODUCTION: 'true', PAYMENTS_MOCK: 'false' },
-  }))
+  const target = listen(
+    createApp({
+      supabaseAdmin: admin,
+      notifyPaymentApplied: async () => {},
+      // Inscripción y combo se crean por transferencia: el canal manual va
+      // abierto por doble, no por el estado de la fila compartida.
+      platformSettingsRepository: manualChannelsOpen(),
+      env: { ...process.env, APP_PRODUCTION: 'true', PAYMENTS_MOCK: 'false' },
+    }),
+  )
 
   afterAll(async () => {
     await target.close()
@@ -117,7 +119,9 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_manual_price: null,
       p_manual_payment_channel: 'bank_transfer',
     })
-    expect(wrongTransferPrice.error?.message).toContain('La cotizacion no coincide con la politica vigente.')
+    expect(wrongTransferPrice.error?.message).toContain(
+      'La cotizacion no coincide con la politica vigente.',
+    )
 
     const proof = await admin.rpc('register_athlete_payment_proof', {
       p_order_id: body.order.id,

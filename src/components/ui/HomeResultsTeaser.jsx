@@ -197,7 +197,9 @@ export default function HomeResultsTeaser({ onNavigate, orchestrated = false }) 
               className={`home-teaser-card__ledger-row home-teaser-card__ledger-row--${row.tone}`}
             >
               <span className="home-teaser-card__ledger-place">{row.place}</span>
-              <span className="home-teaser-card__ledger-class">{HOME_RESULTS.classes[row.classKey]}</span>
+              <span className="home-teaser-card__ledger-class">
+                {HOME_RESULTS.classes[row.classKey]}
+              </span>
               <Ghost
                 {...withVariant(ghostVariants)}
                 className={`home-teaser-card__ledger-ghost home-teaser-card__ledger-ghost--${row.fill}`}

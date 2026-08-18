@@ -97,7 +97,8 @@
     background: rgba(248, 249, 251, 0.96);
   }
 
-  [data-theme='light'] .site-header--scrolled:not(.site-header--institutional):not(.site-header--over-hero) {
+  [data-theme='light']
+    .site-header--scrolled:not(.site-header--institutional):not(.site-header--over-hero) {
     background: rgba(248, 249, 251, 0.98);
   }
 

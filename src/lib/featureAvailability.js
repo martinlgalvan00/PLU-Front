@@ -8,11 +8,19 @@ export const FEATURE_KEYS = Object.freeze({
 })
 
 function isEnabledFlag(value) {
-  return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
+  return ['true', '1', 'yes'].includes(
+    String(value ?? '')
+      .trim()
+      .toLowerCase(),
+  )
 }
 
 function isDisabledFlag(value) {
-  return ['false', '0', 'no'].includes(String(value ?? '').trim().toLowerCase())
+  return ['false', '0', 'no'].includes(
+    String(value ?? '')
+      .trim()
+      .toLowerCase(),
+  )
 }
 
 /** El checkout público está abierto salvo un cierre operativo explícito. */

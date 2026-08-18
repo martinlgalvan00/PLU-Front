@@ -93,7 +93,8 @@ describe('deployment environment', () => {
     )
   })
 
-  const POOLER = 'postgresql://postgres.proj:clave@aws-1-sa-east-1.pooler.supabase.com:5432/postgres'
+  const POOLER =
+    'postgresql://postgres.proj:clave@aws-1-sa-east-1.pooler.supabase.com:5432/postgres'
 
   it('pasa el pooler a Transaction mode en serverless', () => {
     const url = new URL(buildRuntimeDatabaseUrl(POOLER, { VERCEL: '1' }))
@@ -127,9 +128,7 @@ describe('deployment environment', () => {
     const url = new URL(buildRuntimeDatabaseUrl(POOLER, {}))
 
     expect(url.port).toBe('5432')
-    expect(url.searchParams.get('connection_limit')).toBe(
-      String(POOLER_SESSION_CONNECTION_LIMIT),
-    )
+    expect(url.searchParams.get('connection_limit')).toBe(String(POOLER_SESSION_CONNECTION_LIMIT))
     expect(url.searchParams.get('pool_timeout')).toBe('15')
     // Session mode soporta prepared statements: desactivarlos sería perder
     // rendimiento sin motivo.
@@ -137,7 +136,9 @@ describe('deployment environment', () => {
   })
 
   it('no toca el pool de una base que no pasa por el pooler', () => {
-    const url = new URL(buildRuntimeDatabaseUrl('postgresql://u:p@db.proj.supabase.co:5432/postgres', {}))
+    const url = new URL(
+      buildRuntimeDatabaseUrl('postgresql://u:p@db.proj.supabase.co:5432/postgres', {}),
+    )
 
     expect(url.searchParams.get('connection_limit')).toBeNull()
     expect(url.searchParams.get('pool_timeout')).toBeNull()

@@ -142,9 +142,7 @@ describe('registrationSummaryStore', () => {
   })
 
   it('un error de red no borra el último cupo conocido', async () => {
-    registrationFetch
-      .mockResolvedValueOnce(summary(12))
-      .mockRejectedValueOnce(new Error('sin red'))
+    registrationFetch.mockResolvedValueOnce(summary(12)).mockRejectedValueOnce(new Error('sin red'))
 
     await store.registrationSummaryStore.load('pitbull-classic-2026')
     await expect(

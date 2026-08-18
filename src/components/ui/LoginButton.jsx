@@ -1,6 +1,11 @@
 import { LockKeyhole, UserRound } from 'lucide-react'
 
-export default function LoginButton({ onClick, className = '', label = 'Acceder al panel', compact = false }) {
+export default function LoginButton({
+  onClick,
+  className = '',
+  label = 'Acceder al panel',
+  compact = false,
+}) {
   const Icon = compact ? UserRound : LockKeyhole
 
   return (

@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Inbox, KeyRound, LockKeyhole, Power, RefreshCw, Save, ShieldCheck, Trash2, XCircle } from 'lucide-react'
+import {
+  Inbox,
+  KeyRound,
+  LockKeyhole,
+  Power,
+  RefreshCw,
+  Save,
+  ShieldCheck,
+  Trash2,
+  XCircle,
+} from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import { ApiError } from '../../lib/api.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAccessGatesTourSteps } from '../../lib/adminTourSteps.js'
-import { fetchPlatformFeatureToggles, savePlatformFeatureToggle } from '../../services/platformSettingsAdminService.js'
+import {
+  fetchPlatformFeatureToggles,
+  savePlatformFeatureToggle,
+} from '../../services/platformSettingsAdminService.js'
 import '../../styles/pages/admin-registration-access.css'
 
 const EMPTY_GATE = {
@@ -30,7 +43,13 @@ const TOGGLE_GROUPS = [
   {
     id: 'checkout',
     features: [
-      { feature: 'checkout', key: 'checkoutEnabled', i18n: 'checkout', state: 'checkout', master: true },
+      {
+        feature: 'checkout',
+        key: 'checkoutEnabled',
+        i18n: 'checkout',
+        state: 'checkout',
+        master: true,
+      },
     ],
   },
   {
@@ -45,15 +64,27 @@ const TOGGLE_GROUPS = [
     id: 'manual',
     features: [
       { feature: 'membership_manual', key: 'membershipManualEnabled', i18n: 'membershipManual' },
-      { feature: 'registration_manual', key: 'registrationManualEnabled', i18n: 'registrationManual' },
+      {
+        feature: 'registration_manual',
+        key: 'registrationManualEnabled',
+        i18n: 'registrationManual',
+      },
       { feature: 'ticket_manual', key: 'ticketManualEnabled', i18n: 'ticketManual' },
     ],
   },
   {
     id: 'validation',
     features: [
-      { feature: 'membership_validation', key: 'membershipValidationEnabled', i18n: 'membershipValidation' },
-      { feature: 'registration_validation', key: 'registrationValidationEnabled', i18n: 'registrationValidation' },
+      {
+        feature: 'membership_validation',
+        key: 'membershipValidationEnabled',
+        i18n: 'membershipValidation',
+      },
+      {
+        feature: 'registration_validation',
+        key: 'registrationValidationEnabled',
+        i18n: 'registrationValidation',
+      },
       { feature: 'ticket_validation', key: 'ticketValidationEnabled', i18n: 'ticketValidation' },
     ],
   },
@@ -286,7 +317,7 @@ export default function RegistrationAccessSection({
         : {
             ...EMPTY_GATE,
             scope,
-            eventSlug: scope === 'registration' ? events[0]?.slug ?? '' : '',
+            eventSlug: scope === 'registration' ? (events[0]?.slug ?? '') : '',
           },
     )
   }
@@ -304,7 +335,7 @@ export default function RegistrationAccessSection({
   const currentGate =
     draft?.scope === 'membership'
       ? configuration.membershipGate
-      : eventGates.find((gate) => gate.eventSlug === draft?.eventSlug) ?? null
+      : (eventGates.find((gate) => gate.eventSlug === draft?.eventSlug) ?? null)
   const reopeningDraft = Boolean(draft && isGateReopenable(currentGate))
   const requiresNewCode = Boolean(draft?.active && (!currentGate?.active || reopeningDraft))
 
@@ -337,7 +368,10 @@ export default function RegistrationAccessSection({
     if (result?.error) {
       setFormError(
         mapOperationalError(
-          { message: result.error, status: result.error === 'Ruta no encontrada' ? 404 : undefined },
+          {
+            message: result.error,
+            status: result.error === 'Ruta no encontrada' ? 404 : undefined,
+          },
           {
             ...operationalMessages,
             fallback: t('admin.sections.accessGates.saveError'),
@@ -388,7 +422,9 @@ export default function RegistrationAccessSection({
 
   function formatEndsAt(value) {
     if (!value) return ''
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
+      new Date(value),
+    )
   }
 
   return (
@@ -400,7 +436,9 @@ export default function RegistrationAccessSection({
             {t('admin.sections.accessGates.eyebrow')}
           </p>
           <h1 id="access-gates-title">{t('admin.sections.accessGates.title')}</h1>
-          <p className="admin-registration-access__subtitle">{t('admin.sections.accessGates.subtitle')}</p>
+          <p className="admin-registration-access__subtitle">
+            {t('admin.sections.accessGates.subtitle')}
+          </p>
         </div>
         <button
           type="button"
@@ -417,10 +455,17 @@ export default function RegistrationAccessSection({
       </header>
 
       {gatesError ? (
-        <div className="admin-registration-access__message admin-registration-access__message--error" role="alert">
+        <div
+          className="admin-registration-access__message admin-registration-access__message--error"
+          role="alert"
+        >
           <XCircle size={15} aria-hidden />
           <span>{gatesError}</span>
-          <button type="button" className="admin-registration-access__button" onClick={() => onRefresh?.()}>
+          <button
+            type="button"
+            className="admin-registration-access__button"
+            onClick={() => onRefresh?.()}
+          >
             {t('admin.sections.accessGates.retry')}
           </button>
         </div>
@@ -431,7 +476,9 @@ export default function RegistrationAccessSection({
         </p>
       ) : null}
       {isLoading && !configuration.membershipGate && eventGates.length === 0 ? (
-        <p className="admin-registration-access__loading">{t('admin.sections.accessGates.loading')}</p>
+        <p className="admin-registration-access__loading">
+          {t('admin.sections.accessGates.loading')}
+        </p>
       ) : null}
 
       <section className="admin-registration-access__block" aria-labelledby="access-toggles-title">
@@ -485,20 +532,32 @@ export default function RegistrationAccessSection({
         ))}
 
         {togglesLoading ? (
-          <p className="admin-registration-access__loading">{t('admin.sections.accessGates.togglesLoading')}</p>
+          <p className="admin-registration-access__loading">
+            {t('admin.sections.accessGates.togglesLoading')}
+          </p>
         ) : null}
         {togglesError ? (
-          <div className="admin-registration-access__message admin-registration-access__message--error" role="alert">
+          <div
+            className="admin-registration-access__message admin-registration-access__message--error"
+            role="alert"
+          >
             <XCircle size={15} aria-hidden />
             <span>{togglesError}</span>
-            <button type="button" className="admin-registration-access__button" onClick={() => void loadToggles()}>
+            <button
+              type="button"
+              className="admin-registration-access__button"
+              onClick={() => void loadToggles()}
+            >
               {t('admin.sections.accessGates.retry')}
             </button>
           </div>
         ) : null}
       </section>
 
-      <section className="admin-registration-access__block" aria-labelledby="access-gates-private-title">
+      <section
+        className="admin-registration-access__block"
+        aria-labelledby="access-gates-private-title"
+      >
         <header className="admin-registration-access__block-head">
           <div>
             <h2 id="access-gates-private-title">{t('admin.sections.accessGates.gatesTitle')}</h2>
@@ -532,7 +591,9 @@ export default function RegistrationAccessSection({
                 <button
                   type="button"
                   className="admin-registration-access__button"
-                  onClick={(event) => openEditor(configuration.membershipGate, 'membership', event.currentTarget)}
+                  onClick={(event) =>
+                    openEditor(configuration.membershipGate, 'membership', event.currentTarget)
+                  }
                 >
                   {isGateReopenable(configuration.membershipGate)
                     ? t('admin.sections.accessGates.reopen')
@@ -592,7 +653,9 @@ export default function RegistrationAccessSection({
                     </p>
                   </div>
                   <div className="admin-registration-access__trailing">
-                    <span className={`admin-registration-access__state admin-registration-access__state--${stateClass(key)}`}>
+                    <span
+                      className={`admin-registration-access__state admin-registration-access__state--${stateClass(key)}`}
+                    >
                       {stateLabel(key)}
                     </span>
                     {canEdit ? (
@@ -624,13 +687,20 @@ export default function RegistrationAccessSection({
               <span className="admin-registration-access__empty-icon" aria-hidden>
                 <Inbox size={18} />
               </span>
-              <p className="admin-registration-access__empty">{t('admin.sections.accessGates.eventGatesEmpty')}</p>
+              <p className="admin-registration-access__empty">
+                {t('admin.sections.accessGates.eventGatesEmpty')}
+              </p>
             </div>
           )}
         </div>
 
         {canEdit && draft ? (
-          <form ref={formRef} className="admin-registration-access__form" onSubmit={submit} noValidate>
+          <form
+            ref={formRef}
+            className="admin-registration-access__form"
+            onSubmit={submit}
+            noValidate
+          >
             <header>
               <LockKeyhole size={17} aria-hidden />
               <div>
@@ -639,7 +709,13 @@ export default function RegistrationAccessSection({
                     ? t('admin.sections.accessGates.formTitleMembership')
                     : t('admin.sections.accessGates.formTitleRegistration')}
                 </h3>
-                <p>{t(reopeningDraft ? 'admin.sections.accessGates.formLeadReopen' : 'admin.sections.accessGates.formLead')}</p>
+                <p>
+                  {t(
+                    reopeningDraft
+                      ? 'admin.sections.accessGates.formLeadReopen'
+                      : 'admin.sections.accessGates.formLead',
+                  )}
+                </p>
               </div>
             </header>
 
@@ -653,12 +729,17 @@ export default function RegistrationAccessSection({
                     setDraft({
                       ...EMPTY_GATE,
                       scope: event.target.value,
-                      eventSlug: event.target.value === 'registration' ? events[0]?.slug ?? '' : '',
+                      eventSlug:
+                        event.target.value === 'registration' ? (events[0]?.slug ?? '') : '',
                     })
                   }
                 >
-                  <option value="membership">{t('admin.sections.accessGates.scopeMembership')}</option>
-                  <option value="registration">{t('admin.sections.accessGates.scopeRegistration')}</option>
+                  <option value="membership">
+                    {t('admin.sections.accessGates.scopeMembership')}
+                  </option>
+                  <option value="registration">
+                    {t('admin.sections.accessGates.scopeRegistration')}
+                  </option>
                 </select>
               </label>
 
@@ -756,7 +837,11 @@ export default function RegistrationAccessSection({
             ) : null}
 
             <footer className="admin-registration-access__form-actions">
-              <button type="button" className="admin-registration-access__button" onClick={cancelEditor}>
+              <button
+                type="button"
+                className="admin-registration-access__button"
+                onClick={cancelEditor}
+              >
                 {t('admin.sections.accessGates.cancel')}
               </button>
               <button
@@ -785,7 +870,9 @@ export default function RegistrationAccessSection({
           }}
           onConfirm={() => void handleDelete()}
           title={t('admin.sections.accessGates.deleteTitle')}
-          description={t('admin.sections.accessGates.deleteDescription', { label: deleteTarget.label })}
+          description={t('admin.sections.accessGates.deleteDescription', {
+            label: deleteTarget.label,
+          })}
           warning={t('admin.sections.accessGates.deleteWarning')}
           cancelLabel={t('admin.sections.accessGates.cancel')}
           confirmLabel={t('admin.sections.accessGates.delete')}

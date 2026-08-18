@@ -10,7 +10,9 @@ export default function InstitutionalPageHero({
   onHome,
   title,
 }) {
-  const titleId = `institutional-hero-${String(breadcrumb).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+  const titleId = `institutional-hero-${String(breadcrumb)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')}`
 
   return (
     <section
@@ -19,7 +21,9 @@ export default function InstitutionalPageHero({
     >
       <div className="institutional-hero__inner">
         <nav className="institutional-hero__breadcrumb" aria-label="Breadcrumb">
-          <button type="button" onClick={onHome}>Home</button>
+          <button type="button" onClick={onHome}>
+            Home
+          </button>
           <ChevronRight size={12} aria-hidden />
           <span aria-current="page">{breadcrumb}</span>
         </nav>
@@ -35,7 +39,6 @@ export default function InstitutionalPageHero({
           </div>
           {aside ? <div className="institutional-hero__aside">{aside}</div> : null}
         </div>
-
       </div>
     </section>
   )

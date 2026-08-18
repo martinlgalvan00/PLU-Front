@@ -147,7 +147,9 @@ function CredentialFaceContent({ seasonYear, qrSrc, t, motion = false }) {
         <div className="home-credential__identity">
           <span className="home-credential__photo" aria-hidden>
             <Camera size={18} strokeWidth={1.6} />
-            <span className="home-credential__photo-label">{t('pages.home.credentialPhotoLabel')}</span>
+            <span className="home-credential__photo-label">
+              {t('pages.home.credentialPhotoLabel')}
+            </span>
           </span>
           <div className="home-credential__identity-copy">
             <small>{t('account.credential.athlete')}</small>

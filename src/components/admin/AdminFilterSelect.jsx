@@ -19,8 +19,15 @@ export default function AdminFilterSelect({
   }))
 
   return (
-    <div className={`admin-filters__select${isActive ? ' is-active' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      {label ? <span className="admin-filters__select-label" style={{ fontSize: 12, fontWeight: 500 }}>{label}</span> : null}
+    <div
+      className={`admin-filters__select${isActive ? ' is-active' : ''}`}
+      style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+    >
+      {label ? (
+        <span className="admin-filters__select-label" style={{ fontSize: 12, fontWeight: 500 }}>
+          {label}
+        </span>
+      ) : null}
       <Select
         id={id}
         value={value}

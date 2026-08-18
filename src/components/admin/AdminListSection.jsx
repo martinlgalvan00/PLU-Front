@@ -73,10 +73,7 @@ export default function AdminListSection({
   const bodyRef = useRef(null)
   const hasMountedFilters = useRef(false)
   const statsScrollRef = useHorizontalScroll()
-  const shellClass = [
-    'admin-list-shell',
-    variant ? `admin-list-shell--${variant}` : '',
-  ]
+  const shellClass = ['admin-list-shell', variant ? `admin-list-shell--${variant}` : '']
     .filter(Boolean)
     .join(' ')
 
@@ -89,10 +86,7 @@ export default function AdminListSection({
   )
 
   const showFilterBar =
-    showFilters &&
-    (Boolean(onQueryChange) ||
-      filters.length > 0 ||
-      hasActions(filterBarActions))
+    showFilters && (Boolean(onQueryChange) || filters.length > 0 || hasActions(filterBarActions))
 
   // Los chips de filtro que ya traen su propio conteo cubren la misma información
   // que el strip de stats; en pantallas chicas repetirla cuesta una barra entera.
@@ -111,7 +105,8 @@ export default function AdminListSection({
   // (y en ≤1024 el título se oculta: queda una franja vacía solo con el meta).
   const headerMeta = filtersCarryCounts ? null : meta
   const showStatsStrip = showStats && !statsAreRedundant && (stats.length > 0 || totalCount != null)
-  const useCollapsibleStats = collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
+  const useCollapsibleStats =
+    collapseStatsOnMobile && isNarrow && showStatsStrip && stats.length > 0
   const statsExpanded = !useCollapsibleStats || statsOpen
   const hasActiveQuery = Boolean(query && String(query).trim())
   // En angosto el título se oculta: el censo vive en el chip "Todos".
@@ -141,10 +136,7 @@ export default function AdminListSection({
   const filterBar = showFilterBar ? (
     <AdminFilterBar
       actions={filterBarActions}
-      className={[
-        'admin-filters--external',
-        variant ? `admin-filters--${variant}` : '',
-      ]
+      className={['admin-filters--external', variant ? `admin-filters--${variant}` : '']
         .filter(Boolean)
         .join(' ')}
       compact
@@ -235,13 +227,21 @@ export default function AdminListSection({
                   onClick={() => setStatsOpen((current) => !current)}
                 >
                   {t('admin.summary.toggle')}
-                  <ChevronDown size={14} aria-hidden className="admin-list-shell__stats-toggle-icon" />
+                  <ChevronDown
+                    size={14}
+                    aria-hidden
+                    className="admin-list-shell__stats-toggle-icon"
+                  />
                 </button>
               </div>
             )}
 
             {statsExpanded && (
-              <div className="admin-list-shell__stats-strip" aria-label={t('admin.summary.aria')} ref={statsScrollRef}>
+              <div
+                className="admin-list-shell__stats-strip"
+                aria-label={t('admin.summary.aria')}
+                ref={statsScrollRef}
+              >
                 {stats.map(({ label, tone = 'default', value }) => (
                   <article key={label} className={`admin-list-stat admin-list-stat--${tone}`}>
                     <span className="admin-list-stat__value">{value}</span>

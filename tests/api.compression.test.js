@@ -24,15 +24,17 @@ function bigQueueList() {
 describe('compresion de las respuestas de la API', () => {
   it('comprime una respuesta grande cuando el cliente lo acepta', async () => {
     const staff = await buildStaffUser({ email: 'gzip@plu.test' })
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      adminQueueRepository: {
-        list: vi.fn().mockResolvedValue(bigQueueList()),
-        dismiss: vi.fn(),
-        undismiss: vi.fn(),
-      },
-      env: ENV,
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        adminQueueRepository: {
+          list: vi.fn().mockResolvedValue(bigQueueList()),
+          dismiss: vi.fn(),
+          undismiss: vi.fn(),
+        },
+        env: ENV,
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })
@@ -51,15 +53,17 @@ describe('compresion de las respuestas de la API', () => {
 
   it('no comprime cuando el cliente no lo acepta', async () => {
     const staff = await buildStaffUser({ email: 'sin-gzip@plu.test' })
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      adminQueueRepository: {
-        list: vi.fn().mockResolvedValue(bigQueueList()),
-        dismiss: vi.fn(),
-        undismiss: vi.fn(),
-      },
-      env: ENV,
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        adminQueueRepository: {
+          list: vi.fn().mockResolvedValue(bigQueueList()),
+          dismiss: vi.fn(),
+          undismiss: vi.fn(),
+        },
+        env: ENV,
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })

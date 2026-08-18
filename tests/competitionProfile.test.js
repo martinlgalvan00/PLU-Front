@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest'
 import { getMissingCompetitionProfileFields } from '../src/services/competitionProfile.js'
 
 const migration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20260819140000_athlete_profile_competition_snapshot.sql'),
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20260819140000_athlete_profile_competition_snapshot.sql',
+  ),
   'utf8',
 )
 const routes = readFileSync(resolve(process.cwd(), 'server/routes/athletes.js'), 'utf8')
@@ -26,9 +29,9 @@ const completeAthlete = {
 describe('perfil reutilizable para inscripción', () => {
   it('identifica sólo los datos competitivos que faltan', () => {
     expect(getMissingCompetitionProfileFields(completeAthlete)).toEqual([])
-    expect(getMissingCompetitionProfileFields({ ...completeAthlete, gym: '', province: null })).toEqual([
-      'gym', 'province',
-    ])
+    expect(
+      getMissingCompetitionProfileFields({ ...completeAthlete, gym: '', province: null }),
+    ).toEqual(['gym', 'province'])
   })
 
   it('no convierte el contacto de emergencia ni Instagram en un bloqueo de adultos', () => {
@@ -36,7 +39,9 @@ describe('perfil reutilizable para inscripción', () => {
   })
 
   it('el backend revisa el perfil antes de crear inscripción o combo', () => {
-    expect(routes.match(/assertCompetitionProfileComplete\(await repo\(\)\.findCompetitionProfile/g)).toHaveLength(2)
+    expect(
+      routes.match(/assertCompetitionProfileComplete\(await repo\(\)\.findCompetitionProfile/g),
+    ).toHaveLength(2)
     expect(routes).toContain("code: 'ATHLETE_PROFILE_INCOMPLETE'")
   })
 })
@@ -60,6 +65,8 @@ describe('persistencia de perfil y snapshot operativo', () => {
     expect(bestTotalMigration).toContain('declared_best_total_kg numeric(6,2)')
     expect(bestTotalMigration).toContain('update_athlete_profile_v3')
     expect(bestTotalMigration).toContain("'declaredBestTotalKg', v_athlete.declared_best_total_kg")
-    expect(bestTotalMigration).toContain('no reemplaza resultados oficiales importados desde LiftingCast')
+    expect(bestTotalMigration).toContain(
+      'no reemplaza resultados oficiales importados desde LiftingCast',
+    )
   })
 })

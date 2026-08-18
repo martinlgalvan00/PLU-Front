@@ -54,8 +54,9 @@ export default function AthleteProfilePage({
     (event) => event.status !== 'finalizado',
   )
   const nextEvent = availableEvents[0]
-  const gateEvent = getPitbullClassicEvent(events.length ? events : UPCOMING_EVENTS)
-    ?? getFeaturedEvent(events.length ? events : UPCOMING_EVENTS)
+  const gateEvent =
+    getPitbullClassicEvent(events.length ? events : UPCOMING_EVENTS) ??
+    getFeaturedEvent(events.length ? events : UPCOMING_EVENTS)
   const gatePendingRegistrations = athleteId
     ? findGatePendingRegistrations(athleteRegistrations, {
         memberships: athleteMemberships,

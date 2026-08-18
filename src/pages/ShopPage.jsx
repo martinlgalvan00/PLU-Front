@@ -1,6 +1,14 @@
 import { useState, useRef } from 'react'
 import { m } from 'motion/react'
-import { ArrowRight, CalendarDays, ChevronRight, GraduationCap, MapPin, ShoppingBag, Ticket } from 'lucide-react'
+import {
+  ArrowRight,
+  CalendarDays,
+  ChevronRight,
+  GraduationCap,
+  MapPin,
+  ShoppingBag,
+  Ticket,
+} from 'lucide-react'
 import shopHeroPhoto from '../assets/DSC00392-display.jpg'
 import shopHeroPhotoAvif from '../assets/DSC00392-display.avif'
 import shopHeroPhotoAvif480 from '../assets/DSC00392-display-480.avif'
@@ -22,7 +30,11 @@ import {
   getFeaturedEventDestination,
   getUpcomingEventsByDate,
 } from '../lib/eventNavigation.js'
-import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import {
+  cheapestTicketTypePrice,
+  isTicketSalesEnabled,
+  ticketPricingFromEvent,
+} from '../lib/eventPricing.js'
 import { FEATURE_KEYS, isFeatureEnabled } from '../lib/featureAvailability.js'
 import { money } from '../lib/format.js'
 import { getPublishedShopProducts } from '../services/shopService.js'
@@ -46,18 +58,14 @@ function shopTicketPriceLabel(checkoutOpen, salesOpen, fromPrice, locale, t) {
 function parseShopDateParts(dateStr = '') {
   const cleaned = String(dateStr).replace(/\./g, '').trim()
   if (!cleaned) return null
-  const rangeMatch = cleaned.match(
-    /^(\d{1,2})\s*[-–/]\s*(\d{1,2})\s+([A-Za-zÁÉÍÓÚÜáéíóúü]+)/u,
-  )
+  const rangeMatch = cleaned.match(/^(\d{1,2})\s*[-–/]\s*(\d{1,2})\s+([A-Za-zÁÉÍÓÚÜáéíóúü]+)/u)
   if (rangeMatch) {
     return {
       day: `${rangeMatch[1]}–${rangeMatch[2]}`,
       month: rangeMatch[3].slice(0, 3).toUpperCase(),
     }
   }
-  const singleMatch = cleaned.match(
-    /^(\d{1,2})\s*[-–/]?\s*([A-Za-zÁÉÍÓÚÜáéíóúü]+)/u,
-  )
+  const singleMatch = cleaned.match(/^(\d{1,2})\s*[-–/]?\s*([A-Za-zÁÉÍÓÚÜáéíóúü]+)/u)
   if (singleMatch) {
     return {
       day: singleMatch[1].padStart(2, '0'),
@@ -82,12 +90,15 @@ function ShopEventCard({ event, locale, checkoutOpen, onOpenDetail, t }) {
         hidden: reducedMotion ? {} : { opacity: 0, x: -10 },
         visible: reducedMotion ? {} : { opacity: 1, x: 0 },
       }}
-      whileHover={reducedMotion ? {} : { x: 8, backgroundColor: 'color-mix(in srgb, var(--color-brand-gold) 4%, transparent)' }}
+      whileHover={
+        reducedMotion
+          ? {}
+          : { x: 8, backgroundColor: 'color-mix(in srgb, var(--color-brand-gold) 4%, transparent)' }
+      }
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className={[
-        'shop-event-card',
-        checkoutOpen ? '' : 'shop-event-card--preview',
-      ].filter(Boolean).join(' ')}
+      className={['shop-event-card', checkoutOpen ? '' : 'shop-event-card--preview']
+        .filter(Boolean)
+        .join(' ')}
       role="button"
       tabIndex={0}
       onClick={() => onOpenDetail(event)}
@@ -115,7 +126,10 @@ function ShopEventCard({ event, locale, checkoutOpen, onOpenDetail, t }) {
         </div>
         <p className="shop-event-card__meta">{event.venue}</p>
         {salesOpen ? (
-          <TicketAvailabilityBadge remaining={remaining} className="shop-event-card__availability" />
+          <TicketAvailabilityBadge
+            remaining={remaining}
+            className="shop-event-card__availability"
+          />
         ) : null}
       </div>
       <div className="shop-event-card__foot">
@@ -159,11 +173,7 @@ function ShopDepartmentPanel({
       className="shop-department-panel shop-department-panel--soon"
       initial={reducedMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={
-        reducedMotion
-          ? { duration: 0 }
-          : { duration: 0.48, ease: [0.22, 1, 0.36, 1] }
-      }
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="shop-department-panel__copy">
         {badge ? (
@@ -261,13 +271,25 @@ function ShopCart({ cart, locale, onCheckout, onRemove, t, open, onClose }) {
   return (
     <>
       {open ? <div className="shop-cart-drawer__backdrop" onClick={onClose} aria-hidden /> : null}
-      <aside className={`shop-cart-drawer${open ? ' is-open' : ''}`} aria-label={t('pages.shop.cartAria')}>
+      <aside
+        className={`shop-cart-drawer${open ? ' is-open' : ''}`}
+        aria-label={t('pages.shop.cartAria')}
+      >
         <div className="shop-cart-drawer__head">
           <div className="shop-cart-drawer__head-copy">
             <strong>{t('pages.shop.cartTitle')}</strong>
-            <span>{t('pages.shop.cartCount', { count: items.reduce((sum, item) => sum + item.quantity, 0) })}</span>
+            <span>
+              {t('pages.shop.cartCount', {
+                count: items.reduce((sum, item) => sum + item.quantity, 0),
+              })}
+            </span>
           </div>
-          <button type="button" className="shop-cart-drawer__close" onClick={onClose} aria-label="Close">
+          <button
+            type="button"
+            className="shop-cart-drawer__close"
+            onClick={onClose}
+            aria-label="Close"
+          >
             &times;
           </button>
         </div>
@@ -306,7 +328,15 @@ function ShopCart({ cart, locale, onCheckout, onRemove, t, open, onClose }) {
   )
 }
 
-function ShopFeaturedHero({ event, locale, checkoutOpen, onBuyTickets, onViewDetail, onBrowseCalendar, t }) {
+function ShopFeaturedHero({
+  event,
+  locale,
+  checkoutOpen,
+  onBuyTickets,
+  onViewDetail,
+  onBrowseCalendar,
+  t,
+}) {
   const heroRef = useRef(null)
   useParallaxShift(heroRef, { strength: 40 })
 
@@ -321,16 +351,18 @@ function ShopFeaturedHero({ event, locale, checkoutOpen, onBuyTickets, onViewDet
   return (
     <section className="shop-hero-section" aria-labelledby="shop-hero-title">
       <article
-        className={[
-          'shop-hero',
-          checkoutOpen ? '' : 'shop-hero--preview',
-        ].filter(Boolean).join(' ')}
+        className={['shop-hero', checkoutOpen ? '' : 'shop-hero--preview']
+          .filter(Boolean)
+          .join(' ')}
         ref={heroRef}
       >
         <div className="shop-hero__media" aria-hidden>
           <ResponsivePhoto
             className="shop-hero__media-img"
-            style={{ transform: 'translateY(var(--hero-parallax-shift, 0)) scale(1.1)', transition: 'transform 0.1s cubic-bezier(0,0,0,1)' }}
+            style={{
+              transform: 'translateY(var(--hero-parallax-shift, 0)) scale(1.1)',
+              transition: 'transform 0.1s cubic-bezier(0,0,0,1)',
+            }}
             avif={{ 480: shopHeroPhotoAvif480, 800: shopHeroPhotoAvif800, 1153: shopHeroPhotoAvif }}
             webp={{ 480: shopHeroPhotoWebp480, 800: shopHeroPhotoWebp800, 1153: shopHeroPhotoWebp }}
             src={shopHeroPhoto}
@@ -381,18 +413,14 @@ function ShopFeaturedHero({ event, locale, checkoutOpen, onBuyTickets, onViewDet
                 {checkoutOpen ? t('pages.shop.salesClosed') : t('pages.shop.checkoutSoonNote')}
               </p>
             )}
-            
+
             {!checkoutOpen ? (
               <LaunchInterestForm source="shop_hero" eventSlug={event.slug} />
             ) : null}
 
             <div className="shop-hero__actions">
               {canBuy ? (
-                <button
-                  type="button"
-                  className="btn shop-hero__cta"
-                  onClick={onBuyTickets}
-                >
+                <button type="button" className="btn shop-hero__cta" onClick={onBuyTickets}>
                   <span>{t('pages.shop.buyTickets')}</span>
                   <ArrowRight size={16} aria-hidden />
                 </button>
@@ -532,7 +560,10 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                 />
               ) : null}
 
-              <section className="shop-section shop-section--tickets" aria-labelledby="shop-tickets-title">
+              <section
+                className="shop-section shop-section--tickets"
+                aria-labelledby="shop-tickets-title"
+              >
                 <div className="shop-section__header shop-section__header--tickets">
                   <span className="shop-section__eyebrow">{t('pages.shop.emptyEyebrow')}</span>
                   <div className="shop-section__heading">
@@ -592,7 +623,9 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
             <section
               className="shop-section shop-department"
               aria-labelledby={
-                publishedProducts.length > 0 || hasLoadedProducts ? 'shop-merch-title' : 'shop-merch-panel-title'
+                publishedProducts.length > 0 || hasLoadedProducts
+                  ? 'shop-merch-title'
+                  : 'shop-merch-panel-title'
               }
               key="merch"
             >
@@ -624,7 +657,9 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
                       />
                     ))}
                   </div>
-                  {checkoutDone ? <p className="shop-checkout-done">{t('pages.shop.checkoutDone')}</p> : null}
+                  {checkoutDone ? (
+                    <p className="shop-checkout-done">{t('pages.shop.checkoutDone')}</p>
+                  ) : null}
                 </div>
               ) : hasLoadedProducts ? (
                 <div className="shop-empty shop-empty--products-pending" role="status">
@@ -653,7 +688,11 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
           ) : null}
 
           {activeCategory === 'courses' ? (
-            <section className="shop-section shop-department" aria-labelledby="shop-courses-panel-title" key="courses">
+            <section
+              className="shop-section shop-department"
+              aria-labelledby="shop-courses-panel-title"
+              key="courses"
+            >
               <ShopDepartmentPanel
                 badge={t('pages.shop.coursesSoon')}
                 title={t('pages.shop.coursesTitle')}
@@ -672,12 +711,26 @@ export default function ShopPage({ events = [], products = [], onNavigate }) {
 
       {checkoutOpen ? (
         <>
-          <ShopCart cart={cart} locale={locale} onCheckout={checkoutCart} onRemove={removeFromCart} t={t} open={cartOpen} onClose={() => setCartOpen(false)} />
+          <ShopCart
+            cart={cart}
+            locale={locale}
+            onCheckout={checkoutCart}
+            onRemove={removeFromCart}
+            t={t}
+            open={cartOpen}
+            onClose={() => setCartOpen(false)}
+          />
 
           {Object.values(cart).length > 0 && !cartOpen ? (
-            <button className="shop-floating-cart-btn" onClick={() => setCartOpen(true)} aria-label="Abrir carrito">
+            <button
+              className="shop-floating-cart-btn"
+              onClick={() => setCartOpen(true)}
+              aria-label="Abrir carrito"
+            >
               <ShoppingBag size={24} />
-              <span className="shop-floating-cart-count">{Object.values(cart).reduce((sum, item) => sum + item.quantity, 0)}</span>
+              <span className="shop-floating-cart-count">
+                {Object.values(cart).reduce((sum, item) => sum + item.quantity, 0)}
+              </span>
             </button>
           ) : null}
         </>

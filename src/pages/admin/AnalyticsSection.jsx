@@ -117,7 +117,10 @@ function previousRange(days) {
 
 function currentRange(days) {
   const now = Date.now()
-  return { from: new Date(now - days * 24 * 60 * 60 * 1000).toISOString(), to: new Date(now).toISOString() }
+  return {
+    from: new Date(now - days * 24 * 60 * 60 * 1000).toISOString(),
+    to: new Date(now).toISOString(),
+  }
 }
 
 const FAILURE_SEVERITY_TONE = { blocker: 'danger', degraded: 'warning', expected: 'neutral' }
@@ -573,7 +576,11 @@ export default function AnalyticsSection({
         subtitle={t('admin.analytics.subtitle')}
         actions={
           <div className="admin-analytics__controls">
-            <div className="admin-analytics__ranges" role="group" aria-label={t('admin.analytics.rangeLabel')}>
+            <div
+              className="admin-analytics__ranges"
+              role="group"
+              aria-label={t('admin.analytics.rangeLabel')}
+            >
               {RANGES.map((range) => (
                 <button
                   key={range}
@@ -592,7 +599,12 @@ export default function AnalyticsSection({
                 </button>
               ))}
             </div>
-            <button type="button" className="btn btn--small btn--outline" onClick={load} disabled={loading}>
+            <button
+              type="button"
+              className="btn btn--small btn--outline"
+              onClick={load}
+              disabled={loading}
+            >
               <RefreshCw size={14} aria-hidden /> {t('admin.analytics.refresh')}
             </button>
           </div>
@@ -612,14 +624,24 @@ export default function AnalyticsSection({
             <dt>{t('admin.analytics.metrics.visitors')}</dt>
             <dd>
               {count(overview?.visitors, locale)}
-              <MetricDelta current={overview?.visitors} previous={previousOverview?.visitors} locale={locale} t={t} />
+              <MetricDelta
+                current={overview?.visitors}
+                previous={previousOverview?.visitors}
+                locale={locale}
+                t={t}
+              />
             </dd>
           </div>
           <div>
             <dt>{t('admin.analytics.metrics.pageviews')}</dt>
             <dd>
               {count(overview?.pageviews, locale)}
-              <MetricDelta current={overview?.pageviews} previous={previousOverview?.pageviews} locale={locale} t={t} />
+              <MetricDelta
+                current={overview?.pageviews}
+                previous={previousOverview?.pageviews}
+                locale={locale}
+                t={t}
+              />
             </dd>
           </div>
           <div>
@@ -679,16 +701,16 @@ export default function AnalyticsSection({
           */}
           {overview?.avgActiveSeconds
             ? t('admin.analytics.summary', {
-              sessions: count(overview?.sessions, locale),
-              activeTime: duration(overview.avgActiveSeconds),
-              duration: duration(overview?.avgDurationSeconds),
-              interactions: count(overview?.interactions, locale),
-            })
+                sessions: count(overview?.sessions, locale),
+                activeTime: duration(overview.avgActiveSeconds),
+                duration: duration(overview?.avgDurationSeconds),
+                interactions: count(overview?.interactions, locale),
+              })
             : t('admin.analytics.summaryNoActiveTime', {
-              sessions: count(overview?.sessions, locale),
-              duration: duration(overview?.avgDurationSeconds),
-              interactions: count(overview?.interactions, locale),
-            })}
+                sessions: count(overview?.sessions, locale),
+                duration: duration(overview?.avgDurationSeconds),
+                interactions: count(overview?.interactions, locale),
+              })}
         </p>
       </section>
 
@@ -750,7 +772,8 @@ export default function AnalyticsSection({
                     <dt>{t('admin.analytics.access.peopleIn')}</dt>
                     <dd>{count(access.succeeded?.people, locale)}</dd>
                     <p className="admin-analytics__metric-hint">
-                      {t('admin.analytics.access.athletes')} {count(access.succeeded?.athletes, locale)}
+                      {t('admin.analytics.access.athletes')}{' '}
+                      {count(access.succeeded?.athletes, locale)}
                       {' · '}
                       {t('admin.analytics.access.staff')} {count(access.succeeded?.staff, locale)}
                     </p>
@@ -759,7 +782,8 @@ export default function AnalyticsSection({
                     <dt>{t('admin.analytics.access.failed')}</dt>
                     <dd>{count(access.failed?.events, locale)}</dd>
                     <p className="admin-analytics__metric-hint">
-                      {t('admin.analytics.access.failureRate')} {percent(access.failureRate, locale)}
+                      {t('admin.analytics.access.failureRate')}{' '}
+                      {percent(access.failureRate, locale)}
                     </p>
                   </div>
                   <div>
@@ -777,7 +801,9 @@ export default function AnalyticsSection({
 
                 <h4>{t('admin.analytics.access.reasonsTitle')}</h4>
                 {(access.failureReasons ?? []).length === 0 ? (
-                  <p className="admin-analytics__empty">{t('admin.analytics.access.reasonsEmpty')}</p>
+                  <p className="admin-analytics__empty">
+                    {t('admin.analytics.access.reasonsEmpty')}
+                  </p>
                 ) : (
                   <ul className="admin-analytics__journey-list">
                     {access.failureReasons.map((reason) => {
@@ -895,7 +921,9 @@ export default function AnalyticsSection({
                         {reason.title}
                       </span>
                       <strong>
-                        {t('admin.analytics.failureReasonsCount', { count: count(reason.count, locale) })}
+                        {t('admin.analytics.failureReasonsCount', {
+                          count: count(reason.count, locale),
+                        })}
                       </strong>
                     </li>
                   ))}
@@ -1007,7 +1035,9 @@ export default function AnalyticsSection({
                         </span>
                         <code className="admin-analytics__ranking-path">
                           {Number(element.paths) > 1
-                            ? t('admin.analytics.elementsPaths', { count: count(element.paths, locale) })
+                            ? t('admin.analytics.elementsPaths', {
+                                count: count(element.paths, locale),
+                              })
                             : element.sample_path}
                         </code>
                         <strong>{count(element.clicks, locale)}</strong>

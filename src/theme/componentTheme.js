@@ -1,5 +1,5 @@
 // src/theme/componentTheme.js
-import { brandTokens } from './tokens';
+import { brandTokens } from './tokens'
 
 export const componentTheme = {
   Button: {
@@ -58,4 +58,4 @@ export const componentTheme = {
     paddingLG: 24,
     borderRadiusLG: brandTokens.borderRadiusLg,
   },
-};
+}

@@ -60,10 +60,12 @@ describe('Mercado Pago Checkout Bricks', () => {
     await target.close()
 
     expect(response.status).toBe(202)
-    expect(recordClientEvent).toHaveBeenCalledWith(expect.objectContaining({
-      stage: 'render',
-      errorCode: 'brick_mount_failed',
-    }))
+    expect(recordClientEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: 'render',
+        errorCode: 'brick_mount_failed',
+      }),
+    )
     expect(recordClientEvent.mock.calls[0][0]).not.toHaveProperty('cardToken')
   })
 
@@ -95,11 +97,13 @@ describe('Mercado Pago Checkout Bricks', () => {
         }
       }),
     }
-    const target = listen(createApp({
-      paymentRepository: repository,
-      mercadoPago,
-      env: { APP_PRODUCTION: 'false', PAID_CHECKOUT_ENABLED: 'true' },
-    }))
+    const target = listen(
+      createApp({
+        paymentRepository: repository,
+        mercadoPago,
+        env: { APP_PRODUCTION: 'false', PAID_CHECKOUT_ENABLED: 'true' },
+      }),
+    )
 
     const response = await fetch(`${target.url}/api/payments/embedded/process`, {
       method: 'POST',
@@ -158,7 +162,10 @@ describe('Mercado Pago Checkout Bricks', () => {
         created: true,
         attempt: { id: 'attempt-2', idempotency_key: 'subscription-server-key' },
       })),
-      attachSubscriptionProvider: vi.fn(async (_id, value) => ({ id: 'subscription-1', status: value.status })),
+      attachSubscriptionProvider: vi.fn(async (_id, value) => ({
+        id: 'subscription-1',
+        status: value.status,
+      })),
       completeEmbeddedAttempt: vi.fn(async () => undefined),
     }
     const mercadoPago = {
@@ -168,22 +175,30 @@ describe('Mercado Pago Checkout Bricks', () => {
       }),
     }
 
-    const result = await createEmbeddedRecurringSubscription({
-      paymentOrderId: ORDER_ID,
-      planCode: 'plu-monthly',
-      cardToken: 'temporary-card-token',
-      appUrl: 'https://plu.example',
-    }, { repository, mercadoPago })
+    const result = await createEmbeddedRecurringSubscription(
+      {
+        paymentOrderId: ORDER_ID,
+        planCode: 'plu-monthly',
+        cardToken: 'temporary-card-token',
+        appUrl: 'https://plu.example',
+      },
+      { repository, mercadoPago },
+    )
 
     expect(result.subscription.status).toBe('authorized')
     expect(providerInput.cardToken).toBe('temporary-card-token')
     expect(providerInput.idempotencyKey).toBe('subscription-server-key')
-    expect(repository.claimEmbeddedAttempt).toHaveBeenCalledWith(expect.objectContaining({
-      operationKind: 'subscription',
-    }))
-    expect(repository.completeEmbeddedAttempt).toHaveBeenCalledWith('attempt-2', expect.objectContaining({
-      externalPaymentId: 'preapproval-1',
-      status: 'submitted',
-    }))
+    expect(repository.claimEmbeddedAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationKind: 'subscription',
+      }),
+    )
+    expect(repository.completeEmbeddedAttempt).toHaveBeenCalledWith(
+      'attempt-2',
+      expect.objectContaining({
+        externalPaymentId: 'preapproval-1',
+        status: 'submitted',
+      }),
+    )
   })
 })

@@ -1,8 +1,20 @@
 import AdminEventSecuritySection from './AdminEventSecuritySection.jsx'
 
 const MOCK_USERS = [
-  { id: 'usr-1', name: 'Lucía Fernández', email: 'lucia.fernandez@pluarg.com.ar', role: 'seguridad_plu_arg', status: 'active' },
-  { id: 'usr-2', name: 'Martín Sosa', email: 'martin.sosa@pluarg.com.ar', role: 'seguridad_plu_arg', status: 'disabled' },
+  {
+    id: 'usr-1',
+    name: 'Lucía Fernández',
+    email: 'lucia.fernandez@pluarg.com.ar',
+    role: 'seguridad_plu_arg',
+    status: 'active',
+  },
+  {
+    id: 'usr-2',
+    name: 'Martín Sosa',
+    email: 'martin.sosa@pluarg.com.ar',
+    role: 'seguridad_plu_arg',
+    status: 'disabled',
+  },
 ]
 
 async function mockList() {
@@ -24,7 +36,13 @@ async function mockUpdateStatus(userId, status) {
 async function mockCreateBulk({ users }) {
   return {
     created: users.map((entry, index) => ({
-      user: { id: `usr-bulk-${index}`, name: entry.name, email: entry.email, role: 'seguridad_plu_arg', status: 'active' },
+      user: {
+        id: `usr-bulk-${index}`,
+        name: entry.name,
+        email: entry.email,
+        role: 'seguridad_plu_arg',
+        status: 'active',
+      },
       tempPassword: `Tmp-${index}abcd`,
       emailed: false,
     })),

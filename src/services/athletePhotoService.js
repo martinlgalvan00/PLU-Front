@@ -30,10 +30,9 @@ export async function uploadAthletePhoto(_athleteId, file) {
   }
 
   if (!isSupabaseConfigured) {
-    throw new ApiError(
-      'Supabase no está configurado. No se puede subir la foto en este entorno.',
-      { status: 503 },
-    )
+    throw new ApiError('Supabase no está configurado. No se puede subir la foto en este entorno.', {
+      status: 503,
+    })
   }
 
   const supabase = await getSupabaseClient()

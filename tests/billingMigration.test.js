@@ -15,7 +15,10 @@ const phase5 = readFileSync(
   'utf8',
 )
 const phase6 = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20260715000500_phase6_payment_recovery_operations.sql'),
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20260715000500_phase6_payment_recovery_operations.sql',
+  ),
   'utf8',
 )
 const hardening = readFileSync(
@@ -32,7 +35,9 @@ describe('billing migrations security contract', () => {
     expect(phase3).toContain('Monto o moneda no coinciden con la orden.')
     expect(phase4).toContain('apply_ticket_mercado_pago_payment')
     expect(phase4).toContain('Los pagos de Mercado Pago solo se aprueban por webhook.')
-    expect(phase4).toContain('revoke all on function public.approve_ticket_order(uuid) from public, anon;')
+    expect(phase4).toContain(
+      'revoke all on function public.approve_ticket_order(uuid) from public, anon;',
+    )
   })
 
   it('persiste emails y renovaciones con claves idempotentes', () => {

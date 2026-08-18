@@ -53,7 +53,11 @@
 }
 
 .launch-teaser__index {
-  color: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 82%, var(--color-text-muted));
+  color: color-mix(
+    in oklab,
+    var(--plu-gold-500, var(--color-brand-gold)) 82%,
+    var(--color-text-muted)
+  );
   font-family: var(--font-display);
   font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
@@ -96,8 +100,13 @@
 }
 
 @keyframes launch-teaser-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 .launch-teaser__event {
@@ -284,7 +293,8 @@
 }
 
 .launch-teaser--inauguration .launch-teaser__stage-mark::after {
-  animation: launch-stage-shimmer var(--launch-shimmer-duration, 2.8s) var(--ease-in-out, cubic-bezier(0.65, 0, 0.35, 1)) 0.5s infinite;
+  animation: launch-stage-shimmer var(--launch-shimmer-duration, 2.8s)
+    var(--ease-in-out, cubic-bezier(0.65, 0, 0.35, 1)) 0.5s infinite;
   background: linear-gradient(
     105deg,
     transparent 35%,
@@ -376,7 +386,11 @@
   padding-inline: 1rem;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--color-text-primary) 16%, transparent);
-  background: color-mix(in srgb, var(--color-bg-elevated, var(--color-bg-surface)) 92%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--color-bg-elevated, var(--color-bg-surface)) 92%,
+    transparent
+  );
   color: var(--color-text-primary);
   font-size: 0.92rem;
 }
@@ -1393,7 +1407,8 @@
     grid-row: auto;
   }
 
-  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown) .launch-teaser__layout {
+  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown)
+    .launch-teaser__layout {
     grid-template-columns: minmax(0, 1.1fr) minmax(14rem, 0.9fr);
     column-gap: clamp(2rem, 5vw, 3.5rem);
     max-width: min(56rem, 100%);
@@ -1405,14 +1420,16 @@
     grid-row: 1;
   }
 
-  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown) .launch-teaser__countdown {
+  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown)
+    .launch-teaser__countdown {
     border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
     grid-column: 2;
     grid-row: 1;
     padding-left: clamp(1.1rem, 2.5vw, 1.75rem);
   }
 
-  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown) .launch-teaser__actions {
+  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown)
+    .launch-teaser__actions {
     grid-column: 1 / -1;
     grid-row: 2;
   }

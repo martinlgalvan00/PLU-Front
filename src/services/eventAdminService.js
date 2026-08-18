@@ -1,4 +1,8 @@
-import { DEFAULT_EVENT_PRICING, isComboOfferLive, normalizeEventPricingInput } from '../lib/eventPricing.js'
+import {
+  DEFAULT_EVENT_PRICING,
+  isComboOfferLive,
+  normalizeEventPricingInput,
+} from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isRegistrationOpen } from '../lib/status.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
@@ -610,7 +614,8 @@ export function mapSupabaseEventRow(row) {
           id: comboOfferRow.id,
           membershipPlanId: comboOfferRow.membership_plan_id,
           price: Number(comboOfferRow.price),
-          manualPrice: comboOfferRow.manual_price != null ? Number(comboOfferRow.manual_price) : null,
+          manualPrice:
+            comboOfferRow.manual_price != null ? Number(comboOfferRow.manual_price) : null,
           currency: comboOfferRow.currency,
           active: comboOfferRow.active === true,
           startsAt: comboOfferRow.starts_at ?? null,
@@ -688,7 +693,10 @@ export async function fetchPublishedEvents() {
       return events.map(mapAdminEventRow)
     }
   } catch (error) {
-    console.warn('Catálogo público vía API no disponible, intento Supabase client.', error?.message ?? error)
+    console.warn(
+      'Catálogo público vía API no disponible, intento Supabase client.',
+      error?.message ?? error,
+    )
   }
 
   if (!isSupabaseConfigured) return []

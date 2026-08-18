@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BadgeCheck, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  BadgeCheck,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  PencilLine,
+  Trash2,
+} from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'

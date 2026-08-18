@@ -114,7 +114,9 @@ describe('pipeline de integracion continua', () => {
     const huerfanosIntegracion = readdirSync(resolve('tests/integration'), { withFileTypes: true })
       .filter(
         (entry) =>
-          entry.isFile() && !/\.integration\.test\.js$/.test(entry.name) && entry.name !== 'setup.js',
+          entry.isFile() &&
+          !/\.integration\.test\.js$/.test(entry.name) &&
+          entry.name !== 'setup.js',
       )
       .map((entry) => entry.name)
     expect(huerfanosIntegracion).toEqual([])

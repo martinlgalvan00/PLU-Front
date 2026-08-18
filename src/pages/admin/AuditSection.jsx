@@ -112,7 +112,9 @@ export default function AuditSection() {
       const result = await fetchAuditEntries(filters)
       setEntries(result.entries)
       setCursor(
-        result.nextCursor ? { createdAt: result.nextCursor, id: result.nextCursorId ?? null } : null,
+        result.nextCursor
+          ? { createdAt: result.nextCursor, id: result.nextCursorId ?? null }
+          : null,
       )
     } catch (loadError) {
       setError(loadError?.message ?? t('admin.audit.loadError'))
@@ -121,15 +123,18 @@ export default function AuditSection() {
     }
   }, [filters, t])
 
-  const loadOverview = useCallback(async (reportError = false) => {
-    try {
-      const nextOverview = await fetchAuditOverview()
-      setOverview({ ...EMPTY_OVERVIEW, ...nextOverview })
-    } catch (loadError) {
-      setOverview(EMPTY_OVERVIEW)
-      if (reportError) setError(loadError?.message ?? t('admin.audit.loadError'))
-    }
-  }, [t])
+  const loadOverview = useCallback(
+    async (reportError = false) => {
+      try {
+        const nextOverview = await fetchAuditOverview()
+        setOverview({ ...EMPTY_OVERVIEW, ...nextOverview })
+      } catch (loadError) {
+        setOverview(EMPTY_OVERVIEW)
+        if (reportError) setError(loadError?.message ?? t('admin.audit.loadError'))
+      }
+    },
+    [t],
+  )
 
   const refresh = useCallback(async () => {
     await Promise.all([loadEntries(), loadOverview(true)])
@@ -307,7 +312,9 @@ export default function AuditSection() {
         mobile: 'primary',
         render: (row) => (
           <div className="audit-entry__action">
-            <span className={`status-pill status-pill--${row.tone === 'default' ? 'neutral' : row.tone}`}>
+            <span
+              className={`status-pill status-pill--${row.tone === 'default' ? 'neutral' : row.tone}`}
+            >
               {actionLabel(row.action)}
             </span>
             <small>
@@ -392,9 +399,15 @@ export default function AuditSection() {
           <span className="audit-health__eyebrow">{t('admin.audit.healthEyebrow')}</span>
           <h3>{t('admin.audit.healthTitle')}</h3>
         </div>
-        <span className={`status-pill status-pill--${
-          overview.status === 'healthy' ? 'success' : overview.status === 'attention' ? 'danger' : 'warning'
-        }`}>
+        <span
+          className={`status-pill status-pill--${
+            overview.status === 'healthy'
+              ? 'success'
+              : overview.status === 'attention'
+                ? 'danger'
+                : 'warning'
+          }`}
+        >
           {overview.status === 'healthy'
             ? t('admin.audit.healthHealthy')
             : overview.status === 'attention'
@@ -410,7 +423,7 @@ export default function AuditSection() {
           <dd>{overview.eventsLast24h}</dd>
         </div>
       </div>
-      
+
       <div className="bento-card bento-card--metric bento-card--stagger-2">
         <MailCheck size={20} className="bento-icon" aria-hidden />
         <div className="bento-metric__data">
@@ -418,7 +431,7 @@ export default function AuditSection() {
           <dd>{overview.emailsDeliveredLast24h}</dd>
         </div>
       </div>
-      
+
       <div className="bento-card bento-card--metric bento-card--stagger-3">
         <RefreshCw size={20} className="bento-icon" aria-hidden />
         <div className="bento-metric__data">
@@ -426,9 +439,15 @@ export default function AuditSection() {
           <dd>{overview.emailsRetrying}</dd>
         </div>
       </div>
-      
-      <div className={`bento-card bento-card--metric bento-card--stagger-4 ${attentionCount > 0 ? 'is-attention' : ''}`}>
-        {attentionCount > 0 ? <CircleAlert size={20} className="bento-icon" aria-hidden /> : <BadgeCheck size={20} className="bento-icon" aria-hidden />}
+
+      <div
+        className={`bento-card bento-card--metric bento-card--stagger-4 ${attentionCount > 0 ? 'is-attention' : ''}`}
+      >
+        {attentionCount > 0 ? (
+          <CircleAlert size={20} className="bento-icon" aria-hidden />
+        ) : (
+          <BadgeCheck size={20} className="bento-icon" aria-hidden />
+        )}
         <div className="bento-metric__data">
           <dt>{t('admin.audit.healthIncidents')}</dt>
           {loadedErrorCount > 0 ? (
@@ -510,7 +529,11 @@ export default function AuditSection() {
               <span className="audit-incidents-toggle__count">{loadedErrorCount}</span>
             ) : null}
           </button>
-          <button type="button" className="btn btn--secondary btn--small" onClick={() => void refresh()}>
+          <button
+            type="button"
+            className="btn btn--secondary btn--small"
+            onClick={() => void refresh()}
+          >
             <RefreshCw size={15} aria-hidden />
             {t('admin.audit.refresh')}
           </button>

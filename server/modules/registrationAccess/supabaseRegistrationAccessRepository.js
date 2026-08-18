@@ -15,7 +15,12 @@ export function createSupabaseRegistrationAccessRepository(
     assertSupabaseResult(await client.rpc(name, args), fallback)
 
   return {
-    list: () => rpc('staff_get_registration_access_gates', {}, 'No se pudieron leer las tandas de habilitación.'),
+    list: () =>
+      rpc(
+        'staff_get_registration_access_gates',
+        {},
+        'No se pudieron leer las tandas de habilitación.',
+      ),
 
     save: (gate, actor) =>
       rpc(
@@ -59,7 +64,10 @@ export function createSupabaseRegistrationAccessRepository(
         query = query.eq('event_id', event.id)
       }
 
-      return assertSupabaseResult(await query.maybeSingle(), 'No se pudo validar la tanda de habilitación.')
+      return assertSupabaseResult(
+        await query.maybeSingle(),
+        'No se pudo validar la tanda de habilitación.',
+      )
     },
 
     recordUse: ({ gate, athleteId, orderId, concept }) =>

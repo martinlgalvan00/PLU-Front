@@ -5,7 +5,9 @@
  * una ruta nueva al matcher del App por un flujo de un solo paso.
  */
 
-export function readEmailVerificationToken(search = typeof window !== 'undefined' ? window.location.search : '') {
+export function readEmailVerificationToken(
+  search = typeof window !== 'undefined' ? window.location.search : '',
+) {
   try {
     const params = new URLSearchParams(search)
     return params.get('verificar')?.trim() || null

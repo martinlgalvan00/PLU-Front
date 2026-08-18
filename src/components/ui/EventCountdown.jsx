@@ -41,7 +41,10 @@ export default function EventCountdown({
   const units = [
     {
       value: time.days,
-      label: time.days === 1 ? t('pages.events.countdownUnitDay_one') : t('pages.events.countdownUnitDay_other'),
+      label:
+        time.days === 1
+          ? t('pages.events.countdownUnitDay_one')
+          : t('pages.events.countdownUnitDay_other'),
     },
     { value: time.hours, label: t('pages.events.countdownHours') },
     { value: time.minutes, label: t('pages.events.countdownMinutes') },
@@ -49,7 +52,11 @@ export default function EventCountdown({
 
   if (compact) {
     return (
-      <div className={['event-countdown', 'event-countdown--compact', className].filter(Boolean).join(' ')}>
+      <div
+        className={['event-countdown', 'event-countdown--compact', className]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <div className="event-countdown__ticker" aria-label={t('pages.events.nextMeet')}>
           {units.map(({ value, label }) => (
             <div key={label} className="event-countdown__unit">
@@ -95,7 +102,12 @@ export default function EventCountdown({
               {statusMeta.label}
             </span>
           ) : null}
-          <CalendarClock size={13} strokeWidth={1.6} aria-hidden className="event-countdown__meta-icon" />
+          <CalendarClock
+            size={13}
+            strokeWidth={1.6}
+            aria-hidden
+            className="event-countdown__meta-icon"
+          />
           <span className="event-countdown__eyebrow">{t('pages.events.nextMeet')}</span>
         </div>
 
@@ -111,7 +123,11 @@ export default function EventCountdown({
         {(canAct && onAction) || onNavigate ? (
           <div className="event-countdown__actions">
             {canAct && onAction ? (
-              <button type="button" className="event-countdown__cta motion-icon-shift" onClick={onAction}>
+              <button
+                type="button"
+                className="event-countdown__cta motion-icon-shift"
+                onClick={onAction}
+              >
                 <span>{actionLabel || t('pages.events.register')}</span>
                 <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
               </button>

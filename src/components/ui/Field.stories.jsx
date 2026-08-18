@@ -7,11 +7,19 @@ export default {
 }
 
 export const TextField = {
-  render: () => <Field name="email" label="Email" type="email" placeholder="nombre@pluarg.com.ar" />,
+  render: () => (
+    <Field name="email" label="Email" type="email" placeholder="nombre@pluarg.com.ar" />
+  ),
 }
 
 export const FieldWithError = {
   render: () => (
-    <Field name="email" label="Email" type="email" defaultValue="invalido" error="Ingresá un email válido" />
+    <Field
+      name="email"
+      label="Email"
+      type="email"
+      defaultValue="invalido"
+      error="Ingresá un email válido"
+    />
   ),
 }

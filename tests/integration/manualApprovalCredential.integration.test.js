@@ -3,7 +3,12 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { athleteSessionCookie, createTestAthlete } from './helpers/athleteSession.js'
 import { manualChannelsOpen } from './helpers/platformToggles.js'
-import { authHeaders, buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
+import {
+  authHeaders,
+  buildStaffUser,
+  createPrismaDouble,
+  loginStaff,
+} from './helpers/staffSession.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 /**

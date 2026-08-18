@@ -164,7 +164,12 @@ export default function HomeRulebookTeaser({ onNavigate, orchestrated = false })
         </Index>
       ) : null}
 
-      <Cta {...withVariant(ctaIn)} type="button" className="home-teaser-card__link" onClick={() => onNavigate('rulebook')}>
+      <Cta
+        {...withVariant(ctaIn)}
+        type="button"
+        className="home-teaser-card__link"
+        onClick={() => onNavigate('rulebook')}
+      >
         {HOME_RULEBOOK.cta}
         <ArrowRight size={14} aria-hidden className="home-teaser-card__link-icon" />
       </Cta>

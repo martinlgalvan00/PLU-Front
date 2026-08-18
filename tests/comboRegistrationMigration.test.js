@@ -23,7 +23,7 @@ describe('transaccion de combo afiliacion + inscripcion', () => {
     expect(migration).toMatch(/from public\.event_combo_offers[\s\S]*for update/)
     expect(migration).toMatch(/from public\.membership_plans[\s\S]*for update/)
     expect(migration).toContain("v_plan.collection_mode <> 'one_time'")
-    expect(migration).toContain("v_offer.price > v_plan.price + v_event.price")
+    expect(migration).toContain('v_offer.price > v_plan.price + v_event.price')
   })
 
   it('crea una sola orden y vincula ambos derechos al mismo payment_order_id', () => {

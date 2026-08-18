@@ -47,7 +47,9 @@ export function createPlatformSettingsRoutes({ getPrisma, getSupabaseAdmin, repo
   const prisma = getPrisma()
   const readGuard = requirePermission('admin.registration_access.read', { prisma })
   const writeGuard = requirePermission('admin.registration_access.write', { prisma })
-  const repo = () => repository ?? createSupabasePlatformSettingsRepository(requireSupabaseClient(getSupabaseAdmin()))
+  const repo = () =>
+    repository ??
+    createSupabasePlatformSettingsRepository(requireSupabaseClient(getSupabaseAdmin()))
 
   router.get('/public', staffLimiter, async (_req, res, next) => {
     try {
@@ -68,14 +70,20 @@ export function createPlatformSettingsRoutes({ getPrisma, getSupabaseAdmin, repo
     }
   })
 
-  router.put('/', ...writeGuard, staffLimiter, validateBody(platformFeatureToggleSchema), async (req, res, next) => {
-    try {
-      const { feature, enabled } = req.validatedBody
-      res.json(await repo().setToggle(feature, enabled, actor(req)))
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.put(
+    '/',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(platformFeatureToggleSchema),
+    async (req, res, next) => {
+      try {
+        const { feature, enabled } = req.validatedBody
+        res.json(await repo().setToggle(feature, enabled, actor(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   return router
 }

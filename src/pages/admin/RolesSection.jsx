@@ -219,7 +219,8 @@ export default function RolesSection({
     return permissionRows
       .map((row) => {
         const moduleTranslated = t(`admin.roles.modules.${row.module}`).toLowerCase()
-        const matchesModule = moduleTranslated.includes(query) || row.module.toLowerCase().includes(query)
+        const matchesModule =
+          moduleTranslated.includes(query) || row.module.toLowerCase().includes(query)
 
         const matchedActions = {}
         let hasActionMatch = false
@@ -256,10 +257,7 @@ export default function RolesSection({
     () => new Map(permissionCatalog.map((permission) => [permission.key, permission])),
     [permissionCatalog],
   )
-  const permissionDraftSet = useMemo(
-    () => new Set(permissionDraft),
-    [permissionDraft],
-  )
+  const permissionDraftSet = useMemo(() => new Set(permissionDraft), [permissionDraft])
   const permissionDiff = useMemo(() => {
     const savedPermissions = new Set(selectedRole?.permissions ?? [])
     const draftPermissions = new Set(permissionDraft)
@@ -333,7 +331,11 @@ export default function RolesSection({
   function handleGrantReadOnly() {
     if (!editable || !selectedRole) return
     const readKeys = permissionCatalog
-      .filter((p) => p.action === 'read' && (selectedRole.isProtected || !RESERVED_LOWER_PERMISSIONS.has(p.key)))
+      .filter(
+        (p) =>
+          p.action === 'read' &&
+          (selectedRole.isProtected || !RESERVED_LOWER_PERMISSIONS.has(p.key)),
+      )
       .map((p) => p.key)
     setPermissionDraft(readKeys)
     setMessage(null)
@@ -427,10 +429,15 @@ export default function RolesSection({
     setIsUpdatingStatus(true)
     try {
       await onUpdateStatus(selectedRole.id, !selectedRole.active)
-      setMessage({ tone: 'success', text: selectedRole.active ? 'Rol desactivado.' : 'Rol activado.' })
+      setMessage({
+        tone: 'success',
+        text: selectedRole.active ? 'Rol desactivado.' : 'Rol activado.',
+      })
     } catch (error) {
       setMessage({ tone: 'error', text: error?.message ?? 'No se pudo actualizar el rol.' })
-    } finally { setIsUpdatingStatus(false) }
+    } finally {
+      setIsUpdatingStatus(false)
+    }
   }
 
   async function handleCreateRole(event) {
@@ -494,7 +501,11 @@ export default function RolesSection({
       </div>
 
       {editable ? (
-        <div className="admin-roles__presets" role="group" aria-label={t('admin.roles.presetsAria')}>
+        <div
+          className="admin-roles__presets"
+          role="group"
+          aria-label={t('admin.roles.presetsAria')}
+        >
           <button
             type="button"
             className="admin-roles__preset-btn"
@@ -653,11 +664,7 @@ export default function RolesSection({
       </div>
 
       {isCreating ? (
-        <form
-          id="admin-role-create"
-          className="admin-roles__create"
-          onSubmit={handleCreateRole}
-        >
+        <form id="admin-role-create" className="admin-roles__create" onSubmit={handleCreateRole}>
           <label>
             <span>{t('admin.roles.roleName')}</span>
             <input
@@ -749,8 +756,18 @@ export default function RolesSection({
                 </p>
               </div>
               {editable && onUpdateStatus ? (
-                <Button type="button" variant="outline" className="btn--small" disabled={dirty || isUpdatingStatus} onClick={handleRoleStatus}>
-                  {isUpdatingStatus ? 'Actualizando…' : selectedRole.active ? 'Desactivar rol' : 'Activar rol'}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn--small"
+                  disabled={dirty || isUpdatingStatus}
+                  onClick={handleRoleStatus}
+                >
+                  {isUpdatingStatus
+                    ? 'Actualizando…'
+                    : selectedRole.active
+                      ? 'Desactivar rol'
+                      : 'Activar rol'}
                 </Button>
               ) : null}
             </header>
@@ -762,7 +779,11 @@ export default function RolesSection({
                 <div className="admin-roles__search-empty">
                   <Search size={22} aria-hidden />
                   <p>{t('admin.roles.searchEmpty', { query: permSearch })}</p>
-                  <Button variant="outline" className="btn--small" onClick={() => setPermSearch('')}>
+                  <Button
+                    variant="outline"
+                    className="btn--small"
+                    onClick={() => setPermSearch('')}
+                  >
                     {t('admin.roles.clearSearch')}
                   </Button>
                 </div>
@@ -843,11 +864,7 @@ export default function RolesSection({
                                   className={`admin-roles__permission admin-roles__permission--cell${
                                     checked ? ' is-checked' : ''
                                   }${reserved ? ' is-reserved' : ''}`}
-                                  title={
-                                    reserved
-                                      ? t('admin.roles.reservedPermission')
-                                      : text.desc
-                                  }
+                                  title={reserved ? t('admin.roles.reservedPermission') : text.desc}
                                 >
                                   <input
                                     type="checkbox"

@@ -11,11 +11,19 @@ export const FEATURE_KEYS = Object.freeze({
 })
 
 export function isEnabledFlag(value) {
-  return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
+  return ['true', '1', 'yes'].includes(
+    String(value ?? '')
+      .trim()
+      .toLowerCase(),
+  )
 }
 
 function isDisabledFlag(value) {
-  return ['false', '0', 'no'].includes(String(value ?? '').trim().toLowerCase())
+  return ['false', '0', 'no'].includes(
+    String(value ?? '')
+      .trim()
+      .toLowerCase(),
+  )
 }
 
 /** `false` pausa los cobros; sin valor, el sitio público queda abierto. */

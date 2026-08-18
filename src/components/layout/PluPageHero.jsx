@@ -20,7 +20,8 @@ export default function PluPageHero({
   const { reducedMotion } = useMotionConfig()
   const alignClass = align === 'start' ? ' plu-page-hero--start' : ''
   const asideClass = aside ? ' plu-page-hero--with-aside' : ' plu-page-hero--solo'
-  const rootClass = `plu-page-hero plu-page-hero--${variant} plu-page-hero--motion${alignClass}${asideClass} ${className}`.trim()
+  const rootClass =
+    `plu-page-hero plu-page-hero--${variant} plu-page-hero--motion${alignClass}${asideClass} ${className}`.trim()
 
   const Root = reducedMotion ? 'header' : m.header
   const Breadcrumb = reducedMotion ? 'nav' : m.nav

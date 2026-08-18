@@ -21,7 +21,11 @@ export default function AdminPageHeader({
           </p>
         )}
       </div>
-      {actions && <div className="admin-page-toolbar__tools admin-page-toolbar__tools--actions">{actions}</div>}
+      {actions && (
+        <div className="admin-page-toolbar__tools admin-page-toolbar__tools--actions">
+          {actions}
+        </div>
+      )}
     </header>
   )
 }

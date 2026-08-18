@@ -9,7 +9,9 @@ const migration = readFileSync(
 
 describe('ventana de validación de transferencias', () => {
   it('mantiene la orden con comprobante disponible durante 48 horas para Administración', () => {
-    expect(migration).toContain("status = case when status = 'pendiente' then 'validacion_manual' else status end")
+    expect(migration).toContain(
+      "status = case when status = 'pendiente' then 'validacion_manual' else status end",
+    )
     expect(migration).toContain("now() + interval '48 hours'")
     expect(migration).toContain("'manual_validation_deadline', v_order.expires_at")
   })

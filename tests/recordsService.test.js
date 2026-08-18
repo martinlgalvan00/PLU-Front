@@ -23,12 +23,13 @@ describe('recordsService', () => {
     expect(register.entries.length).toBeGreaterThan(0)
     expect(register.sourceMeets).toContain('Spring Classic 2025')
 
-    const squatOpenMen83 = register.entries.find((entry) => (
-      entry.lift === 'squat'
-      && entry.sex === 'men'
-      && entry.group === 'open'
-      && entry.weightClass === '-83 kg'
-    ))
+    const squatOpenMen83 = register.entries.find(
+      (entry) =>
+        entry.lift === 'squat' &&
+        entry.sex === 'men' &&
+        entry.group === 'open' &&
+        entry.weightClass === '-83 kg',
+    )
     expect(squatOpenMen83).toMatchObject({
       athlete: 'Nicolás Aguirre',
       mark: 210,

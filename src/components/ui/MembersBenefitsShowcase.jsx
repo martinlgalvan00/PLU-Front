@@ -58,11 +58,7 @@ export default function MembersBenefitsShowcase({ items = [], title, lead, ariaL
   if (!items.length) return null
 
   const head = (
-    <MembersBlockHead
-      eyebrow={t('pages.members.benefitsEyebrow')}
-      title={title}
-      lead={lead}
-    />
+    <MembersBlockHead eyebrow={t('pages.members.benefitsEyebrow')} title={title} lead={lead} />
   )
 
   return (

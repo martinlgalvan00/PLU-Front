@@ -8,7 +8,10 @@ const migration = readFileSync(
   'utf8',
 )
 const consolidatedPaymentMigration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20260811160000_consolidated_payment_confirmation.sql'),
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20260811160000_consolidated_payment_confirmation.sql',
+  ),
   'utf8',
 )
 
@@ -48,22 +51,24 @@ describe('auditoría operativa del flujo de afiliación', () => {
   })
 
   it('normaliza la evidencia técnica para la tabla del panel', () => {
-    expect(normalizeAuditEntry({
-      id: 'event-1',
-      source: 'email',
-      action: 'email.failed',
-      entity_type: 'membership',
-      entity_id: 'mem-1',
-      actor_type: 'system',
-      actor_id: 'ana@example.com',
-      status: 'failed',
-      severity: 'danger',
-      metadata: {
-        templateKey: 'affiliation_approved',
-        errorCode: 'MISSING_PARAMS',
-      },
-      created_at: '2026-08-10T20:00:00.000Z',
-    })).toMatchObject({
+    expect(
+      normalizeAuditEntry({
+        id: 'event-1',
+        source: 'email',
+        action: 'email.failed',
+        entity_type: 'membership',
+        entity_id: 'mem-1',
+        actor_type: 'system',
+        actor_id: 'ana@example.com',
+        status: 'failed',
+        severity: 'danger',
+        metadata: {
+          templateKey: 'affiliation_approved',
+          errorCode: 'MISSING_PARAMS',
+        },
+        created_at: '2026-08-10T20:00:00.000Z',
+      }),
+    ).toMatchObject({
       source: 'email',
       status: 'failed',
       tone: 'danger',

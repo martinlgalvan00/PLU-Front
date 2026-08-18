@@ -10,11 +10,11 @@ import { applyCanonicalPayment, mapMercadoPagoStatus } from './paymentWorkflow.j
 import { selectCanonicalProviderPayment } from './providerPaymentSelection.js'
 
 function fingerprint(formData) {
-  const sensitiveSource = formData.token || [
-    formData.payment_method_id,
-    formData.payer?.email,
-    formData.payer?.identification?.number,
-  ].filter(Boolean).join(':')
+  const sensitiveSource =
+    formData.token ||
+    [formData.payment_method_id, formData.payer?.email, formData.payer?.identification?.number]
+      .filter(Boolean)
+      .join(':')
   if (!sensitiveSource) throw new HttpError(400, 'Faltan datos del medio de pago.')
   return createHash('sha256').update(String(sensitiveSource)).digest('hex')
 }
@@ -39,7 +39,10 @@ function idempotencyKey(orderId, tokenFingerprint) {
  * proveedor no tiene nada (o la propia búsqueda falla), se sigue con la falla
  * original: esto nunca inventa un cobro, solo evita duplicar uno que ya pasó.
  */
-async function reconcileAfterProviderError(order, { repository, mercadoPago, notifyPaymentApplied, auditTrail, attempt }) {
+async function reconcileAfterProviderError(
+  order,
+  { repository, mercadoPago, notifyPaymentApplied, auditTrail, attempt },
+) {
   if (typeof mercadoPago.searchPaymentsForOrder !== 'function') return null
 
   let providerPayments
@@ -87,9 +90,10 @@ export async function processEmbeddedPayment(input, options = {}) {
   // La ruta ya resolvio la orden para validar que pertenece a la sesion; sin
   // reusarla, cada pago la leia de nuevo con sus joins. Se exige que sea la
   // misma orden que pide el body para que un caller no pueda desalinearlas.
-  const order = options.order?.id === input.paymentOrderId
-    ? options.order
-    : await repository.getOrder(input.paymentOrderId)
+  const order =
+    options.order?.id === input.paymentOrderId
+      ? options.order
+      : await repository.getOrder(input.paymentOrderId)
   addBreadcrumb('order.resolved', {
     orderId: order.id,
     kind: order.kind,

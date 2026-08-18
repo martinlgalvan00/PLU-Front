@@ -50,7 +50,8 @@ export default function CheckInSection({
                 {t('admin.eventEditor.ticketAddonReport.pending')}: {workspace.addonReport.pending}
               </span>
               <span>
-                {t('admin.eventEditor.ticketAddonReport.redeemed')}: {workspace.addonReport.redeemed}
+                {t('admin.eventEditor.ticketAddonReport.redeemed')}:{' '}
+                {workspace.addonReport.redeemed}
               </span>
             </div>
           ) : null}
@@ -112,9 +113,17 @@ export default function CheckInSection({
       title={t('admin.sections.checkin.title')}
       subtitle={t('admin.sections.checkin.subtitle')}
       stats={[
-        { label: t('admin.checkin.statReady'), value: workspace.statusCounts.ready, tone: 'success' },
+        {
+          label: t('admin.checkin.statReady'),
+          value: workspace.statusCounts.ready,
+          tone: 'success',
+        },
         { label: t('admin.checkin.statDone'), value: workspace.statusCounts.done, tone: 'default' },
-        { label: t('admin.checkin.statPending'), value: workspace.statusCounts.pending, tone: 'warning' },
+        {
+          label: t('admin.checkin.statPending'),
+          value: workspace.statusCounts.pending,
+          tone: 'warning',
+        },
       ]}
       totalCount={workspace.allRows.length}
       filters={[
@@ -144,19 +153,28 @@ export default function CheckInSection({
     >
       <AdminDataTable
         variant="admin"
-        getRowClassName={(row) => (row.id === workspace.highlightRowId ? 'data-table__row--selected' : '')}
+        getRowClassName={(row) =>
+          row.id === workspace.highlightRowId ? 'data-table__row--selected' : ''
+        }
         columns={[
           {
             key: 'name',
             label: t('admin.columns.attendee'),
             mobile: 'primary',
-            render: (row) => <AdminIdentityCell name={row.name} sub={formatDocumentWithKind(row.document)} subMono />,
+            render: (row) => (
+              <AdminIdentityCell
+                name={row.name}
+                sub={formatDocumentWithKind(row.document)}
+                subMono
+              />
+            ),
           },
           {
             key: 'type',
             label: t('admin.checkin.type'),
             mobile: 'default',
-            render: (row) => (row.type === 'atleta' ? t('admin.checkin.athlete') : t('admin.checkin.spectator')),
+            render: (row) =>
+              row.type === 'atleta' ? t('admin.checkin.athlete') : t('admin.checkin.spectator'),
           },
           { key: 'meta', label: t('admin.columns.category'), mobile: 'default' },
           {
@@ -183,18 +201,20 @@ export default function CheckInSection({
             render: (row) => {
               if (row.status === 'usada') {
                 const timeLabel = t('admin.checkin.checkedInAt', {
-                  time: new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(
-                    new Date(row.checkedInAt),
-                  ),
+                  time: new Intl.DateTimeFormat(undefined, {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  }).format(new Date(row.checkedInAt)),
                 })
 
                 return (
                   <span className="admin-checkin__done" title={timeLabel}>
                     <CheckCircle2 size={15} aria-hidden />
                     <span className="admin-checkin__done-time">
-                      {new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(
-                        new Date(row.checkedInAt),
-                      )}
+                      {new Intl.DateTimeFormat(undefined, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }).format(new Date(row.checkedInAt))}
                     </span>
                   </span>
                 )

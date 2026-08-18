@@ -40,19 +40,30 @@ describe('disponibilidad pública de funcionalidades', () => {
     expect(isFeatureEnabled(FEATURE_KEYS.pricingWrites)).toBe(true)
     expect(isPaidCheckoutEnabled({})).toBe(true)
     expect(isFrontPaidCheckoutEnabled({})).toBe(true)
-    expect(isFeatureEnabled(FEATURE_KEYS.paidCheckout, { PAID_CHECKOUT_ENABLED: 'false' })).toBe(false)
-    expect(isFrontFeatureEnabled(FEATURE_KEYS.comboCheckout, { paidCheckoutEnabled: false })).toBe(false)
-    expect(getFeatureAvailability(FEATURE_KEYS.paidCheckout, { PAID_CHECKOUT_ENABLED: 'false' })).toEqual({
+    expect(isFeatureEnabled(FEATURE_KEYS.paidCheckout, { PAID_CHECKOUT_ENABLED: 'false' })).toBe(
+      false,
+    )
+    expect(isFrontFeatureEnabled(FEATURE_KEYS.comboCheckout, { paidCheckoutEnabled: false })).toBe(
+      false,
+    )
+    expect(
+      getFeatureAvailability(FEATURE_KEYS.paidCheckout, { PAID_CHECKOUT_ENABLED: 'false' }),
+    ).toEqual({
       enabled: false,
       reason: 'checkout_paused',
     })
-    expect(getFrontFeatureAvailability(FEATURE_KEYS.pricingWrites)).toEqual({ enabled: true, reason: null })
+    expect(getFrontFeatureAvailability(FEATURE_KEYS.pricingWrites)).toEqual({
+      enabled: true,
+      reason: null,
+    })
   })
 
   it('solo bloquea pagos cuando se activa el kill switch', async () => {
     await expect(assertPaidCheckoutAvailable()).resolves.toBeUndefined()
     await expect(assertComboCheckoutAvailable()).resolves.toBeUndefined()
-    await expect(assertPaidCheckoutAvailable({ PAID_CHECKOUT_ENABLED: 'false' })).rejects.toMatchObject({ status: 409 })
+    await expect(
+      assertPaidCheckoutAvailable({ PAID_CHECKOUT_ENABLED: 'false' }),
+    ).rejects.toMatchObject({ status: 409 })
     expect(() => assertRecurringMembershipAvailable()).not.toThrow()
     expect(() => assertPricingWritesEnabled()).not.toThrow()
   })

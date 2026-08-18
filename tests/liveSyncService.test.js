@@ -33,8 +33,9 @@ describe('liveSyncService', () => {
       data: { type: 'event-registration-invalidated', eventSlug: 'pitbull-classic-2026' },
     })
     expect(listener).toHaveBeenCalledWith({
-      type: 'event-registration-invalidated', eventSlug: 'pitbull-classic-2026' },
-    )
+      type: 'event-registration-invalidated',
+      eventSlug: 'pitbull-classic-2026',
+    })
     unsubscribe()
   })
 })

@@ -5,17 +5,29 @@ describe('previewCheckoutPrice', () => {
   it.each(['manual_link', 'transferencia', 'cash_pitbull'])(
     'cotiza el precio manual del plan/evento/combo para %s cuando está configurado',
     (paymentMethod) => {
-      expect(previewCheckoutPrice({ paymentMethod, manualPrice: 75000, fallback: 85000 })).toBe(75000)
+      expect(previewCheckoutPrice({ paymentMethod, manualPrice: 75000, fallback: 85000 })).toBe(
+        75000,
+      )
     },
   )
 
   it('cotiza el precio de catálogo por Mercado Pago, tenga o no precio manual configurado', () => {
-    expect(previewCheckoutPrice({ paymentMethod: 'mercado_pago', manualPrice: 75000, fallback: 85000 })).toBe(85000)
+    expect(
+      previewCheckoutPrice({ paymentMethod: 'mercado_pago', manualPrice: 75000, fallback: 85000 }),
+    ).toBe(85000)
   })
 
   it('cotiza el precio de catálogo por canal manual cuando no hay precio manual configurado', () => {
-    expect(previewCheckoutPrice({ paymentMethod: 'manual_link', manualPrice: null, fallback: 85000 })).toBe(85000)
-    expect(previewCheckoutPrice({ paymentMethod: 'cash_pitbull', manualPrice: undefined, fallback: 85000 })).toBe(85000)
+    expect(
+      previewCheckoutPrice({ paymentMethod: 'manual_link', manualPrice: null, fallback: 85000 }),
+    ).toBe(85000)
+    expect(
+      previewCheckoutPrice({
+        paymentMethod: 'cash_pitbull',
+        manualPrice: undefined,
+        fallback: 85000,
+      }),
+    ).toBe(85000)
   })
 })
 

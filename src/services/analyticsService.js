@@ -107,10 +107,10 @@ function isTrackablePath(path) {
 function trackingEnabled() {
   try {
     return (
-      analyticsConfig().enabled === true
-      && typeof window !== 'undefined'
-      && !isOptedOut()
-      && isTrackablePath(window.location?.pathname)
+      analyticsConfig().enabled === true &&
+      typeof window !== 'undefined' &&
+      !isOptedOut() &&
+      isTrackablePath(window.location?.pathname)
     )
   } catch {
     return false
@@ -126,9 +126,9 @@ function describeElement(element) {
   if (!element || typeof element.closest !== 'function') return null
 
   const target =
-    element.closest('[data-analytics]')
-    ?? element.closest('a, button, [role="button"], summary, input[type="submit"]')
-    ?? element
+    element.closest('[data-analytics]') ??
+    element.closest('a, button, [role="button"], summary, input[type="submit"]') ??
+    element
 
   const explicit = target.getAttribute?.('data-analytics')
   if (explicit) return { selector: explicit.slice(0, 300), text: readLabel(target) }
@@ -150,14 +150,18 @@ function describeElement(element) {
  * jamas lo que la persona escribio.
  */
 function readLabel(element) {
-  if (element?.tagName === 'INPUT' || element?.tagName === 'TEXTAREA' || element?.tagName === 'SELECT') {
+  if (
+    element?.tagName === 'INPUT' ||
+    element?.tagName === 'TEXTAREA' ||
+    element?.tagName === 'SELECT'
+  ) {
     return (element.getAttribute('name') ?? element.getAttribute('type') ?? '').slice(0, 120)
   }
   const label =
-    element?.getAttribute?.('aria-label')
-    ?? element?.getAttribute?.('title')
-    ?? element?.textContent
-    ?? ''
+    element?.getAttribute?.('aria-label') ??
+    element?.getAttribute?.('title') ??
+    element?.textContent ??
+    ''
   return String(label).replace(/\s+/g, ' ').trim().slice(0, 120)
 }
 
@@ -343,8 +347,8 @@ function handleClick(event) {
     const described = describeElement(event.target)
     const now = Date.now()
     if (
-      described?.selector === state.lastClickSelector
-      && now - state.lastClickAt < CLICK_DEDUPE_MS
+      described?.selector === state.lastClickSelector &&
+      now - state.lastClickAt < CLICK_DEDUPE_MS
     ) {
       return
     }

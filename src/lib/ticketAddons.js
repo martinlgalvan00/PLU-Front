@@ -76,7 +76,10 @@ export function attendeeTicketTotal(attendee, pricing, catalog, priceForTicketTy
 }
 
 export function orderTicketTotal(attendees, pricing, catalog, priceForTicketType) {
-  return attendees.reduce((sum, attendee) => sum + attendeeTicketTotal(attendee, pricing, catalog, priceForTicketType), 0)
+  return attendees.reduce(
+    (sum, attendee) => sum + attendeeTicketTotal(attendee, pricing, catalog, priceForTicketType),
+    0,
+  )
 }
 
 export function toggleAttendeeAddon(attendee, addonId) {
@@ -176,10 +179,7 @@ export function buildEventTicketAddonReport(tickets, eventSlug, catalog = []) {
   const rows = [...byAddon.values()]
     .filter((row) => row.sold > 0 || normalizedCatalog.some((addon) => addon.id === row.id))
     .sort(
-      (a, b) =>
-        b.pending - a.pending ||
-        b.sold - a.sold ||
-        a.label.localeCompare(b.label, 'es'),
+      (a, b) => b.pending - a.pending || b.sold - a.sold || a.label.localeCompare(b.label, 'es'),
     )
 
   const totals = rows.reduce(

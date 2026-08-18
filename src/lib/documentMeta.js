@@ -28,9 +28,7 @@ export function buildDocumentMeta(view, t, context = {}) {
       ? description
       : t(`${fallbackKey}.description`, context)
 
-  const path = isEventDetail
-    ? `/evento/${context.eventSlug}`
-    : buildPublicViewPath(view) ?? '/'
+  const path = isEventDetail ? `/evento/${context.eventSlug}` : (buildPublicViewPath(view) ?? '/')
   const origin = env.appUrl || (typeof window !== 'undefined' ? window.location.origin : '')
   const url = origin ? `${origin}${path === '/' ? '' : path}` : path
 
@@ -88,7 +86,10 @@ export function applyDocumentMeta(meta) {
   setMetaByProperty('og:title', meta.title)
   setMetaByProperty('og:description', meta.description)
   setMetaByProperty('og:url', meta.url)
-  setMetaByProperty('og:image', meta.image.startsWith('http') ? meta.image : `${env.appUrl || ''}${meta.image}`)
+  setMetaByProperty(
+    'og:image',
+    meta.image.startsWith('http') ? meta.image : `${env.appUrl || ''}${meta.image}`,
+  )
   setMetaByName('twitter:card', 'summary_large_image')
   setMetaByName('twitter:title', meta.title)
   setMetaByName('twitter:description', meta.description)

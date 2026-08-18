@@ -1,10 +1,4 @@
-import {
-  MercadoPagoConfig,
-  Payment,
-  PreApproval,
-  PreApprovalPlan,
-  Preference,
-} from 'mercadopago'
+import { MercadoPagoConfig, Payment, PreApproval, PreApprovalPlan, Preference } from 'mercadopago'
 import { HttpError } from '../../lib/errors.js'
 import { logger } from '../../lib/logger.js'
 import { normalizeOfficialHost, resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
@@ -46,13 +40,14 @@ function providerDetail(error) {
     causes: causes
       .slice(0, 5)
       .map((item) => ({ code: item?.code ?? null, description: item?.description ?? null })),
-    apiResponseStatus: Number(error?.status ?? error?.statusCode ?? error?.response?.status) || null,
+    apiResponseStatus:
+      Number(error?.status ?? error?.statusCode ?? error?.response?.status) || null,
     // El request id de MP es la clave para abrir un reclamo con su soporte.
     providerRequestId:
-      error?.headers?.['x-request-id']
-      ?? error?.response?.headers?.['x-request-id']
-      ?? error?.idempotencyKey
-      ?? null,
+      error?.headers?.['x-request-id'] ??
+      error?.response?.headers?.['x-request-id'] ??
+      error?.idempotencyKey ??
+      null,
   }
 }
 
@@ -115,11 +110,7 @@ function supportsAutoReturn(returnBase) {
 }
 
 function resolveIntegrationUrl({ explicit, fallback, label, env }) {
-  return requireIntegrationUrl(
-    explicit ?? fallback ?? resolveDeploymentAppUrl(env),
-    label,
-    env,
-  )
+  return requireIntegrationUrl(explicit ?? fallback ?? resolveDeploymentAppUrl(env), label, env)
 }
 
 /**
@@ -148,7 +139,14 @@ function requireIntegrationUrl(rawValue, label, env) {
 // despliegues con API separada, pero no debe ser obligatorio cuando APP_URL ya
 // identifica el origen público que recibe el webhook.
 function resolveApiUrl({ apiUrl, appUrl, env }) {
-  return apiUrl ?? env.API_URL ?? appUrl ?? env.APP_URL ?? env.VITE_APP_URL ?? resolveDeploymentAppUrl(env)
+  return (
+    apiUrl ??
+    env.API_URL ??
+    appUrl ??
+    env.APP_URL ??
+    env.VITE_APP_URL ??
+    resolveDeploymentAppUrl(env)
+  )
 }
 
 function assertProviderRequest(order, idempotencyKey) {
@@ -223,7 +221,9 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       `/v1/payments/search?external_reference=${encodeURIComponent(String(order.id))}&sort=date_created&criteria=desc`,
     )
     const results = Array.isArray(response?.results) ? response.results : []
-    return results.filter((payment) => String(payment.external_reference ?? '') === String(order.id))
+    return results.filter(
+      (payment) => String(payment.external_reference ?? '') === String(order.id),
+    )
   }
 
   return {
@@ -256,9 +256,18 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         external_reference: order.id,
         notification_url: safeUrl(webhookBase, '/api/payments/webhook/mercadopago'),
         back_urls: {
-          success: safeUrl(returnBase, `${returnPath}?payment=success&order=${encodeURIComponent(order.id)}`),
-          pending: safeUrl(returnBase, `${returnPath}?payment=pending&order=${encodeURIComponent(order.id)}`),
-          failure: safeUrl(returnBase, `${returnPath}?payment=failure&order=${encodeURIComponent(order.id)}`),
+          success: safeUrl(
+            returnBase,
+            `${returnPath}?payment=success&order=${encodeURIComponent(order.id)}`,
+          ),
+          pending: safeUrl(
+            returnBase,
+            `${returnPath}?payment=pending&order=${encodeURIComponent(order.id)}`,
+          ),
+          failure: safeUrl(
+            returnBase,
+            `${returnPath}?payment=failure&order=${encodeURIComponent(order.id)}`,
+          ),
         },
         ...(supportsAutoReturn(returnBase) ? { auto_return: 'approved' } : {}),
         metadata: {
@@ -275,7 +284,8 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       )
       return {
         id: result.id,
-        initPoint: env.MERCADO_PAGO_ENV === 'sandbox' ? result.sandbox_init_point : result.init_point,
+        initPoint:
+          env.MERCADO_PAGO_ENV === 'sandbox' ? result.sandbox_init_point : result.init_point,
         sandboxInitPoint: result.sandbox_init_point,
         externalReference: result.external_reference,
         raw: result,
@@ -284,7 +294,8 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
     async getPayment(id) {
       return callProvider('getPayment', { externalPaymentId: String(id) }, () =>
-        paymentClient.get({ id: String(id) }))
+        paymentClient.get({ id: String(id) }),
+      )
     },
 
     searchPaymentsForOrder,
@@ -297,14 +308,12 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
     async createPayment({ order, formData, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
-      const webhookBase = requireIntegrationUrl(
-        resolveApiUrl({ env }),
-        'API_URL o APP_URL',
-        env,
-      )
+      const webhookBase = requireIntegrationUrl(resolveApiUrl({ env }), 'API_URL o APP_URL', env)
       const payer = {
         email: formData.payer?.email ?? order.payerEmail,
-        ...(formData.payer?.identification ? { identification: formData.payer.identification } : {}),
+        ...(formData.payer?.identification
+          ? { identification: formData.payer.identification }
+          : {}),
         ...(formData.payer?.first_name ? { first_name: formData.payer.first_name } : {}),
         ...(formData.payer?.last_name ? { last_name: formData.payer.last_name } : {}),
       }
@@ -319,25 +328,26 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
           paymentMethodId: formData.payment_method_id,
           installments: Number(formData.installments ?? 1),
         },
-        () => paymentClient.create({
-          body: {
-            transaction_amount: order.amount,
-            token: formData.token || undefined,
-            description: order.displayConcept,
-            installments: Number(formData.installments ?? 1),
-            payment_method_id: formData.payment_method_id,
-            issuer_id: formData.issuer_id ? String(formData.issuer_id) : undefined,
-            payer,
-            external_reference: order.id,
-            notification_url: safeUrl(webhookBase, '/api/payments/webhook/mercadopago'),
-            metadata: {
-              payment_order_id: order.id,
-              order_kind: order.kind,
-              ...(order.athleteId ? { athlete_id: order.athleteId } : {}),
+        () =>
+          paymentClient.create({
+            body: {
+              transaction_amount: order.amount,
+              token: formData.token || undefined,
+              description: order.displayConcept,
+              installments: Number(formData.installments ?? 1),
+              payment_method_id: formData.payment_method_id,
+              issuer_id: formData.issuer_id ? String(formData.issuer_id) : undefined,
+              payer,
+              external_reference: order.id,
+              notification_url: safeUrl(webhookBase, '/api/payments/webhook/mercadopago'),
+              metadata: {
+                payment_order_id: order.id,
+                order_kind: order.kind,
+                ...(order.athleteId ? { athlete_id: order.athleteId } : {}),
+              },
             },
-          },
-          requestOptions: { idempotencyKey },
-        }),
+            requestOptions: { idempotencyKey },
+          }),
       )
     },
 
@@ -351,24 +361,33 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       return callProvider(
         'createSubscriptionPlan',
         { planCode: plan.code, amount: plan.price },
-        () => subscriptionPlanClient.create({
-          body: {
-            reason: plan.name,
-            external_reference: plan.code,
-            back_url: backUrl,
-            auto_recurring: {
-              frequency: plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
-              frequency_type: 'months',
-              transaction_amount: plan.price,
-              currency_id: plan.currency,
+        () =>
+          subscriptionPlanClient.create({
+            body: {
+              reason: plan.name,
+              external_reference: plan.code,
+              back_url: backUrl,
+              auto_recurring: {
+                frequency:
+                  plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
+                frequency_type: 'months',
+                transaction_amount: plan.price,
+                currency_id: plan.currency,
+              },
             },
-          },
-          requestOptions: { idempotencyKey },
-        }),
+            requestOptions: { idempotencyKey },
+          }),
       )
     },
 
-    async createSubscription({ plan, payerEmail, externalReference, appUrl, idempotencyKey, cardToken }) {
+    async createSubscription({
+      plan,
+      payerEmail,
+      externalReference,
+      appUrl,
+      idempotencyKey,
+      cardToken,
+    }) {
       assertProviderRequest({ amount: plan.price, currency: plan.currency }, idempotencyKey)
       const backUrl = requireIntegrationUrl(
         appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
@@ -378,37 +397,43 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       return callProvider(
         'createSubscription',
         { planCode: plan.code, externalReference, amount: plan.price },
-        () => subscriptionClient.create({
-          body: {
-            preapproval_plan_id: plan.providerPlanId || undefined,
-            reason: plan.name,
-            external_reference: externalReference,
-            payer_email: payerEmail,
-            card_token_id: cardToken || undefined,
-            back_url: backUrl,
-            status: cardToken ? 'authorized' : 'pending',
-            auto_recurring: plan.providerPlanId
-              ? undefined
-              : {
-                  frequency: plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
-                  frequency_type: 'months',
-                  transaction_amount: plan.price,
-                  currency_id: plan.currency,
-                },
-          },
-          requestOptions: { idempotencyKey },
-        }),
+        () =>
+          subscriptionClient.create({
+            body: {
+              preapproval_plan_id: plan.providerPlanId || undefined,
+              reason: plan.name,
+              external_reference: externalReference,
+              payer_email: payerEmail,
+              card_token_id: cardToken || undefined,
+              back_url: backUrl,
+              status: cardToken ? 'authorized' : 'pending',
+              auto_recurring: plan.providerPlanId
+                ? undefined
+                : {
+                    frequency:
+                      plan.billingFrequency === 'annual'
+                        ? 12 * plan.intervalCount
+                        : plan.intervalCount,
+                    frequency_type: 'months',
+                    transaction_amount: plan.price,
+                    currency_id: plan.currency,
+                  },
+            },
+            requestOptions: { idempotencyKey },
+          }),
       )
     },
 
     async getSubscription(id) {
       return callProvider('getSubscription', { subscriptionId: String(id) }, () =>
-        subscriptionClient.get({ id: String(id) }))
+        subscriptionClient.get({ id: String(id) }),
+      )
     },
 
     async cancelSubscription(id) {
       return callProvider('cancelSubscription', { subscriptionId: String(id) }, () =>
-        subscriptionClient.update({ id: String(id), body: { status: 'cancelled' } }))
+        subscriptionClient.update({ id: String(id), body: { status: 'cancelled' } }),
+      )
     },
 
     async getAuthorizedPayment(id) {

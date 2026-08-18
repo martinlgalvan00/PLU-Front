@@ -7,7 +7,10 @@ export default function AdminCheckinScanHistory({ items = [], onClear, onSelect 
 
   if (!items.length) {
     return (
-      <section className="admin-checkin-history admin-checkin-history--empty" aria-label={t('admin.checkin.history.title')}>
+      <section
+        className="admin-checkin-history admin-checkin-history--empty"
+        aria-label={t('admin.checkin.history.title')}
+      >
         <span className="admin-checkin-history__empty-icon" aria-hidden>
           <History size={20} strokeWidth={1.5} />
         </span>
@@ -68,7 +71,9 @@ export default function AdminCheckinScanHistory({ items = [], onClear, onSelect 
               </span>
               {item.type && (
                 <span className="admin-checkin-history__type">
-                  {item.type === 'atleta' ? t('admin.checkin.athlete') : t('admin.checkin.spectator')}
+                  {item.type === 'atleta'
+                    ? t('admin.checkin.athlete')
+                    : t('admin.checkin.spectator')}
                 </span>
               )}
             </button>

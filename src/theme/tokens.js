@@ -6,7 +6,7 @@
 export const brandTokens = {
   // Familia tipográfica principal
   fontFamily: '"Poppins", ui-sans-serif, system-ui, sans-serif',
-  
+
   // Azul institucional
   brandBlue: '#1f5f9e', // --plu-celeste-600
   brandBlueLight: '#74acdf', // --plu-celeste-400
@@ -37,13 +37,13 @@ export const brandTokens = {
   motionDurationFast: '160ms',
   motionDurationBase: '240ms',
   motionDurationSlow: '480ms',
-};
+}
 
 // Configuración base de Ant Design (theme.token) que comparten tanto el light como el dark theme
 export const sharedThemeTokens = {
   fontFamily: brandTokens.fontFamily,
   fontFamilyCode: '"JetBrains Mono", ui-monospace, monospace',
-  
+
   colorPrimary: brandTokens.brandGold, // Por defecto la acción primaria es gold
   colorInfo: brandTokens.brandBlue,
   colorSuccess: brandTokens.success,
@@ -55,4 +55,4 @@ export const sharedThemeTokens = {
   borderRadiusLG: brandTokens.borderRadiusLg,
 
   wireframe: false,
-};
+}

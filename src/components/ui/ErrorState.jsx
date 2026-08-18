@@ -1,12 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
-export default function ErrorState({
-  title,
-  message,
-  onRetry,
-  retryLabel,
-}) {
+export default function ErrorState({ title, message, onRetry, retryLabel }) {
   const { t } = useI18n()
 
   return (

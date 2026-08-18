@@ -49,8 +49,14 @@ describe('securityTeamService', () => {
 
   it('prepara una lista legible de links personales para compartir', () => {
     const text = formatSecurityAccessList([
-      { user: { name: 'Ana Pérez', email: 'ana@empresa.com' }, accessUrl: 'https://plu.test/acceso/ana' },
-      { user: { name: 'Juan López', email: 'juan@empresa.com' }, accessUrl: 'https://plu.test/acceso/juan' },
+      {
+        user: { name: 'Ana Pérez', email: 'ana@empresa.com' },
+        accessUrl: 'https://plu.test/acceso/ana',
+      },
+      {
+        user: { name: 'Juan López', email: 'juan@empresa.com' },
+        accessUrl: 'https://plu.test/acceso/juan',
+      },
     ])
 
     expect(text).toContain('Ana Pérez · ana@empresa.com\nhttps://plu.test/acceso/ana')

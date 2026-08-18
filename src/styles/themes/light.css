@@ -34,7 +34,11 @@
   --color-bg-muted: color-mix(in srgb, var(--plu-warm-100) 82%, #c9c5bd);
   --color-bg-glass: rgba(15, 17, 23, 0.03);
   --color-bg-glass-border: rgba(15, 17, 23, 0.06);
-  --color-bg-steel: linear-gradient(145deg, #ffffff 0%, color-mix(in srgb, var(--plu-warm-100) 55%, #fff) 100%);
+  --color-bg-steel: linear-gradient(
+    145deg,
+    #ffffff 0%,
+    color-mix(in srgb, var(--plu-warm-100) 55%, #fff) 100%
+  );
 
   --color-text-primary: #0d0e12;
   --color-text-secondary: #2c2f3c;
@@ -45,7 +49,7 @@
   --color-text-accent: #7a6b2e;
   --color-text-price: #1d5f9e;
 
-  --color-border: rgba(15, 17, 23, 0.10);
+  --color-border: rgba(15, 17, 23, 0.1);
   --color-border-strong: rgba(15, 17, 23, 0.22);
   --color-border-light: rgba(15, 17, 23, 0.18);
   --color-border-subtle: rgba(15, 17, 23, 0.06);
@@ -54,7 +58,7 @@
   --color-nav-bg-scrolled: color-mix(in srgb, #fff 92%, var(--plu-warm-50));
   --color-overlay: color-mix(in srgb, var(--plu-warm-50) 90%, transparent);
   --color-focus-ring: rgba(31, 95, 158, 0.18);
-  --color-shadow-lg: 0 24px 60px rgba(15, 17, 23, 0.10);
+  --color-shadow-lg: 0 24px 60px rgba(15, 17, 23, 0.1);
   --color-shadow-card: 0 12px 32px rgba(15, 17, 23, 0.07);
   --color-shadow-tint: rgba(15, 17, 23, 0.08);
 
@@ -85,20 +89,24 @@
   --institution-on-strong-border: rgba(255, 255, 255, 0.12);
   --color-hero-gradient:
     radial-gradient(ellipse 60% 45% at 75% 15%, rgba(31, 95, 158, 0.05), transparent 55%),
-    linear-gradient(180deg, var(--plu-warm-50) 0%, color-mix(in srgb, var(--plu-warm-100) 70%, #fff) 100%);
+    linear-gradient(
+      180deg,
+      var(--plu-warm-50) 0%,
+      color-mix(in srgb, var(--plu-warm-100) 70%, #fff) 100%
+    );
 
   /* ── Glows — recalibrados para leer sobre fondos claros ──
      Los mismos halos que en dark (variables.css) quedan casi
      imperceptibles sobre blanco con ese alpha; acá suben de
      intensidad para conservar la misma sensación "premium". ── */
-  --glow-red:            0 6px 22px rgba(225, 6, 0, 0.38);
-  --glow-red-soft:       0 3px 16px rgba(225, 6, 0, 0.22);
-  --glow-red-strong:     0 10px 34px rgba(225, 6, 0, 0.52);
-  --glow-gold:           0 6px 20px rgba(169, 121, 15, 0.18);
-  --glow-gold-soft:      0 3px 14px rgba(169, 121, 15, 0.12);
-  --glow-gold-strong:    0 10px 28px rgba(169, 121, 15, 0.24);
-  --glow-celeste:        0 6px 20px rgba(31, 95, 158, 0.22);
-  --glow-celeste-soft:   0 3px 14px rgba(31, 95, 158, 0.14);
+  --glow-red: 0 6px 22px rgba(225, 6, 0, 0.38);
+  --glow-red-soft: 0 3px 16px rgba(225, 6, 0, 0.22);
+  --glow-red-strong: 0 10px 34px rgba(225, 6, 0, 0.52);
+  --glow-gold: 0 6px 20px rgba(169, 121, 15, 0.18);
+  --glow-gold-soft: 0 3px 14px rgba(169, 121, 15, 0.12);
+  --glow-gold-strong: 0 10px 28px rgba(169, 121, 15, 0.24);
+  --glow-celeste: 0 6px 20px rgba(31, 95, 158, 0.22);
+  --glow-celeste-soft: 0 3px 14px rgba(31, 95, 158, 0.14);
   --glow-celeste-strong: 0 10px 28px rgba(31, 95, 158, 0.28);
 
   /* ── Results tokens ────────────────────────── */
@@ -118,7 +126,7 @@
   --events-calendar-header: rgba(15, 17, 23, 0.03);
   --events-calendar-day-hover: rgba(15, 17, 23, 0.04);
   --filter-pill-bg: #ffffff;
-  --filter-pill-border: rgba(15, 17, 23, 0.10);
+  --filter-pill-border: rgba(15, 17, 23, 0.1);
   --filter-pill-text: rgba(15, 17, 23, 0.55);
   --filter-pill-active-text: #14181f;
 

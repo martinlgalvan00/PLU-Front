@@ -23,19 +23,27 @@ const payment = {
 describe('payment recovery workflow', () => {
   it('recupera webhooks y concilia intentos embebidos en el mismo ciclo', async () => {
     const repository = {
-      claimDueWebhookEvents: vi.fn(async () => [{
-        id: 'event-1',
-        event_type: 'payment',
-        resource_id: 'payment-1',
-      }]),
-      claimEmbeddedReconciliations: vi.fn(async () => [{
-        id: 'attempt-1',
-        order_id: 'order-1',
-        external_payment_id: 'payment-1',
-      }]),
+      claimDueWebhookEvents: vi.fn(async () => [
+        {
+          id: 'event-1',
+          event_type: 'payment',
+          resource_id: 'payment-1',
+        },
+      ]),
+      claimEmbeddedReconciliations: vi.fn(async () => [
+        {
+          id: 'attempt-1',
+          order_id: 'order-1',
+          external_payment_id: 'payment-1',
+        },
+      ]),
       getOrder: vi.fn(async () => order),
       applyPayment: vi.fn(async () => ({ order: { ...order, status: 'aprobado' } })),
-      markWebhookProcessed: vi.fn(async (_id, result) => ({ id: 'event-1', status: 'processed', result })),
+      markWebhookProcessed: vi.fn(async (_id, result) => ({
+        id: 'event-1',
+        status: 'processed',
+        result,
+      })),
       markWebhookFailed: vi.fn(),
       completeEmbeddedReconciliation: vi.fn(),
     }
@@ -59,15 +67,21 @@ describe('payment recovery workflow', () => {
 
   it('aísla una falla y la deja programada para reintento', async () => {
     const repository = {
-      claimDueWebhookEvents: vi.fn(async () => [{
-        id: 'event-2',
-        event_type: 'payment',
-        resource_id: 'missing-payment',
-      }]),
+      claimDueWebhookEvents: vi.fn(async () => [
+        {
+          id: 'event-2',
+          event_type: 'payment',
+          resource_id: 'missing-payment',
+        },
+      ]),
       claimEmbeddedReconciliations: vi.fn(async () => []),
       markWebhookFailed: vi.fn(async () => undefined),
     }
-    const mercadoPago = { getPayment: vi.fn(async () => { throw new Error('provider unavailable') }) }
+    const mercadoPago = {
+      getPayment: vi.fn(async () => {
+        throw new Error('provider unavailable')
+      }),
+    }
 
     const result = await recoverPaymentOperations({ repository, mercadoPago })
 

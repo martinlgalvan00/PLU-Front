@@ -3,7 +3,12 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildGoogleCalendarUrl, downloadIcs } from '../../lib/calendar.js'
 import Button from './Button.jsx'
 
-export default function EventCalendarActions({ event, className = '', compact = false, variant = 'default' }) {
+export default function EventCalendarActions({
+  event,
+  className = '',
+  compact = false,
+  variant = 'default',
+}) {
   const { t } = useI18n()
 
   if (!event?.startsAt || !event?.endsAt) {
@@ -30,7 +35,9 @@ export default function EventCalendarActions({ event, className = '', compact = 
             type="button"
             className="event-calendar-actions__text-link"
             aria-label={googleLabel}
-            onClick={() => window.open(buildGoogleCalendarUrl(event), '_blank', 'noopener,noreferrer')}
+            onClick={() =>
+              window.open(buildGoogleCalendarUrl(event), '_blank', 'noopener,noreferrer')
+            }
           >
             <span>{t('pages.events.addToGoogleCalendarShort')}</span>
           </button>
@@ -65,7 +72,9 @@ export default function EventCalendarActions({ event, className = '', compact = 
         <Button
           variant="outline"
           className="event-calendar-actions__btn event-calendar-actions__btn--google"
-          onClick={() => window.open(buildGoogleCalendarUrl(event), '_blank', 'noopener,noreferrer')}
+          onClick={() =>
+            window.open(buildGoogleCalendarUrl(event), '_blank', 'noopener,noreferrer')
+          }
         >
           <CalendarPlus size={14} strokeWidth={2} aria-hidden />
           <span>{t('pages.events.addToGoogleCalendar')}</span>
@@ -79,7 +88,9 @@ export default function EventCalendarActions({ event, className = '', compact = 
           <span>{t('pages.events.downloadIcs')}</span>
         </Button>
       </div>
-      {!compact && <p className="event-calendar-actions__hint">{t('pages.events.calendarIcsHint')}</p>}
+      {!compact && (
+        <p className="event-calendar-actions__hint">{t('pages.events.calendarIcsHint')}</p>
+      )}
     </div>
   )
 }

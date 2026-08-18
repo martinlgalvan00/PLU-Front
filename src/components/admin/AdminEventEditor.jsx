@@ -410,7 +410,9 @@ export default function AdminEventEditor({
 
     const registered = sourceEvent?.registered ?? 0
     if (draft.id && Number(draft.slots) < registered) {
-      setFieldErrors({ slots: t('admin.eventEditor.validation.slotsBelowRegistered', { count: registered }) })
+      setFieldErrors({
+        slots: t('admin.eventEditor.validation.slotsBelowRegistered', { count: registered }),
+      })
       setActiveTab('sales')
       requestAnimationFrame(() => requestAnimationFrame(() => focusFirstInvalid('slots')))
       return

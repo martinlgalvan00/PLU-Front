@@ -102,15 +102,17 @@ function registerPayload() {
 describe('verificación de email del atleta', () => {
   it('el reenvío no responde ok cuando Brevo está sin configurar', async () => {
     const storeEmailOtp = vi.fn().mockResolvedValue(true)
-    const target = listen(createApp({
-      env: ENV,
-      supabaseAdmin: supabaseForVerification(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue(unverifiedContact),
-        storeEmailOtp,
-      },
-      brevo: { configured: false },
-    }))
+    const target = listen(
+      createApp({
+        env: ENV,
+        supabaseAdmin: supabaseForVerification(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue(unverifiedContact),
+          storeEmailOtp,
+        },
+        brevo: { configured: false },
+      }),
+    )
 
     try {
       const response = await fetch(`${target.url}/api/athletes/me/resend-verification`, {
@@ -131,15 +133,17 @@ describe('verificación de email del atleta', () => {
 
   it('el reenvío confirma ok solo cuando Brevo acepta el envío', async () => {
     const send = vi.fn().mockResolvedValue({ messageId: 'msg-1' })
-    const target = listen(createApp({
-      env: ENV,
-      supabaseAdmin: supabaseForVerification(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue(unverifiedContact),
-        storeEmailOtp: vi.fn().mockResolvedValue(true),
-      },
-      brevo: { configured: true, send },
-    }))
+    const target = listen(
+      createApp({
+        env: ENV,
+        supabaseAdmin: supabaseForVerification(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue(unverifiedContact),
+          storeEmailOtp: vi.fn().mockResolvedValue(true),
+        },
+        brevo: { configured: true, send },
+      }),
+    )
 
     try {
       const response = await fetch(`${target.url}/api/athletes/me/resend-verification`, {
@@ -159,18 +163,20 @@ describe('verificación de email del atleta', () => {
 
   it('si el correo ya estaba confirmado no dispara un envío', async () => {
     const send = vi.fn()
-    const target = listen(createApp({
-      env: ENV,
-      supabaseAdmin: supabaseForVerification(),
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({
-          ...unverifiedContact,
-          email_verified_at: '2026-08-01T00:00:00Z',
-        }),
-        storeEmailOtp: vi.fn(),
-      },
-      brevo: { configured: true, send },
-    }))
+    const target = listen(
+      createApp({
+        env: ENV,
+        supabaseAdmin: supabaseForVerification(),
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({
+            ...unverifiedContact,
+            email_verified_at: '2026-08-01T00:00:00Z',
+          }),
+          storeEmailOtp: vi.fn(),
+        },
+        brevo: { configured: true, send },
+      }),
+    )
 
     try {
       const response = await fetch(`${target.url}/api/athletes/me/resend-verification`, {
@@ -189,16 +195,18 @@ describe('verificación de email del atleta', () => {
   })
 
   it('el alta responde 201 con emailVerification.sent false si Brevo no está configurado', async () => {
-    const target = listen(createApp({
-      env: ENV,
-      supabaseAdmin: supabaseForVerification(),
-      athleteRepository: {
-        checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
-        register: vi.fn().mockResolvedValue(unverifiedContact),
-        storeEmailOtp: vi.fn().mockResolvedValue(true),
-      },
-      brevo: { configured: false },
-    }))
+    const target = listen(
+      createApp({
+        env: ENV,
+        supabaseAdmin: supabaseForVerification(),
+        athleteRepository: {
+          checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
+          register: vi.fn().mockResolvedValue(unverifiedContact),
+          storeEmailOtp: vi.fn().mockResolvedValue(true),
+        },
+        brevo: { configured: false },
+      }),
+    )
 
     try {
       const response = await fetch(`${target.url}/api/athletes/register`, {
@@ -219,16 +227,18 @@ describe('verificación de email del atleta', () => {
   it('el alta marca emailVerification.sent true cuando Brevo acepta el mail', async () => {
     const send = vi.fn().mockResolvedValue({ messageId: 'msg-alta' })
     const storeEmailOtp = vi.fn().mockResolvedValue(true)
-    const target = listen(createApp({
-      env: ENV,
-      supabaseAdmin: supabaseForVerification(),
-      athleteRepository: {
-        checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
-        register: vi.fn().mockResolvedValue(unverifiedContact),
-        storeEmailOtp,
-      },
-      brevo: { configured: true, send },
-    }))
+    const target = listen(
+      createApp({
+        env: ENV,
+        supabaseAdmin: supabaseForVerification(),
+        athleteRepository: {
+          checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
+          register: vi.fn().mockResolvedValue(unverifiedContact),
+          storeEmailOtp,
+        },
+        brevo: { configured: true, send },
+      }),
+    )
 
     try {
       const response = await fetch(`${target.url}/api/athletes/register`, {
@@ -255,16 +265,18 @@ describe('verificación de email del atleta', () => {
 
   it('no envía un OTP que no pudo persistirse', async () => {
     const send = vi.fn()
-    const target = listen(createApp({
-      env: ENV,
-      supabaseAdmin: supabaseForVerification(),
-      athleteRepository: {
-        checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
-        register: vi.fn().mockResolvedValue(unverifiedContact),
-        storeEmailOtp: vi.fn().mockRejectedValue(new Error('DB no disponible')),
-      },
-      brevo: { configured: true, send },
-    }))
+    const target = listen(
+      createApp({
+        env: ENV,
+        supabaseAdmin: supabaseForVerification(),
+        athleteRepository: {
+          checkAvailability: vi.fn().mockResolvedValue({ emailTaken: false, documentTaken: false }),
+          register: vi.fn().mockResolvedValue(unverifiedContact),
+          storeEmailOtp: vi.fn().mockRejectedValue(new Error('DB no disponible')),
+        },
+        brevo: { configured: true, send },
+      }),
+    )
 
     try {
       const response = await fetch(`${target.url}/api/athletes/register`, {
@@ -288,22 +300,28 @@ describe('verificación de email del atleta', () => {
       alreadyVerified: false,
       email: unverifiedContact.email,
     })
-    const target = listen(createApp({
-      env: ENV,
-      supabaseAdmin: supabaseForVerification(),
-      athleteRepository: { verifyEmailWithOtp },
-      brevo: { configured: false },
-    }))
+    const target = listen(
+      createApp({
+        env: ENV,
+        supabaseAdmin: supabaseForVerification(),
+        athleteRepository: { verifyEmailWithOtp },
+        brevo: { configured: false },
+      }),
+    )
 
     try {
       const invalid = await fetch(`${target.url}/api/athletes/me/verify-email-code`, {
-        method: 'POST', headers: athleteHeaders, body: JSON.stringify({ code: '1234567' }),
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({ code: '1234567' }),
       })
       expect(invalid.status).toBe(400)
       expect(verifyEmailWithOtp).not.toHaveBeenCalled()
 
       const valid = await fetch(`${target.url}/api/athletes/me/verify-email-code`, {
-        method: 'POST', headers: athleteHeaders, body: JSON.stringify({ code: '12345678' }),
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify({ code: '12345678' }),
       })
       expect(valid.status).toBe(200)
       expect(await valid.json()).toMatchObject({ ok: true, email: unverifiedContact.email })

@@ -8,14 +8,16 @@ import {
 
 describe('copy del CTA del Payment Brick', () => {
   it('distingue cuenta MP, crédito MP y tarjetas', () => {
-    expect(resolveMercadoPagoSubmitKey('Mercado Pago Tus medios de pago preferidos'))
-      .toBe('payments.submitContinueMp')
-    expect(resolveMercadoPagoSubmitKey('Crédito de Mercado Pago'))
-      .toBe('payments.submitPayMpCredit')
-    expect(resolveMercadoPagoSubmitKey('Tarjeta de crédito Cuotas disponibles'))
-      .toBe('payments.submitPayCredit')
-    expect(resolveMercadoPagoSubmitKey('Tarjeta de débito'))
-      .toBe('payments.submitPayDebit')
+    expect(resolveMercadoPagoSubmitKey('Mercado Pago Tus medios de pago preferidos')).toBe(
+      'payments.submitContinueMp',
+    )
+    expect(resolveMercadoPagoSubmitKey('Crédito de Mercado Pago')).toBe(
+      'payments.submitPayMpCredit',
+    )
+    expect(resolveMercadoPagoSubmitKey('Tarjeta de crédito Cuotas disponibles')).toBe(
+      'payments.submitPayCredit',
+    )
+    expect(resolveMercadoPagoSubmitKey('Tarjeta de débito')).toBe('payments.submitPayDebit')
     expect(resolveMercadoPagoSubmitKey('Rapipago')).toBe('payments.submitPayTicket')
     expect(resolveMercadoPagoSubmitKey('')).toBe('payments.submitPay')
   })
@@ -31,18 +33,28 @@ describe('copy del CTA del Payment Brick', () => {
     `
 
     expect(readActivePaymentSelectorText(root)).toContain('Mercado Pago')
-    syncMercadoPagoSubmitLabel(root, (key) => ({
-      'payments.submitContinueMp': 'Continuar en Mercado Pago',
-      'payments.submitPayCredit': 'Pagar con tarjeta',
-    }[key]))
-    expect(root.querySelector('button[type="submit"]').textContent).toBe('Continuar en Mercado Pago')
+    syncMercadoPagoSubmitLabel(
+      root,
+      (key) =>
+        ({
+          'payments.submitContinueMp': 'Continuar en Mercado Pago',
+          'payments.submitPayCredit': 'Pagar con tarjeta',
+        })[key],
+    )
+    expect(root.querySelector('button[type="submit"]').textContent).toBe(
+      'Continuar en Mercado Pago',
+    )
 
     root.querySelector('.mp-checkout-bricks__selector-a').classList.remove('active-x')
     root.querySelector('.mp-checkout-bricks__selector-b').classList.add('active-x')
-    syncMercadoPagoSubmitLabel(root, (key) => ({
-      'payments.submitContinueMp': 'Continuar en Mercado Pago',
-      'payments.submitPayCredit': 'Pagar con tarjeta',
-    }[key]))
+    syncMercadoPagoSubmitLabel(
+      root,
+      (key) =>
+        ({
+          'payments.submitContinueMp': 'Continuar en Mercado Pago',
+          'payments.submitPayCredit': 'Pagar con tarjeta',
+        })[key],
+    )
     expect(root.querySelector('button[type="submit"]').textContent).toBe('Pagar con tarjeta')
     expect(applyMercadoPagoSubmitLabel(root, 'Pagar con tarjeta')).toBe(false)
   })

@@ -33,7 +33,10 @@ export function createSupabaseAuditRepository(
   requireSupabaseClient(client)
 
   const events = () =>
-    client.from('operational_audit_events').select(EVENT_COLUMNS).eq('organization_id', organizationId)
+    client
+      .from('operational_audit_events')
+      .select(EVENT_COLUMNS)
+      .eq('organization_id', organizationId)
 
   return {
     async getById(id) {
@@ -84,11 +87,11 @@ export function createSupabaseAuditRepository(
       const [request, actorBefore, actorAfter, entity] = await Promise.all([
         requestId
           ? run(
-            events()
-              .eq('metadata->>requestId', requestId)
-              .order('created_at', { ascending: true })
-              .limit(limit * 2),
-          )
+              events()
+                .eq('metadata->>requestId', requestId)
+                .order('created_at', { ascending: true })
+                .limit(limit * 2),
+            )
           : Promise.resolve([]),
 
         // El actor puede ser `system` sin id (jobs, webhooks). En ese caso el
@@ -96,33 +99,33 @@ export function createSupabaseAuditRepository(
         // actividad de todos los procesos automáticos juntos.
         event.actor_id
           ? run(
-            events()
-              .eq('actor_id', event.actor_id)
-              .lt('created_at', at)
-              .gte('created_at', since)
-              .order('created_at', { ascending: false })
-              .limit(limit),
-          )
+              events()
+                .eq('actor_id', event.actor_id)
+                .lt('created_at', at)
+                .gte('created_at', since)
+                .order('created_at', { ascending: false })
+                .limit(limit),
+            )
           : Promise.resolve([]),
 
         event.actor_id
           ? run(
-            events()
-              .eq('actor_id', event.actor_id)
-              .gt('created_at', at)
-              .order('created_at', { ascending: true })
-              .limit(limit),
-          )
+              events()
+                .eq('actor_id', event.actor_id)
+                .gt('created_at', at)
+                .order('created_at', { ascending: true })
+                .limit(limit),
+            )
           : Promise.resolve([]),
 
         event.entity_id
           ? run(
-            events()
-              .eq('entity_id', event.entity_id)
-              .neq('id', event.id)
-              .order('created_at', { ascending: false })
-              .limit(limit),
-          )
+              events()
+                .eq('entity_id', event.entity_id)
+                .neq('id', event.id)
+                .order('created_at', { ascending: false })
+                .limit(limit),
+            )
           : Promise.resolve([]),
       ])
 
@@ -176,9 +179,8 @@ export function createSupabaseAuditRepository(
        * demás categorías— así que se resuelve descartando filas sobre la página
        * ya leída, más abajo.
        */
-      const categoryPatterns = category && category !== UNCATEGORIZED
-        ? auditCategoryPatterns(category)
-        : null
+      const categoryPatterns =
+        category && category !== UNCATEGORIZED ? auditCategoryPatterns(category) : null
       if (categoryPatterns?.include?.length) {
         query = query.or(
           categoryPatterns.include.map((pattern) => `action.like.${pattern}`).join(','),
@@ -203,9 +205,7 @@ export function createSupabaseAuditRepository(
       // pagina. Con `beforeId` el cursor es compuesto: excluye lo ya visto
       // por fecha E id, sin perder las filas que comparten timestamp.
       if (before && beforeId) {
-        query = query.or(
-          `created_at.lt.${before},and(created_at.eq.${before},id.lt.${beforeId})`,
-        )
+        query = query.or(`created_at.lt.${before},and(created_at.eq.${before},id.lt.${beforeId})`)
       } else if (before) {
         query = query.lt('created_at', before)
       }

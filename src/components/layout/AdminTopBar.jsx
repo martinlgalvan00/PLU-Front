@@ -43,7 +43,10 @@ export default function AdminTopBar({
           <div className="admin-page-toolbar__meta">
             {eyebrow ? <span className="admin-page-toolbar__eyebrow">{eyebrow}</span> : null}
             {showDate ? (
-              <time className="admin-page-toolbar__date" dateTime={new Date().toISOString().slice(0, 10)}>
+              <time
+                className="admin-page-toolbar__date"
+                dateTime={new Date().toISOString().slice(0, 10)}
+              >
                 {dateLabel}
               </time>
             ) : null}

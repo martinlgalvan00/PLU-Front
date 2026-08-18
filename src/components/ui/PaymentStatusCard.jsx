@@ -1,12 +1,6 @@
 import StatusPill from './StatusPill.jsx'
 
-export default function PaymentStatusCard({
-  amount,
-  method,
-  reference,
-  status,
-  note,
-}) {
+export default function PaymentStatusCard({ amount, method, reference, status, note }) {
   return (
     <article className="payment-status-card surface-card">
       <header className="payment-status-card__header">
@@ -29,7 +23,9 @@ export default function PaymentStatusCard({
         {reference && (
           <>
             <dt>Referencia</dt>
-            <dd><code>{reference}</code></dd>
+            <dd>
+              <code>{reference}</code>
+            </dd>
           </>
         )}
       </dl>

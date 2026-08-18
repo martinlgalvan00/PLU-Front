@@ -69,7 +69,10 @@ export default function AdminQrScanner({
   }
 
   function toggleVibrate() {
-    updateFeedbackPrefs({ ...activeFeedbackPrefs, vibrateEnabled: !activeFeedbackPrefs.vibrateEnabled })
+    updateFeedbackPrefs({
+      ...activeFeedbackPrefs,
+      vibrateEnabled: !activeFeedbackPrefs.vibrateEnabled,
+    })
   }
 
   const emitScan = useCallback(
@@ -213,7 +216,10 @@ export default function AdminQrScanner({
             />
           </div>
 
-          <div className="admin-checkin-scanner__feedback" aria-label={t('admin.checkin.scanner.feedbackLabel')}>
+          <div
+            className="admin-checkin-scanner__feedback"
+            aria-label={t('admin.checkin.scanner.feedbackLabel')}
+          >
             <button
               type="button"
               className={`admin-checkin-scanner__feedback-btn${activeFeedbackPrefs.soundEnabled ? ' is-active' : ''}`}
@@ -222,7 +228,11 @@ export default function AdminQrScanner({
               title={t('admin.checkin.scanner.soundToggle')}
               onClick={toggleSound}
             >
-              {activeFeedbackPrefs.soundEnabled ? <Volume2 size={14} aria-hidden /> : <VolumeX size={14} aria-hidden />}
+              {activeFeedbackPrefs.soundEnabled ? (
+                <Volume2 size={14} aria-hidden />
+              ) : (
+                <VolumeX size={14} aria-hidden />
+              )}
             </button>
             <button
               type="button"
@@ -246,7 +256,9 @@ export default function AdminQrScanner({
 
       {mode === 'camera' ? (
         <div className="admin-checkin-scanner__viewport-wrap">
-          <div className={`admin-checkin-scanner__viewport${cameraBlocked ? ' admin-checkin-scanner__viewport--error' : ''}`}>
+          <div
+            className={`admin-checkin-scanner__viewport${cameraBlocked ? ' admin-checkin-scanner__viewport--error' : ''}`}
+          >
             {!cameraBlocked && (
               <video
                 ref={videoRef}
@@ -267,7 +279,11 @@ export default function AdminQrScanner({
               <div className="admin-checkin-scanner__camera-fallback">
                 <CameraOff size={22} aria-hidden />
                 <p>{t('admin.checkin.scanner.permission')}</p>
-                <button type="button" className="admin-checkin-scanner__fallback-link" onClick={() => setMode('manual')}>
+                <button
+                  type="button"
+                  className="admin-checkin-scanner__fallback-link"
+                  onClick={() => setMode('manual')}
+                >
                   {t('admin.checkin.scanner.useManual')}
                 </button>
               </div>
@@ -301,7 +317,11 @@ export default function AdminQrScanner({
               value={manualValue}
               onChange={(event) => setManualValue(event.target.value)}
             />
-            <button type="submit" className="btn btn--primary btn--sm" disabled={disabled || busy || !manualValue.trim()}>
+            <button
+              type="submit"
+              className="btn btn--primary btn--sm"
+              disabled={disabled || busy || !manualValue.trim()}
+            >
               {t('admin.checkin.scanner.verify')}
             </button>
           </div>

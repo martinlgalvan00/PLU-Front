@@ -7,10 +7,7 @@ let membershipPlansCache = null
 let membershipPlansFetchedAt = 0
 let membershipPlansRequest = null
 
-export function filterMembershipPlansForApp(
-  plans,
-  _options = {},
-) {
+export function filterMembershipPlansForApp(plans, _options = {}) {
   return filterPublicMembershipPlans(plans)
 }
 
@@ -70,9 +67,12 @@ export function applyPaymentUpdate(createdOrder, tickets = [], detail = {}) {
   const status = paymentUpdateStatus(detail.status)
   const matchesOrder = createdOrder?.paymentId === orderId || createdOrder?.orderId === orderId
   const nextOrder = matchesOrder ? { ...createdOrder, status } : createdOrder
-  const nextTickets = status === 'aprobado'
-    ? tickets.map((ticket) => ticket.orderId === orderId ? { ...ticket, status: 'pagada' } : ticket)
-    : tickets
+  const nextTickets =
+    status === 'aprobado'
+      ? tickets.map((ticket) =>
+          ticket.orderId === orderId ? { ...ticket, status: 'pagada' } : ticket,
+        )
+      : tickets
 
   return { createdOrder: nextOrder, tickets: nextTickets }
 }
@@ -154,8 +154,18 @@ export function clearMembershipPlansCache() {
   membershipPlansRequest = null
 }
 
-export async function processEmbeddedSubscription({ paymentOrderId, orderAccessToken, planCode, cardToken }) {
-  return apiPost('/api/payments/subscriptions/process', { paymentOrderId, orderAccessToken, planCode, cardToken })
+export async function processEmbeddedSubscription({
+  paymentOrderId,
+  orderAccessToken,
+  planCode,
+  cardToken,
+}) {
+  return apiPost('/api/payments/subscriptions/process', {
+    paymentOrderId,
+    orderAccessToken,
+    planCode,
+    cardToken,
+  })
 }
 
 export async function notifyMockPayment({ paymentId, orderId, orderAccessToken, status }) {
@@ -197,7 +207,10 @@ export async function retryPaymentEvent(eventId) {
 }
 
 export async function retryPaymentReconciliation(attemptId) {
-  return apiPost(`/api/payments/operations/reconciliations/${encodeURIComponent(attemptId)}/retry`, {})
+  return apiPost(
+    `/api/payments/operations/reconciliations/${encodeURIComponent(attemptId)}/retry`,
+    {},
+  )
 }
 
 /**

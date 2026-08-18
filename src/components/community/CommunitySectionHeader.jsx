@@ -10,7 +10,8 @@ export default function CommunitySectionHeader({
   title,
   titleId,
 }) {
-  const headClass = `community-section__head${compact ? ' community-section__head--compact' : ''}`.trim()
+  const headClass =
+    `community-section__head${compact ? ' community-section__head--compact' : ''}`.trim()
 
   return (
     <div className={headClass}>

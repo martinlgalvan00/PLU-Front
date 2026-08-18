@@ -20,8 +20,8 @@ const notifySchema = z.object({
 export function createLaunchInterestRoutes(deps = {}) {
   const router = Router()
   const repository =
-    deps.launchInterestRepository
-    ?? createLaunchInterestRepository({ getSupabaseAdmin: deps.getSupabaseAdmin })
+    deps.launchInterestRepository ??
+    createLaunchInterestRepository({ getSupabaseAdmin: deps.getSupabaseAdmin })
   const brevo = deps.brevo ?? createBrevoAdapter({ env: deps.env ?? process.env })
   const prisma = typeof deps.getPrisma === 'function' ? deps.getPrisma() : deps.prisma
   const staffGuard = requireRole(['ops', 'admin', 'admin_maximal'], { prisma })
@@ -54,15 +54,21 @@ export function createLaunchInterestRoutes(deps = {}) {
     }
   })
 
-  router.post('/notify', ...staffGuard, staffLimiter, validateBody(notifySchema), async (req, res, next) => {
-    try {
-      if (!repository) throw new HttpError(503, 'Captura de interés no disponible.')
-      const result = await repository.notifySource(req.validatedBody.source, brevo)
-      res.json({ ok: true, count: result.count })
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/notify',
+    ...staffGuard,
+    staffLimiter,
+    validateBody(notifySchema),
+    async (req, res, next) => {
+      try {
+        if (!repository) throw new HttpError(503, 'Captura de interés no disponible.')
+        const result = await repository.notifySource(req.validatedBody.source, brevo)
+        res.json({ ok: true, count: result.count })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   return router
 }

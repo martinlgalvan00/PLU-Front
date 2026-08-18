@@ -62,22 +62,29 @@ import {
   staffLimiter,
   webhookLimiter,
 } from '../middleware/rateLimit.js'
-import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/athleteSessionService.js'
+import {
+  ATHLETE_SESSION_COOKIE_NAME,
+  readAthleteSession,
+} from '../services/athleteSessionService.js'
 
 const preferenceSchema = z.object({
   paymentOrderId: z.string().uuid(),
   orderAccessToken: z.string().trim().min(32).optional(),
 })
 
-const embeddedPayerSchema = z.object({
-  email: z.string().email(),
-  identification: z.object({
-    type: z.string().trim().min(1),
-    number: z.string().trim().min(1),
-  }).optional(),
-  first_name: z.string().trim().min(1).optional(),
-  last_name: z.string().trim().min(1).optional(),
-}).passthrough()
+const embeddedPayerSchema = z
+  .object({
+    email: z.string().email(),
+    identification: z
+      .object({
+        type: z.string().trim().min(1),
+        number: z.string().trim().min(1),
+      })
+      .optional(),
+    first_name: z.string().trim().min(1).optional(),
+    last_name: z.string().trim().min(1).optional(),
+  })
+  .passthrough()
 
 const embeddedPaymentSchema = z.object({
   paymentOrderId: z.string().uuid(),
@@ -126,7 +133,10 @@ const webhookSchema = z
     // algunas notificaciones llegan con el body vacío o sin `data`. Exigirlo
     // acá rechazaba la request antes de que `processPaymentWebhook` pudiera
     // registrar el rechazo en la auditoría (ver su validación de `data.id`).
-    data: z.object({ id: z.union([z.string(), z.number()]).optional() }).passthrough().optional(),
+    data: z
+      .object({ id: z.union([z.string(), z.number()]).optional() })
+      .passthrough()
+      .optional(),
   })
   .passthrough()
 
@@ -169,7 +179,15 @@ const mockNotifySchema = z.object({
   paymentId: z.string().trim().min(1),
   orderId: z.string().uuid().optional(),
   status: z
-    .enum(['approved', 'rejected', 'cancelled', 'refunded', 'charged_back', 'in_process', 'pending'])
+    .enum([
+      'approved',
+      'rejected',
+      'cancelled',
+      'refunded',
+      'charged_back',
+      'in_process',
+      'pending',
+    ])
     .optional(),
 })
 
@@ -231,7 +249,10 @@ export function createPaymentRoutes(deps = {}) {
     if (!deps.platformSettingsRepository && (env.NODE_ENV ?? process.env.NODE_ENV) === 'test') {
       return { get: async () => ({ checkoutEnabled: true }) }
     }
-    return deps.platformSettingsRepository ?? createSupabasePlatformSettingsRepository(resolveSupabaseAdmin())
+    return (
+      deps.platformSettingsRepository ??
+      createSupabasePlatformSettingsRepository(resolveSupabaseAdmin())
+    )
   }
 
   function services({ notifications = false } = {}) {
@@ -288,63 +309,95 @@ export function createPaymentRoutes(deps = {}) {
     }
   }
 
-  router.post('/preferences', checkoutLimiter, validateBody(preferenceSchema), async (req, res, next) => {
-    try {
-      const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
-      await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
-      assertCheckoutEnabled(await platformSettingsRepo().get())
-      const result = await createPaymentPreference(
-        {
-          ...req.validatedBody,
-          appUrl: env.APP_URL ?? env.VITE_APP_URL,
-          apiUrl: env.API_URL,
-        },
-        { ...services(), order },
-      )
-      res.status(result.created ? 201 : 200).json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/preferences',
+    checkoutLimiter,
+    validateBody(preferenceSchema),
+    async (req, res, next) => {
+      try {
+        const order = await requireOrderAccess(
+          req,
+          req.validatedBody.paymentOrderId,
+          req.validatedBody.orderAccessToken,
+        )
+        await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
+        assertCheckoutEnabled(await platformSettingsRepo().get())
+        const result = await createPaymentPreference(
+          {
+            ...req.validatedBody,
+            appUrl: env.APP_URL ?? env.VITE_APP_URL,
+            apiUrl: env.API_URL,
+          },
+          { ...services(), order },
+        )
+        res.status(result.created ? 201 : 200).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-  router.post('/embedded/process', checkoutLimiter, validateBody(embeddedPaymentSchema), async (req, res, next) => {
-    try {
-      const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
-      await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
-      assertCheckoutEnabled(await platformSettingsRepo().get())
-      const result = await processEmbeddedPayment(req.validatedBody, {
-        ...services({ notifications: true }),
-        order,
-      })
-      res.status(result.duplicate ? 200 : 201).json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/embedded/process',
+    checkoutLimiter,
+    validateBody(embeddedPaymentSchema),
+    async (req, res, next) => {
+      try {
+        const order = await requireOrderAccess(
+          req,
+          req.validatedBody.paymentOrderId,
+          req.validatedBody.orderAccessToken,
+        )
+        await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
+        assertCheckoutEnabled(await platformSettingsRepo().get())
+        const result = await processEmbeddedPayment(req.validatedBody, {
+          ...services({ notifications: true }),
+          order,
+        })
+        res.status(result.duplicate ? 200 : 201).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-  router.post('/return/mercadopago', checkoutLimiter, validateBody(mercadoPagoReturnSchema), async (req, res, next) => {
-    try {
-      const order = await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
-      const result = await reconcileReturnPayment(req.validatedBody, {
-        ...services({ notifications: true }),
-        order,
-      })
-      res.status(result.reconciled ? 200 : 202).json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/return/mercadopago',
+    checkoutLimiter,
+    validateBody(mercadoPagoReturnSchema),
+    async (req, res, next) => {
+      try {
+        const order = await requireOrderAccess(
+          req,
+          req.validatedBody.paymentOrderId,
+          req.validatedBody.orderAccessToken,
+        )
+        const result = await reconcileReturnPayment(req.validatedBody, {
+          ...services({ notifications: true }),
+          order,
+        })
+        res.status(result.reconciled ? 200 : 202).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-  router.post('/telemetry', paymentTelemetryLimiter, validateBody(paymentClientEventSchema), async (req, res, next) => {
-    try {
-      const { paymentOrderId, orderAccessToken, ...event } = req.validatedBody
-      const order = await requireOrderAccess(req, paymentOrderId, orderAccessToken)
-      await repository().recordClientEvent({ order, ...event })
-      res.status(202).json({ accepted: true })
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/telemetry',
+    paymentTelemetryLimiter,
+    validateBody(paymentClientEventSchema),
+    async (req, res, next) => {
+      try {
+        const { paymentOrderId, orderAccessToken, ...event } = req.validatedBody
+        const order = await requireOrderAccess(req, paymentOrderId, orderAccessToken)
+        await repository().recordClientEvent({ order, ...event })
+        res.status(202).json({ accepted: true })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.get('/orders/:orderId/status', publicReadLimiter, async (req, res, next) => {
     try {
@@ -386,26 +439,34 @@ export function createPaymentRoutes(deps = {}) {
     }
   })
 
-  router.post('/subscriptions/:subscriptionId/cancel', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const subscriptionId = parseInput(z.string().uuid(), req.params.subscriptionId)
-      const paymentRepository = repository()
-      const subscription = await paymentRepository.getSubscriptionForCancellation(subscriptionId)
-      if (!subscription) throw new HttpError(404, 'Suscripcion no encontrada.')
-      if (!['cancelled', 'ended'].includes(subscription.status) && subscription.provider_subscription_id) {
-        await (deps.mercadoPago ?? createPaymentProviderAdapter({ env })).cancelSubscription(
-          subscription.provider_subscription_id,
+  router.post(
+    '/subscriptions/:subscriptionId/cancel',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const subscriptionId = parseInput(z.string().uuid(), req.params.subscriptionId)
+        const paymentRepository = repository()
+        const subscription = await paymentRepository.getSubscriptionForCancellation(subscriptionId)
+        if (!subscription) throw new HttpError(404, 'Suscripcion no encontrada.')
+        if (
+          !['cancelled', 'ended'].includes(subscription.status) &&
+          subscription.provider_subscription_id
+        ) {
+          await (deps.mercadoPago ?? createPaymentProviderAdapter({ env })).cancelSubscription(
+            subscription.provider_subscription_id,
+          )
+        }
+        const cancelled = await paymentRepository.cancelSubscription(
+          subscriptionId,
+          `${req.auth.user.id}:${req.auth.user.email}`,
         )
+        res.json({ subscription: cancelled })
+      } catch (error) {
+        next(error)
       }
-      const cancelled = await paymentRepository.cancelSubscription(
-        subscriptionId,
-        `${req.auth.user.id}:${req.auth.user.email}`,
-      )
-      res.json({ subscription: cancelled })
-    } catch (error) {
-      next(error)
-    }
-  })
+    },
+  )
 
   /**
    * Cada fila fallida sale con su diagnostico: que paso, por que y como se
@@ -464,15 +525,20 @@ export function createPaymentRoutes(deps = {}) {
    * mayor a menor frecuencia. Reusa el diagnóstico que `paymentAuditTrail`
    * ya guardó en cada asiento fallido — no reclasifica nada de nuevo.
    */
-  router.get('/operations/failure-reasons', ...financeReadGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const query = parseInput(failureReasonsQuerySchema, req.query)
-      const reasons = await repository().getFailureReasonBreakdown(query)
-      res.json({ reasons })
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.get(
+    '/operations/failure-reasons',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const query = parseInput(failureReasonsQuerySchema, req.query)
+        const reasons = await repository().getFailureReasonBreakdown(query)
+        res.json({ reasons })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * Vida completa de una orden: orden, intentos del Brick, notificaciones de
@@ -482,19 +548,26 @@ export function createPaymentRoutes(deps = {}) {
    * Antes esto era cruzar cinco tablas a mano en la base para poder contestarle
    * a un socio por que no le figura la afiliacion.
    */
-  router.get('/audit/orders/:orderId', ...financeReadGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const orderId = parseInput(z.string().uuid(), req.params.orderId)
-      const client = resolveSupabaseAdmin()
-      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
-      res.json(await buildOrderTimeline(client, {
-        orderId,
-        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
-      }))
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.get(
+    '/audit/orders/:orderId',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const orderId = parseInput(z.string().uuid(), req.params.orderId)
+        const client = resolveSupabaseAdmin()
+        if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+        res.json(
+          await buildOrderTimeline(client, {
+            orderId,
+            organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+          }),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * El mismo recorrido, buscado por correo o documento.
@@ -514,7 +587,13 @@ export function createPaymentRoutes(deps = {}) {
         z
           .object({
             email: z.string().trim().email().max(160).optional(),
-            documentId: z.string().trim().min(6).max(20).regex(/^[\d.-]+$/).optional(),
+            documentId: z
+              .string()
+              .trim()
+              .min(6)
+              .max(20)
+              .regex(/^[\d.-]+$/)
+              .optional(),
           })
           .refine((value) => value.email || value.documentId, {
             message: 'Indicá un correo o un documento.',
@@ -524,13 +603,15 @@ export function createPaymentRoutes(deps = {}) {
 
       const client = resolveSupabaseAdmin()
       if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
-      res.json(await buildAthleteTimeline(client, {
-        email: query.email ?? null,
-        // El documento se guarda sin puntos ni guiones; quien lo copia de un DNI
-        // los trae, y sin normalizar la busqueda no encontraba a nadie.
-        documentId: query.documentId ? query.documentId.replace(/[.-]/g, '') : null,
-        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
-      }))
+      res.json(
+        await buildAthleteTimeline(client, {
+          email: query.email ?? null,
+          // El documento se guarda sin puntos ni guiones; quien lo copia de un DNI
+          // los trae, y sin normalizar la busqueda no encontraba a nadie.
+          documentId: query.documentId ? query.documentId.replace(/[.-]/g, '') : null,
+          organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+        }),
+      )
     } catch (error) {
       next(error)
     }
@@ -540,37 +621,51 @@ export function createPaymentRoutes(deps = {}) {
    * Recorrido de afiliacion de un atleta: alta, verificacion de correo,
    * ordenes, pagos y membresia, con el eslabon donde se corto.
    */
-  router.get('/audit/athletes/:athleteId', ...athleteAuditGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const athleteId = parseInput(z.string().uuid(), req.params.athleteId)
-      const client = resolveSupabaseAdmin()
-      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
-      res.json(await buildAthleteTimeline(client, {
-        athleteId,
-        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
-      }))
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.get(
+    '/audit/athletes/:athleteId',
+    ...athleteAuditGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = parseInput(z.string().uuid(), req.params.athleteId)
+        const client = resolveSupabaseAdmin()
+        if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+        res.json(
+          await buildAthleteTimeline(client, {
+            athleteId,
+            organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+          }),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * Que pasó en una operacion puntual. El id sale del header `X-Request-Id`,
    * del cuerpo de un error 500 o de cualquier linea del log.
    */
-  router.get('/audit/requests/:requestId', ...financeReadGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const requestId = parseInput(z.string().trim().min(8).max(120), req.params.requestId)
-      const client = resolveSupabaseAdmin()
-      if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
-      res.json(await buildRequestTimeline(client, {
-        requestId,
-        organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
-      }))
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.get(
+    '/audit/requests/:requestId',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const requestId = parseInput(z.string().trim().min(8).max(120), req.params.requestId)
+        const client = resolveSupabaseAdmin()
+        if (!client) throw new HttpError(503, 'Supabase Admin no esta configurado.')
+        res.json(
+          await buildRequestTimeline(client, {
+            requestId,
+            organizationId: deps.organizationId ?? PRIMARY_ORGANIZATION_ID,
+          }),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * Revalidacion de una orden contra Mercado Pago.
@@ -583,92 +678,130 @@ export function createPaymentRoutes(deps = {}) {
    * `POST /api/athletes/admin/payment-orders/:orderId/force-settle`, que exige
    * comprobante y motivo.
    */
-  router.post('/orders/:orderId/revalidate', ...financeWriteGuard, staffLimiter, validateBody(revalidateOrderSchema), async (req, res, next) => {
-    try {
-      const orderId = parseInput(z.string().uuid(), req.params.orderId)
-      const result = await revalidatePaymentOrder(orderId, {
-        ...services({ notifications: true }),
-        apply: req.validatedBody.apply,
-        actor: `${req.auth.user.id}:${req.auth.user.email}`,
-      })
-      res.json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/orders/:orderId/revalidate',
+    ...financeWriteGuard,
+    staffLimiter,
+    validateBody(revalidateOrderSchema),
+    async (req, res, next) => {
+      try {
+        const orderId = parseInput(z.string().uuid(), req.params.orderId)
+        const result = await revalidatePaymentOrder(orderId, {
+          ...services({ notifications: true }),
+          apply: req.validatedBody.apply,
+          actor: `${req.auth.user.id}:${req.auth.user.email}`,
+        })
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * Barrido: revalida las ordenes de Mercado Pago que todavia no estan
    * aprobadas y devuelve las que difieren de lo que dice el proveedor. Sin
    * `apply` no toca nada: primero se ve que hay, despues se corrige.
    */
-  router.post('/operations/revalidate', ...financeWriteGuard, staffLimiter, validateBody(revalidationSweepSchema), async (req, res, next) => {
-    try {
-      const result = await revalidatePaymentOrders({
-        ...services({ notifications: true }),
-        ...req.validatedBody,
-        actor: `${req.auth.user.id}:${req.auth.user.email}`,
-      })
-      res.json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/operations/revalidate',
+    ...financeWriteGuard,
+    staffLimiter,
+    validateBody(revalidationSweepSchema),
+    async (req, res, next) => {
+      try {
+        const result = await revalidatePaymentOrders({
+          ...services({ notifications: true }),
+          ...req.validatedBody,
+          actor: `${req.auth.user.id}:${req.auth.user.email}`,
+        })
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-  router.post('/operations/recover', ...financeWriteGuard, staffLimiter, async (_req, res, next) => {
-    try {
-      const result = await recoverPaymentOperations({
-        ...services({ notifications: true }),
-        eventLimit: 50,
-        reconciliationLimit: 50,
-      })
-      res.json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/operations/recover',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (_req, res, next) => {
+      try {
+        const result = await recoverPaymentOperations({
+          ...services({ notifications: true }),
+          eventLimit: 50,
+          reconciliationLimit: 50,
+        })
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-  router.post('/operations/events/:eventId/retry', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const eventId = parseInput(z.string().uuid(), req.params.eventId)
-      const paymentServices = services({ notifications: true })
-      const event = await paymentServices.repository.claimWebhookEvent(eventId, { force: true })
-      if (!event) throw new HttpError(409, 'El evento ya fue procesado o esta en ejecucion.')
-      const result = await processClaimedPaymentEvent(event, paymentServices)
-      res.json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/operations/events/:eventId/retry',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const eventId = parseInput(z.string().uuid(), req.params.eventId)
+        const paymentServices = services({ notifications: true })
+        const event = await paymentServices.repository.claimWebhookEvent(eventId, { force: true })
+        if (!event) throw new HttpError(409, 'El evento ya fue procesado o esta en ejecucion.')
+        const result = await processClaimedPaymentEvent(event, paymentServices)
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-  router.post('/operations/reconciliations/:attemptId/retry', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const attemptId = parseInput(z.string().uuid(), req.params.attemptId)
-      const paymentServices = services({ notifications: true })
-      const attempt = await paymentServices.repository.claimEmbeddedReconciliation(attemptId, { force: true })
-      if (!attempt) throw new HttpError(409, 'La conciliacion ya finalizo o esta en ejecucion.')
-      const result = await reconcileClaimedPaymentAttempt(attempt, paymentServices)
-      res.json({ result })
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/operations/reconciliations/:attemptId/retry',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const attemptId = parseInput(z.string().uuid(), req.params.attemptId)
+        const paymentServices = services({ notifications: true })
+        const attempt = await paymentServices.repository.claimEmbeddedReconciliation(attemptId, {
+          force: true,
+        })
+        if (!attempt) throw new HttpError(409, 'La conciliacion ya finalizo o esta en ejecucion.')
+        const result = await reconcileClaimedPaymentAttempt(attempt, paymentServices)
+        res.json({ result })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
-  router.post('/subscriptions/process', checkoutLimiter, validateBody(embeddedSubscriptionSchema), async (req, res, next) => {
-    try {
-      await assertPaidCheckoutAvailable(env, new Date(), { client: resolveSupabaseAdmin() })
-      assertCheckoutEnabled(await platformSettingsRepo().get())
-      assertRecurringMembershipAvailable(env)
-      await requireOrderAccess(req, req.validatedBody.paymentOrderId, req.validatedBody.orderAccessToken)
-      const result = await createEmbeddedRecurringSubscription(
-        { ...req.validatedBody, appUrl: env.APP_URL ?? env.VITE_APP_URL },
-        services(),
-      )
-      res.status(result.created ? 201 : 200).json(result)
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/subscriptions/process',
+    checkoutLimiter,
+    validateBody(embeddedSubscriptionSchema),
+    async (req, res, next) => {
+      try {
+        await assertPaidCheckoutAvailable(env, new Date(), { client: resolveSupabaseAdmin() })
+        assertCheckoutEnabled(await platformSettingsRepo().get())
+        assertRecurringMembershipAvailable(env)
+        await requireOrderAccess(
+          req,
+          req.validatedBody.paymentOrderId,
+          req.validatedBody.orderAccessToken,
+        )
+        const result = await createEmbeddedRecurringSubscription(
+          { ...req.validatedBody, appUrl: env.APP_URL ?? env.VITE_APP_URL },
+          services(),
+        )
+        res.status(result.created ? 201 : 200).json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   const handleMercadoPagoWebhook = async (req, res, next) => {
     try {
@@ -689,7 +822,12 @@ export function createPaymentRoutes(deps = {}) {
   }
 
   // Canónico: discrimina proveedor (mismo patrón que /api/emails/webhook/brevo).
-  router.post('/webhook/mercadopago', webhookLimiter, validateBody(webhookSchema), handleMercadoPagoWebhook)
+  router.post(
+    '/webhook/mercadopago',
+    webhookLimiter,
+    validateBody(webhookSchema),
+    handleMercadoPagoWebhook,
+  )
   // Alias legacy: notificaciones ya registradas en panel MP con el path corto.
   router.post('/webhook', webhookLimiter, validateBody(webhookSchema), handleMercadoPagoWebhook)
 
@@ -697,44 +835,56 @@ export function createPaymentRoutes(deps = {}) {
    * Harness local: relee un pago mock y aplica el camino canónico sin firma MP.
    * Opcionalmente fuerza un status (pending → approved) antes de acreditar.
    */
-  router.post('/mock/notify', checkoutLimiter, validateBody(mockNotifySchema), async (req, res, next) => {
-    try {
-      if (resolvePaymentsProvider(env) !== 'mock') {
-        throw new HttpError(503, 'POST /api/payments/mock/notify solo funciona con PAYMENTS_MOCK=true.')
+  router.post(
+    '/mock/notify',
+    checkoutLimiter,
+    validateBody(mockNotifySchema),
+    async (req, res, next) => {
+      try {
+        if (resolvePaymentsProvider(env) !== 'mock') {
+          throw new HttpError(
+            503,
+            'POST /api/payments/mock/notify solo funciona con PAYMENTS_MOCK=true.',
+          )
+        }
+        assertPaymentsMockAllowed(env)
+
+        const paymentServices = services({ notifications: true })
+        const { mercadoPago, repository: paymentRepository, notifyPaymentApplied } = paymentServices
+        if (typeof mercadoPago.updatePaymentStatus !== 'function') {
+          throw new HttpError(503, 'El adaptador mock no expone updatePaymentStatus.')
+        }
+
+        const { paymentId, orderId, status } = req.validatedBody
+        let payment = status
+          ? await mercadoPago.updatePaymentStatus(paymentId, status)
+          : await mercadoPago.getPayment(paymentId)
+
+        const resolvedOrderId = orderId ?? payment.external_reference
+        if (!resolvedOrderId) throw new HttpError(409, 'Pago mock sin referencia de orden.')
+        const order = await requireOrderAccess(
+          req,
+          resolvedOrderId,
+          req.get('x-order-access-token'),
+        )
+        const applied = await applyCanonicalPayment(payment, order, {
+          repository: paymentRepository,
+          notifyPaymentApplied,
+        })
+
+        res.status(200).json({
+          payment: {
+            id: String(payment.id),
+            status: payment.status,
+            statusDetail: payment.status_detail ?? null,
+          },
+          order: applied.result.order,
+        })
+      } catch (error) {
+        next(error)
       }
-      assertPaymentsMockAllowed(env)
-
-      const paymentServices = services({ notifications: true })
-      const { mercadoPago, repository: paymentRepository, notifyPaymentApplied } = paymentServices
-      if (typeof mercadoPago.updatePaymentStatus !== 'function') {
-        throw new HttpError(503, 'El adaptador mock no expone updatePaymentStatus.')
-      }
-
-      const { paymentId, orderId, status } = req.validatedBody
-      let payment = status
-        ? await mercadoPago.updatePaymentStatus(paymentId, status)
-        : await mercadoPago.getPayment(paymentId)
-
-      const resolvedOrderId = orderId ?? payment.external_reference
-      if (!resolvedOrderId) throw new HttpError(409, 'Pago mock sin referencia de orden.')
-      const order = await requireOrderAccess(req, resolvedOrderId, req.get('x-order-access-token'))
-      const applied = await applyCanonicalPayment(payment, order, {
-        repository: paymentRepository,
-        notifyPaymentApplied,
-      })
-
-      res.status(200).json({
-        payment: {
-          id: String(payment.id),
-          status: payment.status,
-          statusDetail: payment.status_detail ?? null,
-        },
-        order: applied.result.order,
-      })
-    } catch (error) {
-      next(error)
-    }
-  })
+    },
+  )
 
   return router
 }

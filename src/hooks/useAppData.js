@@ -217,9 +217,7 @@ export function useAppData() {
   // en el efecto de refreshAthleteData de más abajo.
   const [athletes, setAthletes] = useState(() => (env.demoMode ? demoAthletes : []))
   const [memberships, setMemberships] = useState(() => (env.demoMode ? demoMemberships : []))
-  const [registrations, setRegistrations] = useState(() =>
-    env.demoMode ? demoRegistrations : [],
-  )
+  const [registrations, setRegistrations] = useState(() => (env.demoMode ? demoRegistrations : []))
   const [payments, setPayments] = useState(() => (env.demoMode ? demoPayments : []))
   const [athleteDataLoading, setAthleteDataLoading] = useState(false)
   const [athleteDataRefreshing, setAthleteDataRefreshing] = useState(false)
@@ -449,124 +447,127 @@ export function useAppData() {
     }
   }, [])
 
-  const refreshAthleteData = useCallback(async ({ silent = false } = {}) => {
-    if (!session || isDemoSession(session)) return
+  const refreshAthleteData = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!session || isDemoSession(session)) return
 
-    if (session.role === 'athlete_plu') {
-      try {
-        const snapshot = await fetchAthleteSnapshot(session.athleteId)
-        setAthletes(snapshot.athlete ? [snapshot.athlete] : [])
-        setMemberships(snapshot.memberships)
-        setRegistrations(snapshot.registrations)
-        setPayments(snapshot.payments)
-        // El snapshot es la fuente autoritativa del estado de la orden y ya
-        // viajó: sin esto la confirmación de afiliación seguía anunciando
-        // "pendiente de pago" después de que Mercado Pago acreditara.
-        setCreatedOrder((current) => reconcileCreatedOrder(current, snapshot.payments))
-      } catch (error) {
-        console.error('refreshAthleteData:', error)
+      if (session.role === 'athlete_plu') {
+        try {
+          const snapshot = await fetchAthleteSnapshot(session.athleteId)
+          setAthletes(snapshot.athlete ? [snapshot.athlete] : [])
+          setMemberships(snapshot.memberships)
+          setRegistrations(snapshot.registrations)
+          setPayments(snapshot.payments)
+          // El snapshot es la fuente autoritativa del estado de la orden y ya
+          // viajó: sin esto la confirmación de afiliación seguía anunciando
+          // "pendiente de pago" después de que Mercado Pago acreditara.
+          setCreatedOrder((current) => reconcileCreatedOrder(current, snapshot.payments))
+        } catch (error) {
+          console.error('refreshAthleteData:', error)
+        }
+        return
       }
-      return
-    }
 
-    const tasks = []
-    const canReadAthleteData = hasAnyPermission(session, [
-      'admin.athletes.read',
-      'admin.memberships.read',
-      'admin.registrations.read',
-      'admin.payments.read',
-    ])
+      const tasks = []
+      const canReadAthleteData = hasAnyPermission(session, [
+        'admin.athletes.read',
+        'admin.memberships.read',
+        'admin.registrations.read',
+        'admin.payments.read',
+      ])
 
-    if (canReadAthleteData) {
-      // Loader bloqueante solo en la primera carga: las sincronizaciones
-      // periódicas (polling de 15s) actualizan en background sin descartar
-      // la pantalla que el staff ya está viendo. El aviso de "sincronizando"
-      // es diferido: refetch rápidos no lo muestran.
-      const isInitialLoad = !athleteDataLoadedRef.current
-      let hintTimerId = null
-      if (isInitialLoad) {
-        setAthleteDataLoading(true)
-        setAthleteDataError(null)
+      if (canReadAthleteData) {
+        // Loader bloqueante solo en la primera carga: las sincronizaciones
+        // periódicas (polling de 15s) actualizan en background sin descartar
+        // la pantalla que el staff ya está viendo. El aviso de "sincronizando"
+        // es diferido: refetch rápidos no lo muestran.
+        const isInitialLoad = !athleteDataLoadedRef.current
+        let hintTimerId = null
+        if (isInitialLoad) {
+          setAthleteDataLoading(true)
+          setAthleteDataError(null)
+        } else {
+          hintTimerId = window.setTimeout(
+            () => setAthleteDataRefreshing(true),
+            LIVE_REFRESH_HINT_DELAY_MS,
+          )
+        }
+        tasks.push(
+          fetchAdminAthleteData()
+            .then((data) => {
+              athleteDataLoadedRef.current = true
+              setAthleteDataSyncedAt(Date.now())
+              setAthletes(data.athletes)
+              setMemberships(data.memberships)
+              setRegistrations(data.registrations)
+              setPayments(data.payments)
+              setAthleteDataError(null)
+            })
+            .catch((error) => {
+              // En background un fallo puntual no debe reemplazar la pantalla
+              // por un error: se retiene el último snapshot válido.
+              if (isInitialLoad) {
+                setAthleteDataError(
+                  error?.message ?? 'No se pudieron cargar atletas, afiliaciones e inscripciones.',
+                )
+              }
+              console.error('refreshAthleteData:', error)
+            })
+            .finally(() => {
+              if (hintTimerId != null) window.clearTimeout(hintTimerId)
+              if (isInitialLoad) setAthleteDataLoading(false)
+              else setAthleteDataRefreshing(false)
+            }),
+        )
       } else {
-        hintTimerId = window.setTimeout(
-          () => setAthleteDataRefreshing(true),
-          LIVE_REFRESH_HINT_DELAY_MS,
+        setAthleteDataLoading(false)
+        setAthleteDataError(null)
+        setAthletes([])
+        setMemberships([])
+        setRegistrations([])
+        setPayments([])
+      }
+
+      if (hasPermission(session, 'admin.events.read')) {
+        tasks.push(refreshAdminEvents({ silent }))
+      }
+
+      if (hasPermission(session, 'admin.dashboard.read')) {
+        tasks.push(refreshDismissedQueueItems())
+      }
+
+      if (hasPermission(session, 'admin.users.read')) {
+        tasks.push(
+          listStaffUsersRequest()
+            .then(({ users: staffUsers }) => setUsers(staffUsers))
+            .catch((error) => {
+              if (!(error instanceof ApiError && error.status === 403)) {
+                console.warn('No se pudo cargar el listado de staff.', error)
+              }
+            }),
         )
       }
-      tasks.push(
-        fetchAdminAthleteData()
-          .then((data) => {
-            athleteDataLoadedRef.current = true
-            setAthleteDataSyncedAt(Date.now())
-            setAthletes(data.athletes)
-            setMemberships(data.memberships)
-            setRegistrations(data.registrations)
-            setPayments(data.payments)
-            setAthleteDataError(null)
-          })
-          .catch((error) => {
-            // En background un fallo puntual no debe reemplazar la pantalla
-            // por un error: se retiene el último snapshot válido.
-            if (isInitialLoad) {
-              setAthleteDataError(
-                error?.message ?? 'No se pudieron cargar atletas, afiliaciones e inscripciones.',
-              )
-            }
-            console.error('refreshAthleteData:', error)
-          })
-          .finally(() => {
-            if (hintTimerId != null) window.clearTimeout(hintTimerId)
-            if (isInitialLoad) setAthleteDataLoading(false)
-            else setAthleteDataRefreshing(false)
-          }),
-      )
-    } else {
-      setAthleteDataLoading(false)
-      setAthleteDataError(null)
-      setAthletes([])
-      setMemberships([])
-      setRegistrations([])
-      setPayments([])
-    }
 
-    if (hasPermission(session, 'admin.events.read')) {
-      tasks.push(refreshAdminEvents({ silent }))
-    }
+      if (hasPermission(session, 'admin.roles.read')) {
+        tasks.push(
+          listAccessRolesRequest()
+            .then(({ activity = [], permissions, roles: remoteRoles }) => {
+              setAccessRoles(remoteRoles)
+              setRoleActivity(activity)
+              setPermissionCatalog(permissions)
+            })
+            .catch((error) => {
+              if (!(error instanceof ApiError && error.status === 403)) {
+                console.warn('No se pudo cargar la matriz de roles.', error)
+              }
+            }),
+        )
+      }
 
-    if (hasPermission(session, 'admin.dashboard.read')) {
-      tasks.push(refreshDismissedQueueItems())
-    }
-
-    if (hasPermission(session, 'admin.users.read')) {
-      tasks.push(
-        listStaffUsersRequest()
-          .then(({ users: staffUsers }) => setUsers(staffUsers))
-          .catch((error) => {
-            if (!(error instanceof ApiError && error.status === 403)) {
-              console.warn('No se pudo cargar el listado de staff.', error)
-            }
-          }),
-      )
-    }
-
-    if (hasPermission(session, 'admin.roles.read')) {
-      tasks.push(
-        listAccessRolesRequest()
-          .then(({ activity = [], permissions, roles: remoteRoles }) => {
-            setAccessRoles(remoteRoles)
-            setRoleActivity(activity)
-            setPermissionCatalog(permissions)
-          })
-          .catch((error) => {
-            if (!(error instanceof ApiError && error.status === 403)) {
-              console.warn('No se pudo cargar la matriz de roles.', error)
-            }
-          }),
-      )
-    }
-
-    await Promise.all(tasks)
-  }, [refreshAdminEvents, refreshDismissedQueueItems, session])
+      await Promise.all(tasks)
+    },
+    [refreshAdminEvents, refreshDismissedQueueItems, session],
+  )
 
   useEffect(() => {
     refreshAthleteData()
@@ -579,9 +580,7 @@ export function useAppData() {
   useEffect(() => {
     if (!session || isDemoSession(session)) return undefined
 
-    const pollMs = session.role === 'athlete_plu'
-      ? LIVE_ATHLETE_SYNC_MS
-      : LIVE_STAFF_SYNC_MS
+    const pollMs = session.role === 'athlete_plu' ? LIVE_ATHLETE_SYNC_MS : LIVE_STAFF_SYNC_MS
     let timerId = null
 
     const refresh = () => {
@@ -656,11 +655,15 @@ export function useAppData() {
   // Una pestaña hermana puede haber creado una orden o el staff pudo cambiar
   // un derecho desde este mismo navegador. La señal es opaca: cada sesión
   // relee únicamente su propio snapshot o los datos autorizados del panel.
-  useEffect(() => subscribeLiveSync((message) => {
-    if (message.type === 'athlete-snapshot-invalidated') {
-      void refreshAthleteData({ silent: true })
-    }
-  }), [refreshAthleteData])
+  useEffect(
+    () =>
+      subscribeLiveSync((message) => {
+        if (message.type === 'athlete-snapshot-invalidated') {
+          void refreshAthleteData({ silent: true })
+        }
+      }),
+    [refreshAthleteData],
+  )
 
   useEffect(() => {
     if (env.demoMode) return undefined
@@ -754,7 +757,10 @@ export function useAppData() {
 
   const dashboard = dashboardOverview.primary
 
-  const athletesById = useMemo(() => new Map(athletes.map((athlete) => [athlete.id, athlete])), [athletes])
+  const athletesById = useMemo(
+    () => new Map(athletes.map((athlete) => [athlete.id, athlete])),
+    [athletes],
+  )
 
   const enrichedRegistrations = useMemo(
     () =>
@@ -785,7 +791,15 @@ export function useAppData() {
         pendingTicketOrders,
         events: adminEvents,
       }).filter((item) => !dismissedQueueItemKeys.has(item.id)),
-    [payments, athletes, memberships, registrations, pendingTicketOrders, adminEvents, dismissedQueueItemKeys],
+    [
+      payments,
+      athletes,
+      memberships,
+      registrations,
+      pendingTicketOrders,
+      adminEvents,
+      dismissedQueueItemKeys,
+    ],
   )
 
   const adminNavBadges = useMemo(
@@ -838,7 +852,12 @@ export function useAppData() {
     return enrichedRegistrations.filter((registration) => {
       // `registration.paymentStatus` ya trae el status del pago resuelto
       // (`mapAthleteData`), así que no hace falta resolver `payment` acá.
-      const statusMatch = matchesRegistrationStatusFilter(registration, null, filters.status, gatePendingIds)
+      const statusMatch = matchesRegistrationStatusFilter(
+        registration,
+        null,
+        filters.status,
+        gatePendingIds,
+      )
       const eventMatch = filters.event === 'all' || registration.event === filters.event
       const affiliationMatch =
         !filters.affiliationStatus ||
@@ -1068,29 +1087,31 @@ export function useAppData() {
             idempotencyKey: crypto.randomUUID(),
           }
         }
-        const createRegistrationRequest = purchaseType === 'combo'
-          ? createCompetitionRegistrationComboRequest
-          : createCompetitionRegistrationRequest
+        const createRegistrationRequest =
+          purchaseType === 'combo'
+            ? createCompetitionRegistrationComboRequest
+            : createCompetitionRegistrationRequest
         // El cupón del combo sólo redime si tiene applies_to = 'both' (ver
         // create_membership_registration_combo_order / apply_discount_code_to_order).
-        const { order, registration, membership, plan, comboOffer } = await createRegistrationRequest({
-          athleteId: athlete.id,
-          eventSlug: selectedEvent.slug,
-          division: form.division,
-          category: form.category,
-          bodyweightKg: form.estimatedWeight
-            ? Number(String(form.estimatedWeight).replace(',', '.'))
-            : null,
-          paymentMethod,
-          idempotencyKey: registrationAttemptRef.current.idempotencyKey,
-          ...(purchaseType === 'combo'
-            ? {
-                membershipAccessCode: options.membershipAccessCode,
-                registrationAccessCode: options.registrationAccessCode,
-              }
-            : { accessCode: options.registrationAccessCode }),
-          discountCode: options.discountCode,
-        })
+        const { order, registration, membership, plan, comboOffer } =
+          await createRegistrationRequest({
+            athleteId: athlete.id,
+            eventSlug: selectedEvent.slug,
+            division: form.division,
+            category: form.category,
+            bodyweightKg: form.estimatedWeight
+              ? Number(String(form.estimatedWeight).replace(',', '.'))
+              : null,
+            paymentMethod,
+            idempotencyKey: registrationAttemptRef.current.idempotencyKey,
+            ...(purchaseType === 'combo'
+              ? {
+                  membershipAccessCode: options.membershipAccessCode,
+                  registrationAccessCode: options.registrationAccessCode,
+                }
+              : { accessCode: options.registrationAccessCode }),
+            discountCode: options.discountCode,
+          })
         // El Payment Brick de inscripción se inicializa con amount. Crear una
         // preference de Checkout Pro escribe provider_preference_id y bloquea
         // el cambio a transferencia si el atleta se arrepiente.
@@ -1116,9 +1137,10 @@ export function useAppData() {
         const payment = {
           id: order.id,
           athleteId: athlete.id,
-          concept: purchaseType === 'combo'
-            ? `Afiliación + inscripción ${selectedEvent.title}`
-            : `Inscripción ${selectedEvent.title}`,
+          concept:
+            purchaseType === 'combo'
+              ? `Afiliación + inscripción ${selectedEvent.title}`
+              : `Inscripción ${selectedEvent.title}`,
           amount: order.amount,
           method: order.method,
           status: order.status,
@@ -1143,7 +1165,14 @@ export function useAppData() {
           ...payment,
         }
         setCreatedOrder(createdOrder)
-        return { registration: enrichedRegistration, membership, payment, plan, comboOffer, createdOrder }
+        return {
+          registration: enrichedRegistration,
+          membership,
+          payment,
+          plan,
+          comboOffer,
+          createdOrder,
+        }
       } catch (error) {
         // PLU08 en una inscripción impaga es un checkout a reanudar, no un
         // callejón sin salida. Si la migración ya está aplicada el POST
@@ -1682,68 +1711,90 @@ export function useAppData() {
     [accessRoles, session, setSession],
   )
 
-  const deleteMembershipAction = useCallback(async (membershipId) => {
-    if (!hasPermission(session, 'admin.memberships.delete')) {
-      throw new Error('Sin permisos para eliminar afiliaciones.')
-    }
-    const applyLocalRemoval = () => setMemberships((current) => current.filter((item) => item.id !== membershipId))
-    if (isDemoSession(session)) {
+  const deleteMembershipAction = useCallback(
+    async (membershipId) => {
+      if (!hasPermission(session, 'admin.memberships.delete')) {
+        throw new Error('Sin permisos para eliminar afiliaciones.')
+      }
+      const applyLocalRemoval = () =>
+        setMemberships((current) => current.filter((item) => item.id !== membershipId))
+      if (isDemoSession(session)) {
+        applyLocalRemoval()
+        return { id: membershipId }
+      }
+      const { deletedMembership } = await deleteMembershipRequest(membershipId)
       applyLocalRemoval()
-      return { id: membershipId }
-    }
-    const { deletedMembership } = await deleteMembershipRequest(membershipId)
-    applyLocalRemoval()
-    void refreshAthleteData({ silent: true })
-    publishAthleteSnapshotInvalidation()
-    return deletedMembership
-  }, [refreshAthleteData, session])
+      void refreshAthleteData({ silent: true })
+      publishAthleteSnapshotInvalidation()
+      return deletedMembership
+    },
+    [refreshAthleteData, session],
+  )
 
-  const deleteRegistrationAction = useCallback(async (registrationId) => {
-    if (!hasPermission(session, 'admin.registrations.delete')) {
-      throw new Error('Sin permisos para eliminar inscripciones.')
-    }
-    const applyLocalRemoval = () => setRegistrations((current) => current.filter((item) => item.id !== registrationId))
-    if (isDemoSession(session)) {
+  const deleteRegistrationAction = useCallback(
+    async (registrationId) => {
+      if (!hasPermission(session, 'admin.registrations.delete')) {
+        throw new Error('Sin permisos para eliminar inscripciones.')
+      }
+      const applyLocalRemoval = () =>
+        setRegistrations((current) => current.filter((item) => item.id !== registrationId))
+      if (isDemoSession(session)) {
+        applyLocalRemoval()
+        return { id: registrationId }
+      }
+      const { deletedRegistration } = await deleteRegistrationRequest(registrationId)
       applyLocalRemoval()
-      return { id: registrationId }
-    }
-    const { deletedRegistration } = await deleteRegistrationRequest(registrationId)
-    applyLocalRemoval()
-    void refreshAthleteData({ silent: true })
-    publishAthleteSnapshotInvalidation()
-    return deletedRegistration
-  }, [refreshAthleteData, session])
+      void refreshAthleteData({ silent: true })
+      publishAthleteSnapshotInvalidation()
+      return deletedRegistration
+    },
+    [refreshAthleteData, session],
+  )
 
-  const setRegistrationPublicVisibilityAction = useCallback(async (registrationId, publicVisible) => {
-    if (!hasPermission(session, 'admin.registrations.write')) {
-      throw new Error('Sin permisos para administrar la visibilidad de inscripciones.')
-    }
-    const eventSlug = registrations.find((item) => item.id === registrationId)?.eventSlug
-    const apply = (registration) => setRegistrations((current) =>
-      current.map((item) => (
-        item.id === registrationId ? { ...item, publicVisible: registration.publicVisible } : item
-      )),
-    )
-    if (isDemoSession(session)) {
-      const registration = { id: registrationId, publicVisible }
+  const setRegistrationPublicVisibilityAction = useCallback(
+    async (registrationId, publicVisible) => {
+      if (!hasPermission(session, 'admin.registrations.write')) {
+        throw new Error('Sin permisos para administrar la visibilidad de inscripciones.')
+      }
+      const eventSlug = registrations.find((item) => item.id === registrationId)?.eventSlug
+      const apply = (registration) =>
+        setRegistrations((current) =>
+          current.map((item) =>
+            item.id === registrationId
+              ? { ...item, publicVisible: registration.publicVisible }
+              : item,
+          ),
+        )
+      if (isDemoSession(session)) {
+        const registration = { id: registrationId, publicVisible }
+        apply(registration)
+        return registration
+      }
+      const { registration } = await setRegistrationPublicVisibilityRequest(
+        registrationId,
+        publicVisible,
+      )
       apply(registration)
+      if (eventSlug) invalidateEventRegistrationSummary(eventSlug)
       return registration
-    }
-    const { registration } = await setRegistrationPublicVisibilityRequest(registrationId, publicVisible)
-    apply(registration)
-    if (eventSlug) invalidateEventRegistrationSummary(eventSlug)
-    return registration
-  }, [registrations, session])
+    },
+    [registrations, session],
+  )
 
-  const updateAccessRoleStatusAction = useCallback(async (roleId, active) => {
-    const currentRole = accessRoles.find((role) => role.id === roleId)
-    if (!currentRole) throw new Error('El rol seleccionado no existe.')
-    const response = isDemoSession(session)
-      ? { role: { ...currentRole, active }, activity: null }
-      : await updateAccessRoleStatusRequest(roleId, active)
-    setAccessRoles((current) => current.map((role) => (role.id === roleId ? response.role : role)))
-    return response.role
-  }, [accessRoles, session])
+  const updateAccessRoleStatusAction = useCallback(
+    async (roleId, active) => {
+      const currentRole = accessRoles.find((role) => role.id === roleId)
+      if (!currentRole) throw new Error('El rol seleccionado no existe.')
+      const response = isDemoSession(session)
+        ? { role: { ...currentRole, active }, activity: null }
+        : await updateAccessRoleStatusRequest(roleId, active)
+      setAccessRoles((current) =>
+        current.map((role) => (role.id === roleId ? response.role : role)),
+      )
+      return response.role
+    },
+    [accessRoles, session],
+  )
 
   const createSecurityUserAction = useCallback(async (draft) => {
     const { user, tempPassword, emailed, accessUrl, expiresAt } =
@@ -1951,36 +2002,39 @@ export function useAppData() {
     [setSession],
   )
 
-  const logout = useCallback(async ({ notify = true } = {}) => {
-    const currentSession = session
-    setSession(null)
-    // El nombre del toast se captura antes de limpiar la sesión: el aviso
-    // tiene que decir quién salió, no un genérico.
-    if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
+  const logout = useCallback(
+    async ({ notify = true } = {}) => {
+      const currentSession = session
+      setSession(null)
+      // El nombre del toast se captura antes de limpiar la sesión: el aviso
+      // tiene que decir quién salió, no un genérico.
+      if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
 
-    if (currentSession?.role === 'athlete_plu' && !isDemoSession(currentSession)) {
-      await logoutAthleteSession().catch((error) => {
-        if (error.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
-      })
-    } else if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
-      if (isSupabaseConfigured) {
-        const supabase = await getSupabaseClient()
-        await supabase.auth.signOut().catch(() => {})
-      }
+      if (currentSession?.role === 'athlete_plu' && !isDemoSession(currentSession)) {
+        await logoutAthleteSession().catch((error) => {
+          if (error.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
+        })
+      } else if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
+        if (isSupabaseConfigured) {
+          const supabase = await getSupabaseClient()
+          await supabase.auth.signOut().catch(() => {})
+        }
 
-      try {
-        await logoutRequest()
-      } catch (error) {
-        if (error.status !== 401) {
-          console.warn('No se pudo cerrar la sesion del servidor.', error)
+        try {
+          await logoutRequest()
+        } catch (error) {
+          if (error.status !== 401) {
+            console.warn('No se pudo cerrar la sesion del servidor.', error)
+          }
+        }
+
+        if (oauth.configured && oauth.isAuthenticated) {
+          await oauth.logout()
         }
       }
-
-      if (oauth.configured && oauth.isAuthenticated) {
-        await oauth.logout()
-      }
-    }
-  }, [oauth, session, setSession])
+    },
+    [oauth, session, setSession],
+  )
 
   const handleApprovePayment = useCallback(
     async (paymentId) => {
@@ -2492,87 +2546,123 @@ export function useAppData() {
     }
   }, [adminEvents])
 
-  const createMembershipPlanVersion = useCallback(async (plan) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const created = await createMembershipPlanVersionRequest(plan)
-      clearMembershipPlansCache()
-      await refreshPricingConfiguration()
-      return { plan: created }
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo publicar la versión del plan.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const createMembershipPlanVersion = useCallback(
+    async (plan) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const created = await createMembershipPlanVersionRequest(plan)
+        clearMembershipPlansCache()
+        await refreshPricingConfiguration()
+        return { plan: created }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo publicar la versión del plan.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
-  const setMembershipPlanActive = useCallback(async (planId, active) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const plan = await setMembershipPlanActiveRequest(planId, active)
-      clearMembershipPlansCache()
-      await refreshPricingConfiguration()
-      return { plan }
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo cambiar el estado del plan.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const setMembershipPlanActive = useCallback(
+    async (planId, active) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const plan = await setMembershipPlanActiveRequest(planId, active)
+        clearMembershipPlansCache()
+        await refreshPricingConfiguration()
+        return { plan }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo cambiar el estado del plan.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
-  const deleteMembershipPlan = useCallback(async (planId) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const result = await deleteMembershipPlanRequest(planId)
-      clearMembershipPlansCache()
-      await refreshPricingConfiguration()
-      return result
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo eliminar el plan.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const deleteMembershipPlan = useCallback(
+    async (planId) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const result = await deleteMembershipPlanRequest(planId)
+        clearMembershipPlansCache()
+        await refreshPricingConfiguration()
+        return result
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo eliminar el plan.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
-  const saveEventComboOffer = useCallback(async (eventSlug, offer) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const result = await saveEventComboOfferRequest(eventSlug, offer)
-      await refreshPricingConfiguration()
-      return result
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo guardar la oferta combo.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const saveEventComboOffer = useCallback(
+    async (eventSlug, offer) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const result = await saveEventComboOfferRequest(eventSlug, offer)
+        await refreshPricingConfiguration()
+        return result
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo guardar la oferta combo.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
-  const setMembershipPlanRetirement = useCallback(async (planId, retiresAt) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const plan = await setMembershipPlanRetirementRequest(planId, retiresAt)
-      clearMembershipPlansCache()
-      await refreshPricingConfiguration()
-      return { plan }
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo reprogramar la vigencia del plan.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const setMembershipPlanRetirement = useCallback(
+    async (planId, retiresAt) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const plan = await setMembershipPlanRetirementRequest(planId, retiresAt)
+        clearMembershipPlansCache()
+        await refreshPricingConfiguration()
+        return { plan }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo reprogramar la vigencia del plan.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
-  const upsertDiscountCode = useCallback(async (code) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const saved = await upsertDiscountCodeRequest(code)
-      await refreshPricingConfiguration()
-      return { code: saved }
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo guardar el código de descuento.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const upsertDiscountCode = useCallback(
+    async (code) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const saved = await upsertDiscountCodeRequest(code)
+        await refreshPricingConfiguration()
+        return { code: saved }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo guardar el código de descuento.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
   const refreshRegistrationAccessConfiguration = useCallback(async () => {
     if (!hasPermission(session, 'admin.registration_access.read')) return null
@@ -2591,103 +2681,129 @@ export function useAppData() {
     }
   }, [session])
 
-  const saveRegistrationAccessGate = useCallback(async (gate) => {
-    if (!hasPermission(session, 'admin.registration_access.write')) {
-      return { error: 'No tenés permisos para gestionar tandas privadas.' }
-    }
-    try {
-      const saved = await saveRegistrationAccessGateRequest(gate)
-      await refreshRegistrationAccessConfiguration()
-      return { gate: saved }
-    } catch (error) {
-      return { error: error?.message ?? 'No pudimos guardar la tanda.' }
-    }
-  }, [refreshRegistrationAccessConfiguration, session])
+  const saveRegistrationAccessGate = useCallback(
+    async (gate) => {
+      if (!hasPermission(session, 'admin.registration_access.write')) {
+        return { error: 'No tenés permisos para gestionar tandas privadas.' }
+      }
+      try {
+        const saved = await saveRegistrationAccessGateRequest(gate)
+        await refreshRegistrationAccessConfiguration()
+        return { gate: saved }
+      } catch (error) {
+        return { error: error?.message ?? 'No pudimos guardar la tanda.' }
+      }
+    },
+    [refreshRegistrationAccessConfiguration, session],
+  )
 
-  const deleteRegistrationAccessGate = useCallback(async (gateId) => {
-    if (!hasPermission(session, 'admin.registration_access.write')) {
-      return { error: 'No tenés permisos para gestionar tandas privadas.' }
-    }
-    try {
-      const deletedGate = await deleteRegistrationAccessGateRequest(gateId)
-      await refreshRegistrationAccessConfiguration()
-      return { deletedGate }
-    } catch (error) {
-      return { error: error?.message ?? 'No pudimos eliminar la tanda.' }
-    }
-  }, [refreshRegistrationAccessConfiguration, session])
+  const deleteRegistrationAccessGate = useCallback(
+    async (gateId) => {
+      if (!hasPermission(session, 'admin.registration_access.write')) {
+        return { error: 'No tenés permisos para gestionar tandas privadas.' }
+      }
+      try {
+        const deletedGate = await deleteRegistrationAccessGateRequest(gateId)
+        await refreshRegistrationAccessConfiguration()
+        return { deletedGate }
+      } catch (error) {
+        return { error: error?.message ?? 'No pudimos eliminar la tanda.' }
+      }
+    },
+    [refreshRegistrationAccessConfiguration, session],
+  )
 
   // Update optimista: la cola puede tener muchos ítems y esperar el viaje
   // completo antes de sacarlo de la vista se siente lento. Si la request
   // falla, se restaura el estado previo y se avisa con error.
-  const dismissQueueItem = useCallback(async (itemKey, itemType) => {
-    if (!hasPermission(session, 'admin.dashboard.write')) {
-      return { error: 'No tenés permisos para descartar ítems de la cola.' }
-    }
-    const previous = dismissedQueueItems
-    const optimisticEntry = {
-      itemKey,
-      itemType,
-      dismissedBy: null,
-      dismissedAt: new Date().toISOString(),
-    }
-    setDismissedQueueItems((current) => [
-      optimisticEntry,
-      ...current.filter((dismissal) => dismissal.itemKey !== itemKey),
-    ])
-    try {
-      const dismissed = await dismissQueueItemRequest({ itemKey, itemType })
+  const dismissQueueItem = useCallback(
+    async (itemKey, itemType) => {
+      if (!hasPermission(session, 'admin.dashboard.write')) {
+        return { error: 'No tenés permisos para descartar ítems de la cola.' }
+      }
+      const previous = dismissedQueueItems
+      const optimisticEntry = {
+        itemKey,
+        itemType,
+        dismissedBy: null,
+        dismissedAt: new Date().toISOString(),
+      }
       setDismissedQueueItems((current) => [
-        dismissed,
+        optimisticEntry,
         ...current.filter((dismissal) => dismissal.itemKey !== itemKey),
       ])
-      return { dismissal: dismissed }
-    } catch (error) {
-      setDismissedQueueItems(previous)
-      return { error: error?.message ?? 'No pudimos descartar este ítem.' }
-    }
-  }, [session, dismissedQueueItems])
+      try {
+        const dismissed = await dismissQueueItemRequest({ itemKey, itemType })
+        setDismissedQueueItems((current) => [
+          dismissed,
+          ...current.filter((dismissal) => dismissal.itemKey !== itemKey),
+        ])
+        return { dismissal: dismissed }
+      } catch (error) {
+        setDismissedQueueItems(previous)
+        return { error: error?.message ?? 'No pudimos descartar este ítem.' }
+      }
+    },
+    [session, dismissedQueueItems],
+  )
 
-  const undismissQueueItem = useCallback(async (itemKey) => {
-    if (!hasPermission(session, 'admin.dashboard.write')) {
-      return { error: 'No tenés permisos para restaurar ítems de la cola.' }
-    }
-    const previous = dismissedQueueItems
-    setDismissedQueueItems((current) => current.filter((dismissal) => dismissal.itemKey !== itemKey))
-    try {
-      await undismissQueueItemRequest(itemKey)
-      return { restored: true }
-    } catch (error) {
-      setDismissedQueueItems(previous)
-      return { error: error?.message ?? 'No pudimos restaurar este ítem.' }
-    }
-  }, [session, dismissedQueueItems])
+  const undismissQueueItem = useCallback(
+    async (itemKey) => {
+      if (!hasPermission(session, 'admin.dashboard.write')) {
+        return { error: 'No tenés permisos para restaurar ítems de la cola.' }
+      }
+      const previous = dismissedQueueItems
+      setDismissedQueueItems((current) =>
+        current.filter((dismissal) => dismissal.itemKey !== itemKey),
+      )
+      try {
+        await undismissQueueItemRequest(itemKey)
+        return { restored: true }
+      } catch (error) {
+        setDismissedQueueItems(previous)
+        return { error: error?.message ?? 'No pudimos restaurar este ítem.' }
+      }
+    },
+    [session, dismissedQueueItems],
+  )
 
-  const setDiscountCodeActive = useCallback(async (codeId, active) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const saved = await setDiscountCodeActiveRequest(codeId, active)
-      await refreshPricingConfiguration()
-      return { code: saved }
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo cambiar el estado del código de descuento.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const setDiscountCodeActive = useCallback(
+    async (codeId, active) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const saved = await setDiscountCodeActiveRequest(codeId, active)
+        await refreshPricingConfiguration()
+        return { code: saved }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo cambiar el estado del código de descuento.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
-  const deleteDiscountCode = useCallback(async (codeId) => {
-    if (!hasPermission(session, 'admin.pricing.write') || !isFeatureEnabled(FEATURE_KEYS.pricingWrites)) {
-      return { error: 'La configuración económica está disponible próximamente.' }
-    }
-    try {
-      const result = await deleteDiscountCodeRequest(codeId)
-      await refreshPricingConfiguration()
-      return result
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo eliminar el código de descuento.' }
-    }
-  }, [refreshPricingConfiguration, session])
+  const deleteDiscountCode = useCallback(
+    async (codeId) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const result = await deleteDiscountCodeRequest(codeId)
+        await refreshPricingConfiguration()
+        return result
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo eliminar el código de descuento.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
 
   const refreshBillingSubscriptions = useCallback(async (filters = {}) => {
     const currentSession = sessionRef.current
@@ -2710,18 +2826,21 @@ export function useAppData() {
     }
   }, [])
 
-  const cancelBillingSubscription = useCallback(async (subscriptionId) => {
-    if (!hasPermission(session, 'admin.payments.approve')) {
-      return { error: 'Sin permisos para cancelar suscripciones.' }
-    }
-    try {
-      const subscription = await cancelBillingSubscriptionRequest(subscriptionId)
-      await refreshBillingSubscriptions()
-      return { subscription }
-    } catch (error) {
-      return { error: error?.message ?? 'No se pudo cancelar la suscripción.' }
-    }
-  }, [refreshBillingSubscriptions, session])
+  const cancelBillingSubscription = useCallback(
+    async (subscriptionId) => {
+      if (!hasPermission(session, 'admin.payments.approve')) {
+        return { error: 'Sin permisos para cancelar suscripciones.' }
+      }
+      try {
+        const subscription = await cancelBillingSubscriptionRequest(subscriptionId)
+        await refreshBillingSubscriptions()
+        return { subscription }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo cancelar la suscripción.' }
+      }
+    },
+    [refreshBillingSubscriptions, session],
+  )
 
   const saveShopProduct = useCallback(
     (draft) => {

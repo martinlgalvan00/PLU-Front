@@ -1,7 +1,13 @@
 import { InvalidWebhookSignatureError, WebhookSignatureValidator } from 'mercadopago'
 import { HttpError } from '../../lib/errors.js'
 
-export function verifyMercadoPagoWebhook({ xSignature, xRequestId, dataId, secret, toleranceSeconds = 300 }) {
+export function verifyMercadoPagoWebhook({
+  xSignature,
+  xRequestId,
+  dataId,
+  secret,
+  toleranceSeconds = 300,
+}) {
   if (!secret?.trim()) {
     throw new HttpError(503, 'Falta MERCADO_PAGO_WEBHOOK_SECRET.')
   }
@@ -24,4 +30,3 @@ export function verifyMercadoPagoWebhook({ xSignature, xRequestId, dataId, secre
     throw error
   }
 }
-

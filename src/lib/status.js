@@ -40,12 +40,30 @@ const SUCCESS = new Set([
   'usada',
 ])
 
-const WARNING = new Set(['pendiente_pago', 'pendiente', 'validacion_manual', 'observada', 'borrador', 'creado', 'cupos_limitados'])
+const WARNING = new Set([
+  'pendiente_pago',
+  'pendiente',
+  'validacion_manual',
+  'observada',
+  'borrador',
+  'creado',
+  'cupos_limitados',
+])
 
 // `agotado` no es un error, pero para la organización significa lo mismo que
 // `cerrado`: ya no entra nadie más. Comparte el tono para que en un listado
 // largo se distinga de un vistazo de los eventos que siguen tomando gente.
-const DANGER = new Set(['cancelada', 'rechazado', 'cancelado', 'bloqueado', 'vencida', 'reembolsada', 'afiliado_vencido', 'cerrado', 'agotado'])
+const DANGER = new Set([
+  'cancelada',
+  'rechazado',
+  'cancelado',
+  'bloqueado',
+  'vencida',
+  'reembolsada',
+  'afiliado_vencido',
+  'cerrado',
+  'agotado',
+])
 
 const INFO = new Set(['pre_registrado', 'registrado', 'proximamente', 'programada'])
 

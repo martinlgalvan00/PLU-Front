@@ -59,7 +59,10 @@ export default function AdminTicketAddonRedemption({
       )}
 
       {redeemed.length > 0 ? (
-        <ul className="admin-checkin-benefits__redeemed" aria-label={t('admin.checkin.addons.redeemedTitle')}>
+        <ul
+          className="admin-checkin-benefits__redeemed"
+          aria-label={t('admin.checkin.addons.redeemedTitle')}
+        >
           {redeemed.map((addon) => (
             <li key={addon.id}>
               <CheckCircle2 size={13} aria-hidden />

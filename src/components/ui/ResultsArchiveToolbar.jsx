@@ -77,7 +77,9 @@ export default function ResultsArchiveToolbar({
 
   if (layout === 'page') {
     return (
-      <div className={`results-toolbar results-toolbar--page ${compact ? 'results-toolbar--compact' : ''}`.trim()}>
+      <div
+        className={`results-toolbar results-toolbar--page ${compact ? 'results-toolbar--compact' : ''}`.trim()}
+      >
         <div className="results-page__toolbar-row">
           <div className="results-page__filters-shell plu-tab-rail__shell">
             <FilterPills
@@ -149,7 +151,10 @@ export default function ResultsArchiveToolbar({
               <ResultsSortMenu luxury sort={sort} options={sorts} onSortChange={onSortChange} />
             </div>
 
-            <span className="results-hero__control-divider results-hero__control-divider--filters" aria-hidden />
+            <span
+              className="results-hero__control-divider results-hero__control-divider--filters"
+              aria-hidden
+            />
 
             <div className="results-hero__control-filters">{filtersShell}</div>
 

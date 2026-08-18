@@ -49,7 +49,9 @@ export async function runEmailDispatchJob({ client, env = process.env } = {}) {
   // En paralelo acotado: un lote de 50 en fila son ~10 s de latencia pura
   // contra Brevo, y en Vercel comparte el presupuesto de la función.
   const concurrency = Math.max(1, Number(env.EMAIL_DISPATCH_CONCURRENCY) || 8)
-  const results = await mapWithConcurrency(claimed, concurrency, (emailLog) => dispatcher.retry(emailLog))
+  const results = await mapWithConcurrency(claimed, concurrency, (emailLog) =>
+    dispatcher.retry(emailLog),
+  )
 
   let sent = 0
   let failed = 0
@@ -73,7 +75,9 @@ export function startEmailDispatchJob({ client, env = process.env } = {}) {
   if (env.EMAIL_DISPATCH_JOB_ENABLED === 'false' || !client) return null
 
   const run = () =>
-    runEmailDispatchJob({ client, env }).catch((error) => console.error('email-dispatch-job:', error))
+    runEmailDispatchJob({ client, env }).catch((error) =>
+      console.error('email-dispatch-job:', error),
+    )
 
   void run()
   const intervalMs = Number(env.EMAIL_DISPATCH_JOB_INTERVAL_MS) || DEFAULT_INTERVAL_MS

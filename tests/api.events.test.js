@@ -99,7 +99,13 @@ function canonicalEvent() {
 
 function createSupabaseDouble({ rpcResult, publishedRows, storageFiles = [] } = {}) {
   const rows = [canonicalEvent()]
-  const published = publishedRows ?? rows.map((row) => ({ ...row, published: true, registration_opens_at: '2026-08-20T10:00:00-03:00' }))
+  const published =
+    publishedRows ??
+    rows.map((row) => ({
+      ...row,
+      published: true,
+      registration_opens_at: '2026-08-20T10:00:00-03:00',
+    }))
   const orderAll = vi.fn(async () => ({ data: rows, error: null }))
   const orderPublished = vi.fn(async () => ({ data: published, error: null }))
   const inFilter = vi.fn(() => ({ order: orderPublished }))
@@ -197,9 +203,14 @@ describe('API administrativa de eventos', () => {
    */
   it('deja que el borde absorba el poll público de cupo', async () => {
     const supabase = createSupabaseDouble({
-      rpcResult: { data: { capacity: 120, registered: 48, remaining: 72, recent: [] }, error: null },
+      rpcResult: {
+        data: { capacity: 120, registered: 48, remaining: 72, recent: [] },
+        error: null,
+      },
     })
-    const target = listen(createApp({ prisma: createPrismaDouble([]), supabaseAdmin: supabase.client }))
+    const target = listen(
+      createApp({ prisma: createPrismaDouble([]), supabaseAdmin: supabase.client }),
+    )
 
     try {
       const response = await fetch(
@@ -318,10 +329,9 @@ describe('API administrativa de eventos', () => {
     })
 
     try {
-      const response = await fetch(
-        `${target.url}/api/events/pitbull-classic-2026/delete-impact`,
-        { headers: { Cookie: cookie } },
-      )
+      const response = await fetch(`${target.url}/api/events/pitbull-classic-2026/delete-impact`, {
+        headers: { Cookie: cookie },
+      })
       const body = await response.json()
 
       expect(response.status).toBe(200)
@@ -398,10 +408,10 @@ describe('API administrativa de eventos', () => {
     const { target, cookie, supabase } = await setup()
 
     try {
-      const response = await fetch(
-        `${target.url}/api/events/pitbull-classic-2026?force=true`,
-        { method: 'DELETE', headers: authHeaders(cookie) },
-      )
+      const response = await fetch(`${target.url}/api/events/pitbull-classic-2026?force=true`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
 
       expect(response.status).toBe(200)
       expect(supabase.rpc).toHaveBeenCalledWith(
@@ -593,8 +603,12 @@ describe('migración 20260815110000 (borrado definitivo de eventos)', () => {
     expect(migration).toContain("errcode = 'PLU03'")
     expect(migration).toContain('if v_requires_force and not coalesce(p_force, false) then')
     expect(migration).toContain("'event.deleted'")
-    expect(migration).toContain('revoke all on function public.delete_event(text, text, boolean, boolean)')
-    expect(migration).toContain('grant execute on function public.delete_event(text, text, boolean, boolean)')
+    expect(migration).toContain(
+      'revoke all on function public.delete_event(text, text, boolean, boolean)',
+    )
+    expect(migration).toContain(
+      'grant execute on function public.delete_event(text, text, boolean, boolean)',
+    )
     expect(migration).toContain('to service_role')
   })
 

@@ -53,8 +53,16 @@ export default function StaffInvitationPage({ token, onAccept, onCancel }) {
       <aside className="auth-layout__visual" aria-hidden="true">
         <ResponsivePhoto
           className="auth-layout__visual-photo"
-          avif={{ 480: authVisualPhotoAvif480, 800: authVisualPhotoAvif800, 1153: authVisualPhotoAvif }}
-          webp={{ 480: authVisualPhotoWebp480, 800: authVisualPhotoWebp800, 1153: authVisualPhotoWebp }}
+          avif={{
+            480: authVisualPhotoAvif480,
+            800: authVisualPhotoAvif800,
+            1153: authVisualPhotoAvif,
+          }}
+          webp={{
+            480: authVisualPhotoWebp480,
+            800: authVisualPhotoWebp800,
+            1153: authVisualPhotoWebp,
+          }}
           src={authVisualPhoto}
           alt=""
           width={800}

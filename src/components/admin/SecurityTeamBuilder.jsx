@@ -52,7 +52,9 @@ export default function SecurityTeamBuilder({
           const rowErrors = errors[member.id] ?? {}
           return (
             <div className="security-team-builder__row" key={member.id}>
-              <span className="security-team-builder__index" aria-hidden>{index + 1}</span>
+              <span className="security-team-builder__index" aria-hidden>
+                {index + 1}
+              </span>
               <label>
                 <span>{t('admin.users.name')}</span>
                 <input
@@ -103,7 +105,11 @@ export default function SecurityTeamBuilder({
           <Plus size={14} aria-hidden />
           {t('admin.eventEditor.security.addAnother')}
         </button>
-        <button type="button" onClick={() => setImportOpen((current) => !current)} aria-expanded={importOpen}>
+        <button
+          type="button"
+          onClick={() => setImportOpen((current) => !current)}
+          aria-expanded={importOpen}
+        >
           <ClipboardPaste size={14} aria-hidden />
           {t('admin.eventEditor.security.pasteList')}
         </button>
@@ -123,8 +129,12 @@ export default function SecurityTeamBuilder({
           </label>
           {importError && <p role="alert">{importError}</p>}
           <div>
-            <button type="button" onClick={() => setImportOpen(false)}>{t('common.cancel')}</button>
-            <button type="button" onClick={handleImport}>{t('admin.eventEditor.security.importAction')}</button>
+            <button type="button" onClick={() => setImportOpen(false)}>
+              {t('common.cancel')}
+            </button>
+            <button type="button" onClick={handleImport}>
+              {t('admin.eventEditor.security.importAction')}
+            </button>
           </div>
         </div>
       )}
@@ -135,12 +145,16 @@ export default function SecurityTeamBuilder({
           checked={sendEmail}
           onChange={(event) => onSendEmailChange(event.target.checked)}
         />
-        <span className="security-team-builder__delivery-icon"><Mail size={15} aria-hidden /></span>
+        <span className="security-team-builder__delivery-icon">
+          <Mail size={15} aria-hidden />
+        </span>
         <span>
           <strong>{t('admin.eventEditor.security.deliveryTitle')}</strong>
           <small>{t('admin.eventEditor.security.deliveryLead')}</small>
         </span>
-        <span className="security-team-builder__recommended">{t('admin.eventEditor.security.recommended')}</span>
+        <span className="security-team-builder__recommended">
+          {t('admin.eventEditor.security.recommended')}
+        </span>
       </label>
 
       <div className="security-team-builder__submit">

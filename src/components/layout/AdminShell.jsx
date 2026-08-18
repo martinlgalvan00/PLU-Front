@@ -36,8 +36,8 @@ import { TOUR_MODES, useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAdminIntroTourSteps, getTourForSection } from '../../lib/adminTourSteps.js'
 import { ADMIN_NAV_GROUPS } from '../../lib/content.js'
 
-const { Header, Sider, Content } = Layout;
-const { Text } = Typography;
+const { Header, Sider, Content } = Layout
+const { Text } = Typography
 
 const ICONS = {
   Activity,
@@ -186,7 +186,12 @@ export default function AdminShell({
     ...TOUR_MODES.map((mode) => ({
       key: `mode-${mode}`,
       label: t(`admin.tour.mode.${mode}`),
-      icon: tourMode === mode ? <Check size={14} aria-hidden /> : <span style={{ width: 14, display: 'inline-block' }} />,
+      icon:
+        tourMode === mode ? (
+          <Check size={14} aria-hidden />
+        ) : (
+          <span style={{ width: 14, display: 'inline-block' }} />
+        ),
     })),
   ]
 
@@ -209,16 +214,15 @@ export default function AdminShell({
     if (restrictedNav === 'pluUsa') {
       groups = ADMIN_NAV_GROUPS.filter((group) => group.labelKey === 'admin.nav.groups.pluUsa')
     } else if (restrictedNav === 'checkin') {
-      groups = ADMIN_NAV_GROUPS
-        .map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'checkin') }))
-        .filter((group) => group.items.length > 0)
+      groups = ADMIN_NAV_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter(([key]) => key === 'checkin'),
+      })).filter((group) => group.items.length > 0)
     } else {
-      groups = ADMIN_NAV_GROUPS
-        .map((group) => ({
-          ...group,
-          items: group.items.filter(([key]) => !UNAVAILABLE_NAV_KEYS.has(key)),
-        }))
-        .filter((group) => group.items.length > 0)
+      groups = ADMIN_NAV_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter(([key]) => !UNAVAILABLE_NAV_KEYS.has(key)),
+      })).filter((group) => group.items.length > 0)
     }
 
     if (!Array.isArray(allowedSections) || allowedSections.length === 0) return groups
@@ -248,21 +252,28 @@ export default function AdminShell({
   }, [scrollGroups, navBadges, t])
 
   const activeLabel = useMemo(() => {
-    const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(([key]) => key === activeSection)
+    const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(
+      ([key]) => key === activeSection,
+    )
     return match?.[1] ? t(match[1]) : t('admin.shell.defaultSection')
   }, [activeSection, t])
 
   const collapseToggleMeta = useMemo(() => {
-    if (sidebarMode === 'expanded') return { label: t('admin.shell.collapseSidebar'), icon: ChevronLeft }
-    if (sidebarMode === 'collapsed') return { label: t('admin.shell.hideSidebar'), icon: PanelLeftClose }
+    if (sidebarMode === 'expanded')
+      return { label: t('admin.shell.collapseSidebar'), icon: ChevronLeft }
+    if (sidebarMode === 'collapsed')
+      return { label: t('admin.shell.hideSidebar'), icon: PanelLeftClose }
     return { label: t('admin.shell.showSidebar'), icon: PanelLeft }
   }, [sidebarMode, t])
 
   useEffect(() => {
     try {
       window.localStorage.setItem(SIDEBAR_MODE_STORAGE_KEY, sidebarMode)
-      window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, sidebarMode === 'expanded' ? '0' : '1')
-    } catch { }
+      window.localStorage.setItem(
+        SIDEBAR_COLLAPSED_STORAGE_KEY,
+        sidebarMode === 'expanded' ? '0' : '1',
+      )
+    } catch {}
   }, [sidebarMode])
 
   function handleSectionChange(key) {
@@ -271,7 +282,16 @@ export default function AdminShell({
   }
 
   const brandMark = (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40, width: 40, flexShrink: 0 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 40,
+        width: 40,
+        flexShrink: 0,
+      }}
+    >
       <BrandLogo variant="argentina" height={28} />
     </div>
   )
@@ -284,9 +304,15 @@ export default function AdminShell({
         {brandMark}
         {(!collapsed || isPhoneViewport) && (
           <div className="admin-shell__brand-copy">
-            <Text strong className="admin-shell__brand-name">{t('brand.name')}</Text>
+            <Text strong className="admin-shell__brand-name">
+              {t('brand.name')}
+            </Text>
             <Text type="secondary" className="admin-shell__brand-subtitle">
-              {restrictedNav === 'pluUsa' ? t('admin.shell.brandTagPartner') : restrictedNav === 'checkin' ? t('admin.shell.brandSubtitleSecurity') : t('admin.shell.brandTag')}
+              {restrictedNav === 'pluUsa'
+                ? t('admin.shell.brandTagPartner')
+                : restrictedNav === 'checkin'
+                  ? t('admin.shell.brandSubtitleSecurity')
+                  : t('admin.shell.brandTag')}
             </Text>
           </div>
         )}
@@ -319,26 +345,59 @@ export default function AdminShell({
 
       <div className="admin-shell__footer">
         <Space orientation="vertical" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: (!collapsed || isPhoneViewport) ? 'flex-start' : 'center', width: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: !collapsed || isPhoneViewport ? 'flex-start' : 'center',
+              width: '100%',
+            }}
+          >
             {onOpenAccount ? (
-              <Button type="text" onClick={onOpenAccount} style={{ padding: 0, height: 'auto', textAlign: 'left', width: '100%' }}>
+              <Button
+                type="text"
+                onClick={onOpenAccount}
+                style={{ padding: 0, height: 'auto', textAlign: 'left', width: '100%' }}
+              >
                 <Space>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--plu-success-400)' }} />
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: 'var(--plu-success-400)',
+                    }}
+                  />
                   {(!collapsed || isPhoneViewport) && (
                     <div>
-                      <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{roleLabel}</div>
-                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>{t('staffAccount.dialogEyebrow')}</div>
+                      <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                        {roleLabel}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
+                        {t('staffAccount.dialogEyebrow')}
+                      </div>
                     </div>
                   )}
                 </Space>
               </Button>
             ) : (
               <Space>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--plu-success-400)' }} />
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: 'var(--plu-success-400)',
+                  }}
+                />
                 {(!collapsed || isPhoneViewport) && (
                   <div>
-                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{roleLabel}</div>
-                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>{t('admin.shell.activeProfile')}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      {roleLabel}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
+                      {t('admin.shell.activeProfile')}
+                    </div>
                   </div>
                 )}
               </Space>
@@ -350,14 +409,14 @@ export default function AdminShell({
             icon={<ArrowLeft size={16} />}
             onClick={onExit}
             block={!collapsed || isPhoneViewport}
-            style={{ marginTop: 8, justifyContent: (!collapsed || isPhoneViewport) ? 'flex-start' : 'center' }}
+            style={{ justifyContent: !collapsed || isPhoneViewport ? 'flex-start' : 'center' }}
           >
             {(!collapsed || isPhoneViewport) && t('admin.shell.exit')}
           </Button>
         </Space>
       </div>
     </div>
-  );
+  )
 
   return (
     <Layout
@@ -392,7 +451,9 @@ export default function AdminShell({
           onClose={() => setSidebarOpen(false)}
           open={sidebarOpen}
           closable={false}
-          styles={{ body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' } }}
+          styles={{
+            body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' },
+          }}
           size={260}
           className="admin-shell__drawer"
         >
@@ -404,20 +465,26 @@ export default function AdminShell({
         <Header className="admin-shell__header">
           <Space>
             {isPhoneViewport && (
-              <Button type="text" icon={<MenuIcon size={20} />} onClick={() => setSidebarOpen(true)} />
+              <Button
+                type="text"
+                icon={<MenuIcon size={20} />}
+                onClick={() => setSidebarOpen(true)}
+              />
             )}
             <div className="admin-shell__header-copy">
               <div className="admin-shell__breadcrumb">
                 {t('admin.shell.breadcrumbRoot')} / {activeLabel}
               </div>
-              <Text strong className="admin-shell__header-title">{activeLabel}</Text>
+              <Text strong className="admin-shell__header-title">
+                {activeLabel}
+              </Text>
             </div>
           </Space>
-          
+
           <div className="admin-shell__header-actions">
             {sidebarHidden && !isPhoneViewport && (
-              <button 
-                className="admin-mobile-bar__menu--reveal" 
+              <button
+                className="admin-mobile-bar__menu--reveal"
                 onClick={() => setSidebarMode('collapsed')}
                 title={t('admin.shell.showSidebar')}
                 aria-label={t('admin.shell.showSidebar')}
@@ -441,9 +508,7 @@ export default function AdminShell({
             </Dropdown>
           </div>
         </Header>
-        <Content className="admin-shell__content">
-          {children}
-        </Content>
+        <Content className="admin-shell__content">{children}</Content>
       </Layout>
     </Layout>
   )

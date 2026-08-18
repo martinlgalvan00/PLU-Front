@@ -14,10 +14,10 @@ const STATUS_BY_CODE = {
   PLU11: 409,
   PLU12: 409,
   PLU13: 409,
-  '23505': 409,
-  '23503': 409,
-  '23514': 400,
-  '42501': 403,
+  23505: 409,
+  23503: 409,
+  23514: 400,
+  42501: 403,
   // Objeto ausente -- tabla, columna o funcion que el codigo pide y la base no
   // tiene. No es indisponibilidad: es una migracion sin aplicar en el entorno
   // desplegado. Sin este mapeo caian en el 503 por defecto y el frontend los
@@ -32,8 +32,8 @@ const STATUS_BY_CODE = {
   PGRST204: 500,
   PGRST205: 500,
   '42P01': 500,
-  '42703': 500,
-  '42883': 500,
+  42703: 500,
+  42883: 500,
 }
 
 export function assertSupabaseResult(result, fallback = 'No se pudo completar la operacion.') {

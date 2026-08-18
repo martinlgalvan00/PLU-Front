@@ -21,7 +21,9 @@ describe('rechazo manual de comprobantes de transferencia', () => {
 
   it('define reject_ticket_payment_order liberando el cupo de los tickets pendientes', () => {
     expect(migration).toContain('create or replace function public.reject_ticket_payment_order(')
-    expect(migration).toContain("if v_order.status <> 'pendiente' or v_order.payment_proof_path is null then")
+    expect(migration).toContain(
+      "if v_order.status <> 'pendiente' or v_order.payment_proof_path is null then",
+    )
     expect(migration).toContain(
       "update public.tickets set status = 'cancelada', updated_at = now()\n  where order_id = p_order_id and status = 'pendiente_pago';",
     )

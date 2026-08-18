@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { getStatusMeta, isGateAccessReady, isRegistrationAdmitted, normalizeStatus } from '../src/lib/status.js'
+import {
+  getStatusMeta,
+  isGateAccessReady,
+  isRegistrationAdmitted,
+  normalizeStatus,
+} from '../src/lib/status.js'
 
 describe('status', () => {
   it('normaliza estados legacy', () => {

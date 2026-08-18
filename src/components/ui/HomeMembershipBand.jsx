@@ -6,7 +6,11 @@ import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
 import { PRICING } from '../../lib/constants.js'
-import { resolveComboDeal, resolveEventPricing, resolveLiveComboOffer } from '../../lib/eventPricing.js'
+import {
+  resolveComboDeal,
+  resolveEventPricing,
+  resolveLiveComboOffer,
+} from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens.ts'
@@ -69,17 +73,15 @@ export default function HomeMembershipBand({
     isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'combo' })
   const liveComboOffer = hasActiveMembership
     ? null
-    : (resolveLiveComboOffer(gateEvent)
-      ?? (gateEvent?.comboOffer
-        ? null
-        : resolveLiveComboOffer({ comboOffer: SEASON_COMBO_FALLBACK })))
+    : (resolveLiveComboOffer(gateEvent) ??
+      (gateEvent?.comboOffer ? null : resolveLiveComboOffer({ comboOffer: SEASON_COMBO_FALLBACK })))
   const eventPricing = resolveEventPricing(gateEvent)
   const comboDeal = liveComboOffer
     ? resolveComboDeal({
-      membership: eventPricing.membership,
-      registration: eventPricing.registration,
-      combo: liveComboOffer.price,
-    })
+        membership: eventPricing.membership,
+        registration: eventPricing.registration,
+        combo: liveComboOffer.price,
+      })
     : null
   const showCombo = Boolean(comboDeal?.live)
 
@@ -96,7 +98,9 @@ export default function HomeMembershipBand({
   const primaryTarget = !paidCheckoutOpen
     ? 'members'
     : isLoggedInAthlete
-      ? (hasActiveMembership ? 'profile' : 'membership')
+      ? hasActiveMembership
+        ? 'profile'
+        : 'membership'
       : 'members'
   const goToAffiliation = () => onNavigate(primaryTarget)
   const goToCombo = () => {
@@ -133,7 +137,9 @@ export default function HomeMembershipBand({
         <CopyItem {...itemProps}>
           <h2 className="home-membership-band__title">
             <span className="home-membership-band__title-lead">{HOME_MEMBERSHIP.titleLead}</span>
-            <span className="home-membership-band__title-accent">{HOME_MEMBERSHIP.titleAccent}</span>
+            <span className="home-membership-band__title-accent">
+              {HOME_MEMBERSHIP.titleAccent}
+            </span>
           </h2>
         </CopyItem>
 
@@ -143,9 +149,17 @@ export default function HomeMembershipBand({
 
         {HOME_MEMBERSHIP_FEATURES?.length ? (
           <CopyItem {...itemProps}>
-            <ul className="home-membership-band__benefits" aria-label={t('pages.home.membershipBenefitsAria')}>
+            <ul
+              className="home-membership-band__benefits"
+              aria-label={t('pages.home.membershipBenefitsAria')}
+            >
               {HOME_MEMBERSHIP_FEATURES.map((feature, index) => (
-                <CopyItem key={feature} role="listitem" {...itemProps} className="home-membership-band__benefit">
+                <CopyItem
+                  key={feature}
+                  role="listitem"
+                  {...itemProps}
+                  className="home-membership-band__benefit"
+                >
                   <span className="home-membership-band__benefit-index" aria-hidden>
                     {String(index + 1).padStart(2, '0')}
                   </span>
@@ -174,7 +188,11 @@ export default function HomeMembershipBand({
           </CopyItem>
         ) : (
           <CopyItem {...itemProps} className="home-membership-band__actions">
-            <button type="button" className="btn btn--gold home-membership-band__cta" onClick={goToAffiliation}>
+            <button
+              type="button"
+              className="btn btn--gold home-membership-band__cta"
+              onClick={goToAffiliation}
+            >
               {primaryCta}
               <ArrowRight size={15} aria-hidden className="home-membership-band__cta-icon" />
             </button>
@@ -190,7 +208,10 @@ export default function HomeMembershipBand({
 
         {showCombo ? null : (
           <CopyItem {...subtleItemProps}>
-            <p className="home-membership-band__meta" aria-label={t('pages.home.membershipMetaAria')}>
+            <p
+              className="home-membership-band__meta"
+              aria-label={t('pages.home.membershipMetaAria')}
+            >
               <span>{HOME_MEMBERSHIP.seasonNote}</span>
               <span aria-hidden className="home-membership-band__meta-sep">
                 ·

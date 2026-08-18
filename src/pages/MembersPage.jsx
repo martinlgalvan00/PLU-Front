@@ -36,13 +36,9 @@ function mapLivePlan(plan, featureTemplate, t) {
     id: plan.id ?? plan.code,
     code: plan.code,
     title: plan.name,
-    kicker: isMonthly
-      ? t('pages.members.planMonthly')
-      : t('pages.membershipCard.periodAnnual'),
+    kicker: isMonthly ? t('pages.members.planMonthly') : t('pages.membershipCard.periodAnnual'),
     price: plan.price,
-    period: isMonthly
-      ? t('pages.members.planMonthly')
-      : t('pages.membershipCard.periodAnnual'),
+    period: isMonthly ? t('pages.members.planMonthly') : t('pages.membershipCard.periodAnnual'),
     features: featureTemplate,
     highlighted: true,
     procedureType: 'membership',
@@ -99,18 +95,21 @@ export default function MembersPage({
 
   const eventPricing = useMemo(() => resolveEventPricing(featuredEvent), [featuredEvent])
 
-  const loadPlans = useCallback(async ({ force = false, signal } = {}) => {
-    setPlansLoaded(false)
-    setPlansError('')
-    try {
-      const { plans } = await listMembershipPlans({ force })
-      if (!signal?.aborted) setLivePlans(plans ?? [])
-    } catch (error) {
-      if (!signal?.aborted) setPlansError(error?.message ?? t('pages.members.plansLoadError'))
-    } finally {
-      if (!signal?.aborted) setPlansLoaded(true)
-    }
-  }, [t])
+  const loadPlans = useCallback(
+    async ({ force = false, signal } = {}) => {
+      setPlansLoaded(false)
+      setPlansError('')
+      try {
+        const { plans } = await listMembershipPlans({ force })
+        if (!signal?.aborted) setLivePlans(plans ?? [])
+      } catch (error) {
+        if (!signal?.aborted) setPlansError(error?.message ?? t('pages.members.plansLoadError'))
+      } finally {
+        if (!signal?.aborted) setPlansLoaded(true)
+      }
+    },
+    [t],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -123,13 +122,11 @@ export default function MembersPage({
     if (livePlans.length) {
       return livePlans.map((plan) => mapLivePlan(plan, featureTemplate, t))
     }
-    return MEMBERSHIP_PLANS
-      .filter((plan) => plan.id !== 'combo')
-      .map((plan) => ({
-        ...plan,
-        collectionMode: plan.collectionMode ?? 'one_time',
-        highlighted: Boolean(plan.highlighted),
-      }))
+    return MEMBERSHIP_PLANS.filter((plan) => plan.id !== 'combo').map((plan) => ({
+      ...plan,
+      collectionMode: plan.collectionMode ?? 'one_time',
+      highlighted: Boolean(plan.highlighted),
+    }))
   }, [MEMBERSHIP_PLANS, livePlans, t])
 
   const oneTimePlans = useMemo(
@@ -154,9 +151,10 @@ export default function MembersPage({
     })
   }, [billingSwitchEnabled, oneTimePlans.length, recurringPlans.length])
 
-  const billingHint = billingMode === 'recurring'
-    ? t('pages.members.autoRenewHintOn')
-    : t('pages.members.autoRenewHintOff')
+  const billingHint =
+    billingMode === 'recurring'
+      ? t('pages.members.autoRenewHintOn')
+      : t('pages.members.autoRenewHintOff')
 
   const visiblePlans = useMemo(() => {
     if (!catalogPlans.length) return []
@@ -169,7 +167,8 @@ export default function MembersPage({
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
-  const hasActiveMembership = isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
+  const hasActiveMembership =
+    isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
   const membershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
   const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
   const paidCheckoutOpen =
@@ -234,7 +233,9 @@ export default function MembersPage({
           onNavigate={onNavigate}
           session={session}
           affiliationCta={affiliationCta}
-          ctaDisabled={hasActiveMembership || checkoutLocked || (isLoggedInAthlete && livePlansUnavailable)}
+          ctaDisabled={
+            hasActiveMembership || checkoutLocked || (isLoggedInAthlete && livePlansUnavailable)
+          }
           onAffiliate={goToAffiliation}
         />
       </Reveal>
@@ -246,7 +247,9 @@ export default function MembersPage({
             'members-section--plans',
             'members-plu-plans',
             showComboPromo ? 'members-plu-plans--with-combo' : '',
-          ].filter(Boolean).join(' ')}
+          ]
+            .filter(Boolean)
+            .join(' ')}
           id="planes"
         >
           <header className="members-plu-block__head members-plu-plans__head">
@@ -299,9 +302,7 @@ export default function MembersPage({
           ) : null}
 
           {!hasActiveMembership && visiblePlans.length ? (
-            <p className="members-plu-plans__reassure">
-              {t('pages.members.closureReassure')}
-            </p>
+            <p className="members-plu-plans__reassure">{t('pages.members.closureReassure')}</p>
           ) : null}
           {!plansLoaded ? (
             <p className="members-plans-feedback" role="status">
@@ -318,21 +319,28 @@ export default function MembersPage({
               lead={t('pages.members.plansComingSoonLead')}
               onAction={plansError ? () => loadPlans({ force: true }) : undefined}
               role={plansError ? 'alert' : 'status'}
-              title={plansError ? t('pages.members.plansLoadError') : t('pages.members.plansComingSoon')}
+              title={
+                plansError ? t('pages.members.plansLoadError') : t('pages.members.plansComingSoon')
+              }
               variant="inline"
             />
           ) : null}
         </section>
 
         {hasActiveMembership ? (
-          <Reveal as="section" variant="up" className="members-plu-block members-plu-block--closure members-plu-block--closure-active">
-            <div className="members-plu-closure members-plu-closure--active" aria-labelledby="members-closure-title">
+          <Reveal
+            as="section"
+            variant="up"
+            className="members-plu-block members-plu-block--closure members-plu-block--closure-active"
+          >
+            <div
+              className="members-plu-closure members-plu-closure--active"
+              aria-labelledby="members-closure-title"
+            >
               <h2 className="members-plu-closure__title" id="members-closure-title">
                 {t('pages.members.closureTitleActive')}
               </h2>
-              <p className="members-plu-closure__lead">
-                {t('pages.members.closureLeadActive')}
-              </p>
+              <p className="members-plu-closure__lead">{t('pages.members.closureLeadActive')}</p>
               <div className="members-plu-closure__actions">
                 <button
                   type="button"
@@ -372,7 +380,12 @@ export default function MembersPage({
           />
         </Reveal>
 
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--requirements" id="requisitos">
+        <Reveal
+          as="section"
+          variant="up"
+          className="members-plu-block members-plu-block--requirements"
+          id="requisitos"
+        >
           <div className="members-plu-requirements">
             <MembersRequirementsCarousel
               items={MEMBERSHIP_REQUIREMENTS}
@@ -409,7 +422,12 @@ export default function MembersPage({
           <p className="members-plu-note">{MEMBERSHIP_INSTITUTIONAL.text}</p>
         </Reveal>
 
-        <Reveal as="section" variant="up" className="members-plu-block members-plu-block--faq" id="members-faq">
+        <Reveal
+          as="section"
+          variant="up"
+          className="members-plu-block members-plu-block--faq"
+          id="members-faq"
+        >
           <header className="members-plu-block__head members-plu-block__head--faq">
             <h2 className="members-plu-block__title">{t('pages.members.faqTitle')}</h2>
           </header>

@@ -57,10 +57,15 @@ export default function TicketsPage({
     resolveInitialEventId(initialEventSlug, ticketEvents, event),
   )
   const selectedEvent =
-    ticketEvents.find((item) => (item.id ?? item.slug ?? item.title) === selectedEventId) ?? ticketEvents[0] ?? event
+    ticketEvents.find((item) => (item.id ?? item.slug ?? item.title) === selectedEventId) ??
+    ticketEvents[0] ??
+    event
   const pricing = ticketPricingFromEvent(selectedEvent)
-  const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), { checkoutKind: 'ticket' })
-  const eventSalesOpen = env.ticketSalesEnabled && paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled === true
+  const paidCheckoutOpen = isPaidCheckoutOpen(selectedEvent, env, new Date(), {
+    checkoutKind: 'ticket',
+  })
+  const eventSalesOpen =
+    env.ticketSalesEnabled && paidCheckoutOpen && selectedEvent?.pricing?.ticketsEnabled === true
   // El interruptor global del panel se pide con el mismo request que el cupo, así
   // que se consulta con el slug del evento aunque la venta ya esté cerrada por
   // fecha o por configuración del torneo.
@@ -68,7 +73,9 @@ export default function TicketsPage({
   const ticketSalesOpen = eventSalesOpen && ticketCheckout.ticketEnabled
   const availabilityRemaining = useTicketAvailability(ticketSalesOpen ? selectedEvent?.slug : null)
   const visibleCreatedOrder =
-    createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title ? createdOrder : null
+    createdOrder?.type === 'tickets' && createdOrder.eventTitle === selectedEvent?.title
+      ? createdOrder
+      : null
 
   const heroMark =
     String(selectedEvent?.title ?? '')
@@ -130,7 +137,11 @@ export default function TicketsPage({
 
         <div className="tickets-page__shell tickets-page__hero-inner">
           <Item {...itemProps}>
-            <button type="button" className="tickets-page__back" onClick={() => onNavigate('pitbull')}>
+            <button
+              type="button"
+              className="tickets-page__back"
+              onClick={() => onNavigate('pitbull')}
+            >
               <ArrowLeft size={15} aria-hidden />
               {t('pages.ticketsPage.backToEvent')}
             </button>
@@ -152,7 +163,10 @@ export default function TicketsPage({
                 </h1>
               </Item>
               <Item {...itemProps}>
-                <div className="tickets-page__dateline" aria-label={t('pages.ticketsPage.eventMetaAria')}>
+                <div
+                  className="tickets-page__dateline"
+                  aria-label={t('pages.ticketsPage.eventMetaAria')}
+                >
                   <p className="tickets-page__dateline-date">
                     {selectedEvent?.date ?? t('pages.ticketsPage.dateFallback')}
                   </p>
@@ -185,7 +199,11 @@ export default function TicketsPage({
                   <div className="tickets-page__hero-actions">
                     <a className="tickets-page__hero-cta motion-icon-shift" href="#checkout">
                       {t('pages.ticketsPage.heroCta')}
-                      <ArrowRight size={15} aria-hidden className="tickets-page__hero-cta-icon motion-icon-shift__target" />
+                      <ArrowRight
+                        size={15}
+                        aria-hidden
+                        className="tickets-page__hero-cta-icon motion-icon-shift__target"
+                      />
                     </a>
                     <a className="tickets-page__hero-link" href="#pass-preview">
                       {t('pages.ticketsPage.heroSeePass')}
@@ -214,7 +232,9 @@ export default function TicketsPage({
         aria-labelledby="tickets-pass-title"
       >
         <header className="tickets-page__pass-head">
-          <span className="tickets-page__eyebrow">{t('pages.ticketsPage.passShowcaseEyebrow')}</span>
+          <span className="tickets-page__eyebrow">
+            {t('pages.ticketsPage.passShowcaseEyebrow')}
+          </span>
           <h2 id="tickets-pass-title">{t('pages.ticketsPage.passShowcaseTitle')}</h2>
           <p>{t('pages.ticketsPage.passShowcaseLead')}</p>
         </header>
@@ -230,7 +250,10 @@ export default function TicketsPage({
       </section>
 
       {ticketEvents.length > 1 && (
-        <section className="tickets-page__event-picker tickets-page__shell" aria-label={t('pages.ticketsPage.chooseEventAria')}>
+        <section
+          className="tickets-page__event-picker tickets-page__shell"
+          aria-label={t('pages.ticketsPage.chooseEventAria')}
+        >
           <div className="tickets-page__event-picker-head">
             <span>{t('pages.ticketsPage.chooseEventEyebrow')}</span>
             <h2>{t('pages.ticketsPage.chooseEventTitle')}</h2>
@@ -239,25 +262,35 @@ export default function TicketsPage({
           <div className="tickets-page__event-list" role="list">
             {ticketEvents.map((item) => {
               const itemId = item.id ?? item.slug ?? item.title
-              const active = itemId === (selectedEvent?.id ?? selectedEvent?.slug ?? selectedEvent?.title)
+              const active =
+                itemId === (selectedEvent?.id ?? selectedEvent?.slug ?? selectedEvent?.title)
               const itemPricing = ticketPricingFromEvent(item)
               return (
                 <button
                   key={itemId}
                   type="button"
-                  className={['tickets-page__event-option', active ? 'tickets-page__event-option--active' : '']
+                  className={[
+                    'tickets-page__event-option',
+                    active ? 'tickets-page__event-option--active' : '',
+                  ]
                     .filter(Boolean)
                     .join(' ')}
                   onClick={() => setSelectedEventId(itemId)}
                   role="listitem"
                 >
-                  <span>{active ? t('pages.ticketsPage.currentEvent') : t('pages.ticketsPage.availableEvent')}</span>
+                  <span>
+                    {active
+                      ? t('pages.ticketsPage.currentEvent')
+                      : t('pages.ticketsPage.availableEvent')}
+                  </span>
                   <strong>{item.title ?? t('pages.ticketsPage.eventFallback')}</strong>
                   <small>
-                    {item.date ?? t('pages.ticketsPage.dateFallback')} · {item.venue ?? t('pages.ticketsPage.venueFallback')}
+                    {item.date ?? t('pages.ticketsPage.dateFallback')} ·{' '}
+                    {item.venue ?? t('pages.ticketsPage.venueFallback')}
                   </small>
                   <em>
-                    {money(cheapestTicketTypePrice(itemPricing), locale)} {t('pages.ticketsPage.fromPerDay')}
+                    {money(cheapestTicketTypePrice(itemPricing), locale)}{' '}
+                    {t('pages.ticketsPage.fromPerDay')}
                   </em>
                 </button>
               )
@@ -267,30 +300,34 @@ export default function TicketsPage({
       )}
 
       {ticketSalesOpen ? (
-        <section className="tickets-page__offers tickets-page__shell" aria-labelledby="tickets-offers-title">
-        <header className="tickets-page__offers-head">
-          <span className="tickets-page__eyebrow">{t('pages.ticketsPage.offersEyebrow')}</span>
-          <h2 id="tickets-offers-title">{t('pages.ticketsPage.offersTitle')}</h2>
-          <p>{t('pages.ticketsPage.offersLead')}</p>
-        </header>
+        <section
+          className="tickets-page__offers tickets-page__shell"
+          aria-labelledby="tickets-offers-title"
+        >
+          <header className="tickets-page__offers-head">
+            <span className="tickets-page__eyebrow">{t('pages.ticketsPage.offersEyebrow')}</span>
+            <h2 id="tickets-offers-title">{t('pages.ticketsPage.offersTitle')}</h2>
+            <p>{t('pages.ticketsPage.offersLead')}</p>
+          </header>
 
-        <div className="tickets-page__offers-grid" aria-label={t('pages.ticketsPage.offersAria')}>
-          {pricing.ticketTypes.map((type) => (
-            <article key={type.id} className="tickets-page__offer">
-              <span>{type.name}</span>
-              <div className="tickets-page__offer-prices">
-                <div>
-                  <strong>{money(type.price, locale)}</strong>
+          <div className="tickets-page__offers-grid" aria-label={t('pages.ticketsPage.offersAria')}>
+            {pricing.ticketTypes.map((type) => (
+              <article key={type.id} className="tickets-page__offer">
+                <span>{type.name}</span>
+                <div className="tickets-page__offer-prices">
+                  <div>
+                    <strong>{money(type.price, locale)}</strong>
+                  </div>
                 </div>
-              </div>
-              {type.includedAddons.length ? (
-                <p>
-                  {t('pages.ticketsPage.includesBadge')}: {type.includedAddons.map((addon) => addon.label).join(' · ')}
-                </p>
-              ) : null}
-            </article>
-          ))}
-        </div>
+                {type.includedAddons.length ? (
+                  <p>
+                    {t('pages.ticketsPage.includesBadge')}:{' '}
+                    {type.includedAddons.map((addon) => addon.label).join(' · ')}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
         </section>
       ) : null}
 
@@ -303,12 +340,20 @@ export default function TicketsPage({
           <header className="tickets-page__checkout-head">
             <div className="tickets-page__checkout-copy">
               <span className="tickets-page__eyebrow">
-                {ticketSalesOpen ? t('pages.ticketsPage.checkoutEyebrow') : t('pages.ticketsPage.salesPausedEyebrow')}
+                {ticketSalesOpen
+                  ? t('pages.ticketsPage.checkoutEyebrow')
+                  : t('pages.ticketsPage.salesPausedEyebrow')}
               </span>
               <h2 id="tickets-checkout-title">
-                {ticketSalesOpen ? t('pages.ticketsPage.checkoutTitle') : t('pages.ticketsPage.salesPausedTitle')}
+                {ticketSalesOpen
+                  ? t('pages.ticketsPage.checkoutTitle')
+                  : t('pages.ticketsPage.salesPausedTitle')}
               </h2>
-              <p>{ticketSalesOpen ? t('pages.ticketsPage.checkoutLead') : t('pages.ticketsPage.salesPausedLead')}</p>
+              <p>
+                {ticketSalesOpen
+                  ? t('pages.ticketsPage.checkoutLead')
+                  : t('pages.ticketsPage.salesPausedLead')}
+              </p>
             </div>
             {ticketSalesOpen ? (
               <p className="tickets-page__trust">

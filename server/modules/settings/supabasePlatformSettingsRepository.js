@@ -8,7 +8,11 @@ export function createSupabasePlatformSettingsRepository(client) {
 
   return {
     get: () =>
-      rpc('staff_get_platform_feature_toggles', {}, 'No se pudieron leer los interruptores de la plataforma.'),
+      rpc(
+        'staff_get_platform_feature_toggles',
+        {},
+        'No se pudieron leer los interruptores de la plataforma.',
+      ),
 
     setToggle: (feature, enabled, actor) =>
       rpc(

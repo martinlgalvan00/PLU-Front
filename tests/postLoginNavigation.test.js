@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { resolveAfterLoginDestination, resolveMembershipCheckout, ACCOUNT_MEMBERSHIP_TAB } from '../src/lib/navigation.js'
+import {
+  resolveAfterLoginDestination,
+  resolveMembershipCheckout,
+  ACCOUNT_MEMBERSHIP_TAB,
+} from '../src/lib/navigation.js'
 
 describe('continuidad después del login', () => {
   it('retoma la inscripción elegida por un atleta', () => {

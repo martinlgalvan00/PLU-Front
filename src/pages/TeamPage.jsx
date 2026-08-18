@@ -96,12 +96,20 @@ export default function TeamPage({ onNavigate }) {
               <p>{t('pages.team.closeLead')}</p>
             </div>
             <div className="team-close__actions">
-              <button type="button" className="team-close__primary" onClick={() => onNavigate?.('contact')}>
+              <button
+                type="button"
+                className="team-close__primary"
+                onClick={() => onNavigate?.('contact')}
+              >
                 <Mail size={16} aria-hidden />
                 <span>{t('pages.team.ctaContact')}</span>
                 <ArrowRight size={14} aria-hidden />
               </button>
-              <button type="button" className="team-close__secondary" onClick={() => onNavigate?.('community')}>
+              <button
+                type="button"
+                className="team-close__secondary"
+                onClick={() => onNavigate?.('community')}
+              >
                 <span>{t('pages.team.ctaCommunity')}</span>
                 <ArrowRight size={13} aria-hidden />
               </button>

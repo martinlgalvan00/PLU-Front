@@ -47,10 +47,7 @@ export default function AdminFilterChipGroup({
     pointerId: null,
   })
 
-  const neutral = useMemo(
-    () => resolveNeutralValue(options, defaultValue),
-    [defaultValue, options],
-  )
+  const neutral = useMemo(() => resolveNeutralValue(options, defaultValue), [defaultValue, options])
 
   const visibleOptions = useMemo(() => {
     return options.filter(([optionValue, , optionCount]) => {
@@ -68,7 +65,12 @@ export default function AdminFilterChipGroup({
   }, [neutral, options])
   const showAllCount = allCount !== undefined && allCount !== null && allCount !== ''
   const populatedCounted = visibleOptions.filter(([, , optionCount]) => {
-    return optionCount !== undefined && optionCount !== null && optionCount !== '' && Number(optionCount) > 0
+    return (
+      optionCount !== undefined &&
+      optionCount !== null &&
+      optionCount !== '' &&
+      Number(optionCount) > 0
+    )
   })
   const allCountIsTwin =
     showAllCount &&
@@ -88,7 +90,7 @@ export default function AdminFilterChipGroup({
     if (typeof ResizeObserver !== 'undefined') {
       const observer = new ResizeObserver(syncOverflow)
       observer.observe(el)
-      
+
       const handleWheel = (e) => {
         if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
         if (e.deltaY !== 0) {
@@ -97,7 +99,7 @@ export default function AdminFilterChipGroup({
         }
       }
       el.addEventListener('wheel', handleWheel, { passive: false })
-      
+
       return () => {
         observer.disconnect()
         el.removeEventListener('wheel', handleWheel)
@@ -199,65 +201,66 @@ export default function AdminFilterChipGroup({
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
         >
-        {showAllChip ? (
-          <button
-            type="button"
-            className={[
-              'admin-filter-chip',
-              'admin-filter-chip--all',
-              allActive ? 'is-active' : '',
-              renderAllCount ? 'admin-filter-chip--counted' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            aria-pressed={allActive}
-            disabled={disabled}
-            onClick={() => onChange(neutral)}
-          >
-            <span className="admin-filter-chip__label">{allLabel}</span>
-            {renderAllCount ? (
-              <span className="admin-filter-chip__count" aria-hidden>
-                {allCount}
-              </span>
-            ) : null}
-          </button>
-        ) : null}
-
-        {visibleOptions.map((option) => {
-          const [optionValue, optionLabel, optionCount] = option
-          const active = value === optionValue
-          const showCount = optionCount !== undefined && optionCount !== null && optionCount !== ''
-          const zeroCount = showCount && Number(optionCount) === 0
-          const chipClass = [
-            'admin-filter-chip',
-            active ? 'is-active' : '',
-            showCount ? 'admin-filter-chip--counted' : '',
-            zeroCount ? 'admin-filter-chip--zero' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')
-
-          return (
+          {showAllChip ? (
             <button
-              key={optionValue}
               type="button"
-              className={chipClass}
-              aria-pressed={active}
+              className={[
+                'admin-filter-chip',
+                'admin-filter-chip--all',
+                allActive ? 'is-active' : '',
+                renderAllCount ? 'admin-filter-chip--counted' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              aria-pressed={allActive}
               disabled={disabled}
-              onClick={() => handleChipClick(optionValue)}
+              onClick={() => onChange(neutral)}
             >
-              <span className="admin-filter-chip__label">{optionLabel}</span>
-              {showCount ? (
-                <span
-                  className={`admin-filter-chip__count${zeroCount ? ' is-zero' : ''}`.trim()}
-                  aria-hidden
-                >
-                  {optionCount}
+              <span className="admin-filter-chip__label">{allLabel}</span>
+              {renderAllCount ? (
+                <span className="admin-filter-chip__count" aria-hidden>
+                  {allCount}
                 </span>
               ) : null}
             </button>
-          )
-        })}
+          ) : null}
+
+          {visibleOptions.map((option) => {
+            const [optionValue, optionLabel, optionCount] = option
+            const active = value === optionValue
+            const showCount =
+              optionCount !== undefined && optionCount !== null && optionCount !== ''
+            const zeroCount = showCount && Number(optionCount) === 0
+            const chipClass = [
+              'admin-filter-chip',
+              active ? 'is-active' : '',
+              showCount ? 'admin-filter-chip--counted' : '',
+              zeroCount ? 'admin-filter-chip--zero' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+
+            return (
+              <button
+                key={optionValue}
+                type="button"
+                className={chipClass}
+                aria-pressed={active}
+                disabled={disabled}
+                onClick={() => handleChipClick(optionValue)}
+              >
+                <span className="admin-filter-chip__label">{optionLabel}</span>
+                {showCount ? (
+                  <span
+                    className={`admin-filter-chip__count${zeroCount ? ' is-zero' : ''}`.trim()}
+                    aria-hidden
+                  >
+                    {optionCount}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

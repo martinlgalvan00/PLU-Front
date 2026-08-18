@@ -328,7 +328,11 @@ export default function AthletePaymentOrdersSection({
           <span className="admin-orders-block__amount">
             {t('admin.athletePayments.openAmount', { amount: money(counts.openAmount, locale) })}
           </span>
-          <button type="button" className="btn btn--secondary btn--small" onClick={() => void load()}>
+          <button
+            type="button"
+            className="btn btn--secondary btn--small"
+            onClick={() => void load()}
+          >
             <RefreshCw size={15} aria-hidden />
             {t('admin.athletePayments.refresh')}
           </button>
@@ -383,7 +387,9 @@ export default function AthletePaymentOrdersSection({
       ) : (
         <AdminDataTable
           className="admin-data-table--athlete-orders"
-          getRowClassName={(row) => (row.id === highlightOrderId ? 'data-table__row--selected' : '')}
+          getRowClassName={(row) =>
+            row.id === highlightOrderId ? 'data-table__row--selected' : ''
+          }
           columns={[
             {
               key: 'athlete',
@@ -407,16 +413,19 @@ export default function AthletePaymentOrdersSection({
               align: 'end',
               sortable: true,
               render: (row) => (
-                <span className="admin-orders-block__amount-badge">{money(row.amount, locale)}</span>
+                <span className="admin-orders-block__amount-badge">
+                  {money(row.amount, locale)}
+                </span>
               ),
             },
             {
               key: 'method',
               label: t('admin.columns.method'),
               mobile: 'hidden',
-              render: (row) => row.manualPaymentChannel === 'cash_pitbull'
-                ? t('formOptions.payment.cashPitbull')
-                : PAYMENT_METHODS[row.method]?.label ?? row.method,
+              render: (row) =>
+                row.manualPaymentChannel === 'cash_pitbull'
+                  ? t('formOptions.payment.cashPitbull')
+                  : (PAYMENT_METHODS[row.method]?.label ?? row.method),
             },
             {
               key: 'proof',
@@ -427,7 +436,11 @@ export default function AthletePaymentOrdersSection({
                   return <span className="data-table__mono data-table__mono--empty">—</span>
                 }
                 if (row.manualPaymentChannel === 'cash_pitbull') {
-                  return <span className="status-pill status-pill--info">{t('formOptions.payment.cashPitbull')}</span>
+                  return (
+                    <span className="status-pill status-pill--info">
+                      {t('formOptions.payment.cashPitbull')}
+                    </span>
+                  )
                 }
                 if (!row.hasProof) {
                   return (
@@ -436,7 +449,11 @@ export default function AthletePaymentOrdersSection({
                     </span>
                   )
                 }
-                return <span className="admin-orders-block__proof">{formatDateTime(row.proofUploadedAt, locale)}</span>
+                return (
+                  <span className="admin-orders-block__proof">
+                    {formatDateTime(row.proofUploadedAt, locale)}
+                  </span>
+                )
               },
             },
             {
@@ -565,9 +582,8 @@ export default function AthletePaymentOrdersSection({
           onCancel={() => setReviewRow(null)}
           onConfirm={(settlement) => {
             const paymentId = reviewRow.paymentId
-            const action = reviewRow.mode === 'settle'
-              ? forceSettle(paymentId, settlement)
-              : approve(paymentId)
+            const action =
+              reviewRow.mode === 'settle' ? forceSettle(paymentId, settlement) : approve(paymentId)
             void action.then((done) => {
               if (done) setReviewRow(null)
             })

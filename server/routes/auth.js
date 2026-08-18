@@ -114,15 +114,18 @@ export function createAuthRoutes({
   }
 
   function recordFailedLogin(req, email, reason, method = 'password') {
-    return recordIdentity({
-      action: 'auth.login_failed',
-      entityType: 'staff_user',
-      entityId: anonymousIdentityId('email', email),
-      actorType: 'anonymous',
-      status: 'failed',
-      severity: 'warning',
-      metadata: { method, reason },
-    }, req)
+    return recordIdentity(
+      {
+        action: 'auth.login_failed',
+        entityType: 'staff_user',
+        entityId: anonymousIdentityId('email', email),
+        actorType: 'anonymous',
+        status: 'failed',
+        severity: 'warning',
+        metadata: { method, reason },
+      },
+      req,
+    )
   }
 
   // Los eventos viven en Supabase (public.events, id uuid). El panel entrega
@@ -298,15 +301,18 @@ export function createAuthRoutes({
           !isTempPasswordExpired(user)
 
         if (!canAccept) {
-          await recordIdentity({
-            action: 'auth.invitation_failed',
-            entityType: 'staff_user',
-            entityId: anonymousIdentityId('invitation', token),
-            actorType: 'anonymous',
-            status: 'failed',
-            severity: 'warning',
-            metadata: { reason: 'invalid_expired_or_used' },
-          }, req)
+          await recordIdentity(
+            {
+              action: 'auth.invitation_failed',
+              entityType: 'staff_user',
+              entityId: anonymousIdentityId('invitation', token),
+              actorType: 'anonymous',
+              status: 'failed',
+              severity: 'warning',
+              metadata: { reason: 'invalid_expired_or_used' },
+            },
+            req,
+          )
           throw new HttpError(400, 'La invitación es inválida, ya fue utilizada o venció.', {
             code: 'staff_invitation_invalid',
           })
@@ -334,16 +340,19 @@ export function createAuthRoutes({
           role: serialized.roleKey,
         })
 
-        await recordIdentity({
-          action: 'auth.invitation_accepted',
-          entityType: 'staff_user',
-          entityId: user.id,
-          actorType: 'staff',
-          actorId: user.id,
-          status: 'succeeded',
-          severity: 'success',
-          metadata: { roleKey: serialized.roleKey },
-        }, req)
+        await recordIdentity(
+          {
+            action: 'auth.invitation_accepted',
+            entityType: 'staff_user',
+            entityId: user.id,
+            actorType: 'staff',
+            actorId: user.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: { roleKey: serialized.roleKey },
+          },
+          req,
+        )
 
         res
           .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
@@ -370,99 +379,113 @@ export function createAuthRoutes({
    * intento que ya sabemos que vamos a rechazar convierte el login en el
    * amplificador de DoS más barato del sistema.
    */
-  router.post('/login', authLimiter, passwordHashShedder, validateBody(loginSchema), async (req, res, next) => {
-    try {
-      const prisma = getPrisma()
-      const { email, password, eventSlug } = req.validatedBody
-      const identity = { scope: IDENTITY_SCOPES.staffLogin, identity: email, deps: { getSupabaseAdmin }, env }
+  router.post(
+    '/login',
+    authLimiter,
+    passwordHashShedder,
+    validateBody(loginSchema),
+    async (req, res, next) => {
+      try {
+        const prisma = getPrisma()
+        const { email, password, eventSlug } = req.validatedBody
+        const identity = {
+          scope: IDENTITY_SCOPES.staffLogin,
+          identity: email,
+          deps: { getSupabaseAdmin },
+          env,
+        }
 
-      await assertIdentityNotLocked(identity)
+        await assertIdentityNotLocked(identity)
 
-      const user = await prisma.user.findUnique({
-        where: { email },
-        include: {
-          profile: true,
-          accessRole: { include: ACCESS_ROLE_INCLUDE },
-        },
-      })
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: {
+            profile: true,
+            accessRole: { include: ACCESS_ROLE_INCLUDE },
+          },
+        })
 
-      // La comparación se hace SIEMPRE, incluso sin usuario: si cortáramos por
-      // short-circuit, un email inexistente respondería sin pagar el bcrypt y
-      // el tiempo de respuesta revelaría qué cuentas existen.
-      const passwordMatches = await verifyPassword(password, user?.passwordHash)
+        // La comparación se hace SIEMPRE, incluso sin usuario: si cortáramos por
+        // short-circuit, un email inexistente respondería sin pagar el bcrypt y
+        // el tiempo de respuesta revelaría qué cuentas existen.
+        const passwordMatches = await verifyPassword(password, user?.passwordHash)
 
-      if (!user || user.status !== 'active' || !passwordMatches) {
-        // Se cuenta el fallo incluso cuando la cuenta no existe: si sólo
-        // contáramos los emails reales, la presencia o ausencia del bloqueo
-        // después de cinco intentos delataría qué casillas están dadas de alta.
-        await registerIdentityFailure(identity)
-        await recordFailedLogin(req, email, 'invalid_credentials')
-        next(invalidCredentials())
-        return
-      }
+        if (!user || user.status !== 'active' || !passwordMatches) {
+          // Se cuenta el fallo incluso cuando la cuenta no existe: si sólo
+          // contáramos los emails reales, la presencia o ausencia del bloqueo
+          // después de cinco intentos delataría qué casillas están dadas de alta.
+          await registerIdentityFailure(identity)
+          await recordFailedLogin(req, email, 'invalid_credentials')
+          next(invalidCredentials())
+          return
+        }
 
-      // El aviso de vencimiento se da recién acá, con la contraseña ya
-      // validada: quien lo ve es porque tenía la credencial correcta, así que
-      // no revela la existencia de ninguna cuenta. Decirlo importa -- con el
-      // 401 genérico la persona reintenta creyendo que se equivocó al copiar.
-      if (isTempPasswordExpired(user)) {
-        await recordFailedLogin(req, email, 'temporary_credential_expired')
-        next(
-          new HttpError(401, 'Tu invitación venció. Pedile al administrador que te la reenvíe.', {
-            code: 'temp_password_expired',
-          }),
+        // El aviso de vencimiento se da recién acá, con la contraseña ya
+        // validada: quien lo ve es porque tenía la credencial correcta, así que
+        // no revela la existencia de ninguna cuenta. Decirlo importa -- con el
+        // 401 genérico la persona reintenta creyendo que se equivocó al copiar.
+        if (isTempPasswordExpired(user)) {
+          await recordFailedLogin(req, email, 'temporary_credential_expired')
+          next(
+            new HttpError(401, 'Tu invitación venció. Pedile al administrador que te la reenvíe.', {
+              code: 'temp_password_expired',
+            }),
+          )
+          return
+        }
+
+        // El alcance por evento pertenece a la cuenta, no al nombre del rol.
+        // Esto también cubre futuros roles personalizados de operación.
+        if (user.eventId && user.eventSlug !== eventSlug) {
+          await registerIdentityFailure(identity)
+          await recordFailedLogin(req, email, 'event_scope_mismatch')
+          next(invalidCredentials())
+          return
+        }
+
+        // Credencial correcta: se limpia el contador de fallos. El nivel de la
+        // escalera no se resetea (ver `clear_identity_failures` en la migración):
+        // acertar una vez después de un bloqueo largo es justo lo que consigue
+        // quien dio con la contraseña, no motivo para perdonarle el historial.
+        await clearIdentityFailures(identity)
+
+        const session = await createSession({ prisma, userId: user.id, req })
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        })
+
+        const serialized = serializeUser(user)
+        const supabaseAuth = await ensureSupabaseSessionToken({
+          admin: auditClient(),
+          email: serialized.email,
+          permissions: serialized.permissions,
+          role: serialized.roleKey,
+        })
+
+        await recordIdentity(
+          {
+            action: 'auth.login_succeeded',
+            entityType: 'staff_user',
+            entityId: user.id,
+            actorType: 'staff',
+            actorId: user.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: { method: 'password', roleKey: serialized.roleKey },
+          },
+          req,
         )
-        return
+
+        res
+          .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
+          .json({ user: serialized, supabaseAuth })
+      } catch (error) {
+        next(error)
       }
-
-      // El alcance por evento pertenece a la cuenta, no al nombre del rol.
-      // Esto también cubre futuros roles personalizados de operación.
-      if (user.eventId && user.eventSlug !== eventSlug) {
-        await registerIdentityFailure(identity)
-        await recordFailedLogin(req, email, 'event_scope_mismatch')
-        next(invalidCredentials())
-        return
-      }
-
-      // Credencial correcta: se limpia el contador de fallos. El nivel de la
-      // escalera no se resetea (ver `clear_identity_failures` en la migración):
-      // acertar una vez después de un bloqueo largo es justo lo que consigue
-      // quien dio con la contraseña, no motivo para perdonarle el historial.
-      await clearIdentityFailures(identity)
-
-      const session = await createSession({ prisma, userId: user.id, req })
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      })
-
-      const serialized = serializeUser(user)
-      const supabaseAuth = await ensureSupabaseSessionToken({
-        admin: auditClient(),
-        email: serialized.email,
-        permissions: serialized.permissions,
-        role: serialized.roleKey,
-      })
-
-      await recordIdentity({
-        action: 'auth.login_succeeded',
-        entityType: 'staff_user',
-        entityId: user.id,
-        actorType: 'staff',
-        actorId: user.id,
-        status: 'succeeded',
-        severity: 'success',
-        metadata: { method: 'password', roleKey: serialized.roleKey },
-      }, req)
-
-      res
-        .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
-        .json({ user: serialized, supabaseAuth })
-    } catch (error) {
-      next(error)
-    }
-  })
+    },
+  )
 
   // Probe de bootstrap: sin sesión responde 200 + user null (no 401) para
   // no ensuciar la consola del navegador en cada visita anónima al login.
@@ -495,16 +518,19 @@ export function createAuthRoutes({
         role: serialized.roleKey,
       })
 
-      await recordIdentity({
-        action: 'auth.login_succeeded',
-        entityType: 'staff_user',
-        entityId: user.id,
-        actorType: 'staff',
-        actorId: user.id,
-        status: 'succeeded',
-        severity: 'success',
-        metadata: { method: 'oauth', roleKey: serialized.roleKey },
-      }, req)
+      await recordIdentity(
+        {
+          action: 'auth.login_succeeded',
+          entityType: 'staff_user',
+          entityId: user.id,
+          actorType: 'staff',
+          actorId: user.id,
+          status: 'succeeded',
+          severity: 'success',
+          metadata: { method: 'oauth', roleKey: serialized.roleKey },
+        },
+        req,
+      )
 
       res
         .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())
@@ -521,16 +547,19 @@ export function createAuthRoutes({
       const current = await readSessionFromRequest({ prisma, req })
       await revokeSession({ prisma, token })
       if (current?.user?.id) {
-        await recordIdentity({
-          action: 'auth.session_ended',
-          entityType: 'staff_user',
-          entityId: current.user.id,
-          actorType: 'staff',
-          actorId: current.user.id,
-          status: 'succeeded',
-          severity: 'success',
-          metadata: { reason: 'logout' },
-        }, req)
+        await recordIdentity(
+          {
+            action: 'auth.session_ended',
+            entityType: 'staff_user',
+            entityId: current.user.id,
+            actorType: 'staff',
+            actorId: current.user.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: { reason: 'logout' },
+          },
+          req,
+        )
       }
       res.clearCookie(SESSION_COOKIE_NAME, getClearSessionCookieOptions()).status(204).end()
     } catch (error) {
@@ -762,20 +791,23 @@ export function createAuthRoutes({
           event,
           existing,
         })
-        await recordIdentity({
-          action: reused ? 'account.reactivated' : 'account.created',
-          entityType: 'staff_user',
-          entityId: user.id,
-          actorType: 'staff',
-          actorId: req.auth.user.id,
-          status: 'succeeded',
-          severity: 'success',
-          metadata: {
-            accountKind: 'security',
-            eventId: event.id,
-            roleKey: 'seguridad_plu_arg',
+        await recordIdentity(
+          {
+            action: reused ? 'account.reactivated' : 'account.created',
+            entityType: 'staff_user',
+            entityId: user.id,
+            actorType: 'staff',
+            actorId: req.auth.user.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: {
+              accountKind: 'security',
+              eventId: event.id,
+              roleKey: 'seguridad_plu_arg',
+            },
           },
-        }, req)
+          req,
+        )
         const access = createPersonalAccess(user, event, req)
         const emailed = sendEmail
           ? await dispatchAccessEmail({ user, event, accessUrl: access.url })
@@ -865,21 +897,26 @@ export function createAuthRoutes({
         // Envío de credenciales best-effort, en paralelo, recién después de
         // crear todas las cuentas.
         await Promise.all(
-          created.map((item) => recordIdentity({
-            action: item.reused ? 'account.reactivated' : 'account.created',
-            entityType: 'staff_user',
-            entityId: item.user.id,
-            actorType: 'staff',
-            actorId: req.auth.user.id,
-            status: 'succeeded',
-            severity: 'success',
-            metadata: {
-              accountKind: 'security',
-              eventId: event.id,
-              roleKey: 'seguridad_plu_arg',
-              bulk: true,
-            },
-          }, req)),
+          created.map((item) =>
+            recordIdentity(
+              {
+                action: item.reused ? 'account.reactivated' : 'account.created',
+                entityType: 'staff_user',
+                entityId: item.user.id,
+                actorType: 'staff',
+                actorId: req.auth.user.id,
+                status: 'succeeded',
+                severity: 'success',
+                metadata: {
+                  accountKind: 'security',
+                  eventId: event.id,
+                  roleKey: 'seguridad_plu_arg',
+                  bulk: true,
+                },
+              },
+              req,
+            ),
+          ),
         )
 
         if (sendEmail && created.length) {
@@ -1040,15 +1077,18 @@ export function createAuthRoutes({
         const prisma = getPrisma()
         const payload = verifyAccessToken(req.validatedBody.token, { secret: accessLinkSecret })
         if (!payload) {
-          await recordIdentity({
-            action: 'auth.login_failed',
-            entityType: 'staff_user',
-            entityId: anonymousIdentityId('access_token', req.validatedBody.token),
-            actorType: 'anonymous',
-            status: 'failed',
-            severity: 'warning',
-            metadata: { method: 'security_gate', reason: 'invalid_or_expired_token' },
-          }, req)
+          await recordIdentity(
+            {
+              action: 'auth.login_failed',
+              entityType: 'staff_user',
+              entityId: anonymousIdentityId('access_token', req.validatedBody.token),
+              actorType: 'anonymous',
+              status: 'failed',
+              severity: 'warning',
+              metadata: { method: 'security_gate', reason: 'invalid_or_expired_token' },
+            },
+            req,
+          )
           next(new HttpError(401, 'Credencial inválida o vencida.'))
           return
         }
@@ -1063,15 +1103,18 @@ export function createAuthRoutes({
           user.status !== 'active' ||
           user.eventId !== payload.eid
         ) {
-          await recordIdentity({
-            action: 'auth.login_failed',
-            entityType: 'staff_user',
-            entityId: payload.uid,
-            actorType: 'anonymous',
-            status: 'failed',
-            severity: 'warning',
-            metadata: { method: 'security_gate', reason: 'account_or_scope_mismatch' },
-          }, req)
+          await recordIdentity(
+            {
+              action: 'auth.login_failed',
+              entityType: 'staff_user',
+              entityId: payload.uid,
+              actorType: 'anonymous',
+              status: 'failed',
+              severity: 'warning',
+              metadata: { method: 'security_gate', reason: 'account_or_scope_mismatch' },
+            },
+            req,
+          )
           next(new HttpError(401, 'Credencial inválida o vencida.'))
           return
         }
@@ -1087,16 +1130,23 @@ export function createAuthRoutes({
           role: serialized.roleKey,
         })
 
-        await recordIdentity({
-          action: 'auth.login_succeeded',
-          entityType: 'staff_user',
-          entityId: user.id,
-          actorType: 'staff',
-          actorId: user.id,
-          status: 'succeeded',
-          severity: 'success',
-          metadata: { method: 'security_gate', roleKey: serialized.roleKey, eventId: user.eventId },
-        }, req)
+        await recordIdentity(
+          {
+            action: 'auth.login_succeeded',
+            entityType: 'staff_user',
+            entityId: user.id,
+            actorType: 'staff',
+            actorId: user.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: {
+              method: 'security_gate',
+              roleKey: serialized.roleKey,
+              eventId: user.eventId,
+            },
+          },
+          req,
+        )
 
         res
           .cookie(SESSION_COOKIE_NAME, session.token, getSessionCookieOptions())

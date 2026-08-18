@@ -133,7 +133,11 @@
   );
 
   /* Superficie tipo glassmorphism muy sutil, propia de interfaces high-end */
-  background: color-mix(in oklab, var(--color-bg-elevated, var(--color-bg-surface)) 85%, transparent);
+  background: color-mix(
+    in oklab,
+    var(--color-bg-elevated, var(--color-bg-surface)) 85%,
+    transparent
+  );
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 
@@ -208,7 +212,11 @@
 
 .session-notice__avatar {
   align-items: center;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--color-text-primary) 12%, transparent), color-mix(in oklab, var(--color-text-primary) 4%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--color-text-primary) 12%, transparent),
+    color-mix(in oklab, var(--color-text-primary) 4%, transparent)
+  );
   border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   border-radius: 50%;
   color: var(--color-text-primary);
@@ -363,7 +371,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .session-notice__card {
-    animation: session-notice-in var(--motion-cinematic, 700ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    animation: session-notice-in var(--motion-cinematic, 700ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
   }
 
   .session-notice.is-leaving .session-notice__card {
@@ -376,14 +385,12 @@
   }
 
   .session-notice__timer {
-    animation: session-notice-countdown var(--session-notice-duration, 8000ms) linear
-      both;
+    animation: session-notice-countdown var(--session-notice-duration, 8000ms) linear both;
     display: block;
   }
 
   .session-notice__countdown {
-    animation: session-notice-countdown-fade var(--session-notice-duration, 8000ms)
-      linear both;
+    animation: session-notice-countdown-fade var(--session-notice-duration, 8000ms) linear both;
   }
 
   .session-notice__countdown-digit {

@@ -112,7 +112,9 @@ export default function EventShareCard({
         setPhotoData(null)
         setPhotoSettled(true)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [athletePhotoUrl])
 
   const hasPhoto = Boolean(photoData)
@@ -123,8 +125,16 @@ export default function EventShareCard({
   // sube otro escalón.
   const nameLength = resolvedAthleteName.trim().length
   const nameSize = isStory
-    ? (nameLength > 22 ? 112 : nameLength > 16 ? 136 : 158)
-    : (nameLength > 22 ? 84 : nameLength > 16 ? 104 : 120)
+    ? nameLength > 22
+      ? 112
+      : nameLength > 16
+        ? 136
+        : 158
+    : nameLength > 22
+      ? 84
+      : nameLength > 16
+        ? 104
+        : 120
 
   // Iniciales del atleta para el sello cuando no hay foto — la
   // personalización de la pieza sin superponer texto alguno.
@@ -177,7 +187,9 @@ export default function EventShareCard({
         setQrSrc(null)
         setQrSettled(true)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [codeForQr, eventSlug, isTicket])
 
   // En preview, la card se renderiza siempre a su tamaño real (1080×1080) y se
@@ -262,10 +274,10 @@ export default function EventShareCard({
           {isUnified
             ? t('shareCard.statusUnified')
             : isMembership
-            ? t('shareCard.statusMembership')
-            : isTicket
-              ? t('shareCard.statusTicket')
-              : t('shareCard.statusEvent')}
+              ? t('shareCard.statusMembership')
+              : isTicket
+                ? t('shareCard.statusTicket')
+                : t('shareCard.statusEvent')}
         </span>
       </header>
 
@@ -299,7 +311,9 @@ export default function EventShareCard({
                     : t('shareCard.eyebrowEvent')}
               </span>
             )}
-            <h2 className="share-card__athlete-name" style={{ fontSize: nameSize }}>{resolvedAthleteName}</h2>
+            <h2 className="share-card__athlete-name" style={{ fontSize: nameSize }}>
+              {resolvedAthleteName}
+            </h2>
             {(athleteCode || attendeeDocument) && (
               <span className="share-card__athlete-code">
                 {isMembership && athleteCode
@@ -327,7 +341,9 @@ export default function EventShareCard({
               </div>
               {membershipExpiration && (
                 <div className="share-card__field">
-                  <dt className="share-card__field-label">{t('shareCard.membershipValidUntilLabel')}</dt>
+                  <dt className="share-card__field-label">
+                    {t('shareCard.membershipValidUntilLabel')}
+                  </dt>
                   <dd className="share-card__field-value">{membershipExpiration}</dd>
                 </div>
               )}
@@ -351,7 +367,9 @@ export default function EventShareCard({
                     category,
                     division,
                     dayPassLabel,
-                  ].filter(Boolean).join(' · ')}
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </p>
               )}
             </div>
@@ -378,9 +396,7 @@ export default function EventShareCard({
           </span>
         </div>
 
-        <span className="share-card__url">
-          plu-arg.com{qrSrc ? ` · ${issuedDate}` : ''}
-        </span>
+        <span className="share-card__url">plu-arg.com{qrSrc ? ` · ${issuedDate}` : ''}</span>
       </footer>
     </div>
   )

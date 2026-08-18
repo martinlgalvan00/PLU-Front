@@ -138,7 +138,9 @@ export function createMockMercadoPagoAdapter({ store, env = process.env } = {}) 
         description: order.displayConcept,
         payer: {
           email: payerEmail,
-          ...(formData.payer?.identification ? { identification: formData.payer.identification } : {}),
+          ...(formData.payer?.identification
+            ? { identification: formData.payer.identification }
+            : {}),
           ...(formData.payer?.first_name ? { first_name: formData.payer.first_name } : {}),
           ...(formData.payer?.last_name ? { last_name: formData.payer.last_name } : {}),
         },
@@ -193,7 +195,15 @@ export function createMockMercadoPagoAdapter({ store, env = process.env } = {}) 
       const key = String(id)
       const payment = payments.get(key)
       if (!payment) throw new HttpError(404, 'Pago mock no encontrado.')
-      const allowed = new Set(['approved', 'rejected', 'cancelled', 'refunded', 'charged_back', 'in_process', 'pending'])
+      const allowed = new Set([
+        'approved',
+        'rejected',
+        'cancelled',
+        'refunded',
+        'charged_back',
+        'in_process',
+        'pending',
+      ])
       if (!allowed.has(status)) throw new HttpError(400, 'Estado mock invalido.')
       payment.status = status
       payment.status_detail = STATUS_DETAIL[status] ?? payment.status_detail
@@ -211,7 +221,8 @@ export function createMockMercadoPagoAdapter({ store, env = process.env } = {}) 
         reason: plan.name,
         external_reference: plan.code,
         auto_recurring: {
-          frequency: plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
+          frequency:
+            plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
           frequency_type: 'months',
           transaction_amount: plan.price,
           currency_id: plan.currency,
@@ -237,7 +248,8 @@ export function createMockMercadoPagoAdapter({ store, env = process.env } = {}) 
         auto_recurring: plan.providerPlanId
           ? undefined
           : {
-              frequency: plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
+              frequency:
+                plan.billingFrequency === 'annual' ? 12 * plan.intervalCount : plan.intervalCount,
               frequency_type: 'months',
               transaction_amount: plan.price,
               currency_id: plan.currency,

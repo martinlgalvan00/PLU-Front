@@ -87,19 +87,25 @@ describe('auditActionTone', () => {
 
 describe('auditEntryTone', () => {
   it('baja a advertencia una falla de webhook ya contenida aunque la fila histórica diga danger', () => {
-    expect(auditEntryTone({
-      action: 'payment_webhook.failed',
-      severity: 'danger',
-      metadata: { error: '[ORDER_AMOUNT_MISMATCH] webhook: Monto de pago inválido para la orden.' },
-    })).toBe('warning')
+    expect(
+      auditEntryTone({
+        action: 'payment_webhook.failed',
+        severity: 'danger',
+        metadata: {
+          error: '[ORDER_AMOUNT_MISMATCH] webhook: Monto de pago inválido para la orden.',
+        },
+      }),
+    ).toBe('warning')
   })
 
   it('mantiene como crítico un diagnóstico que bloquea todos los cobros', () => {
-    expect(auditEntryTone({
-      action: 'payment.webhook_failed',
-      severity: 'warning',
-      metadata: { diagnosis: { severity: 'blocker' } },
-    })).toBe('danger')
+    expect(
+      auditEntryTone({
+        action: 'payment.webhook_failed',
+        severity: 'warning',
+        metadata: { diagnosis: { severity: 'blocker' } },
+      }),
+    ).toBe('danger')
   })
 })
 
@@ -117,8 +123,14 @@ const REAL_FAILURE = {
     name: 'HttpError',
     status: 403,
     message: 'Confirmá tu correo antes de continuar.',
-    stack: 'HttpError: Confirmá tu correo antes de continuar.\n    at assertEmailVerified (server/routes/athletes.js:526:13)',
-    origin: { file: 'server/routes/athletes.js', line: 526, column: 13, function: 'assertEmailVerified' },
+    stack:
+      'HttpError: Confirmá tu correo antes de continuar.\n    at assertEmailVerified (server/routes/athletes.js:526:13)',
+    origin: {
+      file: 'server/routes/athletes.js',
+      line: 526,
+      column: 13,
+      function: 'assertEmailVerified',
+    },
     cause: null,
     provider: null,
   },
@@ -146,7 +158,10 @@ describe('describeAuditError', () => {
     expect(detail.requestId).toBe('67f74ded-e599-4f0c-844c-c5ed7c87759c')
     // La coordenada que lleva al código sin leer el stack entero.
     expect(detail.origin).toEqual({
-      file: 'server/routes/athletes.js', line: 526, column: 13, function: 'assertEmailVerified',
+      file: 'server/routes/athletes.js',
+      line: 526,
+      column: 13,
+      function: 'assertEmailVerified',
     })
     expect(detail.stack).toContain('assertEmailVerified')
   })
@@ -171,10 +186,7 @@ describe('describeAuditError', () => {
       },
     })
 
-    expect(detail.causes.map((cause) => cause.message)).toEqual([
-      'socket hang up',
-      'ECONNRESET',
-    ])
+    expect(detail.causes.map((cause) => cause.message)).toEqual(['socket hang up', 'ECONNRESET'])
   })
 
   it('no se cuelga con una cadena de causas circular', () => {

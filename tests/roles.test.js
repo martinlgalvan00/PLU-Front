@@ -95,9 +95,13 @@ describe('roles', () => {
   })
 
   it('permite pausar y reactivar roles operativos sin exponer los protegidos', () => {
-    expect(canManageRoleLifecycle('admin_plu_arg', { key: 'custom_prensa', active: false })).toBe(true)
+    expect(canManageRoleLifecycle('admin_plu_arg', { key: 'custom_prensa', active: false })).toBe(
+      true,
+    )
     expect(canManageRoleLifecycle('admin_plu_arg', { key: 'plu_arg', active: true })).toBe(true)
-    expect(canManageRoleLifecycle('admin_plu_arg', { key: 'admin_maximal', active: true })).toBe(false)
+    expect(canManageRoleLifecycle('admin_plu_arg', { key: 'admin_maximal', active: true })).toBe(
+      false,
+    )
     expect(canManageRoleLifecycle('plu_arg', { key: 'custom_prensa', active: true })).toBe(false)
   })
 
