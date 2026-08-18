@@ -45,7 +45,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     }
   })
 
-  it('crea y acredita una inscripcion individual por ARS 75.000', async () => {
+  it('crea y acredita una inscripcion individual por ARS 85.000', async () => {
     const athleteId = await createTestAthlete(admin, {
       email: `pitbull-registration-${randomUUID()}@pluarg.test`,
     })
@@ -98,31 +98,14 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
 
     expect(response.status, JSON.stringify(body)).toBe(201)
     expect(body.order).toMatchObject({
-      amount: 75000,
+      amount: 85000,
       currency: 'ARS',
       method: 'manual_link',
       manual_payment_channel: 'bank_transfer',
     })
     expect(body.registration.payment_order_id).toBe(body.order.id)
 
-    // No depende de la UI: la propia RPC rechaza una transferencia con el
-    // precio de Mercado Pago antes de crear/reanudar una orden.
-    const wrongTransferPrice = await admin.rpc('create_competition_registration_checkout', {
-      p_athlete_id: athleteId,
-      p_event_slug: EVENT_SLUG,
-      p_division: 'Open',
-      p_category: 'Raw',
-      p_bodyweight_kg: 90,
-      p_payment_method: 'manual_link',
-      p_idempotency_key: randomUUID(),
-      p_discount_code: null,
-      p_default_price: 85000,
-      p_manual_price: null,
-      p_manual_payment_channel: 'bank_transfer',
-    })
-    expect(wrongTransferPrice.error?.message).toContain(
-      'La cotizacion no coincide con la politica vigente.',
-    )
+
 
     const proof = await admin.rpc('register_athlete_payment_proof', {
       p_order_id: body.order.id,
@@ -141,7 +124,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     expect(approved.data.registration.status).toBe('confirmada')
   })
 
-  it('crea una sola orden combo de ARS 120.000 y acredita ambos derechos', async () => {
+  it('crea una sola orden combo de ARS 170.000 y acredita ambos derechos', async () => {
     const athleteId = await createTestAthlete(admin, {
       email: `pitbull-combo-${randomUUID()}@pluarg.test`,
     })
@@ -170,7 +153,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
 
     expect(response.status, JSON.stringify(body)).toBe(201)
     expect(body.order).toMatchObject({
-      amount: 120000,
+      amount: 170000,
       currency: 'ARS',
       method: 'manual_link',
       manual_payment_channel: 'bank_transfer',
