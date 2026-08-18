@@ -138,6 +138,7 @@ export default {
       },
     },
     payments: {
+      rejectionActorProvider: 'Mercado Pago',
       kpis: {
         title: 'Radar de cobros',
         body: 'Órdenes por validar, entradas pendientes, webhooks fallidos, conciliaciones e integridad general -- tocá cualquiera para ir directo a esa cola.',
@@ -237,6 +238,8 @@ export default {
     membershipRefunded: 'Reembolsadas',
     paymentApproved: 'Pago aprobado',
     gatePending: 'Confirmada sin afiliación',
+    allTournament: 'Todos',
+    registeredToTournament: 'Inscriptos a un torneo',
     toggle: 'Filtros',
     activeCount: '{{count}} filtros activos',
     clearSearch: 'Limpiar búsqueda',
@@ -432,6 +435,10 @@ export default {
       cancelConfirmWarning: 'La credencial deja de habilitar el ingreso y el atleta recibe un email con el cambio.',
       keepActive: 'Mantener activa',
       confirmCancel: 'Confirmar baja',
+      registeredToTournamentBadge: 'Torneo',
+      validationPaused: 'La validación de afiliaciones está pausada desde Acceso y habilitación.',
+      validationPausedLead:
+        'Activar o dar de baja queda bloqueado hasta que se reabra el interruptor en esa pantalla.',
     },
     pricing: {
       eyebrow: 'Configuración económica',
@@ -734,6 +741,9 @@ export default {
       emptyFilteredTitle: 'Sin resultados',
       emptyFiltered: 'No hay inscripciones que coincidan con la búsqueda o el estado elegido.',
       clearFilters: 'Limpiar filtros',
+      validationPaused: 'La validación de inscripciones está pausada desde Acceso y habilitación.',
+      validationPausedLead:
+        'Aprobar un pago queda bloqueado hasta que se reabra el interruptor en esa pantalla.',
     },
     events: {
       eyebrow: 'Competencias',
@@ -1491,6 +1501,7 @@ export default {
     amount: 'Monto',
     notes: 'Observaciones del atleta',
     proofReceivedAt: 'Comprobante recibido',
+    rejectedByLabel: 'Rechazo anterior',
     proofPending: 'Archivo pendiente',
     noProofTitle: 'Sin comprobante cargado',
     noProofLead: 'La transferencia se puede acreditar sólo después de adjuntar y revisar un comprobante.',
@@ -2373,6 +2384,7 @@ export default {
     filterManual: 'Con comprobante',
     filterApproved: 'Aprobadas',
     filterAll: 'Todas',
+    rejectedBy: 'Rechazada por {{actor}}',
     columnProof: 'Comprobante',
     proofMissing: 'Sin comprobante',
     proofError: 'No se pudo abrir el comprobante.',

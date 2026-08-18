@@ -5,6 +5,18 @@ import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.j
 import AdminListSection from '../src/components/admin/AdminListSection.jsx'
 import RegistrationsSection from '../src/pages/admin/RegistrationsSection.jsx'
 
+vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    fetchPlatformFeatureToggles: vi.fn(async () => ({
+      membershipValidationEnabled: true,
+      registrationValidationEnabled: true,
+      ticketValidationEnabled: true,
+    })),
+  }
+})
+
 beforeAll(() => {
   window.matchMedia ??= (query) => ({
     matches: String(query).includes('max-width: 1100px'),

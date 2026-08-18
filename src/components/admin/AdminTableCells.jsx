@@ -125,10 +125,10 @@ export function AdminPaymentCell({ amount, status }) {
   )
 }
 
-export function AdminTableActions({ children, 'aria-label': ariaLabel, onClick }) {
+export function AdminTableActions({ children, className = '', 'aria-label': ariaLabel, onClick }) {
   return (
     <div
-      className="admin-table-actions"
+      className={`admin-table-actions${className ? ` ${className}` : ''}`}
       role={ariaLabel ? 'group' : undefined}
       aria-label={ariaLabel}
       onClick={onClick}

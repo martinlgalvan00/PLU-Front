@@ -18304,3 +18304,45 @@ button.action-queue__proof:focus-visible {
     justify-content: flex-end;
   }
 }
+
+
+
+/* =========================================================================
+   PAGOS — Traza de rechazo en la orden (quién y por qué)
+   Sub-línea bajo el status badge de la bandeja de Finanzas y fila del
+   diálogo de validación. Muted y truncada: identifica, no compite con el
+   veredicto.
+   ========================================================================= */
+
+.admin-orders-block__status-cell {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.admin-orders-block__rejection {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-validation-dialog__rejection-row dd {
+  display: grid;
+  gap: 2px;
+}
+
+.payment-validation-dialog__rejection-row dd strong {
+  font-weight: 600;
+}
+
+.payment-validation-dialog__rejection-row dd span {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+

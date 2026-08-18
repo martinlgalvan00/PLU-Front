@@ -18,6 +18,19 @@ export const PLATFORM_TOGGLE_KEYS = [
   'ticketValidationEnabled',
 ]
 
+/**
+ * Códigos que devuelve el backend (`server/services/platformFeatureToggleService.js`)
+ * cuando una acción de validación/activación choca con un interruptor apagado
+ * desde Acceso y habilitación. Sirven para que el frontend distinga ese 409
+ * puntual de cualquier otro error y resincronice su copia local del toggle
+ * (fetch único al montar la sección) en vez de mostrar el 409 crudo.
+ */
+export const VALIDATION_DISABLED_CODES = {
+  membership: 'MEMBERSHIP_VALIDATION_DISABLED',
+  registration: 'REGISTRATION_VALIDATION_DISABLED',
+  ticket: 'TICKET_VALIDATION_DISABLED',
+}
+
 function mapToggles(result) {
   return {
     ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, result?.[key] !== false])),

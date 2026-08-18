@@ -2023,7 +2023,7 @@ export function useAppData() {
         return { order, membership, registration }
       } catch (error) {
         console.error('handleApprovePayment:', error)
-        return { error: error?.message ?? 'No se pudo aprobar el pago.' }
+        return { error: error?.message ?? 'No se pudo aprobar el pago.', code: error?.body?.code }
       }
     },
     [session],
@@ -2047,7 +2047,7 @@ export function useAppData() {
         return { order }
       } catch (error) {
         console.error('handleRejectPayment:', error)
-        return { error: error?.message ?? 'No se pudo rechazar el pago.' }
+        return { error: error?.message ?? 'No se pudo rechazar el pago.', code: error?.body?.code }
       }
     },
     [session],
@@ -2093,7 +2093,7 @@ export function useAppData() {
         return { order, membership, registration, duplicate }
       } catch (error) {
         console.error('handleForceSettlePayment:', error)
-        return { error: error?.message ?? 'No se pudo acreditar el pago.' }
+        return { error: error?.message ?? 'No se pudo acreditar el pago.', code: error?.body?.code }
       }
     },
     [session],
@@ -2148,7 +2148,7 @@ export function useAppData() {
         publishAthleteSnapshotInvalidation()
         return { membership }
       } catch (error) {
-        if (error instanceof ApiError) return { error: error.message }
+        if (error instanceof ApiError) return { error: error.message, code: error.body?.code }
         throw error
       }
     },

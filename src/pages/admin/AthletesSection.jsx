@@ -9,6 +9,7 @@ import { getAthletesTourSteps } from '../../lib/adminTourSteps.js'
 import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import {
   createRegistrationPaymentIndex,
+  groupRegistrationsByAthlete,
   matchesRegistrationStatusFilter,
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
@@ -56,15 +57,10 @@ export default function AthletesSection({
   // inscripción que matchee el filtro X?" no debería recorrer todo el
   // array de inscripciones por cada atleta.
   const paymentIndex = useMemo(() => createRegistrationPaymentIndex(payments), [payments])
-  const registrationsByAthlete = useMemo(() => {
-    const map = new Map()
-    for (const registration of registrations) {
-      const list = map.get(registration.athleteId)
-      if (list) list.push(registration)
-      else map.set(registration.athleteId, [registration])
-    }
-    return map
-  }, [registrations])
+  const registrationsByAthlete = useMemo(
+    () => groupRegistrationsByAthlete(registrations),
+    [registrations],
+  )
 
   function athleteMatchesRegistrationFilter(athleteId, filter) {
     if (filter === 'all') return true

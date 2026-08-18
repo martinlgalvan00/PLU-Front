@@ -3,6 +3,20 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import MembershipsSection from '../src/pages/admin/MembershipsSection.jsx'
 
+vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    fetchPlatformFeatureToggles: vi.fn(async () => ({
+      membershipValidationEnabled: true,
+      registrationValidationEnabled: true,
+      ticketValidationEnabled: true,
+    })),
+  }
+})
+
+const { fetchPlatformFeatureToggles } = await import('../src/services/platformSettingsAdminService.js')
+
 beforeAll(() => {
   if (typeof window.matchMedia === 'function') return
   window.matchMedia = () => ({
@@ -12,7 +26,14 @@ beforeAll(() => {
   })
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
+    membershipValidationEnabled: true,
+    registrationValidationEnabled: true,
+    ticketValidationEnabled: true,
+  })
+})
 
 function membership(overrides = {}) {
   return {
@@ -73,5 +94,28 @@ describe('operación de afiliaciones', () => {
       )).toBe(true)
     })
     expect(screen.getByRole('button', { name: 'Confirmar baja' }).disabled).toBe(false)
+  })
+
+  it('no deja activar a mano si la validación está pausada desde el panel', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValueOnce({
+      membershipValidationEnabled: false,
+      registrationValidationEnabled: true,
+      ticketValidationEnabled: true,
+    })
+    const onSetMembershipStatus = vi.fn()
+    renderSection(
+      [membership({ status: 'pendiente_pago', expirationDate: `${new Date().getFullYear() + 1}-12-31` })],
+      { onSetMembershipStatus },
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('status').textContent).toMatch(/pausada desde Acceso y habilitación/)
+    })
+    const activate = screen.getAllByRole('button', {
+      name: 'La validación de afiliaciones está pausada desde Acceso y habilitación.',
+    })[0]
+    expect(activate.disabled).toBe(true)
+    fireEvent.click(activate)
+    expect(onSetMembershipStatus).not.toHaveBeenCalled()
   })
 })

@@ -113,7 +113,8 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_payment_method: 'manual_link',
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 85000,
+      p_default_price: 85000,
+      p_manual_price: null,
       p_manual_payment_channel: 'bank_transfer',
     })
     expect(wrongTransferPrice.error?.message).toContain('La cotizacion no coincide con la politica vigente.')

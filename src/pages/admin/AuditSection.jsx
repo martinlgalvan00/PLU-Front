@@ -383,11 +383,11 @@ export default function AuditSection() {
 
   const health = (
     <section
-      className={`audit-health audit-health--${overview.status}`}
+      className={`audit-health-bento audit-health--${overview.status}`}
       aria-label={t('admin.audit.healthTitle')}
       aria-live="polite"
     >
-      <header className="audit-health__header">
+      <div className="bento-card bento-card--header">
         <div>
           <span className="audit-health__eyebrow">{t('admin.audit.healthEyebrow')}</span>
           <h3>{t('admin.audit.healthTitle')}</h3>
@@ -401,26 +401,35 @@ export default function AuditSection() {
               ? t('admin.audit.healthAttention')
               : t('admin.audit.healthUnknown')}
         </span>
-      </header>
+      </div>
 
-      <dl className="audit-health__metrics">
-        <div>
-          <Activity size={17} aria-hidden />
+      <div className="bento-card bento-card--metric bento-card--stagger-1">
+        <Activity size={20} className="bento-icon" aria-hidden />
+        <div className="bento-metric__data">
           <dt>{t('admin.audit.healthEvents')}</dt>
           <dd>{overview.eventsLast24h}</dd>
         </div>
-        <div>
-          <MailCheck size={17} aria-hidden />
+      </div>
+      
+      <div className="bento-card bento-card--metric bento-card--stagger-2">
+        <MailCheck size={20} className="bento-icon" aria-hidden />
+        <div className="bento-metric__data">
           <dt>{t('admin.audit.healthDelivered')}</dt>
           <dd>{overview.emailsDeliveredLast24h}</dd>
         </div>
-        <div>
-          <RefreshCw size={17} aria-hidden />
+      </div>
+      
+      <div className="bento-card bento-card--metric bento-card--stagger-3">
+        <RefreshCw size={20} className="bento-icon" aria-hidden />
+        <div className="bento-metric__data">
           <dt>{t('admin.audit.healthRetrying')}</dt>
           <dd>{overview.emailsRetrying}</dd>
         </div>
-        <div className={attentionCount > 0 ? 'is-attention' : ''}>
-          {attentionCount > 0 ? <CircleAlert size={17} aria-hidden /> : <BadgeCheck size={17} aria-hidden />}
+      </div>
+      
+      <div className={`bento-card bento-card--metric bento-card--stagger-4 ${attentionCount > 0 ? 'is-attention' : ''}`}>
+        {attentionCount > 0 ? <CircleAlert size={20} className="bento-icon" aria-hidden /> : <BadgeCheck size={20} className="bento-icon" aria-hidden />}
+        <div className="bento-metric__data">
           <dt>{t('admin.audit.healthIncidents')}</dt>
           {loadedErrorCount > 0 ? (
             <dd>
@@ -437,10 +446,10 @@ export default function AuditSection() {
             <dd>{attentionCount}</dd>
           )}
         </div>
-      </dl>
+      </div>
 
       {attentionCount > 0 ? (
-        <div className="audit-health__notice">
+        <div className="bento-card bento-card--notice bento-card--stagger-5">
           <dl className="audit-health__breakdown" aria-label={t('admin.audit.healthIncidents')}>
             <div>
               <dt>{t('admin.audit.healthBreakdownEmails')}</dt>

@@ -71,6 +71,12 @@ export function AdminTourProvider({ children }) {
     (tourId, steps) => {
       if (!steps?.length || tourMode === 'off') return false
       if (tourMode === 'once' && hasSeenTour(tourId)) return false
+      // Se marca "visto" apenas arranca, no solo al cerrarlo: si la sección
+      // se desmonta o la página se recarga a mitad del tour (navegación
+      // rápida entre secciones, hot-reload), antes el flag nunca se
+      // persistía y el tour volvía a arrancar de cero en la próxima visita
+      // -- de ahí la sensación de que se repite todo el tiempo.
+      markTourSeen(tourId)
       setActiveTour({ id: tourId, steps })
       setStepIndex(0)
       return true

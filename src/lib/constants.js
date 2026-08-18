@@ -215,6 +215,11 @@ export const MEMBERSHIP_EXPIRING_FILTER_OPTIONS = [
   ['soon', 'expiringSoon'],
 ]
 
+export const MEMBERSHIP_TOURNAMENT_FILTER_OPTIONS = [
+  ['all', 'allTournament'],
+  ['yes', 'registeredToTournament'],
+]
+
 export const DEFAULT_FORM = {
   fullName: '',
   documentId: '',
