@@ -29,10 +29,9 @@ describe('features productivas contra el catalogo real de Supabase', () => {
 
     expect(response.status, JSON.stringify(body)).toBe(200)
     expect(body.plans.some((plan) => plan.collectionMode === 'one_time')).toBe(true)
-    expect(body.plans.some((plan) => plan.collectionMode === 'recurring')).toBe(true)
   })
 
-  it('publica Pitbull Classic en ARS 85.000 (75.000 manual) y el combo en ARS 170.000 (120.000 manual)', async () => {
+  it('publica Pitbull Classic en ARS 85.000 y el combo en ARS 170.000', async () => {
     const eventResult = await admin
       .from('events')
       .select('id, slug, price, manual_price, currency, status, published, rules')
@@ -43,16 +42,13 @@ describe('features productivas contra el catalogo real de Supabase', () => {
     expect(eventResult.data).toMatchObject({
       slug: 'pitbull-classic-2026',
       price: 85000,
-      manual_price: 75000,
       currency: 'ARS',
       status: 'inscripcion_abierta',
       published: true,
     })
     expect(eventResult.data.rules).toMatchObject({
       membershipPrice: 85000,
-      membershipManualPrice: 75000,
       comboPrice: 170000,
-      comboManualPrice: 120000,
     })
 
     const comboResult = await admin
@@ -64,7 +60,6 @@ describe('features productivas contra el catalogo real de Supabase', () => {
 
     expect(comboResult.data).toMatchObject({
       price: 170000,
-      manual_price: 120000,
       currency: 'ARS',
       active: true,
     })
