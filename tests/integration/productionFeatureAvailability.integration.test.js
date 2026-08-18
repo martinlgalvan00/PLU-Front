@@ -4,14 +4,16 @@ import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.j
 
 describe('features productivas contra el catalogo real de Supabase', () => {
   const admin = createSupabaseTestClient()
-  const target = listen(createApp({
-    supabaseAdmin: admin,
-    env: {
-      ...process.env,
-      APP_PRODUCTION: 'true',
-      PAYMENTS_MOCK: 'false',
-    },
-  }))
+  const target = listen(
+    createApp({
+      supabaseAdmin: admin,
+      env: {
+        ...process.env,
+        APP_PRODUCTION: 'true',
+        PAYMENTS_MOCK: 'false',
+      },
+    }),
+  )
 
   afterAll(async () => {
     await target.close()

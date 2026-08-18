@@ -208,7 +208,10 @@ export function useSlidingIndicator(containerRef, deps = [], selector = '.is-act
       }
       const containerRect = container.getBoundingClientRect()
       const activeRect = active.getBoundingClientRect()
-      container.style.setProperty('--indicator-x', `${(activeRect.left - containerRect.left).toFixed(1)}px`)
+      container.style.setProperty(
+        '--indicator-x',
+        `${(activeRect.left - containerRect.left).toFixed(1)}px`,
+      )
       container.style.setProperty('--indicator-scale', activeRect.width.toFixed(1))
       container.style.setProperty('--indicator-opacity', '1')
     }
@@ -291,7 +294,9 @@ export function useHeaderScroll(
       const y = window.scrollY
       const linear = Math.min(1, Math.max(0, y / range))
       const eased = reducedMotionQuery.matches
-        ? (linear >= 0.5 ? 1 : 0)
+        ? linear >= 0.5
+          ? 1
+          : 0
         : easeHeaderScrollProgress(linear)
       const progress = reducedMotionQuery.matches
         ? eased

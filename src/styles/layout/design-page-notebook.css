@@ -10,10 +10,7 @@
   .events-page--premium .events-page__body,
   .community-page__inner {
     gap: clamp(14px, 2.2vw, 20px);
-    padding:
-      clamp(12px, 1.8vw, 18px)
-      var(--layout-gutter-lg)
-      clamp(32px, 4vw, 48px);
+    padding: clamp(12px, 1.8vw, 18px) var(--layout-gutter-lg) clamp(32px, 4vw, 48px);
   }
 
   .pitbull-page--premium .pitbull-page__body {
@@ -262,12 +259,18 @@
     grid-row: 1;
   }
 
-  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__compare-inline {
+  .members-page--premium
+    .membership-grid--editorial
+    .membership-card--red
+    .membership-card__compare-inline {
     grid-column: 1;
     grid-row: 2;
   }
 
-  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__features-list {
+  .members-page--premium
+    .membership-grid--editorial
+    .membership-card--red
+    .membership-card__features-list {
     grid-column: 1;
     grid-row: 3;
   }
@@ -286,7 +289,10 @@
   }
 
   /* Precio del combo más grande en horizontal */
-  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__amount {
+  .members-page--premium
+    .membership-grid--editorial
+    .membership-card--red
+    .membership-card__amount {
     font-size: clamp(22px, 3.2vw, 27px);
   }
 
@@ -720,17 +726,23 @@
     padding: 12px 0 12px clamp(10px, 1.5vw, 14px);
   }
 
-  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:first-child {
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:first-child {
     border-left: none;
     padding-left: 0;
     padding-top: 12px;
   }
 
-  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(odd) {
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(odd) {
     padding-right: 0;
   }
 
-  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(even):not(:nth-child(3n + 1)) {
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(even):not(:nth-child(3n + 1)) {
     border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
     padding-left: clamp(10px, 1.5vw, 14px);
   }
@@ -820,23 +832,31 @@
     padding: 14px 0 14px clamp(10px, 1.6vw, 14px);
   }
 
-  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:first-child {
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:first-child {
     border-left: none;
     padding-left: 0;
     padding-top: 14px;
   }
 
   /* Resetear reglas odd/even del max-width:1199px */
-  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(-n + 2) {
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(-n + 2) {
     border-top: none;
     padding-top: 14px;
   }
 
-  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(odd) {
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(odd) {
     padding-right: 0;
   }
 
-  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item:nth-child(even) {
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(even) {
     border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
     padding-left: clamp(10px, 1.6vw, 14px);
   }

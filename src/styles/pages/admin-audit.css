@@ -16,33 +16,41 @@
   padding: var(--space-md) var(--space-lg);
 }
 
+@media (max-width: 1024px) {
+  .audit-health-bento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .audit-health-bento {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .admin-shell .admin-list-section--audit > .audit-health-bento {
   margin: 0 0 16px;
   padding: 0;
 }
 
 .bento-card {
-  background: color-mix(in srgb, var(--color-bg-elevated, var(--color-bg-surface)) 80%, transparent);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: var(--elevation-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: 20px;
   position: relative;
   transition:
-    transform var(--motion-slow, 400ms) var(--ease-spring),
-    box-shadow var(--motion-slow, 400ms) var(--ease-spring),
+    background-color var(--motion-fast, 160ms) var(--ease-out),
     border-color var(--motion-fast, 160ms) var(--ease-out);
 }
 
 .bento-card:hover {
+  background: color-mix(in srgb, var(--color-bg-surface) 95%, var(--color-brand-celeste) 5%);
   border-color: color-mix(in oklab, var(--color-brand-celeste) 40%, transparent);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px) scale(1.01);
 }
 
 /* Header spans full width */
@@ -55,7 +63,12 @@
 }
 
 .bento-card--header::before {
-  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-brand-celeste) 20%, transparent), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-brand-celeste) 20%, transparent),
+    transparent
+  );
   content: '';
   height: 2px;
   inset: 0 0 auto 0;
@@ -201,12 +214,24 @@
   .bento-card {
     animation: bento-fade-in var(--motion-cinematic, 700ms) var(--ease-out) both;
   }
-  .bento-card--header { animation-delay: 50ms; }
-  .bento-card--stagger-1 { animation-delay: 100ms; }
-  .bento-card--stagger-2 { animation-delay: 150ms; }
-  .bento-card--stagger-3 { animation-delay: 200ms; }
-  .bento-card--stagger-4 { animation-delay: 250ms; }
-  .bento-card--stagger-5 { animation-delay: 300ms; }
+  .bento-card--header {
+    animation-delay: 50ms;
+  }
+  .bento-card--stagger-1 {
+    animation-delay: 100ms;
+  }
+  .bento-card--stagger-2 {
+    animation-delay: 150ms;
+  }
+  .bento-card--stagger-3 {
+    animation-delay: 200ms;
+  }
+  .bento-card--stagger-4 {
+    animation-delay: 250ms;
+  }
+  .bento-card--stagger-5 {
+    animation-delay: 300ms;
+  }
 }
 
 @keyframes bento-fade-in {
@@ -286,7 +311,10 @@
   flex: none;
 }
 
-.admin-shell .admin-filters--audit .admin-filters__advanced-toggle.is-open .admin-filters__toggle-icon {
+.admin-shell
+  .admin-filters--audit
+  .admin-filters__advanced-toggle.is-open
+  .admin-filters__toggle-icon {
   transform: rotate(180deg);
 }
 
@@ -366,10 +394,24 @@
   }
 }
 
+/* Table Row Enhancements */
+.admin-shell .admin-data-table--audit tbody tr {
+  transition: background-color var(--motion-fast, 160ms) var(--ease-out);
+}
+.admin-shell .admin-data-table--audit tbody tr:hover {
+  background-color: color-mix(in srgb, var(--color-brand-celeste) 3%, transparent);
+}
+.admin-shell .admin-data-table--audit tbody tr:has(.status-pill--danger) {
+  background-color: color-mix(in srgb, var(--color-brand-red) 2%, transparent);
+}
+.admin-shell .admin-data-table--audit tbody tr:has(.status-pill--danger):hover {
+  background-color: color-mix(in srgb, var(--color-brand-red) 5%, transparent);
+}
+
 .audit-entry__time {
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -552,13 +594,19 @@
 /* La card compacta genérica recorta meta a una línea. El detalle de auditoría
    tiene que leerse entero: el error es la razón de que el operador abrió esto. */
 .admin-shell .admin-list-shell--audit .data-table-card__meta-value,
-.admin-shell .admin-list-shell--audit .data-table-card--admin.data-table-card--compact .data-table-card__meta-value {
+.admin-shell
+  .admin-list-shell--audit
+  .data-table-card--admin.data-table-card--compact
+  .data-table-card__meta-value {
   overflow: visible;
   text-overflow: unset;
   white-space: normal;
 }
 
-.admin-shell .admin-list-shell--audit .data-table-card--admin.data-table-card--compact .data-table-card__meta--inline {
+.admin-shell
+  .admin-list-shell--audit
+  .data-table-card--admin.data-table-card--compact
+  .data-table-card__meta--inline {
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(0, 1fr);
@@ -748,11 +796,18 @@
   .admin-shell .admin-list-shell--audit .audit-entry__actor {
     gap: 4px;
     padding: 8px 0 0;
-    border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+    border-top: 1px solid
+      color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
   }
 
-  .admin-shell .admin-list-shell--audit .data-table-card__meta-value:first-child .audit-entry__entity,
-  .admin-shell .admin-list-shell--audit .data-table-card__meta-value:first-child .audit-entry__actor {
+  .admin-shell
+    .admin-list-shell--audit
+    .data-table-card__meta-value:first-child
+    .audit-entry__entity,
+  .admin-shell
+    .admin-list-shell--audit
+    .data-table-card__meta-value:first-child
+    .audit-entry__actor {
     border-top: 0;
     padding-top: 0;
   }
@@ -776,7 +831,8 @@
     display: grid;
     gap: 6px;
     padding-top: 8px;
-    border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+    border-top: 1px solid
+      color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
   }
 
   .admin-shell .admin-list-shell--audit .audit-entry__detail > div {
@@ -804,7 +860,8 @@
   }
 
   .admin-shell .admin-list-shell--audit .data-table-card .audit-event {
-    border-top: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+    border-top: 1px solid
+      color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
     padding-top: 10px;
   }
 
@@ -1384,6 +1441,9 @@
  */
 
 .audit-detail__panel {
+  background: color-mix(in srgb, var(--color-bg-surface) 95%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   max-width: 860px;
   width: min(860px, 100%);
 }
@@ -1391,12 +1451,14 @@
 .audit-detail__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 12px;
 }
 
-.audit-detail__block + .audit-detail__block {
-  border-top: 1px solid var(--color-border-subtle);
-  padding-top: var(--space-lg);
+.audit-detail__block {
+  background: color-mix(in srgb, var(--color-bg-elevated) 40%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  padding: 20px;
 }
 
 .audit-detail__block h3 {
@@ -1449,15 +1511,20 @@
 /* El mensaje del error lidera el bloque: es lo primero que se lee. */
 .audit-detail__message {
   color: var(--color-text-primary);
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 16px;
+  font-weight: 500;
   line-height: 1.4;
-  margin: 0 0 var(--space-sm);
+  margin: 0 0 var(--space-md);
   text-wrap: pretty;
 }
 
+.audit-detail__block--failure {
+  background: color-mix(in srgb, var(--color-brand-red) 4%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-red) 15%, transparent);
+}
 .audit-detail__block--failure .audit-detail__message {
-  border-left: 2px solid var(--color-danger-text);
+  border-left: 2px solid var(--color-brand-red);
   padding-left: var(--space-sm);
 }
 
@@ -1494,14 +1561,16 @@
 
 .audit-detail__stack pre,
 .audit-detail__raw pre {
-  background: var(--color-bg-secondary);
-  border-radius: var(--border-radius-sm);
-  font-size: 11px;
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-radius: var(--border-radius-md);
+  color: color-mix(in srgb, var(--color-text-primary) 90%, transparent);
+  font-size: 11.5px;
   line-height: 1.5;
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   max-height: 320px;
   overflow: auto;
-  padding: var(--space-sm);
+  padding: 16px;
   white-space: pre-wrap;
   word-break: break-word;
 }

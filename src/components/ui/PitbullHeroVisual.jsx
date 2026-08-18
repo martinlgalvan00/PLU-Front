@@ -26,7 +26,9 @@ export default function PitbullHeroVisual({ categories = [], date, minimal = fal
           loading="eager"
           fetchPriority="high"
         />
-        <figcaption className="pitbull-hero-visual__caption">{t('pages.pitbull.visualAlt')}</figcaption>
+        <figcaption className="pitbull-hero-visual__caption">
+          {t('pages.pitbull.visualAlt')}
+        </figcaption>
       </figure>
     )
   }
@@ -64,7 +66,9 @@ export default function PitbullHeroVisual({ categories = [], date, minimal = fal
           </div>
         </div>
       </div>
-      <figcaption className="pitbull-hero-visual__caption">{t('pages.pitbull.visualAlt')}</figcaption>
+      <figcaption className="pitbull-hero-visual__caption">
+        {t('pages.pitbull.visualAlt')}
+      </figcaption>
     </figure>
   )
 }

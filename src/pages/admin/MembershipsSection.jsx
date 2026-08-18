@@ -382,12 +382,15 @@ export default function MembershipsSection({
               desktop: 'status',
               sortable: true,
               mobileSortable: false,
-              sortAccessor: (row) => `${row.operationalStatus}${row.hasTournamentRegistration ? '-1' : '-0'}`,
+              sortAccessor: (row) =>
+                `${row.operationalStatus}${row.hasTournamentRegistration ? '-1' : '-0'}`,
               render: (row) => (
                 <div className="admin-membership-status-cell">
                   <StatusBadge value={row.operationalStatus} />
                   {row.hasTournamentRegistration ? (
-                    <Pill tone="info">{t('admin.sections.memberships.registeredToTournamentBadge')}</Pill>
+                    <Pill tone="info">
+                      {t('admin.sections.memberships.registeredToTournamentBadge')}
+                    </Pill>
                   ) : null}
                 </div>
               ),
@@ -409,67 +412,69 @@ export default function MembershipsSection({
                 const pausedLabel = t('admin.sections.memberships.validationPaused')
                 // stopPropagation: la fila entera navega a la ficha del atleta.
                 return (
-                <AdminTableActions
-                  className="admin-membership-actions"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {row.canViewCredential && (
-                    <AdminIconButton
-                      className={credentialTarget?.id === row.id ? 'is-active' : ''}
-                      icon={QrCode}
-                      label={t('admin.sections.memberships.viewCredential')}
-                      onClick={() => setCredentialTarget({ id: row.id, athleteName: row.athlete })}
-                      variant="ghost"
-                    />
-                  )}
-                  {canManage && row.canActivate && (
-                    <AdminIconButton
-                      disabled={pendingId === row.id || !validationEnabled}
-                      icon={BadgeCheck}
-                      spinning={pendingId === row.id}
-                      label={
-                        pendingId === row.id
-                          ? t('admin.sections.memberships.applying')
-                          : validationEnabled
-                            ? t('admin.sections.memberships.activate')
-                            : pausedLabel
-                      }
-                      onClick={() => applyStatus(row.id, 'activa')}
-                      variant="celeste"
-                    />
-                  )}
-                  {canManage && row.canCancel && (
-                    <AdminIconButton
-                      disabled={pendingId === row.id || !validationEnabled}
-                      icon={Ban}
-                      spinning={pendingId === row.id}
-                      label={
-                        pendingId === row.id
-                          ? t('admin.sections.memberships.applying')
-                          : validationEnabled
-                            ? t('admin.sections.memberships.cancel')
-                            : pausedLabel
-                      }
-                      onClick={() => {
-                        setActionError('')
-                        setCancelTarget(row)
-                      }}
-                      variant="ghost"
-                    />
-                  )}
-                  {canDelete && (
-                    <AdminIconButton
-                      disabled={pendingId === row.id}
-                      icon={Trash2}
-                      label="Eliminar afiliación"
-                      onClick={() => {
-                        setActionError('')
-                        setDeleteTarget(row)
-                      }}
-                      variant="danger"
-                    />
-                  )}
-                </AdminTableActions>
+                  <AdminTableActions
+                    className="admin-membership-actions"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {row.canViewCredential && (
+                      <AdminIconButton
+                        className={credentialTarget?.id === row.id ? 'is-active' : ''}
+                        icon={QrCode}
+                        label={t('admin.sections.memberships.viewCredential')}
+                        onClick={() =>
+                          setCredentialTarget({ id: row.id, athleteName: row.athlete })
+                        }
+                        variant="ghost"
+                      />
+                    )}
+                    {canManage && row.canActivate && (
+                      <AdminIconButton
+                        disabled={pendingId === row.id || !validationEnabled}
+                        icon={BadgeCheck}
+                        spinning={pendingId === row.id}
+                        label={
+                          pendingId === row.id
+                            ? t('admin.sections.memberships.applying')
+                            : validationEnabled
+                              ? t('admin.sections.memberships.activate')
+                              : pausedLabel
+                        }
+                        onClick={() => applyStatus(row.id, 'activa')}
+                        variant="celeste"
+                      />
+                    )}
+                    {canManage && row.canCancel && (
+                      <AdminIconButton
+                        disabled={pendingId === row.id || !validationEnabled}
+                        icon={Ban}
+                        spinning={pendingId === row.id}
+                        label={
+                          pendingId === row.id
+                            ? t('admin.sections.memberships.applying')
+                            : validationEnabled
+                              ? t('admin.sections.memberships.cancel')
+                              : pausedLabel
+                        }
+                        onClick={() => {
+                          setActionError('')
+                          setCancelTarget(row)
+                        }}
+                        variant="ghost"
+                      />
+                    )}
+                    {canDelete && (
+                      <AdminIconButton
+                        disabled={pendingId === row.id}
+                        icon={Trash2}
+                        label="Eliminar afiliación"
+                        onClick={() => {
+                          setActionError('')
+                          setDeleteTarget(row)
+                        }}
+                        variant="danger"
+                      />
+                    )}
+                  </AdminTableActions>
                 )
               },
             },

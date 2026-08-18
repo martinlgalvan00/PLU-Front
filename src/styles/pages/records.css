@@ -265,7 +265,9 @@
   white-space: nowrap;
 }
 
-.records-page--federated .records-sheet__pills.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+.records-page--federated
+  .records-sheet__pills.filter-pills--refined
+  .filter-pills__item:hover:not(.is-active) {
   background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
   border-color: color-mix(in srgb, var(--color-text-primary) 22%, transparent);
   color: var(--color-text-primary);
@@ -298,17 +300,24 @@
   text-transform: uppercase;
 }
 
-.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item + .filter-pills__item {
+.records-page--federated
+  .records-sheet__pills--sex.filter-pills--refined
+  .filter-pills__item
+  + .filter-pills__item {
   margin-left: 2px;
 }
 
-.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item:hover:not(.is-active) {
+.records-page--federated
+  .records-sheet__pills--sex.filter-pills--refined
+  .filter-pills__item:hover:not(.is-active) {
   background: transparent;
   border-bottom-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
   color: var(--color-text-secondary);
 }
 
-.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
+.records-page--federated
+  .records-sheet__pills--sex.filter-pills--refined
+  .filter-pills__item.is-active {
   background: transparent;
   border-bottom-color: var(--color-brand-gold);
   box-shadow: none;
@@ -316,7 +325,9 @@
   font-weight: 700;
 }
 
-.records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item:focus-visible {
+.records-page--federated
+  .records-sheet__pills--sex.filter-pills--refined
+  .filter-pills__item:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 3px;
 }
@@ -592,7 +603,11 @@
 }
 
 .records-soon__badge {
-  color: color-mix(in oklab, var(--plu-gold-500, var(--color-brand-gold)) 88%, var(--color-text-muted));
+  color: color-mix(
+    in oklab,
+    var(--plu-gold-500, var(--color-brand-gold)) 88%,
+    var(--color-text-muted)
+  );
   font-family: var(--font-display);
   font-size: clamp(11px, 1.1vw, 12px);
   font-weight: 700;
@@ -819,15 +834,24 @@
 [data-theme='light'] .records-sheet__lift,
 [data-theme='light'] .records-sheet__card,
 [data-theme='light'] .records-sheet__search,
-[data-theme='light'] .records-page--federated .records-sheet__pills.filter-pills--refined .filter-pills__item {
+[data-theme='light']
+  .records-page--federated
+  .records-sheet__pills.filter-pills--refined
+  .filter-pills__item {
   background-color: rgba(15, 17, 23, 0.025);
 }
 
-[data-theme='light'] .records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item {
+[data-theme='light']
+  .records-page--federated
+  .records-sheet__pills--sex.filter-pills--refined
+  .filter-pills__item {
   background: transparent;
 }
 
-[data-theme='light'] .records-page--federated .records-sheet__pills--sex.filter-pills--refined .filter-pills__item.is-active {
+[data-theme='light']
+  .records-page--federated
+  .records-sheet__pills--sex.filter-pills--refined
+  .filter-pills__item.is-active {
   border-bottom-color: var(--color-brand-gold);
   color: var(--color-text-primary);
 }

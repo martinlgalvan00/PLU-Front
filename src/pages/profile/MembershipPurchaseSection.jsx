@@ -62,7 +62,8 @@ export default function MembershipPurchaseSection({
   // puede cambiarlo dentro del modal.
   const [cardInitialFormat, setCardInitialFormat] = useState('square')
   function openCardModal() {
-    const prefersStory = typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches
+    const prefersStory =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches
     setCardInitialFormat(prefersStory ? 'story' : 'square')
     setCardOpen(true)
   }
@@ -108,7 +109,8 @@ export default function MembershipPurchaseSection({
   // El interruptor general puede seguir apagado: un cupón con
   // enablesManualPayment lo destraba puntualmente para quien lo usa.
   const effectiveManualChannelEnabled =
-    Boolean(discountPreview?.enablesManualPayment) || (manualChannelEnabled && publicManualChannelEnabled)
+    Boolean(discountPreview?.enablesManualPayment) ||
+    (manualChannelEnabled && publicManualChannelEnabled)
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
@@ -138,13 +140,14 @@ export default function MembershipPurchaseSection({
         eventSlug: 'afiliacion',
       }
     : null
-  const methodLabel = paymentMethod === 'mercado_pago'
-    ? 'Mercado Pago'
-    : t('account.membership.transfer')
+  const methodLabel =
+    paymentMethod === 'mercado_pago' ? 'Mercado Pago' : t('account.membership.transfer')
   const availablePlans = plans
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
   const selectedPlanPrice = previewCheckoutPrice({
-    paymentMethod, manualPrice: selectedPlan?.manualPrice, fallback: selectedPlan?.price ?? 0,
+    paymentMethod,
+    manualPrice: selectedPlan?.manualPrice,
+    fallback: selectedPlan?.price ?? 0,
   })
   const checkoutLocked = submitting || (Boolean(embeddedOrder) && !changingMethod)
   // Tanda privada abierta por el admin y todavía sin contraseña validada.
@@ -154,7 +157,8 @@ export default function MembershipPurchaseSection({
   // Mercado Pago, la propia sección se convierte en la pantalla de cobro en
   // vez de abrir un modal aparte — con la flecha de "cambiar método" para
   // volver al selector sin quedar trabado.
-  const mpSettling = Boolean(embeddedOrder) && embeddedOrder.paymentMethod === 'mercado_pago' && !changingMethod
+  const mpSettling =
+    Boolean(embeddedOrder) && embeddedOrder.paymentMethod === 'mercado_pago' && !changingMethod
   const oneTimePlan = useMemo(
     () => availablePlans.find((plan) => plan.collectionMode !== 'recurring') ?? null,
     [availablePlans],
@@ -188,9 +192,10 @@ export default function MembershipPurchaseSection({
       ],
     ]
   }, [availablePlans, billingSwitchEnabled, t])
-  const billingHint = billingMode === 'recurring'
-    ? t('account.membership.planModeAutomaticHint')
-    : t('account.membership.planModeAnnualHint')
+  const billingHint =
+    billingMode === 'recurring'
+      ? t('account.membership.planModeAutomaticHint')
+      : t('account.membership.planModeAnnualHint')
   const showPlanSwitch = availablePlans.length > 1
   const ctaLabel = submitting
     ? t('account.membership.creatingOrder')
@@ -198,40 +203,44 @@ export default function MembershipPurchaseSection({
       ? t('account.membership.continuePayment')
       : t('account.membership.continueWith', { method: methodLabel })
 
-  const loadPlans = useCallback(async ({ force = false, signal } = {}) => {
-    setPlansState('loading')
-    setPlansError('')
-    try {
-      const { plans: nextPlans } = await listMembershipPlans({ force })
-      if (signal?.aborted) return
-      setPlans(nextPlans ?? [])
-      if (nextPlans?.length) {
-        setPlanCode((current) => {
-          if (nextPlans.some((plan) => plan.code === current)) return current
-          const preferredMode = typeof sessionStorage !== 'undefined'
-            ? sessionStorage.getItem('plu.membership.billingMode')
-            : null
-          if (preferredMode === 'recurring' || preferredMode === 'one_time') {
-            const match = nextPlans.find((plan) =>
-              preferredMode === 'recurring'
-                ? plan.collectionMode === 'recurring'
-                : plan.collectionMode !== 'recurring',
-            )
-            if (match) {
-              sessionStorage.removeItem('plu.membership.billingMode')
-              return match.code
+  const loadPlans = useCallback(
+    async ({ force = false, signal } = {}) => {
+      setPlansState('loading')
+      setPlansError('')
+      try {
+        const { plans: nextPlans } = await listMembershipPlans({ force })
+        if (signal?.aborted) return
+        setPlans(nextPlans ?? [])
+        if (nextPlans?.length) {
+          setPlanCode((current) => {
+            if (nextPlans.some((plan) => plan.code === current)) return current
+            const preferredMode =
+              typeof sessionStorage !== 'undefined'
+                ? sessionStorage.getItem('plu.membership.billingMode')
+                : null
+            if (preferredMode === 'recurring' || preferredMode === 'one_time') {
+              const match = nextPlans.find((plan) =>
+                preferredMode === 'recurring'
+                  ? plan.collectionMode === 'recurring'
+                  : plan.collectionMode !== 'recurring',
+              )
+              if (match) {
+                sessionStorage.removeItem('plu.membership.billingMode')
+                return match.code
+              }
             }
-          }
-          return nextPlans[0].code
-        })
+            return nextPlans[0].code
+          })
+        }
+        setPlansState('ready')
+      } catch (error) {
+        if (signal?.aborted) return
+        setPlansError(error?.message ?? t('account.membership.planLoadError'))
+        setPlansState('error')
       }
-      setPlansState('ready')
-    } catch (error) {
-      if (signal?.aborted) return
-      setPlansError(error?.message ?? t('account.membership.planLoadError'))
-      setPlansState('error')
-    }
-  }, [t])
+    },
+    [t],
+  )
 
   useEffect(() => {
     const controller = new AbortController()
@@ -253,7 +262,9 @@ export default function MembershipPurchaseSection({
           setManualChannelEnabled(false)
         }
       })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [checkoutAvailability.membershipEnabled, checkoutAvailability.membershipManualEnabled])
 
   /**
@@ -463,7 +474,9 @@ export default function MembershipPurchaseSection({
     statusLabel = t('account.membership.statusActive')
     statusValue = membership.memberCode
     statusMeta = membership.expirationDate
-      ? t('account.membership.validUntil', { date: formatShortDate(membership.expirationDate, locale) })
+      ? t('account.membership.validUntil', {
+          date: formatShortDate(membership.expirationDate, locale),
+        })
       : ''
     statusNext = t('account.membership.nextActive')
   } else if (membershipScheduled) {
@@ -473,7 +486,9 @@ export default function MembershipPurchaseSection({
       ? t('account.membership.startsOn', { date: formatShortDate(membership.startDate, locale) })
       : t('account.membership.statusScheduledValue')
     statusMeta = membership.expirationDate
-      ? t('account.membership.validUntil', { date: formatShortDate(membership.expirationDate, locale) })
+      ? t('account.membership.validUntil', {
+          date: formatShortDate(membership.expirationDate, locale),
+        })
       : ''
     statusNext = t('account.membership.nextScheduled')
   } else if (transferUnderReview) {
@@ -488,7 +503,9 @@ export default function MembershipPurchaseSection({
     statusLabel = t('account.membership.statusExpired')
     statusValue = t('account.membership.statusExpiredValue')
     statusMeta = membership.expirationDate
-      ? t('account.membership.expiredOn', { date: formatShortDate(membership.expirationDate, locale) })
+      ? t('account.membership.expiredOn', {
+          date: formatShortDate(membership.expirationDate, locale),
+        })
       : ''
     statusNext = t('account.membership.nextRenew')
   } else if (membershipCancelled) {
@@ -511,16 +528,22 @@ export default function MembershipPurchaseSection({
         'account-section--gold',
         'account-membership',
         transferUnderReview ? 'account-membership--hold' : '',
-      ].filter(Boolean).join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       {membershipCanPurchase || transferUnderReview ? (
         <header className="account-membership__banner">
           <div className="account-membership__banner-copy">
             <div className="account-membership__banner-meta">
               <span className="account-membership__eyebrow">{t('account.membership.eyebrow')}</span>
-              <p className={`account-membership__status-line account-membership__status-line--${statusTone}`}>
+              <p
+                className={`account-membership__status-line account-membership__status-line--${statusTone}`}
+              >
                 <span className="account-membership-status__label">{statusLabel}</span>
-                <span aria-hidden className="account-membership__status-sep">·</span>
+                <span aria-hidden className="account-membership__status-sep">
+                  ·
+                </span>
                 <span className="account-membership-status__value">{statusValue}</span>
               </p>
             </div>
@@ -539,14 +562,18 @@ export default function MembershipPurchaseSection({
             {!transferUnderReview && statusTone !== 'pending' && statusNext ? (
               <p className="account-membership__banner-next">{statusNext}</p>
             ) : null}
-            {statusMeta ? <p className="account-membership__banner-meta-line">{statusMeta}</p> : null}
+            {statusMeta ? (
+              <p className="account-membership__banner-meta-line">{statusMeta}</p>
+            ) : null}
           </div>
         </header>
       ) : (
         <header className="account-membership__header">
           <div className="account-membership__intro">
             <div className="account-section__heading">
-              <div className="account-section__icon account-section__icon--gold"><ShieldCheck size={21} /></div>
+              <div className="account-section__icon account-section__icon--gold">
+                <ShieldCheck size={21} />
+              </div>
               <div>
                 <span>{t('account.membership.eyebrow')}</span>
                 <h2>{t('account.membership.titleActive')}</h2>
@@ -567,9 +594,11 @@ export default function MembershipPurchaseSection({
             <span className="account-membership-status__label">{statusLabel}</span>
             <span className="account-membership-status__value">{statusValue}</span>
           </div>
-          {(statusMeta || (!membershipScheduled && statusNext)) ? (
+          {statusMeta || (!membershipScheduled && statusNext) ? (
             <div className="account-membership-status__aside">
-              {statusMeta ? <span className="account-membership-status__meta">{statusMeta}</span> : null}
+              {statusMeta ? (
+                <span className="account-membership-status__meta">{statusMeta}</span>
+              ) : null}
               {!membershipScheduled && statusNext ? (
                 <span className="account-membership-status__next">{statusNext}</span>
               ) : null}
@@ -626,10 +655,19 @@ export default function MembershipPurchaseSection({
 
       {showPurchaseCheckout && (
         <div className="account-membership__decision account-membership__decision--solo">
-          <ul className="account-benefits account-benefits--inline" aria-label={t('account.membership.includes')}>
-            <li><Check size={14} aria-hidden /> {t('account.membership.benefitCredential')}</li>
-            <li><Check size={14} aria-hidden /> {t('account.membership.benefitCode')}</li>
-            <li><Check size={14} aria-hidden /> {t('account.membership.benefitEvents')}</li>
+          <ul
+            className="account-benefits account-benefits--inline"
+            aria-label={t('account.membership.includes')}
+          >
+            <li>
+              <Check size={14} aria-hidden /> {t('account.membership.benefitCredential')}
+            </li>
+            <li>
+              <Check size={14} aria-hidden /> {t('account.membership.benefitCode')}
+            </li>
+            <li>
+              <Check size={14} aria-hidden /> {t('account.membership.benefitEvents')}
+            </li>
           </ul>
 
           {mpSettling ? (
@@ -677,7 +715,10 @@ export default function MembershipPurchaseSection({
               {showPlanSwitch ? (
                 <div className={`account-membership__billing${checkoutLocked ? ' is-locked' : ''}`}>
                   <div className="account-membership__billing-head">
-                    <span className="account-membership__billing-label" id="membership-billing-label">
+                    <span
+                      className="account-membership__billing-label"
+                      id="membership-billing-label"
+                    >
                       {t('account.membership.planModeLegend')}
                     </span>
                     <p className="account-membership__billing-hint">{billingHint}</p>
@@ -720,7 +761,9 @@ export default function MembershipPurchaseSection({
                           placeholder={t('account.membership.discountPlaceholder')}
                           value={discountCodeInput}
                           disabled={checkoutLocked || discountChecking}
-                          onChange={(event) => setDiscountCodeInput(event.target.value.toUpperCase())}
+                          onChange={(event) =>
+                            setDiscountCodeInput(event.target.value.toUpperCase())
+                          }
                           onKeyDown={(event) => {
                             if (event.key === 'Enter') {
                               event.preventDefault()
@@ -738,11 +781,15 @@ export default function MembershipPurchaseSection({
                           disabled={checkoutLocked || discountChecking || !discountCodeInput.trim()}
                           onClick={applyDiscountCode}
                         >
-                          {discountChecking ? t('account.membership.discountChecking') : t('account.membership.discountApply')}
+                          {discountChecking
+                            ? t('account.membership.discountChecking')
+                            : t('account.membership.discountApply')}
                         </button>
                       </div>
                       {discountError ? (
-                        <p className="account-discount__error" role="alert">{discountError}</p>
+                        <p className="account-discount__error" role="alert">
+                          {discountError}
+                        </p>
                       ) : null}
                     </div>
                   ) : (
@@ -818,7 +865,9 @@ export default function MembershipPurchaseSection({
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
                 methodsLegend={t('account.membership.paymentLegend')}
-                paymentHint={!manualChannelEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : ''}
+                paymentHint={
+                  !manualChannelEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : ''
+                }
                 offers={
                   selectedPlan
                     ? [
@@ -841,29 +890,31 @@ export default function MembershipPurchaseSection({
         </div>
       )}
 
-      {demoMode && !env.payments.isMock && <div className="account-membership__demo">
-        <p className="account-membership__demo-label">{t('account.membership.demoLabel')}</p>
-        <div className="account-demo-actions">
-          {showPurchaseCheckout && (
-            <button
-              type="button"
-              className="account-secondary-action account-secondary-action--success"
-              onClick={simulateMembershipPayment}
-            >
-              {t('account.membership.simulatePayment')}
-            </button>
-          )}
-          {membershipActive && (
-            <button
-              type="button"
-              className="account-secondary-action account-secondary-action--danger"
-              onClick={cancelMembership}
-            >
-              {t('account.membership.cancelMembership')}
-            </button>
-          )}
+      {demoMode && !env.payments.isMock && (
+        <div className="account-membership__demo">
+          <p className="account-membership__demo-label">{t('account.membership.demoLabel')}</p>
+          <div className="account-demo-actions">
+            {showPurchaseCheckout && (
+              <button
+                type="button"
+                className="account-secondary-action account-secondary-action--success"
+                onClick={simulateMembershipPayment}
+              >
+                {t('account.membership.simulatePayment')}
+              </button>
+            )}
+            {membershipActive && (
+              <button
+                type="button"
+                className="account-secondary-action account-secondary-action--danger"
+                onClick={cancelMembership}
+              >
+                {t('account.membership.cancelMembership')}
+              </button>
+            )}
+          </div>
         </div>
-      </div>}
+      )}
 
       {demoMode && env.payments.isMock && membershipActive && (
         <div className="account-membership__demo">

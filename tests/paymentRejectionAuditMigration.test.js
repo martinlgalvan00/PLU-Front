@@ -18,9 +18,13 @@ describe('auditoría de rechazo de pagos (quién y por qué)', () => {
   })
 
   it('el rechazo manual persiste actor y motivo en la orden, no solo en el log', () => {
-    expect(migration.match(/rejected_by = coalesce\(p_actor, 'staff:desconocido'\)/g)?.length).toBe(2)
+    expect(migration.match(/rejected_by = coalesce\(p_actor, 'staff:desconocido'\)/g)?.length).toBe(
+      2,
+    )
     // La de tickets además fechaba el rechazo solo con updated_at.
-    expect(migration).toContain("set status = 'rechazado',\n      reservation_expires_at = null,\n      rejected_at = now()")
+    expect(migration).toContain(
+      "set status = 'rechazado',\n      reservation_expires_at = null,\n      rejected_at = now()",
+    )
   })
 
   it('el rechazo por webhook queda firmado por el proveedor con su status_detail', () => {

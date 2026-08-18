@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  getPublicCatalogEvents,
-  isPublicCatalogStubEvent,
-} from '../src/lib/eventNavigation.js'
+import { getPublicCatalogEvents, isPublicCatalogStubEvent } from '../src/lib/eventNavigation.js'
 
 describe('catalogo publico — exclusion de stubs', () => {
   it('detecta stubs triviales sin tocar meets reales', () => {

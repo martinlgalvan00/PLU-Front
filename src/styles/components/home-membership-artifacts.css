@@ -136,7 +136,12 @@
 }
 
 .hm-artifact__shadow {
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.18) 42%, transparent 74%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.42) 0%,
+    rgba(0, 0, 0, 0.18) 42%,
+    transparent 74%
+  );
   bottom: -8%;
   filter: blur(1.5px);
   height: 15%;
@@ -145,18 +150,18 @@
   pointer-events: none;
   position: absolute;
   right: 16%;
-  transform:
-    translate3d(calc(var(--reel-mx, 0) * -8px), calc(var(--reel-my, 0) * 3px), 0)
+  transform: translate3d(calc(var(--reel-mx, 0) * -8px), calc(var(--reel-my, 0) * 3px), 0)
     scale(0.96);
-  transition: opacity 0.4s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 0.4s ease,
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 0;
 }
 
 /* Pieza en foco: sombra más marcada y “pegada” al pedestal. */
 .hm-artifact.is-paused .hm-artifact__shadow {
   opacity: 0.72;
-  transform:
-    translate3d(calc(var(--reel-mx, 0) * -12px), calc(var(--reel-my, 0) * 4px), 0)
+  transform: translate3d(calc(var(--reel-mx, 0) * -12px), calc(var(--reel-my, 0) * 4px), 0)
     scale(0.88);
 }
 
@@ -246,7 +251,11 @@
 
 .hm-artifact--medal .hm-artifact__face--front {
   background:
-    radial-gradient(circle at var(--reel-mpx, 34%) var(--reel-mpy, 26%), color-mix(in oklab, #fff 68%, transparent), transparent 48%),
+    radial-gradient(
+      circle at var(--reel-mpx, 34%) var(--reel-mpy, 26%),
+      color-mix(in oklab, #fff 68%, transparent),
+      transparent 48%
+    ),
     linear-gradient(150deg, var(--plu-gold-300, #f6d56a), var(--plu-gold-600, #c49214) 70%, #9a7110);
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, #fff 48%, transparent),
@@ -261,11 +270,7 @@
 }
 
 .hm-artifact--medal .hm-artifact__medal-core {
-  transform: translate3d(
-    calc(var(--reel-mx, 0) * -2px),
-    calc(var(--reel-my, 0) * -2px),
-    4px
-  );
+  transform: translate3d(calc(var(--reel-mx, 0) * -2px), calc(var(--reel-my, 0) * -2px), 4px);
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -331,7 +336,11 @@
 
 .hm-artifact--card .hm-artifact__face--front {
   background:
-    radial-gradient(circle at var(--reel-mpx, 30%) var(--reel-mpy, 22%), color-mix(in oklab, #fff 16%, transparent), transparent 52%),
+    radial-gradient(
+      circle at var(--reel-mpx, 30%) var(--reel-mpy, 22%),
+      color-mix(in oklab, #fff 16%, transparent),
+      transparent 52%
+    ),
     linear-gradient(165deg, color-mix(in oklab, #fff 10%, transparent), transparent 40%),
     linear-gradient(180deg, #1c222e 0%, #10141c 100%);
   border: 1px solid color-mix(in oklab, var(--color-brand-celeste) 32%, #2a3140);
@@ -343,11 +352,7 @@
 }
 
 .hm-artifact--card .hm-artifact__qr {
-  transform: translate3d(
-    calc(var(--reel-mx, 0) * -1.5px),
-    calc(var(--reel-my, 0) * -1.5px),
-    3px
-  );
+  transform: translate3d(calc(var(--reel-mx, 0) * -1.5px), calc(var(--reel-my, 0) * -1.5px), 3px);
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -478,7 +483,11 @@
 
 [data-theme='light'] .hm-artifact--card .hm-artifact__face--front {
   background:
-    radial-gradient(circle at var(--reel-mpx, 30%) var(--reel-mpy, 22%), color-mix(in oklab, #fff 70%, transparent), transparent 52%),
+    radial-gradient(
+      circle at var(--reel-mpx, 30%) var(--reel-mpy, 22%),
+      color-mix(in oklab, #fff 70%, transparent),
+      transparent 52%
+    ),
     linear-gradient(165deg, #fff, #eef1f6);
   border-color: color-mix(in oklab, var(--color-brand-celeste) 28%, #c8d0dc);
   color: #1a6bb0;
@@ -526,7 +535,11 @@
 
 .hm-artifact--seal .hm-artifact__face--front {
   background:
-    radial-gradient(circle at var(--reel-mpx, 32%) var(--reel-mpy, 28%), color-mix(in oklab, #fff 52%, transparent), transparent 44%),
+    radial-gradient(
+      circle at var(--reel-mpx, 32%) var(--reel-mpy, 28%),
+      color-mix(in oklab, #fff 52%, transparent),
+      transparent 44%
+    ),
     radial-gradient(circle at 70% 78%, color-mix(in oklab, #000 16%, transparent), transparent 48%),
     linear-gradient(150deg, var(--plu-gold-300, #f6d56a), var(--plu-gold-600, #c49214) 68%, #9a7110);
   box-shadow:
@@ -541,11 +554,7 @@
 }
 
 .hm-artifact--seal .hm-artifact__seal-copy {
-  transform: translate3d(
-    calc(var(--reel-mx, 0) * -2px),
-    calc(var(--reel-my, 0) * -2px),
-    5px
-  );
+  transform: translate3d(calc(var(--reel-mx, 0) * -2px), calc(var(--reel-my, 0) * -2px), 5px);
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -657,7 +666,11 @@
 
 .hm-artifact__podium-bar--1 {
   background:
-    radial-gradient(circle at var(--reel-mpx, 40%) 18%, color-mix(in oklab, #fff 48%, transparent), transparent 55%),
+    radial-gradient(
+      circle at var(--reel-mpx, 40%) 18%,
+      color-mix(in oklab, #fff 48%, transparent),
+      transparent 55%
+    ),
     linear-gradient(
       180deg,
       color-mix(in oklab, var(--plu-gold-300, #f6d56a) 88%, #fff),
@@ -670,7 +683,11 @@
 
 .hm-artifact__podium-bar--2 {
   background:
-    radial-gradient(circle at var(--reel-mpx, 36%) 20%, color-mix(in oklab, #fff 28%, transparent), transparent 50%),
+    radial-gradient(
+      circle at var(--reel-mpx, 36%) 20%,
+      color-mix(in oklab, #fff 28%, transparent),
+      transparent 50%
+    ),
     linear-gradient(180deg, #c8cdd8, #6f7686);
   height: 62%;
   transform: translate3d(calc(var(--reel-mx, 0) * 2px), 0, 8px);
@@ -678,7 +695,11 @@
 
 .hm-artifact__podium-bar--3 {
   background:
-    radial-gradient(circle at var(--reel-mpx, 44%) 22%, color-mix(in oklab, #fff 22%, transparent), transparent 50%),
+    radial-gradient(
+      circle at var(--reel-mpx, 44%) 22%,
+      color-mix(in oklab, #fff 22%, transparent),
+      transparent 50%
+    ),
     linear-gradient(180deg, #b89268, #6a4630);
   height: 48%;
   transform: translate3d(calc(var(--reel-mx, 0) * 3px), 0, 5px);
@@ -729,7 +750,11 @@
 
 .hm-artifact--device .hm-artifact__face--front {
   background:
-    radial-gradient(circle at var(--reel-mpx, 40%) var(--reel-mpy, 18%), color-mix(in oklab, #fff 12%, transparent), transparent 48%),
+    radial-gradient(
+      circle at var(--reel-mpx, 40%) var(--reel-mpy, 18%),
+      color-mix(in oklab, #fff 12%, transparent),
+      transparent 48%
+    ),
     linear-gradient(160deg, #3a3630 0%, #1a1815 48%, #0e0d0b 100%);
   border: 1px solid color-mix(in oklab, var(--plu-gold-500) 26%, #4a443c);
   box-shadow:
@@ -740,11 +765,7 @@
 }
 
 .hm-artifact--device .hm-artifact__device-ui {
-  transform: translate3d(
-    calc(var(--reel-mx, 0) * -1.5px),
-    calc(var(--reel-my, 0) * -1.5px),
-    2px
-  );
+  transform: translate3d(calc(var(--reel-mx, 0) * -1.5px), calc(var(--reel-my, 0) * -1.5px), 2px);
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -782,7 +803,11 @@
 
 .hm-artifact__device-screen {
   background:
-    radial-gradient(ellipse 90% 46% at var(--reel-mpx, 50%) 0%, color-mix(in oklab, var(--plu-gold-500) 18%, transparent), transparent 58%),
+    radial-gradient(
+      ellipse 90% 46% at var(--reel-mpx, 50%) 0%,
+      color-mix(in oklab, var(--plu-gold-500) 18%, transparent),
+      transparent 58%
+    ),
     linear-gradient(180deg, #14161c 0%, #0a0b0f 100%);
   display: grid;
   grid-template-rows: auto auto 1fr auto;
@@ -949,11 +974,7 @@
   height: 20%;
   left: 40%;
   top: 40%;
-  transform: translate3d(
-    calc(var(--reel-mx, 0) * -2px),
-    calc(var(--reel-my, 0) * -2px),
-    14px
-  );
+  transform: translate3d(calc(var(--reel-mx, 0) * -2px), calc(var(--reel-my, 0) * -2px), 14px);
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   width: 20%;
 }
@@ -972,8 +993,16 @@
  * a leerse como "red + calendario", igual que su propio copy. */
 .hm-artifact__node--calendar {
   background:
-    radial-gradient(circle 16% at 33% 62%, color-mix(in oklab, var(--color-brand-celeste) 75%, transparent) 98%, transparent 100%),
-    radial-gradient(circle 14% at 63% 42%, color-mix(in oklab, var(--color-brand-celeste) 42%, transparent) 98%, transparent 100%),
+    radial-gradient(
+      circle 16% at 33% 62%,
+      color-mix(in oklab, var(--color-brand-celeste) 75%, transparent) 98%,
+      transparent 100%
+    ),
+    radial-gradient(
+      circle 14% at 63% 42%,
+      color-mix(in oklab, var(--color-brand-celeste) 42%, transparent) 98%,
+      transparent 100%
+    ),
     linear-gradient(165deg, #fff 0%, color-mix(in oklab, var(--color-brand-celeste) 18%, #fff) 100%);
   border-radius: 22%;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.24);

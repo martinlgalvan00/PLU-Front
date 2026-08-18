@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, ChevronDown, Eye, EyeOff, HelpCircle, AlertCircle, Mail, Lock } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  AlertCircle,
+  Mail,
+  Lock,
+} from 'lucide-react'
 import '../styles/pages/design-phase2.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
 import authVisualPhotoAvif from '../assets/DSC00286-display.avif'
@@ -19,7 +29,9 @@ import { forgotAthletePassword, resetAthletePassword } from '../services/athlete
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function normalizeEmail(value) {
-  return String(value ?? '').trim().toLowerCase()
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
 }
 
 /**
@@ -57,8 +69,20 @@ function LoginAccessGuide({ onRecover, onJoin }) {
 
   const steps = [
     { n: '01', title: t('login.howToStep1Title'), body: t('login.howToStep1Body') },
-    { n: '02', title: t('login.howToStep2Title'), body: t('login.howToStep2Body'), action: onRecover, actionLabel: t('login.howToStep2Action') },
-    { n: '03', title: t('login.howToStep3Title'), body: t('login.howToStep3Body'), action: onJoin, actionLabel: t('login.howToStep3Action') },
+    {
+      n: '02',
+      title: t('login.howToStep2Title'),
+      body: t('login.howToStep2Body'),
+      action: onRecover,
+      actionLabel: t('login.howToStep2Action'),
+    },
+    {
+      n: '03',
+      title: t('login.howToStep3Title'),
+      body: t('login.howToStep3Body'),
+      action: onJoin,
+      actionLabel: t('login.howToStep3Action'),
+    },
   ]
 
   return (
@@ -75,13 +99,20 @@ function LoginAccessGuide({ onRecover, onJoin }) {
         <ChevronDown size={14} className="login-guide__chevron" aria-hidden />
       </button>
 
-      <div id={panelId} className="login-guide__panel" role="region" aria-label={t('login.howToTitle')}>
+      <div
+        id={panelId}
+        className="login-guide__panel"
+        role="region"
+        aria-label={t('login.howToTitle')}
+      >
         <div className="login-guide__panel-inner">
           <p className="login-guide__title">{t('login.howToTitle')}</p>
           <ol className="login-guide__steps">
             {steps.map(({ n, title, body, action, actionLabel }) => (
               <li key={n} className="login-guide__step">
-                <span className="login-guide__step-n" aria-hidden>{n}</span>
+                <span className="login-guide__step-n" aria-hidden>
+                  {n}
+                </span>
                 <div className="login-guide__step-copy">
                   <p className="login-guide__step-title">{title}</p>
                   <p className="login-guide__step-body">{body}</p>
@@ -162,7 +193,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
     const raw = String(email ?? '').trim()
     const normalized = raw.toLowerCase()
     if (!normalized) next.email = t('login.errorEmailRequired')
-    else if (normalized.includes('@') && !EMAIL_RE.test(normalized)) next.email = t('login.errorEmailInvalid')
+    else if (normalized.includes('@') && !EMAIL_RE.test(normalized))
+      next.email = t('login.errorEmailInvalid')
     if (!password) next.password = t('login.errorPasswordRequired')
     else if (password.length < 3) next.password = t('login.errorPasswordRequired')
     setFieldErrors(next)
@@ -209,9 +241,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
       const status = error?.status
       const showsServerMessage = status === 0 || status === 429 || status === 502 || status === 503
       setSubmitError(
-        showsServerMessage
-          ? error.message || t('login.errorUnavailable')
-          : t('login.errorInvalid'),
+        showsServerMessage ? error.message || t('login.errorUnavailable') : t('login.errorInvalid'),
       )
     } finally {
       setIsSubmitting(false)
@@ -307,8 +337,16 @@ export default function LoginPage({ onLogin, onNavigate }) {
       <aside className="auth-layout__visual" aria-hidden="true">
         <ResponsivePhoto
           className="auth-layout__visual-photo"
-          avif={{ 480: authVisualPhotoAvif480, 800: authVisualPhotoAvif800, 1153: authVisualPhotoAvif }}
-          webp={{ 480: authVisualPhotoWebp480, 800: authVisualPhotoWebp800, 1153: authVisualPhotoWebp }}
+          avif={{
+            480: authVisualPhotoAvif480,
+            800: authVisualPhotoAvif800,
+            1153: authVisualPhotoAvif,
+          }}
+          webp={{
+            480: authVisualPhotoWebp480,
+            800: authVisualPhotoWebp800,
+            1153: authVisualPhotoWebp,
+          }}
           src={authVisualPhoto}
           alt=""
           width={800}
@@ -340,309 +378,330 @@ export default function LoginPage({ onLogin, onNavigate }) {
             className={`auth-immersive-glass${mode === 'recoverSent' ? ' auth-immersive-glass--confirm' : ''}`}
             aria-labelledby="login-heading"
           >
-        <header className="auth-immersive-glass__header">
-          <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={32} />
-          <div className="auth-immersive-glass__copy">
-            <span className="auth-immersive-glass__eyebrow">{cardEyebrow}</span>
-            {/* key por modo: React reemplaza el nodo y la animación CSS de
+            <header className="auth-immersive-glass__header">
+              <BrandLogo
+                variant="letterhead"
+                imgClassName="auth-immersive-glass__logo"
+                height={32}
+              />
+              <div className="auth-immersive-glass__copy">
+                <span className="auth-immersive-glass__eyebrow">{cardEyebrow}</span>
+                {/* key por modo: React reemplaza el nodo y la animación CSS de
                 entrada vuelve a correr sin montar un AnimatePresence extra
                 (que dejaría dos h1 con el mismo id durante el crossfade). */}
-            <h1 key={`title-${mode}`} id="login-heading" className="auth-immersive-glass__title">
-              {cardTitle}
-            </h1>
-            <p key={`lead-${mode}`} className="auth-immersive-glass__lead">{cardLead}</p>
-          </div>
-        </header>
-
-        <div className="auth-mode-swap">
-          <MotionContentSwap
-            className="auth-mode-swap__panel"
-            direction={swapDirection}
-            mode="sync"
-            swapKey={mode}
-          >
-          {mode === 'login' && (
-            <form className="login-form" onSubmit={handleLoginSubmit} noValidate>
-              <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
-                <span className="login-field__label">{t('login.email')}</span>
-                <span className="login-field__control">
-                  <Mail size={16} className="login-field__icon" aria-hidden />
-                  <input
-                    type="text"
-                    name="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder={t('login.emailPlaceholder')}
-                    autoComplete="username"
-                    autoFocus
-                    aria-invalid={Boolean(fieldErrors.email)}
-                    required
-                  />
-                </span>
-                {fieldErrors.email ? (
-                  <span className="login-field__error" role="alert">
-                    <AlertCircle size={14} className="error-icon" />
-                    <span>{fieldErrors.email}</span>
-                  </span>
-                ) : null}
-              </label>
-
-              {/* div + htmlFor: no anidar forgot/toggle en un <label> — el click del
-                  ojo activaba el primer labelable (olvidaste) y abría recover. */}
-              <div className={`login-field${fieldErrors.password ? ' is-invalid' : ''}`}>
-                <span className="login-field__row">
-                  <label htmlFor="login-password" className="login-field__label">
-                    {t('login.password')}
-                  </label>
-                  <button type="button" className="login-field__forgot" onClick={openRecover}>
-                    {t('login.forgot')}
-                  </button>
-                </span>
-                <span className="login-field__control">
-                  <Lock size={16} className="login-field__icon" aria-hidden />
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    onKeyUp={trackCapsLock}
-                    onKeyDown={trackCapsLock}
-                    onBlur={() => setCapsLock(false)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    aria-invalid={Boolean(fieldErrors.password)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="login-field__toggle"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                    aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </span>
-                {capsLockHint}
-                {fieldErrors.password ? (
-                  <span className="login-field__error" role="alert">
-                    <AlertCircle size={14} className="error-icon" />
-                    <span>{fieldErrors.password}</span>
-                  </span>
-                ) : null}
+                <h1
+                  key={`title-${mode}`}
+                  id="login-heading"
+                  className="auth-immersive-glass__title"
+                >
+                  {cardTitle}
+                </h1>
+                <p key={`lead-${mode}`} className="auth-immersive-glass__lead">
+                  {cardLead}
+                </p>
               </div>
+            </header>
 
-              <AuthSubmit
-                busy={isSubmitting}
-                busyLabel={t('login.submitting')}
-                label={t('login.submit')}
-              />
-
-              <LoginAccessGuide
-                onRecover={openRecover}
-                onJoin={() => onNavigate('members')}
-              />
-              {recoverMessage ? (
-                <p className="login-form__notice" role="status">
-                  {recoverMessage}
-                </p>
-              ) : null}
-              {submitError ? (
-                <p className="form-submit-error" role="alert">
-                  <AlertCircle size={14} className="error-icon" />
-                  <span>{submitError}</span>
-                </p>
-              ) : null}
-
-              {oauth.configured ? (
-                <>
-                  <div className="login-separator" role="separator">
-                    <span>{t('login.separator')}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="login-submit login-submit--oauth"
-                    onClick={handleOAuthLogin}
-                    disabled={oauth.isLoading}
-                    aria-busy={oauth.isLoading || undefined}
-                  >
-                    <span className="login-submit__label">
-                      {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
-                    </span>
-                    {oauth.isLoading ? (
-                        <span className="login-submit__mark" aria-hidden>
-                          <span className="plu-spinner" />
+            <div className="auth-mode-swap">
+              <MotionContentSwap
+                className="auth-mode-swap__panel"
+                direction={swapDirection}
+                mode="sync"
+                swapKey={mode}
+              >
+                {mode === 'login' && (
+                  <form className="login-form" onSubmit={handleLoginSubmit} noValidate>
+                    <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
+                      <span className="login-field__label">{t('login.email')}</span>
+                      <span className="login-field__control">
+                        <Mail size={16} className="login-field__icon" aria-hidden />
+                        <input
+                          type="text"
+                          name="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          placeholder={t('login.emailPlaceholder')}
+                          autoComplete="username"
+                          autoFocus
+                          aria-invalid={Boolean(fieldErrors.email)}
+                          required
+                        />
+                      </span>
+                      {fieldErrors.email ? (
+                        <span className="login-field__error" role="alert">
+                          <AlertCircle size={14} className="error-icon" />
+                          <span>{fieldErrors.email}</span>
                         </span>
+                      ) : null}
+                    </label>
+
+                    {/* div + htmlFor: no anidar forgot/toggle en un <label> — el click del
+                  ojo activaba el primer labelable (olvidaste) y abría recover. */}
+                    <div className={`login-field${fieldErrors.password ? ' is-invalid' : ''}`}>
+                      <span className="login-field__row">
+                        <label htmlFor="login-password" className="login-field__label">
+                          {t('login.password')}
+                        </label>
+                        <button type="button" className="login-field__forgot" onClick={openRecover}>
+                          {t('login.forgot')}
+                        </button>
+                      </span>
+                      <span className="login-field__control">
+                        <Lock size={16} className="login-field__icon" aria-hidden />
+                        <input
+                          id="login-password"
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          onKeyUp={trackCapsLock}
+                          onKeyDown={trackCapsLock}
+                          onBlur={() => setCapsLock(false)}
+                          placeholder="••••••••"
+                          autoComplete="current-password"
+                          aria-invalid={Boolean(fieldErrors.password)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="login-field__toggle"
+                          onClick={() => setShowPassword((visible) => !visible)}
+                          aria-label={
+                            showPassword ? t('login.hidePassword') : t('login.showPassword')
+                          }
+                          aria-pressed={showPassword}
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </span>
+                      {capsLockHint}
+                      {fieldErrors.password ? (
+                        <span className="login-field__error" role="alert">
+                          <AlertCircle size={14} className="error-icon" />
+                          <span>{fieldErrors.password}</span>
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <AuthSubmit
+                      busy={isSubmitting}
+                      busyLabel={t('login.submitting')}
+                      label={t('login.submit')}
+                    />
+
+                    <LoginAccessGuide
+                      onRecover={openRecover}
+                      onJoin={() => onNavigate('members')}
+                    />
+                    {recoverMessage ? (
+                      <p className="login-form__notice" role="status">
+                        {recoverMessage}
+                      </p>
                     ) : null}
-                  </button>
-                </>
-              ) : null}
+                    {submitError ? (
+                      <p className="form-submit-error" role="alert">
+                        <AlertCircle size={14} className="error-icon" />
+                        <span>{submitError}</span>
+                      </p>
+                    ) : null}
 
-              <p className="login-join">
-                {t('login.joinPrompt')}{' '}
-                <button type="button" className="login-join__link" onClick={() => onNavigate('members')}>
-                  {t('login.joinLink')}
-                </button>
-              </p>
-            </form>
-          )}
+                    {oauth.configured ? (
+                      <>
+                        <div className="login-separator" role="separator">
+                          <span>{t('login.separator')}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="login-submit login-submit--oauth"
+                          onClick={handleOAuthLogin}
+                          disabled={oauth.isLoading}
+                          aria-busy={oauth.isLoading || undefined}
+                        >
+                          <span className="login-submit__label">
+                            {oauth.isLoading ? t('login.oauthLoading') : t('login.oauthSubmit')}
+                          </span>
+                          {oauth.isLoading ? (
+                            <span className="login-submit__mark" aria-hidden>
+                              <span className="plu-spinner" />
+                            </span>
+                          ) : null}
+                        </button>
+                      </>
+                    ) : null}
 
-          {mode === 'recover' && (
-            <form className="login-form" onSubmit={handleRecoverSubmit} noValidate>
-              <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
-                <span className="login-field__label">{t('login.email')}</span>
-                <span className="login-field__control">
-                  <Mail size={16} className="login-field__icon" aria-hidden />
-                  <input
-                    type="email"
-                    name="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder={t('login.forgotEmailPlaceholder')}
-                    autoComplete="email"
-                    autoFocus
-                    aria-invalid={Boolean(fieldErrors.email)}
-                    required
-                  />
-                </span>
-                {fieldErrors.email ? (
-                  <span className="login-field__error" role="alert">
-                    <AlertCircle size={14} className="error-icon" />
-                    <span>{fieldErrors.email}</span>
-                  </span>
-                ) : null}
-              </label>
+                    <p className="login-join">
+                      {t('login.joinPrompt')}{' '}
+                      <button
+                        type="button"
+                        className="login-join__link"
+                        onClick={() => onNavigate('members')}
+                      >
+                        {t('login.joinLink')}
+                      </button>
+                    </p>
+                  </form>
+                )}
 
-              <AuthSubmit
-                busy={isSubmitting}
-                busyLabel={t('login.forgotSubmitting')}
-                label={t('login.forgotSubmit')}
-              />
+                {mode === 'recover' && (
+                  <form className="login-form" onSubmit={handleRecoverSubmit} noValidate>
+                    <label className={`login-field${fieldErrors.email ? ' is-invalid' : ''}`}>
+                      <span className="login-field__label">{t('login.email')}</span>
+                      <span className="login-field__control">
+                        <Mail size={16} className="login-field__icon" aria-hidden />
+                        <input
+                          type="email"
+                          name="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          placeholder={t('login.forgotEmailPlaceholder')}
+                          autoComplete="email"
+                          autoFocus
+                          aria-invalid={Boolean(fieldErrors.email)}
+                          required
+                        />
+                      </span>
+                      {fieldErrors.email ? (
+                        <span className="login-field__error" role="alert">
+                          <AlertCircle size={14} className="error-icon" />
+                          <span>{fieldErrors.email}</span>
+                        </span>
+                      ) : null}
+                    </label>
 
-              <button type="button" className="login-form__back" onClick={backToLogin}>
-                <ArrowLeft size={14} aria-hidden />
-                {t('login.backToLogin')}
-              </button>
+                    <AuthSubmit
+                      busy={isSubmitting}
+                      busyLabel={t('login.forgotSubmitting')}
+                      label={t('login.forgotSubmit')}
+                    />
 
-              {submitError ? (
-                <p className="form-submit-error" role="alert">
-                  <AlertCircle size={14} className="error-icon" />
-                  <span>{submitError}</span>
-                </p>
-              ) : null}
-            </form>
-          )}
+                    <button type="button" className="login-form__back" onClick={backToLogin}>
+                      <ArrowLeft size={14} aria-hidden />
+                      {t('login.backToLogin')}
+                    </button>
 
-          {mode === 'recoverSent' && (
-            <div className="login-form login-form--sent">
-              <span className="login-form__mark" aria-hidden>
-                <Mail size={18} strokeWidth={1.75} />
-              </span>
-              <p className="login-form__notice" role="status">
-                {recoverMessage || t('login.forgotSentDesc', { email: normalizeEmail(email) })}
-              </p>
-              <p className="login-form__hint">{t('login.forgotSentHint')}</p>
-              <button type="button" className="login-submit" onClick={backToLogin}>
-                <span className="login-submit__label">{t('login.backToLogin')}</span>
-                <span className="login-submit__mark" aria-hidden>
-                  <ArrowRight size={16} />
-                </span>
-              </button>
+                    {submitError ? (
+                      <p className="form-submit-error" role="alert">
+                        <AlertCircle size={14} className="error-icon" />
+                        <span>{submitError}</span>
+                      </p>
+                    ) : null}
+                  </form>
+                )}
+
+                {mode === 'recoverSent' && (
+                  <div className="login-form login-form--sent">
+                    <span className="login-form__mark" aria-hidden>
+                      <Mail size={18} strokeWidth={1.75} />
+                    </span>
+                    <p className="login-form__notice" role="status">
+                      {recoverMessage ||
+                        t('login.forgotSentDesc', { email: normalizeEmail(email) })}
+                    </p>
+                    <p className="login-form__hint">{t('login.forgotSentHint')}</p>
+                    <button type="button" className="login-submit" onClick={backToLogin}>
+                      <span className="login-submit__label">{t('login.backToLogin')}</span>
+                      <span className="login-submit__mark" aria-hidden>
+                        <ArrowRight size={16} />
+                      </span>
+                    </button>
+                  </div>
+                )}
+
+                {mode === 'reset' && (
+                  <form className="login-form" onSubmit={handleResetSubmit} noValidate>
+                    <label className={`login-field${fieldErrors.password ? ' is-invalid' : ''}`}>
+                      <span className="login-field__label">{t('login.newPassword')}</span>
+                      <span className="login-field__control">
+                        <Lock size={16} className="login-field__icon" aria-hidden />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          onKeyUp={trackCapsLock}
+                          onKeyDown={trackCapsLock}
+                          onBlur={() => setCapsLock(false)}
+                          placeholder="••••••••••••"
+                          autoComplete="new-password"
+                          autoFocus
+                          aria-invalid={Boolean(fieldErrors.password)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="login-field__toggle"
+                          onClick={() => setShowPassword((visible) => !visible)}
+                          aria-label={
+                            showPassword ? t('login.hidePassword') : t('login.showPassword')
+                          }
+                          aria-pressed={showPassword}
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </span>
+                      {capsLockHint}
+                      {fieldErrors.password ? (
+                        <span className="login-field__error" role="alert">
+                          <AlertCircle size={14} className="error-icon" />
+                          <span>{fieldErrors.password}</span>
+                        </span>
+                      ) : null}
+                    </label>
+
+                    <label
+                      className={`login-field${fieldErrors.passwordConfirm ? ' is-invalid' : ''}`}
+                    >
+                      <span className="login-field__label">{t('login.confirmPassword')}</span>
+                      <span className="login-field__control">
+                        <Lock size={16} className="login-field__icon" aria-hidden />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          name="passwordConfirm"
+                          value={passwordConfirm}
+                          onChange={(event) => setPasswordConfirm(event.target.value)}
+                          placeholder="••••••••••••"
+                          autoComplete="new-password"
+                          aria-invalid={Boolean(fieldErrors.passwordConfirm)}
+                          required
+                        />
+                      </span>
+                      {fieldErrors.passwordConfirm ? (
+                        <span className="login-field__error" role="alert">
+                          <AlertCircle size={14} className="error-icon" />
+                          <span>{fieldErrors.passwordConfirm}</span>
+                        </span>
+                      ) : null}
+                    </label>
+
+                    <AuthSubmit
+                      busy={isSubmitting}
+                      busyLabel={t('login.resetSubmitting')}
+                      label={t('login.resetSubmit')}
+                    />
+
+                    <button type="button" className="login-form__back" onClick={backToLogin}>
+                      <ArrowLeft size={14} aria-hidden />
+                      {t('login.backToLogin')}
+                    </button>
+
+                    {submitError ? (
+                      <p className="form-submit-error" role="alert">
+                        <AlertCircle size={14} className="error-icon" />
+                        <span>{submitError}</span>
+                      </p>
+                    ) : null}
+                  </form>
+                )}
+              </MotionContentSwap>
             </div>
-          )}
+          </div>
 
-          {mode === 'reset' && (
-            <form className="login-form" onSubmit={handleResetSubmit} noValidate>
-              <label className={`login-field${fieldErrors.password ? ' is-invalid' : ''}`}>
-                <span className="login-field__label">{t('login.newPassword')}</span>
-                <span className="login-field__control">
-                  <Lock size={16} className="login-field__icon" aria-hidden />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    onKeyUp={trackCapsLock}
-                    onKeyDown={trackCapsLock}
-                    onBlur={() => setCapsLock(false)}
-                    placeholder="••••••••••••"
-                    autoComplete="new-password"
-                    autoFocus
-                    aria-invalid={Boolean(fieldErrors.password)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="login-field__toggle"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                    aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </span>
-                {capsLockHint}
-                {fieldErrors.password ? (
-                  <span className="login-field__error" role="alert">
-                    <AlertCircle size={14} className="error-icon" />
-                    <span>{fieldErrors.password}</span>
-                  </span>
-                ) : null}
-              </label>
-
-              <label className={`login-field${fieldErrors.passwordConfirm ? ' is-invalid' : ''}`}>
-                <span className="login-field__label">{t('login.confirmPassword')}</span>
-                <span className="login-field__control">
-                  <Lock size={16} className="login-field__icon" aria-hidden />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="passwordConfirm"
-                    value={passwordConfirm}
-                    onChange={(event) => setPasswordConfirm(event.target.value)}
-                    placeholder="••••••••••••"
-                    autoComplete="new-password"
-                    aria-invalid={Boolean(fieldErrors.passwordConfirm)}
-                    required
-                  />
-                </span>
-                {fieldErrors.passwordConfirm ? (
-                  <span className="login-field__error" role="alert">
-                    <AlertCircle size={14} className="error-icon" />
-                    <span>{fieldErrors.passwordConfirm}</span>
-                  </span>
-                ) : null}
-              </label>
-
-              <AuthSubmit
-                busy={isSubmitting}
-                busyLabel={t('login.resetSubmitting')}
-                label={t('login.resetSubmit')}
-              />
-
-              <button type="button" className="login-form__back" onClick={backToLogin}>
-                <ArrowLeft size={14} aria-hidden />
-                {t('login.backToLogin')}
-              </button>
-
-              {submitError ? (
-                <p className="form-submit-error" role="alert">
-                  <AlertCircle size={14} className="error-icon" />
-                  <span>{submitError}</span>
-                </p>
-              ) : null}
-            </form>
-          )}
-          </MotionContentSwap>
-        </div>
-        </div>
-
-        <p className="login-page__footer auth-layout__footer">
-          {t('login.footerNote')} ·{' '}
-          <button type="button" onClick={() => onNavigate('home')}>
-            {t('login.backToSite')}
-          </button>
-        </p>
+          <p className="login-page__footer auth-layout__footer">
+            {t('login.footerNote')} ·{' '}
+            <button type="button" onClick={() => onNavigate('home')}>
+              {t('login.backToSite')}
+            </button>
+          </p>
         </div>
       </section>
     </main>

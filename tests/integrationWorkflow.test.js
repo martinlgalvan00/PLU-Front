@@ -25,19 +25,34 @@ describe('integration workflows', () => {
     const repository = {
       getOrder: async () => order,
       attachPreference: async (_id, preference, idempotencyKey) => {
-        order = { ...order, preferenceId: preference.id, initPoint: preference.initPoint, idempotencyKey }
+        order = {
+          ...order,
+          preferenceId: preference.id,
+          initPoint: preference.initPoint,
+          idempotencyKey,
+        }
       },
     }
     let providerCalls = 0
     const mercadoPago = {
       createPreference: async () => {
         providerCalls += 1
-        return { id: 'pref-1', initPoint: 'https://mercadopago.test/checkout', externalReference: order.id }
+        return {
+          id: 'pref-1',
+          initPoint: 'https://mercadopago.test/checkout',
+          externalReference: order.id,
+        }
       },
     }
 
-    const first = await createPaymentPreference({ paymentOrderId: order.id }, { repository, mercadoPago })
-    const second = await createPaymentPreference({ paymentOrderId: order.id }, { repository, mercadoPago })
+    const first = await createPaymentPreference(
+      { paymentOrderId: order.id },
+      { repository, mercadoPago },
+    )
+    const second = await createPaymentPreference(
+      { paymentOrderId: order.id },
+      { repository, mercadoPago },
+    )
 
     expect(first.created).toBe(true)
     expect(second.created).toBe(false)
@@ -70,25 +85,28 @@ describe('integration workflows', () => {
     }
     const mercadoPago = { getPayment: vi.fn() }
 
-    const result = await processPaymentWebhook({
-      body: {
-        id: 'notification-1',
-        type: 'payment',
-        action: 'payment.updated',
-        date_created: '2026-07-15T12:00:00Z',
-        data: { id: dataId },
+    const result = await processPaymentWebhook(
+      {
+        body: {
+          id: 'notification-1',
+          type: 'payment',
+          action: 'payment.updated',
+          date_created: '2026-07-15T12:00:00Z',
+          data: { id: dataId },
+        },
+        query: { type: 'payment', 'data.id': dataId },
+        headers: {
+          'x-request-id': requestId,
+          'x-signature': `ts=${ts},v1=${hash}`,
+        },
       },
-      query: { type: 'payment', 'data.id': dataId },
-      headers: {
-        'x-request-id': requestId,
-        'x-signature': `ts=${ts},v1=${hash}`,
+      {
+        repository,
+        mercadoPago,
+        webhookSecret: secret,
+        deferProcessing: true,
       },
-    }, {
-      repository,
-      mercadoPago,
-      webhookSecret: secret,
-      deferProcessing: true,
-    })
+    )
 
     expect(result).toMatchObject({ accepted: true, deferred: true, duplicate: false })
     expect(repository.recordWebhook).toHaveBeenCalledOnce()
@@ -97,19 +115,24 @@ describe('integration workflows', () => {
   })
 
   it('rechaza webhooks cuyo data.id no viene firmado en la URL', async () => {
-    await expect(processPaymentWebhook({
-      body: {
-        id: 'notification-without-query-id',
-        type: 'payment',
-        data: { id: 'payment-only-in-body' },
-      },
-      query: { type: 'payment' },
-      headers: {},
-    }, {
-      repository: {},
-      mercadoPago: {},
-      webhookSecret: 'webhook-secret-for-tests',
-    })).rejects.toThrow('Webhook sin data.id en la URL.')
+    await expect(
+      processPaymentWebhook(
+        {
+          body: {
+            id: 'notification-without-query-id',
+            type: 'payment',
+            data: { id: 'payment-only-in-body' },
+          },
+          query: { type: 'payment' },
+          headers: {},
+        },
+        {
+          repository: {},
+          mercadoPago: {},
+          webhookSecret: 'webhook-secret-for-tests',
+        },
+      ),
+    ).rejects.toThrow('Webhook sin data.id en la URL.')
   })
 
   it('aplica un webhook de pago una sola vez aunque Mercado Pago lo reenvie', async () => {
@@ -119,7 +142,12 @@ describe('integration workflows', () => {
     const ts = Date.now()
     const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`
     const hash = createHmac('sha256', secret).update(manifest).digest('hex')
-    const event = { id: 'event-dup-1', status: 'received', resource_id: dataId, event_type: 'payment' }
+    const event = {
+      id: 'event-dup-1',
+      status: 'received',
+      resource_id: dataId,
+      event_type: 'payment',
+    }
     const order = { id: 'order-dup-1', kind: 'athlete', amount: 50000, currency: 'ARS' }
     const payment = {
       id: dataId,
@@ -129,7 +157,8 @@ describe('integration workflows', () => {
       currency_id: 'ARS',
     }
 
-    const recordWebhook = vi.fn()
+    const recordWebhook = vi
+      .fn()
       // Primera entrega: notificacion nueva.
       .mockResolvedValueOnce({ event, created: true })
       // Reenvio de Mercado Pago (mismo notification.id): ya quedo procesada.
@@ -173,23 +202,29 @@ describe('integration workflows', () => {
     const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`
     const hash = createHmac('sha256', secret).update(manifest).digest('hex')
     const repository = {
-      recordWebhook: vi.fn(async () => ({ event: { id: 'event-inflight-1', status: 'received' }, created: true })),
+      recordWebhook: vi.fn(async () => ({
+        event: { id: 'event-inflight-1', status: 'received' },
+        created: true,
+      })),
       // Null simula que el UPDATE ... WHERE status='received' de otro worker
       // ya gano la carrera y reclamo el evento primero.
       claimWebhookEvent: vi.fn(async () => null),
     }
     const mercadoPago = { getPayment: vi.fn() }
 
-    const result = await processPaymentWebhook({
-      body: {
-        id: 'notification-inflight-1',
-        type: 'payment',
-        date_created: '2026-07-15T12:00:00Z',
-        data: { id: dataId },
+    const result = await processPaymentWebhook(
+      {
+        body: {
+          id: 'notification-inflight-1',
+          type: 'payment',
+          date_created: '2026-07-15T12:00:00Z',
+          data: { id: dataId },
+        },
+        query: { type: 'payment', 'data.id': dataId },
+        headers: { 'x-request-id': requestId, 'x-signature': `ts=${ts},v1=${hash}` },
       },
-      query: { type: 'payment', 'data.id': dataId },
-      headers: { 'x-request-id': requestId, 'x-signature': `ts=${ts},v1=${hash}` },
-    }, { repository, mercadoPago, webhookSecret: secret })
+      { repository, mercadoPago, webhookSecret: secret },
+    )
 
     expect(result).toMatchObject({ duplicate: true, inFlight: true })
     expect(mercadoPago.getPayment).not.toHaveBeenCalled()
@@ -199,17 +234,38 @@ describe('integration workflows', () => {
     const order = { id: 'order-guard-1', kind: 'athlete', amount: 50000, currency: 'ARS' }
     const repository = { applyPayment: vi.fn() }
 
-    const wrongAmount = { id: 'pay-1', external_reference: order.id, transaction_amount: 40000, currency_id: 'ARS', status: 'approved' }
-    await expect(applyCanonicalPayment(wrongAmount, order, { repository }))
-      .rejects.toThrow('Monto de pago invalido para la orden.')
+    const wrongAmount = {
+      id: 'pay-1',
+      external_reference: order.id,
+      transaction_amount: 40000,
+      currency_id: 'ARS',
+      status: 'approved',
+    }
+    await expect(applyCanonicalPayment(wrongAmount, order, { repository })).rejects.toThrow(
+      'Monto de pago invalido para la orden.',
+    )
 
-    const wrongCurrency = { id: 'pay-2', external_reference: order.id, transaction_amount: 50000, currency_id: 'USD', status: 'approved' }
-    await expect(applyCanonicalPayment(wrongCurrency, order, { repository }))
-      .rejects.toThrow('Moneda de pago invalida para la orden.')
+    const wrongCurrency = {
+      id: 'pay-2',
+      external_reference: order.id,
+      transaction_amount: 50000,
+      currency_id: 'USD',
+      status: 'approved',
+    }
+    await expect(applyCanonicalPayment(wrongCurrency, order, { repository })).rejects.toThrow(
+      'Moneda de pago invalida para la orden.',
+    )
 
-    const wrongOrder = { id: 'pay-3', external_reference: 'otra-orden', transaction_amount: 50000, currency_id: 'ARS', status: 'approved' }
-    await expect(applyCanonicalPayment(wrongOrder, order, { repository }))
-      .rejects.toThrow('El pago no pertenece a la orden informada.')
+    const wrongOrder = {
+      id: 'pay-3',
+      external_reference: 'otra-orden',
+      transaction_amount: 50000,
+      currency_id: 'ARS',
+      status: 'approved',
+    }
+    await expect(applyCanonicalPayment(wrongOrder, order, { repository })).rejects.toThrow(
+      'El pago no pertenece a la orden informada.',
+    )
 
     expect(repository.applyPayment).not.toHaveBeenCalled()
   })
@@ -232,13 +288,21 @@ describe('integration workflows', () => {
     }
     const notifyPaymentApplied = vi.fn(async () => [])
     const repository = {
-      applyAuthorizedSubscriptionPayment: vi.fn(async () => ({ order, subscription: {}, payment: {} })),
+      applyAuthorizedSubscriptionPayment: vi.fn(async () => ({
+        order,
+        subscription: {},
+        payment: {},
+      })),
       markWebhookProcessed: vi.fn(async () => ({ id: 'event-sub-1', status: 'processed' })),
     }
     const mercadoPago = { getAuthorizedPayment: vi.fn(async () => authorizedPayment) }
 
     await processClaimedPaymentEvent(
-      { id: 'event-sub-1', resource_id: 'auth-pay-1', event_type: 'subscription_authorized_payment' },
+      {
+        id: 'event-sub-1',
+        resource_id: 'auth-pay-1',
+        event_type: 'subscription_authorized_payment',
+      },
       { repository, mercadoPago, notifyPaymentApplied },
     )
 
@@ -266,7 +330,11 @@ describe('integration workflows', () => {
     const mercadoPago = { getAuthorizedPayment: vi.fn(async () => authorizedPayment) }
 
     await processClaimedPaymentEvent(
-      { id: 'event-sub-2', resource_id: 'auth-pay-2', event_type: 'subscription_authorized_payment' },
+      {
+        id: 'event-sub-2',
+        resource_id: 'auth-pay-2',
+        event_type: 'subscription_authorized_payment',
+      },
       { repository, mercadoPago, notifyPaymentApplied },
     )
 
@@ -285,7 +353,11 @@ describe('integration workflows', () => {
     const mercadoPago = { getSubscription: vi.fn(async () => ({ id: 'mp-preapproval-1' })) }
 
     await processClaimedPaymentEvent(
-      { id: 'event-sub-3', resource_id: 'mp-preapproval-1', event_type: 'subscription_preapproval' },
+      {
+        id: 'event-sub-3',
+        resource_id: 'mp-preapproval-1',
+        event_type: 'subscription_preapproval',
+      },
       { repository, mercadoPago, notifyPaymentApplied },
     )
 
@@ -304,7 +376,11 @@ describe('integration workflows', () => {
     const mercadoPago = { getSubscription: vi.fn(async () => ({ id: 'mp-preapproval-2' })) }
 
     await processClaimedPaymentEvent(
-      { id: 'event-sub-4', resource_id: 'mp-preapproval-2', event_type: 'subscription_preapproval' },
+      {
+        id: 'event-sub-4',
+        resource_id: 'mp-preapproval-2',
+        event_type: 'subscription_preapproval',
+      },
       { repository, mercadoPago, notifyPaymentApplied },
     )
 

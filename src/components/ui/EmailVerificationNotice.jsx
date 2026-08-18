@@ -18,7 +18,9 @@ import { verifyAthleteEmail } from '../../services/athleteApi.js'
  * historial ni se reenvíe al compartir el link.
  */
 export default function EmailVerificationNotice() {
-  const [state, setState] = useState(() => (readEmailVerificationToken() ? 'verificando' : 'inactivo'))
+  const [state, setState] = useState(() =>
+    readEmailVerificationToken() ? 'verificando' : 'inactivo',
+  )
   const [attempt, setAttempt] = useState(0)
   const [retryableError, setRetryableError] = useState(false)
 
@@ -90,10 +92,13 @@ export default function EmailVerificationNotice() {
     <div className="email-verification-notice" role="status" aria-live="polite">
       <Pill tone={contenido.tone}>{contenido.text}</Pill>
       {state === 'error' && retryableError ? (
-        <button type="button" onClick={() => {
-          setState('verificando')
-          setAttempt((current) => current + 1)
-        }}>
+        <button
+          type="button"
+          onClick={() => {
+            setState('verificando')
+            setAttempt((current) => current + 1)
+          }}
+        >
           Reintentar
         </button>
       ) : null}

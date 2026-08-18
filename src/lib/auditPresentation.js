@@ -24,7 +24,9 @@ const FACT_FIELDS = [
 /** Objeto → su mensaje (o null si no tiene); cualquier otro valor, sin tocar. */
 function normalizedValue(value) {
   if (value !== null && typeof value === 'object') {
-    return typeof value.message === 'string' && value.message.trim() !== '' ? value.message.trim() : null
+    return typeof value.message === 'string' && value.message.trim() !== ''
+      ? value.message.trim()
+      : null
   }
   return value
 }

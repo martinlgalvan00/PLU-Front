@@ -13,7 +13,12 @@ function FaqRefIcon({ isOpen }) {
   )
 }
 
-export default function FAQAccordion({ idPrefix = 'faq', items, numbered = false, variant = 'default' }) {
+export default function FAQAccordion({
+  idPrefix = 'faq',
+  items,
+  numbered = false,
+  variant = 'default',
+}) {
   const [openIndex, setOpenIndex] = useState(-1)
   const { reducedMotion } = useMotionConfig()
   const isRef = variant === 'ref'
@@ -48,7 +53,11 @@ export default function FAQAccordion({ idPrefix = 'faq', items, numbered = false
         const triggerId = `${idPrefix}-question-${index + 1}`
         const panelId = `${idPrefix}-answer-${index + 1}`
         return (
-          <article className={`faq-item ${isOpen ? 'faq-item--open' : ''}`} id={`${idPrefix}-${index + 1}`} key={item.q}>
+          <article
+            className={`faq-item ${isOpen ? 'faq-item--open' : ''}`}
+            id={`${idPrefix}-${index + 1}`}
+            key={item.q}
+          >
             <h3 className="faq-item__heading">
               <button
                 type="button"
@@ -101,9 +110,7 @@ export default function FAQAccordion({ idPrefix = 'faq', items, numbered = false
                     initial={reducedMotion ? false : { opacity: 0, y: MOTION_DISTANCE.sm }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={
-                      reducedMotion
-                        ? undefined
-                        : { opacity: 0, y: -4, transition: contentExit }
+                      reducedMotion ? undefined : { opacity: 0, y: -4, transition: contentExit }
                     }
                     transition={contentTransition}
                   >

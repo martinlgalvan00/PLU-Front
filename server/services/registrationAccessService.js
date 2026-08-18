@@ -17,11 +17,7 @@ export async function resolveRegistrationAccessRequirements(repository, { eventS
   }
 }
 
-export async function assertRegistrationAccessCode(repository, {
-  scope,
-  eventSlug = null,
-  code,
-}) {
+export async function assertRegistrationAccessCode(repository, { scope, eventSlug = null, code }) {
   const gate = await repository.findActiveGate({ scope, eventSlug })
   if (!gate) return null
 

@@ -3,18 +3,12 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const migration = readFileSync(
-  join(
-    process.cwd(),
-    'prisma/migrations/20260725120000_configurable_rbac/migration.sql',
-  ),
+  join(process.cwd(), 'prisma/migrations/20260725120000_configurable_rbac/migration.sql'),
   'utf8',
 )
 
 const hierarchyMigration = readFileSync(
-  join(
-    process.cwd(),
-    'prisma/migrations/20260725160000_four_role_hierarchy/migration.sql',
-  ),
+  join(process.cwd(), 'prisma/migrations/20260725160000_four_role_hierarchy/migration.sql'),
   'utf8',
 )
 
@@ -54,11 +48,7 @@ describe('migración de jerarquía de cuatro roles', () => {
   })
 
   it('protege acceso total de Super Admin y Administrador', () => {
-    expect(hierarchyMigration).toMatch(
-      /SELECT 'admin_maximal', "key" FROM "AccessPermission"/,
-    )
-    expect(hierarchyMigration).toMatch(
-      /SELECT 'admin_plu_arg', "key" FROM "AccessPermission"/,
-    )
+    expect(hierarchyMigration).toMatch(/SELECT 'admin_maximal', "key" FROM "AccessPermission"/)
+    expect(hierarchyMigration).toMatch(/SELECT 'admin_plu_arg', "key" FROM "AccessPermission"/)
   })
 })

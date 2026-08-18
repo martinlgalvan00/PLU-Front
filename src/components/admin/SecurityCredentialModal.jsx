@@ -94,10 +94,14 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
         </div>
 
         {state.status === 'loading' && (
-          <p className="security-credential-modal__note">{t('admin.eventEditor.security.credentialLoading')}</p>
+          <p className="security-credential-modal__note">
+            {t('admin.eventEditor.security.credentialLoading')}
+          </p>
         )}
         {state.status === 'error' && (
-          <p className="admin-users__form-error">{t('admin.eventEditor.security.credentialError')}</p>
+          <p className="admin-users__form-error">
+            {t('admin.eventEditor.security.credentialError')}
+          </p>
         )}
 
         {state.status === 'ready' && (
@@ -105,7 +109,9 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
             <div className="security-credential-modal__qr">
               <img src={state.qr} alt={t('admin.eventEditor.security.credentialQrAlt')} />
             </div>
-            <p className="security-credential-modal__lead">{t('admin.eventEditor.security.credentialLead')}</p>
+            <p className="security-credential-modal__lead">
+              {t('admin.eventEditor.security.credentialLead')}
+            </p>
 
             <div className="security-credential-modal__link">
               <code>{state.url}</code>
@@ -115,7 +121,9 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
                 onClick={handleCopy}
               >
                 {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
-                {copied ? t('admin.eventEditor.security.copied') : t('admin.eventEditor.security.copyLink')}
+                {copied
+                  ? t('admin.eventEditor.security.copied')
+                  : t('admin.eventEditor.security.copyLink')}
               </button>
             </div>
 
@@ -141,7 +149,9 @@ export default function SecurityCredentialModal({ user, onGenerate, onClose }) {
               </button>
             </div>
             {emailState === 'error' && (
-              <p className="admin-users__form-error">{t('admin.eventEditor.security.credentialEmailError')}</p>
+              <p className="admin-users__form-error">
+                {t('admin.eventEditor.security.credentialEmailError')}
+              </p>
             )}
           </>
         )}

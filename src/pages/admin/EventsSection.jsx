@@ -57,9 +57,7 @@ function isFinishedEvent(event) {
 }
 
 function formatEventVenueLine(venue, location) {
-  const parts = [venue, location]
-    .map((value) => String(value ?? '').trim())
-    .filter(Boolean)
+  const parts = [venue, location].map((value) => String(value ?? '').trim()).filter(Boolean)
   if (
     parts.length === 2 &&
     parts[0].localeCompare(parts[1], undefined, { sensitivity: 'accent' }) === 0
@@ -87,16 +85,7 @@ function groupByMonthKey(list) {
   return byMonth
 }
 
-function EventListRow({
-  row,
-  selected,
-  canEdit,
-  links,
-  locale,
-  onSelect,
-  onEdit,
-  t,
-}) {
+function EventListRow({ row, selected, canEdit, links, locale, onSelect, onEdit, t }) {
   const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
   const fill = Math.min(rawFill, 100)
   const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
@@ -265,7 +254,9 @@ export default function EventsSection({
     const node = previewRef.current
     if (!node) return
     const workspace = node.parentElement
-    const columnCount = workspace ? countGridColumns(getComputedStyle(workspace).gridTemplateColumns) : 1
+    const columnCount = workspace
+      ? countGridColumns(getComputedStyle(workspace).gridTemplateColumns)
+      : 1
     if (columnCount >= 2) return
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' })
@@ -542,9 +533,7 @@ export default function EventsSection({
             disabled={isLoading}
             icon={RefreshCw}
             label={
-              isLoading
-                ? t('admin.sections.events.refreshing')
-                : t('admin.sections.events.refresh')
+              isLoading ? t('admin.sections.events.refreshing') : t('admin.sections.events.refresh')
             }
             onClick={onRefresh}
             variant="ghost"
@@ -645,7 +634,12 @@ export default function EventsSection({
                 {t('admin.sections.events.empty')}
               </p>
               {canEdit && adminEvents.length === 0 ? (
-                <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
+                <Button
+                  type="button"
+                  variant="gold"
+                  className="btn--small"
+                  onClick={openCreateForm}
+                >
                   <Plus size={14} aria-hidden />
                   {t('admin.sections.events.createFirst')}
                 </Button>

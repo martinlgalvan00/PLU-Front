@@ -179,39 +179,45 @@ describe('afiliación — medio de pago elegido vs. orden persistida', () => {
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
     ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
-  ])('%s crea la orden con el método, el canal y los precios correctos', async (
-    _label,
-    paymentMethod,
-    storedMethod,
-    manualChannel,
-  ) => {
-    const { target, createMembershipOrder } = buildApp({
-      toggles: paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
-    })
-    try {
-      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody(paymentMethod))
-      expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
+  ])(
+    '%s crea la orden con el método, el canal y los precios correctos',
+    async (_label, paymentMethod, storedMethod, manualChannel) => {
+      const { target, createMembershipOrder } = buildApp({
+        toggles: paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
+      })
+      try {
+        const response = await post(
+          target,
+          '/api/athletes/me/membership-orders',
+          membershipBody(paymentMethod),
+        )
+        expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
 
-      expect(createMembershipOrder).toHaveBeenCalledOnce()
-      expect(createMembershipOrder).toHaveBeenCalledWith(
-        ATHLETE_ID,
-        expect.objectContaining({
-          paymentMethod: storedMethod,
-          manualPaymentChannel: manualChannel,
-          planCode: 'plu-annual',
-          defaultPrice: DEFAULT_PRICE,
-          manualPrice: MANUAL_PRICE,
-        }),
-      )
-    } finally {
-      await target.close()
-    }
-  })
+        expect(createMembershipOrder).toHaveBeenCalledOnce()
+        expect(createMembershipOrder).toHaveBeenCalledWith(
+          ATHLETE_ID,
+          expect.objectContaining({
+            paymentMethod: storedMethod,
+            manualPaymentChannel: manualChannel,
+            planCode: 'plu-annual',
+            defaultPrice: DEFAULT_PRICE,
+            manualPrice: MANUAL_PRICE,
+          }),
+        )
+      } finally {
+        await target.close()
+      }
+    },
+  )
 
   it('rechaza un medio de pago que no existe', async () => {
     const { target, createMembershipOrder } = buildApp()
     try {
-      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('bitcoin'))
+      const response = await post(
+        target,
+        '/api/athletes/me/membership-orders',
+        membershipBody('bitcoin'),
+      )
       expect(response.status).toBe(400)
       expect(createMembershipOrder).not.toHaveBeenCalled()
     } finally {
@@ -225,33 +231,35 @@ describe('inscripción a torneo — medio de pago elegido vs. orden persistida',
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
     ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
-  ])('%s crea la inscripción con el método, el canal y los precios correctos', async (
-    _label,
-    paymentMethod,
-    storedMethod,
-    manualChannel,
-  ) => {
-    const { target, createRegistration } = buildApp({
-      toggles: paymentMethod === 'mercado_pago' ? {} : { registrationManualEnabled: true },
-    })
-    try {
-      const response = await post(target, '/api/athletes/me/registrations', registrationBody(paymentMethod))
-      expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
+  ])(
+    '%s crea la inscripción con el método, el canal y los precios correctos',
+    async (_label, paymentMethod, storedMethod, manualChannel) => {
+      const { target, createRegistration } = buildApp({
+        toggles: paymentMethod === 'mercado_pago' ? {} : { registrationManualEnabled: true },
+      })
+      try {
+        const response = await post(
+          target,
+          '/api/athletes/me/registrations',
+          registrationBody(paymentMethod),
+        )
+        expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
 
-      expect(createRegistration).toHaveBeenCalledWith(
-        ATHLETE_ID,
-        expect.objectContaining({
-          paymentMethod: storedMethod,
-          manualPaymentChannel: manualChannel,
-          eventSlug: 'pitbull-classic-2026',
-          defaultPrice: DEFAULT_PRICE,
-          manualPrice: MANUAL_PRICE,
-        }),
-      )
-    } finally {
-      await target.close()
-    }
-  })
+        expect(createRegistration).toHaveBeenCalledWith(
+          ATHLETE_ID,
+          expect.objectContaining({
+            paymentMethod: storedMethod,
+            manualPaymentChannel: manualChannel,
+            eventSlug: 'pitbull-classic-2026',
+            defaultPrice: DEFAULT_PRICE,
+            manualPrice: MANUAL_PRICE,
+          }),
+        )
+      } finally {
+        await target.close()
+      }
+    },
+  )
 })
 
 describe('combo afiliación + inscripción — medio de pago elegido vs. orden persistida', () => {
@@ -259,34 +267,37 @@ describe('combo afiliación + inscripción — medio de pago elegido vs. orden p
     ['Mercado Pago', 'mercado_pago', 'mercado_pago', null],
     ['transferencia bancaria', 'manual_link', 'manual_link', 'bank_transfer'],
     ['efectivo en Pitbull', 'cash_pitbull', 'manual_link', 'cash_pitbull'],
-  ])('%s crea el combo con el método, el canal y los precios correctos', async (
-    _label,
-    paymentMethod,
-    storedMethod,
-    manualChannel,
-  ) => {
-    const { target, createRegistrationCombo } = buildApp({
-      toggles: paymentMethod === 'mercado_pago'
-        ? {}
-        : { membershipManualEnabled: true, registrationManualEnabled: true },
-    })
-    try {
-      const response = await post(target, '/api/athletes/me/registration-combos', registrationBody(paymentMethod))
-      expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
+  ])(
+    '%s crea el combo con el método, el canal y los precios correctos',
+    async (_label, paymentMethod, storedMethod, manualChannel) => {
+      const { target, createRegistrationCombo } = buildApp({
+        toggles:
+          paymentMethod === 'mercado_pago'
+            ? {}
+            : { membershipManualEnabled: true, registrationManualEnabled: true },
+      })
+      try {
+        const response = await post(
+          target,
+          '/api/athletes/me/registration-combos',
+          registrationBody(paymentMethod),
+        )
+        expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
 
-      expect(createRegistrationCombo).toHaveBeenCalledWith(
-        ATHLETE_ID,
-        expect.objectContaining({
-          paymentMethod: storedMethod,
-          manualPaymentChannel: manualChannel,
-          defaultPrice: COMBO_DEFAULT_PRICE,
-          manualPrice: COMBO_MANUAL_PRICE,
-        }),
-      )
-    } finally {
-      await target.close()
-    }
-  })
+        expect(createRegistrationCombo).toHaveBeenCalledWith(
+          ATHLETE_ID,
+          expect.objectContaining({
+            paymentMethod: storedMethod,
+            manualPaymentChannel: manualChannel,
+            defaultPrice: COMBO_DEFAULT_PRICE,
+            manualPrice: COMBO_MANUAL_PRICE,
+          }),
+        )
+      } finally {
+        await target.close()
+      }
+    },
+  )
 })
 
 describe('interruptores del panel sobre los medios de pago', () => {
@@ -296,7 +307,11 @@ describe('interruptores del panel sobre los medios de pago', () => {
     for (const paymentMethod of ['manual_link', 'cash_pitbull']) {
       const { target, createMembershipOrder } = buildApp({ toggles })
       try {
-        const response = await post(target, '/api/athletes/me/membership-orders', membershipBody(paymentMethod))
+        const response = await post(
+          target,
+          '/api/athletes/me/membership-orders',
+          membershipBody(paymentMethod),
+        )
         expect(response.status).toBe(409)
         expect(await response.json()).toMatchObject({ code: 'MEMBERSHIP_MANUAL_DISABLED' })
         expect(createMembershipOrder).not.toHaveBeenCalled()
@@ -309,7 +324,11 @@ describe('interruptores del panel sobre los medios de pago', () => {
     // apagar transferencia dejaría la afiliación sin ningún medio de pago.
     const { target, createMembershipOrder } = buildApp({ toggles })
     try {
-      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      const response = await post(
+        target,
+        '/api/athletes/me/membership-orders',
+        membershipBody('mercado_pago'),
+      )
       expect(response.status).toBe(201)
       expect(createMembershipOrder).toHaveBeenCalledOnce()
     } finally {
@@ -321,7 +340,11 @@ describe('interruptores del panel sobre los medios de pago', () => {
     for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
       const { target, createMembershipOrder } = buildApp({ toggles: { membershipEnabled: false } })
       try {
-        const response = await post(target, '/api/athletes/me/membership-orders', membershipBody(paymentMethod))
+        const response = await post(
+          target,
+          '/api/athletes/me/membership-orders',
+          membershipBody(paymentMethod),
+        )
         expect(response.status).toBe(409)
         expect(await response.json()).toMatchObject({ code: 'MEMBERSHIP_CHECKOUT_DISABLED' })
         expect(createMembershipOrder).not.toHaveBeenCalled()
@@ -334,7 +357,11 @@ describe('interruptores del panel sobre los medios de pago', () => {
   it('el interruptor maestro de cobros corta antes que cualquier otro', async () => {
     const { target, createMembershipOrder } = buildApp({ toggles: { checkoutEnabled: false } })
     try {
-      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      const response = await post(
+        target,
+        '/api/athletes/me/membership-orders',
+        membershipBody('mercado_pago'),
+      )
       expect(response.status).toBe(409)
       expect(await response.json()).toMatchObject({ code: 'CHECKOUT_DISABLED' })
       expect(createMembershipOrder).not.toHaveBeenCalled()
@@ -392,12 +419,20 @@ describe('interruptores del panel sobre los medios de pago', () => {
   it('sin interruptores definidos Mercado Pago sigue abierto y el manual se rechaza', async () => {
     const { target, createMembershipOrder } = buildApp({ toggles: undefined })
     try {
-      const response = await post(target, '/api/athletes/me/membership-orders', membershipBody('cash_pitbull'))
+      const response = await post(
+        target,
+        '/api/athletes/me/membership-orders',
+        membershipBody('cash_pitbull'),
+      )
       expect(response.status).toBe(409)
       expect(await response.json()).toMatchObject({ code: 'MEMBERSHIP_MANUAL_DISABLED' })
       expect(createMembershipOrder).not.toHaveBeenCalled()
 
-      const mercadoPago = await post(target, '/api/athletes/me/membership-orders', membershipBody('mercado_pago'))
+      const mercadoPago = await post(
+        target,
+        '/api/athletes/me/membership-orders',
+        membershipBody('mercado_pago'),
+      )
       expect(mercadoPago.status).toBe(201)
       expect(createMembershipOrder).toHaveBeenCalledOnce()
     } finally {
@@ -468,26 +503,40 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
   it('exige el correo verificado antes de cobrar, sea cual sea el medio', async () => {
     for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
       const createMembershipOrder = vi.fn()
-      const target = listen(createApp({
-        env: { PAID_CHECKOUT_ENABLED: 'true' },
-        supabaseAdmin: authenticatedSupabase(),
-        registrationAccessRepository: { findActiveGate: vi.fn().mockResolvedValue(null), recordUse: vi.fn() },
-        platformSettingsRepository: {
-          get: vi.fn().mockResolvedValue(
-            paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
-          ),
-        },
-        athleteRepository: {
-          findContact: vi.fn().mockResolvedValue({ email_verified_at: null }),
-          findMembershipPlan: vi.fn().mockResolvedValue({
-            code: 'plu-annual', collection_mode: 'one_time', price: DEFAULT_PRICE, manual_price: MANUAL_PRICE,
-          }),
-          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
-          createMembershipOrder,
-        },
-      }))
+      const target = listen(
+        createApp({
+          env: { PAID_CHECKOUT_ENABLED: 'true' },
+          supabaseAdmin: authenticatedSupabase(),
+          registrationAccessRepository: {
+            findActiveGate: vi.fn().mockResolvedValue(null),
+            recordUse: vi.fn(),
+          },
+          platformSettingsRepository: {
+            get: vi
+              .fn()
+              .mockResolvedValue(
+                paymentMethod === 'mercado_pago' ? {} : { membershipManualEnabled: true },
+              ),
+          },
+          athleteRepository: {
+            findContact: vi.fn().mockResolvedValue({ email_verified_at: null }),
+            findMembershipPlan: vi.fn().mockResolvedValue({
+              code: 'plu-annual',
+              collection_mode: 'one_time',
+              price: DEFAULT_PRICE,
+              manual_price: MANUAL_PRICE,
+            }),
+            discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+            createMembershipOrder,
+          },
+        }),
+      )
       try {
-        const response = await post(target, '/api/athletes/me/membership-orders', membershipBody(paymentMethod))
+        const response = await post(
+          target,
+          '/api/athletes/me/membership-orders',
+          membershipBody(paymentMethod),
+        )
         expect(response.status).toBe(403)
         expect(await response.json()).toMatchObject({ code: 'EMAIL_NOT_VERIFIED' })
         expect(createMembershipOrder).not.toHaveBeenCalled()
@@ -500,24 +549,37 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
   it('exige el perfil competitivo completo para inscribirse, sea cual sea el medio', async () => {
     for (const paymentMethod of ['mercado_pago', 'manual_link', 'cash_pitbull']) {
       const createRegistration = vi.fn()
-      const target = listen(createApp({
-        env: { PAID_CHECKOUT_ENABLED: 'true' },
-        supabaseAdmin: authenticatedSupabase(),
-        registrationAccessRepository: { findActiveGate: vi.fn().mockResolvedValue(null), recordUse: vi.fn() },
-        platformSettingsRepository: {
-          get: vi.fn().mockResolvedValue(
-            paymentMethod === 'mercado_pago' ? {} : { registrationManualEnabled: true },
-          ),
-        },
-        athleteRepository: {
-          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-          findCompetitionProfile: vi.fn().mockResolvedValue({ ...COMPLETE_COMPETITION_PROFILE, sex: '' }),
-          discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
-          createRegistration,
-        },
-      }))
+      const target = listen(
+        createApp({
+          env: { PAID_CHECKOUT_ENABLED: 'true' },
+          supabaseAdmin: authenticatedSupabase(),
+          registrationAccessRepository: {
+            findActiveGate: vi.fn().mockResolvedValue(null),
+            recordUse: vi.fn(),
+          },
+          platformSettingsRepository: {
+            get: vi
+              .fn()
+              .mockResolvedValue(
+                paymentMethod === 'mercado_pago' ? {} : { registrationManualEnabled: true },
+              ),
+          },
+          athleteRepository: {
+            findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+            findCompetitionProfile: vi
+              .fn()
+              .mockResolvedValue({ ...COMPLETE_COMPETITION_PROFILE, sex: '' }),
+            discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+            createRegistration,
+          },
+        }),
+      )
       try {
-        const response = await post(target, '/api/athletes/me/registrations', registrationBody(paymentMethod))
+        const response = await post(
+          target,
+          '/api/athletes/me/registrations',
+          registrationBody(paymentMethod),
+        )
         expect(response.status).toBe(422)
         expect(await response.json()).toMatchObject({ code: 'ATHLETE_PROFILE_INCOMPLETE' })
         expect(createRegistration).not.toHaveBeenCalled()

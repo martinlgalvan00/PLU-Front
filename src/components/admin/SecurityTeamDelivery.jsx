@@ -26,21 +26,29 @@ export default function SecurityTeamDelivery({ result, onOpenCredential, onClose
   const accessReady = created.filter((item) => item.accessUrl)
 
   return (
-    <section className="security-team-delivery" aria-labelledby="security-team-delivery-title" role="status">
+    <section
+      className="security-team-delivery"
+      aria-labelledby="security-team-delivery-title"
+      role="status"
+    >
       <div className="security-team-delivery__head">
-        <span className="security-team-delivery__check"><Check size={17} aria-hidden /></span>
+        <span className="security-team-delivery__check">
+          <Check size={17} aria-hidden />
+        </span>
         <div>
           <span>{t('admin.eventEditor.security.deliveryDoneEyebrow')}</span>
           <h3 id="security-team-delivery-title">
             {created.length === 0
               ? t('admin.eventEditor.security.deliveryDoneTitleNone')
               : created.length === 1
-              ? t('admin.eventEditor.security.deliveryDoneTitleOne')
-              : t('admin.eventEditor.security.deliveryDoneTitleMany', { count: created.length })}
+                ? t('admin.eventEditor.security.deliveryDoneTitleOne')
+                : t('admin.eventEditor.security.deliveryDoneTitleMany', { count: created.length })}
           </h3>
           <p>{t('admin.eventEditor.security.deliveryDoneLead')}</p>
         </div>
-        <button type="button" onClick={onClose}>{t('admin.eventEditor.security.finish')}</button>
+        <button type="button" onClick={onClose}>
+          {t('admin.eventEditor.security.finish')}
+        </button>
       </div>
 
       {accessReady.length > 1 && (
@@ -62,14 +70,23 @@ export default function SecurityTeamDelivery({ result, onOpenCredential, onClose
             <div className="security-team-delivery__identity">
               <strong>{item.user.name}</strong>
               <span>{item.user.email}</span>
-              {item.emailed && <small><MailCheck size={12} aria-hidden />{t('admin.eventEditor.security.emailSent')}</small>}
+              {item.emailed && (
+                <small>
+                  <MailCheck size={12} aria-hidden />
+                  {t('admin.eventEditor.security.emailSent')}
+                </small>
+              )}
             </div>
             {item.accessUrl ? (
               <div className="security-team-delivery__access">
                 <code>{item.accessUrl}</code>
                 <div>
                   <button type="button" onClick={() => handleCopy(item.user.id, item.accessUrl)}>
-                    {copied === item.user.id ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
+                    {copied === item.user.id ? (
+                      <Check size={13} aria-hidden />
+                    ) : (
+                      <Copy size={13} aria-hidden />
+                    )}
                     {copied === item.user.id
                       ? t('admin.eventEditor.security.copied')
                       : t('admin.eventEditor.security.copyLink')}
@@ -90,7 +107,10 @@ export default function SecurityTeamDelivery({ result, onOpenCredential, onClose
                 </button>
                 {item.tempPassword && (
                   <details>
-                    <summary><KeyRound size={12} aria-hidden />{t('admin.eventEditor.security.backupPassword')}</summary>
+                    <summary>
+                      <KeyRound size={12} aria-hidden />
+                      {t('admin.eventEditor.security.backupPassword')}
+                    </summary>
                     <code>{item.tempPassword}</code>
                   </details>
                 )}
@@ -109,7 +129,9 @@ export default function SecurityTeamDelivery({ result, onOpenCredential, onClose
           </strong>
           <ul>
             {skipped.map((item) => (
-              <li key={item.email}>{item.email} · {t(`admin.eventEditor.security.skipReason.${item.reason}`)}</li>
+              <li key={item.email}>
+                {item.email} · {t(`admin.eventEditor.security.skipReason.${item.reason}`)}
+              </li>
             ))}
           </ul>
         </div>

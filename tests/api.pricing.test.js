@@ -53,14 +53,16 @@ async function setup() {
     }
     return { data: { id: PLAN_ID }, error: null }
   })
-  const target = listen(createApp({
-    prisma,
-    supabaseAdmin: { rpc },
-    env: {
-      AUTH_SECRET: 'pricing-test-secret',
-      APP_URL: 'http://localhost:5173',
-    },
-  }))
+  const target = listen(
+    createApp({
+      prisma,
+      supabaseAdmin: { rpc },
+      env: {
+        AUTH_SECRET: 'pricing-test-secret',
+        APP_URL: 'http://localhost:5173',
+      },
+    }),
+  )
   const { cookie } = await loginStaff(target.url, { email: staff.email })
   return { cookie, rpc, target }
 }
@@ -96,10 +98,7 @@ describe('configuración económica administrativa', () => {
         body: JSON.stringify(planPayload()),
       })
       expect(response.status).toBe(201)
-      expect(rpc).toHaveBeenCalledWith(
-        'staff_create_membership_plan_version',
-        expect.anything(),
-      )
+      expect(rpc).toHaveBeenCalledWith('staff_create_membership_plan_version', expect.anything())
     } finally {
       await target.close()
     }
@@ -125,14 +124,18 @@ describe('configuración económica administrativa', () => {
 
   it('valida importes, moneda y ventanas antes de persistir', () => {
     expect(membershipPlanVersionSchema.safeParse(planPayload({ price: 0 })).success).toBe(false)
-    expect(membershipPlanVersionSchema.safeParse(planPayload({ currency: 'USD' })).success).toBe(false)
-    expect(comboOfferSchema.safeParse({
-      membershipPlanId: PLAN_ID,
-      price: 60000,
-      active: true,
-      startsAt: '2026-08-20T12:00:00Z',
-      endsAt: '2026-08-19T12:00:00Z',
-    }).success).toBe(false)
+    expect(membershipPlanVersionSchema.safeParse(planPayload({ currency: 'USD' })).success).toBe(
+      false,
+    )
+    expect(
+      comboOfferSchema.safeParse({
+        membershipPlanId: PLAN_ID,
+        price: 60000,
+        active: true,
+        startsAt: '2026-08-20T12:00:00Z',
+        endsAt: '2026-08-19T12:00:00Z',
+      }).success,
+    ).toBe(false)
   })
 
   it('crea cupones para afiliaciones e inscripciones y conserva sus límites', async () => {
@@ -161,7 +164,9 @@ describe('configuración económica administrativa', () => {
   })
 
   it('no permite cupones gratis sin un flujo de confirmación específico', () => {
-    expect(discountCodeSchema.safeParse(discountCodePayload({ percentOff: 100 })).success).toBe(false)
+    expect(discountCodeSchema.safeParse(discountCodePayload({ percentOff: 100 })).success).toBe(
+      false,
+    )
     expect(discountCodeSchema.safeParse(discountCodePayload({ code: 'MAL@' })).success).toBe(false)
   })
 })

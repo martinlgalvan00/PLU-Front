@@ -14,11 +14,7 @@
 }
 
 .event-countdown::before {
-  background: linear-gradient(
-    180deg,
-    var(--plu-celeste-500) 0%,
-    var(--plu-gold-500) 100%
-  );
+  background: linear-gradient(180deg, var(--plu-celeste-500) 0%, var(--plu-gold-500) 100%);
   border-radius: 2px;
   content: '';
   height: 100%;

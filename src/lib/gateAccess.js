@@ -24,11 +24,7 @@ export function isRegistrationGatePending(
 ) {
   if (!registration) return false
   const requiresMembership = resolveRequiresMembership(registration, events)
-  return (
-    isRegistrationAdmitted(registration.status) &&
-    requiresMembership &&
-    !membershipCurrent
-  )
+  return isRegistrationAdmitted(registration.status) && requiresMembership && !membershipCurrent
 }
 
 export function getRegistrationGateLabelKey(registration, { membershipCurrent, events } = {}) {

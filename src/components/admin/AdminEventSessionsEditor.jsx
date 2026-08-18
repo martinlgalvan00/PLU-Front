@@ -125,7 +125,9 @@ export default function AdminEventSessionsEditor({ canEdit = false, eventSlug })
   }
 
   if (days.length === 0) {
-    return <p className="admin-event-form__section-note">{t('admin.schedule.sessions.needsDays')}</p>
+    return (
+      <p className="admin-event-form__section-note">{t('admin.schedule.sessions.needsDays')}</p>
+    )
   }
 
   return (
@@ -232,7 +234,13 @@ export default function AdminEventSessionsEditor({ canEdit = false, eventSlug })
       )}
 
       <div className="admin-event-sessions__actions">
-        <Button type="button" variant="outline" className="btn--small" onClick={addSession} disabled={!canEdit}>
+        <Button
+          type="button"
+          variant="outline"
+          className="btn--small"
+          onClick={addSession}
+          disabled={!canEdit}
+        >
           <Plus size={15} aria-hidden />
           {t('admin.schedule.sessions.add')}
         </Button>

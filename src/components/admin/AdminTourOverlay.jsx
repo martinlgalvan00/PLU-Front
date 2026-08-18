@@ -37,7 +37,13 @@ function useTargetRect(selector, stepKey, onMissing) {
       el.scrollIntoView({ block: 'center', behavior: 'auto' })
       const r = el.getBoundingClientRect()
       if (!cancelled) {
-        setRect({ top: r.top, left: r.left, width: r.width, height: r.height, radius: getComputedStyle(el).borderRadius })
+        setRect({
+          top: r.top,
+          left: r.left,
+          width: r.width,
+          height: r.height,
+          radius: getComputedStyle(el).borderRadius,
+        })
       }
     }
 
@@ -48,7 +54,13 @@ function useTargetRect(selector, stepKey, onMissing) {
       const el = document.querySelector(selector)
       if (!el) return
       const r = el.getBoundingClientRect()
-      setRect({ top: r.top, left: r.left, width: r.width, height: r.height, radius: getComputedStyle(el).borderRadius })
+      setRect({
+        top: r.top,
+        left: r.left,
+        width: r.width,
+        height: r.height,
+        radius: getComputedStyle(el).borderRadius,
+      })
     }
 
     window.addEventListener('resize', handleReflow)
@@ -65,7 +77,18 @@ function useTargetRect(selector, stepKey, onMissing) {
   return rect
 }
 
-function TourCard({ rect, placement, step, index, total, isLastStep, onNext, onPrev, onClose, reducedMotion }) {
+function TourCard({
+  rect,
+  placement,
+  step,
+  index,
+  total,
+  isLastStep,
+  onNext,
+  onPrev,
+  onClose,
+  reducedMotion,
+}) {
   const { t } = useI18n()
   const cardRef = useAdminModal(onClose)
   const [pos, setPos] = useState(null)
@@ -110,7 +133,11 @@ function TourCard({ rect, placement, step, index, total, isLastStep, onNext, onP
       aria-modal="true"
       aria-labelledby="admin-tour-card-title"
       aria-describedby="admin-tour-card-body"
-      style={pos ? { top: pos.top, left: pos.left } : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+      style={
+        pos
+          ? { top: pos.top, left: pos.left }
+          : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+      }
       initial={reducedMotion ? false : 'hidden'}
       animate="visible"
       exit="exit"
@@ -157,10 +184,15 @@ function TourCard({ rect, placement, step, index, total, isLastStep, onNext, onP
 }
 
 export default function AdminTourOverlay() {
-  const { activeTour, stepIndex, isLastStep, nextStep, prevStep, closeTour, skipStep } = useAdminTour()
+  const { activeTour, stepIndex, isLastStep, nextStep, prevStep, closeTour, skipStep } =
+    useAdminTour()
   const { reducedMotion } = useMotionConfig()
   const step = activeTour?.steps[stepIndex] ?? null
-  const rect = useTargetRect(step?.target ?? null, activeTour ? `${activeTour.id}:${stepIndex}` : null, skipStep)
+  const rect = useTargetRect(
+    step?.target ?? null,
+    activeTour ? `${activeTour.id}:${stepIndex}` : null,
+    skipStep,
+  )
 
   if (!activeTour || !step) return null
 

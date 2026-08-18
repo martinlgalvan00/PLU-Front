@@ -107,7 +107,10 @@ export default function HomePage({
 
   const handleStickyVisible = useCallback(() => {
     if (guideAutoOpenedRef.current || isLoggedInAthlete || hasSeenHomeGuide()) return
-    if (typeof window.matchMedia === 'function' && !window.matchMedia('(max-width: 640px)').matches) {
+    if (
+      typeof window.matchMedia === 'function' &&
+      !window.matchMedia('(max-width: 640px)').matches
+    ) {
       return
     }
     guideAutoOpenedRef.current = true
@@ -199,9 +202,7 @@ export default function HomePage({
         onNavigate={goToAffiliation}
         onOpenGuide={openGuide}
       />
-      {guideOpen ? (
-        <HomeGuideSheet onAffiliate={goToAffiliation} onClose={closeGuide} />
-      ) : null}
+      {guideOpen ? <HomeGuideSheet onAffiliate={goToAffiliation} onClose={closeGuide} /> : null}
     </main>
   )
 }

@@ -14,7 +14,9 @@ export function isKnownRole(role) {
 
 export function getRoleLabel(subject) {
   if (subject && typeof subject === 'object') {
-    return subject.roleLabel ?? ROLE_LABELS[subject.roleKey] ?? ROLES[subject.role]?.label ?? 'Sin rol'
+    return (
+      subject.roleLabel ?? ROLE_LABELS[subject.roleKey] ?? ROLES[subject.role]?.label ?? 'Sin rol'
+    )
   }
   return ROLES[subject]?.label ?? ROLE_LABELS[subject] ?? 'Sin rol'
 }
@@ -81,10 +83,7 @@ export function canExportPluUsa(subject) {
 }
 
 export function isPluUsaPartner(subject) {
-  const roleKey =
-    typeof subject === 'string'
-      ? subject
-      : subject?.roleKey ?? subject?.role
+  const roleKey = typeof subject === 'string' ? subject : (subject?.roleKey ?? subject?.role)
   return roleKey === 'viewer_plu_usa'
 }
 
@@ -105,5 +104,8 @@ export function canCheckIn(subject) {
 // Usuarios...) le queda al pedo y encima expone datos que no necesita ver.
 export function isCheckinOnly(subject) {
   const allowedSections = getAllowedAdminSections(subject)
-  return allowedSections.length > 0 && allowedSections.every((section) => ['events', 'checkin'].includes(section))
+  return (
+    allowedSections.length > 0 &&
+    allowedSections.every((section) => ['events', 'checkin'].includes(section))
+  )
 }

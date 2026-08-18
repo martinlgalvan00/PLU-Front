@@ -49,8 +49,6 @@ describe('assertSupabaseResult', () => {
 
 describe('requireSupabaseClient', () => {
   it('responde 503 cuando falta configuracion del cliente admin', () => {
-    expect(() => requireSupabaseClient(null)).toThrowError(
-      expect.objectContaining({ status: 503 }),
-    )
+    expect(() => requireSupabaseClient(null)).toThrowError(expect.objectContaining({ status: 503 }))
   })
 })

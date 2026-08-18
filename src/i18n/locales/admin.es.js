@@ -432,7 +432,8 @@ export default {
       actionError: 'No pudimos actualizar la afiliación.',
       cancelConfirmTitle: 'Confirmar baja de afiliación',
       cancelConfirmDescription: 'Vas a dar de baja la afiliación de {{athlete}}.',
-      cancelConfirmWarning: 'La credencial deja de habilitar el ingreso y el atleta recibe un email con el cambio.',
+      cancelConfirmWarning:
+        'La credencial deja de habilitar el ingreso y el atleta recibe un email con el cambio.',
       keepActive: 'Mantener activa',
       confirmCancel: 'Confirmar baja',
       registeredToTournamentBadge: 'Torneo',
@@ -450,7 +451,8 @@ export default {
       retry: 'Reintentar',
       loading: 'Cargando tarifas…',
       plansTitle: 'Planes de afiliación',
-      plansLead: 'Publicá un plan o una versión nueva. El precio de una versión ya cobrada no se pisa.',
+      plansLead:
+        'Publicá un plan o una versión nueva. El precio de una versión ya cobrada no se pisa.',
       newPlan: 'Nuevo plan',
       newVersion: 'Nueva versión',
       edit: 'Editar',
@@ -479,7 +481,8 @@ export default {
       price: 'Precio',
       manualPrice: 'Precio por transferencia/efectivo',
       manualPricePlaceholder: 'Igual que el precio de Mercado Pago',
-      manualPriceHint: 'Opcional. Si lo dejás vacío, transferencia y efectivo cobran lo mismo que Mercado Pago.',
+      manualPriceHint:
+        'Opcional. Si lo dejás vacío, transferencia y efectivo cobran lo mismo que Mercado Pago.',
       currency: 'Moneda',
       billingFrequency: 'Vigencia',
       collectionMode: 'Modalidad de cobro',
@@ -494,11 +497,13 @@ export default {
       deleting: 'Eliminando...',
       deleteConfirmTitle: 'Eliminar {{name}}',
       deleteConfirmDescription: 'Vas a borrar el plan {{code}} del catálogo de afiliaciones.',
-      deleteConfirmWarning: 'Solo se puede eliminar si no tiene afiliaciones, órdenes o suscripciones asociadas.',
+      deleteConfirmWarning:
+        'Solo se puede eliminar si no tiene afiliaciones, órdenes o suscripciones asociadas.',
       deleteConfirmCancel: 'Conservar plan',
       deleteConfirmConfirm: 'Eliminar plan',
       comboTitle: 'Oferta combo',
-      comboLead: 'Combiná una afiliación y una inscripción. El precio final debe ser menor al total por separado.',
+      comboLead:
+        'Combiná una afiliación y una inscripción. El precio final debe ser menor al total por separado.',
       event: 'Evento',
       membershipPlan: 'Plan incluido',
       membershipAmount: 'Afiliación',
@@ -532,7 +537,8 @@ export default {
       retiresOn: 'Vence {{date}}',
       scheduleRetirement: 'Programar vigencia',
       discountCodesTitle: 'Códigos de descuento',
-      discountCodesLead: 'Creá cupos para las primeras personas que canjeen, con vencimiento y seguimiento en vivo.',
+      discountCodesLead:
+        'Creá cupos para las primeras personas que canjeen, con vencimiento y seguimiento en vivo.',
       discountCodesEmpty: 'Todavía no hay códigos de descuento.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
@@ -549,7 +555,8 @@ export default {
       deleteDiscountCodeAria: 'Eliminar código {{code}}',
       deleteCodeConfirmTitle: 'Eliminar {{code}}',
       deleteCodeConfirmDescription: 'Vas a borrar el código de descuento {{code}} del catálogo.',
-      deleteCodeConfirmWarning: 'Solo se puede eliminar si no tiene canjes registrados. Si ya se usó, desactivalo en su lugar.',
+      deleteCodeConfirmWarning:
+        'Solo se puede eliminar si no tiene canjes registrados. Si ya se usó, desactivalo en su lugar.',
       deleteCodeConfirmCancel: 'Conservar código',
       deleteCodeConfirmConfirm: 'Eliminar código',
       codeDeleted: 'Código de descuento eliminado.',
@@ -560,7 +567,8 @@ export default {
         both: 'Ambos',
       },
       maxRedemptions: 'Límite de canjes',
-      maxRedemptionsHint: 'Dejalo vacío si no querés limitarlo. Cada canje descuenta un cupo automáticamente.',
+      maxRedemptionsHint:
+        'Dejalo vacío si no querés limitarlo. Cada canje descuenta un cupo automáticamente.',
       unlimitedUses: 'Sin tope',
       expiresAt: 'Vencimiento',
       expiresAtHint: 'Dejalo vacío para que el código nunca expire.',
@@ -590,12 +598,15 @@ export default {
       subscriptionsTitle: 'Suscripciones activas',
       subscriptionsLead: 'Afiliaciones con cobro recurrente en Mercado Pago.',
       subscriptionsEmpty: 'Todavía no hay suscripciones activas.',
-      subscriptionsEmptyHint: 'Las afiliaciones recurrentes van a aparecer acá con su próximo cobro y estado.',
+      subscriptionsEmptyHint:
+        'Las afiliaciones recurrentes van a aparecer acá con su próximo cobro y estado.',
       nextBilling: 'Próximo cobro: {{date}}',
       cancelSubscription: 'Cancelar suscripción',
       cancelSubscriptionConfirmTitle: 'Cancelar suscripción',
-      cancelSubscriptionConfirmDescription: 'Se cancela la suscripción recurrente de {{athlete}} en Mercado Pago.',
-      cancelSubscriptionConfirmWarning: 'La afiliación deja de renovarse automáticamente. Esta acción no se puede deshacer.',
+      cancelSubscriptionConfirmDescription:
+        'Se cancela la suscripción recurrente de {{athlete}} en Mercado Pago.',
+      cancelSubscriptionConfirmWarning:
+        'La afiliación deja de renovarse automáticamente. Esta acción no se puede deshacer.',
       subscriptionStatus: {
         pending: 'Pendiente',
         active: 'Activa',
@@ -608,7 +619,8 @@ export default {
     accessGates: {
       eyebrow: 'Aperturas controladas',
       title: 'Acceso y habilitación',
-      subtitle: 'Controlá quién puede iniciar una afiliación o inscripción antes de abrirla al público.',
+      subtitle:
+        'Controlá quién puede iniciar una afiliación o inscripción antes de abrirla al público.',
       refresh: 'Actualizar',
       retry: 'Reintentar',
       loading: 'Cargando accesos…',
@@ -1299,8 +1311,7 @@ export default {
     breakdownEvents: 'Eventos',
     flowsEyebrow: 'Circuitos',
     flowsTitle: 'Estado de los flujos',
-    flowsSubtitle:
-      'Separá lo que sigue su curso de lo que necesita una decisión del equipo.',
+    flowsSubtitle: 'Separá lo que sigue su curso de lo que necesita una decisión del equipo.',
     flowOpen: 'Abrir',
     flowPaymentsTitle: 'Cobros',
     flowPaymentsProgressing: 'en seguimiento',
@@ -1428,7 +1439,8 @@ export default {
     axisRequestHint:
       'Todo lo que ocurrió dentro de la misma llamada al servidor. Es la cadena real de causas, no una coincidencia de horario.',
     axisBefore: 'Qué hizo antes esta persona',
-    axisBeforeHint: 'Sus últimas acciones en las 24 horas previas, de la más vieja a la más reciente.',
+    axisBeforeHint:
+      'Sus últimas acciones en las 24 horas previas, de la más vieja a la más reciente.',
     axisBeforeEmpty: 'No hay acciones previas de este actor en las últimas 24 horas.',
     axisAfter: 'Qué hizo después',
     axisEntity: 'Historia de esta entidad',
@@ -1464,7 +1476,8 @@ export default {
       expiredWithoutPayment: {
         title: 'Vencimiento automÃ¡tico sin pago',
         summary: 'La ventana de pago venciÃ³ el {{expiresAt}}.',
-        action: 'No acreditar manualmente. Pedile a la persona que genere una nueva orden. Si informa un dÃ©bito, revalidÃ¡ primero contra Mercado Pago.',
+        action:
+          'No acreditar manualmente. Pedile a la persona que genere una nueva orden. Si informa un dÃ©bito, revalidÃ¡ primero contra Mercado Pago.',
       },
     },
   },
@@ -1504,7 +1517,8 @@ export default {
     rejectedByLabel: 'Rechazo anterior',
     proofPending: 'Archivo pendiente',
     noProofTitle: 'Sin comprobante cargado',
-    noProofLead: 'La transferencia se puede acreditar sólo después de adjuntar y revisar un comprobante.',
+    noProofLead:
+      'La transferencia se puede acreditar sólo después de adjuntar y revisar un comprobante.',
     proofLoading: 'Cargando comprobante…',
     proofErrorTitle: 'No se pudo cargar el comprobante',
     proofError: 'No se pudo abrir el comprobante. Intentá de nuevo.',
@@ -1520,12 +1534,16 @@ export default {
     confirming: 'Validando…',
     confirmError: 'No se pudo validar el pago. Intentá de nuevo.',
     settleTitle: 'Acreditar a mano',
-    settleLead: 'Mercado Pago no confirmó este cobro, pero el dinero entró. Revisá el comprobante antes de acreditarlo.',
+    settleLead:
+      'Mercado Pago no confirmó este cobro, pero el dinero entró. Revisá el comprobante antes de acreditarlo.',
     settleNoProofLead: 'Adjuntá el comprobante del pago recibido antes de acreditarlo a mano.',
-    settleAuditNote: 'Esta acción acredita el cobro sin confirmación del proveedor: activa la afiliación o inscripción, suma el monto al reporte financiero y queda registrada en la auditoría a tu nombre.',
+    settleAuditNote:
+      'Esta acción acredita el cobro sin confirmación del proveedor: activa la afiliación o inscripción, suma el monto al reporte financiero y queda registrada en la auditoría a tu nombre.',
     settleReasonLabel: 'Motivo de la acreditación',
-    settleReasonPlaceholder: 'Ej.: transferencia recibida el 12/08, Mercado Pago la marcó cancelada por vencimiento.',
-    settleReasonHint: 'Queda en la auditoría junto a tu usuario. Explicá por qué el cobro es válido.',
+    settleReasonPlaceholder:
+      'Ej.: transferencia recibida el 12/08, Mercado Pago la marcó cancelada por vencimiento.',
+    settleReasonHint:
+      'Queda en la auditoría junto a tu usuario. Explicá por qué el cobro es válido.',
     settleReferenceLabel: 'Referencia del pago (opcional)',
     settleReferencePlaceholder: 'Ej.: ID de operación, número de transferencia',
     settleConfirm: 'Acreditar el cobro',
@@ -1755,7 +1773,8 @@ export default {
     priceRegistrationManual: 'Inscripción · transferencia/efectivo',
     priceRegistrationManualPlaceholder: 'Igual que el precio de Mercado Pago',
     priceCombo: 'Combo afiliación + meet',
-    pricingCatalogHint: 'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
+    pricingCatalogHint:
+      'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Beneficios en la compra de entradas',
     ticketAddonsLead:
@@ -1996,7 +2015,8 @@ export default {
       slotsInvalid: 'Ingresá un número de cupos válido.',
       slotsInt: 'Los cupos tienen que ser un número entero.',
       slotsMin: 'Definí al menos 1 cupo.',
-      slotsBelowRegistered: 'El cupo no puede ser menor a las {{count}} inscripciones ya reservadas.',
+      slotsBelowRegistered:
+        'El cupo no puede ser menor a las {{count}} inscripciones ya reservadas.',
       slotsMax: 'El máximo permitido es 5000 cupos.',
       venueMin: 'Indicá la sede del evento.',
       venueMax: 'El nombre de la sede es demasiado largo.',
@@ -2041,8 +2061,7 @@ export default {
   analytics: {
     eyebrow: 'Sitio público',
     title: 'Analítica',
-    subtitle:
-      'Tráfico, recorridos e interacciones del sitio público.',
+    subtitle: 'Tráfico, recorridos e interacciones del sitio público.',
     loading: 'Cargando analítica…',
     error: 'No se pudo cargar la analítica.',
     refresh: 'Actualizar',
@@ -2057,8 +2076,7 @@ export default {
       athlete: 'Atleta',
     },
     activityTitle: 'Actividad y accesos',
-    activitySummary:
-      '{{people}} personas comprometidas · {{entries}} ingresos registrados',
+    activitySummary: '{{people}} personas comprometidas · {{entries}} ingresos registrados',
     activityActions: 'Acciones realizadas',
     activityGates: 'Ingresos por puerta',
     activityPeople: '{{count}} personas',
@@ -2094,7 +2112,8 @@ export default {
       attempts: '{{count}} intentos',
       failed: 'Intentos fallidos',
       blocked: 'Personas que nunca entraron',
-      blockedHint: 'Fallaron en todos sus intentos del período: son las que siguen sin poder entrar.',
+      blockedHint:
+        'Fallaron en todos sus intentos del período: son las que siguen sin poder entrar.',
       failureRate: 'Tasa de fallo',
       accountsCreated: 'Cuentas creadas',
       reasonsTitle: 'Motivos de rechazo',

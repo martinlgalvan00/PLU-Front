@@ -6,7 +6,11 @@ import StatusPill from './StatusPill.jsx'
 import TicketAvailabilityBadge from './TicketAvailabilityBadge.jsx'
 import LaunchInterestForm from './LaunchInterestForm.jsx'
 import { useTicketAvailability } from '../../hooks/useTicketAvailability.js'
-import { cheapestTicketTypePrice, isTicketSalesEnabled, ticketPricingFromEvent } from '../../lib/eventPricing.js'
+import {
+  cheapestTicketTypePrice,
+  isTicketSalesEnabled,
+  ticketPricingFromEvent,
+} from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
 import { drawerBackdropTransition, drawerTransition } from '../../motion/variants.ts'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
@@ -85,7 +89,9 @@ export default function ShopEventDrawer({
             <header className="shop-event-drawer__head">
               <div className="shop-event-drawer__head-copy">
                 <div className="shop-event-drawer__eyebrow-row">
-                  <span className="shop-event-drawer__eyebrow">{t('pages.shop.drawerEyebrow')}</span>
+                  <span className="shop-event-drawer__eyebrow">
+                    {t('pages.shop.drawerEyebrow')}
+                  </span>
                   <StatusPill value={event.status} />
                 </div>
                 <h2 className="shop-event-drawer__title">{event.title}</h2>
@@ -103,13 +109,21 @@ export default function ShopEventDrawer({
                   </span>
                 </p>
               </div>
-              <button type="button" className="shop-event-drawer__close" aria-label={t('pages.shop.drawerClose')} onClick={onClose}>
+              <button
+                type="button"
+                className="shop-event-drawer__close"
+                aria-label={t('pages.shop.drawerClose')}
+                onClick={onClose}
+              >
                 <X size={18} aria-hidden />
               </button>
             </header>
 
             <div className="shop-event-drawer__body">
-              <section className="shop-event-drawer__block shop-event-drawer__block--tickets" aria-labelledby="shop-drawer-tickets-title">
+              <section
+                className="shop-event-drawer__block shop-event-drawer__block--tickets"
+                aria-labelledby="shop-drawer-tickets-title"
+              >
                 <h3 id="shop-drawer-tickets-title" className="shop-event-drawer__block-title">
                   {t('pages.shop.drawerTicketsHeading')}
                 </h3>
@@ -118,15 +132,22 @@ export default function ShopEventDrawer({
                   <div className="shop-event-drawer__offer-main">
                     {canBuy && fromPrice != null ? (
                       <>
-                        <span className="shop-event-drawer__price-caption">{t('pages.shop.fromPriceCaption')}</span>
+                        <span className="shop-event-drawer__price-caption">
+                          {t('pages.shop.fromPriceCaption')}
+                        </span>
                         <p className="shop-event-drawer__price">{money(fromPrice, locale)}</p>
                       </>
                     ) : (
-                      <p className="shop-event-drawer__price shop-event-drawer__price--status">{priceLabel}</p>
+                      <p className="shop-event-drawer__price shop-event-drawer__price--status">
+                        {priceLabel}
+                      </p>
                     )}
                   </div>
                   {salesOpen ? (
-                    <TicketAvailabilityBadge remaining={remaining} className="shop-event-drawer__availability" />
+                    <TicketAvailabilityBadge
+                      remaining={remaining}
+                      className="shop-event-drawer__availability"
+                    />
                   ) : null}
                 </div>
 
@@ -141,7 +162,9 @@ export default function ShopEventDrawer({
                         <span>{t('pages.shop.buyTickets')}</span>
                         <ArrowRight size={16} aria-hidden />
                       </button>
-                      <p className="shop-event-drawer__cta-hint">{t('pages.shop.drawerTicketsHint')}</p>
+                      <p className="shop-event-drawer__cta-hint">
+                        {t('pages.shop.drawerTicketsHint')}
+                      </p>
                     </>
                   ) : (
                     <>
@@ -168,7 +191,10 @@ export default function ShopEventDrawer({
                 </div>
               </section>
 
-              <section className="shop-event-drawer__block shop-event-drawer__block--merch" aria-labelledby="shop-drawer-merch-title">
+              <section
+                className="shop-event-drawer__block shop-event-drawer__block--merch"
+                aria-labelledby="shop-drawer-merch-title"
+              >
                 <div className="shop-event-drawer__merch-head">
                   <h3 id="shop-drawer-merch-title" className="shop-event-drawer__block-title">
                     {t('pages.shop.merchTitle')}
@@ -180,7 +206,11 @@ export default function ShopEventDrawer({
             </div>
 
             <footer className="shop-event-drawer__foot">
-              <button type="button" className="shop-event-drawer__view-link" onClick={() => onViewEvent(event)}>
+              <button
+                type="button"
+                className="shop-event-drawer__view-link"
+                onClick={() => onViewEvent(event)}
+              >
                 {t('pages.shop.drawerViewEvent')}
                 <ArrowRight size={15} aria-hidden />
               </button>

@@ -192,15 +192,14 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
       try {
         assertPricingWritesEnabled(env)
         const eventSlug = parseRouteParam(
-          z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+          z
+            .string()
+            .trim()
+            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
           req.params.eventSlug,
           'El identificador del evento es inválido.',
         )
-        const offer = await repository().upsertComboOffer(
-          eventSlug,
-          req.validatedBody,
-          actor(req),
-        )
+        const offer = await repository().upsertComboOffer(eventSlug, req.validatedBody, actor(req))
         res.json({ offer })
       } catch (error) {
         next(error)
@@ -249,25 +248,20 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
     },
   )
 
-  router.delete(
-    '/discount-codes/:codeId',
-    ...writeGuard,
-    staffLimiter,
-    async (req, res, next) => {
-      try {
-        assertPricingWritesEnabled(env)
-        const codeId = parseRouteParam(
-          z.string().uuid(),
-          req.params.codeId,
-          'El identificador del código es inválido.',
-        )
-        const result = await repository().deleteDiscountCode(codeId, actor(req))
-        res.json(result)
-      } catch (error) {
-        next(error)
-      }
-    },
-  )
+  router.delete('/discount-codes/:codeId', ...writeGuard, staffLimiter, async (req, res, next) => {
+    try {
+      assertPricingWritesEnabled(env)
+      const codeId = parseRouteParam(
+        z.string().uuid(),
+        req.params.codeId,
+        'El identificador del código es inválido.',
+      )
+      const result = await repository().deleteDiscountCode(codeId, actor(req))
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  })
 
   router.patch(
     '/discount-codes/:codeId/status',

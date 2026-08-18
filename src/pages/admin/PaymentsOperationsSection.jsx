@@ -13,7 +13,10 @@ import {
 } from 'lucide-react'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
-import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
+import {
+  AdminTableActions,
+  AdminTableActionsEmpty,
+} from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
@@ -318,32 +321,28 @@ export default function PaymentsOperationsSection({
   const athletePending =
     athleteSummary.loading || athleteSummary.pending == null ? null : athleteSummary.pending
   const athleteOpenAmount =
-    athleteSummary.loading || athleteSummary.openAmount == null
-      ? null
-      : athleteSummary.openAmount
+    athleteSummary.loading || athleteSummary.openAmount == null ? null : athleteSummary.openAmount
 
   const integrityTone =
+    !data || loading ? 'neutral' : !isLedgerHealthy || pastDue > 0 ? 'danger' : 'success'
+
+  const integrityValue =
     !data || loading
-      ? 'neutral'
-      : !isLedgerHealthy || pastDue > 0
-        ? 'danger'
-        : 'success'
+      ? '—'
+      : !isLedgerHealthy
+        ? (healthIssues ?? t('admin.paymentOperations.integrityAlert'))
+        : pastDue > 0
+          ? pastDue
+          : t('admin.paymentOperations.integrityOk')
 
-  const integrityValue = !data || loading
-    ? '—'
-    : !isLedgerHealthy
-      ? (healthIssues ?? t('admin.paymentOperations.integrityAlert'))
-      : pastDue > 0
-        ? pastDue
-        : t('admin.paymentOperations.integrityOk')
-
-  const integrityHint = !data || loading
-    ? null
-    : !isLedgerHealthy
-      ? t('admin.paymentOperations.kpiIntegrityHintIssue')
-      : pastDue > 0
-        ? t('admin.paymentOperations.kpiIntegrityHintMora', { count: pastDue })
-        : null
+  const integrityHint =
+    !data || loading
+      ? null
+      : !isLedgerHealthy
+        ? t('admin.paymentOperations.kpiIntegrityHintIssue')
+        : pastDue > 0
+          ? t('admin.paymentOperations.kpiIntegrityHintMora', { count: pastDue })
+          : null
 
   const healthBreakdown = []
   if (health && health.healthy === false) {
@@ -397,7 +396,10 @@ export default function PaymentsOperationsSection({
 
   return (
     <div className="admin-payments-operations">
-      <div className="admin-payments-ops-strip" aria-label={t('admin.paymentOperations.opsStripAria')}>
+      <div
+        className="admin-payments-ops-strip"
+        aria-label={t('admin.paymentOperations.opsStripAria')}
+      >
         <div className="admin-payments-ops-strip__kpis">
           <OpsKpi
             icon={BadgeDollarSign}
@@ -509,11 +511,15 @@ export default function PaymentsOperationsSection({
                         {item.title}
                         {item.affected > 1 ? (
                           <span className="admin-payments-ops-callout__diagnosis-count">
-                            {t('admin.paymentOperations.diagnosisAffected', { count: item.affected })}
+                            {t('admin.paymentOperations.diagnosisAffected', {
+                              count: item.affected,
+                            })}
                           </span>
                         ) : null}
                       </span>
-                      <span className="admin-payments-ops-callout__diagnosis-cause">{item.cause}</span>
+                      <span className="admin-payments-ops-callout__diagnosis-cause">
+                        {item.cause}
+                      </span>
                       {Array.isArray(item.fix) && item.fix.length > 0 ? (
                         <ol className="admin-payments-ops-callout__diagnosis-fix">
                           {item.fix.map((step) => (
@@ -538,7 +544,8 @@ export default function PaymentsOperationsSection({
           <header className="admin-payment-ops__header admin-payment-ops__header--compact">
             <div className="admin-payment-ops__intro">
               <span className="admin-payment-ops__eyebrow">
-                <ScanSearch size={14} aria-hidden /> {t('admin.paymentOperations.revalidateEyebrow')}
+                <ScanSearch size={14} aria-hidden />{' '}
+                {t('admin.paymentOperations.revalidateEyebrow')}
               </span>
               <h2 id="payment-revalidation-title">
                 {t('admin.paymentOperations.revalidateTitle')}

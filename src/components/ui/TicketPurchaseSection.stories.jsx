@@ -8,7 +8,12 @@ const pricing = {
     { id: 'both', name: 'Ambos días', price: 25000, quota: null, includedAddonIds: [] },
   ],
   addons: [
-    { id: 'meet-greet', label: 'Meet & Greet', price: 5000, description: 'Encuentro con atletas destacados.' },
+    {
+      id: 'meet-greet',
+      label: 'Meet & Greet',
+      price: 5000,
+      description: 'Encuentro con atletas destacados.',
+    },
   ],
 }
 

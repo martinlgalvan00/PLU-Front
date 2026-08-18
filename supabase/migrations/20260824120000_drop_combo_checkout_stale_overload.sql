@@ -16,3 +16,7 @@
 drop function if exists public.create_membership_registration_combo_checkout(
   uuid, text, text, text, numeric, text, text, numeric, text
 );
+
+drop function if exists public.create_membership_registration_combo_checkout(
+  uuid, text, text, text, numeric, text, text, numeric, text, text
+);

@@ -32,7 +32,8 @@ export async function runPaymentRecoveryJob({ client, env = process.env } = {}) 
       auditTrail: createPaymentAuditTrail({ client }),
       eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
       reconciliationLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
-    }))
+    }),
+  )
 }
 
 export function startPaymentRecoveryJob({ client, env = process.env } = {}) {

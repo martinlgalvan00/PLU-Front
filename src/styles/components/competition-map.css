@@ -291,12 +291,12 @@
 
 .competition-map__fallback {
   align-content: center;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-bg-secondary) 92%, var(--plu-gold-500, var(--color-brand-gold))) 0%,
-      var(--color-bg-secondary) 42%
-    );
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-bg-secondary) 92%, var(--plu-gold-500, var(--color-brand-gold)))
+      0%,
+    var(--color-bg-secondary) 42%
+  );
   display: grid;
   gap: 14px 16px;
   grid-template-columns: auto minmax(0, 42ch);
@@ -345,12 +345,11 @@
 }
 
 .competition-map__skeleton-canvas {
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-bg-secondary) 88%, var(--plu-warm-100, #ebe7df)) 0%,
-      var(--color-bg-secondary) 55%
-    );
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-bg-secondary) 88%, var(--plu-warm-100, #ebe7df)) 0%,
+    var(--color-bg-secondary) 55%
+  );
   isolation: isolate;
   min-height: 180px;
   overflow: hidden;
@@ -568,12 +567,11 @@
 }
 
 [data-theme='light'] .competition-map__skeleton-canvas {
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--plu-warm-50, #f7f6f3) 82%, var(--plu-warm-100, #ebe7df)) 0%,
-      var(--plu-warm-50, #f7f6f3) 58%
-    );
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--plu-warm-50, #f7f6f3) 82%, var(--plu-warm-100, #ebe7df)) 0%,
+    var(--plu-warm-50, #f7f6f3) 58%
+  );
 }
 
 [data-theme='light'] .competition-map__skeleton-road {
@@ -604,14 +602,22 @@
 }
 
 @keyframes competition-map-skeleton-shimmer {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(120%); }
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
 }
 
 @keyframes competition-map-skeleton-pin {
   0%,
-  100% { transform: translate(-50%, -50%) rotate(-45deg) scale(1); }
-  50% { transform: translate(-50%, -56%) rotate(-45deg) scale(1.04); }
+  100% {
+    transform: translate(-50%, -50%) rotate(-45deg) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -56%) rotate(-45deg) scale(1.04);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -624,7 +630,11 @@
 .competition-map__fallback-icon {
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
-  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 70%, var(--color-text-muted));
+  color: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 70%,
+    var(--color-text-muted)
+  );
   display: flex;
   height: 36px;
   justify-content: center;
@@ -1269,7 +1279,11 @@
 
 .competition-map__external-link {
   align-items: center;
-  background: color-mix(in oklab, var(--color-surface-elevated, var(--color-bg-elevated, transparent)) 88%, transparent);
+  background: color-mix(
+    in oklab,
+    var(--color-surface-elevated, var(--color-bg-elevated, transparent)) 88%,
+    transparent
+  );
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   color: var(--color-text-primary);
@@ -1479,12 +1493,11 @@
 }
 
 .competition-map--venue .competition-map__fallback:not(.competition-map__fallback--hidden) {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--color-bg-secondary) 88%, var(--color-brand-gold)) 0%,
-      var(--color-bg-secondary) 55%
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--color-bg-secondary) 88%, var(--color-brand-gold)) 0%,
+    var(--color-bg-secondary) 55%
+  );
 }
 
 .competition-map--venue .competition-map__fallback--hidden {
@@ -1544,7 +1557,8 @@
   align-items: start;
   background: transparent;
   border: none;
-  border-left: 2px solid color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 72%, transparent);
+  border-left: 2px solid
+    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 72%, transparent);
   border-radius: 0;
   display: grid;
   gap: 10px 12px;
@@ -1592,7 +1606,11 @@
 .competition-map[data-provider-state='missing_coordinates'] .competition-map__fallback-eyebrow,
 .competition-map[data-provider-state='offline'] .competition-map__fallback-eyebrow,
 .competition-map[data-provider-state='error'] .competition-map__fallback-eyebrow {
-  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 78%, var(--color-text-muted));
+  color: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 78%,
+    var(--color-text-muted)
+  );
 }
 
 .competition-map[data-provider-state='offline'] .competition-map__fallback-eyebrow,
@@ -2082,24 +2100,40 @@
       width: auto;
     }
 
-    .competition-map[data-provider-state='empty'] .competition-map__index:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='missing_coordinates'] .competition-map__index:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='offline'] .competition-map__index:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='error'] .competition-map__index:has(.competition-map__event:only-child) {
+    .competition-map[data-provider-state='empty']
+      .competition-map__index:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='missing_coordinates']
+      .competition-map__index:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='offline']
+      .competition-map__index:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='error']
+      .competition-map__index:has(.competition-map__event:only-child) {
       display: none;
     }
 
-    .competition-map[data-provider-state='empty'] .competition-map__layout:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='missing_coordinates'] .competition-map__layout:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='offline'] .competition-map__layout:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='error'] .competition-map__layout:has(.competition-map__event:only-child) {
+    .competition-map[data-provider-state='empty']
+      .competition-map__layout:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='missing_coordinates']
+      .competition-map__layout:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='offline']
+      .competition-map__layout:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='error']
+      .competition-map__layout:has(.competition-map__event:only-child) {
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .competition-map[data-provider-state='empty'] .competition-map__layout:has(.competition-map__event:only-child) .competition-map__selection,
-    .competition-map[data-provider-state='missing_coordinates'] .competition-map__layout:has(.competition-map__event:only-child) .competition-map__selection,
-    .competition-map[data-provider-state='offline'] .competition-map__layout:has(.competition-map__event:only-child) .competition-map__selection,
-    .competition-map[data-provider-state='error'] .competition-map__layout:has(.competition-map__event:only-child) .competition-map__selection {
+    .competition-map[data-provider-state='empty']
+      .competition-map__layout:has(.competition-map__event:only-child)
+      .competition-map__selection,
+    .competition-map[data-provider-state='missing_coordinates']
+      .competition-map__layout:has(.competition-map__event:only-child)
+      .competition-map__selection,
+    .competition-map[data-provider-state='offline']
+      .competition-map__layout:has(.competition-map__event:only-child)
+      .competition-map__selection,
+    .competition-map[data-provider-state='error']
+      .competition-map__layout:has(.competition-map__event:only-child)
+      .competition-map__selection {
       grid-column: 1;
     }
 
@@ -2219,10 +2253,14 @@
       width: 100%;
     }
 
-    .competition-map[data-provider-state='empty'] .competition-map__index:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='missing_coordinates'] .competition-map__index:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='offline'] .competition-map__index:has(.competition-map__event:only-child),
-    .competition-map[data-provider-state='error'] .competition-map__index:has(.competition-map__event:only-child) {
+    .competition-map[data-provider-state='empty']
+      .competition-map__index:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='missing_coordinates']
+      .competition-map__index:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='offline']
+      .competition-map__index:has(.competition-map__event:only-child),
+    .competition-map[data-provider-state='error']
+      .competition-map__index:has(.competition-map__event:only-child) {
       display: none;
     }
 
@@ -2292,10 +2330,14 @@
 }
 
 @media (max-width: 699px) {
-  .competition-map[data-provider-state='empty'] .competition-map__index:has(.competition-map__event:only-child),
-  .competition-map[data-provider-state='missing_coordinates'] .competition-map__index:has(.competition-map__event:only-child),
-  .competition-map[data-provider-state='offline'] .competition-map__index:has(.competition-map__event:only-child),
-  .competition-map[data-provider-state='error'] .competition-map__index:has(.competition-map__event:only-child) {
+  .competition-map[data-provider-state='empty']
+    .competition-map__index:has(.competition-map__event:only-child),
+  .competition-map[data-provider-state='missing_coordinates']
+    .competition-map__index:has(.competition-map__event:only-child),
+  .competition-map[data-provider-state='offline']
+    .competition-map__index:has(.competition-map__event:only-child),
+  .competition-map[data-provider-state='error']
+    .competition-map__index:has(.competition-map__event:only-child) {
     display: none;
   }
 

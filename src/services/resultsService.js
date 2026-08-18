@@ -119,10 +119,19 @@ export function sortResultsArchive(entries, sort = 'recent', locale = 'es') {
 /** Sex inferred from division label: 'men' | 'women' | null */
 export function inferDivisionSex(name = '') {
   const normalized = String(name).toLowerCase()
-  if (normalized.includes('mujeres') || normalized.includes('women') || normalized.includes(' female')) {
+  if (
+    normalized.includes('mujeres') ||
+    normalized.includes('women') ||
+    normalized.includes(' female')
+  ) {
     return 'women'
   }
-  if (normalized.includes('hombres') || normalized.includes(' men') || normalized.endsWith(' men') || /\bmen\b/.test(normalized)) {
+  if (
+    normalized.includes('hombres') ||
+    normalized.includes(' men') ||
+    normalized.endsWith(' men') ||
+    /\bmen\b/.test(normalized)
+  ) {
     return 'men'
   }
   return null
@@ -140,7 +149,12 @@ export function inferDivisionGroup(name = '') {
   ) {
     return 'youth'
   }
-  if (normalized.includes('sub-master') || normalized.includes('sub master') || normalized.includes('submáster') || normalized.includes('sub-máster')) {
+  if (
+    normalized.includes('sub-master') ||
+    normalized.includes('sub master') ||
+    normalized.includes('submáster') ||
+    normalized.includes('sub-máster')
+  ) {
     return 'sub-masters'
   }
   if (normalized.includes('junior')) return 'junior'
@@ -198,7 +212,10 @@ export function getDivisionGroupOptions(navItems, t) {
   ]
 }
 
-export function filterDivisionNav(navItems, { sex = 'all', group = 'all', divisionId = 'all' } = {}) {
+export function filterDivisionNav(
+  navItems,
+  { sex = 'all', group = 'all', divisionId = 'all' } = {},
+) {
   return navItems.filter((item) => {
     if (sex !== 'all' && item.sex && item.sex !== sex) return false
     if (group !== 'all' && item.group !== group) return false

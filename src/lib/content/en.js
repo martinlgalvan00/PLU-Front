@@ -44,8 +44,7 @@ export const HOME_RESULTS = {
   eyebrow: 'Results',
   status: 'Pending',
   title: 'Official ranking, after each meet closes.',
-  description:
-    'Categories, totals and season archive — with export ready for PLU USA.',
+  description: 'Categories, totals and season archive — with export ready for PLU USA.',
   metaEvent: 'Pitbull Classic',
   metaExport: 'PLU USA export',
   classes: {
@@ -66,8 +65,7 @@ export const HOME_RULEBOOK = {
 export const HOME_COMMUNITY = {
   eyebrow: 'Community',
   title: 'Gyms and athletes under the same standard.',
-  description:
-    'Affiliate venues and members competing on the official PLU Argentina calendar.',
+  description: 'Affiliate venues and members competing on the official PLU Argentina calendar.',
   cta: 'View community',
   recentLabel: 'Recent members',
   emptyRecentLabel: 'No active public members yet.',
@@ -232,8 +230,7 @@ export const MEMBERSHIP_BENEFITS = [
 export const MEMBERSHIP_INSTITUTIONAL = {
   eyebrow: 'Powerlifting United',
   title: 'Federation standard',
-  text:
-    'PLU Argentina runs memberships, competitions and results with the same criteria as Powerlifting United. Local operations: Maximal.',
+  text: 'PLU Argentina runs memberships, competitions and results with the same criteria as Powerlifting United. Local operations: Maximal.',
 }
 
 export const MEMBERSHIP_REQUIREMENTS = [
@@ -331,14 +328,54 @@ export const MEMBERSHIP_COMPARE_ROWS = [
 ]
 
 export const PLATFORM_SECTIONS = [
-  { key: 'members', group: 'Competition', title: 'Membership', desc: 'Annual plans, athlete code and federation backing.' },
-  { key: 'pitbull', group: 'Competition', title: 'Pitbull Classic', desc: 'The flagship meet of the PLU ARG season.' },
-  { key: 'events', group: 'Competition', title: 'Events', desc: 'Competition calendar and meet registrations.' },
-  { key: 'results', group: 'Competition', title: 'Results', desc: 'Official score sheets, totals and podiums.' },
-  { key: 'rulebook', group: 'Institutional', title: 'Rulebook', desc: 'Rules, categories and equipment.' },
-  { key: 'community', group: 'Institutional', title: 'Community', desc: 'Affiliate gyms, referees and athlete network.' },
-  { key: 'faq', group: 'Institutional', title: 'FAQ', desc: 'Answers about membership, payments and competition.' },
-  { key: 'contact', group: 'Institutional', title: 'Contact', desc: 'Operational support and federation inquiries.' },
+  {
+    key: 'members',
+    group: 'Competition',
+    title: 'Membership',
+    desc: 'Annual plans, athlete code and federation backing.',
+  },
+  {
+    key: 'pitbull',
+    group: 'Competition',
+    title: 'Pitbull Classic',
+    desc: 'The flagship meet of the PLU ARG season.',
+  },
+  {
+    key: 'events',
+    group: 'Competition',
+    title: 'Events',
+    desc: 'Competition calendar and meet registrations.',
+  },
+  {
+    key: 'results',
+    group: 'Competition',
+    title: 'Results',
+    desc: 'Official score sheets, totals and podiums.',
+  },
+  {
+    key: 'rulebook',
+    group: 'Institutional',
+    title: 'Rulebook',
+    desc: 'Rules, categories and equipment.',
+  },
+  {
+    key: 'community',
+    group: 'Institutional',
+    title: 'Community',
+    desc: 'Affiliate gyms, referees and athlete network.',
+  },
+  {
+    key: 'faq',
+    group: 'Institutional',
+    title: 'FAQ',
+    desc: 'Answers about membership, payments and competition.',
+  },
+  {
+    key: 'contact',
+    group: 'Institutional',
+    title: 'Contact',
+    desc: 'Operational support and federation inquiries.',
+  },
 ]
 
 export const PITBULL_CLASSIC = {
@@ -360,16 +397,51 @@ export const PITBULL_CLASSIC = {
 export const PITBULL_VENUE = PITBULL_VENUE_DATA
 
 export const PITBULL_BENEFITS_ATHLETES = [
-  { id: 'standard', icon: 'Globe', title: 'PLU USA results', desc: 'Publishing and export aligned with the international ecosystem.' },
-  { id: 'credential', icon: 'QrCode', title: 'Digital credential', desc: 'Card and entry QR once registration is confirmed.' },
-  { id: 'judging', icon: 'ShieldCheck', title: 'Certified referees', desc: 'Technical panel under PLU USA standards.' },
-  { id: 'ops', icon: 'ClipboardList', title: 'Traceable operations', desc: 'Weigh-in, draw and attempts recorded on the platform.' },
+  {
+    id: 'standard',
+    icon: 'Globe',
+    title: 'PLU USA results',
+    desc: 'Publishing and export aligned with the international ecosystem.',
+  },
+  {
+    id: 'credential',
+    icon: 'QrCode',
+    title: 'Digital credential',
+    desc: 'Card and entry QR once registration is confirmed.',
+  },
+  {
+    id: 'judging',
+    icon: 'ShieldCheck',
+    title: 'Certified referees',
+    desc: 'Technical panel under PLU USA standards.',
+  },
+  {
+    id: 'ops',
+    icon: 'ClipboardList',
+    title: 'Traceable operations',
+    desc: 'Weigh-in, draw and attempts recorded on the platform.',
+  },
 ]
 
 export const PITBULL_BENEFITS_SPECTATORS = [
-  { id: 'show', icon: 'Ticket', title: 'General admission', desc: 'Two competition days at La Troupe Multiespacio, Banfield.' },
-  { id: 'access', icon: 'Ticket', title: 'No membership', desc: 'ID only. Buy online or at the door on event day.' },
-  { id: 'community', icon: 'Users', title: 'PLU ARG calendar', desc: 'Official meet on the local competitive circuit.' },
+  {
+    id: 'show',
+    icon: 'Ticket',
+    title: 'General admission',
+    desc: 'Two competition days at La Troupe Multiespacio, Banfield.',
+  },
+  {
+    id: 'access',
+    icon: 'Ticket',
+    title: 'No membership',
+    desc: 'ID only. Buy online or at the door on event day.',
+  },
+  {
+    id: 'community',
+    icon: 'Users',
+    title: 'PLU ARG calendar',
+    desc: 'Official meet on the local competitive circuit.',
+  },
 ]
 
 export const PITBULL_ATHLETE_GROUPS = [
@@ -476,7 +548,11 @@ export const PITBULL_SCHEDULE = [
 ]
 
 export const PITBULL_CATEGORY_CARDS = [
-  { id: 'equipment', title: 'Equipment', text: `${PITBULL_CLASSIC.categories.join(' · ')} (example)` },
+  {
+    id: 'equipment',
+    title: 'Equipment',
+    text: `${PITBULL_CLASSIC.categories.join(' · ')} (example)`,
+  },
   { id: 'age', title: 'Age', text: `${PITBULL_CLASSIC.divisions.join(' · ')} (example)` },
   { id: 'weight', title: 'Bodyweight', text: "Men's and women's classes (example)." },
   { id: 'gender', title: 'Gender', text: 'Separate M / F competition (example).' },
@@ -488,9 +564,27 @@ export const PITBULL_CREDENTIAL_SAMPLE = {
 }
 
 export const RECENT_RESULTS = [
-  { athlete: 'Martina Rivas', event: 'Pitbull Classic 2025', total: '412.5 kg', place: '1st Open Raw F', date: '2025-08-10' },
-  { athlete: 'Nicolás Aguirre', event: 'Argentina Open 2025', total: '580 kg', place: '2nd Junior Classic', date: '2025-10-18' },
-  { athlete: 'Lucía Fernández', event: 'Rookie Meet Córdoba', total: '325 kg', place: '1st Youth', date: '2025-09-05' },
+  {
+    athlete: 'Martina Rivas',
+    event: 'Pitbull Classic 2025',
+    total: '412.5 kg',
+    place: '1st Open Raw F',
+    date: '2025-08-10',
+  },
+  {
+    athlete: 'Nicolás Aguirre',
+    event: 'Argentina Open 2025',
+    total: '580 kg',
+    place: '2nd Junior Classic',
+    date: '2025-10-18',
+  },
+  {
+    athlete: 'Lucía Fernández',
+    event: 'Rookie Meet Córdoba',
+    total: '325 kg',
+    place: '1st Youth',
+    date: '2025-09-05',
+  },
 ]
 
 export const FAQ_ITEMS = [
@@ -584,9 +678,15 @@ export const FAQ_GROUPS = [
 ]
 
 export const COMMUNITY_HIGHLIGHTS = [
-  { title: 'Affiliate gyms', text: 'Network of venues in Buenos Aires, Córdoba, Rosario and the interior.' },
+  {
+    title: 'Affiliate gyms',
+    text: 'Network of venues in Buenos Aires, Córdoba, Rosario and the interior.',
+  },
   { title: 'Certified referees', text: 'Judging panel trained under PLU ARG rules.' },
-  { title: 'Elite and grassroots athletes', text: 'From first competition to the international podium.' },
+  {
+    title: 'Elite and grassroots athletes',
+    text: 'From first competition to the international podium.',
+  },
 ]
 
 export const COMMUNITY_QUOTE =
@@ -602,25 +702,95 @@ export const COMMUNITY_GYM_PLACEHOLDERS = [
 ]
 
 export const COMMUNITY_AFFILIATED_GYMS = [
-  { id: 'gym-maximal', name: 'Maximal Strength Club', city: 'La Plata', province: 'Buenos Aires', status: 'active' },
-  { id: 'gym-pitbull', name: 'Pitbull Barbell', city: 'Rosario', province: 'Santa Fe', status: 'active' },
+  {
+    id: 'gym-maximal',
+    name: 'Maximal Strength Club',
+    city: 'La Plata',
+    province: 'Buenos Aires',
+    status: 'active',
+  },
+  {
+    id: 'gym-pitbull',
+    name: 'Pitbull Barbell',
+    city: 'Rosario',
+    province: 'Santa Fe',
+    status: 'active',
+  },
   { id: 'gym-iron', name: 'Iron House', city: 'Córdoba', province: 'Córdoba', status: 'active' },
   { id: 'gym-mdz', name: 'Andes Strength', city: 'Mendoza', province: 'Mendoza', status: 'soon' },
-  { id: 'gym-nqn', name: 'Patagonia Barbell', city: 'Neuquén', province: 'Neuquén', status: 'soon' },
+  {
+    id: 'gym-nqn',
+    name: 'Patagonia Barbell',
+    city: 'Neuquén',
+    province: 'Neuquén',
+    status: 'soon',
+  },
 ]
 
 export const COMMUNITY_RECENT_MEMBERS = [
-  { id: 'mem-feed-001', name: 'Martina R.', gym: 'Maximal Power', province: 'Buenos Aires', division: 'Open · Raw', memberCode: 'PLU-ARG-2026-001', affiliatedAt: '2026-02-01' },
-  { id: 'mem-feed-002', name: 'Nicolás A.', gym: 'Pitbull Barbell', province: 'Córdoba', division: 'Junior · Raw With Wraps', memberCode: 'PLU-ARG-2026-002', affiliatedAt: '2026-03-10' },
-  { id: 'mem-feed-003', name: 'Lucía M.', gym: 'Iron House', province: 'Córdoba', division: 'Open · Raw', memberCode: 'PLU-ARG-2026-003', affiliatedAt: '2026-03-18' },
-  { id: 'mem-feed-004', name: 'Tomás V.', gym: 'Maximal Power', province: 'Buenos Aires', division: 'Masters · Single-Ply', memberCode: 'PLU-ARG-2026-004', affiliatedAt: '2026-03-22' },
-  { id: 'mem-feed-005', name: 'Camila S.', gym: 'Pitbull Barbell', province: 'Santa Fe', division: 'Open · Raw', memberCode: 'PLU-ARG-2026-005', affiliatedAt: '2026-03-28' },
+  {
+    id: 'mem-feed-001',
+    name: 'Martina R.',
+    gym: 'Maximal Power',
+    province: 'Buenos Aires',
+    division: 'Open · Raw',
+    memberCode: 'PLU-ARG-2026-001',
+    affiliatedAt: '2026-02-01',
+  },
+  {
+    id: 'mem-feed-002',
+    name: 'Nicolás A.',
+    gym: 'Pitbull Barbell',
+    province: 'Córdoba',
+    division: 'Junior · Raw With Wraps',
+    memberCode: 'PLU-ARG-2026-002',
+    affiliatedAt: '2026-03-10',
+  },
+  {
+    id: 'mem-feed-003',
+    name: 'Lucía M.',
+    gym: 'Iron House',
+    province: 'Córdoba',
+    division: 'Open · Raw',
+    memberCode: 'PLU-ARG-2026-003',
+    affiliatedAt: '2026-03-18',
+  },
+  {
+    id: 'mem-feed-004',
+    name: 'Tomás V.',
+    gym: 'Maximal Power',
+    province: 'Buenos Aires',
+    division: 'Masters · Single-Ply',
+    memberCode: 'PLU-ARG-2026-004',
+    affiliatedAt: '2026-03-22',
+  },
+  {
+    id: 'mem-feed-005',
+    name: 'Camila S.',
+    gym: 'Pitbull Barbell',
+    province: 'Santa Fe',
+    division: 'Open · Raw',
+    memberCode: 'PLU-ARG-2026-005',
+    affiliatedAt: '2026-03-28',
+  },
 ]
 
 export const COMMUNITY_TESTIMONIAL_PLACEHOLDERS = [
-  { id: 'testimonio-1', role: 'Athlete · Open', text: 'Coming soon: voices of athletes competing under the PLU ARG standard.' },
-  { id: 'testimonio-2', role: 'Coach · Affiliate gym', text: 'Coming soon: stories from the affiliate gym network.' },
-  { id: 'testimonio-3', role: 'Certified referee', text: 'Coming soon: perspective from the national judging body.' },
+  {
+    id: 'testimonio-1',
+    role: 'Athlete · Open',
+    text: 'Coming soon: voices of athletes competing under the PLU ARG standard.',
+  },
+  {
+    id: 'testimonio-2',
+    role: 'Coach · Affiliate gym',
+    text: 'Coming soon: stories from the affiliate gym network.',
+  },
+  {
+    id: 'testimonio-3',
+    role: 'Certified referee',
+    text: 'Coming soon: perspective from the national judging body.',
+  },
 ]
 
 export const ADMIN_NAV_GROUPS = [
@@ -664,9 +834,7 @@ export const ADMIN_NAV_GROUPS = [
   },
   {
     labelKey: 'admin.nav.groups.pluUsa',
-    items: [
-      ['plu-usa', 'admin.nav.pluUsa', 'Eye'],
-    ],
+    items: [['plu-usa', 'admin.nav.pluUsa', 'Eye']],
   },
 ]
 

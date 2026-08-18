@@ -12,7 +12,7 @@ export default function ContactPage({ onNavigate }) {
   return (
     <main className="page institutional-page contact-page contact-page--premium contact-page--institutional">
       <InstitutionalPageHero
-        aside={(
+        aside={
           <dl className="institutional-hero__ledger">
             <div>
               <dt>{t('pages.contact.sidebarResponse')}</dt>
@@ -31,7 +31,7 @@ export default function ContactPage({ onNavigate }) {
               <dd>{t('contact.sidebarLocation')}</dd>
             </div>
           </dl>
-        )}
+        }
         breadcrumb={t('pages.contact.heroBreadcrumbShort')}
         description={t('pages.contact.heroDesc')}
         eyebrow={t('pages.contact.heroEyebrow')}
@@ -63,7 +63,9 @@ export default function ContactPage({ onNavigate }) {
                   <Mail size={16} strokeWidth={1.25} />
                 </span>
                 <div className="contact-sidebar__item-body">
-                  <span className="contact-sidebar__item-label">{t('pages.contact.sidebarEmail')}</span>
+                  <span className="contact-sidebar__item-label">
+                    {t('pages.contact.sidebarEmail')}
+                  </span>
                   <p className="contact-sidebar__item-value">
                     <a href={`mailto:${t('contact.sidebarEmail')}`}>{t('contact.sidebarEmail')}</a>
                   </p>
@@ -74,7 +76,9 @@ export default function ContactPage({ onNavigate }) {
                   <MapPin size={16} strokeWidth={1.25} />
                 </span>
                 <div className="contact-sidebar__item-body">
-                  <span className="contact-sidebar__item-label">{t('pages.contact.sidebarLocation')}</span>
+                  <span className="contact-sidebar__item-label">
+                    {t('pages.contact.sidebarLocation')}
+                  </span>
                   <p className="contact-sidebar__item-value">{t('contact.sidebarLocation')}</p>
                 </div>
               </li>
@@ -83,7 +87,9 @@ export default function ContactPage({ onNavigate }) {
                   <Clock size={16} strokeWidth={1.25} />
                 </span>
                 <div className="contact-sidebar__item-body">
-                  <span className="contact-sidebar__item-label">{t('pages.contact.sidebarResponse')}</span>
+                  <span className="contact-sidebar__item-label">
+                    {t('pages.contact.sidebarResponse')}
+                  </span>
                   <p className="contact-sidebar__item-value">{t('contact.sidebarResponse')}</p>
                 </div>
               </li>

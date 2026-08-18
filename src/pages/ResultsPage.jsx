@@ -98,7 +98,10 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
           />
         </div>
         <Reveal>
-          <section className="results-shell results-shell--minimal" aria-label={t('pages.results.archiveAria')}>
+          <section
+            className="results-shell results-shell--minimal"
+            aria-label={t('pages.results.archiveAria')}
+          >
             <ResultsArchiveList
               entries={filteredEvents}
               listKey={listKey}
@@ -140,7 +143,9 @@ export default function ResultsPage({ onNavigate, events = UPCOMING_EVENTS }) {
                     className="results-empty__link"
                     onClick={() => onNavigate?.('pitbull')}
                   >
-                    {t('pages.results.emptyPublishedCta', { event: nextEvent.title ?? t('nav.pitbull') })}
+                    {t('pages.results.emptyPublishedCta', {
+                      event: nextEvent.title ?? t('nav.pitbull'),
+                    })}
                     <ArrowRight size={14} aria-hidden />
                   </button>
                 ) : null}

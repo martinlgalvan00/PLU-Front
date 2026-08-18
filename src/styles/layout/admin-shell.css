@@ -286,7 +286,10 @@
 }
 
 .admin-mobile-bar__menu--reveal:hover {
-  background: var(--admin-glass-bg, color-mix(in srgb, var(--admin-accent, var(--color-brand-celeste)) 10%, transparent));
+  background: var(
+    --admin-glass-bg,
+    color-mix(in srgb, var(--admin-accent, var(--color-brand-celeste)) 10%, transparent)
+  );
   border-color: color-mix(
     in srgb,
     var(--admin-accent, var(--color-brand-celeste)) 28%,
@@ -300,7 +303,8 @@
 }
 
 .admin-mobile-bar__menu--reveal:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--admin-focus, var(--color-brand-celeste)) 45%, transparent);
+  outline: 2px solid
+    color-mix(in srgb, var(--admin-focus, var(--color-brand-celeste)) 45%, transparent);
   outline-offset: 2px;
 }
 
@@ -319,7 +323,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .admin-mobile-bar__menu--reveal,
-  .admin-mobile-bar__menu--reveal svg {
+  .admin-mobile-bar__menu--reveal svg,
+  .admin-shell__sidebar-component.ant-layout-sider,
+  .admin-shell__sidebar-component.ant-layout-sider-collapsed {
     transition: none;
   }
 }
@@ -553,11 +559,8 @@
 }
 
 .admin-shell--collapsed .admin-shell__group + .admin-shell__group {
-  border-top: 1px solid color-mix(
-    in srgb,
-    var(--admin-glass-border, var(--color-border-subtle)) 70%,
-    transparent
-  );
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-glass-border, var(--color-border-subtle)) 70%, transparent);
   margin-top: 6px;
   padding-top: 6px;
   width: 100%;
@@ -791,9 +794,7 @@
   display: grid;
   flex-shrink: 0;
   gap: 10px;
-  padding:
-    12px 12px
-    max(14px, env(safe-area-inset-bottom, 0px));
+  padding: 12px 12px max(14px, env(safe-area-inset-bottom, 0px));
 }
 
 .admin-shell__session {
@@ -827,7 +828,8 @@
   min-height: 44px;
   padding: 6px 8px;
   text-align: left;
-  transition: border-color var(--motion-fast, 150ms) var(--ease-out, ease),
+  transition:
+    border-color var(--motion-fast, 150ms) var(--ease-out, ease),
     background-color var(--motion-fast, 150ms) var(--ease-out, ease);
 }
 
@@ -951,9 +953,7 @@
   flex-direction: column;
   gap: 4px;
   justify-content: flex-start;
-  padding:
-    8px 6px
-    max(10px, env(safe-area-inset-bottom, 0px));
+  padding: 8px 6px max(10px, env(safe-area-inset-bottom, 0px));
 }
 
 .admin-shell--collapsed .admin-shell__session {
@@ -1056,8 +1056,7 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  padding-inline: max(0px, env(safe-area-inset-left, 0px))
-    max(0px, env(safe-area-inset-right, 0px));
+  padding-inline: max(0px, env(safe-area-inset-left, 0px)) max(0px, env(safe-area-inset-right, 0px));
 }
 
 .admin-shell__backdrop {
@@ -1231,7 +1230,8 @@
   .admin-shell--collapsed .admin-shell__sidebar {
     background: var(--admin-glass-sidebar-bg, var(--admin-sidebar, var(--color-bg-secondary)));
     border-radius: 0;
-    border-right: 1px solid var(--admin-glass-border, var(--admin-sidebar-border, var(--color-border-subtle)));
+    border-right: 1px solid
+      var(--admin-glass-border, var(--admin-sidebar-border, var(--color-border-subtle)));
     box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
     left: 0;
     position: fixed;
@@ -1243,7 +1243,8 @@
     backdrop-filter: blur(var(--admin-glass-blur, 0px)) saturate(1.12);
   }
 
-  .admin-shell:not(.admin-shell--collapsed):not(.admin-shell--sidebar-hidden) .admin-shell__sidebar {
+  .admin-shell:not(.admin-shell--collapsed):not(.admin-shell--sidebar-hidden)
+    .admin-shell__sidebar {
     width: var(--admin-sidebar-width);
   }
 
@@ -1302,10 +1303,7 @@
     display: flex;
     gap: 12px;
     min-height: 48px;
-    padding:
-      max(6px, env(safe-area-inset-top, 0px))
-      16px
-      6px;
+    padding: max(6px, env(safe-area-inset-top, 0px)) 16px 6px;
     position: sticky;
     top: 0;
     z-index: 120;
@@ -1346,16 +1344,40 @@
 
   .admin-mobile-bar__actions .locale-switch--segment {
     --locale-segment-pad: 2px;
-    --locale-track-bg: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
+    --locale-track-bg: color-mix(
+      in srgb,
+      var(--admin-ink, var(--color-text-primary)) 3.5%,
+      transparent
+    );
     --locale-track-border: var(--admin-hairline, var(--color-border-subtle));
     --locale-track-shadow: none;
-    --locale-thumb-bg: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 18%, transparent);
-    --locale-thumb-border: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 36%, transparent);
+    --locale-thumb-bg: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 18%,
+      transparent
+    );
+    --locale-thumb-border: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 36%,
+      transparent
+    );
     --locale-thumb-shadow: none;
     --locale-code: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 88%, transparent);
-    --locale-code-active: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 78%, var(--admin-ink, var(--color-text-primary)));
-    --locale-hover-border: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 28%, transparent);
-    --locale-focus-ring: color-mix(in srgb, var(--admin-focus, var(--color-brand-celeste)) 36%, transparent);
+    --locale-code-active: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 78%,
+      var(--admin-ink, var(--color-text-primary))
+    );
+    --locale-hover-border: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 28%,
+      transparent
+    );
+    --locale-focus-ring: color-mix(
+      in srgb,
+      var(--admin-focus, var(--color-brand-celeste)) 36%,
+      transparent
+    );
     background: var(--locale-track-bg);
     border: 1px solid var(--locale-track-border);
     border-radius: 999px;
@@ -1425,7 +1447,8 @@
   .admin-shell--sidebar-hidden.admin-shell--collapsed .admin-shell__sidebar {
     background: var(--admin-glass-sidebar-bg, var(--admin-sidebar, var(--color-bg-secondary)));
     border-radius: 0 14px 14px 0;
-    border-right: 1px solid var(--admin-glass-border, var(--admin-sidebar-border, var(--color-border-subtle)));
+    border-right: 1px solid
+      var(--admin-glass-border, var(--admin-sidebar-border, var(--color-border-subtle)));
     box-shadow:
       inset 0 1px 0 var(--admin-glass-highlight, transparent),
       28px 0 72px rgba(0, 0, 0, 0.45);
@@ -1588,7 +1611,11 @@
 
   .admin-shell--collapsed .admin-shell__session {
     align-items: stretch;
-    background: color-mix(in srgb, var(--admin-sidebar-text, var(--color-text-primary)) 3.5%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--admin-sidebar-text, var(--color-text-primary)) 3.5%,
+      transparent
+    );
     border: 1px solid var(--admin-sidebar-border, var(--color-border-subtle));
     border-radius: 14px;
     display: grid;
@@ -1616,7 +1643,8 @@
     align-items: center;
     background: transparent;
     border: 0;
-    border-top: 1px solid color-mix(in srgb, var(--admin-sidebar-border, var(--color-border-subtle)) 85%, transparent);
+    border-top: 1px solid
+      color-mix(in srgb, var(--admin-sidebar-border, var(--color-border-subtle)) 85%, transparent);
     border-radius: 0;
     display: grid;
     flex-direction: unset;
@@ -1738,10 +1766,7 @@
     display: flex;
     gap: 12px;
     min-height: 48px;
-    padding:
-      max(6px, env(safe-area-inset-top, 0px))
-      14px
-      6px;
+    padding: max(6px, env(safe-area-inset-top, 0px)) 14px 6px;
     position: sticky;
     top: 0;
     z-index: 120;
@@ -1765,8 +1790,16 @@
   }
 
   .admin-mobile-bar__menu.is-active {
-    background: color-mix(in srgb, var(--admin-accent, var(--color-brand-celeste)) 10%, transparent);
-    border-color: color-mix(in srgb, var(--admin-accent, var(--color-brand-celeste)) 32%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--admin-accent, var(--color-brand-celeste)) 10%,
+      transparent
+    );
+    border-color: color-mix(
+      in srgb,
+      var(--admin-accent, var(--color-brand-celeste)) 32%,
+      transparent
+    );
     color: var(--admin-ink, var(--color-text-primary));
   }
 
@@ -1800,16 +1833,40 @@
 
   .admin-mobile-bar__actions .locale-switch--segment {
     --locale-segment-pad: 2px;
-    --locale-track-bg: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
+    --locale-track-bg: color-mix(
+      in srgb,
+      var(--admin-ink, var(--color-text-primary)) 3.5%,
+      transparent
+    );
     --locale-track-border: var(--admin-hairline, var(--color-border-subtle));
     --locale-track-shadow: none;
-    --locale-thumb-bg: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 18%, transparent);
-    --locale-thumb-border: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 36%, transparent);
+    --locale-thumb-bg: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 18%,
+      transparent
+    );
+    --locale-thumb-border: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 36%,
+      transparent
+    );
     --locale-thumb-shadow: none;
     --locale-code: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 88%, transparent);
-    --locale-code-active: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 78%, var(--admin-ink, var(--color-text-primary)));
-    --locale-hover-border: color-mix(in srgb, var(--admin-premium, var(--color-brand-gold)) 28%, transparent);
-    --locale-focus-ring: color-mix(in srgb, var(--admin-focus, var(--color-brand-celeste)) 36%, transparent);
+    --locale-code-active: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 78%,
+      var(--admin-ink, var(--color-text-primary))
+    );
+    --locale-hover-border: color-mix(
+      in srgb,
+      var(--admin-premium, var(--color-brand-gold)) 28%,
+      transparent
+    );
+    --locale-focus-ring: color-mix(
+      in srgb,
+      var(--admin-focus, var(--color-brand-celeste)) 36%,
+      transparent
+    );
     background: var(--locale-track-bg);
     border: 1px solid var(--locale-track-border);
     border-radius: 999px;

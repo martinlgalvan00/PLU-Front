@@ -43,7 +43,10 @@ export default function MembershipCredentialModal({
               <IdCard size={13} aria-hidden />
               {t('admin.sections.memberships.credentialTitle')}
             </span>
-            <h2 id="membership-credential-modal-title" className="membership-credential-modal__title">
+            <h2
+              id="membership-credential-modal-title"
+              className="membership-credential-modal__title"
+            >
               {athleteName || t('admin.sections.memberships.credentialFallbackName')}
             </h2>
             <p className="membership-credential-modal__lead">

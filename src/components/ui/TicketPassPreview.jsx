@@ -56,7 +56,10 @@ export default function TicketPassPreview({
 
   const displayName = attendeeName?.trim() || t('pages.ticketsPage.passGuest')
   const seed = `${eventTitle}|${displayName}|${dayPassLabel}|${quantity}|${eventSlug}|${qrCode}`
-  const previewCode = useMemo(() => (qrCode ? String(qrCode) : buildPreviewCode(seed)), [qrCode, seed])
+  const previewCode = useMemo(
+    () => (qrCode ? String(qrCode) : buildPreviewCode(seed)),
+    [qrCode, seed],
+  )
   const isPreviewQr = !qrCode
 
   useEffect(() => {
@@ -126,11 +129,7 @@ export default function TicketPassPreview({
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
       >
-        <article
-          className="ticket-pass-preview__card"
-          style={cardStyle}
-          aria-labelledby={labelId}
-        >
+        <article className="ticket-pass-preview__card" style={cardStyle} aria-labelledby={labelId}>
           <div className="ticket-pass-preview__shine" aria-hidden />
 
           <div className="ticket-pass-preview__stub">
@@ -142,7 +141,9 @@ export default function TicketPassPreview({
                   imgClassName="ticket-pass-preview__logo"
                   height={18}
                 />
-                <span className="ticket-pass-preview__brand">{t('pages.ticketsPage.passBrand')}</span>
+                <span className="ticket-pass-preview__brand">
+                  {t('pages.ticketsPage.passBrand')}
+                </span>
               </div>
               <strong id={labelId} className="ticket-pass-preview__event">
                 {eventTitle || t('pages.ticketsPage.eventFallback')}
@@ -172,7 +173,9 @@ export default function TicketPassPreview({
 
             <footer className="ticket-pass-preview__stub-foot">
               <div className="ticket-pass-preview__guest-block">
-                <span className="ticket-pass-preview__guest-label">{t('pages.ticketsPage.passGuestLabel')}</span>
+                <span className="ticket-pass-preview__guest-label">
+                  {t('pages.ticketsPage.passGuestLabel')}
+                </span>
                 <p className="ticket-pass-preview__guest">{displayName}</p>
                 {quantity > 1 ? (
                   <span className="ticket-pass-preview__qty">
@@ -187,7 +190,9 @@ export default function TicketPassPreview({
           <div className="ticket-pass-preview__perforation" aria-hidden />
 
           <div className="ticket-pass-preview__qr-pane">
-            <span className="ticket-pass-preview__qr-label">{t('pages.ticketsPage.passQrLabel')}</span>
+            <span className="ticket-pass-preview__qr-label">
+              {t('pages.ticketsPage.passQrLabel')}
+            </span>
             <div className="ticket-pass-preview__qr" aria-hidden>
               {qrSrc ? (
                 <img src={qrSrc} alt="" className="ticket-pass-preview__qr-img" />

@@ -14,11 +14,14 @@ describe('apiRequest', () => {
         isDev: false,
       },
     }))
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      text: () => Promise.resolve(''),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        text: () => Promise.resolve(''),
+      }),
+    )
 
     const { apiGet } = await import('../src/lib/api.js')
 
@@ -35,11 +38,14 @@ describe('apiRequest', () => {
         isDev: true,
       },
     }))
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 502,
-      text: () => Promise.resolve(''),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        text: () => Promise.resolve(''),
+      }),
+    )
 
     const { apiGet } = await import('../src/lib/api.js')
 
@@ -53,12 +59,16 @@ describe('apiRequest', () => {
     vi.doMock('../src/config/env.js', () => ({
       env: { apiUrl: '', isDev: false },
     }))
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      headers: { get: () => null },
-      text: () => Promise.resolve(JSON.stringify({ error: 'Error interno', requestId: 'req-123' })),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        headers: { get: () => null },
+        text: () =>
+          Promise.resolve(JSON.stringify({ error: 'Error interno', requestId: 'req-123' })),
+      }),
+    )
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const { apiGet } = await import('../src/lib/api.js')
@@ -75,12 +85,15 @@ describe('apiRequest', () => {
     vi.doMock('../src/config/env.js', () => ({
       env: { apiUrl: '', isDev: false },
     }))
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      headers: { get: (name) => (name === 'X-Request-Id' ? 'req-desde-header' : null) },
-      text: () => Promise.resolve(''),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        headers: { get: (name) => (name === 'X-Request-Id' ? 'req-desde-header' : null) },
+        text: () => Promise.resolve(''),
+      }),
+    )
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const { apiGet } = await import('../src/lib/api.js')
@@ -96,11 +109,14 @@ describe('apiRequest', () => {
     vi.doMock('../src/config/env.js', () => ({
       env: { apiUrl: '', isDev: false },
     }))
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      text: () => Promise.resolve(''),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: () => Promise.resolve(''),
+      }),
+    )
 
     const { apiGet } = await import('../src/lib/api.js')
 

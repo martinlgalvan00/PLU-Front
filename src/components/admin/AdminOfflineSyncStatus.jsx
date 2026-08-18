@@ -4,7 +4,9 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 function formatTime(iso) {
   if (!iso) return null
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso))
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(
+    new Date(iso),
+  )
 }
 
 /**
@@ -52,7 +54,9 @@ export default function AdminOfflineSyncStatus({
     ? t('admin.checkin.offline.neverDownloaded')
     : [
         t('admin.checkin.offline.lastDownloaded', { time: formatTime(lastDownloadedAt) }),
-        lastSyncedAt ? t('admin.checkin.offline.lastSynced', { time: formatTime(lastSyncedAt) }) : null,
+        lastSyncedAt
+          ? t('admin.checkin.offline.lastSynced', { time: formatTime(lastSyncedAt) })
+          : null,
       ]
         .filter(Boolean)
         .join(' · ')

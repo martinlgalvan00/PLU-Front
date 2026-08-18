@@ -1,6 +1,6 @@
 // src/theme/darkTheme.js
-import { theme } from 'antd';
-import { sharedThemeTokens } from './tokens';
+import { theme } from 'antd'
+import { sharedThemeTokens } from './tokens'
 
 export const darkTheme = {
   algorithm: theme.darkAlgorithm,
@@ -21,4 +21,4 @@ export const darkTheme = {
     colorBorder: 'rgba(255, 255, 255, 0.14)',
     colorBorderSecondary: 'rgba(255, 255, 255, 0.08)',
   },
-};
+}

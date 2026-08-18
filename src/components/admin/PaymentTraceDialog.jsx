@@ -16,7 +16,12 @@ import { getPaymentOrderAudit } from '../../services/paymentService.js'
  * base para poder contestarle a un socio por qué no le figura la afiliación.
  */
 
-const SEVERITY_ICON = { success: CheckCircle2, warning: AlertTriangle, danger: AlertTriangle, info: Info }
+const SEVERITY_ICON = {
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  danger: AlertTriangle,
+  info: Info,
+}
 
 function formatWhen(value, locale) {
   if (!value) return '—'
@@ -47,19 +52,26 @@ function TraceFailure({ failure, t }) {
         {failure.entrypoint ? (
           <div>
             <dt>{t('admin.paymentTrace.entrypoint')}</dt>
-            <dd><code>{failure.entrypoint}</code></dd>
+            <dd>
+              <code>{failure.entrypoint}</code>
+            </dd>
           </div>
         ) : null}
         {failure.requestId ? (
           <div>
             <dt>{t('admin.paymentTrace.requestId')}</dt>
-            <dd><code>{failure.requestId}</code></dd>
+            <dd>
+              <code>{failure.requestId}</code>
+            </dd>
           </div>
         ) : null}
         {failure.provider?.code ? (
           <div>
             <dt>{t('admin.paymentTrace.providerCode')}</dt>
-            <dd><code>{failure.provider.code}</code>{failure.provider.detail ? ` — ${failure.provider.detail}` : ''}</dd>
+            <dd>
+              <code>{failure.provider.code}</code>
+              {failure.provider.detail ? ` — ${failure.provider.detail}` : ''}
+            </dd>
           </div>
         ) : null}
       </dl>
@@ -70,7 +82,9 @@ function TraceFailure({ failure, t }) {
           <p>{failure.diagnosis.cause}</p>
           {failure.diagnosis.fix?.length ? (
             <ol>
-              {failure.diagnosis.fix.map((step) => <li key={step}>{step}</li>)}
+              {failure.diagnosis.fix.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
             </ol>
           ) : null}
         </div>
@@ -104,7 +118,10 @@ function CancellationSummary({ cancellation, locale, t }) {
 
   const hasPaymentEvidence = cancellation.paymentEvidence || cancellation.providerPaymentStarted
   return (
-    <section className="payment-trace__cancellation" aria-labelledby="payment-trace-cancellation-title">
+    <section
+      className="payment-trace__cancellation"
+      aria-labelledby="payment-trace-cancellation-title"
+    >
       <strong id="payment-trace-cancellation-title">
         {t('admin.paymentTrace.cancellation.expiredWithoutPayment.title')}
       </strong>
@@ -223,7 +240,9 @@ export default function PaymentTraceDialog({ orderId, onClose }) {
         aria-labelledby={titleId}
       >
         <header className="payment-validation-dialog__head">
-          <span className="payment-validation-dialog__eyebrow">{t('admin.paymentTrace.eyebrow')}</span>
+          <span className="payment-validation-dialog__eyebrow">
+            {t('admin.paymentTrace.eyebrow')}
+          </span>
           <h2 id={titleId}>{t('admin.paymentTrace.title')}</h2>
           <p className="payment-validation-dialog__lead">
             <code>{orderId}</code>
@@ -231,11 +250,18 @@ export default function PaymentTraceDialog({ orderId, onClose }) {
         </header>
 
         {loading ? <p role="status">{t('admin.paymentTrace.loading')}</p> : null}
-        {error ? <p role="alert" className="payment-trace__error">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="payment-trace__error">
+            {error}
+          </p>
+        ) : null}
 
         {report ? (
           <>
-            <div className={`payment-trace__verdict payment-trace__verdict--${report.verdict.state}`} role="status">
+            <div
+              className={`payment-trace__verdict payment-trace__verdict--${report.verdict.state}`}
+              role="status"
+            >
               <strong>{report.verdict.summary}</strong>
               {report.verdict.action ? <p>{report.verdict.action}</p> : null}
               <span className="payment-trace__stage">

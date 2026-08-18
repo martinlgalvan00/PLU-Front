@@ -52,7 +52,9 @@
   position: absolute;
   right: 10px;
   top: 10px;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
   width: 26px;
 }
 
@@ -133,7 +135,9 @@
   gap: 6px;
   min-height: 34px;
   padding: 0 12px;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .admin-tour-card__prev:hover {
@@ -153,7 +157,9 @@
   gap: 6px;
   min-height: 34px;
   padding: 0 14px;
-  transition: background var(--transition-fast), transform var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .admin-tour-card__next:hover {

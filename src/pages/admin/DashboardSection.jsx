@@ -20,7 +20,10 @@ import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
 import { useAdminModal } from '../../components/admin/useAdminModal.js'
 import Button from '../../components/ui/Button.jsx'
-import { getLaunchInterestSummary, notifyLaunchInterestSource } from '../../services/launchInterestService.js'
+import {
+  getLaunchInterestSummary,
+  notifyLaunchInterestSource,
+} from '../../services/launchInterestService.js'
 import { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import CollectionDonut from '../../components/admin/CollectionDonut.jsx'
 import AnimatedNumber from '../../motion/AnimatedNumber.tsx'
@@ -70,8 +73,12 @@ const LAUNCH_SOURCE_LABEL_KEYS = {
 function humanizeLaunchSource(source, t) {
   const labelKey = LAUNCH_SOURCE_LABEL_KEYS[source]
   if (labelKey) return t(labelKey)
-  const words = String(source ?? '').trim().replace(/[_-]+/g, ' ')
-  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : t('admin.dashboard.launchInterest.unknownSource')
+  const words = String(source ?? '')
+    .trim()
+    .replace(/[_-]+/g, ' ')
+  return words
+    ? `${words.charAt(0).toUpperCase()}${words.slice(1)}`
+    : t('admin.dashboard.launchInterest.unknownSource')
 }
 
 function mapMetrics(items, t, locale) {
@@ -104,11 +111,7 @@ function DashboardKpiTile({ icon, label, value, hint, tone, onClick }) {
   const Icon = METRIC_ICONS[icon] ?? Users
 
   return (
-    <button
-      type="button"
-      className={`admin-ops__kpi admin-ops__kpi--${tone}`}
-      onClick={onClick}
-    >
+    <button type="button" className={`admin-ops__kpi admin-ops__kpi--${tone}`} onClick={onClick}>
       <span className="admin-ops__kpi-icon" aria-hidden>
         <Icon size={15} strokeWidth={1.7} />
       </span>
@@ -155,7 +158,11 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
             </strong>
           </div>
         </div>
-        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.(section)}>
+        <button
+          type="button"
+          className="admin-dashboard-link"
+          onClick={() => onNavigate?.(section)}
+        >
           {t('admin.actions.view')}
           <ArrowRight size={12} aria-hidden />
         </button>
@@ -343,7 +350,11 @@ function RecentAthletesCard({ athletes, locale, onNavigate, onSelectAthlete, t }
           <h3>{t('admin.dashboard.recentAthletesTitle')}</h3>
           <p>{t('admin.dashboard.recentAthletesSubtitle')}</p>
         </div>
-        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('athletes')}>
+        <button
+          type="button"
+          className="admin-dashboard-link"
+          onClick={() => onNavigate?.('athletes')}
+        >
           {t('admin.actions.view')}
           <ArrowRight size={12} aria-hidden />
         </button>
@@ -441,7 +452,11 @@ function RecentMembershipsCard({
           <h3>{t('admin.dashboard.recentMembershipsTitle')}</h3>
           <p>{t('admin.dashboard.recentMembershipsSubtitle')}</p>
         </div>
-        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('memberships')}>
+        <button
+          type="button"
+          className="admin-dashboard-link"
+          onClick={() => onNavigate?.('memberships')}
+        >
           {t('admin.actions.view')}
           <ArrowRight size={12} aria-hidden />
         </button>
@@ -449,7 +464,10 @@ function RecentMembershipsCard({
 
       <ul className="admin-ops__recent-list">
         {memberships.items.map((membership) => (
-          <li key={membership.id} className="admin-ops__recent-item admin-ops__recent-item--actionable">
+          <li
+            key={membership.id}
+            className="admin-ops__recent-item admin-ops__recent-item--actionable"
+          >
             <button
               type="button"
               className="admin-ops__recent-open"
@@ -523,14 +541,21 @@ function RecentRegistrationsCard({ registrations, locale, onNavigate, onSelectAt
   if (!registrations?.items?.length) return null
 
   return (
-    <section className="admin-ops__recent" aria-label={t('admin.dashboard.recentRegistrationsTitle')}>
+    <section
+      className="admin-ops__recent"
+      aria-label={t('admin.dashboard.recentRegistrationsTitle')}
+    >
       <header className="admin-ops__chart-head">
         <div>
           <p className="admin-ops__eyebrow">{t('admin.dashboard.recentRegistrationsEyebrow')}</p>
           <h3>{t('admin.dashboard.recentRegistrationsTitle')}</h3>
           <p>{t('admin.dashboard.recentRegistrationsSubtitle')}</p>
         </div>
-        <button type="button" className="admin-dashboard-link" onClick={() => onNavigate?.('registrations')}>
+        <button
+          type="button"
+          className="admin-dashboard-link"
+          onClick={() => onNavigate?.('registrations')}
+        >
           {t('admin.actions.view')}
           <ArrowRight size={12} aria-hidden />
         </button>
@@ -676,7 +701,10 @@ function LaunchInterestWidget() {
         {summary.map((item) => {
           const sourceLabel = humanizeLaunchSource(item.source, t)
           return (
-            <li key={item.source} className="admin-ops__recent-item admin-ops__recent-item--actionable">
+            <li
+              key={item.source}
+              className="admin-ops__recent-item admin-ops__recent-item--actionable"
+            >
               <div className="admin-ops__recent-open admin-ops__recent-open--static">
                 <span className="admin-ops__recent-avatar" aria-hidden>
                   {sourceLabel.charAt(0).toUpperCase()}
@@ -687,7 +715,9 @@ function LaunchInterestWidget() {
                 </span>
                 <span className="admin-ops__recent-date">
                   <StatusBadge value={item.pending > 0 ? 'pendiente' : 'aprobado'} />
-                  <span>{t('admin.dashboard.launchInterest.pending', { count: item.pending })}</span>
+                  <span>
+                    {t('admin.dashboard.launchInterest.pending', { count: item.pending })}
+                  </span>
                 </span>
               </div>
               {item.pending > 0 ? (
@@ -849,15 +879,9 @@ export default function DashboardSection({
     operationalFlows,
   } = dashboardOverview
 
-  const primaryMetrics = useMemo(
-    () => mapMetrics(primary, t, locale),
-    [primary, t, locale],
-  )
+  const primaryMetrics = useMemo(() => mapMetrics(primary, t, locale), [primary, t, locale])
 
-  const queuePreview = useMemo(
-    () => pendingActions.slice(0, QUEUE_PREVIEW_LIMIT),
-    [pendingActions],
-  )
+  const queuePreview = useMemo(() => pendingActions.slice(0, QUEUE_PREVIEW_LIMIT), [pendingActions])
 
   const hasMoreQueue = pendingActions.length > QUEUE_PREVIEW_LIMIT
   const hasWork = pendingActions.length > 0 || finance.pendingItems.length > 0
@@ -902,7 +926,11 @@ export default function DashboardSection({
       />
 
       <div className="admin-ops" aria-label={t('admin.dashboard.metricsAria')}>
-        <section className="admin-ops__kpis" aria-label={t('admin.dashboard.metricsAria')} data-tour="dashboard-kpis">
+        <section
+          className="admin-ops__kpis"
+          aria-label={t('admin.dashboard.metricsAria')}
+          data-tour="dashboard-kpis"
+        >
           {primaryMetrics.map((item) => (
             <DashboardKpiTile
               key={item.labelKey}
@@ -941,7 +969,11 @@ export default function DashboardSection({
                 </li>
               </ul>
             </div>
-            <nav className="admin-ops__links" aria-label={t('admin.dashboard.quickTitle')} data-tour="dashboard-quicklinks">
+            <nav
+              className="admin-ops__links"
+              aria-label={t('admin.dashboard.quickTitle')}
+              data-tour="dashboard-quicklinks"
+            >
               <div className="admin-ops__links-track">
                 {QUICK_ACTIONS.map(({ section, labelKey }) => (
                   <button
@@ -1209,12 +1241,7 @@ export default function DashboardSection({
             />
           </div>
 
-          <SpotlightInline
-            event={spotlightEvent}
-            locale={locale}
-            onNavigate={onNavigate}
-            t={t}
-          />
+          <SpotlightInline event={spotlightEvent} locale={locale} onNavigate={onNavigate} t={t} />
         </section>
       </div>
     </div>

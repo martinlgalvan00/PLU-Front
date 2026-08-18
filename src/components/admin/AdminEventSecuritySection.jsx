@@ -61,7 +61,8 @@ export default function AdminEventSecuritySection({
   const [credentialUser, setCredentialUser] = useState(null)
 
   const gatePath = eventSlug ? buildSecurityGatePath(eventSlug) : ''
-  const gateUrl = gatePath && typeof window !== 'undefined' ? `${window.location.origin}${gatePath}` : gatePath
+  const gateUrl =
+    gatePath && typeof window !== 'undefined' ? `${window.location.origin}${gatePath}` : gatePath
   const activeCount = users.filter((user) => user.status === 'active').length
   const eventEnded = Boolean(eventEndsAt) && new Date(eventEndsAt).getTime() < Date.now()
 
@@ -93,7 +94,9 @@ export default function AdminEventSecuritySection({
   }, [eventId, onListSecurityUsers, reloadKey])
 
   function handleMemberChange(id, field, value) {
-    setMembers((current) => current.map((member) => (member.id === id ? { ...member, [field]: value } : member)))
+    setMembers((current) =>
+      current.map((member) => (member.id === id ? { ...member, [field]: value } : member)),
+    )
     setMemberErrors((current) => {
       if (!current[id]?.[field]) return current
       const nextRow = { ...current[id] }
@@ -111,7 +114,9 @@ export default function AdminEventSecuritySection({
   }
 
   function handleRemoveMember(id) {
-    setMembers((current) => current.length === 1 ? current : current.filter((member) => member.id !== id))
+    setMembers((current) =>
+      current.length === 1 ? current : current.filter((member) => member.id !== id),
+    )
     setMemberErrors((current) => {
       const next = { ...current }
       delete next[id]
@@ -136,11 +141,14 @@ export default function AdminEventSecuritySection({
     const currentHasContent = members.some((member) => member.name.trim() || member.email.trim())
     const available = SECURITY_TEAM_MAX - (currentHasContent ? members.length : 0)
     if (parsed.members.length > available) {
-      return { ok: false, message: t('admin.eventEditor.security.importLimit', { max: SECURITY_TEAM_MAX }) }
+      return {
+        ok: false,
+        message: t('admin.eventEditor.security.importLimit', { max: SECURITY_TEAM_MAX }),
+      }
     }
 
     const imported = parsed.members.map((member) => nextMember(member))
-    setMembers((current) => currentHasContent ? [...current, ...imported] : imported)
+    setMembers((current) => (currentHasContent ? [...current, ...imported] : imported))
     setMemberErrors({})
     return { ok: true }
   }
@@ -149,13 +157,15 @@ export default function AdminEventSecuritySection({
     if (!onCreateSecurityAccessLink || created.every((item) => item.accessUrl)) return created
 
     const settled = await Promise.allSettled(
-      created.map((item) => item.accessUrl
-        ? Promise.resolve({
-            url: item.accessUrl,
-            expiresAt: item.expiresAt,
-            emailed: item.emailed,
-          })
-        : onCreateSecurityAccessLink(item.user.id, sendEmail)),
+      created.map((item) =>
+        item.accessUrl
+          ? Promise.resolve({
+              url: item.accessUrl,
+              expiresAt: item.expiresAt,
+              emailed: item.emailed,
+            })
+          : onCreateSecurityAccessLink(item.user.id, sendEmail),
+      ),
     )
 
     return created.map((item, index) => {
@@ -248,32 +258,55 @@ export default function AdminEventSecuritySection({
       </legend>
       <p className="admin-event-form__pricing-lead">{t('admin.eventEditor.security.lead')}</p>
 
-      <ol className="admin-event-security__flow" aria-label={t('admin.eventEditor.security.flowLabel')}>
+      <ol
+        className="admin-event-security__flow"
+        aria-label={t('admin.eventEditor.security.flowLabel')}
+      >
         <li className={activeCount > 0 ? 'is-complete' : 'is-current'}>
           <UserPlus size={14} aria-hidden />
-          <span><strong>{activeCount > 0 ? '✓' : '1'}</strong>{t('admin.eventEditor.security.flowCreate')}</span>
+          <span>
+            <strong>{activeCount > 0 ? '✓' : '1'}</strong>
+            {t('admin.eventEditor.security.flowCreate')}
+          </span>
         </li>
-        <li className={teamResult?.created.length ? 'is-complete' : activeCount > 0 ? 'is-current' : ''}>
+        <li
+          className={
+            teamResult?.created.length ? 'is-complete' : activeCount > 0 ? 'is-current' : ''
+          }
+        >
           <Send size={14} aria-hidden />
-          <span><strong>{teamResult?.created.length ? '✓' : '2'}</strong>{t('admin.eventEditor.security.flowShare')}</span>
+          <span>
+            <strong>{teamResult?.created.length ? '✓' : '2'}</strong>
+            {t('admin.eventEditor.security.flowShare')}
+          </span>
         </li>
         <li>
           <ScanLine size={14} aria-hidden />
-          <span><strong>3</strong>{t('admin.eventEditor.security.flowOperate')}</span>
+          <span>
+            <strong>3</strong>
+            {t('admin.eventEditor.security.flowOperate')}
+          </span>
         </li>
       </ol>
 
       {gateUrl && (
         <div className="admin-event-security__command">
           <div className="admin-event-security__command-copy">
-            <span className="admin-event-security__command-icon" aria-hidden><ScanLine size={17} /></span>
+            <span className="admin-event-security__command-icon" aria-hidden>
+              <ScanLine size={17} />
+            </span>
             <div>
               <strong>{t('admin.eventEditor.security.commandTitle')}</strong>
               <span>{t('admin.eventEditor.security.commandLead')}</span>
             </div>
           </div>
           <div className="admin-event-security__command-actions">
-            <a className="admin-event-security__launch" href={gateUrl} target="_blank" rel="noreferrer">
+            <a
+              className="admin-event-security__launch"
+              href={gateUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
               <ExternalLink size={13} aria-hidden />
               {t('admin.eventEditor.security.previewControl')}
             </a>
@@ -296,8 +329,9 @@ export default function AdminEventSecuritySection({
         />
       )}
 
-      {canManageUsers && !loadError && (
-        teamResult ? (
+      {canManageUsers &&
+        !loadError &&
+        (teamResult ? (
           <SecurityTeamDelivery
             result={teamResult}
             onOpenCredential={setCredentialUser}
@@ -316,11 +350,10 @@ export default function AdminEventSecuritySection({
             onSendEmailChange={setSendEmail}
             onSubmit={handleCreateTeam}
           />
-        )
-      )}
+        ))}
 
-      {teamSubmitError && (
-        teamSubmitError.status === 0 ? (
+      {teamSubmitError &&
+        (teamSubmitError.status === 0 ? (
           <AdminApiConnectionNotice
             error={teamSubmitError}
             retrying={teamSubmitting}
@@ -330,12 +363,15 @@ export default function AdminEventSecuritySection({
           <p className="admin-users__form-error" role="alert">
             {teamSubmitError.status === 409
               ? t('admin.users.errorEmailTaken')
-              : teamSubmitError.body?.error ?? t('admin.users.errorCreate')}
+              : (teamSubmitError.body?.error ?? t('admin.users.errorCreate'))}
           </p>
-        )
-      )}
+        ))}
 
-      {operationError && <p className="admin-users__form-error" role="alert">{operationError}</p>}
+      {operationError && (
+        <p className="admin-users__form-error" role="alert">
+          {operationError}
+        </p>
+      )}
 
       {loading ? (
         <p className="admin-event-security__empty">{t('admin.eventEditor.security.loading')}</p>
@@ -348,8 +384,16 @@ export default function AdminEventSecuritySection({
       ) : !loadError ? (
         <>
           <div className="admin-event-security__roster-head">
-            <span><ListChecks size={13} aria-hidden />{t('admin.eventEditor.security.rosterTitle')}</span>
-            <small>{t('admin.eventEditor.security.activeCount', { active: activeCount, total: users.length })}</small>
+            <span>
+              <ListChecks size={13} aria-hidden />
+              {t('admin.eventEditor.security.rosterTitle')}
+            </span>
+            <small>
+              {t('admin.eventEditor.security.activeCount', {
+                active: activeCount,
+                total: users.length,
+              })}
+            </small>
           </div>
           {canManageUsers && activeCount > 0 && (
             <div className="admin-event-security__list-actions">
@@ -394,7 +438,11 @@ export default function AdminEventSecuritySection({
               const active = user.status === 'active'
               return (
                 <li key={user.id} className="admin-event-security__item">
-                  <AdminIdentityCell accent={active ? 'celeste' : 'gold'} name={user.name} sub={user.email} />
+                  <AdminIdentityCell
+                    accent={active ? 'celeste' : 'gold'}
+                    name={user.name}
+                    sub={user.email}
+                  />
                   <Pill tone={active ? 'success' : 'neutral'}>
                     {active
                       ? t('admin.eventEditor.security.statusActive')
@@ -418,7 +466,11 @@ export default function AdminEventSecuritySection({
                         disabled={pendingStatusId === user.id}
                         onClick={() => handleToggleStatus(user)}
                       >
-                        {active ? <ShieldOff size={13} aria-hidden /> : <Shield size={13} aria-hidden />}
+                        {active ? (
+                          <ShieldOff size={13} aria-hidden />
+                        ) : (
+                          <Shield size={13} aria-hidden />
+                        )}
                         {active
                           ? t('admin.eventEditor.security.deactivate')
                           : t('admin.eventEditor.security.activate')}
@@ -435,7 +487,9 @@ export default function AdminEventSecuritySection({
       {credentialUser && (
         <SecurityCredentialModal
           user={credentialUser}
-          onGenerate={(shouldSendEmail) => onCreateSecurityAccessLink(credentialUser.id, shouldSendEmail)}
+          onGenerate={(shouldSendEmail) =>
+            onCreateSecurityAccessLink(credentialUser.id, shouldSendEmail)
+          }
           onClose={() => setCredentialUser(null)}
         />
       )}

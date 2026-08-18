@@ -22,18 +22,22 @@ describe('auditoria de cobros con origen unico', () => {
 
     expect(result.error).toBeUndefined()
     const report = JSON.parse(result.stdout)
-    expect(report.findings).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        level: 'ok',
-        area: 'runtime',
-        message: 'API_URL no esta definida: se usa APP_URL como origen de la API.',
-      }),
-    ]))
-    expect(report.findings).not.toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        level: 'blocker',
-        message: expect.stringContaining('API_URL'),
-      }),
-    ]))
+    expect(report.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          level: 'ok',
+          area: 'runtime',
+          message: 'API_URL no esta definida: se usa APP_URL como origen de la API.',
+        }),
+      ]),
+    )
+    expect(report.findings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          level: 'blocker',
+          message: expect.stringContaining('API_URL'),
+        }),
+      ]),
+    )
   })
 })

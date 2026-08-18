@@ -134,7 +134,8 @@ export async function revalidatePaymentOrder(target, options = {}) {
 
   const canonical = selectCanonicalProviderPayment(providerPayments)
   const providerStatus = canonical ? mapMercadoPagoStatus(canonical.status) : null
-  const payments = sortProviderPaymentsChronologically(providerPayments).map(summarizeProviderPayment)
+  const payments =
+    sortProviderPaymentsChronologically(providerPayments).map(summarizeProviderPayment)
 
   const base = {
     order: describeOrder(order),
@@ -165,7 +166,9 @@ export async function revalidatePaymentOrder(target, options = {}) {
   if (!apply || !divergent) {
     const outcome = mismatched ? 'amount_mismatch' : divergent ? 'divergent' : 'in_sync'
     await auditTrail?.record({
-      action: divergent ? PAYMENT_TRAIL_ACTIONS.revalidationMismatch : PAYMENT_TRAIL_ACTIONS.revalidated,
+      action: divergent
+        ? PAYMENT_TRAIL_ACTIONS.revalidationMismatch
+        : PAYMENT_TRAIL_ACTIONS.revalidated,
       order,
       status: providerStatus,
       severity: divergent ? 'warning' : 'info',
@@ -221,9 +224,8 @@ export async function revalidatePaymentOrder(target, options = {}) {
       // Un cobro que aparece ahora si merece el aviso: el socio nunca lo
       // recibio. Un rechazo viejo, no — llegaria fuera de tiempo y mandaria a
       // reintentar un pago que ya no corresponde.
-      notifyPaymentApplied: mapMercadoPagoStatus(settled.status) === 'aprobado'
-        ? notifyPaymentApplied
-        : undefined,
+      notifyPaymentApplied:
+        mapMercadoPagoStatus(settled.status) === 'aprobado' ? notifyPaymentApplied : undefined,
       auditTrail,
       stage: 'revalidation',
     })

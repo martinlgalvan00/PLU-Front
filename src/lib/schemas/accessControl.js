@@ -12,10 +12,9 @@ const roleKeySchema = z
     'Usá sólo letras minúsculas, números y guiones bajos; la clave debe empezar con una letra.',
   )
 
-const permissionKeySchema = z.string().refine(
-  (permissionKey) => PERMISSION_KEYS.includes(permissionKey),
-  'El permiso no existe.',
-)
+const permissionKeySchema = z
+  .string()
+  .refine((permissionKey) => PERMISSION_KEYS.includes(permissionKey), 'El permiso no existe.')
 
 export const createAccessRoleSchema = z.object({
   name: z
@@ -29,11 +28,7 @@ export const createAccessRoleSchema = z.object({
     .max(180, 'La descripción es demasiado larga.')
     .optional()
     .default(''),
-  permissionKeys: z
-    .array(permissionKeySchema)
-    .max(PERMISSION_KEYS.length)
-    .optional()
-    .default([]),
+  permissionKeys: z.array(permissionKeySchema).max(PERMISSION_KEYS.length).optional().default([]),
 })
 
 export const updateAccessRolePermissionsSchema = z.object({

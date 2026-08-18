@@ -15,11 +15,31 @@ import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 
 const VERDICT_META = {
-  valid: { Icon: CheckCircle2, label: 'Credencial válida', className: 'credential-page__verdict--valid' },
-  warning: { Icon: HelpCircle, label: 'Revisar antes de ingresar', className: 'credential-page__verdict--warning' },
-  unknown: { Icon: HelpCircle, label: 'Sin datos suficientes', className: 'credential-page__verdict--warning' },
-  invalid: { Icon: XCircle, label: 'Credencial no válida', className: 'credential-page__verdict--invalid' },
-  used: { Icon: AlertTriangle, label: 'Entrada ya utilizada', className: 'credential-page__verdict--invalid' },
+  valid: {
+    Icon: CheckCircle2,
+    label: 'Credencial válida',
+    className: 'credential-page__verdict--valid',
+  },
+  warning: {
+    Icon: HelpCircle,
+    label: 'Revisar antes de ingresar',
+    className: 'credential-page__verdict--warning',
+  },
+  unknown: {
+    Icon: HelpCircle,
+    label: 'Sin datos suficientes',
+    className: 'credential-page__verdict--warning',
+  },
+  invalid: {
+    Icon: XCircle,
+    label: 'Credencial no válida',
+    className: 'credential-page__verdict--invalid',
+  },
+  used: {
+    Icon: AlertTriangle,
+    label: 'Entrada ya utilizada',
+    className: 'credential-page__verdict--invalid',
+  },
   // Sin respuesta del backend. Deliberadamente NO es "inválida": el estado de
   // esta credencial es desconocido, y decir otra cosa hace que la puerta
   // rechace a alguien por un problema de red.
@@ -101,7 +121,13 @@ function ageFromBirthDate(iso) {
  *   onCheckIn             (qrToken: string) => Promise<{outcome, ticket?}> — entradas
  *   onCheckInRegistration (registrationId: string) => Promise<{outcome, registration?}>
  */
-export default function CredentialPage({ code, eventSlug, type, onCheckIn, onCheckInRegistration }) {
+export default function CredentialPage({
+  code,
+  eventSlug,
+  type,
+  onCheckIn,
+  onCheckInRegistration,
+}) {
   if (isPreviewCredentialCode(code)) {
     return <PreviewCredentialEasterEgg code={code} />
   }
@@ -110,7 +136,9 @@ export default function CredentialPage({ code, eventSlug, type, onCheckIn, onChe
     return <TicketCredential code={code} onCheckIn={onCheckIn} />
   }
 
-  return <MembershipCredential code={code} eventSlug={eventSlug} onCheckIn={onCheckInRegistration} />
+  return (
+    <MembershipCredential code={code} eventSlug={eventSlug} onCheckIn={onCheckInRegistration} />
+  )
 }
 
 /**
@@ -123,7 +151,8 @@ function PreviewCredentialEasterEgg({ code }) {
   const athleteName = MEMBERSHIP_CREDENTIAL_SAMPLE.athlete
   const memberCode = MEMBERSHIP_CREDENTIAL_SAMPLE.affiliateCode
   const season = MEMBERSHIP_CREDENTIAL_SAMPLE.season
-  const status = MEMBERSHIP_CREDENTIAL_SAMPLE.status || t('pages.credentialScan.previewMembershipStatus')
+  const status =
+    MEMBERSHIP_CREDENTIAL_SAMPLE.status || t('pages.credentialScan.previewMembershipStatus')
 
   return (
     <CredentialShell
@@ -177,7 +206,9 @@ function PreviewCredentialEasterEgg({ code }) {
           <span className="credential-page__preview-meta-value">{code}</span>
         </p>
 
-        <p className="credential-page__preview-footnote">{t('pages.credentialScan.previewNoCheckIn')}</p>
+        <p className="credential-page__preview-footnote">
+          {t('pages.credentialScan.previewNoCheckIn')}
+        </p>
       </div>
     </CredentialShell>
   )
@@ -189,10 +220,7 @@ function PreviewCredentialEasterEgg({ code }) {
  */
 function AthletePortrait({ name, photoUrl }) {
   return (
-    <span
-      className={`credential-page__photo${photoUrl ? ' has-photo' : ''}`}
-      aria-hidden
-    >
+    <span className={`credential-page__photo${photoUrl ? ' has-photo' : ''}`} aria-hidden>
       {photoUrl ? <img src={photoUrl} alt="" /> : initials(name)}
     </span>
   )
@@ -394,9 +422,11 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
 
   // Con datos diferidos el veredicto no puede presentarse como fresco: se
   // baja a "revisar" y la franja de arriba explica por qué.
-  const { Icon, label: verdictLabel, className: verdictClass } = isStale
-    ? VERDICT_META.offline
-    : VERDICT_META[verdict]
+  const {
+    Icon,
+    label: verdictLabel,
+    className: verdictClass,
+  } = isStale ? VERDICT_META.offline : VERDICT_META[verdict]
 
   // Marcar ingreso escribe en el backend. Sin verificación fresca no se ofrece:
   // aceptar el toque y perderlo es peor que decir que ahora no se puede.
@@ -444,9 +474,7 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
             ? { ...current.registration, checkedInAt: result.registration.checkedInAt }
             : current.registration,
         registrations: (current.registrations ?? []).map((item) =>
-          item.id === target.id
-            ? { ...item, checkedInAt: result.registration.checkedInAt }
-            : item,
+          item.id === target.id ? { ...item, checkedInAt: result.registration.checkedInAt } : item,
         ),
       }))
       return
@@ -456,7 +484,9 @@ function MembershipCredential({ code, eventSlug, onCheckIn }) {
     // (o cualquier otro desacuerdo), volvemos a pedir el estado real en vez
     // de asumir nada del lado del cliente. Si tampoco se puede releer, se dice:
     // un ingreso que quizá no quedó registrado tiene que verse.
-    setCheckInError(result?.message ?? 'No se pudo confirmar el ingreso. Reintentá o anotalo a mano.')
+    setCheckInError(
+      result?.message ?? 'No se pudo confirmar el ingreso. Reintentá o anotalo a mano.',
+    )
     void retry()
   }
 
@@ -678,8 +708,15 @@ function TicketCredential({ code, onCheckIn }) {
   const [checkInError, setCheckInError] = useState(null)
 
   const verify = useCallback(async (value) => (await verifyTicketByQrToken(value)).ticket, [])
-  const { phase, data: ticket, cache, retry, retrying, patchData, verifiedAt } =
-    useCredentialVerification(verify, { code })
+  const {
+    phase,
+    data: ticket,
+    cache,
+    retry,
+    retrying,
+    patchData,
+    verifiedAt,
+  } = useCredentialVerification(verify, { code })
 
   if (phase === 'loading') {
     return (
@@ -715,10 +752,13 @@ function TicketCredential({ code, onCheckIn }) {
   const checkedInAt = ticket.checkIn?.scannedAt ?? null
   const effectiveStatus = checkedInAt ? 'usada' : ticket.status
   const ticketMeta = getStatusMeta(effectiveStatus)
-  const verdictKey = effectiveStatus === 'pagada' ? 'valid' : effectiveStatus === 'usada' ? 'used' : 'warning'
-  const { Icon, label: verdictLabel, className: verdictClass } = isStale
-    ? VERDICT_META.offline
-    : VERDICT_META[verdictKey]
+  const verdictKey =
+    effectiveStatus === 'pagada' ? 'valid' : effectiveStatus === 'usada' ? 'used' : 'warning'
+  const {
+    Icon,
+    label: verdictLabel,
+    className: verdictClass,
+  } = isStale ? VERDICT_META.offline : VERDICT_META[verdictKey]
 
   async function handleCheckIn() {
     setCheckingIn(true)
@@ -744,7 +784,9 @@ function TicketCredential({ code, onCheckIn }) {
     // El backend es la autoridad — si otro dispositivo lo escaneó primero
     // (o cualquier otro desacuerdo), volvemos a pedir el estado real en vez
     // de asumir nada del lado del cliente. Si tampoco se puede releer, se dice.
-    setCheckInError(result?.message ?? 'No se pudo confirmar el ingreso. Reintentá o anotalo a mano.')
+    setCheckInError(
+      result?.message ?? 'No se pudo confirmar el ingreso. Reintentá o anotalo a mano.',
+    )
     void retry()
   }
 
@@ -773,9 +815,9 @@ function TicketCredential({ code, onCheckIn }) {
         </div>
 
         <IdentityFacts
-          facts={[ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null].filter(
-            Boolean,
-          )}
+          facts={[
+            ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
+          ].filter(Boolean)}
         />
 
         {/* La entrada es un pase de un solo uso, no una identidad: lo que
@@ -783,7 +825,9 @@ function TicketCredential({ code, onCheckIn }) {
             credencial de atleta ocupa la grilla. */}
         <div className="credential-page__schedule-block">
           <span className="credential-page__schedule-eyebrow">Acceso</span>
-          <p className="credential-page__schedule-day">{ticket.ticketTypeName ?? 'Entrada general'}</p>
+          <p className="credential-page__schedule-day">
+            {ticket.ticketTypeName ?? 'Entrada general'}
+          </p>
           {ticket.event?.title && (
             <p className="credential-page__schedule-detail">{ticket.event.title}</p>
           )}
@@ -793,7 +837,9 @@ function TicketCredential({ code, onCheckIn }) {
           <div className="credential-page__row">
             <dt>Estado</dt>
             <dd>
-              <span className={`status-pill status-pill--${ticketMeta.tone}`}>{ticketMeta.label}</span>
+              <span className={`status-pill status-pill--${ticketMeta.tone}`}>
+                {ticketMeta.label}
+              </span>
             </dd>
           </div>
 
@@ -830,7 +876,9 @@ function TicketCredential({ code, onCheckIn }) {
         )}
 
         {ticket.status === 'pendiente_pago' && (
-          <p className="credential-page__row-meta">Esta entrada todavía no tiene el pago acreditado.</p>
+          <p className="credential-page__row-meta">
+            Esta entrada todavía no tiene el pago acreditado.
+          </p>
         )}
       </div>
     </CredentialShell>
@@ -842,8 +890,8 @@ function NotFoundBody({ code }) {
     <div className="credential-page__body">
       <p className="credential-page__empty-title">Credencial no encontrada</p>
       <p className="credential-page__empty-text">
-        El código <strong>{code}</strong> no está registrado, o la credencial fue dada de baja. Confirmá
-        el dato contra la planilla del evento.
+        El código <strong>{code}</strong> no está registrado, o la credencial fue dada de baja.
+        Confirmá el dato contra la planilla del evento.
       </p>
     </div>
   )

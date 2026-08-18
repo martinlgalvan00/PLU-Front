@@ -74,7 +74,8 @@ export default function CheckInAppPage({
   const { setDay, setType } = workspace
 
   const eventLabel = useMemo(
-    () => eventTitle || eventSlug.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    () =>
+      eventTitle || eventSlug.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()),
     [eventSlug, eventTitle],
   )
 
@@ -153,10 +154,29 @@ export default function CheckInAppPage({
           </div>
         </div>
         <div className="checkin-app__metrics">
-          <CheckinMetric icon={Users} label={t('admin.checkinApp.totalPeople')} value={workspace.statusCounts.total} />
-          <CheckinMetric icon={CheckCircle2} label={t('admin.checkin.statReady')} tone="success" value={workspace.statusCounts.ready} />
-          <CheckinMetric icon={ShieldCheck} label={t('admin.checkin.statDone')} tone="brand" value={workspace.statusCounts.done} />
-          <CheckinMetric icon={Clock3} label={t('admin.checkin.statPending')} tone="warning" value={workspace.statusCounts.pending} />
+          <CheckinMetric
+            icon={Users}
+            label={t('admin.checkinApp.totalPeople')}
+            value={workspace.statusCounts.total}
+          />
+          <CheckinMetric
+            icon={CheckCircle2}
+            label={t('admin.checkin.statReady')}
+            tone="success"
+            value={workspace.statusCounts.ready}
+          />
+          <CheckinMetric
+            icon={ShieldCheck}
+            label={t('admin.checkin.statDone')}
+            tone="brand"
+            value={workspace.statusCounts.done}
+          />
+          <CheckinMetric
+            icon={Clock3}
+            label={t('admin.checkin.statPending')}
+            tone="warning"
+            value={workspace.statusCounts.pending}
+          />
         </div>
       </section>
 
@@ -272,19 +292,30 @@ export default function CheckInAppPage({
 
             <AdminDataTable
               ariaLabel={listTitle}
-              getRowClassName={(row) => (row.id === workspace.highlightRowId ? 'data-table__row--selected' : '')}
+              getRowClassName={(row) =>
+                row.id === workspace.highlightRowId ? 'data-table__row--selected' : ''
+              }
               columns={[
                 {
                   key: 'name',
                   label: t('admin.columns.attendee'),
                   mobile: 'primary',
-                  render: (row) => <AdminIdentityCell name={row.name} sub={formatDocumentWithKind(row.document)} subMono />,
+                  render: (row) => (
+                    <AdminIdentityCell
+                      name={row.name}
+                      sub={formatDocumentWithKind(row.document)}
+                      subMono
+                    />
+                  ),
                 },
                 {
                   key: 'type',
                   label: t('admin.checkin.type'),
                   mobile: 'default',
-                  render: (row) => (row.type === 'atleta' ? t('admin.checkin.athlete') : t('admin.checkin.spectator')),
+                  render: (row) =>
+                    row.type === 'atleta'
+                      ? t('admin.checkin.athlete')
+                      : t('admin.checkin.spectator'),
                 },
                 { key: 'meta', label: t('admin.columns.category'), mobile: 'default' },
                 {
@@ -302,7 +333,9 @@ export default function CheckInAppPage({
                         : t('admin.checkin.bothDays')
                     }
                     const labels = row.dayIndexes
-                      .map((dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label)
+                      .map(
+                        (dayIndex) => eventDays.find((item) => item.dayIndex === dayIndex)?.label,
+                      )
                       .filter(Boolean)
                     const dayLabel = labels.length ? labels.join(' · ') : '—'
                     return row.schedule?.sessionName

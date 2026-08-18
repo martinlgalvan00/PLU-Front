@@ -33,8 +33,10 @@ export function buildPaymentConfirmationParams({
   const membership = result?.membership ?? null
   const registration = order?.registration ?? result?.registration ?? null
   const event = registration?.event ?? registrationEvent ?? order?.event ?? null
-  const includesMembership = order?.kind === 'athlete' && ['membership', 'combo'].includes(order?.concept)
-  const includesRegistration = order?.kind === 'athlete' && ['registration', 'combo'].includes(order?.concept)
+  const includesMembership =
+    order?.kind === 'athlete' && ['membership', 'combo'].includes(order?.concept)
+  const includesRegistration =
+    order?.kind === 'athlete' && ['registration', 'combo'].includes(order?.concept)
   const includesTicket = order?.kind === 'ticket'
   const baseUrl = String(appUrl ?? '').replace(/\/$/, '')
   const eventUrl = event?.slug ? `${baseUrl}${buildEventPagePath(event.slug)}` : ''
@@ -44,10 +46,14 @@ export function buildPaymentConfirmationParams({
     amount: payment.amount ?? order?.amount,
     concept: order?.displayConcept ?? displayPaymentConcept(order?.concept),
     reference: order?.reference,
-    paidAt: payment.raw?.date_approved ?? payment.paidAt ?? order?.approved_at ?? new Date().toISOString(),
+    paidAt:
+      payment.raw?.date_approved ??
+      payment.paidAt ??
+      order?.approved_at ??
+      new Date().toISOString(),
     paymentMethod:
-      payment.raw?.payment_method_id
-      ?? displayPaymentMethod(payment.paymentMethod ?? order?.method),
+      payment.raw?.payment_method_id ??
+      displayPaymentMethod(payment.paymentMethod ?? order?.method),
 
     // Identificadores no visibles que también relacionan el único envío con
     // cada derecho en la auditoría operativa.
@@ -86,7 +92,12 @@ export function buildPaymentConfirmationParams({
  * en el ID de la orden: un reintento del webhook llega con el mismo pago y no
  * puede generar un segundo comprobante.
  */
-export function createPaymentNotificationService({ repository, brevo, dispatcher, env = process.env }) {
+export function createPaymentNotificationService({
+  repository,
+  brevo,
+  dispatcher,
+  env = process.env,
+}) {
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
@@ -158,10 +169,10 @@ export function createPaymentNotificationService({ repository, brevo, dispatcher
       // En un reintegro, la baja de la afiliación forma parte del mismo mail.
       // Una cancelación sin reintegro sigue usando el aviso de afiliación.
       if (
-        payment.status === 'cancelado'
-        && order.kind === 'athlete'
-        && membership?.id
-        && ['membership', 'combo'].includes(order.concept)
+        payment.status === 'cancelado' &&
+        order.kind === 'athlete' &&
+        membership?.id &&
+        ['membership', 'combo'].includes(order.concept)
       ) {
         jobs.push(
           mailer.send('affiliation_cancelled', {

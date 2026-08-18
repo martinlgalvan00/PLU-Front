@@ -134,7 +134,7 @@ export default {
       },
       preview: {
         title: 'Event detail',
-        body: 'Registration state, public visibility, slots, and shortcuts to that event\'s tickets, registrations, and payments.',
+        body: "Registration state, public visibility, slots, and shortcuts to that event's tickets, registrations, and payments.",
       },
     },
     payments: {
@@ -432,7 +432,8 @@ export default {
       actionError: 'We could not update the membership.',
       cancelConfirmTitle: 'Confirm membership deactivation',
       cancelConfirmDescription: 'You are about to deactivate {{athlete}}’s membership.',
-      cancelConfirmWarning: 'The credential will no longer grant entry and the athlete will receive an email about the change.',
+      cancelConfirmWarning:
+        'The credential will no longer grant entry and the athlete will receive an email about the change.',
       keepActive: 'Keep active',
       confirmCancel: 'Confirm deactivation',
       registeredToTournamentBadge: 'Tournament',
@@ -450,7 +451,8 @@ export default {
       retry: 'Retry',
       loading: 'Loading pricing…',
       plansTitle: 'Membership plans',
-      plansLead: 'Publish a plan or a new version. The price of a billed version is never overwritten.',
+      plansLead:
+        'Publish a plan or a new version. The price of a billed version is never overwritten.',
       newPlan: 'New plan',
       newVersion: 'New version',
       edit: 'Edit',
@@ -479,7 +481,8 @@ export default {
       price: 'Price',
       manualPrice: 'Bank transfer/cash price',
       manualPricePlaceholder: 'Same as the Mercado Pago price',
-      manualPriceHint: 'Optional. Leave it empty and transfer/cash charge the same as Mercado Pago.',
+      manualPriceHint:
+        'Optional. Leave it empty and transfer/cash charge the same as Mercado Pago.',
       currency: 'Currency',
       billingFrequency: 'Validity',
       collectionMode: 'Collection mode',
@@ -494,11 +497,13 @@ export default {
       deleting: 'Deleting...',
       deleteConfirmTitle: 'Delete {{name}}',
       deleteConfirmDescription: 'You are about to delete {{code}} from the membership catalog.',
-      deleteConfirmWarning: 'A plan can only be deleted when it has no memberships, orders or subscriptions attached.',
+      deleteConfirmWarning:
+        'A plan can only be deleted when it has no memberships, orders or subscriptions attached.',
       deleteConfirmCancel: 'Keep plan',
       deleteConfirmConfirm: 'Delete plan',
       comboTitle: 'Combo offer',
-      comboLead: 'Combine a membership and a registration. The final price must stay below the separate total.',
+      comboLead:
+        'Combine a membership and a registration. The final price must stay below the separate total.',
       event: 'Event',
       membershipPlan: 'Included plan',
       membershipAmount: 'Membership',
@@ -532,7 +537,8 @@ export default {
       retiresOn: 'Retires {{date}}',
       scheduleRetirement: 'Schedule retirement',
       discountCodesTitle: 'Discount codes',
-      discountCodesLead: 'Create limited spots for the first people to redeem, with expiry and live tracking.',
+      discountCodesLead:
+        'Create limited spots for the first people to redeem, with expiry and live tracking.',
       discountCodesEmpty: 'No discount codes yet.',
       newDiscountCode: 'New code',
       publishDiscountCode: 'Publish code',
@@ -548,8 +554,10 @@ export default {
       deleteDiscountCode: 'Delete',
       deleteDiscountCodeAria: 'Delete code {{code}}',
       deleteCodeConfirmTitle: 'Delete {{code}}',
-      deleteCodeConfirmDescription: 'You are about to delete the discount code {{code}} from the catalog.',
-      deleteCodeConfirmWarning: 'Only possible without recorded redemptions. If it was already used, deactivate it instead.',
+      deleteCodeConfirmDescription:
+        'You are about to delete the discount code {{code}} from the catalog.',
+      deleteCodeConfirmWarning:
+        'Only possible without recorded redemptions. If it was already used, deactivate it instead.',
       deleteCodeConfirmCancel: 'Keep code',
       deleteCodeConfirmConfirm: 'Delete code',
       codeDeleted: 'Discount code deleted.',
@@ -590,12 +598,15 @@ export default {
       subscriptionsTitle: 'Active subscriptions',
       subscriptionsLead: 'Memberships with recurring billing through Mercado Pago.',
       subscriptionsEmpty: 'There are no active subscriptions yet.',
-      subscriptionsEmptyHint: 'Recurring memberships will appear here with their next billing date and status.',
+      subscriptionsEmptyHint:
+        'Recurring memberships will appear here with their next billing date and status.',
       nextBilling: 'Next billing: {{date}}',
       cancelSubscription: 'Cancel subscription',
       cancelSubscriptionConfirmTitle: 'Cancel subscription',
-      cancelSubscriptionConfirmDescription: "This cancels {{athlete}}'s recurring subscription in Mercado Pago.",
-      cancelSubscriptionConfirmWarning: 'The membership stops auto-renewing. This action cannot be undone.',
+      cancelSubscriptionConfirmDescription:
+        "This cancels {{athlete}}'s recurring subscription in Mercado Pago.",
+      cancelSubscriptionConfirmWarning:
+        'The membership stops auto-renewing. This action cannot be undone.',
       subscriptionStatus: {
         pending: 'Pending',
         active: 'Active',
@@ -608,7 +619,8 @@ export default {
     accessGates: {
       eyebrow: 'Controlled openings',
       title: 'Access & enablement',
-      subtitle: 'Control who can start a membership or registration before opening it to the public.',
+      subtitle:
+        'Control who can start a membership or registration before opening it to the public.',
       refresh: 'Refresh',
       retry: 'Retry',
       loading: 'Loading access settings…',
@@ -670,7 +682,8 @@ export default {
         'When closed, membership is paid only with Mercado Pago: transfer and cash at Pitbull are hidden.',
       membershipManualAria: 'Enable membership by transfer or cash',
       registrationManualTitle: 'Registration by transfer',
-      registrationManualLead: 'When closed, registration and combo are paid only with Mercado Pago.',
+      registrationManualLead:
+        'When closed, registration and combo are paid only with Mercado Pago.',
       registrationManualAria: 'Enable registration by transfer or cash',
       ticketManualTitle: 'Tickets by transfer',
       ticketManualLead: 'When closed, tickets are paid only with Mercado Pago.',
@@ -1296,8 +1309,7 @@ export default {
     breakdownEvents: 'Events',
     flowsEyebrow: 'Flows',
     flowsTitle: 'Flow status',
-    flowsSubtitle:
-      'Separate what is progressing from what needs a team decision.',
+    flowsSubtitle: 'Separate what is progressing from what needs a team decision.',
     flowOpen: 'Open',
     flowPaymentsTitle: 'Collections',
     flowPaymentsProgressing: 'being monitored',
@@ -1461,7 +1473,8 @@ export default {
       expiredWithoutPayment: {
         title: 'Automatically expired without payment',
         summary: 'The payment window expired at {{expiresAt}}.',
-        action: 'Do not credit manually. Ask the person to generate a new order. If they report a debit, revalidate with Mercado Pago first.',
+        action:
+          'Do not credit manually. Ask the person to generate a new order. If they report a debit, revalidate with Mercado Pago first.',
       },
     },
   },
@@ -1517,11 +1530,15 @@ export default {
     confirming: 'Approving…',
     confirmError: "Couldn't approve the payment. Try again.",
     settleTitle: 'Settle manually',
-    settleLead: 'Mercado Pago never confirmed this charge, but the money did arrive. Review the receipt before settling it.',
-    settleNoProofLead: 'Attach the receipt for the payment you received before settling it manually.',
-    settleAuditNote: 'This settles the charge without provider confirmation: it activates the membership or registration, adds the amount to the financial report, and is recorded in the audit log under your name.',
+    settleLead:
+      'Mercado Pago never confirmed this charge, but the money did arrive. Review the receipt before settling it.',
+    settleNoProofLead:
+      'Attach the receipt for the payment you received before settling it manually.',
+    settleAuditNote:
+      'This settles the charge without provider confirmation: it activates the membership or registration, adds the amount to the financial report, and is recorded in the audit log under your name.',
     settleReasonLabel: 'Reason for settling',
-    settleReasonPlaceholder: 'E.g.: transfer received on 08/12, Mercado Pago marked it cancelled after expiry.',
+    settleReasonPlaceholder:
+      'E.g.: transfer received on 08/12, Mercado Pago marked it cancelled after expiry.',
     settleReasonHint: 'Stored in the audit log next to your user. Explain why the charge is valid.',
     settleReferenceLabel: 'Payment reference (optional)',
     settleReferencePlaceholder: 'E.g.: operation ID, transfer number',
@@ -1751,7 +1768,8 @@ export default {
     priceRegistrationManual: 'Registration · bank transfer/cash',
     priceRegistrationManualPlaceholder: 'Same as the Mercado Pago price',
     priceCombo: 'Membership + meet combo',
-    pricingCatalogHint: 'Membership and combo offers are managed from Pricing to keep a single source of truth.',
+    pricingCatalogHint:
+      'Membership and combo offers are managed from Pricing to keep a single source of truth.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Spectator ticket perks',
     ticketAddonsLead:
@@ -1986,7 +2004,8 @@ export default {
       slotsInvalid: 'Enter a valid slots number.',
       slotsInt: 'Slots must be a whole number.',
       slotsMin: 'Set at least 1 slot.',
-      slotsBelowRegistered: 'Capacity cannot be lower than the {{count}} registrations already reserved.',
+      slotsBelowRegistered:
+        'Capacity cannot be lower than the {{count}} registrations already reserved.',
       slotsMax: 'Maximum allowed is 5000 slots.',
       venueMin: 'Enter the venue.',
       venueMax: 'The venue name is too long.',

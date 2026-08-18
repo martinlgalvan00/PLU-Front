@@ -50,7 +50,11 @@ function failureMetadata(overrides = {}) {
     error: {
       message: 'Monto de pago invalido para la orden.',
       status: 409,
-      origin: { file: 'server/modules/payments/paymentWorkflow.js', line: 88, function: 'applyCanonicalPayment' },
+      origin: {
+        file: 'server/modules/payments/paymentWorkflow.js',
+        line: 88,
+        function: 'applyCanonicalPayment',
+      },
       stack: 'HttpError: Monto de pago invalido para la orden.\n    at applyCanonicalPayment (...)',
     },
     trail: [
@@ -123,69 +127,81 @@ describe('que paso antes: rastro de pasos', () => {
 
 describe('linea de tiempo de una orden', () => {
   const baseTables = {
-    athlete_payment_orders: [{
-      id: ORDER_ID,
-      organization_id: ORG,
-      athlete_id: ATHLETE_ID,
-      concept: 'membership',
-      amount: 75_000,
-      currency: 'ARS',
-      method: 'mercado_pago',
-      status: 'aprobado',
-      reference: 'MORD-1',
-      payer_email: 'atleta@example.com',
-      created_at: '2026-08-01T10:00:00.000Z',
-      athlete: { id: ATHLETE_ID, full_name: 'Atleta Uno', email: 'atleta@example.com' },
-    }],
-    athlete_payments: [{
-      order_id: ORDER_ID,
-      external_payment_id: 'mp-1',
-      status: 'aprobado',
-      amount: 75_000,
-      currency: 'ARS',
-      status_detail: 'accredited',
-      payer_email: 'atleta@example.com',
-      created_at: '2026-08-01T10:02:00.000Z',
-      confirmed_at: '2026-08-01T10:02:00.000Z',
-    }],
-    embedded_payment_attempts: [{
-      id: 'attempt-1',
-      order_id: ORDER_ID,
-      status: 'submitted',
-      external_payment_id: 'mp-1',
-      reconciliation_status: 'reconciled',
-      reconciliation_attempts: 1,
-      operation_kind: 'payment',
-      created_at: '2026-08-01T10:01:00.000Z',
-    }],
-    payment_integration_events: [{
-      id: 'event-1',
-      notification_id: 'n-1',
-      resource_id: 'mp-1',
-      event_type: 'payment',
-      action: 'payment.updated',
-      status: 'processed',
-      attempts_count: 1,
-      max_attempts: 12,
-      received_at: '2026-08-01T10:01:30.000Z',
-    }],
-    operational_event_logs: [{
-      created_at: '2026-08-01T10:00:30.000Z',
-      source: 'payment',
-      action: 'payment.preference_created',
-      status: 'pendiente',
-      severity: 'success',
-      metadata: { requestId: 'req-checkout' },
-    }],
-    memberships: [{
-      id: 'membership-1',
-      status: 'activa',
-      year: 2026,
-      member_code: 'PLU-ARG-2026-00000001',
-      payment_order_id: ORDER_ID,
-      created_at: '2026-08-01T10:02:05.000Z',
-      expiration_date: '2027-08-01',
-    }],
+    athlete_payment_orders: [
+      {
+        id: ORDER_ID,
+        organization_id: ORG,
+        athlete_id: ATHLETE_ID,
+        concept: 'membership',
+        amount: 75_000,
+        currency: 'ARS',
+        method: 'mercado_pago',
+        status: 'aprobado',
+        reference: 'MORD-1',
+        payer_email: 'atleta@example.com',
+        created_at: '2026-08-01T10:00:00.000Z',
+        athlete: { id: ATHLETE_ID, full_name: 'Atleta Uno', email: 'atleta@example.com' },
+      },
+    ],
+    athlete_payments: [
+      {
+        order_id: ORDER_ID,
+        external_payment_id: 'mp-1',
+        status: 'aprobado',
+        amount: 75_000,
+        currency: 'ARS',
+        status_detail: 'accredited',
+        payer_email: 'atleta@example.com',
+        created_at: '2026-08-01T10:02:00.000Z',
+        confirmed_at: '2026-08-01T10:02:00.000Z',
+      },
+    ],
+    embedded_payment_attempts: [
+      {
+        id: 'attempt-1',
+        order_id: ORDER_ID,
+        status: 'submitted',
+        external_payment_id: 'mp-1',
+        reconciliation_status: 'reconciled',
+        reconciliation_attempts: 1,
+        operation_kind: 'payment',
+        created_at: '2026-08-01T10:01:00.000Z',
+      },
+    ],
+    payment_integration_events: [
+      {
+        id: 'event-1',
+        notification_id: 'n-1',
+        resource_id: 'mp-1',
+        event_type: 'payment',
+        action: 'payment.updated',
+        status: 'processed',
+        attempts_count: 1,
+        max_attempts: 12,
+        received_at: '2026-08-01T10:01:30.000Z',
+      },
+    ],
+    operational_event_logs: [
+      {
+        created_at: '2026-08-01T10:00:30.000Z',
+        source: 'payment',
+        action: 'payment.preference_created',
+        status: 'pendiente',
+        severity: 'success',
+        metadata: { requestId: 'req-checkout' },
+      },
+    ],
+    memberships: [
+      {
+        id: 'membership-1',
+        status: 'activa',
+        year: 2026,
+        member_code: 'PLU-ARG-2026-00000001',
+        payment_order_id: ORDER_ID,
+        created_at: '2026-08-01T10:02:05.000Z',
+        expiration_date: '2027-08-01',
+      },
+    ],
     event_registrations: [],
   }
 
@@ -196,7 +212,12 @@ describe('linea de tiempo de una orden', () => {
     })
 
     expect(report.timeline.map((item) => item.source)).toEqual([
-      'orden', 'bitacora', 'brick', 'webhook', 'ledger', 'dominio',
+      'orden',
+      'bitacora',
+      'brick',
+      'webhook',
+      'ledger',
+      'dominio',
     ])
     // El tiempo entre pasos es lo que muestra donde se quedo parado un cobro.
     expect(report.timeline[1].sincePrevious).toBe('30.0 s')
@@ -210,10 +231,10 @@ describe('linea de tiempo de una orden', () => {
   })
 
   it('marca como critico un pago acreditado sin efecto de negocio', async () => {
-    const report = await buildOrderTimeline(
-      clientWith({ ...baseTables, memberships: [] }),
-      { orderId: ORDER_ID, organizationId: ORG },
-    )
+    const report = await buildOrderTimeline(clientWith({ ...baseTables, memberships: [] }), {
+      orderId: ORDER_ID,
+      organizationId: ORG,
+    })
 
     // Es la falla mas cara: el atleta pago y no tiene lo que compro.
     expect(report.verdict.state).toBe('critical')
@@ -227,14 +248,16 @@ describe('linea de tiempo de una orden', () => {
         athlete_payment_orders: [{ ...baseTables.athlete_payment_orders[0], status: 'pendiente' }],
         athlete_payments: [],
         memberships: [],
-        operational_event_logs: [{
-          created_at: '2026-08-01T10:03:00.000Z',
-          source: 'payment',
-          action: 'payment.webhook_failed',
-          status: 'failed',
-          severity: 'danger',
-          metadata: failureMetadata(),
-        }],
+        operational_event_logs: [
+          {
+            created_at: '2026-08-01T10:03:00.000Z',
+            source: 'payment',
+            action: 'payment.webhook_failed',
+            status: 'failed',
+            severity: 'danger',
+            metadata: failureMetadata(),
+          },
+        ],
       }),
       { orderId: ORDER_ID, organizationId: ORG },
     )
@@ -253,12 +276,14 @@ describe('linea de tiempo de una orden', () => {
     const report = await buildOrderTimeline(
       clientWith({
         ...baseTables,
-        athlete_payment_orders: [{
-          ...baseTables.athlete_payment_orders[0],
-          status: 'cancelado',
-          expires_at: '2026-08-01T10:30:00.000Z',
-          updated_at: '2026-08-01T10:30:42.000Z',
-        }],
+        athlete_payment_orders: [
+          {
+            ...baseTables.athlete_payment_orders[0],
+            status: 'cancelado',
+            expires_at: '2026-08-01T10:30:00.000Z',
+            updated_at: '2026-08-01T10:30:42.000Z',
+          },
+        ],
         athlete_payments: [],
         embedded_payment_attempts: [],
         payment_integration_events: [],
@@ -288,29 +313,33 @@ describe('linea de tiempo de una orden', () => {
     const report = await buildOrderTimeline(
       clientWith({
         athlete_payment_orders: [],
-        ticket_orders: [{
-          id: ORDER_ID,
-          organization_id: ORG,
-          amount: 25_000,
-          currency: 'ARS',
-          method: 'mercado_pago',
-          status: 'aprobado',
-          reference: 'TORD-1',
-          payer_email: 'comprador@example.com',
-          created_at: '2026-08-01T10:00:00.000Z',
-          event: { id: 'evt-1', title: 'Pitbull Classic', slug: 'pitbull-classic' },
-        }],
-        ticket_payments: [{
-          order_id: ORDER_ID,
-          external_payment_id: 'mp-9',
-          status: 'aprobado',
-          amount: 25_000,
-          currency: 'ARS',
-          status_detail: 'accredited',
-          payer_email: 'comprador@example.com',
-          created_at: '2026-08-01T10:02:00.000Z',
-          confirmed_at: '2026-08-01T10:02:00.000Z',
-        }],
+        ticket_orders: [
+          {
+            id: ORDER_ID,
+            organization_id: ORG,
+            amount: 25_000,
+            currency: 'ARS',
+            method: 'mercado_pago',
+            status: 'aprobado',
+            reference: 'TORD-1',
+            payer_email: 'comprador@example.com',
+            created_at: '2026-08-01T10:00:00.000Z',
+            event: { id: 'evt-1', title: 'Pitbull Classic', slug: 'pitbull-classic' },
+          },
+        ],
+        ticket_payments: [
+          {
+            order_id: ORDER_ID,
+            external_payment_id: 'mp-9',
+            status: 'aprobado',
+            amount: 25_000,
+            currency: 'ARS',
+            status_detail: 'accredited',
+            payer_email: 'comprador@example.com',
+            created_at: '2026-08-01T10:02:00.000Z',
+            confirmed_at: '2026-08-01T10:02:00.000Z',
+          },
+        ],
         embedded_payment_attempts: [],
         payment_integration_events: [],
         operational_event_logs: [],
@@ -396,16 +425,18 @@ describe('recorrido de afiliacion', () => {
     const report = await buildAthleteTimeline(
       clientWith({
         athletes: [{ ...athlete, email_verified_at: '2026-08-01T09:10:00.000Z' }],
-        athlete_payment_orders: [{
-          id: ORDER_ID,
-          concept: 'membership',
-          status: 'aprobado',
-          amount: 75_000,
-          currency: 'ARS',
-          method: 'mercado_pago',
-          created_at: '2026-08-01T10:00:00.000Z',
-          approved_at: '2026-08-01T10:02:00.000Z',
-        }],
+        athlete_payment_orders: [
+          {
+            id: ORDER_ID,
+            concept: 'membership',
+            status: 'aprobado',
+            amount: 75_000,
+            currency: 'ARS',
+            method: 'mercado_pago',
+            created_at: '2026-08-01T10:00:00.000Z',
+            approved_at: '2026-08-01T10:02:00.000Z',
+          },
+        ],
         memberships: [],
         event_registrations: [],
         operational_event_logs: [],
@@ -437,7 +468,10 @@ describe('traza de una operacion puntual', () => {
             entity_id: ORDER_ID,
             status: 'pendiente',
             severity: 'info',
-            metadata: { requestId: 'req-forense', entrypoint: 'http:POST /api/payments/embedded/process' },
+            metadata: {
+              requestId: 'req-forense',
+              entrypoint: 'http:POST /api/payments/embedded/process',
+            },
           },
           {
             created_at: '2026-08-01T10:00:02.000Z',

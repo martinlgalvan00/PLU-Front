@@ -71,20 +71,28 @@ export default function ResultsSortMenu({
         aria-label={t('pages.results.sortMenuCurrent', { sort: sortLabel })}
         onClick={() => setOpen((value) => !value)}
       >
-        {!minimal ? <ArrowDownUp size={14} aria-hidden className="results-sort-menu__icon" /> : null}
+        {!minimal ? (
+          <ArrowDownUp size={14} aria-hidden className="results-sort-menu__icon" />
+        ) : null}
         <span className="results-sort-menu__face">
           {luxury && (
             <span className="results-sort-menu__prefix">{t('pages.results.sortLabel')}</span>
           )}
           {minimal ? (
             <span className="results-sort-menu__minimal-copy">
-              <span className="results-sort-menu__minimal-label">{t('pages.results.sortLabel')}</span>
+              <span className="results-sort-menu__minimal-label">
+                {t('pages.results.sortLabel')}
+              </span>
               <span className="results-sort-menu__value">{sortLabel}</span>
             </span>
           ) : (
             <span className="results-sort-menu__value">
-              <span className="results-sort-menu__label results-sort-menu__label--full">{sortLabel}</span>
-              <span className="results-sort-menu__label results-sort-menu__label--short">{sortShortLabel}</span>
+              <span className="results-sort-menu__label results-sort-menu__label--full">
+                {sortLabel}
+              </span>
+              <span className="results-sort-menu__label results-sort-menu__label--short">
+                {sortShortLabel}
+              </span>
             </span>
           )}
         </span>
@@ -92,7 +100,12 @@ export default function ResultsSortMenu({
       </button>
 
       {open && (
-        <ul id={listId} className="results-sort-menu__list" role="listbox" aria-label={t('pages.results.sortAria')}>
+        <ul
+          id={listId}
+          className="results-sort-menu__list"
+          role="listbox"
+          aria-label={t('pages.results.sortAria')}
+        >
           {options.map(([value, label]) => (
             <li key={value} role="presentation">
               <button
@@ -103,7 +116,9 @@ export default function ResultsSortMenu({
                 onClick={() => select(value)}
               >
                 <span>{label}</span>
-                {sort === value && <Check size={14} aria-hidden className="results-sort-menu__check" />}
+                {sort === value && (
+                  <Check size={14} aria-hidden className="results-sort-menu__check" />
+                )}
               </button>
             </li>
           ))}

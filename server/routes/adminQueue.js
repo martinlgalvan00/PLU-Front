@@ -20,7 +20,8 @@ export function createAdminQueueRoutes({ getPrisma, getSupabaseAdmin, repository
   const prisma = getPrisma()
   const readGuard = requirePermission('admin.dashboard.read', { prisma })
   const writeGuard = requirePermission('admin.dashboard.write', { prisma })
-  const repo = () => repository ?? createSupabaseAdminQueueRepository(requireSupabaseClient(getSupabaseAdmin()))
+  const repo = () =>
+    repository ?? createSupabaseAdminQueueRepository(requireSupabaseClient(getSupabaseAdmin()))
 
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {
@@ -30,15 +31,21 @@ export function createAdminQueueRoutes({ getPrisma, getSupabaseAdmin, repository
     }
   })
 
-  router.post('/', ...writeGuard, staffLimiter, validateBody(dismissSchema), async (req, res, next) => {
-    try {
-      const { itemKey, itemType } = req.validatedBody
-      const dismissed = await repo().dismiss(itemKey, itemType, actor(req))
-      res.json({ dismissed })
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(dismissSchema),
+    async (req, res, next) => {
+      try {
+        const { itemKey, itemType } = req.validatedBody
+        const dismissed = await repo().dismiss(itemKey, itemType, actor(req))
+        res.json({ dismissed })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.delete('/:itemKey', ...writeGuard, staffLimiter, async (req, res, next) => {
     try {

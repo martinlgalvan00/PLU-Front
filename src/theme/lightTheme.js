@@ -1,6 +1,6 @@
 // src/theme/lightTheme.js
-import { theme } from 'antd';
-import { sharedThemeTokens } from './tokens';
+import { theme } from 'antd'
+import { sharedThemeTokens } from './tokens'
 
 export const lightTheme = {
   algorithm: theme.defaultAlgorithm,
@@ -21,4 +21,4 @@ export const lightTheme = {
     colorBorder: 'rgba(15, 17, 23, 0.10)',
     colorBorderSecondary: 'rgba(15, 17, 23, 0.06)',
   },
-};
+}

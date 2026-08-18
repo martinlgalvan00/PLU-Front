@@ -73,13 +73,14 @@ export default function DetailTabs({
           >
             <span className="detail-tabs__label">{tab.label}</span>
             {showCount ? (
-              <span className="detail-tabs__count" data-empty={tab.count === 0 ? 'true' : undefined}>
+              <span
+                className="detail-tabs__count"
+                data-empty={tab.count === 0 ? 'true' : undefined}
+              >
                 {tab.count}
               </span>
             ) : null}
-            {tab.hasError ? (
-              <span className="detail-tabs__error-dot" aria-hidden />
-            ) : null}
+            {tab.hasError ? <span className="detail-tabs__error-dot" aria-hidden /> : null}
           </button>
         )
       })}

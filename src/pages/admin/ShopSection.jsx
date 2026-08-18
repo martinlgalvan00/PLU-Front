@@ -25,7 +25,8 @@ function ShopProductModal({ canEdit, draft, error, onCancel, onChange, onSubmit,
   const titleId = useId()
   const isEdit = Boolean(draft.id)
   const previewPrice = Number(draft.price)
-  const hasPreviewMeta = Boolean(draft.title?.trim()) || (Number.isFinite(previewPrice) && previewPrice > 0)
+  const hasPreviewMeta =
+    Boolean(draft.title?.trim()) || (Number.isFinite(previewPrice) && previewPrice > 0)
 
   useEffect(() => {
     function handleKey(event) {
@@ -86,8 +87,12 @@ function ShopProductModal({ canEdit, draft, error, onCancel, onChange, onSubmit,
                     </span>
                     {!hasPreviewMeta ? (
                       <>
-                        <span className="admin-shop-modal__preview-label">{t('admin.shop.previewLabel')}</span>
-                        <span className="admin-shop-modal__preview-hint">{t('admin.shop.previewEmpty')}</span>
+                        <span className="admin-shop-modal__preview-label">
+                          {t('admin.shop.previewLabel')}
+                        </span>
+                        <span className="admin-shop-modal__preview-hint">
+                          {t('admin.shop.previewEmpty')}
+                        </span>
                       </>
                     ) : null}
                   </div>
@@ -98,7 +103,9 @@ function ShopProductModal({ canEdit, draft, error, onCancel, onChange, onSubmit,
                       {draft.title?.trim() || t('admin.shop.createTitle')}
                     </span>
                     {Number.isFinite(previewPrice) && previewPrice > 0 ? (
-                      <span className="admin-shop-modal__preview-price">{money(previewPrice, locale)}</span>
+                      <span className="admin-shop-modal__preview-price">
+                        {money(previewPrice, locale)}
+                      </span>
                     ) : null}
                   </div>
                 ) : null}
@@ -211,8 +218,12 @@ function ShopProductModal({ canEdit, draft, error, onCancel, onChange, onSubmit,
                     disabled={!canEdit}
                   />
                   <span className="admin-shop-modal__check-copy">
-                    <span className="admin-shop-modal__check-title">{t('admin.shop.fields.featured')}</span>
-                    <span className="admin-shop-modal__check-hint">{t('admin.shop.featuredBadge')}</span>
+                    <span className="admin-shop-modal__check-title">
+                      {t('admin.shop.fields.featured')}
+                    </span>
+                    <span className="admin-shop-modal__check-hint">
+                      {t('admin.shop.featuredBadge')}
+                    </span>
                   </span>
                 </label>
               </fieldset>
@@ -236,12 +247,7 @@ function ShopProductModal({ canEdit, draft, error, onCancel, onChange, onSubmit,
   )
 }
 
-export default function ShopSection({
-  canEdit,
-  products = [],
-  onDeleteProduct,
-  onSaveProduct,
-}) {
+export default function ShopSection({ canEdit, products = [], onDeleteProduct, onSaveProduct }) {
   const { locale, t } = useI18n()
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -331,10 +337,7 @@ export default function ShopSection({
               </Button>
             ) : null}
           </div>
-          <aside
-            className="admin-shop__debut-rail"
-            aria-label={t('admin.shop.emptyRailLabel')}
-          >
+          <aside className="admin-shop__debut-rail" aria-label={t('admin.shop.emptyRailLabel')}>
             {SHOP_PRODUCT_CATEGORIES.map(([value]) => (
               <div key={value} className="admin-shop__debut-slot">
                 <span className="admin-shop__debut-slot-media" aria-hidden />
@@ -380,7 +383,11 @@ export default function ShopSection({
                   placeholder={t('admin.shop.searchPlaceholder')}
                 />
               </label>
-              <div className="admin-shop__filters" role="group" aria-label={t('admin.shop.filterCategory')}>
+              <div
+                className="admin-shop__filters"
+                role="group"
+                aria-label={t('admin.shop.filterCategory')}
+              >
                 <button
                   type="button"
                   className={`admin-shop__filter${categoryFilter === 'all' ? ' is-active' : ''}`}
@@ -433,12 +440,16 @@ export default function ShopSection({
                       <div className="admin-shop-tile__body">
                         <div className="admin-shop-tile__top">
                           <strong>{product.title}</strong>
-                          <span className={`admin-shop-tile__status admin-shop-tile__status--${product.status}`}>
+                          <span
+                            className={`admin-shop-tile__status admin-shop-tile__status--${product.status}`}
+                          >
                             {t(`admin.shop.status.${product.status}`)}
                           </span>
                         </div>
                         <p className="admin-shop-tile__meta">
-                          <span className="admin-shop-tile__price">{money(product.price, locale)}</span>
+                          <span className="admin-shop-tile__price">
+                            {money(product.price, locale)}
+                          </span>
                           <span aria-hidden="true">·</span>
                           <span>{t(`admin.shop.categories.${product.category}`)}</span>
                           <span aria-hidden="true">·</span>

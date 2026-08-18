@@ -1,7 +1,12 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
-import { authHeaders, buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
+import {
+  authHeaders,
+  buildStaffUser,
+  createPrismaDouble,
+  loginStaff,
+} from './helpers/staffSession.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 const EVENT_SLUG = 'pitbull-classic-2026'
@@ -75,7 +80,11 @@ describe('check-in respeta el evento asignado a una cuenta seguridad_plu_arg', (
         eventSlug: 'otro-evento-2027',
       })
 
-      const { data: event } = await supabaseAdmin.from('events').select('id').eq('slug', EVENT_SLUG).single()
+      const { data: event } = await supabaseAdmin
+        .from('events')
+        .select('id')
+        .eq('slug', EVENT_SLUG)
+        .single()
       const { data: ticketType } = await supabaseAdmin
         .from('ticket_types')
         .select('id')
@@ -92,7 +101,12 @@ describe('check-in respeta el evento asignado a una cuenta seguridad_plu_arg', (
           idempotencyKey: randomUUID(),
           accessToken: randomBytes(32).toString('base64url'),
           attendees: [
-            { fullName: 'Test Scope Evento', dni: '30999777', ticketTypeId: ticketType.id, addonIds: [] },
+            {
+              fullName: 'Test Scope Evento',
+              dni: '30999777',
+              ticketTypeId: ticketType.id,
+              addonIds: [],
+            },
           ],
         }),
       })

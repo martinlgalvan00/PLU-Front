@@ -77,7 +77,10 @@ function buildOfflineScanResult(found) {
     }
   }
 
-  const status = registrationCheckinStatus({ status: entry.status, checkedInAt: alreadyUsed ? 'offline' : null })
+  const status = registrationCheckinStatus({
+    status: entry.status,
+    checkedInAt: alreadyUsed ? 'offline' : null,
+  })
   const outcome = status === 'usada' ? 'already_used' : status === 'pagada' ? 'ready' : 'not_ready'
   return {
     kind: 'registration',
@@ -114,7 +117,8 @@ function readFeedbackPrefs() {
 }
 
 function buildHistoryEntry(resolved, raw) {
-  const name = resolved.row?.name ?? resolved.athlete?.fullName ?? resolved.ticket?.attendeeName ?? null
+  const name =
+    resolved.row?.name ?? resolved.athlete?.fullName ?? resolved.ticket?.attendeeName ?? null
   const document =
     resolved.row?.document ?? resolved.athlete?.documentId ?? resolved.ticket?.attendeeDni ?? null
 
@@ -125,7 +129,13 @@ function buildHistoryEntry(resolved, raw) {
     tone: getFeedbackTone(resolved.outcome ?? 'invalid'),
     name,
     document,
-    type: resolved.row?.type ?? (resolved.kind === 'registration' ? 'atleta' : resolved.kind === 'ticket' ? 'espectador' : null),
+    type:
+      resolved.row?.type ??
+      (resolved.kind === 'registration'
+        ? 'atleta'
+        : resolved.kind === 'ticket'
+          ? 'espectador'
+          : null),
     rowId: resolved.row?.id ?? null,
     checkedIn: false,
     raw,
@@ -341,12 +351,22 @@ export function useCheckInWorkspace({
         setScanHistory((current) =>
           current.map((item) =>
             item.id === activeHistoryId
-              ? { ...item, checkedIn: true, outcome: 'queued_offline', tone: getFeedbackTone('queued_offline') }
+              ? {
+                  ...item,
+                  checkedIn: true,
+                  outcome: 'queued_offline',
+                  tone: getFeedbackTone('queued_offline'),
+                }
               : item,
           ),
         )
       }
-      setScanResult({ ...scanResult, outcome: 'queued_offline', canCheckIn: false, status: 'usada' })
+      setScanResult({
+        ...scanResult,
+        outcome: 'queued_offline',
+        canCheckIn: false,
+        status: 'usada',
+      })
       offlineSync.refreshCounts()
       return
     }
@@ -412,7 +432,9 @@ export function useCheckInWorkspace({
     }
   }
 
-  const scanVerdict = scanResult ? SCAN_VERDICT_META[scanResult.outcome] ?? SCAN_VERDICT_META.invalid : null
+  const scanVerdict = scanResult
+    ? (SCAN_VERDICT_META[scanResult.outcome] ?? SCAN_VERDICT_META.invalid)
+    : null
   const scanPersonName =
     scanResult?.row?.name ?? scanResult?.athlete?.fullName ?? scanResult?.ticket?.attendeeName
   const scanPersonDoc =

@@ -121,9 +121,7 @@ function paymentFailureCode(metadata) {
   const directCode = metadata?.diagnosis?.code ?? metadata?.errorCode ?? metadata?.error?.code
   if (typeof directCode === 'string' && directCode) return directCode
 
-  const message = typeof metadata?.error === 'string'
-    ? metadata.error
-    : metadata?.error?.message
+  const message = typeof metadata?.error === 'string' ? metadata.error : metadata?.error?.message
   const match = typeof message === 'string' ? message.match(/\[([A-Z_]+)\]/) : null
   return match?.[1] ?? null
 }
@@ -134,8 +132,8 @@ export function auditEntryTone({ action, severity, metadata }) {
   if (diagnosisSeverity === 'degraded' || diagnosisSeverity === 'expected') return 'warning'
 
   if (
-    CONTAINED_PAYMENT_FAILURE_CODES.has(paymentFailureCode(metadata))
-    || CONTAINED_PAYMENT_REASONS.has(metadata?.reason)
+    CONTAINED_PAYMENT_FAILURE_CODES.has(paymentFailureCode(metadata)) ||
+    CONTAINED_PAYMENT_REASONS.has(metadata?.reason)
   ) {
     return 'warning'
   }
@@ -169,7 +167,14 @@ function summarize(metadata) {
  * detalle: `describeAuditError` los sube a bloques con nombre propio.
  */
 const ERROR_METADATA_FIELDS = new Set([
-  'error', 'diagnosis', 'reason', 'statusDetail', 'errorCode', 'stage', 'entrypoint', 'requestId',
+  'error',
+  'diagnosis',
+  'reason',
+  'statusDetail',
+  'errorCode',
+  'stage',
+  'entrypoint',
+  'requestId',
 ])
 
 /**
@@ -229,8 +234,12 @@ export function describeAuditError(metadata) {
   const error = raw !== null && typeof raw === 'object' ? raw : null
   // `email.bounced` guarda `error` como texto plano, no como objeto.
   const message = error
-    ? (typeof error.message === 'string' ? error.message : null)
-    : (typeof raw === 'string' && raw.trim() ? raw.trim() : null)
+    ? typeof error.message === 'string'
+      ? error.message
+      : null
+    : typeof raw === 'string' && raw.trim()
+      ? raw.trim()
+      : null
 
   const origin = error?.origin && typeof error.origin === 'object' ? error.origin : null
   const chain = causeChain(error?.cause)
@@ -245,11 +254,11 @@ export function describeAuditError(metadata) {
     stack: typeof error?.stack === 'string' ? error.stack : null,
     origin: origin
       ? {
-        file: origin.file ?? null,
-        line: origin.line ?? null,
-        column: origin.column ?? null,
-        function: origin.function ?? null,
-      }
+          file: origin.file ?? null,
+          line: origin.line ?? null,
+          column: origin.column ?? null,
+          function: origin.function ?? null,
+        }
       : null,
     causes: chain,
     // Por qué falló, en el lenguaje del negocio y no del stack.
@@ -262,7 +271,8 @@ export function describeAuditError(metadata) {
   }
 
   const hasSomething = Object.entries(detail).some(([key, value]) =>
-    key === 'causes' ? value.length > 0 : value != null && value !== '')
+    key === 'causes' ? value.length > 0 : value != null && value !== '',
+  )
   return hasSomething ? detail : null
 }
 
@@ -314,7 +324,18 @@ export async function fetchAuditEventContext(id) {
 
 export async function fetchAuditEntries(filters = {}) {
   const params = new URLSearchParams()
-  for (const key of ['action', 'category', 'entityType', 'entityId', 'actorType', 'source', 'status', 'search', 'before', 'beforeId']) {
+  for (const key of [
+    'action',
+    'category',
+    'entityType',
+    'entityId',
+    'actorType',
+    'source',
+    'status',
+    'search',
+    'before',
+    'beforeId',
+  ]) {
     if (filters[key]) params.set(key, filters[key])
   }
   if (filters.entityIds?.length) params.set('entityIds', filters.entityIds.join(','))
@@ -347,7 +368,12 @@ export async function fetchAuditOverview() {
  * `entity_id` como texto por entidad, así que la relación se arma acá con los
  * ids que el panel ya tiene cargados.
  */
-export function relatedEntityIds({ athleteId, memberships = [], registrations = [], payments = [] }) {
+export function relatedEntityIds({
+  athleteId,
+  memberships = [],
+  registrations = [],
+  payments = [],
+}) {
   return [
     athleteId,
     ...memberships.map((item) => item.id),

@@ -87,8 +87,7 @@ function toCamelPaymentOrder(row) {
     rejectionReason: row.rejection_reason ?? row.rejectionReason ?? null,
     rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
     paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
-    paymentProofUploadedAt:
-      row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
+    paymentProofUploadedAt: row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
     discountCode: row.discount_code ?? row.discountCode ?? null,
     discountAmount: Number(row.discount_amount ?? row.discountAmount) || 0,
     notes: row.notes ?? null,
@@ -150,16 +149,21 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
   const orders = paymentOrders ?? []
 
   const registrationEventByOrderId = new Map(
-    registrationRows.filter((item) => item.paymentOrderId).map((item) => [item.paymentOrderId, item.event]),
+    registrationRows
+      .filter((item) => item.paymentOrderId)
+      .map((item) => [item.paymentOrderId, item.event]),
   )
 
   const paymentRows = orders.map((order) => {
-    const eventTitle = order.concept === 'registration' ? registrationEventByOrderId.get(order.id) : null
+    const eventTitle =
+      order.concept === 'registration' ? registrationEventByOrderId.get(order.id) : null
     const paymentProofPath = order.payment_proof_path ?? order.paymentProofPath ?? null
     return {
       id: order.id,
       athleteId: order.athlete_id,
-      concept: eventTitle ? `Inscripción ${eventTitle}` : CONCEPT_LABELS[order.concept] ?? order.concept,
+      concept: eventTitle
+        ? `Inscripción ${eventTitle}`
+        : (CONCEPT_LABELS[order.concept] ?? order.concept),
       // Valor crudo ('membership' | 'registration' | 'combo'), distinto de
       // `concept` (la etiqueta ya formateada arriba) -- lo necesita
       // paymentReconciliationService para saber qué entitlement debería
@@ -170,7 +174,8 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,
       status: order.status,
       reference: order.reference,
-      paymentProofPath: typeof paymentProofPath === 'string' ? paymentProofPath.trim() || null : paymentProofPath,
+      paymentProofPath:
+        typeof paymentProofPath === 'string' ? paymentProofPath.trim() || null : paymentProofPath,
       paymentProofUploadedAt:
         order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
       createdAt: order.created_at ?? order.createdAt ?? null,
@@ -277,20 +282,20 @@ export async function fetchAdminAthleteData() {
 
 export async function registerAthlete(form) {
   const { athlete: row, emailVerification } = await apiPost('/api/athletes/register', {
-      fullName: form.fullName,
-      documentId: form.documentId,
-      email: form.email,
-      birthDate: form.birthDate,
-      phone: form.phone,
-      country: form.country,
-      province: form.province,
-      city: form.city,
-      gym: form.gym,
-      sex: form.sex,
-      division: form.division,
-      category: form.category,
-      estimatedWeight: form.estimatedWeight,
-      password: form.password,
+    fullName: form.fullName,
+    documentId: form.documentId,
+    email: form.email,
+    birthDate: form.birthDate,
+    phone: form.phone,
+    country: form.country,
+    province: form.province,
+    city: form.city,
+    gym: form.gym,
+    sex: form.sex,
+    division: form.division,
+    category: form.category,
+    estimatedWeight: form.estimatedWeight,
+    password: form.password,
   })
   return { athlete: toCamelAthlete(row), emailVerification }
 }
@@ -377,7 +382,10 @@ export async function createCompetitionRegistration({
   })
   return {
     order: toCamelPaymentOrder(result.order),
-    registration: toCamelRegistrationEntry({ registration: result.registration, event: { slug: eventSlug } }),
+    registration: toCamelRegistrationEntry({
+      registration: result.registration,
+      event: { slug: eventSlug },
+    }),
   }
 }
 
@@ -451,7 +459,9 @@ export async function approveAthletePaymentOrder(orderId) {
   return {
     order: toCamelPaymentOrder(result.order),
     membership: toCamelMembership(result.membership),
-    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
+    registration: result.registration
+      ? toCamelRegistrationEntry({ registration: result.registration })
+      : null,
   }
 }
 
@@ -473,15 +483,22 @@ export async function forceSettleAthletePaymentOrder(orderId, { reason, referenc
   return {
     order: toCamelPaymentOrder(result.order),
     membership: toCamelMembership(result.membership),
-    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
+    registration: result.registration
+      ? toCamelRegistrationEntry({ registration: result.registration })
+      : null,
     duplicate: Boolean(result.duplicate),
   }
 }
 
 export async function setEventRegistrationStatus(registrationId, status, reason) {
-  const result = await apiPost(`/api/athletes/admin/registrations/${registrationId}/status`, { status, reason })
+  const result = await apiPost(`/api/athletes/admin/registrations/${registrationId}/status`, {
+    status,
+    reason,
+  })
   return {
-    registration: result.registration ? toCamelRegistrationEntry({ registration: result.registration }) : null,
+    registration: result.registration
+      ? toCamelRegistrationEntry({ registration: result.registration })
+      : null,
     duplicate: Boolean(result.duplicate),
   }
 }
@@ -601,7 +618,10 @@ export async function getAthletePaymentProofUrl(orderId) {
 }
 
 export async function registerAthletePaymentProof(orderId, proofPath, notes) {
-  const { order } = await apiPost(`/api/athletes/me/payment-orders/${orderId}/proof`, { proofPath, notes })
+  const { order } = await apiPost(`/api/athletes/me/payment-orders/${orderId}/proof`, {
+    proofPath,
+    notes,
+  })
   return { order: toCamelPaymentOrder(order) }
 }
 
@@ -623,26 +643,32 @@ export async function getMembershipCredential(membershipId) {
 }
 
 export async function rotateMembershipQrToken(membershipId) {
-  const { membership } = await apiPost(`/api/athletes/admin/memberships/${membershipId}/rotate-qr`, {})
+  const { membership } = await apiPost(
+    `/api/athletes/admin/memberships/${membershipId}/rotate-qr`,
+    {},
+  )
   return { membership: toCamelMembership(membership) }
 }
 
 /** Activa o da de baja una afiliación a mano. Queda auditada con el actor. */
 export async function setMembershipStatus(membershipId, status) {
-  const { membership } = await apiPost(
-    `/api/athletes/admin/memberships/${membershipId}/status`,
-    { status },
-  )
+  const { membership } = await apiPost(`/api/athletes/admin/memberships/${membershipId}/status`, {
+    status,
+  })
   return { membership: toCamelMembership(membership) }
 }
 
 export async function deleteMembershipRequest(membershipId) {
-  const result = await apiDelete(`/api/athletes/admin/memberships/${encodeURIComponent(membershipId)}`)
+  const result = await apiDelete(
+    `/api/athletes/admin/memberships/${encodeURIComponent(membershipId)}`,
+  )
   return { deletedMembership: result.deletedMembership }
 }
 
 export async function deleteRegistrationRequest(registrationId) {
-  const result = await apiDelete(`/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}`)
+  const result = await apiDelete(
+    `/api/athletes/admin/registrations/${encodeURIComponent(registrationId)}`,
+  )
   return { deletedRegistration: result.deletedRegistration }
 }
 

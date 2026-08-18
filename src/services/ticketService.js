@@ -60,7 +60,10 @@ export function createTicketOrder({ event, attendees, paymentMethod, pricing, ti
   const catalog = pricing?.addons ?? []
   const orderId = generateId('tord', tickets.length + 1)
   const amount = priceForOrder(attendees, pricing, catalog)
-  const status = getPaymentStatusForMethod(paymentMethod) === 'validacion_manual' ? 'validacion_manual' : 'pendiente'
+  const status =
+    getPaymentStatusForMethod(paymentMethod) === 'validacion_manual'
+      ? 'validacion_manual'
+      : 'pendiente'
   const reference = createPaymentReference(paymentMethod)
   const createdAt = todayISO()
 
@@ -136,7 +139,9 @@ export function approveTicketOrder(orderId, tickets) {
  * @param {object[]} tickets
  */
 export function checkInTicket(ticketCode, tickets) {
-  const normalized = String(ticketCode ?? '').trim().toLowerCase()
+  const normalized = String(ticketCode ?? '')
+    .trim()
+    .toLowerCase()
   const ticket = tickets.find((item) => item.ticketCode.toLowerCase() === normalized)
 
   if (!ticket) return { outcome: 'not_found' }

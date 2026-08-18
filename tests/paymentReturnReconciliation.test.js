@@ -37,12 +37,14 @@ describe('conciliacion de retorno de Mercado Pago', () => {
     )
 
     expect(mercadoPago.getPayment).toHaveBeenCalledWith(PAYMENT.id)
-    expect(repository.applyPayment).toHaveBeenCalledWith(expect.objectContaining({
-      orderId: ORDER.id,
-      externalPaymentId: PAYMENT.id,
-      status: 'aprobado',
-      orderKind: 'athlete',
-    }))
+    expect(repository.applyPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: ORDER.id,
+        externalPaymentId: PAYMENT.id,
+        status: 'aprobado',
+        orderKind: 'athlete',
+      }),
+    )
     expect(result).toMatchObject({
       reconciled: true,
       order: { status: 'aprobado' },

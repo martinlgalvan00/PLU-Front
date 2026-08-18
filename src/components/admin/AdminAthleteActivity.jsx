@@ -86,7 +86,8 @@ export default function AdminAthleteActivity({
       </p>
     )
   }
-  if (!items.length) return <p className="data-table__empty">{t('admin.athleteDetail.emptyActivity')}</p>
+  if (!items.length)
+    return <p className="data-table__empty">{t('admin.athleteDetail.emptyActivity')}</p>
 
   return <AuditTimeline items={items} />
 }

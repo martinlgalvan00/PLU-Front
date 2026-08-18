@@ -1,4 +1,10 @@
-export default function SectionHeading({ eyebrow, title, description, align = 'center', variant = 'default' }) {
+export default function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  align = 'center',
+  variant = 'default',
+}) {
   const variantClass = variant === 'ref' ? ' section-heading--ref' : ''
   return (
     <header className={`section-heading section-heading--${align}${variantClass}`.trim()}>

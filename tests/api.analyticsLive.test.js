@@ -181,8 +181,12 @@ describe('contrato SQL de la migracion', () => {
     // exponen cuantas cuentas fallan: ninguna de las dos puede quedar al
     // alcance de la clave publica del navegador.
     for (const fn of ['get_analytics_live', 'get_access_metrics']) {
-      expect(migration).toMatch(new RegExp(`revoke all on function public\\.${fn}[^;]*from public, anon, authenticated`))
-      expect(migration).toMatch(new RegExp(`grant execute on function public\\.${fn}[^;]*to service_role`))
+      expect(migration).toMatch(
+        new RegExp(`revoke all on function public\\.${fn}[^;]*from public, anon, authenticated`),
+      )
+      expect(migration).toMatch(
+        new RegExp(`grant execute on function public\\.${fn}[^;]*to service_role`),
+      )
     }
   })
 
@@ -196,7 +200,7 @@ describe('contrato SQL de la migracion', () => {
     // Contar eventos por minuto daria una curva dentada que subestima a quien
     // esta leyendo sin tocar nada: una sesion cuenta en el minuto que su
     // intervalo cubre, haya emitido o no un evento ahi.
-    expect(migration).toContain('r.started_at <= m.minute + interval \'1 minute\'')
+    expect(migration).toContain("r.started_at <= m.minute + interval '1 minute'")
     expect(migration).toContain('r.last_seen_at >= m.minute')
   })
 

@@ -5,13 +5,7 @@ import { formatShortDate } from '../../lib/format.js'
  * Celda de identidad: nombre primario + sublínea secundaria.
  * `subMono` tipifica documentos/IDs con números tabulares.
  */
-export function AdminIdentityCell({
-  accent = 'celeste',
-  name,
-  photoUrl,
-  sub,
-  subMono = false,
-}) {
+export function AdminIdentityCell({ accent = 'celeste', name, photoUrl, sub, subMono = false }) {
   const initial = name?.trim()?.charAt(0)?.toUpperCase() ?? '?'
 
   return (
@@ -35,9 +29,7 @@ export function AdminIdentityCell({
       <div className="data-table__identity-copy">
         <strong className="data-table__identity-name">{name ?? '—'}</strong>
         {sub ? (
-          <span
-            className={`data-table__sub${subMono ? ' data-table__sub--mono' : ''}`.trim()}
-          >
+          <span className={`data-table__sub${subMono ? ' data-table__sub--mono' : ''}`.trim()}>
             {sub}
           </span>
         ) : null}
@@ -53,7 +45,10 @@ export function AdminMonoCell({ children, title }) {
   }
 
   return (
-    <span className="data-table__mono" title={title ?? (typeof children === 'string' ? children : undefined)}>
+    <span
+      className="data-table__mono"
+      title={title ?? (typeof children === 'string' ? children : undefined)}
+    >
       {children}
     </span>
   )
@@ -105,9 +100,7 @@ export function AdminPeriodCell({ start, end, year, locale = 'es' }) {
           <span className="data-table__date data-table__date--empty">—</span>
         )}
       </span>
-      {year != null && year !== '' ? (
-        <span className="data-table__period-year">{year}</span>
-      ) : null}
+      {year != null && year !== '' ? <span className="data-table__period-year">{year}</span> : null}
     </div>
   )
 }
@@ -120,7 +113,9 @@ export function AdminPaymentCell({ amount, status }) {
   return (
     <div className="admin-payment-cell">
       {status ? <StatusBadge value={status} /> : null}
-      {amount && amount !== '—' ? <span className="admin-payment-cell__amount">{amount}</span> : null}
+      {amount && amount !== '—' ? (
+        <span className="admin-payment-cell__amount">{amount}</span>
+      ) : null}
     </div>
   )
 }

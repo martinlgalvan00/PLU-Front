@@ -232,8 +232,7 @@ export const MEMBERSHIP_BENEFITS = [
 export const MEMBERSHIP_INSTITUTIONAL = {
   eyebrow: 'Powerlifting United',
   title: 'Estándar federativo',
-  text:
-    'PLU Argentina organiza afiliaciones, competencias y resultados con el mismo criterio que Powerlifting United. Operación local: Maximal.',
+  text: 'PLU Argentina organiza afiliaciones, competencias y resultados con el mismo criterio que Powerlifting United. Operación local: Maximal.',
 }
 
 export const MEMBERSHIP_REQUIREMENTS = [
@@ -331,14 +330,54 @@ export const MEMBERSHIP_COMPARE_ROWS = [
 ]
 
 export const PLATFORM_SECTIONS = [
-  { key: 'members', group: 'Competencia', title: 'Afiliación', desc: 'Planes anuales, código de atleta y respaldo federativo.' },
-  { key: 'pitbull', group: 'Competencia', title: 'Pitbull Classic', desc: 'El meet insignia de la temporada PLU ARG.' },
-  { key: 'events', group: 'Competencia', title: 'Eventos', desc: 'Calendario competitivo y inscripciones por meet.' },
-  { key: 'results', group: 'Competencia', title: 'Resultados', desc: 'Planillas oficiales, totales y podios.' },
-  { key: 'rulebook', group: 'Institucional', title: 'Reglamento', desc: 'Normativa, categorías y equipamiento.' },
-  { key: 'community', group: 'Institucional', title: 'Comunidad', desc: 'Gimnasios aliados, jueces y red de atletas.' },
-  { key: 'faq', group: 'Institucional', title: 'FAQ', desc: 'Respuestas sobre afiliación, pagos y competencia.' },
-  { key: 'contact', group: 'Institucional', title: 'Contacto', desc: 'Soporte operativo y consultas de la federación.' },
+  {
+    key: 'members',
+    group: 'Competencia',
+    title: 'Afiliación',
+    desc: 'Planes anuales, código de atleta y respaldo federativo.',
+  },
+  {
+    key: 'pitbull',
+    group: 'Competencia',
+    title: 'Pitbull Classic',
+    desc: 'El meet insignia de la temporada PLU ARG.',
+  },
+  {
+    key: 'events',
+    group: 'Competencia',
+    title: 'Eventos',
+    desc: 'Calendario competitivo y inscripciones por meet.',
+  },
+  {
+    key: 'results',
+    group: 'Competencia',
+    title: 'Resultados',
+    desc: 'Planillas oficiales, totales y podios.',
+  },
+  {
+    key: 'rulebook',
+    group: 'Institucional',
+    title: 'Reglamento',
+    desc: 'Normativa, categorías y equipamiento.',
+  },
+  {
+    key: 'community',
+    group: 'Institucional',
+    title: 'Comunidad',
+    desc: 'Gimnasios aliados, jueces y red de atletas.',
+  },
+  {
+    key: 'faq',
+    group: 'Institucional',
+    title: 'FAQ',
+    desc: 'Respuestas sobre afiliación, pagos y competencia.',
+  },
+  {
+    key: 'contact',
+    group: 'Institucional',
+    title: 'Contacto',
+    desc: 'Soporte operativo y consultas de la federación.',
+  },
 ]
 
 export const PITBULL_CLASSIC = {
@@ -360,16 +399,51 @@ export const PITBULL_CLASSIC = {
 export const PITBULL_VENUE = PITBULL_VENUE_DATA
 
 export const PITBULL_BENEFITS_ATHLETES = [
-  { id: 'standard', icon: 'Globe', title: 'Resultados PLU USA', desc: 'Publicación y exportación alineadas al ecosistema internacional.' },
-  { id: 'credential', icon: 'QrCode', title: 'Credencial digital', desc: 'Card y QR de ingreso al confirmar la inscripción.' },
-  { id: 'judging', icon: 'ShieldCheck', title: 'Jueces certificados', desc: 'Panel técnico bajo estándar PLU USA.' },
-  { id: 'ops', icon: 'ClipboardList', title: 'Operación trazable', desc: 'Pesaje, sorteo y cargas registrados en la plataforma.' },
+  {
+    id: 'standard',
+    icon: 'Globe',
+    title: 'Resultados PLU USA',
+    desc: 'Publicación y exportación alineadas al ecosistema internacional.',
+  },
+  {
+    id: 'credential',
+    icon: 'QrCode',
+    title: 'Credencial digital',
+    desc: 'Card y QR de ingreso al confirmar la inscripción.',
+  },
+  {
+    id: 'judging',
+    icon: 'ShieldCheck',
+    title: 'Jueces certificados',
+    desc: 'Panel técnico bajo estándar PLU USA.',
+  },
+  {
+    id: 'ops',
+    icon: 'ClipboardList',
+    title: 'Operación trazable',
+    desc: 'Pesaje, sorteo y cargas registrados en la plataforma.',
+  },
 ]
 
 export const PITBULL_BENEFITS_SPECTATORS = [
-  { id: 'show', icon: 'Ticket', title: 'Entrada general', desc: 'Dos jornadas de competencia en La Troupe Multiespacio, Banfield.' },
-  { id: 'access', icon: 'Ticket', title: 'Sin afiliación', desc: 'Solo DNI. Compra online o en puerta el día del evento.' },
-  { id: 'community', icon: 'Users', title: 'Calendario PLU ARG', desc: 'Meet oficial del circuito competitivo local.' },
+  {
+    id: 'show',
+    icon: 'Ticket',
+    title: 'Entrada general',
+    desc: 'Dos jornadas de competencia en La Troupe Multiespacio, Banfield.',
+  },
+  {
+    id: 'access',
+    icon: 'Ticket',
+    title: 'Sin afiliación',
+    desc: 'Solo DNI. Compra online o en puerta el día del evento.',
+  },
+  {
+    id: 'community',
+    icon: 'Users',
+    title: 'Calendario PLU ARG',
+    desc: 'Meet oficial del circuito competitivo local.',
+  },
 ]
 
 export const PITBULL_ATHLETE_GROUPS = [
@@ -476,7 +550,11 @@ export const PITBULL_SCHEDULE = [
 ]
 
 export const PITBULL_CATEGORY_CARDS = [
-  { id: 'equipment', title: 'Equipamiento', text: `${PITBULL_CLASSIC.categories.join(' · ')} (ejemplo)` },
+  {
+    id: 'equipment',
+    title: 'Equipamiento',
+    text: `${PITBULL_CLASSIC.categories.join(' · ')} (ejemplo)`,
+  },
   { id: 'age', title: 'Edad', text: `${PITBULL_CLASSIC.divisions.join(' · ')} (ejemplo)` },
   { id: 'weight', title: 'Peso corporal', text: 'Franjas masculinas y femeninas (ejemplo).' },
   { id: 'gender', title: 'Género', text: 'Competencia separada M / F (ejemplo).' },
@@ -490,9 +568,27 @@ export const PITBULL_CREDENTIAL_SAMPLE = {
 // Datos de ejemplo para Podium/ResultCard: se reactivan en ResultsPage cuando haya
 // resultados reales publicados (hoy la página muestra el estado pre-lanzamiento).
 export const RECENT_RESULTS = [
-  { athlete: 'Martina Rivas', event: 'Pitbull Classic 2025', total: '412.5 kg', place: '1° Open Raw F', date: '2025-08-10' },
-  { athlete: 'Nicolás Aguirre', event: 'Argentina Open 2025', total: '580 kg', place: '2° Junior Classic', date: '2025-10-18' },
-  { athlete: 'Lucía Fernández', event: 'Rookie Meet Córdoba', total: '325 kg', place: '1° Youth', date: '2025-09-05' },
+  {
+    athlete: 'Martina Rivas',
+    event: 'Pitbull Classic 2025',
+    total: '412.5 kg',
+    place: '1° Open Raw F',
+    date: '2025-08-10',
+  },
+  {
+    athlete: 'Nicolás Aguirre',
+    event: 'Argentina Open 2025',
+    total: '580 kg',
+    place: '2° Junior Classic',
+    date: '2025-10-18',
+  },
+  {
+    athlete: 'Lucía Fernández',
+    event: 'Rookie Meet Córdoba',
+    total: '325 kg',
+    place: '1° Youth',
+    date: '2025-09-05',
+  },
 ]
 
 export const FAQ_ITEMS = [
@@ -586,9 +682,15 @@ export const FAQ_GROUPS = [
 ]
 
 export const COMMUNITY_HIGHLIGHTS = [
-  { title: 'Gimnasios aliados', text: 'Red de sedes en Buenos Aires, Córdoba, Rosario y el interior.' },
+  {
+    title: 'Gimnasios aliados',
+    text: 'Red de sedes en Buenos Aires, Córdoba, Rosario y el interior.',
+  },
   { title: 'Jueces certificados', text: 'Cuerpo arbitral formado bajo reglamento PLU ARG.' },
-  { title: 'Atletas elite y base', text: 'Desde la primera competencia hasta el podio internacional.' },
+  {
+    title: 'Atletas elite y base',
+    text: 'Desde la primera competencia hasta el podio internacional.',
+  },
 ]
 
 export const COMMUNITY_QUOTE =
@@ -750,9 +852,7 @@ export const ADMIN_NAV_GROUPS = [
   },
   {
     labelKey: 'admin.nav.groups.pluUsa',
-    items: [
-      ['plu-usa', 'admin.nav.pluUsa', 'Eye'],
-    ],
+    items: [['plu-usa', 'admin.nav.pluUsa', 'Eye']],
   },
 ]
 

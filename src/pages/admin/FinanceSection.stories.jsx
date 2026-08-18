@@ -61,10 +61,10 @@ const ROWS = [
 ]
 
 function totalsFor(rows) {
-  const totals = rows.reduce(
-    (acc, row) => ({ ...acc, [row.kind]: acc[row.kind] + row.amount }),
-    { income: 0, expense: 0 },
-  )
+  const totals = rows.reduce((acc, row) => ({ ...acc, [row.kind]: acc[row.kind] + row.amount }), {
+    income: 0,
+    expense: 0,
+  })
   return { ...totals, balance: totals.income - totals.expense }
 }
 
@@ -73,7 +73,7 @@ function withReport(rows) {
   return (Story) => {
     const original = globalThis.fetch
     globalThis.fetch = async (input, init) => {
-      const url = String(typeof input === 'string' ? input : input?.url ?? '')
+      const url = String(typeof input === 'string' ? input : (input?.url ?? ''))
       if (url.includes('/api/finance/expenses')) {
         return new Response(JSON.stringify({ expense: { id: 'expense-new' } }), {
           status: 201,

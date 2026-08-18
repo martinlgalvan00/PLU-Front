@@ -16,9 +16,7 @@ export function OAuthProvider({ children }) {
   // de autenticación alternativa.
   return (
     <Suspense
-      fallback={
-        <OAuthContext.Provider value={disabledOAuth}>{children}</OAuthContext.Provider>
-      }
+      fallback={<OAuthContext.Provider value={disabledOAuth}>{children}</OAuthContext.Provider>}
     >
       <OAuthProviderAuth0>{children}</OAuthProviderAuth0>
     </Suspense>

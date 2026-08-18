@@ -27,23 +27,64 @@ const ticketTypes = [
 ]
 
 const tickets = [
-  { id: 'tkt-1', eventSlug: 'pitbull-2026', attendeeName: 'Ana', attendeeDni: '1', ticketTypeId: 'both-type', status: 'pagada' },
-  { id: 'tkt-1b', eventSlug: 'pitbull-2026', attendeeName: 'Bruno', attendeeDni: '4', ticketTypeId: 'day1-type', status: 'pagada' },
-  { id: 'tkt-2', eventSlug: 'otro-2026', attendeeName: 'Luis', attendeeDni: '2', ticketTypeId: 'day2-type', status: 'pagada' },
-  { id: 'tkt-legacy', attendeeName: 'Sin evento', attendeeDni: '3', ticketTypeId: 'day1-type', status: 'pagada' },
+  {
+    id: 'tkt-1',
+    eventSlug: 'pitbull-2026',
+    attendeeName: 'Ana',
+    attendeeDni: '1',
+    ticketTypeId: 'both-type',
+    status: 'pagada',
+  },
+  {
+    id: 'tkt-1b',
+    eventSlug: 'pitbull-2026',
+    attendeeName: 'Bruno',
+    attendeeDni: '4',
+    ticketTypeId: 'day1-type',
+    status: 'pagada',
+  },
+  {
+    id: 'tkt-2',
+    eventSlug: 'otro-2026',
+    attendeeName: 'Luis',
+    attendeeDni: '2',
+    ticketTypeId: 'day2-type',
+    status: 'pagada',
+  },
+  {
+    id: 'tkt-legacy',
+    attendeeName: 'Sin evento',
+    attendeeDni: '3',
+    ticketTypeId: 'day1-type',
+    status: 'pagada',
+  },
 ]
 
 describe('checkinWorkspaceService', () => {
   it('limita atletas y entradas al evento asignado', () => {
-    const rows = buildCheckinRows({ athletes, registrations, tickets, eventSlug: 'pitbull-2026', ticketTypes })
+    const rows = buildCheckinRows({
+      athletes,
+      registrations,
+      tickets,
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
 
     expect(rows).toHaveLength(3)
-    expect(rows.map((row) => row.name)).toEqual(expect.arrayContaining(['Martina Rivas', 'Ana', 'Bruno']))
+    expect(rows.map((row) => row.name)).toEqual(
+      expect.arrayContaining(['Martina Rivas', 'Ana', 'Bruno']),
+    )
     expect(rows.map((row) => row.name)).not.toContain('Sin evento')
   })
 
   it('resuelve el día de acceso de cada ticket vía su tipo de entrada', () => {
-    const rows = buildCheckinRows({ athletes, registrations, tickets, eventSlug: 'pitbull-2026', ticketTypes })
+    const rows = buildCheckinRows({
+      athletes,
+      registrations,
+      tickets,
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
 
     // Martina (inscripción de atleta) cubre todo el evento; Ana (pase ambos
     // días) matchea los dos días; Bruno (pase día 1) solo matchea el día 0.

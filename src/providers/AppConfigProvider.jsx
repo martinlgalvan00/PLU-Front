@@ -1,14 +1,14 @@
-import { ConfigProvider, App } from 'antd';
-import { useTheme } from './ThemeProvider';
-import { lightTheme } from '../theme/lightTheme';
-import { darkTheme } from '../theme/darkTheme';
-import { componentTheme } from '../theme/componentTheme';
+import { ConfigProvider, App } from 'antd'
+import { useTheme } from './ThemeProvider'
+import { lightTheme } from '../theme/lightTheme'
+import { darkTheme } from '../theme/darkTheme'
+import { componentTheme } from '../theme/componentTheme'
 
 export function AppConfigProvider({ children }) {
-  const { theme } = useTheme();
+  const { theme } = useTheme()
 
-  const isDarkMode = theme === 'dark';
-  const baseTheme = isDarkMode ? darkTheme : lightTheme;
+  const isDarkMode = theme === 'dark'
+  const baseTheme = isDarkMode ? darkTheme : lightTheme
 
   return (
     <ConfigProvider
@@ -18,9 +18,7 @@ export function AppConfigProvider({ children }) {
         components: componentTheme,
       }}
     >
-      <App>
-        {children}
-      </App>
+      <App>{children}</App>
     </ConfigProvider>
-  );
+  )
 }

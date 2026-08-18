@@ -75,10 +75,11 @@ export function createApp(deps = {}) {
   app.use(express.json({ limit: '100kb' }))
   app.use(cookieParser())
   app.use(requireTrustedMutation)
-  const healthRoutes = () => createHealthRoutes({
-    getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: resolveSupabaseAdmin,
-  })
+  const healthRoutes = () =>
+    createHealthRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+    })
   app.use(healthRoutes())
   app.use('/api', healthRoutes())
   app.use(
@@ -177,39 +178,57 @@ export function createApp(deps = {}) {
       repository: deps.platformSettingsRepository,
     }),
   )
-  app.use('/api/tickets', createTicketRoutes({
-    getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: resolveSupabaseAdmin,
-    repository: deps.ticketRepository,
-    athleteRepository: deps.athleteRepository,
-    platformSettingsRepository: deps.platformSettingsRepository,
-    env: deps.env ?? process.env,
-    brevo: deps.brevo,
-  }))
-  app.use('/api/audit', createAuditRoutes({
-    getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: resolveSupabaseAdmin,
-    repository: deps.auditRepository,
-  }))
-  app.use('/api/analytics', createAnalyticsRoutes({
-    getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: resolveSupabaseAdmin,
-    repository: deps.analyticsRepository,
-    env: deps.env ?? process.env,
-  }))
-  app.use('/api/events', createEventRoutes({
-    getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: resolveSupabaseAdmin,
-  }))
-  app.use('/api/pricing', createPricingRoutes({
-    getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: resolveSupabaseAdmin,
-    env: deps.env ?? process.env,
-  }))
-  app.use('/api/finance', createFinanceRoutes({
-    getPrisma: () => deps.prisma ?? getPrisma(),
-    getSupabaseAdmin: resolveSupabaseAdmin,
-  }))
+  app.use(
+    '/api/tickets',
+    createTicketRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      repository: deps.ticketRepository,
+      athleteRepository: deps.athleteRepository,
+      platformSettingsRepository: deps.platformSettingsRepository,
+      env: deps.env ?? process.env,
+      brevo: deps.brevo,
+    }),
+  )
+  app.use(
+    '/api/audit',
+    createAuditRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      repository: deps.auditRepository,
+    }),
+  )
+  app.use(
+    '/api/analytics',
+    createAnalyticsRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      repository: deps.analyticsRepository,
+      env: deps.env ?? process.env,
+    }),
+  )
+  app.use(
+    '/api/events',
+    createEventRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+    }),
+  )
+  app.use(
+    '/api/pricing',
+    createPricingRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+      env: deps.env ?? process.env,
+    }),
+  )
+  app.use(
+    '/api/finance',
+    createFinanceRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+    }),
+  )
   app.use(
     '/api/community',
     createCommunityRoutes({

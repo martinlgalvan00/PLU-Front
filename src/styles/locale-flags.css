@@ -94,13 +94,7 @@ html[lang='es'] .site-header__drawer-flag::after {
 /* —— Estados Unidos —— */
 html[lang='en'] .hero__eyebrow-flag,
 html[lang='en'] .site-header__drawer-flag {
-  background: repeating-linear-gradient(
-    180deg,
-    #b22234 0,
-    #b22234 2px,
-    #ffffff 2px,
-    #ffffff 4px
-  );
+  background: repeating-linear-gradient(180deg, #b22234 0, #b22234 2px, #ffffff 2px, #ffffff 4px);
 }
 
 html[lang='en'] .hero__eyebrow-flag::before,

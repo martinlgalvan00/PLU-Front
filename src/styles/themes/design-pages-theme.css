@@ -117,11 +117,9 @@
   --home-membership-card-border: rgba(255, 255, 255, 0.09);
   --home-membership-card-border-hover: rgba(242, 183, 5, 0.28);
   --home-membership-card-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 18px 40px rgba(0, 0, 0, 0.22);
+    0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 40px rgba(0, 0, 0, 0.22);
   --home-membership-card-shadow-hover:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 22px 48px rgba(0, 0, 0, 0.28);
+    0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 22px 48px rgba(0, 0, 0, 0.28);
   --home-membership-check-bg: rgba(116, 172, 223, 0.12);
   --home-membership-check-border: rgba(116, 172, 223, 0.22);
   --home-membership-check-fg: var(--color-brand-celeste);
@@ -131,9 +129,21 @@
   /* Fondo institucional + atmósfera suave (marca, sin textura) */
   --home-hero-bg: var(--plu-cool-950);
   --home-hero-atmosphere:
-    radial-gradient(ellipse 80% 65% at 8% 42%, color-mix(in oklab, var(--plu-celeste-500) 22%, transparent), transparent 70%),
-    radial-gradient(ellipse 52% 46% at 92% 18%, color-mix(in oklab, var(--plu-gold-500) 15%, transparent), transparent 72%),
-    radial-gradient(ellipse 40% 30% at 50% 100%, color-mix(in oklab, var(--plu-cool-950) 85%, transparent), transparent 80%);
+    radial-gradient(
+      ellipse 80% 65% at 8% 42%,
+      color-mix(in oklab, var(--plu-celeste-500) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 52% 46% at 92% 18%,
+      color-mix(in oklab, var(--plu-gold-500) 15%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 40% 30% at 50% 100%,
+      color-mix(in oklab, var(--plu-cool-950) 85%, transparent),
+      transparent 80%
+    );
   --home-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
   --home-hero-eyebrow-fg: rgba(255, 255, 255, 0.72);
   --home-hero-eyebrow-stripe: linear-gradient(
@@ -176,8 +186,7 @@
   --home-hero-status-panel-bg: color-mix(in oklab, var(--plu-cool-900) 72%, transparent);
   --home-hero-status-panel-border: rgba(255, 255, 255, 0.1);
   --home-hero-status-panel-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 18px 40px rgba(0, 0, 0, 0.28);
+    0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 18px 40px rgba(0, 0, 0, 0.28);
   --home-hero-status-eyebrow: rgba(255, 255, 255, 0.52);
   --home-hero-status-year: #fff;
   --home-hero-status-label: rgba(255, 255, 255, 0.42);
@@ -335,12 +344,19 @@
   );
   --results-hero-eyebrow-bg: rgba(255, 255, 255, 0.05);
   --results-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
-  --results-hero-panel-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --results-hero-panel-bg: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
   --results-hero-panel-border: rgba(255, 255, 255, 0.1);
   --results-hero-panel-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 20px 48px rgba(0, 0, 0, 0.22);
-  --results-hero-panel-stripe: linear-gradient(90deg, rgba(242, 183, 5, 0.65), rgba(116, 172, 223, 0.5));
+    0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 48px rgba(0, 0, 0, 0.22);
+  --results-hero-panel-stripe: linear-gradient(
+    90deg,
+    rgba(242, 183, 5, 0.65),
+    rgba(116, 172, 223, 0.5)
+  );
   --results-hero-panel-stats-bg: rgba(0, 0, 0, 0.18);
   --results-hero-panel-stats-divider: rgba(255, 255, 255, 0.08);
   --results-hero-panel-stat-value: #fff;
@@ -361,12 +377,19 @@
   );
   --pitbull-hero-eyebrow-bg: rgba(255, 255, 255, 0.05);
   --pitbull-hero-eyebrow-border: rgba(255, 255, 255, 0.1);
-  --pitbull-rail-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --pitbull-rail-bg: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
   --pitbull-rail-border: rgba(255, 255, 255, 0.1);
-  --pitbull-rail-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 20px 48px rgba(0, 0, 0, 0.22);
-  --pitbull-rail-stripe: linear-gradient(90deg, rgba(31, 95, 158, 0.65), rgba(242, 183, 5, 0.55), rgba(116, 172, 223, 0.5));
+  --pitbull-rail-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 48px rgba(0, 0, 0, 0.22);
+  --pitbull-rail-stripe: linear-gradient(
+    90deg,
+    rgba(31, 95, 158, 0.65),
+    rgba(242, 183, 5, 0.55),
+    rgba(116, 172, 223, 0.5)
+  );
   --pitbull-rail-stats-bg: rgba(0, 0, 0, 0.18);
   --pitbull-rail-stats-border: rgba(255, 255, 255, 0.07);
   --pitbull-rail-divider: rgba(255, 255, 255, 0.08);
@@ -380,8 +403,7 @@
   --pitbull-feature-border: rgba(255, 255, 255, 0.1);
   --pitbull-feature-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
   --pitbull-feature-band-bg:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%),
-    var(--color-bg-surface);
+    linear-gradient(165deg, rgba(255, 255, 255, 0.03) 0%, transparent 42%), var(--color-bg-surface);
   --pitbull-feature-band-shadow: 0 20px 48px rgba(0, 0, 0, 0.2);
   --pitbull-feature-stripe: var(--plu-gradient-stripe);
   --pitbull-feature-panel-wash: linear-gradient(180deg, rgba(116, 172, 223, 0.12), transparent);
@@ -414,8 +436,7 @@
     var(--color-bg-surface);
   --pitbull-categories-shell-border: rgba(242, 183, 5, 0.14);
   --pitbull-categories-shell-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 20px 48px rgba(0, 0, 0, 0.24);
+    0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 20px 48px rgba(0, 0, 0, 0.24);
   --pitbull-categories-trigger-hover: rgba(255, 255, 255, 0.04);
   --pitbull-categories-trigger-open-bg: rgba(255, 255, 255, 0.03);
   --pitbull-categories-count-fg: rgba(255, 255, 255, 0.46);
@@ -430,12 +451,15 @@
   --pitbull-categories-chevron-bg: rgba(255, 255, 255, 0.05);
   --pitbull-categories-chevron-border: rgba(255, 255, 255, 0.1);
   --pitbull-categories-chevron-fg: rgba(255, 255, 255, 0.56);
-  --pitbull-ticket-pass-bg:
-    linear-gradient(135deg, rgba(242, 183, 5, 0.07) 0%, rgba(116, 172, 223, 0.05) 52%, rgba(255, 255, 255, 0.02) 100%);
+  --pitbull-ticket-pass-bg: linear-gradient(
+    135deg,
+    rgba(242, 183, 5, 0.07) 0%,
+    rgba(116, 172, 223, 0.05) 52%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
   --pitbull-ticket-pass-border: rgba(242, 183, 5, 0.22);
   --pitbull-ticket-pass-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 20px 48px rgba(0, 0, 0, 0.22);
+    0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 48px rgba(0, 0, 0, 0.22);
   --pitbull-ticket-pass-price-bg: rgba(255, 255, 255, 0.04);
   --pitbull-ticket-pass-price-border: rgba(255, 255, 255, 0.1);
   --pitbull-ticket-pass-qr-bg: rgba(116, 172, 223, 0.1);
@@ -445,8 +469,7 @@
     var(--color-bg-surface);
   --pitbull-ticket-form-border: rgba(242, 183, 5, 0.16);
   --pitbull-ticket-form-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 18px 44px rgba(0, 0, 0, 0.2);
+    0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 44px rgba(0, 0, 0, 0.2);
   --pitbull-checklist-bg: rgba(255, 255, 255, 0.03);
   --results-footnotes-border: rgba(255, 255, 255, 0.06);
   --results-footnotes-icon-bg: rgba(255, 255, 255, 0.04);
@@ -490,7 +513,11 @@
     rgba(255, 255, 255, 0.92) 50%,
     var(--color-brand-celeste) 100%
   );
-  --register-intro-bg: linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  --register-intro-bg: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
   --register-intro-border: rgba(255, 255, 255, 0.1);
   --register-intro-shadow: 0 20px 48px rgba(0, 0, 0, 0.22);
   --register-intro-stripe: var(--plu-gradient-stripe);
@@ -636,7 +663,8 @@
   --home-membership-card-border: oklch(90% 0.004 260);
   --home-membership-card-border-hover: rgba(242, 183, 5, 0.4);
   --home-membership-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 12px 32px rgba(15, 17, 23, 0.06);
-  --home-membership-card-shadow-hover: 0 1px 2px rgba(0, 0, 0, 0.04), 0 16px 40px rgba(15, 17, 23, 0.09);
+  --home-membership-card-shadow-hover:
+    0 1px 2px rgba(0, 0, 0, 0.04), 0 16px 40px rgba(15, 17, 23, 0.09);
   --home-membership-check-bg: rgba(116, 172, 223, 0.1);
   --home-membership-check-border: rgba(116, 172, 223, 0.18);
   --home-membership-check-fg: oklch(52% 0.12 230);
@@ -645,8 +673,16 @@
   --home-membership-sheen: color-mix(in oklab, #fff 55%, transparent);
   --home-hero-bg: var(--plu-warm-50);
   --home-hero-atmosphere:
-    radial-gradient(ellipse 75% 60% at 6% 38%, color-mix(in oklab, var(--plu-celeste-500) 12%, transparent), transparent 72%),
-    radial-gradient(ellipse 50% 44% at 96% 14%, color-mix(in oklab, var(--plu-gold-500) 9%, transparent), transparent 74%),
+    radial-gradient(
+      ellipse 75% 60% at 6% 38%,
+      color-mix(in oklab, var(--plu-celeste-500) 12%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 50% 44% at 96% 14%,
+      color-mix(in oklab, var(--plu-gold-500) 9%, transparent),
+      transparent 74%
+    ),
     linear-gradient(180deg, rgba(247, 246, 243, 0) 0%, rgba(247, 246, 243, 0.4) 100%);
   --home-hero-eyebrow-border: rgba(15, 17, 23, 0.1);
   --home-hero-eyebrow-fg: var(--plu-celeste-700);
@@ -682,8 +718,7 @@
   --home-hero-status-panel-bg: rgba(255, 255, 255, 0.72);
   --home-hero-status-panel-border: rgba(15, 17, 23, 0.08);
   --home-hero-status-panel-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 14px 32px rgba(15, 17, 23, 0.06);
+    0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 14px 32px rgba(15, 17, 23, 0.06);
   --home-hero-status-eyebrow: rgba(15, 17, 23, 0.48);
   --home-hero-status-year: var(--plu-ink-900);
   --home-hero-status-label: rgba(15, 17, 23, 0.48);
@@ -845,7 +880,11 @@
   --results-hero-panel-bg: linear-gradient(165deg, #fff 0%, rgba(248, 250, 252, 0.96) 100%);
   --results-hero-panel-border: rgba(15, 17, 23, 0.08);
   --results-hero-panel-shadow: 0 16px 40px rgba(15, 17, 23, 0.08);
-  --results-hero-panel-stripe: linear-gradient(90deg, rgba(169, 121, 15, 0.72), rgba(26, 107, 176, 0.52));
+  --results-hero-panel-stripe: linear-gradient(
+    90deg,
+    rgba(169, 121, 15, 0.72),
+    rgba(26, 107, 176, 0.52)
+  );
   --results-hero-panel-stats-bg: rgba(15, 17, 23, 0.03);
   --results-hero-panel-stats-divider: rgba(15, 17, 23, 0.08);
   --results-hero-panel-stat-value: var(--plu-ink-900);
@@ -869,7 +908,12 @@
   --pitbull-rail-bg: linear-gradient(165deg, #fff 0%, rgba(248, 250, 252, 0.96) 100%);
   --pitbull-rail-border: rgba(15, 17, 23, 0.08);
   --pitbull-rail-shadow: 0 16px 40px rgba(15, 17, 23, 0.08);
-  --pitbull-rail-stripe: linear-gradient(90deg, rgba(31, 95, 158, 0.72), rgba(169, 121, 15, 0.62), rgba(26, 107, 176, 0.52));
+  --pitbull-rail-stripe: linear-gradient(
+    90deg,
+    rgba(31, 95, 158, 0.72),
+    rgba(169, 121, 15, 0.62),
+    rgba(26, 107, 176, 0.52)
+  );
   --pitbull-rail-stats-bg: rgba(15, 17, 23, 0.03);
   --pitbull-rail-stats-border: rgba(15, 17, 23, 0.07);
   --pitbull-rail-divider: rgba(15, 17, 23, 0.08);
@@ -908,12 +952,14 @@
   --pitbull-meet-row-divider: rgba(15, 17, 23, 0.07);
   --pitbull-meet-day-active: var(--plu-ink-900);
   --pitbull-meet-time-fg: var(--plu-gold-600);
-  --pitbull-categories-shell-bg:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 251, 0.94) 100%);
+  --pitbull-categories-shell-bg: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(248, 249, 251, 0.94) 100%
+  );
   --pitbull-categories-shell-border: rgba(242, 183, 5, 0.22);
   --pitbull-categories-shell-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.98) inset,
-    0 16px 40px rgba(15, 17, 23, 0.07);
+    0 1px 0 rgba(255, 255, 255, 0.98) inset, 0 16px 40px rgba(15, 17, 23, 0.07);
   --pitbull-categories-trigger-hover: rgba(15, 17, 23, 0.03);
   --pitbull-categories-trigger-open-bg: rgba(15, 17, 23, 0.02);
   --pitbull-categories-count-fg: rgba(15, 17, 23, 0.46);
@@ -928,22 +974,27 @@
   --pitbull-categories-chevron-bg: rgba(15, 17, 23, 0.03);
   --pitbull-categories-chevron-border: rgba(15, 17, 23, 0.09);
   --pitbull-categories-chevron-fg: rgba(15, 17, 23, 0.48);
-  --pitbull-ticket-pass-bg:
-    linear-gradient(135deg, rgba(242, 183, 5, 0.1) 0%, rgba(116, 172, 223, 0.06) 52%, rgba(255, 255, 255, 0.98) 100%);
+  --pitbull-ticket-pass-bg: linear-gradient(
+    135deg,
+    rgba(242, 183, 5, 0.1) 0%,
+    rgba(116, 172, 223, 0.06) 52%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
   --pitbull-ticket-pass-border: rgba(242, 183, 5, 0.28);
   --pitbull-ticket-pass-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.98) inset,
-    0 16px 40px rgba(15, 17, 23, 0.08);
+    0 1px 0 rgba(255, 255, 255, 0.98) inset, 0 16px 40px rgba(15, 17, 23, 0.08);
   --pitbull-ticket-pass-price-bg: rgba(15, 17, 23, 0.02);
   --pitbull-ticket-pass-price-border: rgba(15, 17, 23, 0.08);
   --pitbull-ticket-pass-qr-bg: rgba(116, 172, 223, 0.1);
   --pitbull-ticket-pass-qr-border: rgba(116, 172, 223, 0.2);
-  --pitbull-ticket-form-bg:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 251, 0.94) 100%);
+  --pitbull-ticket-form-bg: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(248, 249, 251, 0.94) 100%
+  );
   --pitbull-ticket-form-border: rgba(242, 183, 5, 0.24);
   --pitbull-ticket-form-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.98) inset,
-    0 14px 36px rgba(15, 17, 23, 0.06);
+    0 1px 0 rgba(255, 255, 255, 0.98) inset, 0 14px 36px rgba(15, 17, 23, 0.06);
   --pitbull-checklist-bg: rgba(15, 17, 23, 0.03);
   --results-footnotes-border: rgba(15, 17, 23, 0.06);
   --results-footnotes-icon-bg: rgba(15, 17, 23, 0.03);
@@ -1157,11 +1208,7 @@
 }
 
 [data-theme='light'] .login-brand__intro::before {
-  background: linear-gradient(
-    180deg,
-    rgba(160, 128, 48, 0.9) 0%,
-    rgba(15, 17, 23, 0.35) 100%
-  );
+  background: linear-gradient(180deg, rgba(160, 128, 48, 0.9) 0%, rgba(15, 17, 23, 0.35) 100%);
 }
 
 [data-theme='light'] .login-page--editorial .login-brand__intro::before {
@@ -1337,16 +1384,33 @@
 }
 
 /* ── Home: secciones neutras (resultados, FAQ, comunidad) ── */
-.home-page .home-section:not(.home-section--dark):not(.home-section--about):not(.home-section--light):not(.home-section--pitbull):not(.home-section--pitbull-home):not(.home-section--muted):not(.home-section--immersive):not(.home-section--canvas-light):not(.home-section--surface) {
+.home-page
+  .home-section:not(.home-section--dark):not(.home-section--about):not(.home-section--light):not(
+    .home-section--pitbull
+  ):not(.home-section--pitbull-home):not(.home-section--muted):not(.home-section--immersive):not(
+    .home-section--canvas-light
+  ):not(.home-section--surface) {
   background: var(--color-page-canvas);
   color: var(--color-text-primary);
 }
 
-.home-page .home-section:not(.home-section--dark):not(.home-section--about):not(.home-section--light):not(.home-section--pitbull):not(.home-section--pitbull-home):not(.home-section--muted):not(.home-section--immersive):not(.home-section--canvas-light):not(.home-section--surface) .section-heading__title {
+.home-page
+  .home-section:not(.home-section--dark):not(.home-section--about):not(.home-section--light):not(
+    .home-section--pitbull
+  ):not(.home-section--pitbull-home):not(.home-section--muted):not(.home-section--immersive):not(
+    .home-section--canvas-light
+  ):not(.home-section--surface)
+  .section-heading__title {
   color: var(--color-text-primary);
 }
 
-.home-page .home-section:not(.home-section--dark):not(.home-section--about):not(.home-section--light):not(.home-section--pitbull):not(.home-section--pitbull-home):not(.home-section--muted):not(.home-section--immersive):not(.home-section--canvas-light):not(.home-section--surface) .section-heading__desc {
+.home-page
+  .home-section:not(.home-section--dark):not(.home-section--about):not(.home-section--light):not(
+    .home-section--pitbull
+  ):not(.home-section--pitbull-home):not(.home-section--muted):not(.home-section--immersive):not(
+    .home-section--canvas-light
+  ):not(.home-section--surface)
+  .section-heading__desc {
   color: var(--color-text-muted);
 }
 
@@ -1445,8 +1509,7 @@
 
 [data-theme='dark'] .site-footer--design {
   background:
-    linear-gradient(180deg, rgba(116, 172, 223, 0.03) 0%, transparent 18%),
-    var(--plu-cool-950);
+    linear-gradient(180deg, rgba(116, 172, 223, 0.03) 0%, transparent 18%), var(--plu-cool-950);
   border-top-color: rgba(255, 255, 255, 0.04);
 }
 

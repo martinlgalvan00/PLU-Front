@@ -91,9 +91,14 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
           </div>
         </div>
 
-        <div className="rulebook-doc-panel__toolbar" aria-label={t('pages.rulebook.docActionsAria')}>
+        <div
+          className="rulebook-doc-panel__toolbar"
+          aria-label={t('pages.rulebook.docActionsAria')}
+        >
           <div className="rulebook-doc-panel__lang">
-            <span className="rulebook-doc-panel__lang-label">{t('pages.rulebook.pdfLanguageSwitchLabel')}</span>
+            <span className="rulebook-doc-panel__lang-label">
+              {t('pages.rulebook.pdfLanguageSwitchLabel')}
+            </span>
             <SegmentedSwitch
               active={pdfLocale}
               ariaLabel={t('pages.rulebook.pdfLanguageSwitchAria')}
@@ -156,7 +161,9 @@ export default function RulebookDocShell({ documents, downloadMeta, locale, mani
           <div className="rulebook-pdf-modal" ref={dialogRef}>
             <header className="rulebook-pdf-modal__header">
               <div className="rulebook-pdf-modal__intro">
-                <span className="rulebook-pdf-modal__eyebrow">{t('pages.rulebook.viewerEyebrow')}</span>
+                <span className="rulebook-pdf-modal__eyebrow">
+                  {t('pages.rulebook.viewerEyebrow')}
+                </span>
                 <h2 className="rulebook-pdf-modal__title" id="rulebook-pdf-viewer-title">
                   {activeDoc.download.title}
                   <span className="rulebook-pdf-modal__title-lang">· {activeLanguageLabel}</span>

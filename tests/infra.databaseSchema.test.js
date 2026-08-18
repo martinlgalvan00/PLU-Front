@@ -86,7 +86,9 @@ describe('postura de seguridad del esquema', () => {
     // es donde viven los permisos.
     const definidas = new Set()
     for (const sql of SQL.values()) {
-      for (const match of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+public\.(staff_[a-z0-9_]+)\s*\(/gi)) {
+      for (const match of sql.matchAll(
+        /create\s+(?:or\s+replace\s+)?function\s+public\.(staff_[a-z0-9_]+)\s*\(/gi,
+      )) {
         definidas.add(match[1])
       }
     }
@@ -103,16 +105,19 @@ describe('postura de seguridad del esquema', () => {
         `grant\\s+execute\\s+on\\s+function\\s+public\\.${fn}\\s*\\([^;]*to\\s+service_role`,
         'i',
       ).test(ALL_SQL)
-      if (!revocada || !soloServicio) abiertas.push(`${fn} (revoke=${revocada}, service_role=${soloServicio})`)
+      if (!revocada || !soloServicio)
+        abiertas.push(`${fn} (revoke=${revocada}, service_role=${soloServicio})`)
     }
 
     expect(abiertas).toEqual([])
   })
 
   it('ninguna staff_* se le concede al rol anonimo o autenticado', () => {
-    const concesiones = [...ALL_SQL.matchAll(
-      /grant\s+execute\s+on\s+function\s+public\.(staff_[a-z0-9_]+)\s*\([^;]*to\s+([^;]+);/gi,
-    )]
+    const concesiones = [
+      ...ALL_SQL.matchAll(
+        /grant\s+execute\s+on\s+function\s+public\.(staff_[a-z0-9_]+)\s*\([^;]*to\s+([^;]+);/gi,
+      ),
+    ]
       .filter(([, , roles]) => /\b(anon|authenticated|public)\b/i.test(roles))
       .map(([, fn, roles]) => `${fn} -> ${roles.trim()}`)
 

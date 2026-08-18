@@ -42,22 +42,46 @@ function errorMessage(errorCode, t) {
 /** Marcas simplificadas para reconocimiento; no reemplazan assets oficiales. */
 function GoogleMapsMark() {
   return (
-    <svg className="competition-map__brand-mark" viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+    <svg
+      className="competition-map__brand-mark"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+    >
       <path
         fill="#EA4335"
         d="M12 2c-3.9 0-7 3.1-7 7 0 5.25 7 13 7 13s7-7.75 7-13c0-3.9-3.1-7-7-7z"
       />
       <circle fill="#fff" cx="12" cy="9" r="2.6" />
-      <path fill="#FBBC04" d="M12 2v4.2a2.8 2.8 0 0 1 0 5.6V22s7-7.75 7-13c0-3.9-3.1-7-7-7z" opacity=".9" />
-      <path fill="#34A853" d="M12 2C8.1 2 5 5.1 5 9c0 2.4 1.5 5.4 3.4 8.1L12 9.2V2z" opacity=".85" />
-      <path fill="#4285F4" d="M12 2v7.2l3.6 7.9C17.5 14.4 19 11.4 19 9c0-3.9-3.1-7-7-7z" opacity=".75" />
+      <path
+        fill="#FBBC04"
+        d="M12 2v4.2a2.8 2.8 0 0 1 0 5.6V22s7-7.75 7-13c0-3.9-3.1-7-7-7z"
+        opacity=".9"
+      />
+      <path
+        fill="#34A853"
+        d="M12 2C8.1 2 5 5.1 5 9c0 2.4 1.5 5.4 3.4 8.1L12 9.2V2z"
+        opacity=".85"
+      />
+      <path
+        fill="#4285F4"
+        d="M12 2v7.2l3.6 7.9C17.5 14.4 19 11.4 19 9c0-3.9-3.1-7-7-7z"
+        opacity=".75"
+      />
     </svg>
   )
 }
 
 function WazeMark() {
   return (
-    <svg className="competition-map__brand-mark" viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+    <svg
+      className="competition-map__brand-mark"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+    >
       <path
         fill="#33CCFF"
         d="M12.1 2.2c-4.7 0-8.6 3.5-8.6 8.1 0 2.5 1.1 4.7 2.9 6.2v2.7c0 .4.5.6.8.4l2.4-1.5c.8.2 1.6.3 2.5.3 4.7 0 8.6-3.5 8.6-8.1s-3.9-8.1-8.6-8.1z"
@@ -79,7 +103,12 @@ function WazeMark() {
 function ExternalTravelLink({ href, brand, label }) {
   if (!href) return null
   return (
-    <a className="competition-map__external-link" href={href} target="_blank" rel="noopener noreferrer">
+    <a
+      className="competition-map__external-link"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       <span className="competition-map__external-link-brand" data-brand={brand} aria-hidden>
         {brand === 'google' ? <GoogleMapsMark /> : <WazeMark />}
       </span>

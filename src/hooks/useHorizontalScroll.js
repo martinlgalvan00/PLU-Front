@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 /**
  * Hook to translate vertical mouse wheel scrolling into horizontal scrolling
  * for scrollable containers that hide their scrollbars on desktop.
- * 
+ *
  * @returns {React.RefObject} A ref to attach to the scroll container or a wrapper.
  */
 export function useHorizontalScroll() {
@@ -17,10 +17,8 @@ export function useHorizontalScroll() {
       // Find the actual scrollable container if the ref is on a wrapper
       // Specifically useful for Ant Design Tables where the wrapper is passed the ref
       // but the scrollable container is nested inside.
-      const scrollContainer = 
-        el.querySelector('.ant-table-body') || 
-        el.querySelector('.ant-table-content') || 
-        el
+      const scrollContainer =
+        el.querySelector('.ant-table-body') || el.querySelector('.ant-table-content') || el
 
       const hasHorizontalScroll = scrollContainer.scrollWidth > scrollContainer.clientWidth
       const hasVerticalScroll = scrollContainer.scrollHeight > scrollContainer.clientHeight + 2

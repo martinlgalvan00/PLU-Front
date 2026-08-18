@@ -83,7 +83,12 @@ function createAthleteRepoDouble() {
   return {
     settleCalls,
     statusCalls,
-    adminData: async () => ({ athletes: [], memberships: [], registrations: [], paymentOrders: [] }),
+    adminData: async () => ({
+      athletes: [],
+      memberships: [],
+      registrations: [],
+      paymentOrders: [],
+    }),
     // El email de confirmación es best-effort: sin contacto corta antes de
     // intentar enviarlo y no interfiere con lo que se está probando.
     findContact: async () => null,
@@ -135,7 +140,9 @@ describe('migración de acreditación manual', () => {
     expect(transferStateMachine).toContain(
       'Los pagos de Mercado Pago solo se aprueban por webhook.',
     )
-    expect(migration).not.toContain('create or replace function public.approve_athlete_payment_order')
+    expect(migration).not.toContain(
+      'create or replace function public.approve_athlete_payment_order',
+    )
   })
 
   it('exige comprobante y motivo antes de acreditar', () => {

@@ -3469,8 +3469,12 @@
 }
 
 @keyframes account-payment-modal-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes account-payment-modal-rise {
@@ -3780,7 +3784,11 @@
 }
 
 .account-verify--gate::before {
-  background: linear-gradient(180deg, var(--color-brand-gold) 0%, color-mix(in srgb, var(--color-brand-gold) 55%, #92400e) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 55%, #92400e) 100%
+  );
 }
 
 .account-qr-pass__gate {
@@ -3996,7 +4004,9 @@
 }
 
 @media (max-width: 720px) {
-  .account-section__heading:not(.account-section__heading--personal):not(.account-section__heading--simple) {
+  .account-section__heading:not(.account-section__heading--personal):not(
+      .account-section__heading--simple
+    ) {
     grid-template-columns: auto 1fr;
   }
 
@@ -4170,7 +4180,11 @@
 }
 
 .account-verify::before {
-  background: linear-gradient(180deg, var(--color-brand-gold) 0%, color-mix(in srgb, var(--color-brand-gold) 40%, #92400e) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 40%, #92400e) 100%
+  );
   border-radius: var(--border-radius-lg) 0 0 var(--border-radius-lg);
   content: '';
   inset: 0 auto 0 0;
@@ -4490,7 +4504,11 @@
 }
 
 .account-profile-progress__bar {
-  background: linear-gradient(90deg, var(--color-brand-gold), color-mix(in srgb, var(--color-brand-gold) 78%, #fff));
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-gold),
+    color-mix(in srgb, var(--color-brand-gold) 78%, #fff)
+  );
   border-radius: 999px;
   height: 100%;
   transition: width 500ms var(--ease-out);
@@ -4826,8 +4844,10 @@
   transition: transform var(--motion-fast) var(--ease-out);
 }
 
-#account-personal-data .account-data-group--disclosure.is-open
-  .account-data-group__summary-side svg {
+#account-personal-data
+  .account-data-group--disclosure.is-open
+  .account-data-group__summary-side
+  svg {
   transform: rotate(180deg);
 }
 
@@ -5102,7 +5122,10 @@
 }
 
 .account-qr__plate-stripe {
-  background: var(--plu-gradient-stripe, linear-gradient(90deg, var(--color-brand-celeste), var(--color-brand-gold)));
+  background: var(
+    --plu-gradient-stripe,
+    linear-gradient(90deg, var(--color-brand-celeste), var(--color-brand-gold))
+  );
   height: 3px;
   left: 0;
   position: absolute;

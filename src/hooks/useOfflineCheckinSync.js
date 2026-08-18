@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { listPending, listResolvedConflicts } from '../lib/offlineCheckinDb.js'
-import { downloadAllowlist as downloadAllowlistRequest, syncPendingCheckins } from '../services/offlineCheckinSync.js'
+import {
+  downloadAllowlist as downloadAllowlistRequest,
+  syncPendingCheckins,
+} from '../services/offlineCheckinSync.js'
 
 const SYNC_INTERVAL_MS = 25000
 
@@ -12,7 +15,9 @@ const SYNC_INTERVAL_MS = 25000
  * ~25s mientras haya pendientes, sin bloquear la fila de entrada al evento.
  */
 export function useOfflineCheckinSync(eventSlug) {
-  const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  )
   const [pendingCount, setPendingCount] = useState(0)
   const [conflictCount, setConflictCount] = useState(0)
   const [syncing, setSyncing] = useState(false)

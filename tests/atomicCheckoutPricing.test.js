@@ -27,15 +27,21 @@ describe('cotizacion atomica del checkout', () => {
     expect(migration).toContain("when p_payment_method = 'manual_link' then 75000")
     expect(migration).toContain('else 85000')
     expect(migration).toContain("when p_concept = 'combo' then 170000")
-    expect(migration).toContain("p_order_amount is distinct from v_expected_amount")
+    expect(migration).toContain('p_order_amount is distinct from v_expected_amount')
   })
 
   it('expone RPCs de checkout solo al backend y conserva el importe de catálogo al vencer la promo', () => {
-    expect(migration).toContain("if not v_presale_active then")
-    expect(migration).toContain("if p_order_amount is not null then")
-    expect(migration).toMatch(/grant execute on function public\.create_membership_order_checkout[\s\S]*to service_role/)
-    expect(migration).toMatch(/grant execute on function public\.create_competition_registration_checkout[\s\S]*to service_role/)
-    expect(migration).toMatch(/grant execute on function public\.create_membership_registration_combo_checkout[\s\S]*to service_role/)
+    expect(migration).toContain('if not v_presale_active then')
+    expect(migration).toContain('if p_order_amount is not null then')
+    expect(migration).toMatch(
+      /grant execute on function public\.create_membership_order_checkout[\s\S]*to service_role/,
+    )
+    expect(migration).toMatch(
+      /grant execute on function public\.create_competition_registration_checkout[\s\S]*to service_role/,
+    )
+    expect(migration).toMatch(
+      /grant execute on function public\.create_membership_registration_combo_checkout[\s\S]*to service_role/,
+    )
   })
 
   it('el repositorio llama a las RPC atómicas sin un UPDATE directo posterior', async () => {
@@ -75,14 +81,18 @@ describe('precio configurable por medio de pago (reemplaza la matriz hardcodeada
   it('agrega manual_price a los tres catálogos de precio', () => {
     expect(manualPriceMigration).toMatch(/alter table public\.membership_plans[\s\S]*?manual_price/)
     expect(manualPriceMigration).toMatch(/alter table public\.events[\s\S]*?manual_price/)
-    expect(manualPriceMigration).toMatch(/alter table public\.event_combo_offers[\s\S]*?manual_price/)
+    expect(manualPriceMigration).toMatch(
+      /alter table public\.event_combo_offers[\s\S]*?manual_price/,
+    )
   })
 
   it('las tres RPC de checkout reciben precio por defecto y precio manual, no un importe ya decidido', () => {
     expect(manualPriceMigration).toContain(
       'create or replace function public.create_membership_order_checkout(',
     )
-    expect(manualPriceMigration).toMatch(/create_membership_order_checkout\([\s\S]*?p_default_price numeric,\s*\n\s*p_manual_price numeric/)
+    expect(manualPriceMigration).toMatch(
+      /create_membership_order_checkout\([\s\S]*?p_default_price numeric,\s*\n\s*p_manual_price numeric/,
+    )
     // Los comentarios sí pueden nombrar el parámetro viejo para explicar el
     // cambio; ninguna declaración de función real puede seguir teniéndolo.
     expect(manualPriceMigration).not.toMatch(/create function[\s\S]*?p_order_amount numeric/)
@@ -96,7 +106,9 @@ const staleComboOverloadMigration = readFileSync(
 
 describe('overloads huérfanos del combo checkout', () => {
   it('dropea cualquier firma que no sea la de 11 argumentos o que todavía hable de p_order_amount', () => {
-    expect(staleComboOverloadMigration).toContain("p.proname = 'create_membership_registration_combo_checkout'")
+    expect(staleComboOverloadMigration).toContain(
+      "p.proname = 'create_membership_registration_combo_checkout'",
+    )
     expect(staleComboOverloadMigration).toContain('p.pronargs <> 11')
     expect(staleComboOverloadMigration).toContain("p.prosrc like '%p_order_amount%'")
     expect(staleComboOverloadMigration).toContain(

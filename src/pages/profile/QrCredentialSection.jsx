@@ -42,7 +42,8 @@ export default function QrCredentialSection({
   const [mergeDone, setMergeDone] = useState(false)
 
   const memberCode = membership?.memberCode ?? latestMembership?.memberCode
-  const credentialCode = athlete?.credentialToken ?? membership?.qrToken ?? latestMembership?.qrToken ?? memberCode
+  const credentialCode =
+    athlete?.credentialToken ?? membership?.qrToken ?? latestMembership?.qrToken ?? memberCode
   const membershipCurrent = isMembershipCurrent(membership)
   const membershipForPass = membershipCurrent ? membership : latestMembership
 
@@ -63,7 +64,8 @@ export default function QrCredentialSection({
     ? getRegistrationGateLabelKey(primaryMeet, { membershipCurrent })
     : null
 
-  const hasCredential = Boolean(credentialCode) && (membershipCurrent || admittedRegistrations.length > 0)
+  const hasCredential =
+    Boolean(credentialCode) && (membershipCurrent || admittedRegistrations.length > 0)
   const showDual = hasCredential && Boolean(primaryMeet) && !membershipCurrent
   const shouldPlayMerge =
     hasCredential &&
@@ -116,11 +118,8 @@ export default function QrCredentialSection({
         athletePhotoUrl: athlete.photoUrl,
         qrCode: credentialCode,
         membershipExpiration: validUntil,
-        variant: membershipCurrent && primaryMeet
-          ? 'unified'
-          : membershipCurrent
-            ? 'membership'
-            : 'event',
+        variant:
+          membershipCurrent && primaryMeet ? 'unified' : membershipCurrent ? 'membership' : 'event',
         eventSlug: primaryMeet?.eventSlug ?? 'afiliacion',
         eventTitle: primaryMeet?.event,
       }
@@ -185,15 +184,15 @@ export default function QrCredentialSection({
 
           {showDual ? (
             <div className="account-qr account-qr--split account-qr--with-credential">
-              <div
-                className="account-qr__credential-col"
-                aria-busy={qrBusy || undefined}
-              >
+              <div className="account-qr__credential-col" aria-busy={qrBusy || undefined}>
                 {credentialCard}
               </div>
               <div className="account-qr__preview-col">
                 <p className="account-qr__preview-caption">{t('account.qr.membershipPassTitle')}</p>
-                <aside className="account-qr__convert" aria-label={t('account.qr.membershipPassTitle')}>
+                <aside
+                  className="account-qr__convert"
+                  aria-label={t('account.qr.membershipPassTitle')}
+                >
                   {gateLabelKey ? (
                     <p
                       className={`account-qr__convert-status ${
@@ -231,16 +230,16 @@ export default function QrCredentialSection({
             </div>
           ) : (
             <div className="account-qr account-qr--split account-qr--with-credential">
-              <div
-                className="account-qr__credential-col"
-                aria-busy={qrBusy || undefined}
-              >
+              <div className="account-qr__credential-col" aria-busy={qrBusy || undefined}>
                 {credentialCard}
               </div>
 
               <div className="account-qr__preview-col">
                 <p className="account-qr__preview-caption">{t('account.qr.scanPreviewCaption')}</p>
-                <aside className="account-qr__preview" aria-label={t('account.qr.scanPreviewCaption')}>
+                <aside
+                  className="account-qr__preview"
+                  aria-label={t('account.qr.scanPreviewCaption')}
+                >
                   <div className="account-qr__preview-verdict">
                     <CheckCircle2 size={16} aria-hidden />
                     <span>

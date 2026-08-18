@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
-import { buildStaffUser, createPrismaDouble, loginStaff } from './integration/helpers/staffSession.js'
+import {
+  buildStaffUser,
+  createPrismaDouble,
+  loginStaff,
+} from './integration/helpers/staffSession.js'
 import { listen } from './integration/helpers/supabaseTestClient.js'
 
 /**
@@ -16,8 +20,22 @@ import { listen } from './integration/helpers/supabaseTestClient.js'
 
 function createPaymentRepositoryDouble() {
   const getFailureReasonBreakdown = vi.fn(async () => [
-    { code: 'AMOUNT_MISMATCH', title: 'El monto no coincide', severity: 'blocker', count: 3, sampleOrderId: 'order-1', lastSeenAt: '2026-08-13T00:00:00.000Z' },
-    { code: 'CARD_DECLINED', title: 'Tarjeta rechazada por el banco', severity: 'expected', count: 1, sampleOrderId: 'order-2', lastSeenAt: '2026-08-12T00:00:00.000Z' },
+    {
+      code: 'AMOUNT_MISMATCH',
+      title: 'El monto no coincide',
+      severity: 'blocker',
+      count: 3,
+      sampleOrderId: 'order-1',
+      lastSeenAt: '2026-08-13T00:00:00.000Z',
+    },
+    {
+      code: 'CARD_DECLINED',
+      title: 'Tarjeta rechazada por el banco',
+      severity: 'expected',
+      count: 1,
+      sampleOrderId: 'order-2',
+      lastSeenAt: '2026-08-12T00:00:00.000Z',
+    },
   ])
   return { repository: { getFailureReasonBreakdown }, getFailureReasonBreakdown }
 }

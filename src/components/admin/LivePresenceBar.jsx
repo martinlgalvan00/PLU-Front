@@ -83,7 +83,8 @@ export default function LivePresenceBar({ windowMinutes = 5 }) {
   const mountedRef = useRef(true)
 
   const number = useCallback(
-    (value) => new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR').format(Number(value ?? 0)),
+    (value) =>
+      new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR').format(Number(value ?? 0)),
     [locale],
   )
 
@@ -140,7 +141,10 @@ export default function LivePresenceBar({ windowMinutes = 5 }) {
 
   if (loading && !data) {
     return (
-      <section className="admin-live admin-live--loading" aria-label={t('admin.analytics.live.aria')}>
+      <section
+        className="admin-live admin-live--loading"
+        aria-label={t('admin.analytics.live.aria')}
+      >
         <p className="admin-live__loading">{t('admin.analytics.live.loading')}</p>
       </section>
     )
@@ -148,7 +152,10 @@ export default function LivePresenceBar({ windowMinutes = 5 }) {
 
   if (failed && !data) {
     return (
-      <section className="admin-live admin-live--failed" aria-label={t('admin.analytics.live.aria')}>
+      <section
+        className="admin-live admin-live--failed"
+        aria-label={t('admin.analytics.live.aria')}
+      >
         <p className="admin-live__loading">{t('admin.analytics.live.error')}</p>
       </section>
     )

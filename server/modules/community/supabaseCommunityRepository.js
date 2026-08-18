@@ -48,7 +48,9 @@ async function attachSignedPhotoUrls(client, members) {
   if (missingPaths.length > 0) {
     try {
       const signed = assertSupabaseResult(
-        await client.storage.from(PHOTO_BUCKET).createSignedUrls(missingPaths, PHOTO_SIGNED_TTL_SEC),
+        await client.storage
+          .from(PHOTO_BUCKET)
+          .createSignedUrls(missingPaths, PHOTO_SIGNED_TTL_SEC),
       )
       for (const item of signed ?? []) {
         if (!item?.path || !item?.signedUrl) continue

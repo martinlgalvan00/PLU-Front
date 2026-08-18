@@ -6,7 +6,9 @@ function kickerEchoesPeriod(kicker, tokens) {
   const normalized = String(kicker).trim().toLowerCase()
   if (!normalized) return true
   return tokens.some((token) => {
-    const value = String(token ?? '').trim().toLowerCase()
+    const value = String(token ?? '')
+      .trim()
+      .toLowerCase()
     if (!value) return false
     return normalized === value || normalized === `plan ${value}` || normalized === `${value} plan`
   })
@@ -46,13 +48,10 @@ export default function MembershipCard({
     : (kicker ?? t('pages.membershipCard.periodAnnual'))
   const periodAnnualLabel = t('pages.membershipCard.periodAnnual')
   const featuredLabel = t('pages.membershipCard.featured')
-  const showKicker = Boolean(resolvedKicker)
-    && resolvedKicker.trim().toLowerCase() !== featuredLabel.trim().toLowerCase()
-    && !kickerEchoesPeriod(resolvedKicker, [
-      periodAnnualLabel,
-      resolvedPeriod,
-      periodLabel,
-    ])
+  const showKicker =
+    Boolean(resolvedKicker) &&
+    resolvedKicker.trim().toLowerCase() !== featuredLabel.trim().toLowerCase() &&
+    !kickerEchoesPeriod(resolvedKicker, [periodAnnualLabel, resolvedPeriod, periodLabel])
   const autoRenewLabel = billingToggleLabel ?? t('pages.members.autoRenewLabel')
   const autoRenewHint = billingToggleHint
   const autoRenewId = `membership-auto-renew-${id}`
@@ -90,10 +89,7 @@ export default function MembershipCard({
             <p className="membership-card__includes-label" id={`${id}-includes-label`}>
               {t('pages.membershipCard.includesLabel')}
             </p>
-            <ul
-              className="membership-card__features-list"
-              aria-labelledby={`${id}-includes-label`}
-            >
+            <ul className="membership-card__features-list" aria-labelledby={`${id}-includes-label`}>
               {features.map((feature, i) => (
                 <li key={`${id}-${i}`} className="membership-card__feature">
                   <span className="membership-card__feature-text">{feature}</span>
@@ -185,7 +181,10 @@ export default function MembershipCard({
           </p>
         ) : null}
 
-        <ul className="membership-card__features-list" aria-label={t('pages.membershipCard.featuresAria')}>
+        <ul
+          className="membership-card__features-list"
+          aria-label={t('pages.membershipCard.featuresAria')}
+        >
           {features.map((feature, i) => (
             <li key={`${id}-${i}`} className="membership-card__feature">
               {feature}
@@ -194,7 +193,12 @@ export default function MembershipCard({
         </ul>
 
         <footer className="membership-card__foot">
-          <button type="button" className="membership-card__cta" disabled={ctaDisabled} onClick={onSelect}>
+          <button
+            type="button"
+            className="membership-card__cta"
+            disabled={ctaDisabled}
+            onClick={onSelect}
+          >
             {resolvedCtaLabel}
           </button>
         </footer>

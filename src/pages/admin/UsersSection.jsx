@@ -1,18 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import {
-  Ban,
-  CheckCircle2,
-  KeyRound,
-  PauseCircle,
-  Shield,
-  Trash2,
-  UserPlus,
-  X,
-} from 'lucide-react'
+import { Ban, CheckCircle2, KeyRound, PauseCircle, Shield, Trash2, UserPlus, X } from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
-import { AdminIdentityCell, AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
+import {
+  AdminIdentityCell,
+  AdminTableActions,
+  AdminTableActionsEmpty,
+} from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import { Field, Select } from '../../components/ui/FormFields.jsx'
 import Pill from '../../components/ui/Pill.jsx'
@@ -208,7 +203,9 @@ export default function UsersSection({
       setDraft(EMPTY_DRAFT)
       setIsCreating(false)
     } catch (error) {
-      setFormError(error?.status === 409 ? t('admin.users.errorEmailTaken') : t('admin.users.errorCreate'))
+      setFormError(
+        error?.status === 409 ? t('admin.users.errorEmailTaken') : t('admin.users.errorCreate'),
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -382,7 +379,9 @@ export default function UsersSection({
               label={t('admin.columns.role')}
               name="role"
               value={draft.role}
-              onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))}
+              onChange={(e) =>
+                setDraft((current) => ({ ...current, role: e.target.value, eventId: '' }))
+              }
               options={roleOptions}
             />
             {isSecurityRole ? (
@@ -395,14 +394,20 @@ export default function UsersSection({
               />
             ) : null}
             <div className="admin-users__add-form-actions">
-              <Button type="submit" className="btn--small admin-users__add-btn" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="btn--small admin-users__add-btn"
+                disabled={isSubmitting}
+              >
                 <UserPlus size={14} aria-hidden />
                 {isSubmitting ? t('admin.users.creating') : t('admin.users.addUser')}
               </Button>
             </div>
           </div>
 
-          {isSecurityRole ? <p className="admin-users__add-form-hint">{t('admin.users.securityHint')}</p> : null}
+          {isSecurityRole ? (
+            <p className="admin-users__add-form-hint">{t('admin.users.securityHint')}</p>
+          ) : null}
         </form>
       ) : null}
 

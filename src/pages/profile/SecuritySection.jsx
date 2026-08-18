@@ -21,7 +21,8 @@ export default function SecuritySection({ session }) {
     const nextErrors = {}
     if (!form.currentPassword) nextErrors.currentPassword = t('account.security.errorRequired')
     if (form.newPassword.length < 8) nextErrors.newPassword = t('account.security.errorLength')
-    if (form.confirmPassword !== form.newPassword) nextErrors.confirmPassword = t('account.security.errorMatch')
+    if (form.confirmPassword !== form.newPassword)
+      nextErrors.confirmPassword = t('account.security.errorMatch')
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
@@ -41,7 +42,9 @@ export default function SecuritySection({ session }) {
           <h2>{t('account.security.title')}</h2>
         </div>
       </header>
-      <p className="account-section__lead account-section__lead--compact">{t('account.security.lead')}</p>
+      <p className="account-section__lead account-section__lead--compact">
+        {t('account.security.lead')}
+      </p>
 
       <div className="account-security">
         <form className="account-security__form" onSubmit={handleSubmit} noValidate>
@@ -87,7 +90,10 @@ export default function SecuritySection({ session }) {
           <p className="account-security-note">{t('account.security.demoNote')}</p>
         </form>
 
-        <aside className="account-security__session" aria-label={t('account.security.sessionTitle')}>
+        <aside
+          className="account-security__session"
+          aria-label={t('account.security.sessionTitle')}
+        >
           <h3>{t('account.security.sessionTitle')}</h3>
           <dl>
             <div>

@@ -2,17 +2,11 @@ import { useMemo, useState } from 'react'
 import { Download, Lock } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
-import {
-  AdminIdentityCell,
-  AdminMonoCell,
-} from '../../components/admin/AdminTableCells.jsx'
+import { AdminIdentityCell, AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
-import {
-  CONFIRMED_REGISTRATION_STATUSES,
-  MEMBERSHIP_FILTER_STATUSES,
-} from '../../lib/constants.js'
+import { CONFIRMED_REGISTRATION_STATUSES, MEMBERSHIP_FILTER_STATUSES } from '../../lib/constants.js'
 import { formatShortMemberCode } from '../../lib/format.js'
 import { filterMemberships, isExpiringSoon } from '../../services/membershipService.js'
 
@@ -27,10 +21,7 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
 
-  const statusOptions = useMemo(
-    () => translateFilterOptions(MEMBERSHIP_FILTER_STATUSES, t),
-    [t],
-  )
+  const statusOptions = useMemo(() => translateFilterOptions(MEMBERSHIP_FILTER_STATUSES, t), [t])
 
   const activeCount = useMemo(
     () => memberships.filter((item) => item.status === 'activa').length,
@@ -39,9 +30,8 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
 
   const expiringCount = useMemo(
     () =>
-      memberships.filter(
-        (item) => item.status === 'activa' && isExpiringSoon(item.expirationDate),
-      ).length,
+      memberships.filter((item) => item.status === 'activa' && isExpiringSoon(item.expirationDate))
+        .length,
     [memberships],
   )
 
@@ -114,9 +104,7 @@ export default function PluUsaSection({ athletes, memberships, registrations, on
       ]}
       totalCount={memberships.length}
       onQueryChange={setQuery}
-      beforeShell={
-        <p className="admin-plu-usa__note">{t('admin.sections.pluUsa.recordsNote')}</p>
-      }
+      beforeShell={<p className="admin-plu-usa__note">{t('admin.sections.pluUsa.recordsNote')}</p>}
     >
       <AdminDataTable
         variant="admin"

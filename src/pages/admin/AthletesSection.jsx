@@ -113,7 +113,15 @@ export default function AthletesSection({
       })
       .map((athlete) => ({ ...athlete, id: athlete.id }))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- athleteMatchesRegistrationFilter depende de paymentIndex/registrationsByAthlete/gatePendingIds, ya listados
-  }, [athletes, query, status, registrationStatus, paymentIndex, registrationsByAthlete, gatePendingIds])
+  }, [
+    athletes,
+    query,
+    status,
+    registrationStatus,
+    paymentIndex,
+    registrationsByAthlete,
+    gatePendingIds,
+  ])
 
   const stats = useMemo(
     () => [

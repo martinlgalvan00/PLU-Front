@@ -66,7 +66,15 @@ export const ROLE_OPTIONS = Object.entries(ROLES).map(([value, { label }]) => [v
 
 export const NAV_PRIMARY = ['home', 'members', 'results', 'records', 'resources']
 
-export const NAV_SECONDARY = ['events', 'pitbull', 'shop', 'rulebook', 'community', 'faq', 'contact']
+export const NAV_SECONDARY = [
+  'events',
+  'pitbull',
+  'shop',
+  'rulebook',
+  'community',
+  'faq',
+  'contact',
+]
 
 /**
  * Fuente única para la navegación pública. IA de federación:

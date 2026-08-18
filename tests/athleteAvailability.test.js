@@ -33,10 +33,9 @@ function createClient({ emailHit = null, documentHit = null } = {}) {
 
 describe('athlete checkAvailability', () => {
   it('marca email tomado sin devolver datos del atleta', async () => {
-    const repo = createSupabaseAthleteRepository(
-      createClient({ emailHit: { id: 'ath-1' } }),
-      { organizationId: PRIMARY_ORGANIZATION_ID },
-    )
+    const repo = createSupabaseAthleteRepository(createClient({ emailHit: { id: 'ath-1' } }), {
+      organizationId: PRIMARY_ORGANIZATION_ID,
+    })
 
     await expect(repo.checkAvailability({ email: 'AgusDiSanto99@gmail.com' })).resolves.toEqual({
       emailTaken: true,
@@ -45,10 +44,9 @@ describe('athlete checkAvailability', () => {
   })
 
   it('normaliza documento y detecta conflicto', async () => {
-    const repo = createSupabaseAthleteRepository(
-      createClient({ documentHit: { id: 'ath-2' } }),
-      { organizationId: PRIMARY_ORGANIZATION_ID },
-    )
+    const repo = createSupabaseAthleteRepository(createClient({ documentHit: { id: 'ath-2' } }), {
+      organizationId: PRIMARY_ORGANIZATION_ID,
+    })
 
     await expect(repo.checkAvailability({ documentId: '40.111.222' })).resolves.toEqual({
       emailTaken: false,

@@ -5,7 +5,11 @@ import {
   paymentTrailMetadata,
   summarizeFailure,
 } from './paymentAuditTrail.js'
-import { mapMercadoPagoStatus, processClaimedPaymentEvent, applyCanonicalPayment } from './paymentWorkflow.js'
+import {
+  mapMercadoPagoStatus,
+  processClaimedPaymentEvent,
+  applyCanonicalPayment,
+} from './paymentWorkflow.js'
 
 /**
  * `mapWithConcurrency` ya aisla el fallo de cada item (no corta el lote); acá
@@ -18,7 +22,11 @@ function summarizeConcurrentResults(items, results) {
     if (result.status === 'fulfilled') return { ok: true, value: result.value }
     // El id se conserva junto al motivo: sin esto el resumen decia
     // "failed: 3" y no habia forma de saber cuales ni por que.
-    return { ok: false, id: items[index]?.id ?? null, error: result.reason?.message ?? String(result.reason) }
+    return {
+      ok: false,
+      id: items[index]?.id ?? null,
+      error: result.reason?.message ?? String(result.reason),
+    }
   })
 }
 
@@ -101,13 +109,25 @@ export async function recoverPaymentOperations(options = {}) {
   const eventResults = summarizeConcurrentResults(
     events,
     await mapWithConcurrency(events, concurrency, (event) =>
-      processClaimedPaymentEvent(event, { repository, mercadoPago, notifyPaymentApplied, auditTrail })),
+      processClaimedPaymentEvent(event, {
+        repository,
+        mercadoPago,
+        notifyPaymentApplied,
+        auditTrail,
+      }),
+    ),
   )
 
   const reconciliationResults = summarizeConcurrentResults(
     attempts,
     await mapWithConcurrency(attempts, concurrency, (attempt) =>
-      reconcileClaimedPaymentAttempt(attempt, { repository, mercadoPago, notifyPaymentApplied, auditTrail })),
+      reconcileClaimedPaymentAttempt(attempt, {
+        repository,
+        mercadoPago,
+        notifyPaymentApplied,
+        auditTrail,
+      }),
+    ),
   )
 
   const summary = {

@@ -57,10 +57,15 @@ function TicketAddonPicker({ addons, attendee, locale, onToggle, t, ticketTypes 
   if (!addons?.length) return null
 
   const selected = Array.isArray(attendee.addonIds) ? attendee.addonIds : []
-  const includedAddonIds = ticketTypes.find((type) => type.id === attendee.ticketTypeId)?.includedAddonIds ?? []
+  const includedAddonIds =
+    ticketTypes.find((type) => type.id === attendee.ticketTypeId)?.includedAddonIds ?? []
 
   return (
-    <div className="ticket-purchase__addons" role="group" aria-label={t('pages.tickets.addonsTitle')}>
+    <div
+      className="ticket-purchase__addons"
+      role="group"
+      aria-label={t('pages.tickets.addonsTitle')}
+    >
       <span className="ticket-purchase__addons-label">{t('pages.tickets.addonsTitle')}</span>
       <div className="ticket-purchase__addons-list">
         {addons.map((addon) => {
@@ -100,8 +105,8 @@ function TicketAddonPicker({ addons, attendee, locale, onToggle, t, ticketTypes 
 function attendeeRowHasError(errors, index) {
   return Boolean(
     errors[`attendee-${index}-fullName`] ||
-      errors[`attendee-${index}-dni`] ||
-      errors[`attendee-${index}-ticketTypeId`],
+    errors[`attendee-${index}-dni`] ||
+    errors[`attendee-${index}-ticketTypeId`],
   )
 }
 
@@ -138,19 +143,31 @@ function EditorialAttendeesBatch({
       <div className="ticket-purchase__attendees-batch-scroll">
         <div className="ticket-purchase__attendees-batch-table" role="table">
           <div className="ticket-purchase__attendees-batch-head" role="row">
-            <span className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--index" role="columnheader">
+            <span
+              className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--index"
+              role="columnheader"
+            >
               #
             </span>
             <span className="ticket-purchase__attendees-batch-col" role="columnheader">
               {t('pages.tickets.fullName')}
             </span>
-            <span className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--dni" role="columnheader">
+            <span
+              className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--dni"
+              role="columnheader"
+            >
               {t('pages.tickets.dniShort')}
             </span>
-            <span className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--day" role="columnheader">
+            <span
+              className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--day"
+              role="columnheader"
+            >
               {t('pages.tickets.day')}
             </span>
-            <span className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--price" role="columnheader">
+            <span
+              className="ticket-purchase__attendees-batch-col ticket-purchase__attendees-batch-col--price"
+              role="columnheader"
+            >
               {t('pages.tickets.rowPrice')}
             </span>
           </div>
@@ -165,7 +182,11 @@ function EditorialAttendeesBatch({
                 className={`ticket-purchase__attendees-batch-row${rowError ? ' has-error' : ''}`}
                 role="row"
               >
-                <span className="ticket-purchase__attendees-batch-index" role="rowheader" aria-hidden>
+                <span
+                  className="ticket-purchase__attendees-batch-index"
+                  role="rowheader"
+                  aria-hidden
+                >
                   {String(index + 1).padStart(2, '0')}
                 </span>
 
@@ -210,7 +231,9 @@ function EditorialAttendeesBatch({
                   ) : null}
                 </div>
 
-                <span className="ticket-purchase__attendees-batch-price">{money(rowPrice, locale)}</span>
+                <span className="ticket-purchase__attendees-batch-price">
+                  {money(rowPrice, locale)}
+                </span>
               </div>
             )
           })}
@@ -418,7 +441,9 @@ export default function TicketPurchaseSection({
     [pricing.ticketTypes],
   )
   const visibleOrder = createdOrder?.type === 'tickets' ? createdOrder : null
-  const orderTickets = visibleOrder ? tickets.filter((item) => item.orderId === visibleOrder.orderId) : []
+  const orderTickets = visibleOrder
+    ? tickets.filter((item) => item.orderId === visibleOrder.orderId)
+    : []
   const activeTicket = orderTickets.find((item) => item.id === activeTicketId) ?? null
   const total = priceForOrder(attendees, pricing, ticketAddons)
 
@@ -512,7 +537,9 @@ export default function TicketPurchaseSection({
           <StatusPill value={visibleOrder.status} />
         </div>
 
-        <p className="ticket-purchase__confirmation-lead">{t('pages.tickets.confirmationQrLead')}</p>
+        <p className="ticket-purchase__confirmation-lead">
+          {t('pages.tickets.confirmationQrLead')}
+        </p>
 
         {visibleOrder.paymentMethod === 'mercado_pago' && visibleOrder.status !== 'aprobado' ? (
           <>
@@ -521,7 +548,8 @@ export default function TicketPurchaseSection({
             </p>
             <MercadoPagoEmbeddedCheckout order={visibleOrder} />
           </>
-        ) : isManualTicketPayment(visibleOrder.paymentMethod) && visibleOrder.status !== 'aprobado' ? (
+        ) : isManualTicketPayment(visibleOrder.paymentMethod) &&
+          visibleOrder.status !== 'aprobado' ? (
           <div className="ticket-purchase__transfer-panel">
             <p className="ticket-purchase__manual-note">{t('pages.tickets.manualNote')}</p>
             <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
@@ -585,7 +613,9 @@ export default function TicketPurchaseSection({
                     disabled={proofUploading}
                     onClick={handleProofUpload}
                   >
-                    {proofUploading ? t('pages.tickets.proofSubmitting') : t('pages.tickets.proofSubmit')}
+                    {proofUploading
+                      ? t('pages.tickets.proofSubmitting')
+                      : t('pages.tickets.proofSubmit')}
                   </button>
                 ) : null}
                 {proofUploadError ? (
@@ -623,7 +653,11 @@ export default function TicketPurchaseSection({
                   ) : null}
                 </div>
                 <StatusPill value={ticket.status} />
-                <button type="button" className="ticket-purchase__qr-btn" onClick={() => setActiveTicketId(ticket.id)}>
+                <button
+                  type="button"
+                  className="ticket-purchase__qr-btn"
+                  onClick={() => setActiveTicketId(ticket.id)}
+                >
                   <QrCode size={14} aria-hidden />
                   {t('pages.tickets.viewTicket')}
                 </button>
@@ -647,7 +681,8 @@ export default function TicketPurchaseSection({
                   eventVenue: activeTicket.eventVenue,
                   eventLocation: activeTicket.eventLocation,
                   eventSlug: activeTicket.eventSlug,
-                  dayPassLabel: activeTicket.ticketTypeName ?? ticketTypeNames[activeTicket.ticketTypeId] ?? '',
+                  dayPassLabel:
+                    activeTicket.ticketTypeName ?? ticketTypeNames[activeTicket.ticketTypeId] ?? '',
                   variant: 'ticket',
                 }
               : {}
@@ -714,7 +749,9 @@ export default function TicketPurchaseSection({
                 <QrCode size={18} strokeWidth={1.75} />
               </span>
               <div className="ticket-purchase__attendees-callout-copy">
-                <p className="ticket-purchase__attendees-lead">{t('pages.tickets.editorialNote')}</p>
+                <p className="ticket-purchase__attendees-lead">
+                  {t('pages.tickets.editorialNote')}
+                </p>
                 <p className="ticket-purchase__attendees-note">
                   <IdCard size={13} aria-hidden />
                   <span>{t('pages.tickets.dniWhy')}</span>
@@ -773,7 +810,9 @@ export default function TicketPurchaseSection({
                     label={t('pages.tickets.dni')}
                     name={`attendee-${index}-dni`}
                     value={attendee.dni}
-                    onChange={(e) => changeAttendee(index, 'dni', e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) =>
+                      changeAttendee(index, 'dni', e.target.value.replace(/\D/g, ''))
+                    }
                     error={errors[`attendee-${index}-dni`]}
                     placeholder={t('pages.tickets.dniPlaceholder')}
                     inputMode="numeric"
@@ -801,7 +840,9 @@ export default function TicketPurchaseSection({
         )}
       </div>
 
-      <div className={`ticket-purchase__checkout${editorial ? ' ticket-purchase__checkout--editorial' : ''}`}>
+      <div
+        className={`ticket-purchase__checkout${editorial ? ' ticket-purchase__checkout--editorial' : ''}`}
+      >
         {editorial ? (
           <>
             <TicketPaymentOptions
@@ -876,7 +917,10 @@ export default function TicketPurchaseSection({
         <div className="ticket-purchase__stage">
           <div className="ticket-purchase__form-col">{formBody}</div>
           {showPassPreview ? (
-            <aside className="ticket-purchase__preview-col" aria-label={t('pages.ticketsPage.passLiveAria')}>
+            <aside
+              className="ticket-purchase__preview-col"
+              aria-label={t('pages.ticketsPage.passLiveAria')}
+            >
               <TicketPassPreview
                 live
                 showHint={false}

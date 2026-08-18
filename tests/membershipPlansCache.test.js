@@ -7,9 +7,8 @@ vi.mock('../src/lib/api.js', () => ({
 }))
 
 const { apiGet } = await import('../src/lib/api.js')
-const { clearMembershipPlansCache, listMembershipPlans } = await import(
-  '../src/services/paymentService.js'
-)
+const { clearMembershipPlansCache, listMembershipPlans } =
+  await import('../src/services/paymentService.js')
 
 describe('cache de planes de afiliación', () => {
   beforeEach(() => {

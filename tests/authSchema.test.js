@@ -23,6 +23,8 @@ describe('loginSchema', () => {
 
     expect(result.success).toBe(false)
     expect(result.error.flatten().fieldErrors.email[0]).toBe('Ingresá un correo válido.')
-    expect(result.error.flatten().fieldErrors.password[0]).toBe('Ingresá una contraseña de al menos 8 caracteres.')
+    expect(result.error.flatten().fieldErrors.password[0]).toBe(
+      'Ingresá una contraseña de al menos 8 caracteres.',
+    )
   })
 })

@@ -26,10 +26,7 @@ import {
   clearStaffEmailChangeToken,
   readStaffEmailChangeToken,
 } from './lib/staffEmailChangeRoute.js'
-import {
-  clearStaffInvitationToken,
-  readStaffInvitationToken,
-} from './lib/staffInvitationRoute.js'
+import { clearStaffInvitationToken, readStaffInvitationToken } from './lib/staffInvitationRoute.js'
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import SessionNotice from './components/ui/SessionNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
@@ -40,7 +37,11 @@ import {
   pushTicketsRoute,
 } from './lib/ticketsRoute.js'
 import { resolveEventPricing } from './lib/eventPricing.js'
-import { getFeaturedEvent, getNextUpcomingEvent, getPublicCatalogEvents } from './lib/eventNavigation.js'
+import {
+  getFeaturedEvent,
+  getNextUpcomingEvent,
+  getPublicCatalogEvents,
+} from './lib/eventNavigation.js'
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
@@ -167,9 +168,8 @@ export default function App() {
     const orderId = params.get('order') || params.get('external_reference')
     if (!orderId) return
 
-    const paymentId = params.get('payment_id')
-      || params.get('collection_id')
-      || params.get('data.id')
+    const paymentId =
+      params.get('payment_id') || params.get('collection_id') || params.get('data.id')
     const preferenceId = params.get('preference_id')
     const status = params.get('status') || params.get('collection_status') || paymentReturn
     const key = [orderId, paymentId, status].filter(Boolean).join(':')
@@ -196,12 +196,14 @@ export default function App() {
           const targetProfileTab = ['registration', 'combo'].includes(orderConcept)
             ? ACCOUNT_EVENTS_TAB
             : DEFAULT_ACCOUNT_TAB
-          window.dispatchEvent(new CustomEvent('plu:payment-updated', {
-            detail: {
-              orderId,
-              status: result.order?.status ?? result.payment?.status ?? status,
-            },
-          }))
+          window.dispatchEvent(
+            new CustomEvent('plu:payment-updated', {
+              detail: {
+                orderId,
+                status: result.order?.status ?? result.payment?.status ?? status,
+              },
+            }),
+          )
           window.history.replaceState({ view: 'profile' }, '', '/perfil')
           setProfileTab(targetProfileTab)
           setProfileTabNonce((current) => current + 1)
@@ -306,11 +308,7 @@ export default function App() {
 
       if (buildPublicViewPath(resolvedView) && !(resolvedView === 'events')) {
         pushPublicViewPath(resolvedView)
-      } else if (
-        matchPublicViewPath() &&
-        resolvedView !== 'tickets' &&
-        resolvedView !== 'events'
-      ) {
+      } else if (matchPublicViewPath() && resolvedView !== 'tickets' && resolvedView !== 'events') {
         clearPublicViewPath()
       }
 
@@ -638,15 +636,15 @@ export default function App() {
                 memberships: app.memberships,
                 checkoutAvailability: app.checkoutAvailability,
               }
-              : view === 'pitbull'
-                ? {
-                    onNavigate: navigate,
-                    onSelectEvent: selectEvent,
-                    events: publicEvents,
-                    session: app.session,
-                    memberships: app.memberships,
-                    checkoutAvailability: app.checkoutAvailability,
-                  }
+            : view === 'pitbull'
+              ? {
+                  onNavigate: navigate,
+                  onSelectEvent: selectEvent,
+                  events: publicEvents,
+                  session: app.session,
+                  memberships: app.memberships,
+                  checkoutAvailability: app.checkoutAvailability,
+                }
               : view === 'shop'
                 ? { onNavigate: navigate, events: publicEvents, products: app.shopProducts }
                 : view === 'tickets'

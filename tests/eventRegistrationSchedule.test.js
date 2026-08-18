@@ -91,9 +91,7 @@ describe('modelo de grilla en la migración', () => {
   })
 
   it('prohíbe tanda sin día, que las FK MATCH SIMPLE dejarían pasar', () => {
-    expect(migration).toContain(
-      'check (event_session_id is null or event_day_id is not null)',
-    )
+    expect(migration).toContain('check (event_session_id is null or event_day_id is not null)')
   })
 
   it('la asignación masiva filtra por evento y descarta canceladas', () => {

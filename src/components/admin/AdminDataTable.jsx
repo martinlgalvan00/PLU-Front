@@ -33,7 +33,8 @@ export default function AdminDataTable({
               return String(valA).localeCompare(String(valB))
             }
           : false,
-        defaultSortOrder: col.defaultSort === 'asc' ? 'ascend' : col.defaultSort === 'desc' ? 'descend' : null,
+        defaultSortOrder:
+          col.defaultSort === 'asc' ? 'ascend' : col.defaultSort === 'desc' ? 'descend' : null,
         render: (text, record) => {
           return col.render ? col.render(record) : text
         },

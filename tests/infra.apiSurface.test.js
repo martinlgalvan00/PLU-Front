@@ -43,10 +43,7 @@ const MUTATING = ['post', 'put', 'patch', 'delete']
  * quien la trae. Limitarlo no protege nada y puede dejar a alguien sin poder
  * salir de su cuenta.
  */
-const MUTANTES_SIN_LIMITE_ACEPTADAS = new Set([
-  'athletes.js POST /logout',
-  'auth.js POST /logout',
-])
+const MUTANTES_SIN_LIMITE_ACEPTADAS = new Set(['athletes.js POST /logout', 'auth.js POST /logout'])
 
 function routes() {
   const found = []
@@ -124,11 +121,15 @@ describe('superficie de la API', () => {
       '/operations/recover',
       '/subscriptions/:subscriptionId/cancel',
     ]) {
-      const declaracion = payments.match(new RegExp(`router\\.post\\('${path.replace(/[/:]/g, '\\$&')}'[^)]*`))
+      const declaracion = payments.match(
+        new RegExp(`router\\.post\\('${path.replace(/[/:]/g, '\\$&')}'[^)]*`),
+      )
       expect(declaracion?.[0], `${path} sin guard de escritura`).toMatch(/financeWriteGuard/)
     }
 
-    const forceSettle = athletes.match(/router\.post\('\/admin\/payment-orders\/:orderId\/force-settle'[^)]*/)
+    const forceSettle = athletes.match(
+      /router\.post\('\/admin\/payment-orders\/:orderId\/force-settle'[^)]*/,
+    )
     expect(forceSettle?.[0]).toMatch(/financeGuard/)
   })
 
@@ -136,7 +137,9 @@ describe('superficie de la API', () => {
     const payments = readFileSync(resolve(ROUTES_DIR, 'payments.js'), 'utf8')
     // Los dos paths registrados en el panel de MP (canonico y alias legacy)
     // tienen que compartir handler: uno sin verificar seria una puerta abierta.
-    const handlers = [...payments.matchAll(/router\.post\('\/webhook(?:\/mercadopago)?',([^\n]*)\n/g)]
+    const handlers = [
+      ...payments.matchAll(/router\.post\('\/webhook(?:\/mercadopago)?',([^\n]*)\n/g),
+    ]
     expect(handlers).toHaveLength(2)
     for (const [, middleware] of handlers) {
       expect(middleware).toMatch(/webhookLimiter/)
@@ -149,7 +152,9 @@ describe('superficie de la API', () => {
   it('el checkout publico no expone acciones de staff', () => {
     // Cualquier ruta con `staff`/`admin` en el path tiene que estar en un
     // router con guard; ninguna puede colgar de los limitadores publicos.
-    const publicas = ROUTES.filter((route) => /publicReadLimiter|publicWriteLimiter|checkoutLimiter/.test(route.middleware))
+    const publicas = ROUTES.filter((route) =>
+      /publicReadLimiter|publicWriteLimiter|checkoutLimiter/.test(route.middleware),
+    )
     const sospechosas = publicas
       .filter((route) => /admin|staff/.test(route.path))
       .map((route) => route.id)

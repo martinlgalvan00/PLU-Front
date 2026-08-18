@@ -50,7 +50,9 @@ const DEFAULT_THRESHOLD = 5
 const DEFAULT_WINDOW_SECONDS = 900
 
 export function hashIdentity(value, env = process.env) {
-  const normalized = String(value ?? '').trim().toLowerCase()
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase()
   if (!normalized) return null
 
   // La sal es el secreto de la instalacion. Sin ella el hash de un email es
@@ -60,9 +62,8 @@ export function hashIdentity(value, env = process.env) {
 }
 
 function client(deps) {
-  const resolved = typeof deps?.getSupabaseAdmin === 'function'
-    ? deps.getSupabaseAdmin()
-    : deps?.supabaseAdmin
+  const resolved =
+    typeof deps?.getSupabaseAdmin === 'function' ? deps.getSupabaseAdmin() : deps?.supabaseAdmin
   return resolved?.rpc ? resolved : null
 }
 

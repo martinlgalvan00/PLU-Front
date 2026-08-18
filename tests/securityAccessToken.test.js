@@ -31,8 +31,9 @@ describe('securityAccessToken', () => {
 
   it('rechaza un token con el payload alterado (no matchea la firma)', () => {
     const token = tokenFor({ userId: 'usr-1' })
-    const forgedPayload = Buffer.from(JSON.stringify({ uid: 'usr-admin', eid: 'evt-1', exp: 9_999_999_999 }))
-      .toString('base64url')
+    const forgedPayload = Buffer.from(
+      JSON.stringify({ uid: 'usr-admin', eid: 'evt-1', exp: 9_999_999_999 }),
+    ).toString('base64url')
     const tampered = `${forgedPayload}.${token.split('.')[1]}`
 
     expect(verifyAccessToken(tampered, { secret: SECRET })).toBeNull()

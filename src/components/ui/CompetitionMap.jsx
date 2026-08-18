@@ -76,9 +76,7 @@ function MapFallback({ event, state, hidden, onRetry, showRetry, t }) {
   const venueLine = [event?.venue, event?.location].filter(Boolean).join(' · ')
   const directionsUrl = event ? event.mapsUrl || buildExternalMapUrl(event) : ''
   const showUsefulMeta =
-    !hidden &&
-    Boolean(event) &&
-    ['missing_coordinates', 'error', 'offline'].includes(state)
+    !hidden && Boolean(event) && ['missing_coordinates', 'error', 'offline'].includes(state)
 
   if (isLoadingState) {
     return (
@@ -360,11 +358,7 @@ export default function CompetitionMap({
   const shouldLoad =
     nearViewport && availability === 'ready' && canUseInteractiveMap && !interactiveFailed
   const fallbackState =
-    availability === 'ready'
-      ? canUseInteractiveMap
-        ? providerState
-        : 'error'
-      : availability
+    availability === 'ready' ? (canUseInteractiveMap ? providerState : 'error') : availability
   const mapVisible = shouldLoad && providerState === 'loaded'
   const fallbackEvent = selected ?? normalizedEvents[0] ?? null
   const travelPlanner = useEventTravelPlanner({

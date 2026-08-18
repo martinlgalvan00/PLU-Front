@@ -36,8 +36,16 @@ const HERO_COLLAGE = [
   {
     id: 'crew',
     src: photoPlatformCrew,
-    avif: { 480: photoPlatformCrewAvif480, 800: photoPlatformCrewAvif800, 1153: photoPlatformCrewAvif },
-    webp: { 480: photoPlatformCrewWebp480, 800: photoPlatformCrewWebp800, 1153: photoPlatformCrewWebp },
+    avif: {
+      480: photoPlatformCrewAvif480,
+      800: photoPlatformCrewAvif800,
+      1153: photoPlatformCrewAvif,
+    },
+    webp: {
+      480: photoPlatformCrewWebp480,
+      800: photoPlatformCrewWebp800,
+      1153: photoPlatformCrewWebp,
+    },
     className: 'pitbull-hero-masthead__plate--primary',
     width: 800,
     height: 1200,
@@ -90,7 +98,9 @@ function PitbullHeroPanel({
       : isComingSoon
         ? t('launchTeaser.notifyCta')
         : t('pages.pitbull.joinNow')
-  const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
+  const secondaryLabel = ticketsOpen
+    ? t('pages.pitbull.heroTickets')
+    : t('pages.pitbull.ctaCategories')
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}
 
@@ -135,7 +145,10 @@ function PitbullHeroPanel({
       </header>
 
       <Item {...itemProps}>
-        <div className="pitbull-hero-masthead__actions" aria-label={t('pages.pitbull.heroSecondaryAria')}>
+        <div
+          className="pitbull-hero-masthead__actions"
+          aria-label={t('pages.pitbull.heroSecondaryAria')}
+        >
           <div className="pitbull-hero-masthead__cta-group">
             <button
               type="button"

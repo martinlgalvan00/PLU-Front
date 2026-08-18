@@ -83,9 +83,10 @@ export function resolveEventPricing(event) {
   if (event?.price != null && Number.isFinite(Number(event.price))) {
     pricing.registration = Number(event.price)
   }
-  pricing.registrationManual = event?.manualPrice != null && Number.isFinite(Number(event.manualPrice))
-    ? Number(event.manualPrice)
-    : null
+  pricing.registrationManual =
+    event?.manualPrice != null && Number.isFinite(Number(event.manualPrice))
+      ? Number(event.manualPrice)
+      : null
   return {
     ...pricing,
     ticketAddons: normalizeTicketAddons(pricing.ticketAddons),
@@ -140,9 +141,10 @@ export function normalizeEventPricingInput(pricing = {}) {
     // undefined (no null): así el key se omite del body y el schema del
     // servidor (registrationManual: paidMoney.optional()) no intenta coercer
     // "sin precio manual" a 0.
-    registrationManual: Number.isFinite(registrationManual) && registrationManual > 0
-      ? registrationManual
-      : undefined,
+    registrationManual:
+      Number.isFinite(registrationManual) && registrationManual > 0
+        ? registrationManual
+        : undefined,
     combo: numberOrDefault(pricing.combo, DEFAULT_EVENT_PRICING.combo),
     ticketsEnabled: pricing.ticketsEnabled === true,
     ticketAddons: normalizeTicketAddons(pricing.ticketAddons),

@@ -84,16 +84,14 @@ export function mapPricingConfiguration(payload = {}) {
     events: (payload.events ?? []).map((event) => ({
       ...event,
       registrationPrice: Number(event.registrationPrice) || 0,
-      registrationManualPrice: event.registrationManualPrice != null
-        ? Number(event.registrationManualPrice)
-        : null,
+      registrationManualPrice:
+        event.registrationManualPrice != null ? Number(event.registrationManualPrice) : null,
       comboOffer: event.comboOffer
         ? {
             ...event.comboOffer,
             price: Number(event.comboOffer.price) || 0,
-            manualPrice: event.comboOffer.manualPrice != null
-              ? Number(event.comboOffer.manualPrice)
-              : null,
+            manualPrice:
+              event.comboOffer.manualPrice != null ? Number(event.comboOffer.manualPrice) : null,
           }
         : null,
     })),
@@ -175,6 +173,9 @@ export async function fetchBillingSubscriptionsRequest(filters = {}) {
 }
 
 export async function cancelBillingSubscriptionRequest(subscriptionId) {
-  const result = await apiPost(`/api/payments/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {})
+  const result = await apiPost(
+    `/api/payments/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`,
+    {},
+  )
   return result.subscription
 }

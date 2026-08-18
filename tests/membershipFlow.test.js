@@ -117,7 +117,9 @@ describe('vigencia de la afiliación', () => {
 
   it('no considera vencida una afiliación cancelada o reembolsada', () => {
     for (const status of ['cancelada', 'reembolsada', 'pendiente_pago']) {
-      expect(isMembershipExpired(membership({ status, expirationDate: '2025-01-01' }), TODAY)).toBe(false)
+      expect(isMembershipExpired(membership({ status, expirationDate: '2025-01-01' }), TODAY)).toBe(
+        false,
+      )
     }
   })
 
@@ -126,7 +128,9 @@ describe('vigencia de la afiliación', () => {
     const undated = membership({ expirationDate: null })
     expect(isMembershipCurrent(undated, TODAY)).toBe(false)
     expect(isMembershipExpired(undated, TODAY)).toBe(false)
-    expect(isMembershipExpired(membership({ status: 'vencida', expirationDate: null }), TODAY)).toBe(true)
+    expect(
+      isMembershipExpired(membership({ status: 'vencida', expirationDate: null }), TODAY),
+    ).toBe(true)
   })
 
   it('habilita inscribirse solo con cobertura vigente del propio atleta', () => {
@@ -140,7 +144,11 @@ describe('vigencia de la afiliación', () => {
 
     // Renovada: la fila nueva vigente habilita aunque la vieja siga vencida.
     expect(
-      hasCurrentMembership([...padron, membership({ id: 'mem-c', athleteId: 'ath-1' })], 'ath-1', TODAY),
+      hasCurrentMembership(
+        [...padron, membership({ id: 'mem-c', athleteId: 'ath-1' })],
+        'ath-1',
+        TODAY,
+      ),
     ).toBe(true)
   })
 })
@@ -175,6 +183,8 @@ describe('estado de la orden en la pantalla de confirmación', () => {
   })
 
   it('también refleja un rechazo', () => {
-    expect(reconcileCreatedOrder(created, [{ id: ORDER_ID, status: 'rechazado' }]).status).toBe('rechazado')
+    expect(reconcileCreatedOrder(created, [{ id: ORDER_ID, status: 'rechazado' }]).status).toBe(
+      'rechazado',
+    )
   })
 })

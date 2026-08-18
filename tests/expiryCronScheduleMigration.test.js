@@ -17,9 +17,7 @@ describe('migración del barrido de vencimientos', () => {
   it('reprograma el barrido cada 3 minutos', () => {
     // Se afirma sobre la llamada, no sobre el archivo: el comentario cita el
     // schedule anterior para dejar dicho cómo se revierte.
-    const schedule = migration.match(
-      /cron\.schedule\(\s*'expire-domain-orders-sweep',\s*'([^']+)'/,
-    )
+    const schedule = migration.match(/cron\.schedule\(\s*'expire-domain-orders-sweep',\s*'([^']+)'/)
 
     expect(schedule?.[1]).toBe('*/3 * * * *')
   })

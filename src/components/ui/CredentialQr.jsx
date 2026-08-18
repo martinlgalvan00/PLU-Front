@@ -48,16 +48,15 @@ export default function CredentialQr({
   const state = src ? (revealed ? 'ready' : 'loading') : failed ? 'failed' : 'pending'
 
   return (
-    <span
-      className={`credential-qr credential-qr--${size} ${className}`.trim()}
-      data-state={state}
-    >
+    <span className={`credential-qr credential-qr--${size} ${className}`.trim()} data-state={state}>
       <span className="credential-qr__plate" aria-hidden="true">
         <span className="credential-qr__grid" />
         <span className="credential-qr__eye credential-qr__eye--tl" />
         <span className="credential-qr__eye credential-qr__eye--tr" />
         <span className="credential-qr__eye credential-qr__eye--bl" />
-        {failed ? <QrCode className="credential-qr__fallback-icon" size={28} strokeWidth={1.2} /> : null}
+        {failed ? (
+          <QrCode className="credential-qr__fallback-icon" size={28} strokeWidth={1.2} />
+        ) : null}
       </span>
 
       {src ? (

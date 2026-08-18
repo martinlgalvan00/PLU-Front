@@ -134,7 +134,9 @@ export default function RegisterMembershipConfirmation({
               <strong className="register-membership-confirmation__credential-code">
                 {memberCode ?? t('pages.register.membershipCredentialPendingCode')}
               </strong>
-              <span className="register-membership-confirmation__credential-name">{order.athleteName}</span>
+              <span className="register-membership-confirmation__credential-name">
+                {order.athleteName}
+              </span>
               {membershipExpiration && (
                 <span className="register-membership-confirmation__credential-validity">
                   {t('shareCard.membershipValidUntil', { date: membershipExpiration })}
@@ -160,7 +162,9 @@ export default function RegisterMembershipConfirmation({
 
       {isManual && !isActive && (
         <Block className="register-membership-confirmation__actions" {...riseProps}>
-          <p className="register-membership-confirmation__manual">{t('pages.register.manualNote')}</p>
+          <p className="register-membership-confirmation__manual">
+            {t('pages.register.manualNote')}
+          </p>
           {/* Sin esto la pantalla daba los datos bancarios y terminaba ahí:
               el comprobante solo se podía adjuntar entrando después a la
               cuenta, y Finanzas aprobaba sin evidencia. */}
@@ -187,7 +191,9 @@ export default function RegisterMembershipConfirmation({
         <dl className="register-membership-confirmation__ledger">
           <div>
             <dt>{t('pages.register.membershipReferenceLabel')}</dt>
-            <dd><code>{order.reference}</code></dd>
+            <dd>
+              <code>{order.reference}</code>
+            </dd>
           </div>
           <div>
             <dt>{t('pages.register.membershipAmountLabel')}</dt>

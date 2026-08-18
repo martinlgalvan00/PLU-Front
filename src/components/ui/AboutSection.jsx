@@ -2,7 +2,12 @@ import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import { useContent } from '../../hooks/useContent.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../../motion/tokens.ts'
+import {
+  MOTION_DURATION,
+  MOTION_EASE,
+  MOTION_STAGGER,
+  MOTION_VIEWPORT,
+} from '../../motion/tokens.ts'
 
 const aboutSequence = {
   hidden: {},
@@ -94,7 +99,11 @@ export default function AboutSection({ onNavigate }) {
 
         <PillarList {...withVariant(aboutPillarSequence)} className="about-section__pillars">
           {ABOUT_PILLARS.map(({ id, title, text }, index) => (
-            <Pillar {...withVariant(aboutPillarIn)} key={id ?? title} className="about-section__pillar">
+            <Pillar
+              {...withVariant(aboutPillarIn)}
+              key={id ?? title}
+              className="about-section__pillar"
+            >
               <span className="about-section__pillar-index" aria-hidden>
                 {String(index + 1).padStart(2, '0')}
               </span>

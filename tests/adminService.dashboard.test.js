@@ -83,7 +83,9 @@ describe('buildPendingActions — gate sin afiliación', () => {
           category: 'Raw',
         },
       ],
-      events: [{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic', requiresMembership: true }],
+      events: [
+        { slug: 'pitbull-classic-2026', title: 'Pitbull Classic', requiresMembership: true },
+      ],
     })
 
     expect(actions.some((item) => item.id === 'action-gate-r1')).toBe(true)
@@ -137,13 +139,17 @@ describe('buildPendingActions — hasProof', () => {
     })
 
     expect(actions.find((item) => item.id === 'action-pay-p1')?.hasProof).toBe(true)
-    expect(actions.find((item) => item.id === 'action-pay-p1')?.paymentProofPath).toBe('proofs/p1.jpg')
+    expect(actions.find((item) => item.id === 'action-pay-p1')?.paymentProofPath).toBe(
+      'proofs/p1.jpg',
+    )
     expect(actions.find((item) => item.id === 'action-pay-p1')?.method).toBe('manual_link')
     expect(actions.find((item) => item.id === 'action-pay-p2')?.hasProof).toBe(false)
     expect(actions.find((item) => item.id === 'action-pay-p2')?.cashAtPitbull).toBe(true)
     expect(actions.find((item) => item.id === 'action-pay-p2')?.paymentProofPath).toBeNull()
     expect(actions.find((item) => item.id === 'action-tord-t1')?.hasProof).toBe(true)
-    expect(actions.find((item) => item.id === 'action-tord-t1')?.paymentProofPath).toBe('tickets/t1.pdf')
+    expect(actions.find((item) => item.id === 'action-tord-t1')?.paymentProofPath).toBe(
+      'tickets/t1.pdf',
+    )
     expect(actions.find((item) => item.id === 'action-tord-t2')?.hasProof).toBe(false)
     expect(actions.find((item) => item.id === 'action-tord-t2')?.paymentProofPath).toBeNull()
   })
@@ -164,7 +170,9 @@ describe('getAdminNavBadges — incluye gate pending', () => {
         },
         { id: 'r2', athleteId: 'a2', status: 'pendiente_pago' },
       ],
-      events: [{ slug: 'pitbull-classic-2026', title: 'Pitbull Classic', requiresMembership: true }],
+      events: [
+        { slug: 'pitbull-classic-2026', title: 'Pitbull Classic', requiresMembership: true },
+      ],
     })
 
     expect(badges.registrations).toBe(2)

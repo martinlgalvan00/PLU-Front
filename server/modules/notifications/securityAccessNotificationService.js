@@ -15,14 +15,26 @@ import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
  * El tipo está marcado como `critical` en el catálogo: una desuscripción vieja
  * no puede dejar a un operador sin su acceso el día del evento.
  */
-export function createSecurityAccessNotificationService({ repository, brevo, dispatcher, env = process.env }) {
+export function createSecurityAccessNotificationService({
+  repository,
+  brevo,
+  dispatcher,
+  env = process.env,
+}) {
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
-  return function notifySecurityAccess({ user, tempPassword = null, event, accessUrl = null, idempotencyKey }) {
+  return function notifySecurityAccess({
+    user,
+    tempPassword = null,
+    event,
+    accessUrl = null,
+    idempotencyKey,
+  }) {
     // accessUrl (link con token de acceso directo) tiene prioridad sobre el
     // link de puerta "pelado" — si viene, el mail deja entrar sin contraseña.
-    const gateUrl = accessUrl || (appUrl && event?.slug ? `${appUrl}${buildSecurityGatePath(event.slug)}` : '')
+    const gateUrl =
+      accessUrl || (appUrl && event?.slug ? `${appUrl}${buildSecurityGatePath(event.slug)}` : '')
 
     return mailer.send('security_access', {
       to: user.email,

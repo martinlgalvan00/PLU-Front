@@ -25,7 +25,9 @@ export function isPaymentsMockEnvironmentAllowed(env = process.env) {
 }
 
 function parsePaymentsMockFlag(value) {
-  const raw = String(value ?? '').trim().toLowerCase()
+  const raw = String(value ?? '')
+    .trim()
+    .toLowerCase()
   if (!raw) return null
   if (['true', '1', 'yes'].includes(raw)) return true
   if (['false', '0', 'no'].includes(raw)) return false
@@ -38,7 +40,9 @@ export function resolvePaymentsProvider(env = process.env) {
   if (mockFlag === true) return 'mock'
   if (mockFlag === false) return 'mercado_pago'
 
-  const raw = String(env.PAYMENTS_PROVIDER ?? 'mercado_pago').trim().toLowerCase()
+  const raw = String(env.PAYMENTS_PROVIDER ?? 'mercado_pago')
+    .trim()
+    .toLowerCase()
   if (raw === 'mock' || raw === 'mercado_pago') return raw
   throw new HttpError(
     503,
@@ -58,10 +62,7 @@ export function assertPaymentsMockAllowed(env = process.env) {
 export function assertMercadoPagoRuntimeReady(env = process.env) {
   const status = getPaymentsRuntimeStatus(env)
   if (!status.ready) {
-    throw new HttpError(
-      503,
-      `Mercado Pago no puede iniciar cobros: ${status.issues.join(' ')}`,
-    )
+    throw new HttpError(503, `Mercado Pago no puede iniciar cobros: ${status.issues.join(' ')}`)
   }
 }
 

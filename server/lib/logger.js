@@ -39,7 +39,9 @@ const store_ = new AsyncLocalStorage()
 const MAX_BREADCRUMBS = 40
 
 function resolveLevel(env) {
-  const configured = String(env.LOG_LEVEL ?? '').trim().toLowerCase()
+  const configured = String(env.LOG_LEVEL ?? '')
+    .trim()
+    .toLowerCase()
   if (configured && configured in LEVELS) return LEVELS[configured]
   // Los tests montan la app decenas de veces; sin esto cada 4xx esperado
   // ensuciaria la salida de vitest y taparia las fallas reales.
@@ -99,7 +101,8 @@ function stackOf(error) {
   return stack.length > MAX_STACK ? `${stack.slice(0, MAX_STACK)}…[truncated]` : stack
 }
 
-const STACK_FRAME = /at\s+(?:(?<fn>[^\s(]+)\s+\()?(?<location>[^\s)]+):(?<line>\d+):(?<column>\d+)\)?/
+const STACK_FRAME =
+  /at\s+(?:(?<fn>[^\s(]+)\s+\()?(?<location>[^\s)]+):(?<line>\d+):(?<column>\d+)\)?/
 // Marco de terceros: no dice donde esta el problema nuestro.
 const FOREIGN_FRAME = /node_modules|node:internal|^\s*at\s+node:/
 
@@ -188,9 +191,10 @@ function write(level, event, context = {}) {
     if (trail.length) payload.trail = trail.map((crumb) => redact(crumb))
   }
 
-  const line = env.LOG_PRETTY === 'true'
-    ? `[${level}] ${event} ${JSON.stringify(payload, null, 2)}`
-    : JSON.stringify(payload)
+  const line =
+    env.LOG_PRETTY === 'true'
+      ? `[${level}] ${event} ${JSON.stringify(payload, null, 2)}`
+      : JSON.stringify(payload)
 
   if (level === 'error') console.error(line)
   else if (level === 'warn') console.warn(line)
@@ -203,7 +207,9 @@ function safeWrite(level, event, context) {
   } catch (loggingError) {
     // La observabilidad nunca puede tumbar un cobro. Se degrada a una linea
     // plana y sigue.
-    console.error(`[logger] no se pudo serializar ${event}: ${loggingError?.message ?? loggingError}`)
+    console.error(
+      `[logger] no se pudo serializar ${event}: ${loggingError?.message ?? loggingError}`,
+    )
   }
 }
 
@@ -255,7 +261,9 @@ export function addBreadcrumb(event, data = {}) {
   store.breadcrumbs.push({
     // Milisegundos desde que arranco la operacion: hace visible donde se fue
     // el tiempo (ej. 8s esperando a Mercado Pago antes del timeout).
-    atMs: store.startedAt ? Math.round(Number(process.hrtime.bigint() - store.startedAt) / 1e6) : null,
+    atMs: store.startedAt
+      ? Math.round(Number(process.hrtime.bigint() - store.startedAt) / 1e6)
+      : null,
     event,
     ...data,
   })

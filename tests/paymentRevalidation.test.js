@@ -91,16 +91,34 @@ describe('seleccion del pago canonico del proveedor', () => {
     // El atleta pago, y despues probo de nuevo con otra tarjeta que reboto.
     // Quedarse con el mas reciente reportaria la orden como rechazada.
     const canonical = selectCanonicalProviderPayment([
-      providerPayment({ id: 'mp-ok', status: 'approved', date_created: '2026-08-10T12:00:00.000Z' }),
-      providerPayment({ id: 'mp-no', status: 'rejected', date_created: '2026-08-10T13:00:00.000Z' }),
+      providerPayment({
+        id: 'mp-ok',
+        status: 'approved',
+        date_created: '2026-08-10T12:00:00.000Z',
+      }),
+      providerPayment({
+        id: 'mp-no',
+        status: 'rejected',
+        date_created: '2026-08-10T13:00:00.000Z',
+      }),
     ])
     expect(canonical.id).toBe('mp-ok')
   })
 
   it('entre dos del mismo rango se queda con el mas nuevo', () => {
     const canonical = selectCanonicalProviderPayment([
-      providerPayment({ id: 'viejo', status: 'rejected', date_created: '2026-08-01T10:00:00.000Z', date_approved: null }),
-      providerPayment({ id: 'nuevo', status: 'rejected', date_created: '2026-08-09T10:00:00.000Z', date_approved: null }),
+      providerPayment({
+        id: 'viejo',
+        status: 'rejected',
+        date_created: '2026-08-01T10:00:00.000Z',
+        date_approved: null,
+      }),
+      providerPayment({
+        id: 'nuevo',
+        status: 'rejected',
+        date_created: '2026-08-09T10:00:00.000Z',
+        date_approved: null,
+      }),
     ])
     expect(canonical.id).toBe('nuevo')
   })
@@ -237,7 +255,12 @@ describe('revalidatePaymentOrder', () => {
       onApply: (payment) => ({ order: { ...order, status: 'aprobado' }, payment }),
     })
     const mercadoPago = createProviderDouble([
-      providerPayment({ id: 'mp-cancel', status: 'cancelled', date_created: '2026-08-09T10:00:00.000Z', date_approved: null }),
+      providerPayment({
+        id: 'mp-cancel',
+        status: 'cancelled',
+        date_created: '2026-08-09T10:00:00.000Z',
+        date_approved: null,
+      }),
       providerPayment({ id: 'mp-ok', status: 'approved' }),
     ])
 
@@ -253,7 +276,9 @@ describe('revalidatePaymentOrder', () => {
     const repository = createRepositoryDouble(order)
     const mercadoPago = createProviderDouble([])
 
-    await expect(revalidatePaymentOrder(ORDER_ID, { repository, mercadoPago })).rejects.toMatchObject({
+    await expect(
+      revalidatePaymentOrder(ORDER_ID, { repository, mercadoPago }),
+    ).rejects.toMatchObject({
       status: 409,
     })
   })

@@ -19,7 +19,9 @@ export function toApiPaymentMethod(paymentMethod) {
  */
 export function previewCheckoutPrice({ paymentMethod, manualPrice, fallback }) {
   const isManualChannel =
-    paymentMethod === 'manual_link' || paymentMethod === 'transferencia' || paymentMethod === 'cash_pitbull'
+    paymentMethod === 'manual_link' ||
+    paymentMethod === 'transferencia' ||
+    paymentMethod === 'cash_pitbull'
   if (isManualChannel && manualPrice != null) return manualPrice
   return fallback
 }

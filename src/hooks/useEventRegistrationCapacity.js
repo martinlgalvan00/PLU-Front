@@ -100,18 +100,20 @@ export function useEventRegistrationCapacity(
     let client = null
     let channel = null
 
-    void getSupabaseClient().then((supabase) => {
-      if (disposed || !supabase) return
-      client = supabase
-      channel = supabase
-        .channel(`event-capacity:${eventSlug}`, { config: { broadcast: { self: false } } })
-        .on('broadcast', { event: 'capacity-changed' }, () => {
-          registrationSummaryStore.invalidate(eventSlug)
-        })
-        .subscribe()
-    }).catch(() => {
-      // El polling sigue siendo el fallback si Realtime no puede conectar.
-    })
+    void getSupabaseClient()
+      .then((supabase) => {
+        if (disposed || !supabase) return
+        client = supabase
+        channel = supabase
+          .channel(`event-capacity:${eventSlug}`, { config: { broadcast: { self: false } } })
+          .on('broadcast', { event: 'capacity-changed' }, () => {
+            registrationSummaryStore.invalidate(eventSlug)
+          })
+          .subscribe()
+      })
+      .catch(() => {
+        // El polling sigue siendo el fallback si Realtime no puede conectar.
+      })
 
     return () => {
       disposed = true

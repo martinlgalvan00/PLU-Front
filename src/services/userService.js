@@ -33,9 +33,7 @@ export function getInitialUsers(storedUsers) {
 }
 
 export function updateUserRole(users, userId, role) {
-  return users.map((user) =>
-    user.id === userId ? { ...user, role, roleKey: role } : user,
-  )
+  return users.map((user) => (user.id === userId ? { ...user, role, roleKey: role } : user))
 }
 
 export function updateUserStatus(users, userId, status) {
