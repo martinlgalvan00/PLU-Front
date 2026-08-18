@@ -34,7 +34,8 @@ export default function AdminFilterSelect({
         aria-label={label ? undefined : accessibleName}
         onChange={(val) => onChange(val)}
         options={selectOptions}
-        style={{ minWidth: 140 }}
+        virtual={false}
+        style={{ flex: 1, minWidth: 140 }}
       />
     </div>
   )

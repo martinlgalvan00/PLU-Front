@@ -944,6 +944,8 @@ export default function DashboardSection({
           ))}
         </section>
 
+        <OperationalFlows flows={operationalFlows} onNavigate={onNavigate} t={t} />
+
         <section className="admin-ops__board" aria-label={t('admin.dashboard.analyticsAria')}>
           <header className="admin-ops__board-head">
             <div className="admin-ops__board-intro">
@@ -1069,8 +1071,6 @@ export default function DashboardSection({
               />
             </div>
           </div>
-
-          <OperationalFlows flows={operationalFlows} onNavigate={onNavigate} t={t} />
 
           <div className="admin-ops__work" data-tour="dashboard-queue">
             <header className="admin-ops__work-head">

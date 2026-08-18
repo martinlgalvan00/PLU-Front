@@ -475,9 +475,6 @@ export default function AdminShell({
               <div className="admin-shell__breadcrumb">
                 {t('admin.shell.breadcrumbRoot')} / {activeLabel}
               </div>
-              <Text strong className="admin-shell__header-title">
-                {activeLabel}
-              </Text>
             </div>
           </Space>
 
