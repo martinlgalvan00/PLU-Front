@@ -140,12 +140,13 @@ function createSupabaseEventDouble() {
               id: 'evt-1',
               slug: 'pitbull-classic-2026',
               title: 'Pitbull Classic',
-              ends_at: '2026-08-16T22:00:00.000Z',
+              ends_at: '2026-12-16T22:00:00.000Z',
             },
             error: null,
           }),
         }),
       }),
+      insert: async () => ({ error: null }),
     }),
   }
 }
@@ -291,7 +292,6 @@ describe('alta de equipo con acceso personal', () => {
         }),
       })
       const body = await response.json()
-
       expect(response.status).toBe(201)
       expect(body.created).toHaveLength(2)
       expect(body.created.every((item) => item.accessUrl.includes('?acceso='))).toBe(true)

@@ -24,9 +24,9 @@ export default function AdminFilterSelect({
       style={{ display: 'flex', alignItems: 'center', gap: 8 }}
     >
       {label ? (
-        <span className="admin-filters__select-label" style={{ fontSize: 12, fontWeight: 500 }}>
+        <label htmlFor={id} className="admin-filters__select-label" style={{ fontSize: 12, fontWeight: 500 }}>
           {label}
-        </span>
+        </label>
       ) : null}
       <Select
         id={id}

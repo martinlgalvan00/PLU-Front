@@ -477,7 +477,9 @@ export function createSupabasePaymentRepository(
     },
 
     async listPlans() {
-      const now = new Date().toISOString()
+      // 5-second buffer para evitar que la truncacion de milisegundos en JS
+      // oculte planes creados en la misma transaccion por la base de datos.
+      const now = new Date(Date.now() + 5000).toISOString()
       return assertResult(
         await client
           .from('membership_plans')

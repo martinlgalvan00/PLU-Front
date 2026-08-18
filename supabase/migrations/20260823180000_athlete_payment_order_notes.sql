@@ -10,6 +10,8 @@
 alter table public.athlete_payment_orders
   add column if not exists notes text;
 
+drop function if exists public.register_athlete_payment_proof(uuid, uuid, text);
+
 create or replace function public.register_athlete_payment_proof(
   p_order_id uuid,
   p_athlete_id uuid,

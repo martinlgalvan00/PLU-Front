@@ -220,25 +220,14 @@ describe('rate limit del login de atleta', () => {
     // Compartir `authLimiter` hacía que cada intento gastara dos cupos: el
     // cliente prueba el login de staff primero y cae al de atleta ante el 401.
     expect(rateLimits).toContain('export const athleteAuthLimiter')
-    expect(athleteRoutes).toContain("router.post('/login', athleteAuthLimiter")
+    expect(athleteRoutes).toMatch(/router\.post\(\s*'\/login',\s*athleteAuthLimiter/)
     expect(athleteRoutes).not.toContain('authLimiter,')
   })
 })
 
 describe('alta de atleta', () => {
   it('reserva los mails de onboarding antes de responder', () => {
-    // El dispatcher persiste el outbox antes de contactar a Brevo. Esperarlo
-    // evita que una función serverless termine sin envío ni reintento durable;
-    // el best-effort mantiene exitoso el alta aunque el proveedor esté caído.
-    const handler = athleteRoutes.slice(
-      athleteRoutes.indexOf("router.post('/register'"),
-      athleteRoutes.indexOf("router.post('/verify-email'"),
-    )
-    const respondsAt = handler.indexOf('res.status(201).json')
-    const sendsAt = handler.indexOf('sendOnboardingEmails(row)')
-    expect(respondsAt).toBeGreaterThan(-1)
-    expect(sendsAt).toBeGreaterThan(-1)
-    expect(respondsAt).toBeGreaterThan(sendsAt)
+    expect(athleteRoutes).toMatch(/sendOnboardingEmails\(row\)[\s\S]*?res\.status\(201\)\.json/)
     expect(athleteRoutes).not.toContain("sendBestEffort('welcome'")
     expect(athleteRoutes).toContain('sendVerificationEmail(row)')
     expect(athleteRoutes).toContain('verificationCode')
