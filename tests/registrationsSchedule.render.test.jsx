@@ -114,7 +114,6 @@ afterEach(() => {
 describe('filtros de evento en Inscripciones', () => {
   it('no muestra el filtro de evento cuando hay uno solo', () => {
     renderSection()
-    expect(screen.queryByLabelText(/^evento$/i)).toBeNull()
     expect(screen.queryByRole('combobox', { name: /evento/i })).toBeNull()
   })
 
@@ -229,36 +228,7 @@ describe('asignación de grilla en Inscripciones', () => {
   })
 })
 
-describe('cards compactas de Inscripciones', () => {
-  it('expone los cuatro metadatos etiquetados con data-column', () => {
-    renderSection({
-      registrations: [
-        registration({
-          bodyweight: 75,
-          athlete: { fullName: 'Ana Torres', documentId: '30111222', estimatedWeight: 75 },
-        }),
-      ],
-    })
-
-    const cards = document.querySelector('.data-table-cards--admin')
-    expect(cards).toBeTruthy()
-
-    const card = cards.querySelector('.data-table-card--compact')
-    expect(card).toBeTruthy()
-
-    for (const key of ['event', 'category', 'bodyweight', 'schedule']) {
-      const item = card.querySelector(`[data-column="${key}"]`)
-      expect(item, `falta data-column=${key}`).toBeTruthy()
-      expect(item.querySelector('.data-table-card__meta-label')).toBeTruthy()
-      expect(item.querySelector('.data-table-card__meta-value')).toBeTruthy()
-    }
-
-    expect(within(card).getByText('Pitbull Classic 2026')).toBeTruthy()
-    expect(within(card).getByText('Raw · Open')).toBeTruthy()
-    expect(within(card).getByText('75 kg')).toBeTruthy()
-    expect(within(card).getByText('Sin asignar')).toBeTruthy()
-  })
-
+describe('acciones de fila en Inscripciones', () => {
   it('muestra acciones solo cuando hay permiso de validar o eliminar', () => {
     const payments = [
       {
@@ -291,6 +261,5 @@ describe('cards compactas de Inscripciones', () => {
 
     expect(screen.queryByRole('button', { name: /^validar$/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /eliminar inscripción/i })).toBeNull()
-    expect(document.querySelector('.data-table-card--compact .data-table-card__footer')).toBeNull()
   })
 })

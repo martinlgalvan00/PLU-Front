@@ -122,13 +122,13 @@ describe('superficie de la API', () => {
       '/subscriptions/:subscriptionId/cancel',
     ]) {
       const declaracion = payments.match(
-        new RegExp(`router\\.post\\('${path.replace(/[/:]/g, '\\$&')}'[^)]*`),
+        new RegExp(`router\\.post\\(\\s*'${path.replace(/[/:]/g, '\\$&')}'[^)]*`),
       )
       expect(declaracion?.[0], `${path} sin guard de escritura`).toMatch(/financeWriteGuard/)
     }
 
     const forceSettle = athletes.match(
-      /router\.post\('\/admin\/payment-orders\/:orderId\/force-settle'[^)]*/,
+      /router\.post\(\s*'\/admin\/payment-orders\/:orderId\/force-settle'[^)]*/,
     )
     expect(forceSettle?.[0]).toMatch(/financeGuard/)
   })
@@ -138,10 +138,11 @@ describe('superficie de la API', () => {
     // Los dos paths registrados en el panel de MP (canonico y alias legacy)
     // tienen que compartir handler: uno sin verificar seria una puerta abierta.
     const handlers = [
-      ...payments.matchAll(/router\.post\('\/webhook(?:\/mercadopago)?',([^\n]*)\n/g),
+      payments.match(/router\.post\(\s*'\/webhook\/mercadopago'[\s\S]*?handleMercadoPagoWebhook/)?.[0],
+      payments.match(/router\.post\(\s*'\/webhook'[\s\S]*?handleMercadoPagoWebhook/)?.[0],
     ]
-    expect(handlers).toHaveLength(2)
-    for (const [, middleware] of handlers) {
+    for (const middleware of handlers) {
+      expect(middleware).toBeDefined()
       expect(middleware).toMatch(/webhookLimiter/)
       expect(middleware).toMatch(/validateBody\(webhookSchema\)/)
       expect(middleware).toMatch(/handleMercadoPagoWebhook/)

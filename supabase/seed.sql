@@ -9,15 +9,17 @@
 
 insert into public.events (
   slug, title, venue, location, starts_at, ends_at,
-  status, published, price, currency, rules,
+  status, published, price, manual_price, currency, rules,
   ticket_sales_opens_at, ticket_sales_closes_at, capacity
 ) values (
   'pitbull-classic-2026', 'Pitbull Classic', 'La Troupe Multiespacio', 'Banfield, Buenos Aires',
   '2026-12-12 10:00:00-03', '2026-12-13 20:00:00-03',
-  'inscripcion_abierta', true, 75000, 'ARS',
+  'inscripcion_abierta', true, 85000, 75000, 'ARS',
   jsonb_build_object(
-    'membershipPrice', 75000,
-    'comboPrice', 120000,
+    'membershipPrice', 85000,
+    'membershipManualPrice', 75000,
+    'comboPrice', 170000,
+    'comboManualPrice', 120000,
     'ticketsEnabled', true,
     'ticketAddons', '[]'::jsonb,
     'featured', true
@@ -26,7 +28,7 @@ insert into public.events (
 ), (
   'spring-classic-2025', 'Spring Classic 2025', 'Maximal Strength Club', 'Buenos Aires',
   '2025-05-18 10:00:00-03', '2025-05-18 20:00:00-03',
-  'finalizado', true, 75000, 'ARS',
+  'finalizado', true, 75000, null, 'ARS',
   null,
   null, null, null
 );
@@ -42,13 +44,14 @@ set limit_count = 180,
 -- Oferta combo vigente (afiliación + inscripción) para checkout productivo.
 -- El plan one_time ya existe por migraciones; acá solo se vincula al evento.
 insert into public.event_combo_offers (
-  organization_id, event_id, membership_plan_id, price, currency,
+  organization_id, event_id, membership_plan_id, price, manual_price, currency,
   active, starts_at, ends_at
 )
 select
   e.organization_id,
   e.id,
   p.id,
+  170000,
   120000,
   'ARS',
   true,
@@ -69,6 +72,7 @@ where e.slug = 'pitbull-classic-2026'
 on conflict (event_id) do update set
   membership_plan_id = excluded.membership_plan_id,
   price = excluded.price,
+  manual_price = excluded.manual_price,
   currency = excluded.currency,
   active = true,
   starts_at = excluded.starts_at,

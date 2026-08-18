@@ -518,6 +518,7 @@ export default function AuditSection() {
       title={t('admin.audit.title')}
       subtitle={t('admin.audit.subtitle')}
       totalCount={entries.length}
+      beforeFilters={health}
       filters={filterOptions}
       filterActions={
         <>
@@ -546,8 +547,6 @@ export default function AuditSection() {
       }
       onQueryChange={setQuery}
     >
-      {health}
-
       {error ? (
         <ErrorState
           title={t('admin.audit.loadErrorTitle')}

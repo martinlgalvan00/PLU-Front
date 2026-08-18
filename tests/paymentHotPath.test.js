@@ -69,11 +69,11 @@ describe('telemetría del Brick separada del cupo de checkout', () => {
     // problema y recibía "Demasiados intentos de checkout" sin haber llegado a
     // enviar un pago. Mismo bug que ya se corrigió en el login de atleta.
     expect(rateLimits).toContain('export const paymentTelemetryLimiter')
-    expect(paymentRoutes).toContain("router.post('/telemetry', paymentTelemetryLimiter")
+    expect(paymentRoutes).toMatch(/router\.post\(\s*'\/telemetry',\s*paymentTelemetryLimiter/)
 
     // El resto del checkout sí comparte cupo a propósito.
-    expect(paymentRoutes).toContain("router.post('/preferences', checkoutLimiter")
-    expect(paymentRoutes).toContain("router.post('/embedded/process', checkoutLimiter")
+    expect(paymentRoutes).toMatch(/router\.post\(\s*'\/preferences',\s*checkoutLimiter/)
+    expect(paymentRoutes).toMatch(/router\.post\(\s*'\/subscriptions\/process',\s*checkoutLimiter/)
   })
 })
 

@@ -30,10 +30,10 @@ describe('precio de inscripción Pitbull Classic', () => {
 
   it('siembra Pitbull abierto: db reset aplica seed despues de las migraciones', () => {
     expect(seed).toMatch(
-      /'pitbull-classic-2026'[\s\S]*?'inscripcion_abierta'[\s\S]*?75000,\s*'ARS'/,
+      /'pitbull-classic-2026'[\s\S]*?'inscripcion_abierta'[\s\S]*?85000,\s*75000,\s*'ARS'/,
     )
-    expect(seed).toContain("'membershipPrice', 75000")
-    expect(seed).toContain("'comboPrice', 120000")
+    expect(seed).toContain("'membershipManualPrice', 75000")
+    expect(seed).toContain("'comboManualPrice', 120000")
     expect(seed).toContain('insert into public.event_combo_offers')
     expect(seed).toMatch(/120000[\s\S]*?'ARS'[\s\S]*?true[\s\S]*?2026-08-28/)
   })

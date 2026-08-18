@@ -37,7 +37,7 @@ describe('compromiso competitivo y padrón público', () => {
   it('protege la mutación con permisos y la dirige a una RPC auditada', () => {
     expect(routes).toContain("'/admin/registrations/:registrationId/public-visibility'")
     expect(routes).toContain('...registrationWriteGuard')
-    expect(repository).toContain("rpc(\n      'staff_set_registration_public_visibility'")
+    expect(repository).toMatch(/rpc\(\s*'staff_set_registration_public_visibility'/)
   })
 
   it('habilita completar datos competitivos pendientes sin reescribir los oficiales existentes', () => {
@@ -50,6 +50,6 @@ describe('compromiso competitivo y padrón público', () => {
       'birth_date = case when birth_date is null then p_birth_date else birth_date end',
     )
     expect(migration).toContain('country = case')
-    expect(repository).toContain("rpc('update_athlete_profile_v4'")
+    expect(repository).toMatch(/rpc\(\s*'update_athlete_profile_v4'/)
   })
 })

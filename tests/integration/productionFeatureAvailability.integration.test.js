@@ -32,35 +32,39 @@ describe('features productivas contra el catalogo real de Supabase', () => {
     expect(body.plans.some((plan) => plan.collectionMode === 'recurring')).toBe(true)
   })
 
-  it('publica Pitbull Classic en ARS 75.000 y el combo en ARS 120.000', async () => {
+  it('publica Pitbull Classic en ARS 85.000 (75.000 manual) y el combo en ARS 170.000 (120.000 manual)', async () => {
     const eventResult = await admin
       .from('events')
-      .select('id, slug, price, currency, status, published, rules')
+      .select('id, slug, price, manual_price, currency, status, published, rules')
       .eq('slug', 'pitbull-classic-2026')
       .single()
     if (eventResult.error) throw new Error(eventResult.error.message)
 
     expect(eventResult.data).toMatchObject({
       slug: 'pitbull-classic-2026',
-      price: 75000,
+      price: 85000,
+      manual_price: 75000,
       currency: 'ARS',
       status: 'inscripcion_abierta',
       published: true,
     })
     expect(eventResult.data.rules).toMatchObject({
-      membershipPrice: 75000,
-      comboPrice: 120000,
+      membershipPrice: 85000,
+      membershipManualPrice: 75000,
+      comboPrice: 170000,
+      comboManualPrice: 120000,
     })
 
     const comboResult = await admin
       .from('event_combo_offers')
-      .select('price, currency, active')
+      .select('price, manual_price, currency, active')
       .eq('event_id', eventResult.data.id)
       .single()
     if (comboResult.error) throw new Error(comboResult.error.message)
 
     expect(comboResult.data).toMatchObject({
-      price: 120000,
+      price: 170000,
+      manual_price: 120000,
       currency: 'ARS',
       active: true,
     })

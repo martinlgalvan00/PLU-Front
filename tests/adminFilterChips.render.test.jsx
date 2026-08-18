@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.jsx'
 import AdminListSection from '../src/components/admin/AdminListSection.jsx'
@@ -17,13 +17,20 @@ vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal
   }
 })
 
+let originalMatchMedia
+
 beforeAll(() => {
-  window.matchMedia ??= (query) => ({
+  originalMatchMedia = window.matchMedia
+  window.matchMedia = (query) => ({
     matches: String(query).includes('max-width: 1100px'),
     media: query,
     addEventListener() {},
     removeEventListener() {},
   })
+})
+
+afterAll(() => {
+  if (originalMatchMedia) window.matchMedia = originalMatchMedia
 })
 
 afterEach(() => cleanup())

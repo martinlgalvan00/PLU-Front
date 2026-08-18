@@ -72,6 +72,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_order_id: membershipOrder.data.order.id,
       p_athlete_id: athleteId,
       p_proof_path: `${membershipOrder.data.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (membershipProof.error) throw new Error(membershipProof.error.message)
     const membershipApproved = await admin.rpc('approve_athlete_payment_order', {
@@ -127,6 +128,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_order_id: body.order.id,
       p_athlete_id: athleteId,
       p_proof_path: `${body.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (proof.error) throw new Error(proof.error.message)
 
@@ -180,6 +182,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_order_id: body.order.id,
       p_athlete_id: athleteId,
       p_proof_path: `${body.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (proof.error) throw new Error(proof.error.message)
 

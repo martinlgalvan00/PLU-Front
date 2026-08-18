@@ -209,6 +209,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       p_order_id: firstBody.order.id,
       p_athlete_id: athleteBody.athlete.id,
       p_proof_path: `${firstBody.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (proof.error) throw new Error(proof.error.message)
     expect(proof.data.order.status).toBe('validacion_manual')
