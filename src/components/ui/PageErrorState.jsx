@@ -24,7 +24,11 @@ export default function PageErrorState({ error, onRetry, onGoHome }) {
         </p>
         <h1 className="page-error-state__title">{t('pageError.title')}</h1>
         <p className="page-error-state__lead">{t('pageError.lead')}</p>
-        <div className="page-error-state__actions" role="group" aria-label={t('pageError.actionsAria')}>
+        <div
+          className="page-error-state__actions"
+          role="group"
+          aria-label={t('pageError.actionsAria')}
+        >
           <Button onClick={onRetry}>
             <RotateCcw size={16} aria-hidden />
             {t('pageError.retry')}

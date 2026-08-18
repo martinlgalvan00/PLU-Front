@@ -19,10 +19,7 @@ import {
   recordOperationalAuditEvent,
   requestAuditMetadata,
 } from '../modules/audit/operationalAuditWriter.js'
-import {
-  ACCESS_ROLE_INCLUDE,
-  resolveAssignableRole,
-} from '../services/accessControlService.js'
+import { ACCESS_ROLE_INCLUDE, resolveAssignableRole } from '../services/accessControlService.js'
 import {
   generateTempPassword,
   hashPassword,
@@ -100,7 +97,13 @@ async function auditCredentialIssued(prisma, { actorId, userId, reason }) {
   })
 }
 
-export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificationRepository, env }) {
+export function createUserRoutes({
+  getPrisma,
+  getSupabaseAdmin,
+  brevo,
+  notificationRepository,
+  env,
+}) {
   const router = Router()
   const prisma = getPrisma()
   const readGuard = requirePermission('admin.users.read', { prisma })
@@ -222,9 +225,7 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
             mustChangePassword: true,
             passwordExpiresAt,
             role: accessRole.baseRole,
-            ...(prismaClient.accessRole
-              ? { accessRole: { connect: { id: accessRole.id } } }
-              : {}),
+            ...(prismaClient.accessRole ? { accessRole: { connect: { id: accessRole.id } } } : {}),
             status: 'invited',
             profile: {
               create: { firstName, lastName, displayName: `${firstName} ${lastName}`.trim() },
@@ -245,20 +246,23 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
           reason: 'invitation',
         })
 
-        await recordIdentity({
-          action: 'account.created',
-          entityType: 'staff_user',
-          entityId: created.id,
-          actorType: 'staff',
-          actorId: req.auth.user.id,
-          status: 'succeeded',
-          severity: 'success',
-          metadata: {
-            accountKind: 'staff',
-            channel: 'invitation',
-            roleKey: accessRole.key,
+        await recordIdentity(
+          {
+            action: 'account.created',
+            entityType: 'staff_user',
+            entityId: created.id,
+            actorType: 'staff',
+            actorId: req.auth.user.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: {
+              accountKind: 'staff',
+              channel: 'invitation',
+              roleKey: accessRole.key,
+            },
           },
-        }, req)
+          req,
+        )
 
         const user = serializeUser(created.accessRole?.key ? created : { ...created, accessRole })
         const invitation = buildInvitation({
@@ -319,9 +323,7 @@ export function createUserRoutes({ getPrisma, getSupabaseAdmin, brevo, notificat
           where: { id: target.id },
           data: {
             role: accessRole.baseRole,
-            ...(prismaClient.accessRole
-              ? { accessRole: { connect: { id: accessRole.id } } }
-              : {}),
+            ...(prismaClient.accessRole ? { accessRole: { connect: { id: accessRole.id } } } : {}),
             eventId: null,
             eventSlug: null,
           },

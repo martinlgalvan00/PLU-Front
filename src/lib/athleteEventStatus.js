@@ -25,9 +25,7 @@ export function resolveAthleteEventStatus({
   if (!event?.slug) return null
 
   const closed =
-    event.status === 'cerrado' ||
-    event.status === 'finalizado' ||
-    event.status === 'agotado'
+    event.status === 'cerrado' || event.status === 'finalizado' || event.status === 'agotado'
   if (closed) return 'closed'
 
   if (session?.role !== 'athlete_plu') return 'guest'
@@ -35,16 +33,12 @@ export function resolveAthleteEventStatus({
   const athleteId = session.athleteId
   const registration = registrations.find(
     (item) =>
-      item.athleteId === athleteId &&
-      (item.eventSlug === event.slug || item.event === event.title),
+      item.athleteId === athleteId && (item.eventSlug === event.slug || item.event === event.title),
   )
 
   if (registration) {
     if (isRegistrationAdmitted(registration.status)) return 'registered'
-    if (
-      registration.status === 'pendiente_pago' ||
-      registration.status === 'validacion_manual'
-    ) {
+    if (registration.status === 'pendiente_pago' || registration.status === 'validacion_manual') {
       return 'pending_payment'
     }
   }

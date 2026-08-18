@@ -26,7 +26,14 @@ function fakeClient(handler) {
 
 function allowResponse(hits, limit) {
   return {
-    data: { allowed: hits <= limit, hits, limit, blocked: false, resetAt: null, retryAfterSeconds: 0 },
+    data: {
+      allowed: hits <= limit,
+      hits,
+      limit,
+      blocked: false,
+      resetAt: null,
+      retryAfterSeconds: 0,
+    },
     error: null,
   }
 }
@@ -38,7 +45,11 @@ describe('SharedRateLimitStore', () => {
       hits += args.p_cost
       return allowResponse(hits, args.p_limit)
     })
-    const store = new SharedRateLimitStore({ name: 'auth', mode: 'strict', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'auth',
+      mode: 'strict',
+      getClient: () => client,
+    })
     store.init({ windowMs: 60_000, limit: 5 })
 
     await store.increment('ip')
@@ -50,7 +61,11 @@ describe('SharedRateLimitStore', () => {
 
   it('en modo sampled acumula y sincroniza por lote', async () => {
     const client = fakeClient(async (_fn, args) => allowResponse(args.p_cost, args.p_limit))
-    const store = new SharedRateLimitStore({ name: 'staff', mode: 'sampled', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'staff',
+      mode: 'sampled',
+      getClient: () => client,
+    })
     // Umbral = ceil(60 / 6) = 10.
     store.init({ windowMs: 60_000, limit: 60 })
 
@@ -67,7 +82,11 @@ describe('SharedRateLimitStore', () => {
     // Simula que otra instancia ya consumió 4 de 5. La instancia local está en
     // cero, que es exactamente el agujero del store en memoria.
     const client = fakeClient(async (_fn, args) => allowResponse(4 + args.p_cost, args.p_limit))
-    const store = new SharedRateLimitStore({ name: 'auth', mode: 'strict', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'auth',
+      mode: 'strict',
+      getClient: () => client,
+    })
     store.init({ windowMs: 60_000, limit: 5 })
 
     const result = await store.increment('ip')
@@ -80,7 +99,11 @@ describe('SharedRateLimitStore', () => {
       data: { allowed: false, hits: 99, blocked: true, retryAfterSeconds: 120 },
       error: null,
     }))
-    const store = new SharedRateLimitStore({ name: 'auth', mode: 'strict', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'auth',
+      mode: 'strict',
+      getClient: () => client,
+    })
     store.init({ windowMs: 60_000, limit: 5 })
 
     const first = await store.increment('atacante')
@@ -98,7 +121,11 @@ describe('SharedRateLimitStore', () => {
       data: { allowed: false, hits: 99, blocked: true, retryAfterSeconds: 3600 },
       error: null,
     }))
-    const store = new SharedRateLimitStore({ name: 'auth', mode: 'strict', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'auth',
+      mode: 'strict',
+      getClient: () => client,
+    })
     store.init({ windowMs: 1, limit: 5 })
 
     await store.increment('atacante')
@@ -113,7 +140,11 @@ describe('SharedRateLimitStore', () => {
 
   it('si la base falla se degrada al contador local en vez de romper el request', async () => {
     const client = fakeClient(async () => ({ data: null, error: { message: 'sin conexion' } }))
-    const store = new SharedRateLimitStore({ name: 'auth', mode: 'strict', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'auth',
+      mode: 'strict',
+      getClient: () => client,
+    })
     store.init({ windowMs: 60_000, limit: 5 })
 
     const first = await store.increment('ip')
@@ -125,7 +156,11 @@ describe('SharedRateLimitStore', () => {
 
   it('abre el corte de circuito tras fallas seguidas y deja de intentar', async () => {
     const client = fakeClient(async () => ({ data: null, error: { message: 'sin conexion' } }))
-    const store = new SharedRateLimitStore({ name: 'auth', mode: 'strict', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'auth',
+      mode: 'strict',
+      getClient: () => client,
+    })
     store.init({ windowMs: 60_000, limit: 100 })
 
     for (let i = 0; i < 10; i += 1) await store.increment('ip')
@@ -137,7 +172,11 @@ describe('SharedRateLimitStore', () => {
 
   it('no crece sin techo aunque el ataque rote de clave', async () => {
     const client = fakeClient(async (_fn, args) => allowResponse(args.p_cost, args.p_limit))
-    const store = new SharedRateLimitStore({ name: 'analytics', mode: 'sampled', getClient: () => client })
+    const store = new SharedRateLimitStore({
+      name: 'analytics',
+      mode: 'sampled',
+      getClient: () => client,
+    })
     store.init({ windowMs: 1, limit: 120 })
 
     for (let i = 0; i < 25_000; i += 1) await store.increment(`ip-${i}`)
@@ -161,8 +200,9 @@ describe('identityGuard', () => {
   })
 
   it('la sal cambia el hash: un volcado de la tabla no se cruza entre entornos', () => {
-    expect(hashIdentity('a@b.com', { AUTH_SECRET: 'uno' }))
-      .not.toBe(hashIdentity('a@b.com', { AUTH_SECRET: 'dos' }))
+    expect(hashIdentity('a@b.com', { AUTH_SECRET: 'uno' })).not.toBe(
+      hashIdentity('a@b.com', { AUTH_SECRET: 'dos' }),
+    )
   })
 
   it('corta con 429 cuando la cuenta está bloqueada', async () => {
@@ -195,7 +235,10 @@ describe('identityGuard', () => {
   })
 
   it('registra el fallo con el umbral y la ventana explícitos', async () => {
-    const supabaseAdmin = fakeClient(async () => ({ data: { locked: false, failures: 1 }, error: null }))
+    const supabaseAdmin = fakeClient(async () => ({
+      data: { locked: false, failures: 1 },
+      error: null,
+    }))
 
     await registerIdentityFailure({
       scope: IDENTITY_SCOPES.athleteLogin,
@@ -224,7 +267,9 @@ describe('loadShedder', () => {
     const handlers = {}
     return {
       set: vi.fn(),
-      on: (event, fn) => { handlers[event] = fn },
+      on: (event, fn) => {
+        handlers[event] = fn
+      },
       emit: (event) => handlers[event]?.(),
     }
   }
@@ -279,7 +324,7 @@ describe('migraciones de la capa de defensa', () => {
     expect(sql).toContain('alter default privileges in schema public')
     // La vista era `security definer` y auto-actualizable: escribir a través de
     // ella llegaba a `public.events` con RLS desactivada.
-    expect(sql).toContain("alter view public.public_events_view set (security_invoker = true)")
+    expect(sql).toContain('alter view public.public_events_view set (security_invoker = true)')
     expect(sql).toContain('revoke all on public.public_events_view from anon, authenticated')
     // La migración se verifica a sí misma: si algo queda con escritura, falla.
     expect(sql).toContain('raise exception')

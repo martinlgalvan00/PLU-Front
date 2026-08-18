@@ -7,11 +7,7 @@ import { getDefaultPermissionsForRole } from '../../src/lib/permissions.js'
 // proposito: las RPCs que usa (register_athlete, create_membership_order,
 // create_competition_registration) son intencionalmente publicas, igual
 // que create_ticket_order.
-const BRIDGED_ROLES = new Set([
-  'admin_maximal',
-  'admin_plu_arg',
-  'seguridad_plu_arg',
-])
+const BRIDGED_ROLES = new Set(['admin_maximal', 'admin_plu_arg', 'seguridad_plu_arg'])
 
 async function findSupabaseUserByEmail(admin, email) {
   let page = 1
@@ -33,7 +29,8 @@ async function ensureSupabaseUser(admin, email) {
   const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true })
   if (!error) return data.user
 
-  const alreadyExists = error.code === 'email_exists' || /already been registered/i.test(error.message ?? '')
+  const alreadyExists =
+    error.code === 'email_exists' || /already been registered/i.test(error.message ?? '')
   if (alreadyExists) {
     const existing = await findSupabaseUserByEmail(admin, email)
     if (existing) return existing
@@ -74,15 +71,14 @@ export async function ensureSupabaseSessionToken({
   // public.profiles todavía expresa el RBAC histórico. Sólo se entrega una
   // sesión Supabase cuando el rol conserva exactamente esa matriz; un rol
   // configurable o restringido opera exclusivamente a través de Express.
-  if (
-    !email ||
-    !BRIDGED_ROLES.has(role) ||
-    !usesDefaultPermissionSet(role, permissions)
-  ) return null
+  if (!email || !BRIDGED_ROLES.has(role) || !usesDefaultPermissionSet(role, permissions))
+    return null
 
   const admin =
     injectedAdmin === undefined
-      ? (isSupabaseAdminConfigured(env) ? getSupabaseAdmin() : null)
+      ? isSupabaseAdminConfigured(env)
+        ? getSupabaseAdmin()
+        : null
       : injectedAdmin
   if (!admin?.auth?.admin) return null
 

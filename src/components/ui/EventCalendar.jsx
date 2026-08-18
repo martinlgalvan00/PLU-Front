@@ -132,7 +132,6 @@ export default function EventCalendar({
     return map
   }, [events])
 
-
   const cells = useMemo(() => buildMonthCells(cursor.year, cursor.month), [cursor])
   const todayKey = toDayKey(today)
   const isTodayVisible = cursor.year === todayMonth.year && cursor.month === todayMonth.month
@@ -267,12 +266,14 @@ export default function EventCalendar({
 
       <footer className="event-calendar__footer">
         <div className="event-calendar__legend event-calendar__legend--compact">
-          {Object.entries(EVENT_STATUS).slice(0, 3).map(([key, meta]) => (
-            <span key={key} className="event-calendar__legend-item">
-              <span className={`event-calendar__dot event-calendar__dot--${meta.tone}`} />
-              {getStatusMeta(key, t).label}
-            </span>
-          ))}
+          {Object.entries(EVENT_STATUS)
+            .slice(0, 3)
+            .map(([key, meta]) => (
+              <span key={key} className="event-calendar__legend-item">
+                <span className={`event-calendar__dot event-calendar__dot--${meta.tone}`} />
+                {getStatusMeta(key, t).label}
+              </span>
+            ))}
         </div>
       </footer>
     </div>

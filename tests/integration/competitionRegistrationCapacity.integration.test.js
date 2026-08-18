@@ -65,6 +65,7 @@ describe('inscripción a competencia respeta el cupo del evento (RPC create_comp
         // el trigger de event_state_control pasa el evento a `agotado` y el
         // RPC debe responder PLU04 (no PLU03 de inscripción cerrada).
         requires_membership: false,
+        price: 15000,
       })
       .select('id')
       .single()

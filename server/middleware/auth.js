@@ -57,7 +57,9 @@ export function requireRole(allowedRoles, deps) {
 }
 
 export function requirePermission(requiredPermissions, deps, options = {}) {
-  const permissions = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions]
+  const permissions = Array.isArray(requiredPermissions)
+    ? requiredPermissions
+    : [requiredPermissions]
   const mode = options.mode === 'any' ? 'any' : 'all'
   const auth = requireAuth(deps)
 

@@ -53,15 +53,19 @@
     "design:extract": "node scripts/extract-design-ref.mjs"
   },
   "dependencies": {
+    "@ant-design/cssinjs": "^2.1.2",
     "@auth0/auth0-react": "^2.20.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/utilities": "^3.2.2",
     "@mercadopago/sdk-react": "^1.0.7",
     "@prisma/client": "^6.16.2",
     "@supabase/supabase-js": "^2.45.4",
+    "antd": "^6.6.0",
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.22",
     "express": "^5.1.0",
     "express-oauth2-jwt-bearer": "^1.9.1",
     "express-rate-limit": "^8.5.2",
@@ -80,7 +84,8 @@
     "zod": "^3.25.76"
   },
   "overrides": {
-    "valibot": "1.4.2"
+    "valibot": "1.4.2",
+    "deepmerge-ts": "8.0.1"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.2.1",

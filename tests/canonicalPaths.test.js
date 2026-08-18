@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isCanonicalPathname, resolvePathnamePublicView } from '../src/lib/canonicalPaths.js'
-import {
-  buildPublicViewPath,
-  matchPublicViewPath,
-} from '../src/lib/publicViewPaths.js'
+import { buildPublicViewPath, matchPublicViewPath } from '../src/lib/publicViewPaths.js'
 
 describe('canonicalPaths', () => {
   it('reconoce la home y deep links de evento', () => {

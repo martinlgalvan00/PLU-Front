@@ -29,11 +29,13 @@ const requestId = `trace-test-${randomUUID()}`
 
 beforeAll(async () => {
   const staffUser = await buildStaffUser({ email: 'staff-audit-trace@pluarg.test' })
-  target = listen(createApp({
-    prisma: createPrismaDouble([staffUser]),
-    supabaseAdmin: admin,
-    env: { ...process.env, APP_PRODUCTION: 'false', PAYMENTS_MOCK: 'true' },
-  }))
+  target = listen(
+    createApp({
+      prisma: createPrismaDouble([staffUser]),
+      supabaseAdmin: admin,
+      env: { ...process.env, APP_PRODUCTION: 'false', PAYMENTS_MOCK: 'true' },
+    }),
+  )
   ;({ cookie } = await loginStaff(target.url, { email: staffUser.email }))
 
   const document = String(Math.floor(10_000_000 + Math.random() * 89_999_999))

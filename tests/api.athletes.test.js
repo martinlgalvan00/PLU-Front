@@ -227,20 +227,25 @@ describe('visibilidad pública de inscripciones', () => {
 
     try {
       const cookie = await loginAdmin(target.url)
-      const response = await fetch(`${target.url}/api/athletes/admin/registrations/${ATHLETE_ID}/public-visibility`, {
-        method: 'POST',
-        headers: authHeaders(cookie),
-        body: JSON.stringify({ publicVisible: false }),
-      })
+      const response = await fetch(
+        `${target.url}/api/athletes/admin/registrations/${ATHLETE_ID}/public-visibility`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ publicVisible: false }),
+        },
+      )
       const body = await response.json()
 
       expect(response.status).toBe(200)
       expect(body.registration).toEqual({ id: ATHLETE_ID, public_visible: false })
-      expect(athleteRepository.visibilityCalls).toEqual([{
-        registrationId: ATHLETE_ID,
-        publicVisible: false,
-        actor: 'usr-admin:admin@pluarg.test',
-      }])
+      expect(athleteRepository.visibilityCalls).toEqual([
+        {
+          registrationId: ATHLETE_ID,
+          publicVisible: false,
+          actor: 'usr-admin:admin@pluarg.test',
+        },
+      ])
     } finally {
       await target.close()
     }

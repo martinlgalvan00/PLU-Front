@@ -58,7 +58,10 @@ export function parseSecurityTeamImport(raw) {
     .map((line) => line.trim())
     .filter(Boolean)
     .forEach((line, index) => {
-      const parts = line.split(/[\t,;]/).map((part) => part.trim()).filter(Boolean)
+      const parts = line
+        .split(/[\t,;]/)
+        .map((part) => part.trim())
+        .filter(Boolean)
       const emailPart = parts.find((part) => EMAIL_RE.test(part.toLowerCase()))
       const email = emailPart?.toLowerCase() ?? ''
 

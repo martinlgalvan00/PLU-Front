@@ -18,7 +18,9 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
     expect(migration).toContain(
       'revoke all on public.platform_feature_toggles from public, anon, authenticated',
     )
-    expect(migration).toContain('grant select, insert, update on public.platform_feature_toggles to service_role')
+    expect(migration).toContain(
+      'grant select, insert, update on public.platform_feature_toggles to service_role',
+    )
     expect(migration).toContain(
       'revoke all on function public.staff_get_platform_feature_toggles() from public, anon, authenticated',
     )
@@ -28,12 +30,18 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
   })
 
   it('valida la funcionalidad antes de tocar la fila', () => {
-    expect(migration).toContain("if v_feature not in ('checkout', 'membership', 'registration') then")
+    expect(migration).toContain(
+      "if v_feature not in ('checkout', 'membership', 'registration') then",
+    )
     expect(migration).toContain('if p_enabled is null then')
   })
 
   it('audita cada cambio con el valor anterior', () => {
-    expect(migration).toContain("'platform_feature_toggle.updated', 'platform_feature_toggle', v_feature")
-    expect(migration).toContain("jsonb_build_object('feature', v_feature, 'enabled', p_enabled, 'previousEnabled', v_previous)")
+    expect(migration).toContain(
+      "'platform_feature_toggle.updated', 'platform_feature_toggle', v_feature",
+    )
+    expect(migration).toContain(
+      "jsonb_build_object('feature', v_feature, 'enabled', p_enabled, 'previousEnabled', v_previous)",
+    )
   })
 })

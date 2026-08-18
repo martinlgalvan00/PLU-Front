@@ -60,9 +60,11 @@ export default function EmailVerificationBanner({ athlete }) {
       const result = await verifyAthleteEmailCode(normalized)
       setOtpState('verified')
       setState('verified')
-      window.dispatchEvent(new CustomEvent('plu:email-verified', {
-        detail: { email: result?.email, alreadyVerified: result?.alreadyVerified },
-      }))
+      window.dispatchEvent(
+        new CustomEvent('plu:email-verified', {
+          detail: { email: result?.email, alreadyVerified: result?.alreadyVerified },
+        }),
+      )
     } catch (error) {
       setOtpState('idle')
       const apiCode = error?.body?.code ?? error?.code

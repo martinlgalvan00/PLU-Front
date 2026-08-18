@@ -134,10 +134,13 @@ export default function SessionNotice({ onNavigate }) {
     }
   }, [notice])
 
-  useEffect(() => () => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    if (leaveTimeoutRef.current) window.clearTimeout(leaveTimeoutRef.current)
-  }, [])
+  useEffect(
+    () => () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (leaveTimeoutRef.current) window.clearTimeout(leaveTimeoutRef.current)
+    },
+    [],
+  )
 
   if (!notice) return null
 
@@ -180,12 +183,16 @@ export default function SessionNotice({ onNavigate }) {
             </span>
           ) : null}
           <div className="session-notice__copy">
-            <p className="session-notice__eyebrow">{t(isLogin ? 'nav.loginEyebrow' : 'nav.logoutEyebrow')}</p>
+            <p className="session-notice__eyebrow">
+              {t(isLogin ? 'nav.loginEyebrow' : 'nav.logoutEyebrow')}
+            </p>
             <p className="session-notice__title">{title}</p>
           </div>
         </div>
         <div className="session-notice__foot">
-          <span className="session-notice__meta">{t(isLogin ? 'nav.loginHint' : 'nav.logoutHint')}</span>
+          <span className="session-notice__meta">
+            {t(isLogin ? 'nav.loginHint' : 'nav.logoutHint')}
+          </span>
           {onNavigate && !isLogin ? (
             <button
               type="button"

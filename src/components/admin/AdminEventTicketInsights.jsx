@@ -68,7 +68,10 @@ export default function AdminEventTicketInsights({ event, tickets }) {
         ))}
       </dl>
 
-      <ul className="admin-event-ticket-insights__breakdown" aria-label={t('admin.eventEditor.ticketBreakdownAria')}>
+      <ul
+        className="admin-event-ticket-insights__breakdown"
+        aria-label={t('admin.eventEditor.ticketBreakdownAria')}
+      >
         {breakdown.map(({ label, value }) => (
           <li key={label}>
             <span>{label}</span>

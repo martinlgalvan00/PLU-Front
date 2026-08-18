@@ -33,7 +33,9 @@ const SOURCES = [...walk(resolve('server')), ...walk(resolve('src')), ...walk(re
   .map((file) => readFileSync(file, 'utf8'))
   .join('\n')
 
-const DOCUMENTED = [...EXAMPLE.matchAll(/^\s*#?\s*([A-Z][A-Z0-9_]{2,})\s*=/gm)].map((match) => match[1])
+const DOCUMENTED = [...EXAMPLE.matchAll(/^\s*#?\s*([A-Z][A-Z0-9_]{2,})\s*=/gm)].map(
+  (match) => match[1],
+)
 
 /**
  * Variables cuya ausencia rompe algo que no se ve al desplegar: el cobro, la

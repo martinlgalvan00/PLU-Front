@@ -30,7 +30,9 @@ describe('supabase multi-organization RLS contract', () => {
       'audit_logs',
       'integration_events',
     ]) {
-      expect(migration).toContain(`alter table if exists public.${table} enable row level security;`)
+      expect(migration).toContain(
+        `alter table if exists public.${table} enable row level security;`,
+      )
     }
   })
 

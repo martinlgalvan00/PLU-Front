@@ -45,12 +45,14 @@
 
 .community-page--premium .community-hero.design-hero--compact {
   background:
-    linear-gradient(180deg, transparent 88%, var(--design-hero-fade, var(--color-page-canvas)) 100%),
+    linear-gradient(
+      180deg,
+      transparent 88%,
+      var(--design-hero-fade, var(--color-page-canvas)) 100%
+    ),
     var(--design-hero-surface, var(--design-hero-bg, #181a1f));
   margin-top: calc(-1 * var(--header-height));
-  padding:
-    calc(var(--header-height) + clamp(8px, 1.4vw, 12px))
-    clamp(20px, 5vw, 64px)
+  padding: calc(var(--header-height) + clamp(8px, 1.4vw, 12px)) clamp(20px, 5vw, 64px)
     clamp(14px, 2.2vw, 20px);
 }
 
@@ -60,11 +62,19 @@
 }
 
 .community-page--premium .community-hero.design-hero--compact::before {
-  background: radial-gradient(ellipse 62% 80% at 6% 24%, rgba(242, 183, 5, 0.1) 0%, transparent 56%);
+  background: radial-gradient(
+    ellipse 62% 80% at 6% 24%,
+    rgba(242, 183, 5, 0.1) 0%,
+    transparent 56%
+  );
 }
 
 .community-page--premium .community-hero.design-hero--compact::after {
-  background: radial-gradient(ellipse 48% 62% at 94% 28%, rgba(116, 172, 223, 0.1) 0%, transparent 58%);
+  background: radial-gradient(
+    ellipse 48% 62% at 94% 28%,
+    rgba(116, 172, 223, 0.1) 0%,
+    transparent 58%
+  );
 }
 
 .community-page--premium .community-hero .design-hero__inner {
@@ -418,7 +428,9 @@
   grid-column: 2;
   grid-row: 1;
   padding: 2px 0 0;
-  transition: gap var(--transition-fast), color var(--transition-fast);
+  transition:
+    gap var(--transition-fast),
+    color var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -877,7 +889,9 @@
   }
 
   /* Gym y División — fila secundaria en línea */
-  .community-member-table__cell:not(.community-member-table__cell--athlete):not(.community-member-table__cell--code):not(.community-member-table__cell--date) {
+  .community-member-table__cell:not(.community-member-table__cell--athlete):not(
+      .community-member-table__cell--code
+    ):not(.community-member-table__cell--date) {
     color: var(--color-text-muted);
     display: block;
     font-size: 11.5px;
@@ -1045,4 +1059,3 @@
 [data-theme='light'] .community-page--premium .community-story-card {
   background: rgba(15, 17, 23, 0.02);
 }
-

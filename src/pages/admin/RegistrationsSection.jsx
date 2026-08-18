@@ -1,5 +1,13 @@
-import { useCallback, useMemo, useState } from 'react'
-import { BadgeCheck, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  AlertTriangle,
+  BadgeCheck,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  PencilLine,
+  Trash2,
+} from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
@@ -10,16 +18,29 @@ import {
   AdminIdentityCell,
   AdminPaymentCell,
   AdminTableActions,
+  AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getRegistrationsTourSteps } from '../../lib/adminTourSteps.js'
 import { useEventSchedule } from '../../hooks/useEventSchedule.js'
-import { REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
+import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import { formatScheduleSummary } from '../../lib/eventSchedule.js'
 import { money } from '../../lib/format.js'
+import {
+  createRegistrationPaymentIndex,
+  matchesRegistrationStatusFilter,
+  resolveRegistrationPayment,
+} from '../../services/registrationAdminService.js'
+import {
+  fetchPlatformFeatureToggles,
+  VALIDATION_DISABLED_CODES,
+} from '../../services/platformSettingsAdminService.js'
+import { notifyError } from '../../lib/adminToast.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
@@ -44,21 +65,25 @@ function canValidateRegistrationPayment(row, canEdit) {
   )
 }
 
-function matchesRegistrationFilter(registration, payment, filter, gatePendingIds) {
-  if (filter === 'all') return true
-  if (filter === 'gate_pending') return gatePendingIds.has(registration.id)
-  return (
-    registration.status === filter ||
-    registration.paymentStatus === filter ||
-    payment?.status === filter
-  )
-}
-
-function countRegistrationsByFilter(registrations, resolvePayment, filter, gatePendingIds) {
-  return registrations.filter((registration) => {
+/**
+ * Contadores para los chips de estado y afiliación en una sola pasada sobre
+ * `registrations` (antes: un `.filter()` completo por cada uno de los 5
+ * estados solo para los badges de conteo).
+ */
+function buildRegistrationFilterCounts(registrations, resolvePayment, gatePendingIds) {
+  const statusCounts = Object.fromEntries(REGISTRATION_FILTER_STATUSES.map(([value]) => [value, 0]))
+  const affiliationCounts = Object.create(null)
+  for (const registration of registrations) {
     const payment = resolvePayment(registration)
-    return matchesRegistrationFilter(registration, payment, filter, gatePendingIds)
-  }).length
+    for (const [value] of REGISTRATION_FILTER_STATUSES) {
+      if (matchesRegistrationStatusFilter(registration, payment, value, gatePendingIds)) {
+        statusCounts[value] += 1
+      }
+    }
+    const affiliation = registration.athlete?.status
+    if (affiliation) affiliationCounts[affiliation] = (affiliationCounts[affiliation] ?? 0) + 1
+  }
+  return { statusCounts, affiliationCounts }
 }
 
 export default function RegistrationsSection({
@@ -86,6 +111,7 @@ export default function RegistrationsSection({
   unreconciledPayments = [],
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
   const total = registrationsCount ?? registrations.length
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -95,6 +121,27 @@ export default function RegistrationsSection({
   const [statusTarget, setStatusTarget] = useState(null)
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
+  const [validationEnabled, setValidationEnabled] = useState(true)
+
+  useEffect(() => {
+    startTour('admin-registrations', getRegistrationsTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPlatformFeatureToggles()
+      .then((toggles) => {
+        if (!cancelled) setValidationEnabled(toggles.registrationValidationEnabled !== false)
+      })
+      .catch(() => {
+        if (!cancelled) setValidationEnabled(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const isGloballyEmpty = total === 0
   const isFilteredEmpty = !isGloballyEmpty && filteredRegistrations.length === 0
 
@@ -106,45 +153,17 @@ export default function RegistrationsSection({
   // `tests/registrationsDashboardPayments.test.js`): primero por
   // `paymentOrderId` exacto, si no por atleta+evento, y de última por
   // atleta solo (compatibilidad con datos viejos sin evento).
-  const paymentIndex = useMemo(() => {
-    const byOrderId = new Map()
-    const byAthleteEvent = new Map()
-    const byAthlete = new Map()
-    for (const payment of payments ?? []) {
-      if (payment.id != null && !byOrderId.has(payment.id)) byOrderId.set(payment.id, payment)
-      const eventKey = `${payment.athleteId}|${payment.event}`
-      if (!byAthleteEvent.has(eventKey)) byAthleteEvent.set(eventKey, payment)
-      if (!byAthlete.has(payment.athleteId)) byAthlete.set(payment.athleteId, payment)
-    }
-    return { byOrderId, byAthleteEvent, byAthlete }
-  }, [payments])
+  const paymentIndex = useMemo(() => createRegistrationPaymentIndex(payments), [payments])
 
   const resolvePayment = useCallback(
-    (registration) => {
-      if (registration.paymentOrderId) {
-        const exact = paymentIndex.byOrderId.get(registration.paymentOrderId)
-        if (exact) return exact
-      }
-      if (registration.event) {
-        return paymentIndex.byAthleteEvent.get(`${registration.athleteId}|${registration.event}`)
-      }
-      return paymentIndex.byAthlete.get(registration.athleteId)
-    },
+    (registration) => resolveRegistrationPayment(paymentIndex, registration),
     [paymentIndex],
   )
 
-  const statusCounts = useMemo(() => {
-    const counts = {}
-    for (const [value] of REGISTRATION_FILTER_STATUSES) {
-      counts[value] = countRegistrationsByFilter(
-        registrations,
-        resolvePayment,
-        value,
-        gatePendingIds,
-      )
-    }
-    return counts
-  }, [registrations, resolvePayment, gatePendingIds])
+  const { statusCounts, affiliationCounts } = useMemo(
+    () => buildRegistrationFilterCounts(registrations, resolvePayment, gatePendingIds),
+    [registrations, resolvePayment, gatePendingIds],
+  )
 
   const statusOptions = useMemo(
     () =>
@@ -154,6 +173,15 @@ export default function RegistrationsSection({
         statusCounts[value] ?? 0,
       ]),
     [statusCounts, t],
+  )
+  const affiliationOptions = useMemo(
+    () =>
+      translateFilterOptions(ATHLETE_FILTER_STATUSES, t).map(([value, label]) => [
+        value,
+        label,
+        value === 'all' ? registrations.length : (affiliationCounts[value] ?? 0),
+      ]),
+    [affiliationCounts, registrations.length, t],
   )
   const eventOptions = useMemo(() => {
     const counts = new Map()
@@ -272,6 +300,24 @@ export default function RegistrationsSection({
     }
   }
 
+  // Antes el resultado se descartaba en silencio: si la validación estaba
+  // pausada (o cualquier otra falla), el botón "Validar" no hacía nada visible
+  // y el operador no tenía forma de saber por qué. Ahora avisa por toast y, si
+  // el 409 confirma el toggle apagado, sincroniza el estado local -- el fetch
+  // de arriba corre una sola vez al montar la sección.
+  async function handleApprovePayment(paymentId) {
+    const result = await onApprovePayment?.(paymentId)
+    if (result?.error) {
+      if (
+        result.code === VALIDATION_DISABLED_CODES.registration ||
+        result.code === VALIDATION_DISABLED_CODES.membership
+      ) {
+        setValidationEnabled(false)
+      }
+      notifyError(result.error)
+    }
+  }
+
   async function togglePublicVisibility(row) {
     if (!onSetPublicVisibility || visibilityChangingId) return
     setVisibilityChangingId(row.id)
@@ -312,8 +358,18 @@ export default function RegistrationsSection({
     onSetFilters((current) => ({ ...current, event: value }))
   }
 
+  function handleAffiliationChange(value) {
+    onSetFilters((current) => ({ ...current, affiliationStatus: value }))
+  }
+
   function handleClearFilters() {
-    onSetFilters((current) => ({ ...current, event: 'all', status: 'all', query: '' }))
+    onSetFilters((current) => ({
+      ...current,
+      event: 'all',
+      status: 'all',
+      affiliationStatus: 'all',
+      query: '',
+    }))
   }
 
   const eventCount = Math.max(0, eventOptions.length - 1)
@@ -329,6 +385,15 @@ export default function RegistrationsSection({
           options: eventOptions,
           variant: eventCount > EVENT_FILTER_CHIP_MAX ? 'select' : undefined,
         }
+  const affiliationFilter = {
+    id: 'affiliationStatus',
+    label: t('admin.filters.affiliation'),
+    showLabel: true,
+    value: filters.affiliationStatus ?? 'all',
+    onChange: handleAffiliationChange,
+    options: affiliationOptions,
+    advanced: true,
+  }
 
   return (
     <>
@@ -336,6 +401,15 @@ export default function RegistrationsSection({
         entries={unreconciledPayments}
         onSelectAthlete={onSelectAthlete}
       />
+      {!validationEnabled ? (
+        <div className="admin-payments-ops-callout" role="status">
+          <AlertTriangle size={16} aria-hidden />
+          <div className="admin-payments-ops-callout__body">
+            <strong>{t('admin.sections.registrations.validationPaused')}</strong>
+            <p>{t('admin.sections.registrations.validationPausedLead')}</p>
+          </div>
+        </div>
+      ) : null}
       <AdminListSection
         variant="registrations"
         eyebrow={t('admin.sections.registrations.eyebrow')}
@@ -405,6 +479,7 @@ export default function RegistrationsSection({
                   onChange: handleStatusChange,
                   options: statusOptions,
                 },
+                affiliationFilter,
               ].filter(Boolean)
         }
         onQueryChange={handleQueryChange}
@@ -566,17 +641,23 @@ export default function RegistrationsSection({
                   key: 'action',
                   label: t('admin.columns.action'),
                   mobile: 'action',
-                  render: (row) =>
-                    canValidateRegistrationPayment(row, canEdit) ||
-                    canManageVisibility ||
-                    canSetStatus ||
-                    canDelete ? (
+                  render: (row) => {
+                    const canValidate = canValidateRegistrationPayment(row, canEdit)
+                    const hasActions =
+                      canValidate || canManageVisibility || canSetStatus || canDelete
+                    if (!hasActions) return <AdminTableActionsEmpty />
+                    return (
                       <AdminTableActions onClick={(event) => event.stopPropagation()}>
-                        {canValidateRegistrationPayment(row, canEdit) ? (
+                        {canValidate ? (
                           <AdminIconButton
+                            disabled={!validationEnabled}
                             icon={BadgeCheck}
-                            label={t('admin.actions.validate')}
-                            onClick={() => onApprovePayment(row.paymentId)}
+                            label={
+                              validationEnabled
+                                ? t('admin.actions.validate')
+                                : t('admin.athletePayments.validationPaused')
+                            }
+                            onClick={() => void handleApprovePayment(row.paymentId)}
                             variant="celeste"
                           />
                         ) : null}
@@ -591,7 +672,7 @@ export default function RegistrationsSection({
                             )}
                             onClick={() => void togglePublicVisibility(row)}
                             spinning={visibilityChangingId === row.id}
-                            variant={row.publicVisible ? 'ghost' : 'celeste'}
+                            variant="ghost"
                           />
                         ) : null}
                         {canSetStatus && onSetRegistrationStatus ? (
@@ -617,7 +698,8 @@ export default function RegistrationsSection({
                           />
                         ) : null}
                       </AdminTableActions>
-                    ) : null,
+                    )
+                  },
                 },
               ]}
               rows={registrationRows}

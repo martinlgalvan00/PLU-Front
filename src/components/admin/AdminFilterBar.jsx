@@ -288,7 +288,9 @@ export default function AdminFilterBar({
                   onClick={() => setAdvancedOpen((current) => !current)}
                 >
                   <span>
-                    {advancedOpen ? t('admin.filters.fewerFilters') : t('admin.filters.moreFilters')}
+                    {advancedOpen
+                      ? t('admin.filters.fewerFilters')
+                      : t('admin.filters.moreFilters')}
                   </span>
                   {!advancedOpen && advancedActiveCount > 0 ? (
                     <span

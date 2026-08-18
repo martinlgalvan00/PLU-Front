@@ -16,7 +16,8 @@ export function notFoundHandler(_req, _res, next) {
 
 // Rutas donde una falla es plata en juego: se diagnostica y se loguea con el
 // detalle del catalogo aunque sea un 4xx.
-const PAYMENT_PATH = /^\/api\/(payments|tickets)|\/(membership-orders|registrations|registration-combos|payment-orders)/
+const PAYMENT_PATH =
+  /^\/api\/(payments|tickets)|\/(membership-orders|registrations|registration-combos|payment-orders)/
 
 export function errorHandler(err, req, res, _next) {
   const status = Number.isInteger(err.status) ? err.status : 500

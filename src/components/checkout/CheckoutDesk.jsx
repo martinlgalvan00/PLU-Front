@@ -124,7 +124,11 @@ export default function CheckoutDesk({
         >
           {methodsLegend ? <legend>{methodsLegend}</legend> : null}
           {paymentHint ? <p className="plu-checkout__hint">{paymentHint}</p> : null}
-          <div className="plu-checkout__pills" role="radiogroup" aria-label={methodsLabel || methodsLegend}>
+          <div
+            className="plu-checkout__pills"
+            role="radiogroup"
+            aria-label={methodsLabel || methodsLegend}
+          >
             {methods.map((method) => (
               <label
                 key={method.value}

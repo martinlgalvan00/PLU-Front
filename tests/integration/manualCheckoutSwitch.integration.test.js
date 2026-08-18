@@ -58,14 +58,15 @@ describe('cambio de canal manual sobre una orden pendiente', () => {
   // El frontend renueva la clave de idempotencia cuando cambia el medio de pago
   // (`membershipAttemptRef` en src/hooks/useAppData.js), así que el escenario
   // real es clave nueva + mismo `manual_link` + otro canal.
-  function membershipCheckout(athleteId, planCode, channel, amount) {
+  function membershipCheckout(athleteId, planCode, channel, defaultPrice) {
     return admin.rpc('create_membership_order_checkout', {
       p_athlete_id: athleteId,
       p_payment_method: 'manual_link',
       p_plan_code: planCode,
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: amount,
+      p_default_price: defaultPrice,
+      p_manual_price: null,
       p_manual_payment_channel: channel,
     })
   }

@@ -76,7 +76,11 @@ function AthleteCard({ result, config, premium }) {
   }
 
   return (
-    <TiltCard className="podium-athlete-tilt" innerClassName="podium-athlete podium-athlete--premium" maxTilt={5}>
+    <TiltCard
+      className="podium-athlete-tilt"
+      innerClassName="podium-athlete podium-athlete--premium"
+      maxTilt={5}
+    >
       {body}
     </TiltCard>
   )
@@ -118,9 +122,11 @@ export default function Podium({ results = [] }) {
     }),
   )
 
-  const slots = DISPLAY_ORDER
-    .map((rank) => ({ rank, config: SLOT_CONFIG[rank], result: resultByRank[rank] }))
-    .filter((s) => s.result)
+  const slots = DISPLAY_ORDER.map((rank) => ({
+    rank,
+    config: SLOT_CONFIG[rank],
+    result: resultByRank[rank],
+  })).filter((s) => s.result)
 
   return (
     <section

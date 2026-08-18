@@ -30,7 +30,13 @@ export function createStaffAccountNotificationService({
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
-  function notifyStaffInvitation({ user, invitationUrl, roleName = null, expiresInDays = null, idempotencyKey }) {
+  function notifyStaffInvitation({
+    user,
+    invitationUrl,
+    roleName = null,
+    expiresInDays = null,
+    idempotencyKey,
+  }) {
     return mailer.send('staff_invitation', {
       to: user.email,
       toName: user.name,

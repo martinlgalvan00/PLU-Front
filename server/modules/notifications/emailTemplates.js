@@ -151,7 +151,10 @@ export function formatDate(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)
-  return new Intl.DateTimeFormat('es-AR', { dateStyle: 'long', timeZone: 'America/Argentina/Buenos_Aires' }).format(date)
+  return new Intl.DateTimeFormat('es-AR', {
+    dateStyle: 'long',
+    timeZone: 'America/Argentina/Buenos_Aires',
+  }).format(date)
 }
 
 // ---------------------------------------------------------------- fragmentos
@@ -498,7 +501,9 @@ const BODIES = {
         ['Estado', p.status === 'reembolsada' ? 'Reintegrada' : 'Cancelada'],
       ]),
       p.accountUrl ? button(p.accountUrl, 'Ver mi cuenta') : '',
-      paragraph('Si no reconocés este cambio, respondé este correo para que podamos revisarlo.', { muted: true }),
+      paragraph('Si no reconocés este cambio, respondé este correo para que podamos revisarlo.', {
+        muted: true,
+      }),
     ].join(''),
   }),
 
@@ -614,7 +619,9 @@ const BODIES = {
       title: 'Pago confirmado',
       preheader: `Pago de ${formatArs(p.amount)} acreditado.`,
       body: [
-        paragraph(`${greeting(p.name)} confirmamos tu pago y reunimos toda la información en este correo.`),
+        paragraph(
+          `${greeting(p.name)} confirmamos tu pago y reunimos toda la información en este correo.`,
+        ),
         dataPanel([
           ['Comprobante', p.reference],
           ['Concepto', p.concept],

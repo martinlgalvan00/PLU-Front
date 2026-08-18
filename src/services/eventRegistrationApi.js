@@ -17,7 +17,8 @@ export async function fetchEventRegistrationSummary(eventSlug) {
       ? summary.recent.map((item) => ({
           displayName: String(item.displayName ?? item.display_name ?? '').trim() || 'Atleta',
           gym: String(item.gym ?? '').trim(),
-          photoUrl: typeof item.photoUrl === 'string' && item.photoUrl.trim() ? item.photoUrl : null,
+          photoUrl:
+            typeof item.photoUrl === 'string' && item.photoUrl.trim() ? item.photoUrl : null,
           registeredAt: item.registeredAt ?? item.registered_at ?? null,
         }))
       : [],
@@ -29,18 +30,15 @@ export async function fetchEventRegistrationSummary(eventSlug) {
  * asignados a cada uno. Requiere sesión de staff con `admin.registrations.read`.
  */
 export async function fetchEventSchedule(eventSlug) {
-  const { schedule } = await apiGet(
-    `/api/events/${encodeURIComponent(eventSlug)}/schedule`,
-  )
+  const { schedule } = await apiGet(`/api/events/${encodeURIComponent(eventSlug)}/schedule`)
   return toCamelEventSchedule(schedule)
 }
 
 /** Reemplaza el set completo de tandas del evento. */
 export async function saveEventSessions(eventSlug, sessions) {
-  const { schedule } = await apiPost(
-    `/api/events/${encodeURIComponent(eventSlug)}/sessions`,
-    { sessions },
-  )
+  const { schedule } = await apiPost(`/api/events/${encodeURIComponent(eventSlug)}/sessions`, {
+    sessions,
+  })
   return toCamelEventSchedule(schedule)
 }
 
@@ -127,10 +125,10 @@ export async function fetchEventBoard(eventSlug) {
  * nunca mueve a alguien que la organización ya puso a mano.
  */
 export async function autofillEventDay(eventSlug, { dayIndex, maxPerSession }) {
-  const result = await apiPost(
-    `/api/events/${encodeURIComponent(eventSlug)}/schedule/autofill`,
-    { dayIndex, maxPerSession },
-  )
+  const result = await apiPost(`/api/events/${encodeURIComponent(eventSlug)}/schedule/autofill`, {
+    dayIndex,
+    maxPerSession,
+  })
   return {
     placed: Number(result?.placed ?? 0),
     remaining: Number(result?.remaining ?? 0),

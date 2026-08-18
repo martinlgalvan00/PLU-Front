@@ -55,14 +55,8 @@ function RecordsClassTable({ weightClassBlock, locale, t, visibleLifts }) {
                   <th scope="row">{t(`pages.records.lifts.${lift}`)}</th>
                   <td>{entry?.athlete ?? '—'}</td>
                   <td>{entry?.meet ?? '—'}</td>
-                  <td>
-                    {entry?.dateISO
-                      ? formatShortDate(entry.dateISO, locale)
-                      : '—'}
-                  </td>
-                  <td className="records-class__mark">
-                    {entry?.markLabel ?? '—'}
-                  </td>
+                  <td>{entry?.dateISO ? formatShortDate(entry.dateISO, locale) : '—'}</td>
+                  <td className="records-class__mark">{entry?.markLabel ?? '—'}</td>
                 </tr>
               )
             })}
@@ -94,13 +88,14 @@ export default function RecordsPage({ onNavigate }) {
   )
 
   const entries = useMemo(
-    () => filterRecordsRegister(register.entries, {
-      lift: liftFilter,
-      sex: sexFilter,
-      group: groupFilter,
-      equipment: equipmentFilter,
-      query,
-    }),
+    () =>
+      filterRecordsRegister(register.entries, {
+        lift: liftFilter,
+        sex: sexFilter,
+        group: groupFilter,
+        equipment: equipmentFilter,
+        query,
+      }),
     [equipmentFilter, groupFilter, liftFilter, query, register.entries, sexFilter],
   )
 
@@ -108,17 +103,17 @@ export default function RecordsPage({ onNavigate }) {
   const visibleLifts = liftFilter === 'all' ? RECORD_LIFTS : [liftFilter]
   const hasRecords = register.entries.length > 0
   const filtersActive =
-    query.trim() !== ''
-    || sexFilter !== 'all'
-    || groupFilter !== 'all'
-    || equipmentFilter !== 'all'
-    || liftFilter !== 'all'
+    query.trim() !== '' ||
+    sexFilter !== 'all' ||
+    groupFilter !== 'all' ||
+    equipmentFilter !== 'all' ||
+    liftFilter !== 'all'
   const showEquipmentRow = equipmentFilters.length > 2
   const stamp = hasRecords
     ? t('pages.records.sheetStampLive', {
-      count: register.entries.length,
-      meets: register.meetCount,
-    })
+        count: register.entries.length,
+        meets: register.meetCount,
+      })
     : t('pages.records.sheetStamp')
 
   function handleExport() {
@@ -206,7 +201,11 @@ export default function RecordsPage({ onNavigate }) {
           ) : null}
 
           {hasRecords ? (
-            <div className="records-sheet__toolbar" role="search" aria-label={t('pages.records.filtersToolbarAria')}>
+            <div
+              className="records-sheet__toolbar"
+              role="search"
+              aria-label={t('pages.records.filtersToolbarAria')}
+            >
               <div className="records-sheet__toolbar-search">
                 <label className="records-sheet__search">
                   <Search size={15} aria-hidden />
@@ -235,11 +234,7 @@ export default function RecordsPage({ onNavigate }) {
                     {t('pages.records.visibleCount', { count: entries.length })}
                   </p>
                   {filtersActive ? (
-                    <button
-                      type="button"
-                      className="records-sheet__clear"
-                      onClick={clearFilters}
-                    >
+                    <button type="button" className="records-sheet__clear" onClick={clearFilters}>
                       {t('pages.records.clearFilters')}
                     </button>
                   ) : null}
@@ -312,11 +307,12 @@ export default function RecordsPage({ onNavigate }) {
                 >
                   <h3 id={`records-section-${section.id}`} className="records-section__title">
                     {t('pages.records.sectionTitle', {
-                      sex: section.sex === 'women'
-                        ? t('pages.records.filters.sexWomen')
-                        : section.sex === 'men'
-                          ? t('pages.records.filters.sexMen')
-                          : t('pages.records.filters.sexAll'),
+                      sex:
+                        section.sex === 'women'
+                          ? t('pages.records.filters.sexWomen')
+                          : section.sex === 'men'
+                            ? t('pages.records.filters.sexMen')
+                            : t('pages.records.filters.sexAll'),
                       group: t(`pages.results.divisionGroups.${section.group}`),
                     })}
                   </h3>

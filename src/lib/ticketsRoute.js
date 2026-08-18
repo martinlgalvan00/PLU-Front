@@ -16,7 +16,9 @@ export const TICKETS_PATH = '/evento/entradas'
  * @param {string} [pathname]
  * @returns {boolean}
  */
-export function matchTicketsRoute(pathname = typeof window !== 'undefined' ? window.location.pathname : '') {
+export function matchTicketsRoute(
+  pathname = typeof window !== 'undefined' ? window.location.pathname : '',
+) {
   return /^\/evento\/entradas\/?$/.test(pathname)
 }
 
@@ -24,7 +26,9 @@ export function matchTicketsRoute(pathname = typeof window !== 'undefined' ? win
  * @param {string} [search]
  * @returns {string|null}
  */
-export function getTicketsRouteEventSlug(search = typeof window !== 'undefined' ? window.location.search : '') {
+export function getTicketsRouteEventSlug(
+  search = typeof window !== 'undefined' ? window.location.search : '',
+) {
   return new URLSearchParams(search).get('evento') || null
 }
 

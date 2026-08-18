@@ -12,7 +12,12 @@ const EVENT_BREAKDOWN_STATUSES = [
   'finalizado',
   'cerrado',
 ]
-const EVENT_TONE_BY_STATUS_TONE = { success: 'success', warning: 'warning', danger: 'alert', neutral: 'default' }
+const EVENT_TONE_BY_STATUS_TONE = {
+  success: 'success',
+  warning: 'warning',
+  danger: 'alert',
+  neutral: 'default',
+}
 
 export function buildPendingActions({
   payments,
@@ -58,7 +63,9 @@ export function buildPendingActions({
         priority: payment.status === 'validacion_manual' ? 'high' : 'medium',
         subject: athlete?.fullName ?? 'Atleta',
         summary:
-          payment.status === 'validacion_manual' ? 'Validar pago manual' : 'Pago pendiente de acreditación',
+          payment.status === 'validacion_manual'
+            ? 'Validar pago manual'
+            : 'Pago pendiente de acreditación',
         detail: payment.concept,
         meta: money(payment.amount),
         section: 'payments',
@@ -82,7 +89,9 @@ export function buildPendingActions({
         priority: registration.status === 'observada' ? 'high' : 'medium',
         subject: athlete?.fullName ?? 'Atleta',
         summary:
-          registration.status === 'observada' ? 'Inscripción observada' : 'Inscripción pendiente de pago',
+          registration.status === 'observada'
+            ? 'Inscripción observada'
+            : 'Inscripción pendiente de pago',
         detail: registration.event,
         meta: registration.category,
         section: 'registrations',
@@ -104,7 +113,9 @@ export function buildPendingActions({
   })
 
   memberships
-    .filter((membership) => membership.status === 'activa' && isExpiringSoon(membership.expirationDate))
+    .filter(
+      (membership) => membership.status === 'activa' && isExpiringSoon(membership.expirationDate),
+    )
     .forEach((membership) => {
       const athlete = athletes.find((item) => item.id === membership.athleteId)
       actions.push({
@@ -176,9 +187,7 @@ export function buildDashboardOverview({
     isExpiringSoon(membership.expirationDate),
   )
   const expiredMemberships = memberships.filter((membership) => membership.status === 'vencida')
-  const cancelledMemberships = memberships.filter(
-    (membership) => membership.status === 'cancelada',
-  )
+  const cancelledMemberships = memberships.filter((membership) => membership.status === 'cancelada')
   const confirmedRegistrations = registrations.filter((registration) =>
     ['confirmada', 'acreditada'].includes(registration.status),
   )
@@ -222,7 +231,12 @@ export function buildDashboardOverview({
     approvedPayments.length + softPendingPayments.length + manualValidationPayments.length
   const otherPayments = payments.length - categorizedPaymentCount
   const paymentBreakdown = [
-    { status: 'aprobado', value: approvedPayments.length, amount: collectedAmount, tone: 'success' },
+    {
+      status: 'aprobado',
+      value: approvedPayments.length,
+      amount: collectedAmount,
+      tone: 'success',
+    },
     {
       status: 'pendiente',
       value: softPendingPayments.length,
@@ -327,13 +341,26 @@ export function buildDashboardOverview({
     .slice(0, 5)
 
   const gymCounts = new Map()
+  const gymVariants = new Map()
+
   athletes.forEach((athlete) => {
     const gym = athlete.gym?.trim()
     if (!gym) return
-    gymCounts.set(gym, (gymCounts.get(gym) ?? 0) + 1)
+
+    const normalized = gym.toLowerCase()
+    gymCounts.set(normalized, (gymCounts.get(normalized) ?? 0) + 1)
+
+    if (!gymVariants.has(normalized)) gymVariants.set(normalized, new Map())
+    const variants = gymVariants.get(normalized)
+    variants.set(gym, (variants.get(gym) ?? 0) + 1)
   })
+
   const topGyms = [...gymCounts.entries()]
-    .map(([gym, count]) => ({ gym, count }))
+    .map(([normalized, count]) => {
+      const variants = gymVariants.get(normalized)
+      const bestVariant = [...variants.entries()].sort((a, b) => b[1] - a[1])[0][0]
+      return { gym: bestVariant, count }
+    })
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
 

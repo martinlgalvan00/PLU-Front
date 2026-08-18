@@ -41,11 +41,19 @@ function statementsOf(sql) {
 
 /** `public.foo( uuid , text )` y `public.foo(uuid,text)` son la misma función. */
 function normalizeSignature(signature) {
-  return signature.toLowerCase().replace(/\s*,\s*/g, ',').replace(/\s*\(\s*/g, '(').replace(/\s*\)\s*/g, ')')
+  return signature
+    .toLowerCase()
+    .replace(/\s*,\s*/g, ',')
+    .replace(/\s*\(\s*/g, '(')
+    .replace(/\s*\)\s*/g, ')')
 }
 
 function rolesOf(list) {
-  return list.toLowerCase().split(',').map((role) => role.trim()).filter(Boolean)
+  return list
+    .toLowerCase()
+    .split(',')
+    .map((role) => role.trim())
+    .filter(Boolean)
 }
 
 /**
@@ -53,16 +61,23 @@ function rolesOf(list) {
  * orden en que corren las migraciones.
  */
 function effectiveExecutors() {
-  const files = fs.readdirSync(MIGRATIONS_DIR).filter((name) => name.endsWith('.sql')).sort()
+  const files = fs
+    .readdirSync(MIGRATIONS_DIR)
+    .filter((name) => name.endsWith('.sql'))
+    .sort()
   const executors = new Map()
 
   const grantOf = (statement) =>
     /^grant execute on (?:function|routine) (.+?) to (.+)$/i.exec(statement)
   const revokeOf = (statement) =>
-    /^revoke (?:all|execute)(?: privileges)? on (?:function|routine) (.+?) from (.+)$/i.exec(statement)
+    /^revoke (?:all|execute)(?: privileges)? on (?:function|routine) (.+?) from (.+)$/i.exec(
+      statement,
+    )
 
   for (const file of files) {
-    for (const statement of statementsOf(fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8'))) {
+    for (const statement of statementsOf(
+      fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8'),
+    )) {
       const granted = grantOf(statement)
       if (granted) {
         const signature = normalizeSignature(granted[1])

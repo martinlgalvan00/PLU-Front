@@ -1,11 +1,7 @@
 import { z } from 'zod'
 
 export const loginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email('Ingresá un correo válido.'),
+  email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
   password: z
     .string()
     .min(8, 'Ingresá una contraseña de al menos 8 caracteres.')
@@ -23,7 +19,11 @@ export const loginSchema = z.object({
 export const createStaffUserSchema = z.object({
   name: z.string().trim().min(3, 'Ingresá un nombre de al menos 3 caracteres.'),
   email: z.string().trim().toLowerCase().email('Ingresá un correo válido.'),
-  role: z.string().trim().toLowerCase().regex(/^[a-z][a-z0-9_]{2,47}$/),
+  role: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z][a-z0-9_]{2,47}$/),
   sendEmail: z.boolean().optional().default(true),
 })
 

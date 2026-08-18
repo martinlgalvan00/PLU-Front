@@ -73,13 +73,7 @@ const sceneChild = {
 /**
  * Proceso de afiliación — escenario cinematográfico + timeline (sin cards).
  */
-export default function MembersProcessStepper({
-  steps = [],
-  ariaLabel,
-  eyebrow,
-  title,
-  lead,
-}) {
+export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, title, lead }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const [activeIndex, setActiveIndex] = useState(0)
@@ -248,10 +242,18 @@ export default function MembersProcessStepper({
                 animate="center"
                 exit="exit"
               >
-                <m.span className="members-plu-stepper__scene-icon" aria-hidden variants={sceneChild}>
+                <m.span
+                  className="members-plu-stepper__scene-icon"
+                  aria-hidden
+                  variants={sceneChild}
+                >
                   <Icon size={28} strokeWidth={1.5} />
                 </m.span>
-                <m.span className="members-plu-stepper__scene-index" aria-hidden variants={sceneChild}>
+                <m.span
+                  className="members-plu-stepper__scene-index"
+                  aria-hidden
+                  variants={sceneChild}
+                >
                   {indexLabel}
                 </m.span>
                 <m.h3 className="members-plu-stepper__scene-title" variants={sceneChild}>

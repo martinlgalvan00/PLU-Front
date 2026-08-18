@@ -24,7 +24,8 @@
 const CATALOG = [
   {
     code: 'MP_ACCESS_TOKEN_MISSING',
-    match: /Mercado Pago no esta configurado|Access Token de Mercado Pago invalido|MERCADO_PAGO_ACCESS_TOKEN/i,
+    match:
+      /Mercado Pago no esta configurado|Access Token de Mercado Pago invalido|MERCADO_PAGO_ACCESS_TOKEN/i,
     title: 'Falta el Access Token de Mercado Pago',
     cause:
       'MERCADO_PAGO_ACCESS_TOKEN esta vacio, es un placeholder o supera los 256 caracteres, asi que el adaptador se niega a crear el cobro.',
@@ -85,7 +86,8 @@ const CATALOG = [
   },
   {
     code: 'MP_INTEGRATION_URL_INVALID',
-    match: /Falta APP_URL|APP_URL (no es una URL valida|debe usar HTTPS)|API_URL (no es una URL valida|debe usar HTTPS)|API_URL o APP_URL/i,
+    match:
+      /Falta APP_URL|APP_URL (no es una URL valida|debe usar HTTPS)|API_URL (no es una URL valida|debe usar HTTPS)|API_URL o APP_URL/i,
     title: 'URLs de integracion invalidas',
     cause:
       'MP exige HTTPS publico para notification_url y back_urls. Con una URL local o vacia no puede notificar la acreditacion.',
@@ -170,7 +172,8 @@ const CATALOG = [
   },
   {
     code: 'ORDER_PAYMENT_MISMATCH',
-    match: /El pago no pertenece a la orden informada|Pago sin referencia de orden|Pago mock sin referencia/i,
+    match:
+      /El pago no pertenece a la orden informada|Pago sin referencia de orden|Pago mock sin referencia/i,
     title: 'El pago no referencia esta orden',
     cause:
       'El external_reference del pago no es el id de la orden. Pasa cuando se crea el pago fuera del checkout de la app (link manual, cobro suelto).',
@@ -185,7 +188,8 @@ const CATALOG = [
   },
   {
     code: 'ORDER_NOT_PAYABLE',
-    match: /La orden ya no admite (un nuevo checkout|pagos)|La orden no usa Mercado Pago|no corresponde a una (afiliacion|suscripcion)/i,
+    match:
+      /La orden ya no admite (un nuevo checkout|pagos)|La orden no usa Mercado Pago|no corresponde a una (afiliacion|suscripcion)/i,
     title: 'La orden ya no admite este cobro',
     cause:
       'La orden esta aprobada, cancelada o reembolsada, o su metodo no es Mercado Pago. El rechazo evita un doble cobro.',
@@ -238,7 +242,8 @@ const CATALOG = [
   },
   {
     code: 'PAYMENT_IN_FLIGHT',
-    match: /El pago ya se est[aá] procesando|ya fue procesado o esta en ejecucion|ya finalizo o esta en ejecucion/i,
+    match:
+      /El pago ya se est[aá] procesando|ya fue procesado o esta en ejecucion|ya finalizo o esta en ejecucion/i,
     title: 'Ya hay un intento en curso',
     cause:
       'Otro proceso tomo el lock de ese intento o evento (doble submit del Brick, o el job de recovery corriendo en paralelo). Es la proteccion contra cobrar dos veces.',
@@ -252,7 +257,8 @@ const CATALOG = [
   },
   {
     code: 'WEBHOOK_PAYLOAD_INVALID',
-    match: /Webhook sin data\.id|identificador del webhook no coincide|Webhook sin identificador|Tipo de webhook no soportado|Evento de pago incompleto/i,
+    match:
+      /Webhook sin data\.id|identificador del webhook no coincide|Webhook sin identificador|Tipo de webhook no soportado|Evento de pago incompleto/i,
     title: 'Notificacion mal formada',
     cause:
       'La notificacion no trae data.id en la URL, el id del body contradice el de la query, o el tipo no es payment/subscription_preapproval/subscription_authorized_payment.',
@@ -324,7 +330,8 @@ const CATALOG = [
   },
   {
     code: 'ORDER_ACCESS_DENIED',
-    match: /no pertenece a la sesion actual|Token de orden invalido|Falta el token de acceso de la orden/i,
+    match:
+      /no pertenece a la sesion actual|Token de orden invalido|Falta el token de acceso de la orden/i,
     statuses: [401, 403],
     title: 'La orden no pertenece a quien intenta pagarla',
     cause:
@@ -354,7 +361,8 @@ const CATALOG = [
   },
   {
     code: 'SUPABASE_UNAVAILABLE',
-    match: /Supabase Admin no esta configurado|No se pudo (leer|aplicar|registrar|finalizar|reclamar|guardar)/i,
+    match:
+      /Supabase Admin no esta configurado|No se pudo (leer|aplicar|registrar|finalizar|reclamar|guardar)/i,
     title: 'La base no pudo registrar la operacion',
     cause:
       'Falta SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY o la RPC devolvio error. El cobro puede existir en MP sin estar acreditado en el dominio.',
@@ -384,7 +392,8 @@ const CATALOG = [
   },
   {
     code: 'CHECKOUT_CLOSED',
-    match: /PAID_CHECKOUT|cobros? .*(cerrad|no est[aá] habilitad)|inscripciones? .*no est[aá]n? abiertas/i,
+    match:
+      /PAID_CHECKOUT|cobros? .*(cerrad|no est[aá] habilitad)|inscripciones? .*no est[aá]n? abiertas/i,
     title: 'La ventana de cobros esta cerrada',
     cause:
       'El gate de cobros (PAID_CHECKOUT_ENABLED o registration_opens_at del evento) todavia no abrio o ya cerro.',
@@ -429,7 +438,8 @@ const CATALOG = [
 const FALLBACK = {
   code: 'UNCLASSIFIED_PAYMENT_FAILURE',
   title: 'Falla no catalogada del flujo de cobro',
-  cause: 'El error no coincide con ningun patron conocido. El stack completo queda en el log y en la auditoria operativa.',
+  cause:
+    'El error no coincide con ningun patron conocido. El stack completo queda en el log y en la auditoria operativa.',
   fix: [
     'Buscar el requestId del incidente en los logs: trae stack, etapa y orden afectada.',
     'Revisar la orden en Panel > Pagos y el pago en el panel de MP antes de reintentar.',
@@ -446,21 +456,25 @@ const FALLBACK = {
  * tarjeta. Sin esto, el panel muestra `cc_rejected_call_for_authorize` crudo.
  */
 const REJECTION_DETAILS = {
-  cc_rejected_insufficient_amount: 'Fondos insuficientes. Probar con otro medio o pedir un limite mayor al banco.',
+  cc_rejected_insufficient_amount:
+    'Fondos insuficientes. Probar con otro medio o pedir un limite mayor al banco.',
   cc_rejected_bad_filled_card_number: 'Numero de tarjeta mal ingresado. Cargarlo de nuevo.',
   cc_rejected_bad_filled_date: 'Fecha de vencimiento incorrecta.',
   cc_rejected_bad_filled_security_code: 'Codigo de seguridad incorrecto.',
   cc_rejected_bad_filled_other: 'Algun dato de la tarjeta quedo mal cargado.',
-  cc_rejected_call_for_authorize: 'El banco pide autorizacion expresa: el atleta tiene que llamar y autorizar ese monto.',
+  cc_rejected_call_for_authorize:
+    'El banco pide autorizacion expresa: el atleta tiene que llamar y autorizar ese monto.',
   cc_rejected_card_disabled: 'Tarjeta inactiva. El atleta debe activarla con el banco.',
-  cc_rejected_duplicated_payment: 'Pago duplicado: ya existe uno igual reciente. Verificar antes de reintentar.',
+  cc_rejected_duplicated_payment:
+    'Pago duplicado: ya existe uno igual reciente. Verificar antes de reintentar.',
   cc_rejected_high_risk: 'Rechazo por prevencion de fraude de MP. Sugerir otro medio de pago.',
   cc_rejected_max_attempts: 'Se agotaron los intentos permitidos. Esperar y usar otra tarjeta.',
   cc_rejected_other_reason: 'El emisor rechazo el pago sin detalle. Reintentar con otro medio.',
   cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',
   cc_rejected_card_type_not_allowed: 'Ese tipo de tarjeta no esta habilitado para este cobro.',
   pending_contingency: 'MP esta procesando el pago. Se acredita solo por webhook; no reintentar.',
-  pending_review_manual: 'MP lo dejo en revision manual. Se resuelve por webhook en minutos u horas.',
+  pending_review_manual:
+    'MP lo dejo en revision manual. Se resuelve por webhook en minutos u horas.',
   pending_waiting_transfer: 'Esperando la transferencia del atleta.',
   pending_waiting_payment: 'Cupon emitido, esperando el pago en efectivo.',
   accredited: 'Acreditado.',
@@ -482,7 +496,13 @@ function toDiagnosis(entry) {
 function normalizeMessage(error) {
   if (!error) return ''
   if (typeof error === 'string') return error
-  return [error.message, error.details?.code, error.code, error.provider?.code, error.provider?.detail]
+  return [
+    error.message,
+    error.details?.code,
+    error.code,
+    error.provider?.code,
+    error.provider?.detail,
+  ]
     .filter(Boolean)
     .join(' | ')
 }
@@ -511,7 +531,10 @@ export function diagnosePaymentFailure(error) {
 export function explainPaymentStatusDetail(statusDetail) {
   const key = String(statusDetail ?? '').trim()
   if (!key) return null
-  return REJECTION_DETAILS[key] ?? 'Detalle no catalogado: consultar el pago en el panel de Mercado Pago.'
+  return (
+    REJECTION_DETAILS[key] ??
+    'Detalle no catalogado: consultar el pago en el panel de Mercado Pago.'
+  )
 }
 
 /** Solo para el script de auditoria y los tests: catalogo completo. */

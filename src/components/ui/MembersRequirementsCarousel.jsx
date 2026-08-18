@@ -67,23 +67,14 @@ function handleCellPointer(event) {
   el.style.setProperty('--my', `${(((event.clientY - rect.top) / rect.height) * 100).toFixed(1)}%`)
 }
 
-export default function MembersRequirementsCarousel({
-  items = [],
-  ariaLabel,
-  title,
-  lead,
-}) {
+export default function MembersRequirementsCarousel({ items = [], ariaLabel, title, lead }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
 
   if (!items.length) return null
 
   const head = (
-    <MembersBlockHead
-      eyebrow={t('pages.members.requirementsEyebrow')}
-      title={title}
-      lead={lead}
-    />
+    <MembersBlockHead eyebrow={t('pages.members.requirementsEyebrow')} title={title} lead={lead} />
   )
 
   return (

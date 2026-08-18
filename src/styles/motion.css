@@ -23,10 +23,7 @@
 .tilt-card__inner,
 .tilt-card .members-plu-hero__card-inner {
   backface-visibility: hidden;
-  transform:
-    rotateX(var(--tilt-x))
-    rotateY(var(--tilt-y))
-    translateZ(0);
+  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateZ(0);
   transition: transform var(--motion-base) var(--ease-out);
   transform-style: preserve-3d;
 }
@@ -362,8 +359,12 @@
 }
 
 @keyframes motion-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* ── CTA / icon drift ─────────────────────────── */
@@ -436,7 +437,9 @@
 }
 
 .site-header__drawer-item-chevron {
-  transition: transform var(--motion-fast) var(--ease-emphasized), opacity var(--motion-fast);
+  transition:
+    transform var(--motion-fast) var(--ease-emphasized),
+    opacity var(--motion-fast);
 }
 
 .site-header__drawer-item:hover .site-header__drawer-item-chevron {

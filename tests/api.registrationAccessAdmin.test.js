@@ -23,11 +23,16 @@ describe('CRUD administrativo de tandas privadas', () => {
       startsAt: null,
       endsAt: null,
     })
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      registrationAccessRepository: { list: vi.fn(), save, remove: vi.fn() },
-      env: { AUTH_SECRET: 'registration-access-admin-test-secret', APP_URL: 'http://localhost:5173' },
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        registrationAccessRepository: { list: vi.fn(), save, remove: vi.fn() },
+        env: {
+          AUTH_SECRET: 'registration-access-admin-test-secret',
+          APP_URL: 'http://localhost:5173',
+        },
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })
@@ -56,11 +61,16 @@ describe('CRUD administrativo de tandas privadas', () => {
   it('elimina una tanda mediante la API protegida y conserva la auditoría en Supabase', async () => {
     const staff = await buildStaffUser({ email: 'tandas-admin@plu.test' })
     const remove = vi.fn().mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111' })
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      registrationAccessRepository: { list: vi.fn(), save: vi.fn(), remove },
-      env: { AUTH_SECRET: 'registration-access-admin-test-secret', APP_URL: 'http://localhost:5173' },
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        registrationAccessRepository: { list: vi.fn(), save: vi.fn(), remove },
+        env: {
+          AUTH_SECRET: 'registration-access-admin-test-secret',
+          APP_URL: 'http://localhost:5173',
+        },
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })
@@ -81,11 +91,16 @@ describe('CRUD administrativo de tandas privadas', () => {
   it('rechaza un identificador de tanda inválido', async () => {
     const staff = await buildStaffUser({ email: 'tandas-admin-invalid@plu.test' })
     const remove = vi.fn()
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      registrationAccessRepository: { list: vi.fn(), save: vi.fn(), remove },
-      env: { AUTH_SECRET: 'registration-access-admin-test-secret', APP_URL: 'http://localhost:5173' },
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        registrationAccessRepository: { list: vi.fn(), save: vi.fn(), remove },
+        env: {
+          AUTH_SECRET: 'registration-access-admin-test-secret',
+          APP_URL: 'http://localhost:5173',
+        },
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })

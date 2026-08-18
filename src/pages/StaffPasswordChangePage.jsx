@@ -44,7 +44,8 @@ export default function StaffPasswordChangePage({ session, onChangePassword, onL
     if (password.length < MIN_PASSWORD_LENGTH) next.password = t('staffAccount.errorPasswordShort')
     else if (password === currentPassword) next.password = t('staffAccount.errorPasswordSame')
     if (!passwordConfirm) next.passwordConfirm = t('staffAccount.errorConfirmRequired')
-    else if (password !== passwordConfirm) next.passwordConfirm = t('staffAccount.errorPasswordMismatch')
+    else if (password !== passwordConfirm)
+      next.passwordConfirm = t('staffAccount.errorPasswordMismatch')
     setFieldErrors(next)
     return Object.keys(next).length === 0
   }
@@ -69,8 +70,16 @@ export default function StaffPasswordChangePage({ session, onChangePassword, onL
       <aside className="auth-layout__visual" aria-hidden="true">
         <ResponsivePhoto
           className="auth-layout__visual-photo"
-          avif={{ 480: authVisualPhotoAvif480, 800: authVisualPhotoAvif800, 1153: authVisualPhotoAvif }}
-          webp={{ 480: authVisualPhotoWebp480, 800: authVisualPhotoWebp800, 1153: authVisualPhotoWebp }}
+          avif={{
+            480: authVisualPhotoAvif480,
+            800: authVisualPhotoAvif800,
+            1153: authVisualPhotoAvif,
+          }}
+          webp={{
+            480: authVisualPhotoWebp480,
+            800: authVisualPhotoWebp800,
+            1153: authVisualPhotoWebp,
+          }}
           src={authVisualPhoto}
           alt=""
           width={800}
@@ -96,7 +105,11 @@ export default function StaffPasswordChangePage({ session, onChangePassword, onL
         <div className="auth-immersive-page">
           <div className="auth-immersive-glass" aria-labelledby="staff-password-heading">
             <header className="auth-immersive-glass__header">
-              <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={32} />
+              <BrandLogo
+                variant="letterhead"
+                imgClassName="auth-immersive-glass__logo"
+                height={32}
+              />
               <div className="auth-immersive-glass__copy">
                 <span className="auth-immersive-glass__eyebrow">{session?.email}</span>
                 <h1 id="staff-password-heading" className="auth-immersive-glass__title">

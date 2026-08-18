@@ -9,9 +9,11 @@ function eventCreatedRank(event) {
 }
 
 export function getLatestCreatedEvent(events = []) {
-  return [...events]
-    .filter((event) => event && event.status !== 'finalizado')
-    .sort((a, b) => eventCreatedRank(b) - eventCreatedRank(a))[0] ?? null
+  return (
+    [...events]
+      .filter((event) => event && event.status !== 'finalizado')
+      .sort((a, b) => eventCreatedRank(b) - eventCreatedRank(a))[0] ?? null
+  )
 }
 
 function eventDateTime(event) {
@@ -28,8 +30,12 @@ export function getUpcomingEventsByDate(events = [], now = new Date()) {
   const todayTime = today.getTime()
 
   const datedEvents = events
-    .filter((event) => event && event.status !== 'finalizado' && Number.isFinite(eventDateTime(event)))
-    .sort((a, b) => eventDateTime(a) - eventDateTime(b) || eventCreatedRank(b) - eventCreatedRank(a))
+    .filter(
+      (event) => event && event.status !== 'finalizado' && Number.isFinite(eventDateTime(event)),
+    )
+    .sort(
+      (a, b) => eventDateTime(a) - eventDateTime(b) || eventCreatedRank(b) - eventCreatedRank(a),
+    )
 
   const upcoming = datedEvents.filter((event) => eventDateTime(event) >= todayTime)
   return upcoming.length ? upcoming : datedEvents
@@ -45,8 +51,12 @@ export function getNextUpcomingEvent(events = [], now = new Date()) {
  * meets reales con "test" en el nombre compuesto. El panel admin no filtra.
  */
 export function isPublicCatalogStubEvent(event) {
-  const title = String(event?.title ?? '').trim().toLowerCase()
-  const slug = String(event?.slug ?? '').trim().toLowerCase()
+  const title = String(event?.title ?? '')
+    .trim()
+    .toLowerCase()
+  const slug = String(event?.slug ?? '')
+    .trim()
+    .toLowerCase()
   if (!title && !slug) return true
   const titleIsStub = /^(test|prueba|asd|xxx|demo)(\s+\1)*$/i.test(title)
   const slugIsStub = /^(test|prueba|demo|asd|xxx)(-\d{2,4})?$/i.test(slug)
@@ -75,9 +85,7 @@ export function getPublicCatalogEvents(events = [], _options = {}) {
  * si no el próximo por fecha.
  */
 export function getHomeCalendarSpotlightEvent(events = [], now = new Date()) {
-  const eligible = getPublicCatalogEvents(events).filter(
-    (event) => event.status !== 'finalizado',
-  )
+  const eligible = getPublicCatalogEvents(events).filter((event) => event.status !== 'finalizado')
   if (eligible.length === 0) return null
 
   const upcoming = getUpcomingEventsByDate(eligible, now)
@@ -89,15 +97,16 @@ export function getHomeCalendarSpotlightEvent(events = [], now = new Date()) {
   return upcoming[0] ?? null
 }
 
-export function getHomeCalendarFollowingEvents(events = [], spotlight = null, limit = 2, now = new Date()) {
-  const eligible = getPublicCatalogEvents(events).filter(
-    (event) => event.status !== 'finalizado',
-  )
+export function getHomeCalendarFollowingEvents(
+  events = [],
+  spotlight = null,
+  limit = 2,
+  now = new Date(),
+) {
+  const eligible = getPublicCatalogEvents(events).filter((event) => event.status !== 'finalizado')
   const upcoming = getUpcomingEventsByDate(eligible, now)
   const spotlightSlug = spotlight?.slug
-  return upcoming
-    .filter((event) => !spotlightSlug || event.slug !== spotlightSlug)
-    .slice(0, limit)
+  return upcoming.filter((event) => !spotlightSlug || event.slug !== spotlightSlug).slice(0, limit)
 }
 
 export function getFeaturedEvent(events = []) {

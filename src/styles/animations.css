@@ -14,8 +14,12 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scale-in {
@@ -126,16 +130,30 @@
    ============================================= */
 
 @keyframes shimmer-text {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 /* Card shimmer — sweep diagonal de entrada, no infinito (ver admin.css) */
 @keyframes card-shimmer {
-  0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
-  100% { transform: translateX(120%) skewX(-15deg); opacity: 0; }
+  0% {
+    transform: translateX(-120%) skewX(-15deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120%) skewX(-15deg);
+    opacity: 0;
+  }
 }
 
 /* =============================================
@@ -143,16 +161,31 @@
    ============================================= */
 
 @keyframes grow-line-full {
-  from { transform: scaleX(0); opacity: 0; }
-  to   { transform: scaleX(1); opacity: 1; }
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
 }
 
 /* Pulso puntual para indicadores de estado (pendiente/alerta en admin) —
    no usar en elementos decorativos del sitio público. */
 @keyframes pulse-ring {
-  0%   { transform: scale(1);   opacity: 0.7; }
-  80%  { transform: scale(2.2); opacity: 0; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  80% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 /* =============================================
@@ -160,10 +193,21 @@
    ============================================= */
 
 @keyframes number-pop {
-  0%   { opacity: 0; transform: scale(0.82) translateY(8px); }
-  60%  { opacity: 1; transform: scale(1.06) translateY(-2px); }
-  80%  { transform: scale(0.98); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+  0% {
+    opacity: 0;
+    transform: scale(0.82) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06) translateY(-2px);
+  }
+  80% {
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* =============================================
@@ -171,17 +215,28 @@
    ============================================= */
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes spin-reverse {
-  to { transform: rotate(-360deg); }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 @keyframes spinner-dash {
-  0%   { stroke-dashoffset: 187; }
-  50%  { stroke-dashoffset: 46; }
-  100% { stroke-dashoffset: 187; transform: rotate(360deg); }
+  0% {
+    stroke-dashoffset: 187;
+  }
+  50% {
+    stroke-dashoffset: 46;
+  }
+  100% {
+    stroke-dashoffset: 187;
+    transform: rotate(360deg);
+  }
 }
 
 /* =============================================

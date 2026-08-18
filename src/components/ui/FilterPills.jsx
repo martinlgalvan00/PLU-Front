@@ -1,6 +1,13 @@
 import SegmentedSwitch from './SegmentedSwitch.jsx'
 
-export default function FilterPills({ active, ariaLabel, className = '', onChange, options, segmented = false }) {
+export default function FilterPills({
+  active,
+  ariaLabel,
+  className = '',
+  onChange,
+  options,
+  segmented = false,
+}) {
   if (segmented) {
     return (
       <SegmentedSwitch

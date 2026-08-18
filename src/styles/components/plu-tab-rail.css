@@ -96,7 +96,8 @@
 
 .plu-tab-rail__tab:focus-visible,
 .plu-tab-rail__shell .filter-pills__item:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent);
+  outline: 2px solid
+    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 55%, transparent);
   outline-offset: 2px;
 }
 
@@ -137,7 +138,11 @@
   --plu-tab-rail-fg: rgba(15, 17, 23, 0.48);
   --plu-tab-rail-fg-hover: rgba(15, 17, 23, 0.88);
   --plu-tab-rail-active-fg: var(--plu-ink-900, #0f1117);
-  --plu-tab-rail-active-bg: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 10%, #fff);
+  --plu-tab-rail-active-bg: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 10%,
+    #fff
+  );
   box-shadow: 0 6px 18px rgba(15, 17, 23, 0.04);
 }
 

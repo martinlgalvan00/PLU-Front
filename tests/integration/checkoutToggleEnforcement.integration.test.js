@@ -3,7 +3,12 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { createApp } from '../../server/app.js'
 import { athleteSessionCookie, createTestAthlete } from './helpers/athleteSession.js'
 import { manualChannelsOpen } from './helpers/platformToggles.js'
-import { authHeaders, buildStaffUser, createPrismaDouble, loginStaff } from './helpers/staffSession.js'
+import {
+  authHeaders,
+  buildStaffUser,
+  createPrismaDouble,
+  loginStaff,
+} from './helpers/staffSession.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 /**
@@ -170,7 +175,11 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const mercadoPago = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
       method: 'POST',
       headers: authHeaders(cookie),
-      body: JSON.stringify({ planCode, paymentMethod: 'mercado_pago', idempotencyKey: randomUUID() }),
+      body: JSON.stringify({
+        planCode,
+        paymentMethod: 'mercado_pago',
+        idempotencyKey: randomUUID(),
+      }),
     })
     const mpBody = await mercadoPago.json()
     expect(mercadoPago.status, JSON.stringify(mpBody)).toBe(201)
@@ -188,7 +197,11 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
       method: 'POST',
       headers: authHeaders(cookie),
-      body: JSON.stringify({ planCode, paymentMethod: 'manual_link', idempotencyKey: randomUUID() }),
+      body: JSON.stringify({
+        planCode,
+        paymentMethod: 'manual_link',
+        idempotencyKey: randomUUID(),
+      }),
     })
     const body = await response.json()
     expect(response.status, JSON.stringify(body)).toBe(409)
@@ -215,10 +228,9 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     )
     const cookie = await athleteSessionCookie(admin, await newAthlete('manual-requirements'))
 
-    const response = await fetch(
-      `${target.url}/api/athletes/me/registration-access-requirements`,
-      { headers: authHeaders(cookie) },
-    )
+    const response = await fetch(`${target.url}/api/athletes/me/registration-access-requirements`, {
+      headers: authHeaders(cookie),
+    })
     const body = await response.json()
     expect(response.status, JSON.stringify(body)).toBe(200)
     expect(body).toMatchObject({
@@ -247,7 +259,11 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const membership = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
       method: 'POST',
       headers: authHeaders(athleteCookie),
-      body: JSON.stringify({ planCode, paymentMethod: 'manual_link', idempotencyKey: randomUUID() }),
+      body: JSON.stringify({
+        planCode,
+        paymentMethod: 'manual_link',
+        idempotencyKey: randomUUID(),
+      }),
     })
     const membershipBody = await membership.json()
     expect(membership.status, JSON.stringify(membershipBody)).toBe(201)
@@ -329,6 +345,10 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const body = await response.json()
     expect(response.status, JSON.stringify(body)).toBe(200)
     expect(body.checkout).toEqual({ ticketEnabled: false, ticketManualEnabled: false })
+    // La pantalla de entradas la repregunta mientras el visitante decide: el
+    // borde absorbe el poll, pero con ventana corta porque de acá sale el stock
+    // que se muestra antes de comprar.
+    expect(response.headers.get('cache-control')).toContain('s-maxage=10')
   })
 
   it('corta el alta de entradas con el interruptor global, por los dos medios', async () => {
@@ -379,11 +399,14 @@ describe('interruptores de canal manual y validación por HTTP', () => {
       ['approve', null],
       ['reject', { reason: 'Prueba de interruptor.' }],
     ]) {
-      const response = await fetch(`${frozen.url}/api/tickets/orders/${createdBody.order.id}/${path}`, {
-        method: 'POST',
-        headers: authHeaders(cookie),
-        ...(body ? { body: JSON.stringify(body) } : {}),
-      })
+      const response = await fetch(
+        `${frozen.url}/api/tickets/orders/${createdBody.order.id}/${path}`,
+        {
+          method: 'POST',
+          headers: authHeaders(cookie),
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        },
+      )
       const payload = await response.json()
       expect(response.status, `${path}: ${JSON.stringify(payload)}`).toBe(409)
       expect(payload.code).toBe('TICKET_VALIDATION_DISABLED')
@@ -412,7 +435,11 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const created = await fetch(`${openApp.url}/api/athletes/me/membership-orders`, {
       method: 'POST',
       headers: authHeaders(athleteCookie),
-      body: JSON.stringify({ planCode, paymentMethod: 'manual_link', idempotencyKey: randomUUID() }),
+      body: JSON.stringify({
+        planCode,
+        paymentMethod: 'manual_link',
+        idempotencyKey: randomUUID(),
+      }),
     })
     const createdBody = await created.json()
     expect(created.status, JSON.stringify(createdBody)).toBe(201)

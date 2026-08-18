@@ -17,9 +17,7 @@ export function calculateAmount(procedureType) {
 
 export function findDuplicateAthlete(athletes, { email, documentId }) {
   return athletes.find(
-    (a) =>
-      a.email.toLowerCase() === email.toLowerCase() ||
-      a.documentId === documentId,
+    (a) => a.email.toLowerCase() === email.toLowerCase() || a.documentId === documentId,
   )
 }
 

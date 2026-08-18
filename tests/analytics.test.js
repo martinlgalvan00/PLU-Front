@@ -18,8 +18,9 @@ describe('normalizacion de rutas', () => {
   it('agrupa identificadores para que el informe no se atomice', () => {
     // Sin esto, cada orden genera su propia fila en el top de paginas y la
     // pantalla deja de ser medible como pantalla.
-    expect(normalizePath('/mi-cuenta/orden/6f3b1e7c-1111-4222-8333-444455556666'))
-      .toBe('/mi-cuenta/orden/:id')
+    expect(normalizePath('/mi-cuenta/orden/6f3b1e7c-1111-4222-8333-444455556666')).toBe(
+      '/mi-cuenta/orden/:id',
+    )
     expect(normalizePath('/inscripciones/12345')).toBe('/inscripciones/:n')
     expect(normalizePath('/credencial/PLU-ARG-2026-001')).toBe('/credencial/:membercode')
   })
@@ -42,7 +43,9 @@ describe('normalizacion de rutas', () => {
   })
 
   it('reconoce la fuente de trafico y descarta la navegacion interna', () => {
-    expect(normalizeReferrerHost('https://www.instagram.com/algo', 'https://plu.ar')).toBe('instagram.com')
+    expect(normalizeReferrerHost('https://www.instagram.com/algo', 'https://plu.ar')).toBe(
+      'instagram.com',
+    )
     expect(normalizeReferrerHost('https://plu.ar/eventos', 'https://plu.ar')).toBeNull()
     expect(normalizeReferrerHost('', 'https://plu.ar')).toBeNull()
   })
@@ -66,16 +69,18 @@ describe('identidad del visitante', () => {
     const request = fakeRequest()
     const env = { AUTH_SECRET: 'secreto-de-prueba' }
 
-    expect(resolveVisitorId(request, { env, now: new Date('2026-08-12T10:00:00Z') }))
-      .not.toBe(resolveVisitorId(request, { env, now: new Date('2026-08-14T10:00:00Z') }))
+    expect(resolveVisitorId(request, { env, now: new Date('2026-08-12T10:00:00Z') })).not.toBe(
+      resolveVisitorId(request, { env, now: new Date('2026-08-14T10:00:00Z') }),
+    )
   })
 
   it('distingue visitantes por dispositivo', () => {
     const env = { AUTH_SECRET: 'secreto-de-prueba' }
     const now = new Date('2026-08-12T10:00:00Z')
 
-    expect(resolveVisitorId(fakeRequest({ userAgent: 'A' }), { env, now }))
-      .not.toBe(resolveVisitorId(fakeRequest({ userAgent: 'B' }), { env, now }))
+    expect(resolveVisitorId(fakeRequest({ userAgent: 'A' }), { env, now })).not.toBe(
+      resolveVisitorId(fakeRequest({ userAgent: 'B' }), { env, now }),
+    )
   })
 
   it('clasifica agentes y marca los bots', () => {
@@ -102,7 +107,9 @@ describe('contrato de la migracion de analitica', () => {
     // de que `delete_athlete` cumpla lo que promete.
     const sessionFk = /athlete_id uuid references public\.athletes\(id\) on delete cascade/
     expect(migration.match(sessionFk)?.length).toBeTruthy()
-    expect(migration).toContain('session_id uuid not null references public.analytics_sessions(id) on delete cascade')
+    expect(migration).toContain(
+      'session_id uuid not null references public.analytics_sessions(id) on delete cascade',
+    )
   })
 
   it('mantiene las tablas fuera del alcance del navegador', () => {

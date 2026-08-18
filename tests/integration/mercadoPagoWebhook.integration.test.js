@@ -234,7 +234,10 @@ describe('webhook de Mercado Pago end-to-end', () => {
 
     const [order, payment, membership, athlete] = await Promise.all([
       admin.from('athlete_payment_orders').select('status, approved_at').eq('id', orderId).single(),
-      admin.from('athlete_payments').select('status, amount, external_payment_id').eq('order_id', orderId),
+      admin
+        .from('athlete_payments')
+        .select('status, amount, external_payment_id')
+        .eq('order_id', orderId),
       admin.from('memberships').select('status').eq('id', membershipId).single(),
       admin.from('athletes').select('status').eq('id', athleteId).single(),
     ])
@@ -253,10 +256,7 @@ describe('webhook de Mercado Pago end-to-end', () => {
     const response = await postWebhook(target, paymentId)
     expect(response.status).toBe(200)
 
-    const payments = await admin
-      .from('athlete_payments')
-      .select('id')
-      .eq('order_id', orderId)
+    const payments = await admin.from('athlete_payments').select('id').eq('order_id', orderId)
     expect(payments.data).toHaveLength(1)
 
     const cycles = await admin.from('membership_cycles').select('id').eq('order_id', orderId)

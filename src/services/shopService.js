@@ -55,7 +55,9 @@ export function normalizeShopProduct(product = {}) {
 
 export function getInitialShopProducts(storedProducts) {
   if (!Array.isArray(storedProducts)) return []
-  return storedProducts.map(normalizeShopProduct).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return storedProducts
+    .map(normalizeShopProduct)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 export function upsertShopProduct(products, payload) {
@@ -68,7 +70,9 @@ export function upsertShopProduct(products, payload) {
   })
 
   if (payload.id) {
-    return products.map((item) => (item.id === payload.id ? { ...item, ...product, id: item.id } : item))
+    return products.map((item) =>
+      item.id === payload.id ? { ...item, ...product, id: item.id } : item,
+    )
   }
 
   return [{ ...product, id: `prod-${Date.now()}` }, ...products]
@@ -81,5 +85,7 @@ export function deleteShopProduct(products, productId) {
 export function getPublishedShopProducts(products = []) {
   return products
     .filter((product) => product.status === SHOP_PRODUCT_STATUS.published)
-    .sort((a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt))
+    .sort(
+      (a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt),
+    )
 }

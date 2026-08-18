@@ -60,7 +60,12 @@ export function redactSensitiveEmailParams(type, params = {}) {
   return stored
 }
 
-export function createEmailDispatcher({ repository, brevo, env = process.env, logger = console } = {}) {
+export function createEmailDispatcher({
+  repository,
+  brevo,
+  env = process.env,
+  logger = console,
+} = {}) {
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
   /**
@@ -114,12 +119,15 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
       throw new HttpError(400, `Tipo de email desconocido: ${type}`)
     }
 
-    const to = String(input.to ?? '').trim().toLowerCase()
+    const to = String(input.to ?? '')
+      .trim()
+      .toLowerCase()
     const params = { appUrl, ...(input.params ?? {}) }
     const missing = findMissingParams(type, params)
     const entityType = input.entityType ?? definition.entityType
     const entityId = input.entityId ?? null
-    const idempotencyKey = input.idempotencyKey ?? buildIdempotencyKey(type, { entityType, entityId, to })
+    const idempotencyKey =
+      input.idempotencyKey ?? buildIdempotencyKey(type, { entityType, entityId, to })
 
     // Sin repositorio (tests unitarios, scripts) se envía igual pero sin log
     // ni idempotencia. Es el modo degradado, no el esperado en producción.
@@ -162,7 +170,11 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
 
     // Ya existía: otro proceso (o un reintento de webhook) lo tomó primero.
     if (!started.created) {
-      return { status: started.emailLog?.status ?? 'duplicate', created: false, emailLog: started.emailLog }
+      return {
+        status: started.emailLog?.status ?? 'duplicate',
+        created: false,
+        emailLog: started.emailLog,
+      }
     }
 
     async function failPreflight(status, message, errorCode) {
@@ -219,7 +231,10 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
 
     try {
       const response = await deliver({ type, to, input, definition, params, content })
-      const emailLog = await repository.completeEmail(started.emailLog.id, { status: 'sent', response })
+      const emailLog = await repository.completeEmail(started.emailLog.id, {
+        status: 'sent',
+        response,
+      })
       return { status: 'sent', created: true, emailLog, response }
     } catch (error) {
       const emailLog = await recordFailure(started.emailLog, error, 1, definition)
@@ -290,7 +305,11 @@ export function createEmailDispatcher({ repository, brevo, env = process.env, lo
     }
 
     if (!brevo?.configured) {
-      return repository.completeEmail(emailLog.id, { status: 'skipped', error: 'Brevo no está configurado.', attempt })
+      return repository.completeEmail(emailLog.id, {
+        status: 'skipped',
+        error: 'Brevo no está configurado.',
+        attempt,
+      })
     }
 
     const to = emailLog.recipient_email ?? emailLog.recipientEmail

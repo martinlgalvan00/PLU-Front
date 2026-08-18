@@ -129,7 +129,10 @@ export default function UpcomingEventsSection({
             const showComboNote = comboAvailability.enabled && comboDeal?.live
 
             return (
-              <article key={event.slug} className={`account-events-list__row${showingWarningForThis ? ' is-warning-active' : ''}`}>
+              <article
+                key={event.slug}
+                className={`account-events-list__row${showingWarningForThis ? ' is-warning-active' : ''}`}
+              >
                 <time dateTime={event.dateISO}>{event.date}</time>
                 <div className="account-events-list__body">
                   {isPitbull ? (
@@ -167,7 +170,9 @@ export default function UpcomingEventsSection({
                   className={`account-events-list__cta${registered ? ' is-registered' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
                   onClick={() => !registered && handleRegisterClick(event)}
                   disabled={registered || !registrationCheckoutEnabled}
-                  aria-describedby={showingWarningForThis ? 'account-profile-incomplete-warning' : undefined}
+                  aria-describedby={
+                    showingWarningForThis ? 'account-profile-incomplete-warning' : undefined
+                  }
                 >
                   {registered
                     ? t('account.events.alreadyRegistered')

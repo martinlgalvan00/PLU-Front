@@ -83,7 +83,10 @@ export function normalizeReferrerHost(rawReferrer, appUrl) {
         // appUrl mal configurada: se prefiere registrar el host a perderlo.
       }
     }
-    return hostname.replace(/^www\./i, '').slice(0, 120).toLowerCase()
+    return hostname
+      .replace(/^www\./i, '')
+      .slice(0, 120)
+      .toLowerCase()
   } catch {
     return null
   }

@@ -1838,7 +1838,11 @@
 }
 
 .event-calendar__chip {
-  background: color-mix(in oklab, var(--calendar-chip-color, var(--calendar-tone-neutral)) 22%, transparent);
+  background: color-mix(
+    in oklab,
+    var(--calendar-chip-color, var(--calendar-tone-neutral)) 22%,
+    transparent
+  );
   border-left: 2px solid var(--calendar-chip-color, var(--calendar-tone-neutral));
   border-radius: 2px;
   color: var(--color-text-primary);

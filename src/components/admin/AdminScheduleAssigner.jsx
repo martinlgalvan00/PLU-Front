@@ -73,7 +73,11 @@ export default function AdminScheduleAssigner({
   }
 
   return (
-    <div className="admin-schedule-assigner" role="region" aria-label={t('admin.schedule.assignerLabel')}>
+    <div
+      className="admin-schedule-assigner"
+      role="region"
+      aria-label={t('admin.schedule.assignerLabel')}
+    >
       <div className="admin-schedule-assigner__lead">
         <span className="admin-schedule-assigner__icon" aria-hidden>
           <CalendarClock size={16} strokeWidth={1.8} />

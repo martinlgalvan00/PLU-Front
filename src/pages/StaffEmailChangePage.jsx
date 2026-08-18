@@ -53,11 +53,19 @@ export default function StaffEmailChangePage({ token, onDone }) {
         <div className="auth-immersive-page">
           <div className="auth-immersive-glass" aria-labelledby="staff-email-heading">
             <header className="auth-immersive-glass__header">
-              <BrandLogo variant="letterhead" imgClassName="auth-immersive-glass__logo" height={32} />
+              <BrandLogo
+                variant="letterhead"
+                imgClassName="auth-immersive-glass__logo"
+                height={32}
+              />
               <div className="auth-immersive-glass__copy">
-                <span className="auth-immersive-glass__eyebrow">{t('staffAccount.confirmEyebrow')}</span>
+                <span className="auth-immersive-glass__eyebrow">
+                  {t('staffAccount.confirmEyebrow')}
+                </span>
                 <h1 id="staff-email-heading" className="auth-immersive-glass__title">
-                  {state === 'failed' ? t('staffAccount.confirmErrorTitle') : t('staffAccount.confirmTitle')}
+                  {state === 'failed'
+                    ? t('staffAccount.confirmErrorTitle')
+                    : t('staffAccount.confirmTitle')}
                 </h1>
                 <p className="auth-immersive-glass__lead">
                   {state === 'pending'

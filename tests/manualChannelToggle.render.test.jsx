@@ -97,6 +97,36 @@ describe('canal manual en el checkout de afiliación e inscripción', () => {
     // ninguna forma de pagar.
     expect(values(SETTLE_GROUP)).toEqual(['mercado_pago'])
   })
+
+  // Un código de promoción puede destrabar un canal y no el otro: el selector
+  // tiene que ofrecer exactamente el que el código habilita.
+  it('ofrece sólo transferencia cuando el código habilita ese canal', () => {
+    render(
+      <I18nProvider>
+        <RegisterSettle
+          paymentMethod="mercado_pago"
+          showPayment
+          transferEnabled
+          onPaymentChange={() => {}}
+        />
+      </I18nProvider>,
+    )
+    expect(values(SETTLE_GROUP)).toEqual(['mercado_pago', 'manual_link'])
+  })
+
+  it('ofrece sólo efectivo cuando el código habilita ese canal', () => {
+    render(
+      <I18nProvider>
+        <RegisterSettle
+          cashEnabled
+          paymentMethod="mercado_pago"
+          showPayment
+          onPaymentChange={() => {}}
+        />
+      </I18nProvider>,
+    )
+    expect(values(SETTLE_GROUP)).toEqual(['mercado_pago', 'cash_pitbull'])
+  })
 })
 
 describe('canal manual en la compra de entradas', () => {

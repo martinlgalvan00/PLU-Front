@@ -3,19 +3,17 @@ import { createApp } from '../server/app.js'
 import { toApiPaymentMethod } from '../src/services/checkoutPricing.js'
 
 /**
- * El preview de un cupón calculaba el ahorro sobre el precio de catálogo
- * (`membership_plans.price` / `events.price`), mientras que el cobro real lo fija
- * `checkoutPriceFor`, que durante la ventana Pitbull cambia según el canal:
- * 75.000 por transferencia o efectivo, 85.000 por Mercado Pago.
- *
- * Resultado: el atleta veía "ahorrás $X" y se le cobraba otra cosa. El preview
- * ahora recibe el canal y cotiza contra la misma política que la orden.
+ * El preview de un cupón cotizaba siempre contra el precio de catálogo
+ * (`membership_plans.price` / `events.price`), aunque el plan/evento tuviera
+ * un precio distinto configurado para transferencia/efectivo
+ * (`manual_price`). Resultado: el atleta veía "ahorrás $X" calculado sobre un
+ * importe que no era el que terminaba pagando. El preview ahora lee el mismo
+ * `manual_price` que usa la creación real de la orden.
  */
 
 const ATHLETE_ID = '11111111-1111-4111-8111-111111111111'
-// Precio de catálogo deliberadamente distinto a los dos valores de la política:
-// si el preview lo usara, el assert de abajo lo delata.
 const CATALOG_PRICE = 100000
+const MANUAL_PRICE = 75000
 
 let clientIpCounter = 0
 function isolatedClientIp() {
@@ -79,8 +77,16 @@ function buildApp() {
     supabaseAdmin: authenticatedSupabase(),
     athleteRepository: {
       findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-      findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', price: CATALOG_PRICE }),
-      findEventPricing: vi.fn().mockResolvedValue({ slug: 'pitbull-classic-2026', price: CATALOG_PRICE }),
+      findMembershipPlan: vi.fn().mockResolvedValue({
+        code: 'plu-annual',
+        price: CATALOG_PRICE,
+        manual_price: MANUAL_PRICE,
+      }),
+      findEventPricing: vi.fn().mockResolvedValue({
+        slug: 'pitbull-classic-2026',
+        price: CATALOG_PRICE,
+        manual_price: MANUAL_PRICE,
+      }),
       previewDiscountCode,
     },
   })
@@ -113,7 +119,7 @@ describe('normalización del canal de pago hacia la API', () => {
 })
 
 describe('POST /api/athletes/me/discount-preview', () => {
-  it('cotiza la afiliación por transferencia al precio del canal, no al de catálogo', async () => {
+  it('cotiza la afiliación con el precio manual del plan por transferencia', async () => {
     const { target, previewDiscountCode } = buildApp()
     try {
       const response = await preview(target, {
@@ -127,14 +133,14 @@ describe('POST /api/athletes/me/discount-preview', () => {
       expect(previewDiscountCode).toHaveBeenCalledWith(ATHLETE_ID, {
         code: 'PLU10',
         appliesTo: 'membership',
-        baseAmount: 75000,
+        baseAmount: MANUAL_PRICE,
       })
     } finally {
       await target.close()
     }
   })
 
-  it('cotiza más caro por Mercado Pago, que es lo que efectivamente se cobra', async () => {
+  it('cotiza el precio de catálogo por Mercado Pago, que es lo que efectivamente se cobra', async () => {
     const { target, previewDiscountCode } = buildApp()
     try {
       await preview(target, {
@@ -147,14 +153,14 @@ describe('POST /api/athletes/me/discount-preview', () => {
       expect(previewDiscountCode).toHaveBeenCalledWith(ATHLETE_ID, {
         code: 'PLU10',
         appliesTo: 'membership',
-        baseAmount: 85000,
+        baseAmount: CATALOG_PRICE,
       })
     } finally {
       await target.close()
     }
   })
 
-  it('aplica la misma política a la inscripción', async () => {
+  it('aplica la misma política al precio manual de la inscripción', async () => {
     const { target, previewDiscountCode } = buildApp()
     try {
       await preview(target, {
@@ -167,14 +173,14 @@ describe('POST /api/athletes/me/discount-preview', () => {
       expect(previewDiscountCode).toHaveBeenCalledWith(ATHLETE_ID, {
         code: 'PLU10',
         appliesTo: 'registration',
-        baseAmount: 75000,
+        baseAmount: MANUAL_PRICE,
       })
     } finally {
       await target.close()
     }
   })
 
-  it('vuelve al precio de catálogo si el cliente no manda canal', async () => {
+  it('vuelve al precio de catálogo si el cliente no manda medio de pago', async () => {
     // Compatibilidad hacia atrás: un cliente viejo que no envía `paymentMethod`
     // sigue recibiendo una cotización, aunque sea la de catálogo.
     const { target, previewDiscountCode } = buildApp()

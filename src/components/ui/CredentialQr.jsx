@@ -1,5 +1,5 @@
 import '../../styles/components/credential-qr.css'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { QrCode } from 'lucide-react'
 
 /**
@@ -29,36 +29,44 @@ export default function CredentialQr({
   className = '',
 }) {
   const [revealed, setRevealed] = useState(false)
+  const imgRef = useRef(null)
+  const reveal = useCallback(() => setRevealed(true), [])
 
   // Un `src` nuevo (otra credencial, o el reintento después de un fallo) vuelve
   // a armar el reveal. Sin esto el segundo código entraba ya revelado, sin
   // transición, porque el estado quedaba del anterior.
   useEffect(() => {
     setRevealed(false)
+    // Las data URLs largas quedan `complete` en el mismo tick del montaje: el
+    // evento load se consumió antes de que el listener existiera y el código
+    // quedaba invisible en `loading` para siempre (placa respirando eternamente
+    // en el dorso de la credencial). Si ya está decodificado, se revela acá.
+    const img = imgRef.current
+    if (img?.complete && img.naturalWidth > 0) setRevealed(true)
   }, [src])
 
   const state = src ? (revealed ? 'ready' : 'loading') : failed ? 'failed' : 'pending'
 
   return (
-    <span
-      className={`credential-qr credential-qr--${size} ${className}`.trim()}
-      data-state={state}
-    >
+    <span className={`credential-qr credential-qr--${size} ${className}`.trim()} data-state={state}>
       <span className="credential-qr__plate" aria-hidden="true">
         <span className="credential-qr__grid" />
         <span className="credential-qr__eye credential-qr__eye--tl" />
         <span className="credential-qr__eye credential-qr__eye--tr" />
         <span className="credential-qr__eye credential-qr__eye--bl" />
-        {failed ? <QrCode className="credential-qr__fallback-icon" size={28} strokeWidth={1.2} /> : null}
+        {failed ? (
+          <QrCode className="credential-qr__fallback-icon" size={28} strokeWidth={1.2} />
+        ) : null}
       </span>
 
       {src ? (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           className="credential-qr__img"
           decoding="async"
-          onLoad={() => setRevealed(true)}
+          onLoad={reveal}
         />
       ) : null}
 

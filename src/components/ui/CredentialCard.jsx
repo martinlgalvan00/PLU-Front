@@ -62,10 +62,7 @@ export default function CredentialCard({
         innerClassName="tilt-card__inner credential-card__inner"
         maxTilt={isFlipped ? 0 : maxTilt}
       >
-        <div
-          className="credential-card__flipper"
-          data-flipped={isFlipped ? '1' : '0'}
-        >
+        <div className="credential-card__flipper" data-flipped={isFlipped ? '1' : '0'}>
           <div
             className="credential-card__face credential-card__face--front"
             aria-hidden={isFlipped}
@@ -119,6 +116,7 @@ export default function CredentialCard({
             aria-hidden={!isFlipped}
           >
             <span className="credential-card__frame" aria-hidden />
+            <span className="credential-card__grain" aria-hidden />
             <span className="credential-card__stripe" aria-hidden />
 
             <div className="credential-card__layer credential-card__layer--back">
@@ -133,10 +131,12 @@ export default function CredentialCard({
                   src={qrSrc}
                   alt={qrAlt}
                   failed={qrFailed}
-                  size="md"
+                  size="card"
                 />
                 <span className="credential-card__qr-caption">{qrCaption}</span>
-                {validUntil ? <span className="credential-card__qr-valid">{validUntil}</span> : null}
+                {validUntil ? (
+                  <span className="credential-card__qr-valid">{validUntil}</span>
+                ) : null}
               </div>
 
               <footer className="credential-card__foot credential-card__foot--back">

@@ -1,9 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { getDefaultPermissionsForRole } from '../../src/lib/permissions.js'
-import {
-  ACCESS_ROLE_INCLUDE,
-  permissionKeysFromAccessRole,
-} from './accessControlService.js'
+import { ACCESS_ROLE_INCLUDE, permissionKeysFromAccessRole } from './accessControlService.js'
 
 export const SESSION_COOKIE_NAME = 'plu_session'
 

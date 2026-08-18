@@ -22,7 +22,8 @@ let initializedPublicKey = null
 // transparente para que el formulario se sienta parte de la página.
 // `font` solo alcanza campos seguros (tarjeta/CVV). Los hex de marca
 // salen de palette.css (--plu-gold-500 / --color-brand-action-text).
-const BRICK_FONT = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'
+const BRICK_FONT =
+  'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap'
 
 function readCssColor(name, fallback) {
   if (typeof document === 'undefined') return fallback
@@ -31,8 +32,10 @@ function readCssColor(name, fallback) {
 }
 
 function currentThemeIsLight() {
-  return typeof document !== 'undefined'
-    && document.documentElement.getAttribute('data-theme') === 'light'
+  return (
+    typeof document !== 'undefined' &&
+    document.documentElement.getAttribute('data-theme') === 'light'
+  )
 }
 
 // `isLight` decide la variante ('default'/'dark') que arma el resto de los
@@ -51,8 +54,14 @@ function buildBrickVisual(isLight) {
         inputBackgroundColor: 'transparent',
         textPrimaryColor: readCssColor('--color-text-primary', isLight ? '#0d0e12' : '#f4f4f5'),
         textSecondaryColor: readCssColor('--color-text-muted', isLight ? '#636878' : '#9a9aa8'),
-        outlinePrimaryColor: readCssColor('--color-border', isLight ? 'rgba(15, 17, 23, 0.10)' : 'rgba(255, 255, 255, 0.14)'),
-        outlineSecondaryColor: readCssColor('--color-border-subtle', isLight ? 'rgba(15, 17, 23, 0.06)' : 'rgba(255, 255, 255, 0.08)'),
+        outlinePrimaryColor: readCssColor(
+          '--color-border',
+          isLight ? 'rgba(15, 17, 23, 0.10)' : 'rgba(255, 255, 255, 0.14)',
+        ),
+        outlineSecondaryColor: readCssColor(
+          '--color-border-subtle',
+          isLight ? 'rgba(15, 17, 23, 0.06)' : 'rgba(255, 255, 255, 0.08)',
+        ),
         errorColor: readCssColor('--color-danger-text', isLight ? '#b42318' : '#ff8b86'),
         // El verde de "Cuotas disponibles" lo pinta el Brick con `successColor`.
         // El default de Mercado Pago está calculado para fondo claro y sobre el
@@ -221,18 +230,20 @@ function controlledPaymentError(error, t) {
 }
 
 function announcePaymentUpdate(orderId, status) {
-  window.dispatchEvent(new CustomEvent('plu:payment-updated', {
-    detail: { orderId, status },
-  }))
+  window.dispatchEvent(
+    new CustomEvent('plu:payment-updated', {
+      detail: { orderId, status },
+    }),
+  )
 }
 
 function resolvePayerEmail(order) {
   return (
-    order?.payerEmail
-    || order?.athleteEmail
-    || order?.email
-    || order?.buyerEmail
-    || 'mock-payer@pluarg.local'
+    order?.payerEmail ||
+    order?.athleteEmail ||
+    order?.email ||
+    order?.buyerEmail ||
+    'mock-payer@pluarg.local'
   )
 }
 
@@ -253,12 +264,12 @@ function isRealMercadoPagoPreferenceId(preferenceId) {
 
 function resolvePreferenceId(order) {
   return (
-    order?.preferenceId
-    || order?.providerPreferenceId
-    || order?.provider_preference_id
-    || order?.preference?.id
-    || order?.checkout?.preference?.id
-    || null
+    order?.preferenceId ||
+    order?.providerPreferenceId ||
+    order?.provider_preference_id ||
+    order?.preference?.id ||
+    order?.checkout?.preference?.id ||
+    null
   )
 }
 
@@ -272,9 +283,9 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const [simulating, setSimulating] = useState(false)
   const [pollExhausted, setPollExhausted] = useState(false)
   const [walletPreferenceId, setWalletPreferenceId] = useState(null)
-  const [preferenceReady, setPreferenceReady] = useState(() => (
-    isRealMercadoPagoPreferenceId(resolvePreferenceId(order))
-  ))
+  const [preferenceReady, setPreferenceReady] = useState(() =>
+    isRealMercadoPagoPreferenceId(resolvePreferenceId(order)),
+  )
   // Si crear la preferencia embebida falla dos veces seguidas, las tarjetas y
   // el efectivo siguen funcionando, pero la cuenta de Mercado Pago desaparece
   // de la lista sin que nadie se entere. Este estado le da a la persona una
@@ -328,10 +339,13 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     }),
     [brickVisual],
   )
-  const initialization = useMemo(() => ({
-    amount: Number(order?.amount ?? 0),
-    ...(!isSubscription && realPreferenceId ? { preferenceId: realPreferenceId } : {}),
-  }), [isSubscription, order?.amount, realPreferenceId])
+  const initialization = useMemo(
+    () => ({
+      amount: Number(order?.amount ?? 0),
+      ...(!isSubscription && realPreferenceId ? { preferenceId: realPreferenceId } : {}),
+    }),
+    [isSubscription, order?.amount, realPreferenceId],
+  )
   const canRenderPaymentBrick = (isSubscription || preferenceReady) && Boolean(brickVisual)
 
   // Un cambio de tema sí tiene que rehacer el brick (el re-skin viaja en
@@ -402,7 +416,8 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
             paymentId: orderId,
             orderAccessToken: order?.orderAccessToken,
           })
-          const preferenceId = response?.preference?.id ?? response?.paymentOrder?.preferenceId ?? null
+          const preferenceId =
+            response?.preference?.id ?? response?.paymentOrder?.preferenceId ?? null
           if (!cancelled && isRealMercadoPagoPreferenceId(preferenceId)) {
             setWalletPreferenceId(preferenceId)
           }
@@ -435,7 +450,14 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     return () => {
       cancelled = true
     }
-  }, [isMock, isSubscription, order?.orderAccessToken, orderId, preferenceRetryNonce, realPreferenceId])
+  }, [
+    isMock,
+    isSubscription,
+    order?.orderAccessToken,
+    orderId,
+    preferenceRetryNonce,
+    realPreferenceId,
+  ])
 
   const retryWalletPreference = useCallback(() => {
     setWalletPreferenceError(false)
@@ -453,77 +475,86 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     trackEvent(step, { metadata: { paymentMode: order?.paymentMode ?? 'payment' } })
   }, [order?.paymentMode, order?.type, orderId])
 
-  const submitPayment = useCallback(async (payload) => {
-    setError('')
-    try {
-      if (!payload?.formData) throw new Error(t('payments.embeddedError'))
-      // Pasos del embudo. Nunca viaja el token de tarjeta ni el medio de pago:
-      // solo el hecho de que hubo un intento y como termino.
-      const flowSteps = PAYMENT_FUNNEL_STEPS[order?.type]
-      // El generico se conserva: es el que cuenta intentos de pago del sitio
-      // entero, sin importar que se estuviera pagando.
-      trackEvent('payment_submitted', { metadata: { concept: order?.concept ?? null } })
-      if (flowSteps) trackEvent(flowSteps.submitted)
-      const response = await processEmbeddedPayment({
-        paymentOrderId: orderId,
-        orderAccessToken: order?.orderAccessToken,
-        formData: payload.formData,
-      })
-      const status = normalizePaymentStatus(response.payment?.status ?? response.order?.status)
-      setResult({ status, data: response })
-      announcePaymentUpdate(orderId, status)
-      if (status === 'approved') {
-        // Solo el generico viaja como conversion: duplicar el tipo inflaria el
-        // contador de conversiones del resumen al doble.
-        trackConversion('payment_approved', { value: Number(order?.amount ?? 0) })
-        if (flowSteps) trackEvent(flowSteps.approved, { value: Number(order?.amount ?? 0) })
-      } else if (status === 'rejected') {
-        trackEvent('payment_rejected', { type: 'error' })
+  const submitPayment = useCallback(
+    async (payload) => {
+      setError('')
+      try {
+        if (!payload?.formData) throw new Error(t('payments.embeddedError'))
+        // Pasos del embudo. Nunca viaja el token de tarjeta ni el medio de pago:
+        // solo el hecho de que hubo un intento y como termino.
+        const flowSteps = PAYMENT_FUNNEL_STEPS[order?.type]
+        // El generico se conserva: es el que cuenta intentos de pago del sitio
+        // entero, sin importar que se estuviera pagando.
+        trackEvent('payment_submitted', { metadata: { concept: order?.concept ?? null } })
+        if (flowSteps) trackEvent(flowSteps.submitted)
+        const response = await processEmbeddedPayment({
+          paymentOrderId: orderId,
+          orderAccessToken: order?.orderAccessToken,
+          formData: payload.formData,
+        })
+        const status = normalizePaymentStatus(response.payment?.status ?? response.order?.status)
+        setResult({ status, data: response })
+        announcePaymentUpdate(orderId, status)
+        if (status === 'approved') {
+          // Solo el generico viaja como conversion: duplicar el tipo inflaria el
+          // contador de conversiones del resumen al doble.
+          trackConversion('payment_approved', { value: Number(order?.amount ?? 0) })
+          if (flowSteps) trackEvent(flowSteps.approved, { value: Number(order?.amount ?? 0) })
+        } else if (status === 'rejected') {
+          trackEvent('payment_rejected', { type: 'error' })
+        }
+        onResult?.(response)
+        return response
+      } catch (submitError) {
+        setError(controlledPaymentError(submitError, t))
+        throw submitError
       }
-      onResult?.(response)
-      return response
-    } catch (submitError) {
-      setError(controlledPaymentError(submitError, t))
-      throw submitError
-    }
-  }, [onResult, order?.amount, order?.concept, order?.orderAccessToken, order?.type, orderId, t])
+    },
+    [onResult, order?.amount, order?.concept, order?.orderAccessToken, order?.type, orderId, t],
+  )
 
-  const submitSubscription = useCallback(async (formData) => {
-    setError('')
-    try {
-      const response = await processEmbeddedSubscription({
-        paymentOrderId: orderId,
-        orderAccessToken: order?.orderAccessToken,
-        planCode: order.plan?.code,
-        cardToken: formData.token,
-      })
-      // Autorizar la suscripción no equivale a cobrar el primer ciclo. La
-      // orden queda pendiente hasta el authorized_payment canónico de MP.
-      setResult({ status: 'pending', data: response })
-      announcePaymentUpdate(orderId, 'pending')
-      onResult?.(response)
-      return response
-    } catch (submitError) {
-      setError(controlledPaymentError(submitError, t))
-      throw submitError
-    }
-  }, [onResult, order?.orderAccessToken, order?.plan?.code, orderId, t])
-
-  const simulateOutcome = useCallback(async (paymentMethodId) => {
-    setSimulating(true)
-    setError('')
-    try {
-      if (isSubscription) {
-        await submitSubscription({ token: MOCK_TOKEN })
-        return
+  const submitSubscription = useCallback(
+    async (formData) => {
+      setError('')
+      try {
+        const response = await processEmbeddedSubscription({
+          paymentOrderId: orderId,
+          orderAccessToken: order?.orderAccessToken,
+          planCode: order.plan?.code,
+          cardToken: formData.token,
+        })
+        // Autorizar la suscripción no equivale a cobrar el primer ciclo. La
+        // orden queda pendiente hasta el authorized_payment canónico de MP.
+        setResult({ status: 'pending', data: response })
+        announcePaymentUpdate(orderId, 'pending')
+        onResult?.(response)
+        return response
+      } catch (submitError) {
+        setError(controlledPaymentError(submitError, t))
+        throw submitError
       }
-      await submitPayment({ formData: buildMockFormData(order, paymentMethodId) })
-    } catch {
-      // El error ya quedó en estado local.
-    } finally {
-      setSimulating(false)
-    }
-  }, [isSubscription, order, submitPayment, submitSubscription])
+    },
+    [onResult, order?.orderAccessToken, order?.plan?.code, orderId, t],
+  )
+
+  const simulateOutcome = useCallback(
+    async (paymentMethodId) => {
+      setSimulating(true)
+      setError('')
+      try {
+        if (isSubscription) {
+          await submitSubscription({ token: MOCK_TOKEN })
+          return
+        }
+        await submitPayment({ formData: buildMockFormData(order, paymentMethodId) })
+      } catch {
+        // El error ya quedó en estado local.
+      } finally {
+        setSimulating(false)
+      }
+    },
+    [isSubscription, order, submitPayment, submitSubscription],
+  )
 
   const forceMockAccreditation = useCallback(async () => {
     const paymentId = result?.data?.payment?.id
@@ -569,40 +600,47 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     })
     return () => observer.disconnect()
   }, [brickVersion, canRenderPaymentBrick, isMock, isSubscription, ready, t])
-  const handleRenderError = useCallback((brickError) => {
-    setError(t('payments.embeddedRenderError'))
-    void reportPaymentClientEvent({
-      paymentOrderId: orderId,
-      orderAccessToken: order?.orderAccessToken,
-      stage: 'render',
-      errorCode: brickError?.type ?? brickError?.name ?? 'brick_render_error',
-      message: brickError?.message ?? t('payments.embeddedRenderError'),
-    }).catch(() => {
-      // La telemetria no debe reemplazar el error original ni bloquear el reintento.
-    })
-  }, [order?.orderAccessToken, orderId, t])
-  const refreshStatus = useCallback(async ({ quiet = false } = {}) => {
-    if (!quiet) setChecking(true)
-    try {
-      const response = await getPaymentOrderStatus(orderId, order?.orderAccessToken)
-      const status = normalizePaymentStatus(response.order?.status)
-      setResult((current) => ({ status, data: current?.data ?? response }))
-      if (status !== 'pending') {
-        announcePaymentUpdate(orderId, status)
-        onResult?.(response)
+  const handleRenderError = useCallback(
+    (brickError) => {
+      setError(t('payments.embeddedRenderError'))
+      void reportPaymentClientEvent({
+        paymentOrderId: orderId,
+        orderAccessToken: order?.orderAccessToken,
+        stage: 'render',
+        errorCode: brickError?.type ?? brickError?.name ?? 'brick_render_error',
+        message: brickError?.message ?? t('payments.embeddedRenderError'),
+      }).catch(() => {
+        // La telemetria no debe reemplazar el error original ni bloquear el reintento.
+      })
+    },
+    [order?.orderAccessToken, orderId, t],
+  )
+  const refreshStatus = useCallback(
+    async ({ quiet = false } = {}) => {
+      if (!quiet) setChecking(true)
+      try {
+        const response = await getPaymentOrderStatus(orderId, order?.orderAccessToken)
+        const status = normalizePaymentStatus(response.order?.status)
+        setResult((current) => ({ status, data: current?.data ?? response }))
+        if (status !== 'pending') {
+          announcePaymentUpdate(orderId, status)
+          onResult?.(response)
+        }
+        return status
+      } catch (statusError) {
+        if (!quiet)
+          setError(
+            Number(statusError?.status) >= 500
+              ? t('payments.statusError')
+              : controlledPaymentError(statusError, t),
+          )
+        return 'pending'
+      } finally {
+        if (!quiet) setChecking(false)
       }
-      return status
-    } catch (statusError) {
-      if (!quiet) setError(
-        Number(statusError?.status) >= 500
-          ? t('payments.statusError')
-          : controlledPaymentError(statusError, t),
-      )
-      return 'pending'
-    } finally {
-      if (!quiet) setChecking(false)
-    }
-  }, [onResult, order?.orderAccessToken, orderId, t])
+    },
+    [onResult, order?.orderAccessToken, orderId, t],
+  )
 
   useEffect(() => {
     if (result?.status !== 'pending') return undefined
@@ -634,22 +672,28 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
 
   if (!orderId || !order?.amount) return null
   if (!isMock && !env.mercadoPago.configured) {
-    return <p className="mp-embedded-checkout__error" role="alert">{t('payments.embeddedConfigMissing')}</p>
+    return (
+      <p className="mp-embedded-checkout__error" role="alert">
+        {t('payments.embeddedConfigMissing')}
+      </p>
+    )
   }
 
-  const resultMessage = result?.status === 'approved'
-    ? t(isSubscription ? 'payments.subscriptionActivated' : 'payments.paymentApproved')
-    : result?.status === 'rejected'
-      ? resolveRejectionMessage(result?.data?.payment?.statusDetail, t)
-      : t(isSubscription ? 'payments.subscriptionPendingCharge' : 'payments.paymentPending')
+  const resultMessage =
+    result?.status === 'approved'
+      ? t(isSubscription ? 'payments.subscriptionActivated' : 'payments.paymentApproved')
+      : result?.status === 'rejected'
+        ? resolveRejectionMessage(result?.data?.payment?.statusDetail, t)
+        : t(isSubscription ? 'payments.subscriptionPendingCharge' : 'payments.paymentPending')
   const mockPaymentId = result?.data?.payment?.id ?? null
   const payerEmail = resolvePayerEmail(order)
   const mockPrimary = MOCK_OUTCOMES.find((outcome) => outcome.variant === 'success')
   const mockSecondary = MOCK_OUTCOMES.filter((outcome) => outcome.variant !== 'success')
   const formattedAmount = money(Number(order?.amount ?? 0), locale)
-  const summaryLabel = order?.plan?.name
-    || order?.description
-    || t(isSubscription ? 'payments.subscriptionTitle' : 'payments.embeddedTitle')
+  const summaryLabel =
+    order?.plan?.name ||
+    order?.description ||
+    t(isSubscription ? 'payments.subscriptionTitle' : 'payments.embeddedTitle')
 
   return (
     <section
@@ -659,7 +703,9 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       aria-labelledby={`mp-checkout-title-${orderId}`}
     >
       <header className={`mp-embedded-checkout__header${isSettle ? ' visually-hidden' : ''}`}>
-        <span className="mp-embedded-checkout__icon"><ShieldCheck size={20} aria-hidden /></span>
+        <span className="mp-embedded-checkout__icon">
+          <ShieldCheck size={20} aria-hidden />
+        </span>
         <div>
           <h3 id={`mp-checkout-title-${orderId}`}>
             {t(isSubscription ? 'payments.subscriptionTitle' : 'payments.embeddedTitle')}
@@ -670,10 +716,16 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
 
       {!isMock && !ready && !result && (
         <div className="mp-embedded-checkout__skeleton" role="status" aria-live="polite">
-          <span className="mp-embedded-checkout__skeleton-bar mp-embedded-checkout__skeleton-bar--wide" aria-hidden="true" />
+          <span
+            className="mp-embedded-checkout__skeleton-bar mp-embedded-checkout__skeleton-bar--wide"
+            aria-hidden="true"
+          />
           <span className="mp-embedded-checkout__skeleton-bar" aria-hidden="true" />
           <span className="mp-embedded-checkout__skeleton-bar" aria-hidden="true" />
-          <span className="mp-embedded-checkout__skeleton-bar mp-embedded-checkout__skeleton-bar--cta" aria-hidden="true" />
+          <span
+            className="mp-embedded-checkout__skeleton-bar mp-embedded-checkout__skeleton-bar--cta"
+            aria-hidden="true"
+          />
           <p className="mp-embedded-checkout__loading">{t('payments.embeddedLoading')}</p>
         </div>
       )}
@@ -700,18 +752,24 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
               <dl className="mp-embedded-checkout__mock-meta">
                 <div>
                   <dt>{t('payments.mockOrderId')}</dt>
-                  <dd><code>{orderId}</code></dd>
+                  <dd>
+                    <code>{orderId}</code>
+                  </dd>
                 </div>
                 {order?.status ? (
                   <div>
                     <dt>{t('payments.mockOrderStatus')}</dt>
-                    <dd><code>{order.status}</code></dd>
+                    <dd>
+                      <code>{order.status}</code>
+                    </dd>
                   </div>
                 ) : null}
                 {mockPaymentId ? (
                   <div>
                     <dt>{t('payments.mockPaymentId')}</dt>
-                    <dd><code>{mockPaymentId}</code></dd>
+                    <dd>
+                      <code>{mockPaymentId}</code>
+                    </dd>
                   </div>
                 ) : null}
               </dl>
@@ -743,7 +801,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
                 {isModal ? (
                   <details className="mp-embedded-checkout__mock-more">
                     <summary>{t('payments.mockMoreOutcomes')}</summary>
-                    <div className="mp-embedded-checkout__mock-alts" role="group" aria-label={t('payments.mockAltsLabel')}>
+                    <div
+                      className="mp-embedded-checkout__mock-alts"
+                      role="group"
+                      aria-label={t('payments.mockAltsLabel')}
+                    >
                       {mockSecondary.map((outcome) => (
                         <button
                           key={outcome.id}
@@ -758,7 +820,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
                     </div>
                   </details>
                 ) : (
-                  <div className="mp-embedded-checkout__mock-alts" role="group" aria-label={t('payments.mockAltsLabel')}>
+                  <div
+                    className="mp-embedded-checkout__mock-alts"
+                    role="group"
+                    aria-label={t('payments.mockAltsLabel')}
+                  >
                     {mockSecondary.map((outcome) => (
                       <button
                         key={outcome.id}
@@ -804,7 +870,9 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
             <PaymentBrickErrorBoundary key={`payment-${brickVersion}`} onError={handleRenderError}>
               <div
                 ref={brickRef}
-                className={ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'}
+                className={
+                  ready ? 'mp-embedded-checkout__brick is-ready' : 'mp-embedded-checkout__brick'
+                }
               >
                 {isSubscription ? (
                   <CardPayment
@@ -861,13 +929,18 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
             variant="payment"
             eyebrow={t('payments.sealApprovedEyebrow')}
             seal={formattedAmount}
-            title={t(isSubscription ? 'payments.sealSubscriptionTitle' : 'payments.sealApprovedTitle')}
+            title={t(
+              isSubscription ? 'payments.sealSubscriptionTitle' : 'payments.sealApprovedTitle',
+            )}
             detail={resultMessage}
           />
         </div>
       )}
       {result && result.status !== 'approved' && (
-        <div className={`mp-embedded-checkout__result mp-embedded-checkout__result--${result.status}`} role="status">
+        <div
+          className={`mp-embedded-checkout__result mp-embedded-checkout__result--${result.status}`}
+          role="status"
+        >
           <Clock3 size={20} aria-hidden />
           <p>{resultMessage}</p>
         </div>
@@ -877,11 +950,21 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       )}
       {result?.status === 'pending' && (
         <div className="mp-embedded-checkout__actions">
-          <button type="button" className="btn btn--small btn--outline" onClick={() => refreshStatus()} disabled={checking || simulating}>
+          <button
+            type="button"
+            className="btn btn--small btn--outline"
+            onClick={() => refreshStatus()}
+            disabled={checking || simulating}
+          >
             <RefreshCw size={14} aria-hidden /> {t('payments.checkStatus')}
           </button>
           {isMock && !isSubscription && (
-            <button type="button" className="btn btn--small" onClick={() => void forceMockAccreditation()} disabled={simulating}>
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => void forceMockAccreditation()}
+              disabled={simulating}
+            >
               {t('payments.mockForceApprove')}
             </button>
           )}
@@ -894,9 +977,17 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
           </button>
         </div>
       )}
-      {error && <p className="mp-embedded-checkout__error" role="alert">{error}</p>}
+      {error && (
+        <p className="mp-embedded-checkout__error" role="alert">
+          {error}
+        </p>
+      )}
       {error && !result && (
-        <button type="button" className="mp-embedded-checkout__retry btn btn--small btn--outline" onClick={resetCheckout}>
+        <button
+          type="button"
+          className="mp-embedded-checkout__retry btn btn--small btn--outline"
+          onClick={resetCheckout}
+        >
           {t('payments.reloadCheckout')}
         </button>
       )}

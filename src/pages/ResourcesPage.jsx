@@ -26,7 +26,8 @@ function ActionLink({ children, icon: Icon = ArrowRight, onClick }) {
 export default function ResourcesPage({ onNavigate }) {
   const { locale, t } = useI18n()
   const rulebook = useMemo(() => getRulebookContent(locale), [locale])
-  const activeDoc = rulebook.documents.find((document) => document.locale === locale) ?? rulebook.documents[0]
+  const activeDoc =
+    rulebook.documents.find((document) => document.locale === locale) ?? rulebook.documents[0]
   const fileName = `reglamento-plu-v${rulebook.manifest.version}-${activeDoc?.locale ?? 'es'}.pdf`
 
   const athletePath = [
@@ -46,12 +47,18 @@ export default function ResourcesPage({ onNavigate }) {
   return (
     <main className="institutional-page resources-page">
       <InstitutionalPageHero
-        aside={(
+        aside={
           <dl className="institutional-hero__ledger">
-            <div><dt>{t('pages.resources.heroLedgerDocument')}</dt><dd>v{rulebook.manifest.version}</dd></div>
-            <div><dt>{t('pages.resources.heroLedgerCoverage')}</dt><dd>{t('pages.resources.heroLedgerAudience')}</dd></div>
+            <div>
+              <dt>{t('pages.resources.heroLedgerDocument')}</dt>
+              <dd>v{rulebook.manifest.version}</dd>
+            </div>
+            <div>
+              <dt>{t('pages.resources.heroLedgerCoverage')}</dt>
+              <dd>{t('pages.resources.heroLedgerAudience')}</dd>
+            </div>
           </dl>
-        )}
+        }
         breadcrumb={t('pages.resources.heroBreadcrumb')}
         description={t('pages.resources.heroDesc')}
         eyebrow={t('pages.resources.heroEyebrow')}
@@ -73,17 +80,35 @@ export default function ResourcesPage({ onNavigate }) {
               <h2 id="resource-rulebook-title">{t('pages.resources.featuredTitle')}</h2>
               <p>{t('pages.resources.featuredDesc')}</p>
               <dl className="resource-feature__meta">
-                <div><dt>{t('pages.resources.version')}</dt><dd>{rulebook.manifest.version}</dd></div>
-                <div><dt>{t('pages.resources.pages')}</dt><dd>{rulebook.manifest.pageCount}</dd></div>
-                <div><dt>{t('pages.resources.languages')}</dt><dd>ES / EN</dd></div>
+                <div>
+                  <dt>{t('pages.resources.version')}</dt>
+                  <dd>{rulebook.manifest.version}</dd>
+                </div>
+                <div>
+                  <dt>{t('pages.resources.pages')}</dt>
+                  <dd>{rulebook.manifest.pageCount}</dd>
+                </div>
+                <div>
+                  <dt>{t('pages.resources.languages')}</dt>
+                  <dd>ES / EN</dd>
+                </div>
               </dl>
               <div className="resource-feature__actions">
-                <button type="button" className="institutional-button institutional-button--primary" onClick={() => onNavigate?.('rulebook')}>
+                <button
+                  type="button"
+                  className="institutional-button institutional-button--primary"
+                  onClick={() => onNavigate?.('rulebook')}
+                >
                   <BookOpen size={17} aria-hidden />
                   {t('pages.resources.readRulebook')}
                 </button>
                 {activeDoc ? (
-                  <a className="institutional-button institutional-button--quiet" download={fileName} href={activeDoc.url} rel="noopener">
+                  <a
+                    className="institutional-button institutional-button--quiet"
+                    download={fileName}
+                    href={activeDoc.url}
+                    rel="noopener"
+                  >
                     <Download size={16} aria-hidden />
                     {t('pages.resources.downloadRulebook')}
                   </a>
@@ -96,7 +121,11 @@ export default function ResourcesPage({ onNavigate }) {
               <span>POWERLIFTING UNITED</span>
               <strong>{t('pages.resources.documentCover')}</strong>
               <small>VERSION {rulebook.manifest.version}</small>
-              <div className="resource-feature__document-lines"><i /><i /><i /></div>
+              <div className="resource-feature__document-lines">
+                <i />
+                <i />
+                <i />
+              </div>
             </div>
           </section>
         </Reveal>
@@ -140,23 +169,32 @@ export default function ResourcesPage({ onNavigate }) {
           <div className="resource-support__layout">
             <div className="resource-support__directory">
               {supportItems.map(({ key, icon: Icon, type }, index) => (
-                <article key={key} className={`resource-support__row resource-support__row--${type}`}>
+                <article
+                  key={key}
+                  className={`resource-support__row resource-support__row--${type}`}
+                >
                   <span className="resource-support__index">0{index + 1}</span>
                   <Icon size={18} aria-hidden />
                   <div>
                     <h3>{t(`pages.resources.support.${key}Title`)}</h3>
                     <p>{t(`pages.resources.support.${key}Desc`)}</p>
                   </div>
-                  <ActionLink onClick={() => onNavigate?.(key)}>{t(`pages.resources.support.${key}Cta`)}</ActionLink>
+                  <ActionLink onClick={() => onNavigate?.(key)}>
+                    {t(`pages.resources.support.${key}Cta`)}
+                  </ActionLink>
                 </article>
               ))}
             </div>
             <aside className="resource-support__note">
-              <span className="resource-support__note-mark" aria-hidden>PLU</span>
+              <span className="resource-support__note-mark" aria-hidden>
+                PLU
+              </span>
               <p className="institutional-kicker">{t('pages.resources.recordsEyebrow')}</p>
               <h3>{t('pages.resources.recordsTitle')}</h3>
               <p>{t('pages.resources.recordsDesc')}</p>
-              <ActionLink onClick={() => onNavigate?.('records')}>{t('pages.resources.recordsCta')}</ActionLink>
+              <ActionLink onClick={() => onNavigate?.('records')}>
+                {t('pages.resources.recordsCta')}
+              </ActionLink>
             </aside>
           </div>
         </section>

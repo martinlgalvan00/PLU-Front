@@ -9,12 +9,14 @@
 
 .faq-page--institutional .faq-hero.design-hero--compact {
   background:
-    linear-gradient(180deg, transparent 88%, var(--design-hero-fade, var(--color-page-canvas)) 100%),
+    linear-gradient(
+      180deg,
+      transparent 88%,
+      var(--design-hero-fade, var(--color-page-canvas)) 100%
+    ),
     var(--design-hero-surface, var(--design-hero-bg, #181a1f));
   margin-top: calc(-1 * var(--header-height));
-  padding:
-    calc(var(--header-height) + clamp(8px, 1.4vw, 12px))
-    clamp(20px, 5vw, 64px)
+  padding: calc(var(--header-height) + clamp(8px, 1.4vw, 12px)) clamp(20px, 5vw, 64px)
     clamp(10px, 1.8vw, 14px);
 }
 
@@ -99,7 +101,10 @@
 }
 
 .faq-page--institutional .sub-nav--faq-premium .sub-nav__link::after {
-  background: var(--faq-subnav-indicator, linear-gradient(90deg, var(--plu-gold-400), var(--color-brand-celeste)));
+  background: var(
+    --faq-subnav-indicator,
+    linear-gradient(90deg, var(--plu-gold-400), var(--color-brand-celeste))
+  );
   border-radius: 99px;
   bottom: 2px;
   content: '';

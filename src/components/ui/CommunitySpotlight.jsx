@@ -10,7 +10,13 @@ import {
   getRecentMembers,
 } from '../../services/communityService.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
-import { MOTION_DISTANCE, MOTION_DURATION, MOTION_EASE, MOTION_STAGGER, MOTION_VIEWPORT } from '../../motion/tokens.ts'
+import {
+  MOTION_DISTANCE,
+  MOTION_DURATION,
+  MOTION_EASE,
+  MOTION_STAGGER,
+  MOTION_VIEWPORT,
+} from '../../motion/tokens.ts'
 import { staggerContainer } from '../../motion/variants.ts'
 
 const FEED_LIMIT = 5
@@ -102,11 +108,7 @@ function RosterList({ members, recentLabel, emptyLabel, locale, reducedMotion, l
       variants={listVariants}
     >
       {members.map((member, index) => (
-        <m.li
-          key={member.id}
-          className="community-spotlight__row"
-          variants={rosterItem}
-        >
+        <m.li key={member.id} className="community-spotlight__row" variants={rosterItem}>
           <RosterAvatar member={member} />
           <span className="community-spotlight__index" aria-hidden>
             {String(index + 1).padStart(2, '0')}

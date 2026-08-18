@@ -17,7 +17,10 @@ export async function resolvePlatformRegistrationOpensAt(client = getSupabaseAdm
       .maybeSingle()
 
     if (pitbullError) {
-      console.error('[registrationSchedule] fallo la lectura del evento de lanzamiento', pitbullError.message)
+      console.error(
+        '[registrationSchedule] fallo la lectura del evento de lanzamiento',
+        pitbullError.message,
+      )
     } else if (pitbull?.registration_opens_at) {
       return String(pitbull.registration_opens_at)
     }
@@ -40,7 +43,10 @@ export async function resolvePlatformRegistrationOpensAt(client = getSupabaseAdm
     const chosen = featured ?? rows[0]
     return chosen?.registration_opens_at ? String(chosen.registration_opens_at) : null
   } catch (err) {
-    console.error('[registrationSchedule] excepcion resolviendo la apertura de cobros de plataforma', err?.message ?? err)
+    console.error(
+      '[registrationSchedule] excepcion resolviendo la apertura de cobros de plataforma',
+      err?.message ?? err,
+    )
     return null
   }
 }
@@ -51,7 +57,10 @@ export async function resolvePlatformRegistrationOpensAt(client = getSupabaseAdm
  * a otro evento: si este no tiene fecha, el checkout de ese evento queda
  * cerrado en producción.
  */
-export async function resolveEventRegistrationOpensAt(client, { eventId = null, eventSlug = null } = {}) {
+export async function resolveEventRegistrationOpensAt(
+  client,
+  { eventId = null, eventSlug = null } = {},
+) {
   if (!client?.from || (!eventId && !eventSlug)) return null
 
   try {
@@ -59,13 +68,21 @@ export async function resolveEventRegistrationOpensAt(client, { eventId = null, 
     query = eventId ? query.eq('id', eventId) : query.eq('slug', eventSlug)
     const { data, error } = await query.maybeSingle()
     if (error) {
-      console.error('[registrationSchedule] fallo la lectura de apertura del evento', eventId ?? eventSlug, error.message)
+      console.error(
+        '[registrationSchedule] fallo la lectura de apertura del evento',
+        eventId ?? eventSlug,
+        error.message,
+      )
       return null
     }
     if (!data) return null
     return data.registration_opens_at ? String(data.registration_opens_at) : null
   } catch (err) {
-    console.error('[registrationSchedule] excepcion resolviendo apertura del evento', eventId ?? eventSlug, err?.message ?? err)
+    console.error(
+      '[registrationSchedule] excepcion resolviendo apertura del evento',
+      eventId ?? eventSlug,
+      err?.message ?? err,
+    )
     return null
   }
 }

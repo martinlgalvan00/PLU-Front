@@ -33,6 +33,13 @@ describe('Vercel deployment contract', () => {
     })
   })
 
+  // La función corría en iad1 (default de Vercel) contra una base en
+  // sa-east-1: cada consulta cruzaba el continente dos veces y el handshake de
+  // una instancia nueva llegaba a pasarse del connect_timeout de Prisma.
+  it('ejecuta la función en la región de la base', () => {
+    expect(config.regions).toEqual(['gru1'])
+  })
+
   it('programa como máximo una ejecución diaria por job para Vercel Hobby', () => {
     expect(config.crons).toEqual([
       { path: '/api/internal/jobs/email-dispatch', schedule: '0 2 * * *' },

@@ -14,12 +14,8 @@ const EVENTS = [
 describe('gateAccess', () => {
   it('resuelve requiresMembership desde la inscripción o el catálogo', () => {
     expect(resolveRequiresMembership({ requiresMembership: false }, EVENTS)).toBe(false)
-    expect(
-      resolveRequiresMembership({ eventSlug: 'pitbull-classic-2026' }, EVENTS),
-    ).toBe(true)
-    expect(
-      resolveRequiresMembership({ event: 'Spring Classic 2025' }, EVENTS),
-    ).toBe(false)
+    expect(resolveRequiresMembership({ eventSlug: 'pitbull-classic-2026' }, EVENTS)).toBe(true)
+    expect(resolveRequiresMembership({ event: 'Spring Classic 2025' }, EVENTS)).toBe(false)
   })
 
   it('marca gate pending solo con inscripción admitida + meet que exige afiliación', () => {

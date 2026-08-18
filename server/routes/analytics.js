@@ -11,7 +11,10 @@ import {
 } from '../modules/audit/operationalAuditWriter.js'
 import { normalizePath, normalizeReferrerHost } from '../modules/analytics/normalizePath.js'
 import { describeUserAgent, resolveVisitorId } from '../modules/analytics/visitorIdentity.js'
-import { ATHLETE_SESSION_COOKIE_NAME, readAthleteSession } from '../services/athleteSessionService.js'
+import {
+  ATHLETE_SESSION_COOKIE_NAME,
+  readAthleteSession,
+} from '../services/athleteSessionService.js'
 
 /**
  * analytics.js — PLU ARG
@@ -49,8 +52,17 @@ export const MEMBERSHIP_FUNNEL_STEPS = Object.freeze([
 
 const eventSchema = z.object({
   type: z.enum([
-    'pageview', 'click', 'scroll', 'form_start', 'form_submit', 'form_error',
-    'conversion', 'search', 'outbound', 'error', 'custom',
+    'pageview',
+    'click',
+    'scroll',
+    'form_start',
+    'form_submit',
+    'form_error',
+    'conversion',
+    'search',
+    'outbound',
+    'error',
+    'custom',
   ]),
   path: z.string().trim().max(500).optional(),
   route: z.string().trim().max(200).optional(),
@@ -150,7 +162,12 @@ function journeyLimit(query) {
   return Math.min(500, Math.max(50, (query.limit ?? 25) * 8))
 }
 
-export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository, env = process.env }) {
+export function createAnalyticsRoutes({
+  getPrisma,
+  getSupabaseAdmin,
+  repository,
+  env = process.env,
+}) {
   const router = Router()
   const prisma = getPrisma()
   const analyticsGuard = requirePermission('admin.analytics.read', { prisma })
@@ -168,56 +185,61 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
    * no puede degradar la navegacion, asi que un fallo de escritura se registra
    * pero no se le devuelve al visitante como error de la pagina.
    */
-  router.post('/collect', analyticsIngestLimiter, validateBody(collectSchema), async (req, res, next) => {
-    try {
-      const agent = describeUserAgent(req.get('user-agent'))
-      // El trafico de bots se descarta antes de tocar la base: inflar el conteo
-      // de visitantes con crawlers vuelve inservible el informe.
-      if (agent.isBot) {
-        res.status(202).json({ accepted: 0, ignored: 'bot' })
-        return
+  router.post(
+    '/collect',
+    analyticsIngestLimiter,
+    validateBody(collectSchema),
+    async (req, res, next) => {
+      try {
+        const agent = describeUserAgent(req.get('user-agent'))
+        // El trafico de bots se descarta antes de tocar la base: inflar el conteo
+        // de visitantes con crawlers vuelve inservible el informe.
+        if (agent.isBot) {
+          res.status(202).json({ accepted: 0, ignored: 'bot' })
+          return
+        }
+
+        const { events, context } = req.validatedBody
+        const athleteSession = await readAthleteSession({
+          client: getSupabaseAdmin?.(),
+          token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME],
+        }).catch(() => null)
+
+        const appUrl = env.APP_URL ?? env.VITE_APP_URL
+        const normalizedEvents = events.map((event) => ({
+          ...event,
+          path: normalizePath(event.path ?? context.path ?? '/'),
+        }))
+
+        const result = await repo().ingest({
+          visitorId: resolveVisitorId(req, { env }),
+          athleteId: athleteSession?.athleteId ?? null,
+          events: normalizedEvents,
+          context: {
+            path: normalizePath(context.path ?? '/'),
+            referrerHost: normalizeReferrerHost(context.referrer, appUrl),
+            utmSource: context.utmSource ?? null,
+            utmMedium: context.utmMedium ?? null,
+            utmCampaign: context.utmCampaign ?? null,
+            deviceType: agent.deviceType,
+            browser: agent.browser,
+            os: agent.os,
+            viewportWidth: context.viewportWidth ?? null,
+            viewportHeight: context.viewportHeight ?? null,
+            language: context.language ?? null,
+            activeMs: context.activeMs ?? 0,
+            // Vercel resuelve el pais en el edge; sin el header queda nulo y el
+            // informe simplemente no segmenta por geografia.
+            country: req.get('x-vercel-ip-country') ?? null,
+          },
+        })
+
+        res.status(202).json({ accepted: result?.accepted ?? normalizedEvents.length })
+      } catch (error) {
+        next(error)
       }
-
-      const { events, context } = req.validatedBody
-      const athleteSession = await readAthleteSession({
-        client: getSupabaseAdmin?.(),
-        token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME],
-      }).catch(() => null)
-
-      const appUrl = env.APP_URL ?? env.VITE_APP_URL
-      const normalizedEvents = events.map((event) => ({
-        ...event,
-        path: normalizePath(event.path ?? context.path ?? '/'),
-      }))
-
-      const result = await repo().ingest({
-        visitorId: resolveVisitorId(req, { env }),
-        athleteId: athleteSession?.athleteId ?? null,
-        events: normalizedEvents,
-        context: {
-          path: normalizePath(context.path ?? '/'),
-          referrerHost: normalizeReferrerHost(context.referrer, appUrl),
-          utmSource: context.utmSource ?? null,
-          utmMedium: context.utmMedium ?? null,
-          utmCampaign: context.utmCampaign ?? null,
-          deviceType: agent.deviceType,
-          browser: agent.browser,
-          os: agent.os,
-          viewportWidth: context.viewportWidth ?? null,
-          viewportHeight: context.viewportHeight ?? null,
-          language: context.language ?? null,
-          activeMs: context.activeMs ?? 0,
-          // Vercel resuelve el pais en el edge; sin el header queda nulo y el
-          // informe simplemente no segmenta por geografia.
-          country: req.get('x-vercel-ip-country') ?? null,
-        },
-      })
-
-      res.status(202).json({ accepted: result?.accepted ?? normalizedEvents.length })
-    } catch (error) {
-      next(error)
-    }
-  })
+    },
+  )
 
   router.get('/overview', ...analyticsGuard, staffLimiter, async (req, res, next) => {
     try {
@@ -228,10 +250,19 @@ export function createAnalyticsRoutes({ getPrisma, getSupabaseAdmin, repository,
     }
   })
   router.get('/operational-summary', ...analyticsGuard, staffLimiter, async (req, res, next) => {
-    try { const query = parseRange(req); res.json(await repo().operationalSummary(resolveRange(query))) } catch (error) { next(error) }
+    try {
+      const query = parseRange(req)
+      res.json(await repo().operationalSummary(resolveRange(query)))
+    } catch (error) {
+      next(error)
+    }
   })
   router.get('/operational-alerts', ...analyticsGuard, staffLimiter, async (_req, res, next) => {
-    try { res.json({ alerts: await repo().operationalAlerts() }) } catch (error) { next(error) }
+    try {
+      res.json({ alerts: await repo().operationalAlerts() })
+    } catch (error) {
+      next(error)
+    }
   })
 
   /**

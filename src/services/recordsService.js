@@ -125,8 +125,7 @@ export function buildRecordsRegisterFromMeets(meets = listPublishedEventResults(
   }
 
   const entries = [...best.values()].sort((a, b) => {
-    const sexDelta =
-      SEX_ORDER.indexOf(a.sex ?? 'unknown') - SEX_ORDER.indexOf(b.sex ?? 'unknown')
+    const sexDelta = SEX_ORDER.indexOf(a.sex ?? 'unknown') - SEX_ORDER.indexOf(b.sex ?? 'unknown')
     if (sexDelta !== 0) return sexDelta
     const groupDelta = GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group)
     if (groupDelta !== 0) return groupDelta
@@ -169,9 +168,9 @@ export function getRecordsGroupFilters(t, entries = []) {
 }
 
 export function getRecordsEquipmentFilters(t, entries = []) {
-  const present = [...new Set(
-    entries.map((entry) => entry.equipment).filter((value) => value && value !== '—'),
-  )].sort((a, b) => a.localeCompare(b, 'es'))
+  const present = [
+    ...new Set(entries.map((entry) => entry.equipment).filter((value) => value && value !== '—')),
+  ].sort((a, b) => a.localeCompare(b, 'es'))
 
   return [
     ['all', t('pages.records.filters.equipmentAll')],
@@ -192,7 +191,8 @@ export function filterRecordsRegister(
     if (equipment !== 'all' && entry.equipment !== equipment) return false
     if (!normalizedQuery) return true
 
-    const haystack = `${entry.athlete} ${entry.meet} ${entry.category} ${entry.division} ${entry.weightClass} ${entry.equipment}`.toLowerCase()
+    const haystack =
+      `${entry.athlete} ${entry.meet} ${entry.category} ${entry.division} ${entry.weightClass} ${entry.equipment}`.toLowerCase()
     return haystack.includes(normalizedQuery)
   })
 }
@@ -271,11 +271,7 @@ export function buildRecordsCsv(entries, t) {
   ])
 
   return [header, ...rows]
-    .map((row) =>
-      row
-        .map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`)
-        .join(','),
-    )
+    .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
     .join('\n')
 }
 

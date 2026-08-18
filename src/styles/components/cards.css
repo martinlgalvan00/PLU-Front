@@ -35,15 +35,23 @@
   width: 3px;
 }
 
-.info-card:nth-of-type(2)::before { background: var(--color-brand-gold); }
-.info-card:nth-of-type(3)::before { background: var(--color-brand-celeste); }
+.info-card:nth-of-type(2)::before {
+  background: var(--color-brand-gold);
+}
+.info-card:nth-of-type(3)::before {
+  background: var(--color-brand-celeste);
+}
 
 .info-card svg {
   color: var(--color-brand-celeste);
 }
 
-.info-card:nth-of-type(2) svg { color: var(--color-brand-gold); }
-.info-card:nth-of-type(3) svg { color: var(--color-brand-celeste); }
+.info-card:nth-of-type(2) svg {
+  color: var(--color-brand-gold);
+}
+.info-card:nth-of-type(3) svg {
+  color: var(--color-brand-celeste);
+}
 
 .benefit-card:hover,
 .info-card:hover {
@@ -127,7 +135,7 @@
   margin-top: 10px;
 }
 
-.pricing-card>p {
+.pricing-card > p {
   font-size: 16px;
   letter-spacing: var(--letter-spacing-wide);
   margin: 0 0 28px;
@@ -169,13 +177,11 @@
   gap: 14px;
 }
 
-
 /* =============================================
    RESPONSIVE
    ============================================= */
 
 @media (max-width: 1060px) {
-
   .benefit-grid,
   .pricing-grid,
   .content-grid,
@@ -185,7 +191,6 @@
 }
 
 @media (max-width: 720px) {
-
   .benefit-grid,
   .pricing-grid,
   .content-grid,

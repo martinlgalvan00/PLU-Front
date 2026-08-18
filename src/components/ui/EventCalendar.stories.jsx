@@ -1,7 +1,12 @@
 import EventCalendar from './EventCalendar.jsx'
 
 const events = [
-  { slug: 'apertura', title: 'Apertura Nacional', dateISO: '2026-08-08', status: 'inscripcion_abierta' },
+  {
+    slug: 'apertura',
+    title: 'Apertura Nacional',
+    dateISO: '2026-08-08',
+    status: 'inscripcion_abierta',
+  },
   { slug: 'copa-sur', title: 'Copa Sur', dateISO: '2026-08-15', status: 'cupos_limitados' },
   { slug: 'clasico', title: 'Clásico PLU', dateISO: '2026-08-22', status: 'cerrado' },
 ]

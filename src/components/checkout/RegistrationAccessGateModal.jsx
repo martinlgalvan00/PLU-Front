@@ -33,8 +33,9 @@ export default function RegistrationAccessGateModal({
 
   const needsMembership = scopes.includes('membership')
   const needsRegistration = scopes.includes('registration')
-  const missing = (needsMembership && !codes.membership.trim())
-    || (needsRegistration && !codes.registration.trim())
+  const missing =
+    (needsMembership && !codes.membership.trim()) ||
+    (needsRegistration && !codes.registration.trim())
 
   // Por `status` y no por `instanceof ApiError`: el error puede llegar envuelto
   // (un interceptor, un reintento) y ahí el 403 seguiría siendo un código malo,

@@ -25,9 +25,8 @@ vi.mock('mercadopago', () => ({
   PreApprovalPlan: class PreApprovalPlan {},
 }))
 
-const { createMercadoPagoAdapter } = await import(
-  '../server/modules/payments/mercadoPagoAdapter.js'
-)
+const { createMercadoPagoAdapter } =
+  await import('../server/modules/payments/mercadoPagoAdapter.js')
 
 const order = {
   id: 'pitbull-registration-order',

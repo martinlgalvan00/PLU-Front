@@ -31,12 +31,8 @@ export default function HeroSection({ onNavigate, event }) {
   const registrationCheckoutOpen = isPaidCheckoutOpen(event, env, new Date(), {
     checkoutKind: 'registration',
   })
-  const registrationAvailable =
-    registrationCheckoutOpen &&
-    isRegistrationOpen(eventStatus)
-  const statusLabelOverride = registrationAvailable
-    ? t('hero.statusRegistrationOpen')
-    : undefined
+  const registrationAvailable = registrationCheckoutOpen && isRegistrationOpen(eventStatus)
+  const statusLabelOverride = registrationAvailable ? t('hero.statusRegistrationOpen') : undefined
   // Cascada propia del hero (no la heroStaggerContainer compartida con
   // Tickets/PluPageHero/PitbullHero) para escalarla por tier de dispositivo
   // sin afectar esas otras páginas. Ver src/motion/deviceTier.ts.
@@ -57,8 +53,7 @@ export default function HeroSection({ onNavigate, event }) {
 
   const titleLines = (
     <>
-      <span className="hero__title-line">{t('hero.titleLead')}</span>
-      {' '}
+      <span className="hero__title-line">{t('hero.titleLead')}</span>{' '}
       <span className="hero__title-line hero__title-line--accent">{t('hero.titleAccent')}</span>
     </>
   )
@@ -67,8 +62,7 @@ export default function HeroSection({ onNavigate, event }) {
     <>
       <m.span className="hero__title-line" variants={heroTitleLine}>
         {t('hero.titleLead')}
-      </m.span>
-      {' '}
+      </m.span>{' '}
       <m.span className="hero__title-line hero__title-line--accent" variants={heroTitleLine}>
         {t('hero.titleAccent')}
       </m.span>
@@ -120,7 +114,11 @@ export default function HeroSection({ onNavigate, event }) {
       </div>
 
       <div className="hero__secondary-links">
-        <button type="button" className="hero__secondary-link" onClick={() => onNavigate('pitbull')}>
+        <button
+          type="button"
+          className="hero__secondary-link"
+          onClick={() => onNavigate('pitbull')}
+        >
           {t('hero.ctaPitbull')}
           <ArrowRight size={12} aria-hidden className="hero__secondary-link-icon" />
         </button>

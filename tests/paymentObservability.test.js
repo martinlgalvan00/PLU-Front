@@ -17,7 +17,10 @@ import {
   explainPaymentStatusDetail,
   listPaymentFailureCodes,
 } from '../server/modules/payments/paymentFailureCatalog.js'
-import { createPaymentPreference, processPaymentWebhook } from '../server/modules/payments/paymentWorkflow.js'
+import {
+  createPaymentPreference,
+  processPaymentWebhook,
+} from '../server/modules/payments/paymentWorkflow.js'
 
 const ORDER_ID = '2f2d6f42-9c39-4a2f-95ff-4b0ff1e7b1de'
 const ACCESS_TOKEN = 'test-order-access-token-with-enough-entropy'
@@ -25,10 +28,20 @@ const ACCESS_TOKEN = 'test-order-access-token-with-enough-entropy'
 function captureLogs() {
   const lines = []
   const spies = ['error', 'warn', 'info'].map((level) =>
-    vi.spyOn(console, level).mockImplementation((line) => lines.push(String(line))))
+    vi.spyOn(console, level).mockImplementation((line) => lines.push(String(line))),
+  )
   return {
     lines,
-    parsed: () => lines.map((line) => { try { return JSON.parse(line) } catch { return null } }).filter(Boolean),
+    parsed: () =>
+      lines
+        .map((line) => {
+          try {
+            return JSON.parse(line)
+          } catch {
+            return null
+          }
+        })
+        .filter(Boolean),
     restore: () => spies.forEach((spy) => spy.mockRestore()),
   }
 }
@@ -123,20 +136,27 @@ describe('logger estructurado', () => {
 
 describe('catalogo de diagnostico', () => {
   it('reconoce las fallas que dejan plata sin acreditar', () => {
-    expect(diagnosePaymentFailure(new HttpError(503, 'Falta MERCADO_PAGO_WEBHOOK_SECRET.')).code)
-      .toBe('MP_WEBHOOK_SECRET_MISSING')
-    expect(diagnosePaymentFailure(new HttpError(401, 'Firma de webhook invalida.')).code)
-      .toBe('MP_WEBHOOK_SIGNATURE_INVALID')
-    expect(diagnosePaymentFailure(new HttpError(409, 'Monto de pago invalido para la orden.')).code)
-      .toBe('ORDER_AMOUNT_MISMATCH')
-    expect(diagnosePaymentFailure({ message: 'PGRST202 Could not find the function' }).code)
-      .toBe('SUPABASE_RPC_MISSING')
-    expect(diagnosePaymentFailure({
-      message: 'Completá tu perfil antes de inscribirte: falta fecha de nacimiento.',
-      details: { code: 'ATHLETE_PROFILE_INCOMPLETE' },
-    }).code).toBe('ATHLETE_PROFILE_INCOMPLETE')
-    expect(diagnosePaymentFailure({ message: 'El plan del combo no está vigente.' }).code)
-      .toBe('COMBO_PLAN_NOT_CURRENT')
+    expect(
+      diagnosePaymentFailure(new HttpError(503, 'Falta MERCADO_PAGO_WEBHOOK_SECRET.')).code,
+    ).toBe('MP_WEBHOOK_SECRET_MISSING')
+    expect(diagnosePaymentFailure(new HttpError(401, 'Firma de webhook invalida.')).code).toBe(
+      'MP_WEBHOOK_SIGNATURE_INVALID',
+    )
+    expect(
+      diagnosePaymentFailure(new HttpError(409, 'Monto de pago invalido para la orden.')).code,
+    ).toBe('ORDER_AMOUNT_MISMATCH')
+    expect(diagnosePaymentFailure({ message: 'PGRST202 Could not find the function' }).code).toBe(
+      'SUPABASE_RPC_MISSING',
+    )
+    expect(
+      diagnosePaymentFailure({
+        message: 'Completá tu perfil antes de inscribirte: falta fecha de nacimiento.',
+        details: { code: 'ATHLETE_PROFILE_INCOMPLETE' },
+      }).code,
+    ).toBe('ATHLETE_PROFILE_INCOMPLETE')
+    expect(diagnosePaymentFailure({ message: 'El plan del combo no está vigente.' }).code).toBe(
+      'COMBO_PLAN_NOT_CURRENT',
+    )
   })
 
   /**
@@ -158,18 +178,21 @@ describe('catalogo de diagnostico', () => {
       expect(diagnosis.severity, message).toBe('expected')
     }
 
-    expect(diagnosePaymentFailure({ message: 'El combo no esta disponible para este evento.' }).code)
-      .toBe('COMBO_NOT_AVAILABLE')
+    expect(
+      diagnosePaymentFailure({ message: 'El combo no esta disponible para este evento.' }).code,
+    ).toBe('COMBO_NOT_AVAILABLE')
   })
 
   it('sigue tratando como incidente lo que sí lo es', () => {
     // El riesgo del cambio anterior es pasarse de indulgente: un webhook con
     // firma inválida no puede quedar como "esperado", y una falla nueva tiene
     // que seguir apareciendo sin clasificar en vez de colarse en una categoría.
-    expect(diagnosePaymentFailure({ message: 'Firma de webhook invalida.' }).severity)
-      .toBe('degraded')
-    expect(diagnosePaymentFailure({ message: 'Algo que nadie catalogó todavía' }).code)
-      .toBe('UNCLASSIFIED_PAYMENT_FAILURE')
+    expect(diagnosePaymentFailure({ message: 'Firma de webhook invalida.' }).severity).toBe(
+      'degraded',
+    )
+    expect(diagnosePaymentFailure({ message: 'Algo que nadie catalogó todavía' }).code).toBe(
+      'UNCLASSIFIED_PAYMENT_FAILURE',
+    )
   })
 
   it('siempre devuelve pasos concretos, incluso ante una falla desconocida', () => {
@@ -180,14 +203,19 @@ describe('catalogo de diagnostico', () => {
   })
 
   it('distingue los casos esperables de los bloqueantes', () => {
-    expect(diagnosePaymentFailure(new HttpError(409, 'La orden ya no admite pagos.')).severity)
-      .toBe('expected')
-    expect(diagnosePaymentFailure(new HttpError(503, 'Mercado Pago no esta configurado en el servidor.')).severity)
-      .toBe('blocker')
+    expect(
+      diagnosePaymentFailure(new HttpError(409, 'La orden ya no admite pagos.')).severity,
+    ).toBe('expected')
+    expect(
+      diagnosePaymentFailure(new HttpError(503, 'Mercado Pago no esta configurado en el servidor.'))
+        .severity,
+    ).toBe('blocker')
   })
 
   it('traduce el status_detail de Mercado Pago a lenguaje operativo', () => {
-    expect(explainPaymentStatusDetail('cc_rejected_insufficient_amount')).toMatch(/Fondos insuficientes/)
+    expect(explainPaymentStatusDetail('cc_rejected_insufficient_amount')).toMatch(
+      /Fondos insuficientes/,
+    )
     expect(explainPaymentStatusDetail('detalle_inventado')).toMatch(/no catalogado/i)
     expect(explainPaymentStatusDetail('')).toBeNull()
   })
@@ -205,7 +233,8 @@ describe('bitacora del ciclo de cobro', () => {
     const error = new HttpError(409, 'Monto de pago invalido para la orden.')
 
     await runWithRequestContext({ requestId: 'req-1' }, () =>
-      trail.recordFailure({ stage: 'webhook', order: order(), error, externalPaymentId: 'mp-99' }))
+      trail.recordFailure({ stage: 'webhook', order: order(), error, externalPaymentId: 'mp-99' }),
+    )
 
     const [{ table, row }] = client.rows
     expect(table).toBe('operational_event_logs')
@@ -252,7 +281,8 @@ describe('bitacora del ciclo de cobro', () => {
 
   it('el resumen persistido lleva el codigo del catalogo y el requestId', () => {
     const summary = runWithRequestContext({ requestId: 'req-42' }, () =>
-      summarizeFailure(new HttpError(401, 'Firma de webhook invalida.'), { stage: 'webhook' }))
+      summarizeFailure(new HttpError(401, 'Firma de webhook invalida.'), { stage: 'webhook' }),
+    )
 
     expect(summary).toContain('[MP_WEBHOOK_SIGNATURE_INVALID]')
     expect(summary).toContain('requestId=req-42')
@@ -272,7 +302,10 @@ describe('trazabilidad del flujo de pago', () => {
     }
 
     await expect(
-      createPaymentPreference({ paymentOrderId: ORDER_ID }, { repository, mercadoPago, auditTrail }),
+      createPaymentPreference(
+        { paymentOrderId: ORDER_ID },
+        { repository, mercadoPago, auditTrail },
+      ),
     ).rejects.toMatchObject({ status: 503 })
 
     const [{ row }] = client.rows
@@ -287,10 +320,12 @@ describe('trazabilidad del flujo de pago', () => {
     const auditTrail = createPaymentAuditTrail({ client })
     const repository = { recordWebhook: vi.fn() }
 
-    await expect(processPaymentWebhook(
-      { body: { id: 1, data: { id: '99' } }, query: {}, headers: {} },
-      { repository, mercadoPago: {}, auditTrail },
-    )).rejects.toMatchObject({ status: 400 })
+    await expect(
+      processPaymentWebhook(
+        { body: { id: 1, data: { id: '99' } }, query: {}, headers: {} },
+        { repository, mercadoPago: {}, auditTrail },
+      ),
+    ).rejects.toMatchObject({ status: 400 })
 
     // Una firma invalida o un payload roto no llegan al inbox: sin este
     // asiento no quedaba ninguna evidencia de que la notificacion existio.
@@ -305,7 +340,9 @@ describe('trazabilidad del flujo de pago', () => {
     const client = auditClientStub()
     const auditTrail = createPaymentAuditTrail({ client })
     const { applyCanonicalPayment } = await import('../server/modules/payments/paymentWorkflow.js')
-    const repository = { applyPayment: vi.fn(async () => ({ order: { id: ORDER_ID, status: 'aprobado' } })) }
+    const repository = {
+      applyPayment: vi.fn(async () => ({ order: { id: ORDER_ID, status: 'aprobado' } })),
+    }
 
     await applyCanonicalPayment(
       {
@@ -335,8 +372,14 @@ describe('errorHandler', () => {
     const res = {
       statusCode: 0,
       body: null,
-      status(code) { this.statusCode = code; return this },
-      json(payload) { this.body = payload; return this },
+      status(code) {
+        this.statusCode = code
+        return this
+      },
+      json(payload) {
+        this.body = payload
+        return this
+      },
     }
 
     errorHandler(
@@ -360,8 +403,14 @@ describe('errorHandler', () => {
     const res = {
       statusCode: 0,
       body: null,
-      status(code) { this.statusCode = code; return this },
-      json(payload) { this.body = payload; return this },
+      status(code) {
+        this.statusCode = code
+        return this
+      },
+      json(payload) {
+        this.body = payload
+        return this
+      },
     }
 
     errorHandler(
@@ -399,7 +448,9 @@ describe('correlacion de extremo a extremo', () => {
     const repository = {
       getOrder: vi.fn(async () => order({ kind: 'ticket', athleteId: null })),
       assertTicketOrderAccess: vi.fn(async () => ({ id: ORDER_ID })),
-      claimEmbeddedAttempt: vi.fn(async () => { throw new Error('supabase caido') }),
+      claimEmbeddedAttempt: vi.fn(async () => {
+        throw new Error('supabase caido')
+      }),
     }
     const app = createApp({
       paymentRepository: repository,
@@ -420,7 +471,11 @@ describe('correlacion de extremo a extremo', () => {
       body: JSON.stringify({
         paymentOrderId: ORDER_ID,
         orderAccessToken: ACCESS_TOKEN,
-        formData: { token: 'temporary-card-token', payment_method_id: 'visa', payer: { email: 'a@b.com' } },
+        formData: {
+          token: 'temporary-card-token',
+          payment_method_id: 'visa',
+          payer: { email: 'a@b.com' },
+        },
       }),
     })
     const body = await response.json()

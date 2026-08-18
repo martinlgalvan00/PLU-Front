@@ -2,13 +2,13 @@
   /* Primitivos de marca → ver src/styles/tokens/palette.css (--plu-*) */
 
   /* ── Glows sutiles ─────────────────────────────── */
-  --glow-red:          0 4px 20px var(--plu-red-alpha-30);
-  --glow-red-soft:     0 2px 14px var(--plu-red-alpha-16);
-  --glow-red-strong:   0 8px 32px var(--plu-red-alpha-45);
-  --glow-gold:         0 4px 20px var(--plu-gold-alpha-22);
-  --glow-gold-soft:    0 2px 14px var(--plu-gold-alpha-12);
-  --glow-gold-strong:  0 8px 32px var(--plu-gold-alpha-35);
-  --glow-celeste:      0 4px 20px var(--plu-celeste-alpha-35);
+  --glow-red: 0 4px 20px var(--plu-red-alpha-30);
+  --glow-red-soft: 0 2px 14px var(--plu-red-alpha-16);
+  --glow-red-strong: 0 8px 32px var(--plu-red-alpha-45);
+  --glow-gold: 0 4px 20px var(--plu-gold-alpha-22);
+  --glow-gold-soft: 0 2px 14px var(--plu-gold-alpha-12);
+  --glow-gold-strong: 0 8px 32px var(--plu-gold-alpha-35);
+  --glow-celeste: 0 4px 20px var(--plu-celeste-alpha-35);
   --glow-celeste-soft: 0 2px 14px var(--plu-celeste-alpha-18);
   --glow-celeste-strong: 0 8px 32px rgba(116, 172, 223, 0.42);
 
@@ -34,14 +34,10 @@
   --elevation-lg: 0 20px 48px var(--color-shadow-tint, rgba(0, 0, 0, 0.28));
 
   /* ── Card premium tokens ───────────────────────── */
-  --card-gradient-red:
-    linear-gradient(135deg, var(--plu-red-alpha-16) 0%, transparent 60%);
-  --card-gradient-gold:
-    linear-gradient(135deg, var(--plu-gold-alpha-18) 0%, transparent 60%);
-  --card-gradient-celeste:
-    linear-gradient(135deg, var(--plu-celeste-alpha-18) 0%, transparent 60%);
-  --card-gradient-neutral:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+  --card-gradient-red: linear-gradient(135deg, var(--plu-red-alpha-16) 0%, transparent 60%);
+  --card-gradient-gold: linear-gradient(135deg, var(--plu-gold-alpha-18) 0%, transparent 60%);
+  --card-gradient-celeste: linear-gradient(135deg, var(--plu-celeste-alpha-18) 0%, transparent 60%);
+  --card-gradient-neutral: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
 
   /* ── Status ────────────────────────────────────── */
   --color-status-success: var(--plu-success-500);

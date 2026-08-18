@@ -25,7 +25,7 @@ export default function NotFoundPage({ onNavigate }) {
   return (
     <main className="institutional-page not-found-page">
       <InstitutionalPageHero
-        aside={(
+        aside={
           <dl className="institutional-hero__ledger">
             <div>
               <dt>{t('pages.notFound.heroLedgerCode')}</dt>
@@ -36,7 +36,7 @@ export default function NotFoundPage({ onNavigate }) {
               <dd>{t('pages.notFound.heroLedgerChannelValue')}</dd>
             </div>
           </dl>
-        )}
+        }
         breadcrumb={t('pages.notFound.heroBreadcrumb')}
         description={t('pages.notFound.heroDesc')}
         eyebrow={t('pages.notFound.heroChapter')}
@@ -51,7 +51,11 @@ export default function NotFoundPage({ onNavigate }) {
           <p className="institutional-kicker">01 / {t('pages.notFound.panelEyebrow')}</p>
           <h2 id="not-found-panel-title">{t('pages.notFound.panelTitle')}</h2>
           <p className="not-found-page__lead">{t('pages.notFound.panelLead')}</p>
-          <div className="not-found-page__actions" role="group" aria-label={t('pages.notFound.actionsAria')}>
+          <div
+            className="not-found-page__actions"
+            role="group"
+            aria-label={t('pages.notFound.actionsAria')}
+          >
             <Button type="button" onClick={goHome}>
               {t('pages.notFound.ctaHome')}
               <ArrowRight size={16} aria-hidden />

@@ -16,15 +16,18 @@ export default {
       },
       members: {
         title: 'Afiliación | PLU Argentina',
-        description: 'Planes de afiliación anual, credencial QR y acceso al calendario oficial PLU ARG.',
+        description:
+          'Planes de afiliación anual, credencial QR y acceso al calendario oficial PLU ARG.',
       },
       events: {
         title: 'Calendario de competencias | PLU Argentina',
-        description: 'Fechas oficiales, inscripción a meets y estado de cada competencia PLU Argentina.',
+        description:
+          'Fechas oficiales, inscripción a meets y estado de cada competencia PLU Argentina.',
       },
       eventDetail: {
         title: '{{eventTitle}} | PLU Argentina',
-        description: 'Detalle oficial de {{eventTitle}}: sede, fechas e inscripción en PLU Argentina.',
+        description:
+          'Detalle oficial de {{eventTitle}}: sede, fechas e inscripción en PLU Argentina.',
       },
       results: {
         title: 'Resultados | PLU Argentina',
@@ -36,7 +39,8 @@ export default {
       },
       rulebook: {
         title: 'Reglamento | PLU Argentina',
-        description: 'Normativa oficial PLU: categorías, divisiones, equipamiento y reglas de competencia.',
+        description:
+          'Normativa oficial PLU: categorías, divisiones, equipamiento y reglas de competencia.',
       },
       standards: {
         title: 'Estándares de clasificación | PLU Argentina',
@@ -60,7 +64,8 @@ export default {
       },
       contact: {
         title: 'Contacto | PLU Argentina',
-        description: 'Canal institucional de PLU Argentina para atletas, gimnasios y organizaciones.',
+        description:
+          'Canal institucional de PLU Argentina para atletas, gimnasios y organizaciones.',
       },
       resources: {
         title: 'Recursos | PLU Argentina',
@@ -100,9 +105,11 @@ export default {
   payments: {
     embeddedTitle: 'Pagá con Mercado Pago',
     embeddedLead: 'Completá el pago sin salir del sitio.',
-    walletRedirectNote: 'Si elegís Mercado Pago te llevamos a iniciar sesión y volvés acá al confirmar.',
+    walletRedirectNote:
+      'Si elegís Mercado Pago te llevamos a iniciar sesión y volvés acá al confirmar.',
     walletUnavailableTitle: 'Cuenta de Mercado Pago no disponible',
-    walletUnavailableNote: 'No pudimos habilitar el pago con tu cuenta ahora. Podés reintentar o pagar con tarjeta debajo.',
+    walletUnavailableNote:
+      'No pudimos habilitar el pago con tu cuenta ahora. Podés reintentar o pagar con tarjeta debajo.',
     retryWalletPreference: 'Reintentar',
     subscriptionTitle: 'Activá el débito automático',
     subscriptionLead: 'Ingresá una tarjeta para autorizar la renovación del plan.',
@@ -114,7 +121,8 @@ export default {
       'No pudimos completar el pago. No hay un cobro confirmado; revisá los datos o reintentá en unos segundos.',
     embeddedSecurity:
       'Los datos de la tarjeta son procesados directamente por Mercado Pago y no se guardan en PLU.',
-    mockBanner: 'Modo mock local — no hay cobro real. El flujo de acreditación es el mismo que producción.',
+    mockBanner:
+      'Modo mock local — no hay cobro real. El flujo de acreditación es el mismo que producción.',
     mockChip: 'Mock · sin cobro',
     mockDetails: 'Detalle técnico',
     mockMoreOutcomes: 'Otros resultados',
@@ -151,7 +159,8 @@ export default {
     paymentRejectedCardNumber: 'Revisá el número de la tarjeta: Mercado Pago no pudo validarlo.',
     paymentRejectedExpiry: 'Revisá la fecha de vencimiento de la tarjeta.',
     paymentRejectedCvv: 'Revisá el código de seguridad (CVV) de la tarjeta.',
-    paymentRejectedBadData: 'Alguno de los datos de la tarjeta no es correcto. Revisalos e intentá de nuevo.',
+    paymentRejectedBadData:
+      'Alguno de los datos de la tarjeta no es correcto. Revisalos e intentá de nuevo.',
     paymentRejectedInsufficientFunds: 'La tarjeta no tiene fondos suficientes para este pago.',
     paymentRejectedCardDisabled:
       'Tu tarjeta está inhabilitada para compras online. Llamá a tu banco o probá con otra.',
@@ -162,7 +171,8 @@ export default {
     paymentRejectedHighRisk:
       'Mercado Pago rechazó el pago por seguridad. Probá con otra tarjeta o con transferencia.',
     paymentRejectedInstallments: 'Tu tarjeta no admite pagar en la cantidad de cuotas elegida.',
-    paymentRejectedMaxAttempts: 'Llegaste al límite de intentos permitidos. Probá más tarde o con otra tarjeta.',
+    paymentRejectedMaxAttempts:
+      'Llegaste al límite de intentos permitidos. Probá más tarde o con otra tarjeta.',
     paymentRejectedTimeout: 'Se agotó el tiempo de espera de Mercado Pago. Intentá de nuevo.',
     checkStatus: 'Consultar estado',
     tryAgain: 'Intentar nuevamente',
@@ -356,7 +366,8 @@ export default {
     countdownHeld: 'Afiliación anual e inscripción se habilitan juntas en la apertura oficial.',
     countdownHeldAria: 'Los cobros permanecen cerrados hasta la apertura oficial',
     opensOn: '{{date}} · {{time}} hs',
-    countdownAria: 'Faltan {{days}} días, {{hours}} horas, {{minutes}} minutos y {{seconds}} segundos',
+    countdownAria:
+      'Faltan {{days}} días, {{hours}} horas, {{minutes}} minutos y {{seconds}} segundos',
     days: 'Días',
     hours: 'Hs',
     minutes: 'Min',
@@ -600,6 +611,18 @@ export default {
     separator: 'o',
     joinPrompt: '¿Todavía no sos parte de PLU ARG?',
     joinLink: 'Registrate acá',
+    howToToggle: '¿Cómo entro?',
+    howToTitle: 'Tres formas de acceder',
+    howToStep1Title: 'Ya me registré',
+    howToStep1Body: 'Entrás con el email y la contraseña que elegiste al completar tu ficha.',
+    howToStep2Title: 'Me llegó una clave temporal',
+    howToStep2Body:
+      'Las cuentas creadas por PLU ARG llegan con una clave temporal por email. Si no la tenés a mano, pedí un enlace y elegís una nueva.',
+    howToStep2Action: 'Pedir enlace de acceso',
+    howToStep3Title: 'Todavía no tengo cuenta',
+    howToStep3Body:
+      'Primero te afiliás: la ficha te pide la contraseña ahí mismo y queda lista para entrar.',
+    howToStep3Action: 'Afiliarme',
     secureNote: 'Acceso oficial · PLU ARG',
     footerNote: '© 2026 PLU ARG / Maximal',
     backToSite: 'Volver al sitio público',
@@ -719,7 +742,8 @@ export default {
       validUntil: 'Vigente hasta {{date}}',
       openAction: 'Descargar o compartir',
       shareAction: 'Compartir en redes',
-      shareHint: 'Post o historia para subir a Instagram. Tu QR de ingreso es el reverso de la tarjeta.',
+      shareHint:
+        'Post o historia para subir a Instagram. Tu QR de ingreso es el reverso de la tarjeta.',
       scanPreviewCaption: 'Cuando escaneen tu QR se verá esta información',
       scanPreviewVerdict: 'Credencial válida',
       scanPreviewMembership: 'Afiliación PLU ARG',
@@ -831,7 +855,8 @@ export default {
       nextPending: 'Próximo paso: completá el pago o adjuntá el comprobante.',
       transferUnderReviewTitle: 'Transferencia en validación',
       transferUnderReviewValue: 'Comprobante enviado',
-      transferUnderReviewNext: 'Administración está validando tu transferencia. Puede demorar hasta 48 horas.',
+      transferUnderReviewNext:
+        'Administración está validando tu transferencia. Puede demorar hasta 48 horas.',
       nextRenew: 'Próximo paso: elegí un plan para renovar tu cobertura.',
       nextScheduled: 'El pago ya está validado; la credencial se habilita al comenzar la vigencia.',
       nextRefunded: 'Si querés volver a afiliarte, generá una nueva orden.',
@@ -840,7 +865,8 @@ export default {
       comboTitle: 'Afiliación + inscripción al torneo',
       comboLead:
         'Activá la afiliación anual y dejá lista la inscripción competitiva en un solo paso.',
-      comboComingSoonLead: 'Estamos terminando de integrar el pago conjunto. Mientras tanto, podés completar la afiliación y la inscripción por separado.',
+      comboComingSoonLead:
+        'Estamos terminando de integrar el pago conjunto. Mientras tanto, podés completar la afiliación y la inscripción por separado.',
       comboSeparate: 'Solo inscripción',
       comboOffer: 'Combo',
       comboSavings: 'Ahorrás',
@@ -852,6 +878,7 @@ export default {
       discountApply: 'Aplicar',
       discountChecking: 'Validando…',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
+      discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -860,6 +887,7 @@ export default {
         not_applicable: 'Ese código no aplica a este pago.',
         limit_reached: 'Ese código alcanzó el máximo de usos.',
         already_used: 'Ya usaste ese código.',
+        no_savings: 'Ese código no mejora el precio de esta compra.',
       },
       paymentLegend: 'Método de pago',
       planSelector: 'Plan de afiliación',
@@ -879,7 +907,8 @@ export default {
       transferComingSoon: 'Transferencia · Próximamente',
       manualValidation: 'Validación manual',
       paymentMpNote: 'Pago online con acreditación automática.',
-      paymentTransferNote: 'Transferís, adjuntás el comprobante y Administración lo valida en hasta 48 horas.',
+      paymentTransferNote:
+        'Transferís, adjuntás el comprobante y Administración lo valida en hasta 48 horas.',
       completePaymentEyebrow: 'Checkout seguro',
       completePaymentTitle: 'Completá el pago',
       completePaymentLead: 'Confirmá tu afiliación con Mercado Pago.',
@@ -926,10 +955,13 @@ export default {
       transferCopy: 'Copiar',
       transferCopied: 'Copiado',
       transferCopyField: 'Copiar {{field}}',
+      transferNotesLabel: 'Observaciones (opcional)',
+      transferNotesPlaceholder: 'Algo que Finanzas debería saber sobre este pago',
       transferUnderstood: 'Enviar a validación',
       proofAction: 'Adjuntar comprobante',
       proofUploading: 'Subiendo comprobante...',
-      proofUploaded: 'Recibimos tu comprobante. Administración lo valida en hasta 48 horas y te avisamos por email.',
+      proofUploaded:
+        'Recibimos tu comprobante. Administración lo valida en hasta 48 horas y te avisamos por email.',
       proofHint: 'JPG, PNG, WEBP o PDF, hasta 5 MB. Sin comprobante la validación puede demorar.',
       proofError: 'No se pudo subir el comprobante.',
       cardEyebrow: 'Compartí tu afiliación',
@@ -1060,7 +1092,8 @@ export default {
       plansEyebrow: 'Temporada 26/27',
       plansTitle: 'Afiliación anual',
       plansTitleWithCombo: 'Elegí cómo afiliarte',
-      plansLead: 'Una afiliación anual por temporada. Pago único para competir en el calendario oficial.',
+      plansLead:
+        'Una afiliación anual por temporada. Pago único para competir en el calendario oficial.',
       plansLeadCheckoutSoon: 'Estamos preparando la apertura de la temporada 26/27.',
       promoSoonEyebrow: 'Apertura oficial',
       promoSoonTitle: 'Afiliación anual + inscripción Pitbull Classic',
@@ -1095,7 +1128,8 @@ export default {
       planMonthly: 'mensual',
       plansComingSoon: 'Los planes de afiliación estarán disponibles próximamente.',
       plansComingSoonEyebrow: 'Temporada vigente',
-      plansComingSoonLead: 'Estamos publicando valores oficiales. Mientras tanto podés revisar beneficios y requisitos.',
+      plansComingSoonLead:
+        'Estamos publicando valores oficiales. Mientras tanto podés revisar beneficios y requisitos.',
       plansLoading: 'Consultando planes y valores vigentes…',
       plansLoadError: 'No pudimos consultar los planes vigentes.',
       plansRetry: 'Reintentar',
@@ -1104,9 +1138,11 @@ export default {
       closureEyebrow: 'En la plataforma',
       closureTitle: 'Pago, activación y QR',
       closureTitleActive: 'Tu afiliación está activa',
-      closureLead: 'Un solo trámite: pagás, ves el estado activo y usás el mismo QR en el check-in.',
+      closureLead:
+        'Un solo trámite: pagás, ves el estado activo y usás el mismo QR en el check-in.',
       closureReassure: 'Pago, estado activo y el mismo QR en el check-in.',
-      closureLeadSoon: 'Cuando abramos cobros, el trámite se cierra acá: pago, estado y QR en tu perfil.',
+      closureLeadSoon:
+        'Cuando abramos cobros, el trámite se cierra acá: pago, estado y QR en tu perfil.',
       closureLeadActive: 'Credencial y QR listos en tu perfil. El calendario oficial ya te espera.',
       afterPayCtaCredential: 'Ver mi credencial',
       afterPayCtaCalendar: 'Ir al calendario',
@@ -1386,7 +1422,8 @@ export default {
         coordinatesTitle: 'Dirección confirmada, coordenadas pendientes',
         coordinatesCopy: 'El mapa se activa cuando el equipo publique coordenadas verificadas.',
         locationTitle: 'Ubicación precisa pendiente',
-        locationCopy: 'El evento sigue en el calendario; el mapa se activa con dirección y coordenadas verificadas.',
+        locationCopy:
+          'El evento sigue en el calendario; el mapa se activa con dirección y coordenadas verificadas.',
         fallbackEyebrowPending: 'Cartografía',
         fallbackEyebrowLoading: 'Mapa',
         fallbackEyebrowEmpty: 'Calendario',
@@ -1407,7 +1444,8 @@ export default {
           openData: 'Datos abiertos',
           description:
             'Calculá una estimación desde donde estás y revisá estacionamientos registrados cerca de la sede.',
-          externalOnlyDescription: 'Abrí la ubicación en mapas externos mientras las coordenadas están pendientes.',
+          externalOnlyDescription:
+            'Abrí la ubicación en mapas externos mientras las coordenadas están pendientes.',
           calculate: 'Calcular desde mi ubicación',
           calculating: 'Calculando recorrido…',
           minutes: '{{count}} min',
@@ -1878,8 +1916,7 @@ export default {
       costComboSavings: 'Ahorrás {{amount}}',
       registerCombo: 'Inscribirme',
       cardDescOpen: 'Requiere afiliación activa y pago del meet.',
-      cardDescCombo:
-        'Afiliación anual e inscripción al meet, juntas.',
+      cardDescCombo: 'Afiliación anual e inscripción al meet, juntas.',
       cardDescClosed:
         'La inscripción todavía no está abierta. Podés afiliarte para adelantar trámite.',
       progressAria: 'Progreso de inscripción',
@@ -1945,8 +1982,7 @@ export default {
       experienceItemMedia: 'Cobertura media',
       experienceItemMediaDesc: 'Fotografía y video profesional para documentar tus marcas.',
       experienceItemWarmup: 'Warm-up VIP',
-      experienceItemWarmupDesc:
-        'Área de calentamiento exclusiva con racks y discos calibrados.',
+      experienceItemWarmupDesc: 'Área de calentamiento exclusiva con racks y discos calibrados.',
       weighInsIndex: '03',
       weighInsEyebrow: 'Pesajes',
       weighInsTitle: 'Pesajes oficiales',
@@ -1976,7 +2012,8 @@ export default {
       ticketPricingAria: 'Precios de entradas',
       ticketDayLabel: 'Por día',
       ticketBothLabel: 'Ambos días',
-      ticketsClosed: 'Próximamente. La venta de entradas para espectadores todavía no está habilitada.',
+      ticketsClosed:
+        'Próximamente. La venta de entradas para espectadores todavía no está habilitada.',
       ctaFirstTimeTitle: '¿Todavía no tenés perfil PLU ARG?',
       ctaFirstTimeDesc:
         'Creá tu cuenta, afiliate para la temporada y cuando abra la inscripción completá el pago del meet desde tu panel.',
@@ -2012,7 +2049,8 @@ export default {
       recentRegistrantsEmptyNote: 'Los nombres aparecen acá apenas se confirmen.',
       recentRegistrantsAria: 'Inscriptos recientes al torneo',
       recentRegistrantsLiveHint: 'En vivo',
-      recentRegistrantsFallbackHint: 'Los cupos del meet son de referencia hasta abrir la inscripción.',
+      recentRegistrantsFallbackHint:
+        'Los cupos del meet son de referencia hasta abrir la inscripción.',
       ticketOnlineLabel: 'Compra online',
       ticketPresencialLabel: 'En puerta',
       ticketOnlineNote: 'Precio preferencial comprando online',
@@ -2290,14 +2328,16 @@ export default {
       salesPaused: 'Próximamente · la venta de entradas todavía no está habilitada.',
       salesPausedEyebrow: 'Entradas',
       salesPausedTitle: 'Próximamente',
-      salesPausedLead: 'Estamos preparando la venta de entradas para espectadores. Volvé pronto para conocer las opciones disponibles.',
+      salesPausedLead:
+        'Estamos preparando la venta de entradas para espectadores. Volvé pronto para conocer las opciones disponibles.',
       checkoutStepsAria: 'Pasos de la compra',
       checkoutStep1: 'Cantidad',
       checkoutStep2: 'Datos',
       checkoutStep3: 'Pago',
       secureFlow: 'Pago seguro · QR al confirmar',
       closed: 'La venta de entradas para este evento no está habilitada.',
-      checkoutSoon: 'La venta de entradas abre junto con las inscripciones. Pedí aviso desde la home o Pitbull Classic.',
+      checkoutSoon:
+        'La venta de entradas abre junto con las inscripciones. Pedí aviso desde la home o Pitbull Classic.',
     },
     shop: {
       eyebrow: 'PLU ARG',
@@ -2414,7 +2454,8 @@ export default {
       proofSelected: 'Archivo seleccionado: {{name}}',
       proofSubmit: 'Enviar comprobante',
       proofSubmitting: 'Enviando…',
-      proofUploaded: 'Comprobante enviado. Administración lo revisa en hasta 48 horas para habilitar tu QR.',
+      proofUploaded:
+        'Comprobante enviado. Administración lo revisa en hasta 48 horas para habilitar tu QR.',
       proofUploadError: 'No se pudo enviar el comprobante. Intentá de nuevo.',
       total: 'Total',
       buy_one: 'Pagar',
@@ -2454,6 +2495,21 @@ export default {
       profileEyebrow: 'Credencial PLU ARG',
       profileDesc: 'Completá tus datos para activar tu credencial digital.',
       profileSubmit: 'Crear perfil',
+      profileWelcomeEyebrow: 'Cuenta creada',
+      profileWelcomeTitle: 'Bienvenido a PLU Argentina',
+      profileWelcomeDesc: 'Así vas a acceder de acá en más.',
+      sealProfileEyebrow: 'Cuenta verificada',
+      sealProfileHello: 'Hola, {{name}}',
+      sealProfileTitle: 'Tu cuenta ya está lista',
+      profileWelcomeStep1Title: 'Así volvés a entrar',
+      profileWelcomeStep1Body: 'Con tu email y tu contraseña, desde "Ingresar" en el sitio.',
+      profileWelcomeStep2Title: 'Tu credencial QR',
+      profileWelcomeStep2Body:
+        'Se activa apenas te afiliás o te inscribís a un torneo. La vas a encontrar en la pestaña Credencial de tu panel.',
+      profileWelcomeStep3Title: 'Tus datos y seguridad',
+      profileWelcomeStep3Body:
+        'Editá tu perfil o cambiá tu contraseña cuando quieras, desde tu panel.',
+      profileWelcomeCta: 'Ir a mi perfil',
       competitionTitle: 'Inscripción',
       competitionEyebrow: 'Inscripción a competencia',
       competitionDesc: '{{name}}, completá tus datos para {{event}}.',
@@ -2467,9 +2523,11 @@ export default {
       competitionProfileReview: 'Revisar perfil',
       competitionProfileYears: 'años',
       competitionProfileSex: 'Sexo competitivo',
-      competitionCommitmentLocked: 'Tu división, categoría y peso declarados para este torneo ya quedaron asentados.',
+      competitionCommitmentLocked:
+        'Tu división, categoría y peso declarados para este torneo ya quedaron asentados.',
       competitionSubmit: 'Generar inscripción',
-      checkoutSoon: 'Los cobros e inscripciones abren en breve. Creá tu cuenta y pedí aviso al abrir.',
+      checkoutSoon:
+        'Los cobros e inscripciones abren en breve. Creá tu cuenta y pedí aviso al abrir.',
       registrationCheckoutSoonEyebrow: 'Inscripciones cerradas',
       registrationCheckoutSoonTitle: 'Inscripción a torneos próximamente',
       registrationCheckoutSoonLead:
@@ -2487,6 +2545,7 @@ export default {
       discountApply: 'Aplicar',
       discountChecking: 'Validando...',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
+      discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -2495,11 +2554,13 @@ export default {
         not_applicable: 'Ese código no aplica a este pago.',
         limit_reached: 'Ese código alcanzó el máximo de usos.',
         already_used: 'Ya usaste ese código.',
+        no_savings: 'Ese código no mejora el precio de esta compra.',
       },
       competitionPaymentTitle: 'Cómo pagás',
       competitionPaymentDesc: 'Elegí el medio para generar la orden.',
       paymentMpHint: 'Acreditación automática',
-      paymentMercadoPagoOnlyHint: 'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
+      paymentMercadoPagoOnlyHint:
+        'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
       paymentLinkLabel: 'Link de pago',
       paymentTransferLabel: 'Transferencia bancaria',
       // Faltaba: `RegisterSettle` ya ofrecía la opción, así que el selector
@@ -2532,7 +2593,8 @@ export default {
       membershipPlanLabel: 'Afiliación anual',
       membershipValidityNote: 'Vigente hasta el 31 de diciembre.',
       membershipPaymentHintMp: 'Al confirmar se genera la orden de pago.',
-      membershipPaymentHintManual: 'Con transferencia, Administración valida el pago en hasta 48 horas antes de activar.',
+      membershipPaymentHintManual:
+        'Con transferencia, Administración valida el pago en hasta 48 horas antes de activar.',
       backToPlans: 'Volver a planes',
       membershipConfirmedPendingTitle: 'Pedido registrado',
       membershipConfirmedPendingDesc: 'Completá el pago para activar tu afiliación.',
@@ -2570,7 +2632,8 @@ export default {
         submit: 'Desbloquear',
         checking: 'Verificando…',
         requirementsChecking: 'Validando acceso a la tanda...',
-        requirementsUnavailable: 'No pudimos validar si esta tanda requiere contraseña. Reintentá en unos segundos.',
+        requirementsUnavailable:
+          'No pudimos validar si esta tanda requiere contraseña. Reintentá en unos segundos.',
         cancel: 'Cancelar',
         close: 'Cerrar',
         help: 'Si no la tenés, pedísela a la organización antes de intentar el pago.',
@@ -2591,7 +2654,8 @@ export default {
       emailVerificationResend: 'Reenviarme el enlace',
       emailVerificationResendAgain: 'Reenviar otro enlace',
       emailVerificationSending: 'Enviando…',
-      emailVerificationSent: 'Te mandamos un enlace nuevo. Revisá tu bandeja y el correo no deseado.',
+      emailVerificationSent:
+        'Te mandamos un enlace nuevo. Revisá tu bandeja y el correo no deseado.',
       emailVerificationAlready: 'Tu correo ya estaba confirmado. Volvé a intentar el pago.',
       emailVerificationError: 'No pudimos enviar el enlace. Probá de nuevo en unos minutos.',
       emailTaken: 'Este correo ya tiene una cuenta. Ingresá o usá otro.',

@@ -5,7 +5,8 @@ const LEGACY_STORAGE_KEY = 'maximal-plu-arg-demo'
 
 export function readStorage() {
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY)
+    const saved =
+      window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!saved) return null
     return normalizeStoredData(JSON.parse(saved))
   } catch {

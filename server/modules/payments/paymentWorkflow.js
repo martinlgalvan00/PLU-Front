@@ -30,9 +30,10 @@ export async function createPaymentPreference(input, options = {}) {
   // La ruta ya resolvio la orden para validar que pertenece a la sesion; sin
   // reusarla, cada apertura de checkout la leia de nuevo con sus joins (mismo
   // patron que embeddedPaymentWorkflow.processEmbeddedPayment).
-  const order = options.order?.id === input.paymentOrderId
-    ? options.order
-    : await repository.getOrder(input.paymentOrderId)
+  const order =
+    options.order?.id === input.paymentOrderId
+      ? options.order
+      : await repository.getOrder(input.paymentOrderId)
   if (order.method !== 'mercado_pago') {
     throw new HttpError(400, 'La orden no usa Mercado Pago.')
   }
@@ -85,7 +86,12 @@ export async function createPaymentPreference(input, options = {}) {
   })
 
   return {
-    paymentOrder: { ...order, idempotencyKey, preferenceId: preference.id, initPoint: preference.initPoint },
+    paymentOrder: {
+      ...order,
+      idempotencyKey,
+      preferenceId: preference.id,
+      initPoint: preference.initPoint,
+    },
     preference: {
       id: preference.id,
       initPoint: preference.initPoint,
@@ -222,7 +228,8 @@ async function notifySubscriptionChargeFailed(authorizedPayment, result, { notif
     payment: {
       status: 'rechazado',
       amount: Number(authorizedPayment.transaction_amount),
-      statusDetail: authorizedPayment.status_detail || 'Cobro recurrente rechazado por el medio de pago.',
+      statusDetail:
+        authorizedPayment.status_detail || 'Cobro recurrente rechazado por el medio de pago.',
       externalPaymentId: String(authorizedPayment.payment_id ?? authorizedPayment.id),
       payerEmail: order.payer_email,
     },
@@ -238,7 +245,8 @@ async function notifySubscriptionCancelled(subscription, { repository, notifyPay
     payment: {
       status: 'rechazado',
       amount: order.amount,
-      statusDetail: 'Tu suscripcion fue cancelada en Mercado Pago. No se va a renovar automaticamente.',
+      statusDetail:
+        'Tu suscripcion fue cancelada en Mercado Pago. No se va a renovar automaticamente.',
       // Estable por suscripcion: si MP reenvia el mismo evento de cancelacion
       // no dispara un segundo aviso.
       externalPaymentId: `subscription-cancelled:${subscription.id}`,
@@ -272,12 +280,14 @@ export async function processClaimedPaymentEvent(event, options = {}) {
       const orderId = payment.external_reference
       if (!orderId) throw new HttpError(409, 'Pago sin referencia de orden.')
       const order = await repository.getOrder(orderId)
-      result = (await applyCanonicalPayment(payment, order, {
-        repository,
-        notifyPaymentApplied,
-        auditTrail,
-        stage: 'webhook',
-      })).result
+      result = (
+        await applyCanonicalPayment(payment, order, {
+          repository,
+          notifyPaymentApplied,
+          auditTrail,
+          stage: 'webhook',
+        })
+      ).result
     } else if (type === 'subscription_preapproval') {
       const subscription = await mercadoPago.getSubscription(resourceId)
       result = await repository.applySubscription?.(subscription)
@@ -394,7 +404,10 @@ export async function processPaymentWebhook(input, options = {}) {
       secret: webhookSecret,
       toleranceSeconds,
     })
-    addBreadcrumb('webhook.signature_verified', { resourceId: String(resourceId), providerRequestId })
+    addBreadcrumb('webhook.signature_verified', {
+      resourceId: String(resourceId),
+      providerRequestId,
+    })
   } catch (error) {
     await rejectWebhook(error, 'signature_rejected')
   }

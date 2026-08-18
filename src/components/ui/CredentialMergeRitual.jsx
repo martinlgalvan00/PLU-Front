@@ -19,11 +19,7 @@ function MergePlate({ label, qrSrc, alt = '', featured = false }) {
         PLU
       </span>
       <span className="credential-merge__plate-mark">PLU</span>
-      {qrSrc ? (
-        <img src={qrSrc} alt={alt} />
-      ) : (
-        <span className="credential-merge__placeholder" />
-      )}
+      {qrSrc ? <img src={qrSrc} alt={alt} /> : <span className="credential-merge__placeholder" />}
       {label ? <span className="credential-merge__plate-label">{label}</span> : null}
     </div>
   )
@@ -53,9 +49,12 @@ export default function CredentialMergeRitual({
       return undefined
     }
 
-    const timer = window.setTimeout(() => {
-      onComplete?.()
-    }, Math.round((MOTION_DURATION.cinematic + MOTION_DURATION.slow) * 1000))
+    const timer = window.setTimeout(
+      () => {
+        onComplete?.()
+      },
+      Math.round((MOTION_DURATION.cinematic + MOTION_DURATION.slow) * 1000),
+    )
 
     return () => window.clearTimeout(timer)
   }, [athleteId, membershipId, onComplete, reducedMotion])

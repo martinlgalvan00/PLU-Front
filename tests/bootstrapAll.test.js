@@ -9,6 +9,7 @@ import {
   scrubSecrets,
   shouldSkipMigrations,
 } from '../scripts/bootstrap-all.mjs'
+import { POOLER_SESSION_CONNECTION_LIMIT } from '../server/lib/deploymentEnvironment.js'
 
 describe('bootstrap all', () => {
   it('informa las variables obligatorias faltantes', () => {
@@ -48,6 +49,29 @@ Would push these migrations:
     expect(() => buildPrismaDatabaseUrl('postgresql://user:pass@127.0.0.1:5433/local')).toThrow(
       /remoto de Supabase/,
     )
+  })
+
+  /**
+   * `studio` queda abierto horas y `migrate deploy`/`seed` corren con el dev
+   * server ya conectado: sin tope, cada uno se llevaba su propio pool del
+   * cupo de 15 que el Session mode del pooler comparte con todo el proyecto.
+   */
+  it('acota el pool de las herramientas de Prisma contra el pooler', () => {
+    const url = new URL(
+      buildPrismaDatabaseUrl(
+        'postgresql://postgres.project:password@aws-1-sa-east-1.pooler.supabase.com:5432/postgres',
+      ),
+    )
+
+    expect(url.searchParams.get('connection_limit')).toBe(String(POOLER_SESSION_CONNECTION_LIMIT))
+  })
+
+  it('no acota el pool de una base que no pasa por el pooler', () => {
+    const url = new URL(
+      buildPrismaDatabaseUrl('postgresql://postgres:password@db.project.supabase.co:5432/postgres'),
+    )
+
+    expect(url.searchParams.get('connection_limit')).toBeNull()
   })
 
   it('oculta connection strings en mensajes de error', () => {

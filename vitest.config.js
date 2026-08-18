@@ -25,6 +25,7 @@ export default defineConfig({
       test: {
         name: 'default',
         environment: 'jsdom',
+        setupFiles: ['tests/setup/jsdomEnv.js'],
         // Los tests de API montan la app y hacen bcrypt de coste 12 (~250 ms
         // por hash, varios por test). Con el default de 5 s pasaban solos pero
         // caían por timeout al competir con el proyecto `storybook`, que corre

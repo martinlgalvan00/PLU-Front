@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../server/app.js'
-import { PLATFORM_FEATURES, platformFeatureToggleSchema } from '../server/routes/platformSettings.js'
+import {
+  PLATFORM_FEATURES,
+  platformFeatureToggleSchema,
+} from '../server/routes/platformSettings.js'
 import {
   authHeaders,
   buildStaffUser,
@@ -102,6 +105,10 @@ describe('interruptores generales — /api/platform-settings', () => {
     try {
       const response = await fetch(`${target.url}/api/platform-settings/public`)
       expect(response.status).toBe(200)
+      // Los toggles los pide toda pantalla de compra. Se cachean en el borde,
+      // pero con ventana corta: cerrar un canal de pago tiene que llegar al
+      // público sin esperar un deploy.
+      expect(response.headers.get('cache-control')).toContain('s-maxage=30')
       expect(await response.json()).toEqual({
         membershipEnabled: true,
         registrationEnabled: false,
@@ -176,10 +183,19 @@ describe('interruptores generales — /api/platform-settings', () => {
 
   it('valida el body antes de persistir', () => {
     for (const feature of PLATFORM_FEATURES) {
-      expect(platformFeatureToggleSchema.safeParse({ feature, enabled: false }).success, feature).toBe(true)
+      expect(
+        platformFeatureToggleSchema.safeParse({ feature, enabled: false }).success,
+        feature,
+      ).toBe(true)
     }
-    expect(platformFeatureToggleSchema.safeParse({ feature: 'tickets', enabled: true }).success).toBe(false)
-    expect(platformFeatureToggleSchema.safeParse({ feature: 'membershipManual', enabled: true }).success).toBe(false)
-    expect(platformFeatureToggleSchema.safeParse({ feature: 'checkout', enabled: 'yes' }).success).toBe(false)
+    expect(
+      platformFeatureToggleSchema.safeParse({ feature: 'tickets', enabled: true }).success,
+    ).toBe(false)
+    expect(
+      platformFeatureToggleSchema.safeParse({ feature: 'membershipManual', enabled: true }).success,
+    ).toBe(false)
+    expect(
+      platformFeatureToggleSchema.safeParse({ feature: 'checkout', enabled: 'yes' }).success,
+    ).toBe(false)
   })
 })

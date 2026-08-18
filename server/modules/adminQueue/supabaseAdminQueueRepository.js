@@ -7,7 +7,8 @@ export function createSupabaseAdminQueueRepository(client) {
     assertSupabaseResult(await client.rpc(name, args), fallback)
 
   return {
-    list: () => rpc('staff_get_dismissed_queue_items', {}, 'No se pudieron leer los descartes de la cola.'),
+    list: () =>
+      rpc('staff_get_dismissed_queue_items', {}, 'No se pudieron leer los descartes de la cola.'),
 
     dismiss: (itemKey, itemType, actor) =>
       rpc(

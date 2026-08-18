@@ -106,7 +106,10 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
 
   return (
     <div className="admin-event-state" role="group" aria-label={t('admin.eventState.label')}>
-      <div className="admin-event-state__workflow" aria-label={t('admin.eventState.registrationLabel')}>
+      <div
+        className="admin-event-state__workflow"
+        aria-label={t('admin.eventState.registrationLabel')}
+      >
         <span className="admin-event-state__workflow-label">
           {t('admin.eventState.registrationLabel')}
         </span>
@@ -181,9 +184,7 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
           ) : (
             <EyeOff size={14} aria-hidden />
           )}
-          <span>
-            {published ? t('admin.eventState.published') : t('admin.eventState.hidden')}
-          </span>
+          <span>{published ? t('admin.eventState.published') : t('admin.eventState.hidden')}</span>
         </button>
       </div>
 

@@ -36,13 +36,18 @@ describe('aprobación manual de pagos de atleta', () => {
   })
 
   it('deja de decidir autorización adentro de la base', () => {
-    const body = functionBody(migration, 'create or replace function public.approve_athlete_payment_order(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.approve_athlete_payment_order(',
+    )
     expect(body).not.toContain('auth.uid()')
     expect(body).not.toContain('public.profiles')
   })
 
   it('retira la firma de un solo argumento para que no quede la versión rota', () => {
-    expect(migration).toContain('drop function if exists public.approve_athlete_payment_order(uuid);')
+    expect(migration).toContain(
+      'drop function if exists public.approve_athlete_payment_order(uuid);',
+    )
     expect(migration).toContain(
       'grant execute on function public.approve_athlete_payment_order(uuid, text)\n  to service_role;',
     )
@@ -52,18 +57,27 @@ describe('aprobación manual de pagos de atleta', () => {
   })
 
   it('mantiene Mercado Pago fuera de la aprobación manual', () => {
-    const body = functionBody(migration, 'create or replace function public.approve_athlete_payment_order(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.approve_athlete_payment_order(',
+    )
     expect(body).toContain('Los pagos de Mercado Pago solo se aprueban por webhook.')
   })
 
   it('es idempotente: reaprobar no vuelve a aplicar efectos', () => {
-    const body = functionBody(migration, 'create or replace function public.approve_athlete_payment_order(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.approve_athlete_payment_order(',
+    )
     expect(body).toContain("if v_order.status = 'aprobado' then")
     expect(body).toContain("'duplicate', true")
   })
 
   it('registra al responsable en la auditoría', () => {
-    const body = functionBody(migration, 'create or replace function public.approve_athlete_payment_order(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.approve_athlete_payment_order(',
+    )
     expect(body).toContain("'payment.approved_manually'")
     expect(body).toContain('p_actor')
   })
@@ -71,13 +85,19 @@ describe('aprobación manual de pagos de atleta', () => {
 
 describe('auditoría del ciclo de cobro', () => {
   it('audita la acreditación de Mercado Pago con el id externo del pago', () => {
-    const body = functionBody(migration, 'create or replace function public.apply_mercado_pago_payment(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.apply_mercado_pago_payment(',
+    )
     expect(body).toContain("'payment.applied'")
     expect(body).toContain("'externalPaymentId', p_external_payment_id")
   })
 
   it('distingue activación de revocación del derecho', () => {
-    const body = functionBody(migration, 'create or replace function public.apply_mercado_pago_payment(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.apply_mercado_pago_payment(',
+    )
     expect(body).toContain("then 'membership.activated' else 'membership.revoked' end")
     expect(body).toContain("then 'registration.confirmed' else 'registration.cancelled' end")
   })
@@ -89,7 +109,10 @@ describe('auditoría del ciclo de cobro', () => {
   })
 
   it('conserva la validación de monto y moneda de la orden', () => {
-    const body = functionBody(migration, 'create or replace function public.apply_mercado_pago_payment(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.apply_mercado_pago_payment(',
+    )
     expect(body).toContain('Monto o moneda no coinciden con la orden.')
     expect(body).toContain('El pago externo ya pertenece a otra orden.')
   })

@@ -39,7 +39,6 @@ import {
 } from '../lib/defense/identityGuard.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import {
-  checkoutPriceFor,
   isManualPaymentMethod,
   manualPaymentChannel,
   storagePaymentMethod,
@@ -135,7 +134,8 @@ const birthDateSchema = z
       parsed.getUTCFullYear() !== year ||
       parsed.getUTCMonth() + 1 !== month ||
       parsed.getUTCDate() !== day
-    ) return false
+    )
+      return false
 
     return value <= todayInBuenosAires()
   }, 'La fecha de nacimiento no puede ser futura ni inexistente.')
@@ -145,61 +145,67 @@ const birthDateSchema = z
 // mayúscula (el autocompletado del teléfono las mete solo) quedaba
 // inalcanzable: no podía loguearse ni recuperar la contraseña, y el índice
 // único sobre lower(email) tampoco la dejaba registrarse de nuevo.
-const registerSchema = z.object({
-  fullName: z.string().trim().min(3),
-  // Los separadores se limpian antes de validar: el documento se muestra con
-  // puntos en cualquier DNI físico y rechazarlo por eso obligaba a rehacer los
-  // dos pasos del alta sin explicar qué estaba mal.
-  documentId: z
-    .string()
-    .trim()
-    .transform((value) => value.replace(/[.\-\s]/g, '')),
-  email: z.string().trim().toLowerCase().email(),
-  birthDate: birthDateSchema,
-  phone: z.string().trim().refine(
-    (value) => {
-      const digits = value.replace(/\D/g, '')
-      return digits.length >= 8 && digits.length <= 15
-    },
-    'El teléfono debe tener entre 8 y 15 dígitos.',
-  ),
-  country: z.string().trim().min(2),
-  province: z.string().trim().min(2),
-  city: z.string().trim().min(2),
-  gym: z.string().trim().min(2),
-  sex: z.enum(['Masculino', 'Femenino']),
-  division: z.enum(COMPETITION_DIVISIONS),
-  category: z.enum(COMPETITION_CATEGORIES),
-  estimatedWeight: z
-    .union([z.string(), z.number()])
-    .optional()
-    .nullable()
-    .refine((value) => {
-      if (value === undefined || value === null || String(value).trim() === '') return true
-      const parsed = Number(String(value).replace(',', '.').replace(/\s*kg$/i, ''))
-      return Number.isFinite(parsed) && parsed >= 10 && parsed <= 250
-    }, 'El peso estimado debe estar entre 10 y 250 kg.'),
-  password: z.string().min(12).max(72),
-}).superRefine((data, ctx) => {
-  const isArgentina = data.country === 'Argentina' || !data.country
-  if (isArgentina) {
-    if (!/^\d{7,8}$/.test(data.documentId)) {
-      ctx.addIssue({
-        path: ['documentId'],
-        code: z.ZodIssueCode.custom,
-        message: 'El documento debe tener 7 u 8 dígitos.',
-      })
+const registerSchema = z
+  .object({
+    fullName: z.string().trim().min(3),
+    // Los separadores se limpian antes de validar: el documento se muestra con
+    // puntos en cualquier DNI físico y rechazarlo por eso obligaba a rehacer los
+    // dos pasos del alta sin explicar qué estaba mal.
+    documentId: z
+      .string()
+      .trim()
+      .transform((value) => value.replace(/[.\-\s]/g, '')),
+    email: z.string().trim().toLowerCase().email(),
+    birthDate: birthDateSchema,
+    phone: z
+      .string()
+      .trim()
+      .refine((value) => {
+        const digits = value.replace(/\D/g, '')
+        return digits.length >= 8 && digits.length <= 15
+      }, 'El teléfono debe tener entre 8 y 15 dígitos.'),
+    country: z.string().trim().min(2),
+    province: z.string().trim().min(2),
+    city: z.string().trim().min(2),
+    gym: z.string().trim().min(2),
+    sex: z.enum(['Masculino', 'Femenino']),
+    division: z.enum(COMPETITION_DIVISIONS),
+    category: z.enum(COMPETITION_CATEGORIES),
+    estimatedWeight: z
+      .union([z.string(), z.number()])
+      .optional()
+      .nullable()
+      .refine((value) => {
+        if (value === undefined || value === null || String(value).trim() === '') return true
+        const parsed = Number(
+          String(value)
+            .replace(',', '.')
+            .replace(/\s*kg$/i, ''),
+        )
+        return Number.isFinite(parsed) && parsed >= 10 && parsed <= 250
+      }, 'El peso estimado debe estar entre 10 y 250 kg.'),
+    password: z.string().min(12).max(72),
+  })
+  .superRefine((data, ctx) => {
+    const isArgentina = data.country === 'Argentina' || !data.country
+    if (isArgentina) {
+      if (!/^\d{7,8}$/.test(data.documentId)) {
+        ctx.addIssue({
+          path: ['documentId'],
+          code: z.ZodIssueCode.custom,
+          message: 'El documento debe tener 7 u 8 dígitos.',
+        })
+      }
+    } else {
+      if (data.documentId.length < 5 || data.documentId.length > 20) {
+        ctx.addIssue({
+          path: ['documentId'],
+          code: z.ZodIssueCode.custom,
+          message: 'El pasaporte o ID debe tener entre 5 y 20 caracteres.',
+        })
+      }
     }
-  } else {
-    if (data.documentId.length < 5 || data.documentId.length > 20) {
-      ctx.addIssue({
-        path: ['documentId'],
-        code: z.ZodIssueCode.custom,
-        message: 'El pasaporte o ID debe tener entre 5 y 20 caracteres.',
-      })
-    }
-  }
-})
+  })
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(72),
@@ -214,26 +220,44 @@ const resetPasswordSchema = z.object({
     .min(12, 'La contraseña debe tener al menos 12 caracteres.')
     .max(72, 'La contraseña es demasiado larga.'),
 })
-const optionalPhone = z.string().trim().max(40).default('').refine((value) => {
-  const digits = value.replace(/\D/g, '')
-  return !value || (digits.length >= 8 && digits.length <= 15)
-}, 'Ingresá un teléfono válido con código de área.')
+const optionalPhone = z
+  .string()
+  .trim()
+  .max(40)
+  .default('')
+  .refine((value) => {
+    const digits = value.replace(/\D/g, '')
+    return !value || (digits.length >= 8 && digits.length <= 15)
+  }, 'Ingresá un teléfono válido con código de área.')
 const optionalDeclaredBestTotal = z.preprocess((value) => {
   if (value === undefined || value === null || String(value).trim() === '') return null
-  return Number(String(value).replace(',', '.').replace(/\s*kg$/i, ''))
+  return Number(
+    String(value)
+      .replace(',', '.')
+      .replace(/\s*kg$/i, ''),
+  )
 }, z.number().finite().min(10).max(2000).nullable())
 
 const updateSchema = z.object({
   // Misma normalización que el alta: editar el perfil con una mayúscula dejaba
   // sin login a una cuenta que venía funcionando.
-  email: z.string().trim().toLowerCase().email(), phone: z.string().trim().min(6), city: z.string().trim().min(2),
-  province: z.string().trim().min(2), gym: z.string().trim().optional().default(''),
+  email: z.string().trim().toLowerCase().email(),
+  phone: z.string().trim().min(6),
+  city: z.string().trim().min(2),
+  province: z.string().trim().min(2),
+  gym: z.string().trim().optional().default(''),
   emergencyContactName: z.string().trim().max(120).default(''),
   emergencyContactPhone: optionalPhone,
-  instagramHandle: z.string().trim().max(31).default('').transform((value) => value.replace(/^@/, '')).refine(
-    (value) => !value || /^[A-Za-z0-9._]{1,30}$/.test(value),
-    'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
-  ),
+  instagramHandle: z
+    .string()
+    .trim()
+    .max(31)
+    .default('')
+    .transform((value) => value.replace(/^@/, ''))
+    .refine(
+      (value) => !value || /^[A-Za-z0-9._]{1,30}$/.test(value),
+      'Ingresá sólo tu usuario de Instagram, sin espacios ni enlace.',
+    ),
   bestTotalKg: optionalDeclaredBestTotal,
   fullName: z.string().trim().min(3).max(160).optional(),
   birthDate: birthDateSchema.optional(),
@@ -248,7 +272,10 @@ const registrationAccessCodeField = z.string().trim().max(72).optional()
 const orderSchema = z.object({
   paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
   planCode: z.string().trim().min(2).default('plu-annual'),
-  idempotencyKey: z.string().uuid().default(() => randomUUID()),
+  idempotencyKey: z
+    .string()
+    .uuid()
+    .default(() => randomUUID()),
   discountCode: discountCodeField,
   accessCode: registrationAccessCodeField,
 })
@@ -258,13 +285,17 @@ const registrationSchema = z.object({
   category: z.enum(COMPETITION_CATEGORIES),
   bodyweightKg: z.number().min(10).max(250).nullable().optional(),
   paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
-  idempotencyKey: z.string().uuid().default(() => randomUUID()),
+  idempotencyKey: z
+    .string()
+    .uuid()
+    .default(() => randomUUID()),
   discountCode: discountCodeField,
   accessCode: registrationAccessCodeField,
 })
-// comboRegistrationSchema hereda discountCode de registrationSchema, pero no
-// se reenvia al RPC de combo: los cupones quedan fuera de scope para el
-// combo por decision de producto (ver create_membership_registration_combo_order).
+// comboRegistrationSchema hereda discountCode de registrationSchema y sí se
+// reenvia al RPC de combo: redime cupones con applies_to = 'combo' (promos del
+// paquete) o 'both' (ver create_membership_registration_combo_order /
+// apply_discount_code_to_order).
 const comboRegistrationSchema = registrationSchema.extend({
   membershipAccessCode: registrationAccessCodeField,
   registrationAccessCode: registrationAccessCodeField,
@@ -284,7 +315,7 @@ const registrationAccessVerifySchema = z.object({
 
 const discountPreviewSchema = z.object({
   code: z.string().trim().toUpperCase().min(1).max(32),
-  appliesTo: z.enum(['membership', 'registration']),
+  appliesTo: z.enum(['membership', 'registration', 'combo']),
   planCode: z.string().trim().min(1).optional(),
   eventSlug: z.string().trim().min(1).optional(),
   // El precio vigente depende del canal (transferencia y efectivo pagan menos
@@ -296,14 +327,25 @@ const discountPreviewSchema = z.object({
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
-  size: z.number().int().positive().max(3 * 1024 * 1024),
+  size: z
+    .number()
+    .int()
+    .positive()
+    .max(3 * 1024 * 1024),
 })
 const proofUploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
-  size: z.number().int().positive().max(5 * 1024 * 1024),
+  size: z
+    .number()
+    .int()
+    .positive()
+    .max(5 * 1024 * 1024),
 })
-const proofSchema = z.object({ proofPath: z.string().trim().min(3).max(300) })
+const proofSchema = z.object({
+  proofPath: z.string().trim().min(3).max(300),
+  notes: z.string().trim().max(300).optional(),
+})
 const rejectPaymentSchema = z.object({ reason: z.string().trim().min(3).max(500) })
 // El motivo es obligatorio: acreditar a mano una orden que el proveedor dio por
 // perdida es la única operación del panel que crea dinero en el reporte
@@ -317,10 +359,33 @@ const registrationStatusSchema = z.object({
   reason: z.string().trim().min(3).max(500),
 })
 const paymentOrdersQuerySchema = z.object({
-  status: z.enum(['pendiente', 'validacion_manual', 'aprobado', 'rechazado', 'cancelado', 'reembolsado']).optional(),
+  status: z
+    .enum(['pendiente', 'validacion_manual', 'aprobado', 'rechazado', 'cancelado', 'reembolsado'])
+    .optional(),
   method: z.enum(['mercado_pago', 'manual_link']).optional(),
   concept: z.enum(['membership', 'registration', 'combo']).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+})
+/**
+ * Filtros/paginación opcionales del snapshot admin. Sin query params el
+ * comportamiento es idéntico al actual (trae todo, sin `.range()`): el
+ * dashboard y los badges de navegación siguen necesitando el snapshot
+ * completo. Esto solo deja la capacidad lista en el backend para cuando
+ * algún listado quiera pedir un recorte filtrado en vez de filtrar en el
+ * cliente sobre el array completo.
+ */
+const adminDataQuerySchema = z.object({
+  athleteStatus: z
+    .enum(['pre_registrado', 'registrado', 'afiliado_activo', 'afiliado_vencido', 'bloqueado'])
+    .optional(),
+  membershipStatus: z
+    .enum(['pendiente_pago', 'activa', 'vencida', 'cancelada', 'reembolsada'])
+    .optional(),
+  registrationStatus: z
+    .enum(['borrador', 'pendiente_pago', 'pagada', 'confirmada', 'observada', 'cancelada'])
+    .optional(),
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 })
 
 const FORGOT_OK_MESSAGE =
@@ -347,11 +412,12 @@ function athleteExistsError(availability) {
   const fields = {}
   if (availability.emailTaken) fields.email = 'taken'
   if (availability.documentTaken) fields.documentId = 'taken'
-  const message = availability.emailTaken && !availability.documentTaken
-    ? 'Este correo ya tiene una cuenta. Ingresá o usá otro.'
-    : availability.documentTaken && !availability.emailTaken
-      ? 'Este documento ya tiene una cuenta. Ingresá o usá otro.'
-      : 'Ya existe una cuenta con ese correo o documento.'
+  const message =
+    availability.emailTaken && !availability.documentTaken
+      ? 'Este correo ya tiene una cuenta. Ingresá o usá otro.'
+      : availability.documentTaken && !availability.emailTaken
+        ? 'Este documento ya tiene una cuenta. Ingresá o usá otro.'
+        : 'Ya existe una cuenta con ese correo o documento.'
   return new HttpError(409, message, { code: 'ATHLETE_EXISTS', fields })
 }
 
@@ -590,9 +656,13 @@ export function createAthleteRoutes({
       // El texto no promete un reenvío que nadie dispara: el enlace sale solo
       // si el atleta lo pide, y el `code` es lo que habilita ese botón en la
       // pantalla donde se cortó el checkout.
-      throw new HttpError(403, 'Confirmá tu correo antes de continuar. Revisá tu bandeja o pedí un enlace nuevo.', {
-        code: 'EMAIL_NOT_VERIFIED',
-      })
+      throw new HttpError(
+        403,
+        'Confirmá tu correo antes de continuar. Revisá tu bandeja o pedí un enlace nuevo.',
+        {
+          code: 'EMAIL_NOT_VERIFIED',
+        },
+      )
     }
   }
 
@@ -620,7 +690,10 @@ export function createAthleteRoutes({
       throw new HttpError(
         422,
         `Completá tu perfil antes de inscribirte: falta ${missing.join(', ')}.`,
-        { code: 'ATHLETE_PROFILE_INCOMPLETE', missing: Object.keys(labels).filter((field) => !String(profile?.[field] ?? '').trim()) },
+        {
+          code: 'ATHLETE_PROFILE_INCOMPLETE',
+          missing: Object.keys(labels).filter((field) => !String(profile?.[field] ?? '').trim()),
+        },
       )
     }
   }
@@ -646,71 +719,76 @@ export function createAthleteRoutes({
     },
   )
 
-  router.post('/register', publicWriteLimiter, validateBody(registerSchema), async (req, res, next) => {
-    try {
-      const { password, ...form } = req.validatedBody
-      // Pre-check con campos concretos: PLU07 del unique es ambiguo
-      // (email o documento) y el formulario no sabía qué corregir.
-      const availability = await repo().checkAvailability({
-        email: form.email,
-        documentId: form.documentId,
-      })
-      if (availability.emailTaken || availability.documentTaken) {
-        const conflict = athleteExistsError(availability)
-        await recordFailedRegistration(req, {
+  router.post(
+    '/register',
+    publicWriteLimiter,
+    validateBody(registerSchema),
+    async (req, res, next) => {
+      try {
+        const { password, ...form } = req.validatedBody
+        // Pre-check con campos concretos: PLU07 del unique es ambiguo
+        // (email o documento) y el formulario no sabía qué corregir.
+        const availability = await repo().checkAvailability({
           email: form.email,
           documentId: form.documentId,
-          error: conflict,
         })
-        throw conflict
+        if (availability.emailTaken || availability.documentTaken) {
+          const conflict = athleteExistsError(availability)
+          await recordFailedRegistration(req, {
+            email: form.email,
+            documentId: form.documentId,
+            error: conflict,
+          })
+          throw conflict
+        }
+        const row = await repo().register(form, await hashPassword(password))
+        const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
+        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+        // La operación de negocio ya quedó confirmada. El dispatcher reserva el
+        // outbox antes de llamar a Brevo; esperar este best-effort garantiza que
+        // el email crítico quede enviado o programado para reintento antes de que
+        // una función serverless pueda finalizar después de responder.
+        const delivery = await sendOnboardingEmails(row).catch((error) => {
+          logger.warn('identity.onboarding_email_failed', { athleteId: row.id, err: error })
+          return { status: 'failed' }
+        })
+        logger.info('identity.account_created', {
+          athleteId: row.id,
+          emailVerificationSent: emailWasSent(delivery),
+        })
+        res.status(201).json({
+          athlete: row,
+          emailVerification: { sent: emailWasSent(delivery) },
+        })
+      } catch (error) {
+        // Carrera entre dos altas: el unique sigue siendo PLU07. Traducimos a
+        // ATHLETE_EXISTS genérico para que el front muestre el mismo copy.
+        if (error instanceof HttpError && error.details?.code === 'PLU07') {
+          const conflict = new HttpError(409, 'Ya existe una cuenta con ese correo o documento.', {
+            code: 'ATHLETE_EXISTS',
+            fields: { email: 'taken', documentId: 'taken' },
+          })
+          await recordFailedRegistration(req, {
+            email: req.validatedBody?.email,
+            documentId: req.validatedBody?.documentId,
+            error: conflict,
+          })
+          next(conflict)
+          return
+        }
+        // El asiento del conflicto pre-chequeado ya salio arriba; este cubre
+        // todo lo demas (base caida, sesion no emitida, hash fallido).
+        if (!(error instanceof HttpError && error.details?.code === 'ATHLETE_EXISTS')) {
+          await recordFailedRegistration(req, {
+            email: req.validatedBody?.email,
+            documentId: req.validatedBody?.documentId,
+            error,
+          })
+        }
+        next(error)
       }
-      const row = await repo().register(form, await hashPassword(password))
-      const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
-      res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
-      // La operación de negocio ya quedó confirmada. El dispatcher reserva el
-      // outbox antes de llamar a Brevo; esperar este best-effort garantiza que
-      // el email crítico quede enviado o programado para reintento antes de que
-      // una función serverless pueda finalizar después de responder.
-      const delivery = await sendOnboardingEmails(row).catch((error) => {
-        logger.warn('identity.onboarding_email_failed', { athleteId: row.id, err: error })
-        return { status: 'failed' }
-      })
-      logger.info('identity.account_created', {
-        athleteId: row.id,
-        emailVerificationSent: emailWasSent(delivery),
-      })
-      res.status(201).json({
-        athlete: row,
-        emailVerification: { sent: emailWasSent(delivery) },
-      })
-    } catch (error) {
-      // Carrera entre dos altas: el unique sigue siendo PLU07. Traducimos a
-      // ATHLETE_EXISTS genérico para que el front muestre el mismo copy.
-      if (error instanceof HttpError && error.details?.code === 'PLU07') {
-        const conflict = new HttpError(409, 'Ya existe una cuenta con ese correo o documento.', {
-          code: 'ATHLETE_EXISTS',
-          fields: { email: 'taken', documentId: 'taken' },
-        })
-        await recordFailedRegistration(req, {
-          email: req.validatedBody?.email,
-          documentId: req.validatedBody?.documentId,
-          error: conflict,
-        })
-        next(conflict)
-        return
-      }
-      // El asiento del conflicto pre-chequeado ya salio arriba; este cubre
-      // todo lo demas (base caida, sesion no emitida, hash fallido).
-      if (!(error instanceof HttpError && error.details?.code === 'ATHLETE_EXISTS')) {
-        await recordFailedRegistration(req, {
-          email: req.validatedBody?.email,
-          documentId: req.validatedBody?.documentId,
-          error,
-        })
-      }
-      next(error)
-    }
-  })
+    },
+  )
 
   /**
    * Foto firmada para la página pública de verificación QR. Sin sesión: el
@@ -728,21 +806,30 @@ export function createAthleteRoutes({
   })
 
   // Público: el link llega por email y se abre sin sesión iniciada.
-  router.post('/verify-email', publicWriteLimiter, validateBody(
-    z.object({ token: z.string().trim().min(20, 'El enlace de verificación no es válido.') }),
-  ), async (req, res, next) => {
-    try {
-      const payload = verifyEmailVerificationToken(req.validatedBody.token, { secret: env.AUTH_SECRET })
-      if (!payload) {
-        throw new HttpError(400, 'El enlace de verificación no es válido o ya venció.')
+  router.post(
+    '/verify-email',
+    publicWriteLimiter,
+    validateBody(
+      z.object({ token: z.string().trim().min(20, 'El enlace de verificación no es válido.') }),
+    ),
+    async (req, res, next) => {
+      try {
+        const payload = verifyEmailVerificationToken(req.validatedBody.token, {
+          secret: env.AUTH_SECRET,
+        })
+        if (!payload) {
+          throw new HttpError(400, 'El enlace de verificación no es válido o ya venció.')
+        }
+        const result = await repo().verifyEmail(payload.aid)
+        if (!result?.verified) {
+          throw new HttpError(400, 'El enlace de verificación no es válido o ya venció.')
+        }
+        res.json({ ok: true, email: result.email })
+      } catch (error) {
+        next(error)
       }
-      const result = await repo().verifyEmail(payload.aid)
-      if (!result?.verified) {
-        throw new HttpError(400, 'El enlace de verificación no es válido o ya venció.')
-      }
-      res.json({ ok: true, email: result.email })
-    } catch (error) { next(error) }
-  })
+    },
+  )
 
   router.post('/me/resend-verification', athleteWriteLimiter, async (req, res, next) => {
     try {
@@ -760,7 +847,9 @@ export function createAthleteRoutes({
         })
       }
       res.json({ ok: true, alreadyVerified: false })
-    } catch (error) { next(error) }
+    } catch (error) {
+      next(error)
+    }
   })
 
   // Confirma el correo con el OTP del mail cuando el deep link no abre.
@@ -822,96 +911,116 @@ export function createAthleteRoutes({
   // permisivo), pero con instancia propia: `authLimiter` lo comparte el login
   // de staff, que el cliente prueba primero en cada intento (ver
   // athleteAuthLimiter en middleware/rateLimit.js).
-  router.post('/login', athleteAuthLimiter, passwordHashShedder, validateBody(loginSchema), async (req, res, next) => {
-    try {
-      // Mismo esquema que el login de staff: el bloqueo por cuenta se consulta
-      // antes del bcrypt. Acá pesa incluso más, porque el padrón es mucho más
-      // grande que el puñado de cuentas operativas y una lista de credenciales
-      // filtradas tiene muchas más casillas para probar.
-      const identity = {
-        scope: IDENTITY_SCOPES.athleteLogin,
-        identity: req.validatedBody.email,
-        deps: { supabaseAdmin: client() },
-        env,
-      }
-      await assertIdentityNotLocked(identity)
+  router.post(
+    '/login',
+    athleteAuthLimiter,
+    passwordHashShedder,
+    validateBody(loginSchema),
+    async (req, res, next) => {
+      try {
+        // Mismo esquema que el login de staff: el bloqueo por cuenta se consulta
+        // antes del bcrypt. Acá pesa incluso más, porque el padrón es mucho más
+        // grande que el puñado de cuentas operativas y una lista de credenciales
+        // filtradas tiene muchas más casillas para probar.
+        const identity = {
+          scope: IDENTITY_SCOPES.athleteLogin,
+          identity: req.validatedBody.email,
+          deps: { supabaseAdmin: client() },
+          env,
+        }
+        await assertIdentityNotLocked(identity)
 
-      const row = await repo().findLogin(req.validatedBody.email)
-      // Igual que en el login de staff: bcrypt corre siempre, exista o no la
-      // cuenta, para que el tiempo de respuesta no enumere el padrón.
-      const passwordMatches = await verifyPassword(req.validatedBody.password, row?.password_hash)
+        const row = await repo().findLogin(req.validatedBody.email)
+        // Igual que en el login de staff: bcrypt corre siempre, exista o no la
+        // cuenta, para que el tiempo de respuesta no enumere el padrón.
+        const passwordMatches = await verifyPassword(req.validatedBody.password, row?.password_hash)
 
-      if (!row || row.status === 'bloqueado' || !passwordMatches) {
-        await registerIdentityFailure(identity)
-        await recordFailedLogin(req, req.validatedBody.email)
-        throw new HttpError(401, 'Credenciales invalidas.')
+        if (!row || row.status === 'bloqueado' || !passwordMatches) {
+          await registerIdentityFailure(identity)
+          await recordFailedLogin(req, req.validatedBody.email)
+          throw new HttpError(401, 'Credenciales invalidas.')
+        }
+        await clearIdentityFailures(identity)
+        const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
+        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+        res.json({
+          user: { role: 'athlete_plu', athleteId: row.id, name: row.full_name, email: row.email },
+        })
+      } catch (error) {
+        next(error)
       }
-      await clearIdentityFailures(identity)
-      const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
-      res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
-      res.json({ user: { role: 'athlete_plu', athleteId: row.id, name: row.full_name, email: row.email } })
-    } catch (error) { next(error) }
-  })
+    },
+  )
 
   // Anti-enumeración: siempre 200 con el mismo mensaje, exista o no la cuenta.
-  router.post('/forgot-password', publicWriteLimiter, validateBody(forgotPasswordSchema), async (req, res, next) => {
-    try {
-      const { email } = req.validatedBody
-      const row = await repo().findLogin(email)
+  router.post(
+    '/forgot-password',
+    publicWriteLimiter,
+    validateBody(forgotPasswordSchema),
+    async (req, res, next) => {
+      try {
+        const { email } = req.validatedBody
+        const row = await repo().findLogin(email)
 
-      if (row && row.status !== 'bloqueado' && row.password_hash) {
-        const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS)
-        const token = createPasswordResetToken({ athleteId: row.id, expiresAt })
-        await repo().createPasswordResetToken(row.id, hashPasswordResetToken(token), expiresAt)
-        const resetUrl = buildPasswordResetUrl(appUrl, token)
-        await sendBestEffort('password_reset', {
-          to: row.email,
-          toName: row.full_name,
-          entityType: 'athlete',
-          entityId: row.id,
-          // Cada pedido genera un token nuevo, así que la clave lleva el
-          // vencimiento: si el atleta pide dos veces, recibe dos enlaces.
-          idempotencyKey: `email:password-reset:${row.id}:${expiresAt.getTime()}`,
-          params: {
-            name: row.full_name,
-            resetUrl,
-            expiresInMinutes: PASSWORD_RESET_TTL_MINUTES,
-          },
+        if (row && row.status !== 'bloqueado' && row.password_hash) {
+          const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS)
+          const token = createPasswordResetToken({ athleteId: row.id, expiresAt })
+          await repo().createPasswordResetToken(row.id, hashPasswordResetToken(token), expiresAt)
+          const resetUrl = buildPasswordResetUrl(appUrl, token)
+          await sendBestEffort('password_reset', {
+            to: row.email,
+            toName: row.full_name,
+            entityType: 'athlete',
+            entityId: row.id,
+            // Cada pedido genera un token nuevo, así que la clave lleva el
+            // vencimiento: si el atleta pide dos veces, recibe dos enlaces.
+            idempotencyKey: `email:password-reset:${row.id}:${expiresAt.getTime()}`,
+            params: {
+              name: row.full_name,
+              resetUrl,
+              expiresInMinutes: PASSWORD_RESET_TTL_MINUTES,
+            },
+          })
+        }
+
+        res.json({ ok: true, message: FORGOT_OK_MESSAGE })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/reset-password',
+    publicWriteLimiter,
+    validateBody(resetPasswordSchema),
+    async (req, res, next) => {
+      try {
+        const payload = verifyPasswordResetToken(req.validatedBody.token)
+        if (!payload) {
+          throw new HttpError(400, 'El enlace de recuperación no es válido o ya venció.')
+        }
+
+        const credential = await repo().credential(payload.aid)
+        if (!credential) {
+          throw new HttpError(400, 'El enlace de recuperación no es válido o ya venció.')
+        }
+
+        const reset = await repo().resetPasswordWithToken({
+          athleteId: payload.aid,
+          tokenHash: hashPasswordResetToken(req.validatedBody.token),
+          passwordHash: await hashPassword(req.validatedBody.password),
         })
+        if (!reset) {
+          throw new HttpError(400, 'El enlace de recuperacion no es valido o ya vencio.')
+        }
+
+        res.json({ ok: true })
+      } catch (error) {
+        next(error)
       }
-
-      res.json({ ok: true, message: FORGOT_OK_MESSAGE })
-    } catch (error) {
-      next(error)
-    }
-  })
-
-  router.post('/reset-password', publicWriteLimiter, validateBody(resetPasswordSchema), async (req, res, next) => {
-    try {
-      const payload = verifyPasswordResetToken(req.validatedBody.token)
-      if (!payload) {
-        throw new HttpError(400, 'El enlace de recuperación no es válido o ya venció.')
-      }
-
-      const credential = await repo().credential(payload.aid)
-      if (!credential) {
-        throw new HttpError(400, 'El enlace de recuperación no es válido o ya venció.')
-      }
-
-      const reset = await repo().resetPasswordWithToken({
-        athleteId: payload.aid,
-        tokenHash: hashPasswordResetToken(req.validatedBody.token),
-        passwordHash: await hashPassword(req.validatedBody.password),
-      })
-      if (!reset) {
-        throw new HttpError(400, 'El enlace de recuperacion no es valido o ya vencio.')
-      }
-
-      res.json({ ok: true })
-    } catch (error) {
-      next(error)
-    }
-  })
+    },
+  )
 
   // Probe de bootstrap (igual que /api/auth/me): sin cookie responde 200 +
   // user null para que el restore anónimo no figure como error en DevTools.
@@ -937,44 +1046,61 @@ export function createAthleteRoutes({
         },
         ...data,
       })
-    } catch (error) { next(error) }
+    } catch (error) {
+      next(error)
+    }
   })
 
   router.post('/logout', async (req, res, next) => {
     try {
-      await revokeAthleteSession({ client: client(), token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME] })
+      await revokeAthleteSession({
+        client: client(),
+        token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME],
+      })
       res.clearCookie(ATHLETE_SESSION_COOKIE_NAME, getClearAthleteSessionCookieOptions(env))
       res.status(204).end()
-    } catch (error) { next(error) }
+    } catch (error) {
+      next(error)
+    }
   })
 
   router.patch('/me', athleteWriteLimiter, validateBody(updateSchema), async (req, res, next) => {
-    try { const auth = await athlete(req); res.json({ athlete: await repo().update(auth.athleteId, req.validatedBody) }) }
-    catch (error) { next(error) }
-  })
-  router.get('/me/registration-access-requirements', athleteWriteLimiter, async (req, res, next) => {
     try {
-      await athlete(req)
-      const eventSlug = String(req.query?.eventSlug ?? '').trim() || null
-      if (eventSlug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
-        throw new HttpError(400, 'El identificador del evento es inválido.')
-      }
-      const [codeRequirements, toggles] = await Promise.all([
-        resolveRegistrationAccessRequirements(accessRepo(), { eventSlug }),
-        platformSettingsRepo().get(),
-      ])
-      const availability = resolvePublicCheckoutAvailability(toggles)
-      res.json({
-        ...codeRequirements,
-        membershipEnabled: availability.membershipEnabled,
-        registrationEnabled: availability.registrationEnabled,
-        // Sin esto la pantalla ofrecía transferencia/efectivo y recién al
-        // enviar el formulario aparecía el 409.
-        membershipManualEnabled: availability.membershipManualEnabled,
-        registrationManualEnabled: availability.registrationManualEnabled,
-      })
-    } catch (error) { next(error) }
+      const auth = await athlete(req)
+      res.json({ athlete: await repo().update(auth.athleteId, req.validatedBody) })
+    } catch (error) {
+      next(error)
+    }
   })
+  router.get(
+    '/me/registration-access-requirements',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        await athlete(req)
+        const eventSlug = String(req.query?.eventSlug ?? '').trim() || null
+        if (eventSlug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
+          throw new HttpError(400, 'El identificador del evento es inválido.')
+        }
+        const [codeRequirements, toggles] = await Promise.all([
+          resolveRegistrationAccessRequirements(accessRepo(), { eventSlug }),
+          platformSettingsRepo().get(),
+        ])
+        const availability = resolvePublicCheckoutAvailability(toggles)
+        res.json({
+          ...codeRequirements,
+          membershipEnabled: availability.membershipEnabled,
+          registrationEnabled: availability.registrationEnabled,
+          // Sin esto la pantalla ofrecía transferencia/efectivo y recién al
+          // enviar el formulario aparecía el 409.
+          membershipManualEnabled: availability.membershipManualEnabled,
+          registrationManualEnabled: availability.registrationManualEnabled,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.post(
     '/me/registration-access/verify',
     registrationAccessCodeLimiter,
@@ -992,88 +1118,125 @@ export function createAthleteRoutes({
         // desbloquear, y el checkout sigue igual de disponible.
         const gate = await assertRegistrationAccessCode(accessRepo(), { scope, eventSlug, code })
         res.json({ valid: true, required: Boolean(gate), scope })
-      } catch (error) { next(error) }
+      } catch (error) {
+        next(error)
+      }
     },
   )
-  router.post('/me/membership-orders', publicWriteLimiter, validateBody(orderSchema), async (req, res, next) => {
-    const planCode = req.validatedBody?.planCode ?? null
-    try {
-      await assertPaidCheckoutAvailable(env, new Date(), { client: client(), checkoutKind: 'membership' })
-      const toggles = await platformSettingsRepo().get()
-      assertCheckoutEnabled(toggles)
-      assertMembershipCheckoutEnabled(toggles)
-      if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-        assertManualChannelEnabled(toggles, 'membership')
+  router.post(
+    '/me/membership-orders',
+    publicWriteLimiter,
+    validateBody(orderSchema),
+    async (req, res, next) => {
+      const planCode = req.validatedBody?.planCode ?? null
+      try {
+        await assertPaidCheckoutAvailable(env, new Date(), {
+          client: client(),
+          checkoutKind: 'membership',
+        })
+        const toggles = await platformSettingsRepo().get()
+        assertCheckoutEnabled(toggles)
+        assertMembershipCheckoutEnabled(toggles)
+        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
+          const override = await repo().discountCodeManualEligibility(
+            req.validatedBody.discountCode,
+            'membership',
+            manualPaymentChannel(req.validatedBody.paymentMethod),
+          )
+          assertManualChannelEnabled(toggles, 'membership', { override })
+        }
+        const auth = await athlete(req)
+        await assertEmailVerified(auth.athleteId)
+        const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
+        if (!plan) throw new HttpError(404, 'Plan de afiliacion no encontrado.')
+        if (isRecurringMembershipPlan(plan)) assertRecurringMembershipAvailable(env)
+        const accessGate = await assertRegistrationAccessCode(accessRepo(), {
+          scope: 'membership',
+          code: req.validatedBody.accessCode,
+        })
+        const created = await repo().createMembershipOrder(auth.athleteId, {
+          ...req.validatedBody,
+          paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
+          planCode: plan.code,
+          defaultPrice: plan.price,
+          manualPrice: plan.manual_price,
+          manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+        })
+        await recordRegistrationAccessUse(accessGate, {
+          athleteId: auth.athleteId,
+          orderId: created.order.id,
+          concept: 'membership',
+        })
+        await recordOrderCreated(req, {
+          concept: 'membership',
+          result: created,
+          planCode: plan.code,
+        })
+        res.status(201).json(created)
+      } catch (error) {
+        await recordOrderFailure(req, { concept: 'membership', error, planCode })
+        next(error)
       }
-      const auth = await athlete(req)
-      await assertEmailVerified(auth.athleteId)
-      const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
-      if (!plan) throw new HttpError(404, 'Plan de afiliacion no encontrado.')
-      if (isRecurringMembershipPlan(plan)) assertRecurringMembershipAvailable(env)
-      const accessGate = await assertRegistrationAccessCode(accessRepo(), {
-        scope: 'membership',
-        code: req.validatedBody.accessCode,
-      })
-      const created = await repo().createMembershipOrder(auth.athleteId, {
-        ...req.validatedBody,
-        paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-        planCode: plan.code,
-        orderAmount: checkoutPriceFor({ concept: 'membership', paymentMethod: req.validatedBody.paymentMethod }),
-        manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
-      })
-      await recordRegistrationAccessUse(accessGate, {
-        athleteId: auth.athleteId,
-        orderId: created.order.id,
-        concept: 'membership',
-      })
-      await recordOrderCreated(req, { concept: 'membership', result: created, planCode: plan.code })
-      res.status(201).json(created)
-    } catch (error) {
-      await recordOrderFailure(req, { concept: 'membership', error, planCode })
-      next(error)
-    }
-  })
-  router.post('/me/registrations', publicWriteLimiter, validateBody(registrationSchema), async (req, res, next) => {
-    const eventSlug = req.validatedBody?.eventSlug ?? null
-    try {
-      const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
-      await assertPaidCheckoutAvailable(env, new Date(), {
-        registrationOpensAt,
-        skipScheduleLookup: true,
-        checkoutKind: 'registration',
-      })
-      const toggles = await platformSettingsRepo().get()
-      assertCheckoutEnabled(toggles)
-      assertRegistrationCheckoutEnabled(toggles)
-      if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-        assertManualChannelEnabled(toggles, 'registration')
+    },
+  )
+  router.post(
+    '/me/registrations',
+    publicWriteLimiter,
+    validateBody(registrationSchema),
+    async (req, res, next) => {
+      const eventSlug = req.validatedBody?.eventSlug ?? null
+      try {
+        const registrationOpensAt = await resolveScopedRegistrationOpensAt(
+          env,
+          client(),
+          req.validatedBody.eventSlug,
+        )
+        await assertPaidCheckoutAvailable(env, new Date(), {
+          registrationOpensAt,
+          skipScheduleLookup: true,
+          checkoutKind: 'registration',
+        })
+        const toggles = await platformSettingsRepo().get()
+        assertCheckoutEnabled(toggles)
+        assertRegistrationCheckoutEnabled(toggles)
+        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
+          const override = await repo().discountCodeManualEligibility(
+            req.validatedBody.discountCode,
+            'registration',
+            manualPaymentChannel(req.validatedBody.paymentMethod),
+          )
+          assertManualChannelEnabled(toggles, 'registration', { override })
+        }
+        const auth = await athlete(req)
+        await assertEmailVerified(auth.athleteId)
+        await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const event = await repo().findEventPricing(eventSlug)
+        if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        const accessGate = await assertRegistrationAccessCode(accessRepo(), {
+          scope: 'registration',
+          eventSlug,
+          code: req.validatedBody.accessCode,
+        })
+        const created = await repo().createRegistration(auth.athleteId, {
+          ...req.validatedBody,
+          paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
+          defaultPrice: event.price,
+          manualPrice: event.manual_price,
+          manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+        })
+        await recordRegistrationAccessUse(accessGate, {
+          athleteId: auth.athleteId,
+          orderId: created.order.id,
+          concept: 'registration',
+        })
+        await recordOrderCreated(req, { concept: 'registration', result: created, eventSlug })
+        res.status(201).json(created)
+      } catch (error) {
+        await recordOrderFailure(req, { concept: 'registration', error, eventSlug })
+        next(error)
       }
-      const auth = await athlete(req)
-      await assertEmailVerified(auth.athleteId)
-      await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
-      const accessGate = await assertRegistrationAccessCode(accessRepo(), {
-        scope: 'registration',
-        eventSlug,
-        code: req.validatedBody.accessCode,
-      })
-      const created = await repo().createRegistration(auth.athleteId, {
-        ...req.validatedBody,
-        paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-        orderAmount: checkoutPriceFor({ concept: 'registration', paymentMethod: req.validatedBody.paymentMethod }),
-        manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
-      })
-      await recordRegistrationAccessUse(accessGate, {
-        athleteId: auth.athleteId,
-        orderId: created.order.id,
-        concept: 'registration',
-      })
-      await recordOrderCreated(req, { concept: 'registration', result: created, eventSlug })
-      res.status(201).json(created)
-    } catch (error) {
-      await recordOrderFailure(req, { concept: 'registration', error, eventSlug })
-      next(error)
-    }
-  })
+    },
+  )
   router.post(
     '/me/registration-combos',
     publicWriteLimiter,
@@ -1081,7 +1244,11 @@ export function createAthleteRoutes({
     async (req, res, next) => {
       const eventSlug = req.validatedBody?.eventSlug ?? null
       try {
-        const registrationOpensAt = await resolveScopedRegistrationOpensAt(env, client(), req.validatedBody.eventSlug)
+        const registrationOpensAt = await resolveScopedRegistrationOpensAt(
+          env,
+          client(),
+          req.validatedBody.eventSlug,
+        )
         await assertComboCheckoutAvailable(env, new Date(), {
           registrationOpensAt,
           skipScheduleLookup: true,
@@ -1094,12 +1261,23 @@ export function createAthleteRoutes({
         assertMembershipCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
         if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          assertManualChannelEnabled(toggles, 'membership')
-          assertManualChannelEnabled(toggles, 'registration')
+          // El combo destraba con un código de alcance 'combo' o 'both': pasar
+          // scope 'combo' hace que discountCodeManualEligibility no matchee
+          // 'membership' ni 'registration' solos. El canal pedido también tiene
+          // que estar entre los que el código habilita.
+          const override = await repo().discountCodeManualEligibility(
+            req.validatedBody.discountCode,
+            'combo',
+            manualPaymentChannel(req.validatedBody.paymentMethod),
+          )
+          assertManualChannelEnabled(toggles, 'membership', { override })
+          assertManualChannelEnabled(toggles, 'registration', { override })
         }
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const comboOffer = await repo().findEventComboOffer(eventSlug)
+        if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
         const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'membership',
           code: req.validatedBody.membershipAccessCode,
@@ -1112,7 +1290,8 @@ export function createAthleteRoutes({
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          orderAmount: checkoutPriceFor({ concept: 'combo', paymentMethod: req.validatedBody.paymentMethod }),
+          defaultPrice: comboOffer.price,
+          manualPrice: comboOffer.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
         })
         await recordRegistrationAccessUse(membershipAccessGate, {
@@ -1139,92 +1318,172 @@ export function createAthleteRoutes({
    * monto real que se cobra sale únicamente de la respuesta del POST que crea
    * la orden (membership-orders/registrations) — nunca de este preview.
    */
-  router.post('/me/discount-preview', publicWriteLimiter, validateBody(discountPreviewSchema), async (req, res, next) => {
-    try {
-      const auth = await athlete(req)
-      const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
-      let baseAmount
-      if (appliesTo === 'membership') {
-        if (!planCode) throw new HttpError(400, 'Falta el plan de afiliación.')
-        const plan = await repo().findMembershipPlan(planCode)
-        if (!plan) throw new HttpError(404, 'Plan de afiliación no encontrado.')
-        baseAmount = plan.price
-      } else {
-        if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
-        const event = await repo().findEventPricing(eventSlug)
-        if (!event) throw new HttpError(404, 'Evento no encontrado.')
-        baseAmount = event.price
+  router.post(
+    '/me/discount-preview',
+    publicWriteLimiter,
+    validateBody(discountPreviewSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
+        let baseAmount
+        let manualPrice
+        if (appliesTo === 'membership') {
+          if (!planCode) throw new HttpError(400, 'Falta el plan de afiliación.')
+          const plan = await repo().findMembershipPlan(planCode)
+          if (!plan) throw new HttpError(404, 'Plan de afiliación no encontrado.')
+          baseAmount = plan.price
+          manualPrice = plan.manual_price
+        } else if (appliesTo === 'combo') {
+          if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
+          const offer = await repo().findEventComboOffer(eventSlug)
+          if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
+          baseAmount = offer.price
+          manualPrice = offer.manualPrice
+        } else {
+          if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
+          const event = await repo().findEventPricing(eventSlug)
+          if (!event) throw new HttpError(404, 'Evento no encontrado.')
+          baseAmount = event.price
+          manualPrice = event.manual_price
+        }
+        // Misma política que usa la creación de la orden: el canal manual cotiza
+        // contra el precio manual del plan/evento/combo cuando está configurado,
+        // nunca contra el de Mercado Pago.
+        if (paymentMethod && isManualPaymentMethod(paymentMethod) && manualPrice != null) {
+          baseAmount = manualPrice
+        }
+        const preview = await repo().previewDiscountCode(auth.athleteId, {
+          code,
+          appliesTo,
+          baseAmount,
+        })
+        res.json({ preview })
+      } catch (error) {
+        next(error)
       }
-      // Misma política que usa la creación de la orden: mientras la ventana
-      // Pitbull esté abierta el precio real lo fija el canal de pago, no el
-      // catálogo. Fuera de esa ventana `checkoutPriceFor` devuelve null y
-      // vuelve a mandar el precio de la tabla.
-      const checkoutAmount = paymentMethod
-        ? checkoutPriceFor({ concept: appliesTo, paymentMethod })
-        : null
-      if (checkoutAmount != null) baseAmount = checkoutAmount
-      const preview = await repo().previewDiscountCode(auth.athleteId, { code, appliesTo, baseAmount })
-      res.json({ preview })
-    } catch (error) {
-      next(error)
-    }
-  })
+    },
+  )
   /**
    * Comprobante de transferencia. Las órdenes de entrada ya tenían el ciclo
    * completo (subida firmada + revisión); las de afiliación tenían las
    * columnas en la tabla desde la fase 2 pero nada que las escribiera, así que
    * Finanzas aprobaba sin evidencia adjunta.
    */
-  router.post('/me/payment-orders/:orderId/proof-upload', athleteWriteLimiter, validateBody(proofUploadSchema), async (req, res, next) => {
-    try {
-      const auth = await athlete(req)
-      const orderId = z.string().uuid().safeParse(req.params.orderId)
-      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
-      res.json(await repo().createPaymentProofUpload(auth.athleteId, orderId.data, req.validatedBody.fileName))
-    } catch (error) { next(error) }
-  })
-  router.post('/me/payment-orders/:orderId/proof', athleteWriteLimiter, validateBody(proofSchema), async (req, res, next) => {
-    try {
-      const auth = await athlete(req)
-      const orderId = z.string().uuid().safeParse(req.params.orderId)
-      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
-      res.json(await repo().registerPaymentProof(auth.athleteId, orderId.data, req.validatedBody.proofPath))
-    } catch (error) { next(error) }
-  })
-  router.post('/me/photo-upload', athleteWriteLimiter, validateBody(uploadSchema), async (req, res, next) => {
-    try { const auth = await athlete(req); res.json(await repo().createPhotoUpload(auth.athleteId, req.validatedBody)) }
-    catch (error) { next(error) }
-  })
-  router.post('/me/photo', athleteWriteLimiter, validateBody(z.object({ photoPath: z.string().trim().nullable() })), async (req, res, next) => {
-    try {
-      const auth = await athlete(req)
-      if (req.validatedBody.photoPath) assertAthleteOwnsPath(auth.athleteId, req.validatedBody.photoPath)
-      res.json({ athlete: await repo().registerPhoto(auth.athleteId, req.validatedBody.photoPath) })
-    } catch (error) { next(error) }
-  })
-  router.post('/me/password', athleteWriteLimiter, validateBody(z.object({
-    currentPassword: z.string().min(1).max(72),
-    newPassword: z.string().min(12).max(72),
-  })), async (req, res, next) => {
-    try {
-      const auth = await athlete(req)
-      const credential = await repo().credential(auth.athleteId)
-      if (!credential || !(await verifyPassword(req.validatedBody.currentPassword, credential.password_hash))) {
-        throw new HttpError(401, 'La contraseña actual no es correcta.')
+  router.post(
+    '/me/payment-orders/:orderId/proof-upload',
+    athleteWriteLimiter,
+    validateBody(proofUploadSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(
+          await repo().createPaymentProofUpload(
+            auth.athleteId,
+            orderId.data,
+            req.validatedBody.fileName,
+          ),
+        )
+      } catch (error) {
+        next(error)
       }
-      // setPassword revoca TODAS las sesiones del atleta, incluida ésta: es el
-      // punto del cambio de contraseña (si la cuenta estaba tomada, el atacante
-      // se queda afuera). Para no expulsar también a quien la acaba de cambiar,
-      // se emite una sesión nueva y se pisa la cookie.
-      await repo().setPassword(auth.athleteId, await hashPassword(req.validatedBody.newPassword))
-      const session = await createAthleteSession({ client: client(), athleteId: auth.athleteId, req })
-      res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
-      res.status(204).end()
-    } catch (error) { next(error) }
-  })
+    },
+  )
+  router.post(
+    '/me/payment-orders/:orderId/proof',
+    athleteWriteLimiter,
+    validateBody(proofSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(
+          await repo().registerPaymentProof(
+            auth.athleteId,
+            orderId.data,
+            req.validatedBody.proofPath,
+            req.validatedBody.notes,
+          ),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/me/photo-upload',
+    athleteWriteLimiter,
+    validateBody(uploadSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        res.json(await repo().createPhotoUpload(auth.athleteId, req.validatedBody))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/me/photo',
+    athleteWriteLimiter,
+    validateBody(z.object({ photoPath: z.string().trim().nullable() })),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        if (req.validatedBody.photoPath)
+          assertAthleteOwnsPath(auth.athleteId, req.validatedBody.photoPath)
+        res.json({
+          athlete: await repo().registerPhoto(auth.athleteId, req.validatedBody.photoPath),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/me/password',
+    athleteWriteLimiter,
+    validateBody(
+      z.object({
+        currentPassword: z.string().min(1).max(72),
+        newPassword: z.string().min(12).max(72),
+      }),
+    ),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const credential = await repo().credential(auth.athleteId)
+        if (
+          !credential ||
+          !(await verifyPassword(req.validatedBody.currentPassword, credential.password_hash))
+        ) {
+          throw new HttpError(401, 'La contraseña actual no es correcta.')
+        }
+        // setPassword revoca TODAS las sesiones del atleta, incluida ésta: es el
+        // punto del cambio de contraseña (si la cuenta estaba tomada, el atacante
+        // se queda afuera). Para no expulsar también a quien la acaba de cambiar,
+        // se emite una sesión nueva y se pisa la cookie.
+        await repo().setPassword(auth.athleteId, await hashPassword(req.validatedBody.newPassword))
+        const session = await createAthleteSession({
+          client: client(),
+          athleteId: auth.athleteId,
+          req,
+        })
+        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+        res.status(204).end()
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.get('/admin', ...adminGuard, staffLimiter, async (req, res, next) => {
     try {
+      const parsedFilters = adminDataQuerySchema.safeParse(req.query)
+      if (!parsedFilters.success) throw new HttpError(400, 'Filtros de panel inválidos.')
       const canReadAthletes = hasPermission(req.auth.user, 'admin.athletes.read')
       const canReadMemberships = hasPermission(req.auth.user, 'admin.memberships.read')
       const canReadRegistrations = hasPermission(req.auth.user, 'admin.registrations.read')
@@ -1232,12 +1491,15 @@ export function createAthleteRoutes({
       // No leemos segmentos que el rol no puede recibir. Antes se cargaban
       // las cuatro tablas y luego se descartaban del JSON: costaba base y
       // transferencia aun para perfiles de alcance acotado.
-      const data = await repo().adminData({
-        athletes: canReadAthletes,
-        memberships: canReadMemberships,
-        registrations: canReadRegistrations,
-        paymentOrders: canReadPayments,
-      })
+      const data = await repo().adminData(
+        {
+          athletes: canReadAthletes,
+          memberships: canReadMemberships,
+          registrations: canReadRegistrations,
+          paymentOrders: canReadPayments,
+        },
+        parsedFilters.data,
+      )
 
       res.json({
         athletes: canReadAthletes ? data.athletes : [],
@@ -1248,7 +1510,9 @@ export function createAthleteRoutes({
         // órdenes aunque el rol no tuviera admin.payments.read.
         paymentOrders: canReadPayments ? data.paymentOrders : [],
       })
-    } catch (error) { next(error) }
+    } catch (error) {
+      next(error)
+    }
   })
   /**
    * Interruptor de validación: con el concepto congelado desde el panel nadie
@@ -1341,41 +1605,54 @@ export function createAthleteRoutes({
     })
   }
 
-  router.post('/admin/payment-orders/:orderId/reject', ...financeGuard, staffLimiter, validateBody(rejectPaymentSchema), async (req, res, next) => {
-    const orderId = z.string().uuid().safeParse(req.params.orderId)
-    try {
-      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
-      await assertOrderValidationEnabled(orderId.data)
-      const result = await repo().rejectPayment(orderId.data, req.validatedBody.reason, actorLabel(req))
-      await paymentTrail().record({
-        action: PAYMENT_TRAIL_ACTIONS.manualRejection,
-        entityType: 'athlete_payment_order',
-        entityId: orderId.data,
-        status: result?.order?.status ?? 'rechazado',
-        severity: 'warning',
-        metadata: {
+  router.post(
+    '/admin/payment-orders/:orderId/reject',
+    ...financeGuard,
+    staffLimiter,
+    validateBody(rejectPaymentSchema),
+    async (req, res, next) => {
+      const orderId = z.string().uuid().safeParse(req.params.orderId)
+      try {
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertOrderValidationEnabled(orderId.data)
+        const result = await repo().rejectPayment(
+          orderId.data,
+          req.validatedBody.reason,
+          actorLabel(req),
+        )
+        await paymentTrail().record({
+          action: PAYMENT_TRAIL_ACTIONS.manualRejection,
+          entityType: 'athlete_payment_order',
+          entityId: orderId.data,
+          status: result?.order?.status ?? 'rechazado',
+          severity: 'warning',
+          metadata: {
+            stage: 'manual_rejection',
+            method: result?.order?.method ?? 'manual_link',
+            rejectedBy: actorLabel(req),
+            reason: req.validatedBody.reason,
+          },
+        })
+        // Best-effort: la orden ya quedó rechazada, un fallo de email no lo revierte.
+        await notifyManualRejection(result?.order, req.validatedBody.reason).catch((error) =>
+          logger.warn('payment.manual_rejection_email_failed', {
+            orderId: orderId.data,
+            err: error,
+          }),
+        )
+        res.json(result)
+      } catch (error) {
+        await paymentTrail().recordFailure({
           stage: 'manual_rejection',
-          method: result?.order?.method ?? 'manual_link',
-          rejectedBy: actorLabel(req),
-          reason: req.validatedBody.reason,
-        },
-      })
-      // Best-effort: la orden ya quedó rechazada, un fallo de email no lo revierte.
-      await notifyManualRejection(result?.order, req.validatedBody.reason).catch((error) =>
-        logger.warn('payment.manual_rejection_email_failed', { orderId: orderId.data, err: error }),
-      )
-      res.json(result)
-    } catch (error) {
-      await paymentTrail().recordFailure({
-        stage: 'manual_rejection',
-        entityType: 'athlete_payment_order',
-        entityId: orderId.success ? orderId.data : String(req.params.orderId),
-        error,
-        metadata: { rejectedBy: req.auth?.user?.email ?? null },
-      })
-      next(error)
-    }
-  })
+          entityType: 'athlete_payment_order',
+          entityId: orderId.success ? orderId.data : String(req.params.orderId),
+          error,
+          metadata: { rejectedBy: req.auth?.user?.email ?? null },
+        })
+        next(error)
+      }
+    },
+  )
   /**
    * Bandeja de órdenes de atleta. Antes la única forma de llegar a una orden
    * de afiliación pendiente era entrar atleta por atleta desde el padrón, y el
@@ -1387,52 +1664,69 @@ export function createAthleteRoutes({
       const parsed = paymentOrdersQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Filtros de pago inválidos.')
       res.json({ orders: await repo().listPaymentOrders(parsed.data) })
-    } catch (error) { next(error) }
-  })
-  router.get('/admin/payment-orders/:orderId/proof-url', ...financeReadGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const orderId = z.string().uuid().safeParse(req.params.orderId)
-      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
-      res.json({ url: await repo().paymentProofUrl(orderId.data) })
-    } catch (error) { next(error) }
-  })
-  router.post('/admin/payment-orders/:orderId/approve', ...financeGuard, staffLimiter, async (req, res, next) => {
-    const orderId = z.string().uuid().safeParse(req.params.orderId)
-    try {
-      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
-      await assertOrderValidationEnabled(orderId.data)
-      const result = await repo().approvePayment(orderId.data, actorLabel(req))
-      // La aprobacion manual mueve plata igual que Mercado Pago: queda en la
-      // misma bitacora, con el operador que la firmo.
-      await paymentTrail().record({
-        action: PAYMENT_TRAIL_ACTIONS.applied,
-        entityType: 'athlete_payment_order',
-        entityId: orderId.data,
-        status: result?.order?.status ?? 'aprobado',
-        severity: 'success',
-        metadata: {
-          stage: 'manual_approval',
-          method: result?.order?.method ?? 'manual_link',
-          approvedBy: actorLabel(req),
-          amount: result?.order?.amount ?? null,
-        },
-      })
-      // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
-      await notifyManualApproval(result).catch((error) =>
-        logger.warn('payment.manual_approval_email_failed', { orderId: orderId.data, err: error }),
-      )
-      res.json(result)
     } catch (error) {
-      await paymentTrail().recordFailure({
-        stage: 'manual_approval',
-        entityType: 'athlete_payment_order',
-        entityId: orderId.success ? orderId.data : String(req.params.orderId),
-        error,
-        metadata: { approvedBy: req.auth?.user?.email ?? null },
-      })
       next(error)
     }
   })
+  router.get(
+    '/admin/payment-orders/:orderId/proof-url',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json({ url: await repo().paymentProofUrl(orderId.data) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/payment-orders/:orderId/approve',
+    ...financeGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      const orderId = z.string().uuid().safeParse(req.params.orderId)
+      try {
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        await assertOrderValidationEnabled(orderId.data)
+        const result = await repo().approvePayment(orderId.data, actorLabel(req))
+        // La aprobacion manual mueve plata igual que Mercado Pago: queda en la
+        // misma bitacora, con el operador que la firmo.
+        await paymentTrail().record({
+          action: PAYMENT_TRAIL_ACTIONS.applied,
+          entityType: 'athlete_payment_order',
+          entityId: orderId.data,
+          status: result?.order?.status ?? 'aprobado',
+          severity: 'success',
+          metadata: {
+            stage: 'manual_approval',
+            method: result?.order?.method ?? 'manual_link',
+            approvedBy: actorLabel(req),
+            amount: result?.order?.amount ?? null,
+          },
+        })
+        // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
+        await notifyManualApproval(result).catch((error) =>
+          logger.warn('payment.manual_approval_email_failed', {
+            orderId: orderId.data,
+            err: error,
+          }),
+        )
+        res.json(result)
+      } catch (error) {
+        await paymentTrail().recordFailure({
+          stage: 'manual_approval',
+          entityType: 'athlete_payment_order',
+          entityId: orderId.success ? orderId.data : String(req.params.orderId),
+          error,
+          metadata: { approvedBy: req.auth?.user?.email ?? null },
+        })
+        next(error)
+      }
+    },
+  )
   /**
    * Acreditación manual de una orden que el proveedor dio por perdida. Es la
    * contracara de `/approve`: aquella solo toca transferencias y solo mientras
@@ -1445,173 +1739,243 @@ export function createAthleteRoutes({
    * ese interruptor apaga la validación de comprobantes del flujo normal, y
    * esta es justamente la vía de excepción para cuando el flujo normal falló.
    */
-  router.post('/admin/payment-orders/:orderId/force-settle', ...financeGuard, staffLimiter, validateBody(forceSettlePaymentSchema), async (req, res, next) => {
-    const orderId = z.string().uuid().safeParse(req.params.orderId)
-    try {
-      if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
-      const result = await repo().forceSettlePayment(
-        orderId.data,
-        { reason: req.validatedBody.reason, reference: req.validatedBody.reference ?? null },
-        actorLabel(req),
-      )
-      await paymentTrail().record({
-        action: PAYMENT_TRAIL_ACTIONS.forceSettled,
-        entityType: 'athlete_payment_order',
-        entityId: orderId.data,
-        status: result?.order?.status ?? 'aprobado',
-        // `warning`, no `success`: acreditar por fuera del proveedor es una
-        // excepción y tiene que saltar a la vista en la bitácora.
-        severity: 'warning',
-        metadata: {
+  router.post(
+    '/admin/payment-orders/:orderId/force-settle',
+    ...financeGuard,
+    staffLimiter,
+    validateBody(forceSettlePaymentSchema),
+    async (req, res, next) => {
+      const orderId = z.string().uuid().safeParse(req.params.orderId)
+      try {
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        const result = await repo().forceSettlePayment(
+          orderId.data,
+          { reason: req.validatedBody.reason, reference: req.validatedBody.reference ?? null },
+          actorLabel(req),
+        )
+        await paymentTrail().record({
+          action: PAYMENT_TRAIL_ACTIONS.forceSettled,
+          entityType: 'athlete_payment_order',
+          entityId: orderId.data,
+          status: result?.order?.status ?? 'aprobado',
+          // `warning`, no `success`: acreditar por fuera del proveedor es una
+          // excepción y tiene que saltar a la vista en la bitácora.
+          severity: 'warning',
+          metadata: {
+            stage: 'force_settlement',
+            method: result?.order?.method ?? null,
+            settledBy: actorLabel(req),
+            amount: result?.order?.amount ?? null,
+            reason: req.validatedBody.reason,
+            providerReference: req.validatedBody.reference ?? null,
+            duplicate: Boolean(result?.duplicate),
+          },
+        })
+        // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
+        await notifyManualApproval(result).catch((error) =>
+          logger.warn('payment.force_settlement_email_failed', {
+            orderId: orderId.data,
+            err: error,
+          }),
+        )
+        res.json(result)
+      } catch (error) {
+        await paymentTrail().recordFailure({
           stage: 'force_settlement',
-          method: result?.order?.method ?? null,
-          settledBy: actorLabel(req),
-          amount: result?.order?.amount ?? null,
-          reason: req.validatedBody.reason,
-          providerReference: req.validatedBody.reference ?? null,
-          duplicate: Boolean(result?.duplicate),
-        },
-      })
-      // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
-      await notifyManualApproval(result).catch((error) =>
-        logger.warn('payment.force_settlement_email_failed', { orderId: orderId.data, err: error }),
-      )
-      res.json(result)
-    } catch (error) {
-      await paymentTrail().recordFailure({
-        stage: 'force_settlement',
-        entityType: 'athlete_payment_order',
-        entityId: orderId.success ? orderId.data : String(req.params.orderId),
-        error,
-        metadata: { settledBy: req.auth?.user?.email ?? null },
-      })
-      next(error)
-    }
-  })
+          entityType: 'athlete_payment_order',
+          entityId: orderId.success ? orderId.data : String(req.params.orderId),
+          error,
+          metadata: { settledBy: req.auth?.user?.email ?? null },
+        })
+        next(error)
+      }
+    },
+  )
   /**
    * Corrección manual del estado de una inscripción. Hasta ahora el panel solo
    * podía aprobar el pago asociado o borrar la inscripción entera: no había
    * forma de observar a un atleta, ni de revertir una cancelación equivocada
    * sin perder división, categoría y horario ya asignados.
    */
-  router.post('/admin/registrations/:registrationId/status', ...registrationWriteGuard, staffLimiter, validateBody(registrationStatusSchema), async (req, res, next) => {
-    try {
-      const registrationId = z.string().uuid().safeParse(req.params.registrationId)
-      if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
-      res.json(await repo().setRegistrationStatus(
-        registrationId.data,
-        req.validatedBody.status,
-        req.validatedBody.reason,
-        actorLabel(req),
-      ))
-    } catch (error) { next(error) }
-  })
+  router.post(
+    '/admin/registrations/:registrationId/status',
+    ...registrationWriteGuard,
+    staffLimiter,
+    validateBody(registrationStatusSchema),
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        res.json(
+          await repo().setRegistrationStatus(
+            registrationId.data,
+            req.validatedBody.status,
+            req.validatedBody.reason,
+            actorLabel(req),
+          ),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   /**
    * Credencial de un socio desde el panel: hasta ahora no había forma de ver
    * el QR emitido, y si un token se filtraba la única salida era editar la
    * fila a mano en la base.
    */
-  router.get('/admin/memberships/:membershipId/credential', ...adminGuard, staffLimiter, async (req, res, next) => {
-    try {
-      if (!hasPermission(req.auth.user, 'admin.memberships.read')) {
-        throw new HttpError(403, 'Sin permisos para ver afiliaciones.')
-      }
-      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
-      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
-      res.json({ membership: await repo().membershipCredential(membershipId.data) })
-    } catch (error) { next(error) }
-  })
-  router.post('/admin/memberships/:membershipId/status', ...membershipWriteGuard, staffLimiter, validateBody(
-    z.object({ status: z.enum(['activa', 'cancelada']) }),
-  ), async (req, res, next) => {
-    try {
-      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
-      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
-      // Activar a mano es acreditar sin orden: cae bajo el mismo interruptor de
-      // validación que la aprobación de un comprobante. La baja también, para no
-      // dejar media pantalla operativa con el concepto congelado.
-      assertValidationEnabled(await platformSettingsRepo().get(), 'membership')
-      const result = await repo().setMembershipStatus(
-        membershipId.data,
-        req.validatedBody.status,
-        actorLabel(req),
-      )
-
-      const membership = result?.membership
-      if (membership?.athlete_id && !result?.duplicate) {
-        try {
-          const contact = await repo().findContact(membership.athlete_id)
-          if (contact?.email) {
-            const type = req.validatedBody.status === 'activa'
-              ? 'affiliation_approved'
-              : 'affiliation_cancelled'
-            await sendBestEffort(type, {
-              to: contact.email,
-              toName: contact.full_name,
-              entityType: 'membership',
-              entityId: membership.id,
-              // `updated_at` identifica esta transición concreta: repetir el
-              // mismo request es idempotente, pero una baja y reactivación
-              // posterior de la misma afiliación sí merece un aviso nuevo.
-              idempotencyKey: type === 'affiliation_approved'
-                ? `email:affiliation-approved:${membership.id}:manual:${membership.updated_at}`
-                : `email:affiliation-cancelled:${membership.id}:manual:${membership.updated_at}`,
-              params: type === 'affiliation_approved'
-                ? {
-                    name: contact.full_name,
-                    memberCode: membership.member_code,
-                    expirationDate: membership.expiration_date,
-                    accountUrl: `${appUrl}/mi-cuenta`,
-                  }
-                : {
-                    name: contact.full_name,
-                    memberCode: membership.member_code,
-                    status: membership.status,
-                    accountUrl: `${appUrl}/mi-cuenta`,
-                  },
-            })
-          }
-        } catch (notificationError) {
-          console.warn(
-            '[membership-status] no se pudo reservar la notificación',
-            notificationError?.message ?? notificationError,
-          )
+  router.get(
+    '/admin/memberships/:membershipId/credential',
+    ...adminGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        if (!hasPermission(req.auth.user, 'admin.memberships.read')) {
+          throw new HttpError(403, 'Sin permisos para ver afiliaciones.')
         }
+        const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+        if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+        res.json({ membership: await repo().membershipCredential(membershipId.data) })
+      } catch (error) {
+        next(error)
       }
+    },
+  )
+  router.post(
+    '/admin/memberships/:membershipId/status',
+    ...membershipWriteGuard,
+    staffLimiter,
+    validateBody(z.object({ status: z.enum(['activa', 'cancelada']) })),
+    async (req, res, next) => {
+      try {
+        const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+        if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+        // Activar a mano es acreditar sin orden: cae bajo el mismo interruptor de
+        // validación que la aprobación de un comprobante. La baja también, para no
+        // dejar media pantalla operativa con el concepto congelado.
+        assertValidationEnabled(await platformSettingsRepo().get(), 'membership')
+        const result = await repo().setMembershipStatus(
+          membershipId.data,
+          req.validatedBody.status,
+          actorLabel(req),
+        )
 
-      res.json(result)
-    } catch (error) { next(error) }
-  })
+        const membership = result?.membership
+        if (membership?.athlete_id && !result?.duplicate) {
+          try {
+            const contact = await repo().findContact(membership.athlete_id)
+            if (contact?.email) {
+              const type =
+                req.validatedBody.status === 'activa'
+                  ? 'affiliation_approved'
+                  : 'affiliation_cancelled'
+              await sendBestEffort(type, {
+                to: contact.email,
+                toName: contact.full_name,
+                entityType: 'membership',
+                entityId: membership.id,
+                // `updated_at` identifica esta transición concreta: repetir el
+                // mismo request es idempotente, pero una baja y reactivación
+                // posterior de la misma afiliación sí merece un aviso nuevo.
+                idempotencyKey:
+                  type === 'affiliation_approved'
+                    ? `email:affiliation-approved:${membership.id}:manual:${membership.updated_at}`
+                    : `email:affiliation-cancelled:${membership.id}:manual:${membership.updated_at}`,
+                params:
+                  type === 'affiliation_approved'
+                    ? {
+                        name: contact.full_name,
+                        memberCode: membership.member_code,
+                        expirationDate: membership.expiration_date,
+                        accountUrl: `${appUrl}/mi-cuenta`,
+                      }
+                    : {
+                        name: contact.full_name,
+                        memberCode: membership.member_code,
+                        status: membership.status,
+                        accountUrl: `${appUrl}/mi-cuenta`,
+                      },
+              })
+            }
+          } catch (notificationError) {
+            console.warn(
+              '[membership-status] no se pudo reservar la notificación',
+              notificationError?.message ?? notificationError,
+            )
+          }
+        }
+
+        res.json(result)
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   // Rota la credencial de la persona. Es la que hay que usar cuando un token
   // se filtró: la de afiliación solo alcanza a las cards del modelo viejo.
-  router.post('/admin/:athleteId/rotate-credential', ...membershipWriteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const athleteId = z.string().uuid().safeParse(req.params.athleteId)
-      if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
-      res.json(await repo().rotateAthleteCredentialToken(athleteId.data, actorLabel(req)))
-    } catch (error) { next(error) }
-  })
-  router.post('/admin/memberships/:membershipId/rotate-qr', ...membershipWriteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
-      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
-      res.json(await repo().rotateMembershipQrToken(membershipId.data, actorLabel(req)))
-    } catch (error) { next(error) }
-  })
-  router.delete('/admin/memberships/:membershipId', ...membershipDeleteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const membershipId = z.string().uuid().safeParse(req.params.membershipId)
-      if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
-      res.json({ deletedMembership: await repo().deleteMembership(membershipId.data, actorLabel(req)) })
-    } catch (error) { next(error) }
-  })
-  router.delete('/admin/registrations/:registrationId', ...registrationDeleteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const registrationId = z.string().uuid().safeParse(req.params.registrationId)
-      if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
-      res.json({ deletedRegistration: await repo().deleteRegistration(registrationId.data, actorLabel(req)) })
-    } catch (error) { next(error) }
-  })
+  router.post(
+    '/admin/:athleteId/rotate-credential',
+    ...membershipWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        res.json(await repo().rotateAthleteCredentialToken(athleteId.data, actorLabel(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/admin/memberships/:membershipId/rotate-qr',
+    ...membershipWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+        if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+        res.json(await repo().rotateMembershipQrToken(membershipId.data, actorLabel(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.delete(
+    '/admin/memberships/:membershipId',
+    ...membershipDeleteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const membershipId = z.string().uuid().safeParse(req.params.membershipId)
+        if (!membershipId.success) throw new HttpError(400, 'Afiliación inválida.')
+        res.json({
+          deletedMembership: await repo().deleteMembership(membershipId.data, actorLabel(req)),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.delete(
+    '/admin/registrations/:registrationId',
+    ...registrationDeleteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const registrationId = z.string().uuid().safeParse(req.params.registrationId)
+        if (!registrationId.success) throw new HttpError(400, 'Inscripción inválida.')
+        res.json({
+          deletedRegistration: await repo().deleteRegistration(
+            registrationId.data,
+            actorLabel(req),
+          ),
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.post(
     '/admin/registrations/:registrationId/public-visibility',
     ...registrationWriteGuard,
@@ -1628,19 +1992,31 @@ export function createAthleteRoutes({
             actorLabel(req),
           ),
         })
-      } catch (error) { next(error) }
+      } catch (error) {
+        next(error)
+      }
     },
   )
-  router.post('/admin/:athleteId/credential', ...accountGuard, staffLimiter, validateBody(
-    z.object({ password: z.string().min(12).max(72) }),
-  ), async (req, res, next) => {
-    try {
-      const athleteId = z.string().uuid().safeParse(req.params.athleteId)
-      if (!athleteId.success) throw new HttpError(400, 'Atleta invalido.')
-      await repo().setPassword(athleteId.data, await hashPassword(req.validatedBody.password), actorLabel(req))
-      res.status(204).end()
-    } catch (error) { next(error) }
-  })
+  router.post(
+    '/admin/:athleteId/credential',
+    ...accountGuard,
+    staffLimiter,
+    validateBody(z.object({ password: z.string().min(12).max(72) })),
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta invalido.')
+        await repo().setPassword(
+          athleteId.data,
+          await hashPassword(req.validatedBody.password),
+          actorLabel(req),
+        )
+        res.status(204).end()
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * Borrado definitivo del atleta y todo lo asociado (afiliaciones,
@@ -1648,14 +2024,21 @@ export function createAthleteRoutes({
    * admin.athletes.delete y no tiene vuelta atrás. La cascada y la auditoría viven en la RPC
    * delete_athlete (20260810230000_athlete_hard_delete.sql).
    */
-  router.delete('/admin/:athleteId', ...athleteDeleteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      const athleteId = z.string().uuid().safeParse(req.params.athleteId)
-      if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
-      const deleted = await repo().deleteAthlete(athleteId.data, actorLabel(req))
-      res.json({ deletedAthlete: deleted })
-    } catch (error) { next(error) }
-  })
+  router.delete(
+    '/admin/:athleteId',
+    ...athleteDeleteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        const deleted = await repo().deleteAthlete(athleteId.data, actorLabel(req))
+        res.json({ deletedAthlete: deleted })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   return router
 }

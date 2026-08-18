@@ -1,4 +1,8 @@
-import { DEFAULT_EVENT_PRICING, isComboOfferLive, normalizeEventPricingInput } from '../lib/eventPricing.js'
+import {
+  DEFAULT_EVENT_PRICING,
+  isComboOfferLive,
+  normalizeEventPricingInput,
+} from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isRegistrationOpen } from '../lib/status.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
@@ -610,6 +614,8 @@ export function mapSupabaseEventRow(row) {
           id: comboOfferRow.id,
           membershipPlanId: comboOfferRow.membership_plan_id,
           price: Number(comboOfferRow.price),
+          manualPrice:
+            comboOfferRow.manual_price != null ? Number(comboOfferRow.manual_price) : null,
           currency: comboOfferRow.currency,
           active: comboOfferRow.active === true,
           startsAt: comboOfferRow.starts_at ?? null,
@@ -617,6 +623,7 @@ export function mapSupabaseEventRow(row) {
         }
       : null,
     price: row.price,
+    manualPrice: row.manual_price != null ? Number(row.manual_price) : null,
     currency: row.currency,
     liveStreamUrl: row.live_stream_url,
     liveStreamProvider: row.live_stream_provider,
@@ -631,6 +638,7 @@ export function mapSupabaseEventRow(row) {
     ticketTypes,
     pricing: normalizeEventPricingInput({
       registration: row.price,
+      registrationManual: row.manual_price,
       membership: rules.membershipPrice,
       combo: isComboOfferLive({
         active: comboOfferRow?.active === true,
@@ -665,10 +673,10 @@ const PUBLISHED_EVENTS_SELECT = `
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
-  capacity, status, published, requires_membership, price, currency, rules,
+  capacity, status, published, requires_membership, price, manual_price, currency, rules,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventDays:event_days(id, day_index, label, date),
-  comboOffer:event_combo_offers(id, membership_plan_id, price, currency, active, starts_at, ends_at),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
@@ -685,7 +693,10 @@ export async function fetchPublishedEvents() {
       return events.map(mapAdminEventRow)
     }
   } catch (error) {
-    console.warn('Catálogo público vía API no disponible, intento Supabase client.', error?.message ?? error)
+    console.warn(
+      'Catálogo público vía API no disponible, intento Supabase client.',
+      error?.message ?? error,
+    )
   }
 
   if (!isSupabaseConfigured) return []

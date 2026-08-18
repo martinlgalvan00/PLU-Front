@@ -88,10 +88,8 @@ export function resolveMutationPathname(req) {
     try {
       const pathname = /^https?:\/\//i.test(raw) ? new URL(raw).pathname : raw
       const normalized = pathname.replace(/\/+$/, '') || '/'
-      if (
-        SERVER_TO_SERVER_MUTATION_PATHS.has(normalized)
-        || BEACON_MUTATION_PATHS.has(normalized)
-      ) return normalized
+      if (SERVER_TO_SERVER_MUTATION_PATHS.has(normalized) || BEACON_MUTATION_PATHS.has(normalized))
+        return normalized
     } catch {
       // Seguir con el siguiente candidato.
     }
@@ -148,7 +146,11 @@ export function requireTrustedMutation(req, _res, next) {
   // A diferencia del bypass server-to-server, acá se exige un Origin presente
   // y permitido (no simplemente ausente): es la única señal que sendBeacon
   // deja mandar, así que no puede quedar opcional como en el resto de la ruta.
-  if (origin && isAllowedOrigin(origin) && BEACON_MUTATION_PATHS.has(resolveMutationPathname(req))) {
+  if (
+    origin &&
+    isAllowedOrigin(origin) &&
+    BEACON_MUTATION_PATHS.has(resolveMutationPathname(req))
+  ) {
     next()
     return
   }

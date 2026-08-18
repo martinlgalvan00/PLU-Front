@@ -54,7 +54,8 @@ describe('íconos de la navegación del panel', () => {
   })
 
   it('usa los mismos íconos en los dos idiomas', () => {
-    const iconsOf = (groups) => groups.flatMap((group) => group.items.map(([key, , icon]) => `${key}:${icon}`))
+    const iconsOf = (groups) =>
+      groups.flatMap((group) => group.items.map(([key, , icon]) => `${key}:${icon}`))
     expect(iconsOf(ADMIN_NAV_GROUPS_EN)).toEqual(iconsOf(ADMIN_NAV_GROUPS_ES))
   })
 })

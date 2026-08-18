@@ -4,11 +4,7 @@ import { ArrowRight, Mail } from 'lucide-react'
 import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
-import {
-  hasPublishedSponsors,
-  listSponsorsByTier,
-  SPONSOR_TIERS,
-} from '../data/sponsors.js'
+import { hasPublishedSponsors, listSponsorsByTier, SPONSOR_TIERS } from '../data/sponsors.js'
 
 export default function SponsorsPage({ onNavigate }) {
   const { messages, t } = useI18n()
@@ -115,12 +111,20 @@ export default function SponsorsPage({ onNavigate }) {
               <p>{t('pages.sponsors.closeLead')}</p>
             </div>
             <div className="team-close__actions">
-              <button type="button" className="team-close__primary" onClick={() => onNavigate?.('contact')}>
+              <button
+                type="button"
+                className="team-close__primary"
+                onClick={() => onNavigate?.('contact')}
+              >
                 <Mail size={16} aria-hidden />
                 <span>{t('pages.sponsors.ctaContact')}</span>
                 <ArrowRight size={14} aria-hidden />
               </button>
-              <button type="button" className="team-close__secondary" onClick={() => onNavigate?.('events')}>
+              <button
+                type="button"
+                className="team-close__secondary"
+                onClick={() => onNavigate?.('events')}
+              >
                 <span>{t('pages.sponsors.ctaCalendar')}</span>
                 <ArrowRight size={13} aria-hidden />
               </button>

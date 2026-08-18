@@ -2,13 +2,7 @@ import { useId } from 'react'
 import { m } from 'framer-motion'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
-export default function SegmentedSwitch({
-  active,
-  ariaLabel,
-  className = '',
-  onChange,
-  options,
-}) {
+export default function SegmentedSwitch({ active, ariaLabel, className = '', onChange, options }) {
   const layoutId = useId()
   const { reducedMotion } = useMotionConfig()
 

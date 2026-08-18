@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
+import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
@@ -31,11 +32,11 @@ const CATALOG_EVENT_SELECT = `
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
-  capacity, status, published, requires_membership, price, currency, rules,
+  capacity, status, published, requires_membership, price, manual_price, currency, rules,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventRegistrations:event_registrations(count),
   eventDays:event_days(id, day_index, label, date),
-  comboOffer:event_combo_offers(id, membership_plan_id, price, currency, active, starts_at, ends_at),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
@@ -88,6 +89,9 @@ const pricingSchema = z
   .object({
     membership: boundedMoney,
     registration: paidMoney,
+    // Precio para transferencia/efectivo. Vacío = cobra igual que `registration`
+    // en cualquier canal.
+    registrationManual: paidMoney.optional(),
     combo: boundedMoney,
     ticketsEnabled: z.boolean().optional(),
     ticketAddons: z.array(ticketAddonSchema).max(30).optional(),
@@ -396,7 +400,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           .order('starts_at'),
         'No se pudieron leer los eventos públicos.',
       )
-      res.set('Cache-Control', 'public, max-age=30, s-maxage=30, stale-while-revalidate=60')
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.CATALOG))
       res.json({ events: Array.isArray(events) ? events : [] })
     } catch (error) {
       next(error)
@@ -412,6 +416,9 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         await client.rpc('get_event_registration_capacity', { p_event_slug: slug }),
         'No se pudo consultar el cupo de inscripción.',
       )
+      // El hook de cupo la pide cada 30 s por visitante (`LIVE_REGISTRATION_POLL_MS`):
+      // en una difusión son cientos de invocaciones por minuto contra el mismo número.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
       res.json({ summary: await attachRecentRegistrationPortraits(client, summary) })
     } catch (error) {
       next(error)
@@ -498,29 +505,24 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
    * `requiresForce` en true es la señal de que el evento ya movió plata o
    * gente: ahí el panel exige escribir el identificador antes de confirmar.
    */
-  router.get(
-    '/:eventSlug/delete-impact',
-    ...deleteGuard,
-    staffLimiter,
-    async (req, res, next) => {
-      try {
-        const slug = parseEventSlug(req.params.eventSlug)
-        const client = requireSupabaseClient(getSupabaseAdmin())
-        const impact = assertSupabaseResult(
-          await client.rpc('delete_event', {
-            p_event_slug: slug,
-            p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
-            p_force: false,
-            p_dry_run: true,
-          }),
-          'No se pudo calcular el impacto del borrado.',
-        )
-        res.json({ impact })
-      } catch (error) {
-        next(error)
-      }
-    },
-  )
+  router.get('/:eventSlug/delete-impact', ...deleteGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const slug = parseEventSlug(req.params.eventSlug)
+      const client = requireSupabaseClient(getSupabaseAdmin())
+      const impact = assertSupabaseResult(
+        await client.rpc('delete_event', {
+          p_event_slug: slug,
+          p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+          p_force: false,
+          p_dry_run: true,
+        }),
+        'No se pudo calcular el impacto del borrado.',
+      )
+      res.json({ impact })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   /**
    * Borrado definitivo del evento y todo lo que cuelga de él. Exige

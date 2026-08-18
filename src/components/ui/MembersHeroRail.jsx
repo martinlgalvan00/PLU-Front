@@ -28,11 +28,19 @@ export default function MembersHeroRail({ actionLabel, onAffiliate, onViewPlans 
         </p>
 
         <div className="members-hero-rail__actions">
-          <button type="button" className="members-hero-rail__cta members-hero-rail__cta--primary" onClick={onAffiliate}>
+          <button
+            type="button"
+            className="members-hero-rail__cta members-hero-rail__cta--primary"
+            onClick={onAffiliate}
+          >
             {actionLabel ?? rail.affiliateNow}
             <ArrowRight size={14} aria-hidden />
           </button>
-          <button type="button" className="members-hero-rail__cta members-hero-rail__cta--ghost" onClick={onViewPlans}>
+          <button
+            type="button"
+            className="members-hero-rail__cta members-hero-rail__cta--ghost"
+            onClick={onViewPlans}
+          >
             {rail.viewPlans}
           </button>
         </div>

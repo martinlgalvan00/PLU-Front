@@ -29,21 +29,25 @@ describe('resolveEventRegistrationOpensAt', () => {
       'evento-b': { registration_opens_at: '2026-12-01T00:00:00-03:00' },
     })
 
-    await expect(resolveEventRegistrationOpensAt(client, { eventSlug: 'evento-a' }))
-      .resolves.toBe('2026-08-01T00:00:00-03:00')
-    await expect(resolveEventRegistrationOpensAt(client, { eventSlug: 'evento-b' }))
-      .resolves.toBe('2026-12-01T00:00:00-03:00')
+    await expect(resolveEventRegistrationOpensAt(client, { eventSlug: 'evento-a' })).resolves.toBe(
+      '2026-08-01T00:00:00-03:00',
+    )
+    await expect(resolveEventRegistrationOpensAt(client, { eventSlug: 'evento-b' })).resolves.toBe(
+      '2026-12-01T00:00:00-03:00',
+    )
   })
 
   it('no cae a otro evento cuando el propio no tiene fecha configurada', async () => {
     const client = supabaseFor({ 'evento-sin-fecha': { registration_opens_at: null } })
-    await expect(resolveEventRegistrationOpensAt(client, { eventSlug: 'evento-sin-fecha' }))
-      .resolves.toBeNull()
+    await expect(
+      resolveEventRegistrationOpensAt(client, { eventSlug: 'evento-sin-fecha' }),
+    ).resolves.toBeNull()
   })
 
   it('devuelve null si el evento no existe', async () => {
     const client = supabaseFor({})
-    await expect(resolveEventRegistrationOpensAt(client, { eventSlug: 'no-existe' }))
-      .resolves.toBeNull()
+    await expect(
+      resolveEventRegistrationOpensAt(client, { eventSlug: 'no-existe' }),
+    ).resolves.toBeNull()
   })
 })

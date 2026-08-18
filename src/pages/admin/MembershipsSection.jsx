@@ -1,33 +1,48 @@
-import { useMemo, useState } from 'react'
-import { Ban, CircleCheck, QrCode, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, BadgeCheck, Ban, QrCode, Trash2 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import MembershipCredentialModal from '../../components/admin/MembershipCredentialModal.jsx'
+import Pill from '../../components/ui/Pill.jsx'
 import {
   AdminIdentityCell,
   AdminMonoCell,
   AdminPeriodCell,
+  AdminTableActions,
+  AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
+import {
+  fetchPlatformFeatureToggles,
+  VALIDATION_DISABLED_CODES,
+} from '../../services/platformSettingsAdminService.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getMembershipsTourSteps } from '../../lib/adminTourSteps.js'
 import {
   MEMBERSHIP_EXPIRING_FILTER_OPTIONS,
   MEMBERSHIP_FILTER_STATUSES,
+  MEMBERSHIP_TOURNAMENT_FILTER_OPTIONS,
 } from '../../lib/constants.js'
 import { formatShortMemberCode } from '../../lib/format.js'
 import {
   filterMemberships,
-  getMembershipLifecycle,
-  getMembershipOperationalStatus,
   getMembershipStats,
   MEMBERSHIP_LIFECYCLE,
+  projectMembershipStatus,
 } from '../../services/membershipService.js'
+import { groupRegistrationsByAthlete } from '../../services/registrationAdminService.js'
+
+// Una inscripción cancelada o todavía en borrador no cuenta como "inscripto
+// a un torneo" — el socio no tiene ahí una participación real en curso.
+const NON_TOURNAMENT_REGISTRATION_STATUSES = new Set(['cancelada', 'borrador'])
 
 export default function MembershipsSection({
   memberships,
+  registrations = [],
   onSelectAthlete,
   onSetMembershipStatus,
   onDelete,
@@ -38,7 +53,14 @@ export default function MembershipsSection({
   const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-memberships', getMembershipsTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
   const [expiring, setExpiring] = useState('all')
+  const [registeredToTournament, setRegisteredToTournament] = useState('all')
   // Credencial abierta en modal. Guardamos id + nombre para el encabezado
   // sin esperar al fetch; solo una abierta a la vez.
   const [credentialTarget, setCredentialTarget] = useState(null)
@@ -46,14 +68,45 @@ export default function MembershipsSection({
   const [actionError, setActionError] = useState('')
   const [cancelTarget, setCancelTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  // Default abierto: si el GET falla no bloqueamos la pantalla. Un `false`
+  // explícito del interruptor es lo único que congela Activar / Dar de baja.
+  const [validationEnabled, setValidationEnabled] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPlatformFeatureToggles()
+      .then((toggles) => {
+        if (!cancelled) setValidationEnabled(toggles.membershipValidationEnabled !== false)
+      })
+      .catch(() => {
+        if (!cancelled) setValidationEnabled(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function applyStatus(membershipId, nextStatus) {
+    if (!validationEnabled) {
+      setActionError(t('admin.sections.memberships.validationPaused'))
+      return false
+    }
     setPendingId(membershipId)
     setActionError('')
     try {
       const result = await onSetMembershipStatus?.(membershipId, nextStatus)
       if (result?.error) {
-        setActionError(result.error)
+        // El toggle pudo apagarse después de montar la sección (el fetch de
+        // arriba corre una sola vez al entrar): si el backend confirma que la
+        // validación está pausada, sincronizamos el estado local -- así el
+        // callout y los botones deshabilitados quedan al día en vez de dejar
+        // el 409 crudo como único rastro.
+        if (result.code === VALIDATION_DISABLED_CODES.membership) {
+          setValidationEnabled(false)
+          setActionError(t('admin.sections.memberships.validationPaused'))
+        } else {
+          setActionError(result.error)
+        }
         return false
       }
       if (nextStatus === 'cancelada') setCancelTarget(null)
@@ -80,14 +133,39 @@ export default function MembershipsSection({
     }
   }
 
+  // Inscripciones agrupadas por atleta, una sola pasada (mismo patrón que
+  // AthletesSection): responder "¿este socio está inscripto a un torneo?"
+  // no debería recorrer todo `registrations` por cada afiliación.
+  const registrationsByAthlete = useMemo(
+    () => groupRegistrationsByAthlete(registrations),
+    [registrations],
+  )
+
+  // Proyecta lifecycle + operationalStatus + si tiene inscripción vigente a
+  // un torneo, todo en una sola pasada por afiliación: antes lifecycle y
+  // operationalStatus se recalculaban por separado en statusCounts, adentro
+  // de filterMemberships y de nuevo al armar cada fila visible.
+  const projectedMemberships = useMemo(
+    () =>
+      memberships.map((item) => {
+        const athleteRegistrations = registrationsByAthlete.get(item.athleteId)
+        const hasTournamentRegistration = Boolean(
+          athleteRegistrations?.some(
+            (registration) => !NON_TOURNAMENT_REGISTRATION_STATUSES.has(registration.status),
+          ),
+        )
+        return { ...item, ...projectMembershipStatus(item), hasTournamentRegistration }
+      }),
+    [memberships, registrationsByAthlete],
+  )
+
   const statusCounts = useMemo(() => {
     const counts = Object.create(null)
-    for (const item of memberships) {
-      const operationalStatus = getMembershipOperationalStatus(item)
-      counts[operationalStatus] = (counts[operationalStatus] ?? 0) + 1
+    for (const item of projectedMemberships) {
+      counts[item.operationalStatus] = (counts[item.operationalStatus] ?? 0) + 1
     }
     return counts
-  }, [memberships])
+  }, [projectedMemberships])
 
   const statusOptions = useMemo(
     () =>
@@ -111,36 +189,52 @@ export default function MembershipsSection({
     [metrics.expiringSoon, t],
   )
 
+  const tournamentRegisteredCount = useMemo(
+    () => projectedMemberships.filter((item) => item.hasTournamentRegistration).length,
+    [projectedMemberships],
+  )
+
+  const tournamentOptions = useMemo(
+    () =>
+      translateFilterOptions(MEMBERSHIP_TOURNAMENT_FILTER_OPTIONS, t).map(([value, label]) =>
+        value === 'yes' ? [value, label, tournamentRegisteredCount] : [value, label],
+      ),
+    [tournamentRegisteredCount, t],
+  )
+
   const rows = useMemo(
     () =>
-      filterMemberships(memberships, { query, status, expiring }).map((item) => {
-        const lifecycle = getMembershipLifecycle(item)
-        return {
-          id: item.id,
-          athlete: item.athlete?.fullName ?? '—',
-          athleteId: item.athleteId,
-          document: item.athlete?.documentId ?? '—',
-          gym: item.athlete?.gym ?? '',
-          photoUrl: item.athlete?.photoUrl ?? null,
-          memberCode: item.memberCode,
-          year: item.year,
-          status: item.status,
-          operationalStatus: getMembershipOperationalStatus(item),
-          lifecycle,
-          startDate: item.startDate,
-          expirationDate: item.expirationDate,
-          canViewCredential: [MEMBERSHIP_LIFECYCLE.CURRENT, MEMBERSHIP_LIFECYCLE.EXPIRING].includes(
-            lifecycle,
-          ),
-          canActivate: item.status !== 'activa' && lifecycle !== MEMBERSHIP_LIFECYCLE.REFUNDED,
-          canCancel: [
-            MEMBERSHIP_LIFECYCLE.CURRENT,
-            MEMBERSHIP_LIFECYCLE.EXPIRING,
-            MEMBERSHIP_LIFECYCLE.SCHEDULED,
-          ].includes(lifecycle),
-        }
-      }),
-    [memberships, query, status, expiring],
+      filterMemberships(projectedMemberships, {
+        query,
+        status,
+        expiring,
+        registeredToTournament,
+      }).map((item) => ({
+        id: item.id,
+        athlete: item.athlete?.fullName ?? '—',
+        athleteId: item.athleteId,
+        document: item.athlete?.documentId ?? '—',
+        gym: item.athlete?.gym ?? '',
+        photoUrl: item.athlete?.photoUrl ?? null,
+        memberCode: item.memberCode,
+        year: item.year,
+        status: item.status,
+        operationalStatus: item.operationalStatus,
+        lifecycle: item.lifecycle,
+        hasTournamentRegistration: item.hasTournamentRegistration,
+        startDate: item.startDate,
+        expirationDate: item.expirationDate,
+        canViewCredential: [MEMBERSHIP_LIFECYCLE.CURRENT, MEMBERSHIP_LIFECYCLE.EXPIRING].includes(
+          item.lifecycle,
+        ),
+        canActivate: item.status !== 'activa' && item.lifecycle !== MEMBERSHIP_LIFECYCLE.REFUNDED,
+        canCancel: [
+          MEMBERSHIP_LIFECYCLE.CURRENT,
+          MEMBERSHIP_LIFECYCLE.EXPIRING,
+          MEMBERSHIP_LIFECYCLE.SCHEDULED,
+        ].includes(item.lifecycle),
+      })),
+    [projectedMemberships, query, status, expiring, registeredToTournament],
   )
 
   // Métricas de gestión, no un recuento de estados: lo que el admin necesita
@@ -179,6 +273,15 @@ export default function MembershipsSection({
         entries={unreconciledPayments}
         onSelectAthlete={onSelectAthlete}
       />
+      {!validationEnabled ? (
+        <div className="admin-payments-ops-callout" role="status">
+          <AlertTriangle size={16} aria-hidden />
+          <div className="admin-payments-ops-callout__body">
+            <strong>{t('admin.sections.memberships.validationPaused')}</strong>
+            <p>{t('admin.sections.memberships.validationPausedLead')}</p>
+          </div>
+        </div>
+      ) : null}
       <AdminListSection
         filteredCount={rows.length}
         placeholder={t('admin.search.membership')}
@@ -205,6 +308,15 @@ export default function MembershipsSection({
             value: expiring,
             onChange: setExpiring,
             options: expiringOptions,
+            variant: 'toggle',
+          },
+          {
+            id: 'registeredToTournament',
+            label: t('admin.filters.registeredToTournament'),
+            ariaLabel: t('admin.filters.registeredToTournament'),
+            value: registeredToTournament,
+            onChange: setRegisteredToTournament,
+            options: tournamentOptions,
             variant: 'toggle',
           },
         ]}
@@ -270,7 +382,18 @@ export default function MembershipsSection({
               desktop: 'status',
               sortable: true,
               mobileSortable: false,
-              render: (row) => <StatusBadge value={row.operationalStatus} />,
+              sortAccessor: (row) =>
+                `${row.operationalStatus}${row.hasTournamentRegistration ? '-1' : '-0'}`,
+              render: (row) => (
+                <div className="admin-membership-status-cell">
+                  <StatusBadge value={row.operationalStatus} />
+                  {row.hasTournamentRegistration ? (
+                    <Pill tone="info">
+                      {t('admin.sections.memberships.registeredToTournamentBadge')}
+                    </Pill>
+                  ) : null}
+                </div>
+              ),
             },
             {
               key: 'actions',
@@ -279,68 +402,81 @@ export default function MembershipsSection({
               sortable: false,
               mobileSortable: false,
               className: 'data-table__column--actions',
-              render: (row) => (
-                // stopPropagation: la fila entera navega a la ficha del atleta, y
-                // estas acciones no deberían arrastrar al operador con ellas.
-                <div
-                  className="admin-membership-actions"
-                  onClick={(event) => event.stopPropagation()}
-                  role="presentation"
-                >
-                  {row.canViewCredential && (
-                    <AdminIconButton
-                      className={credentialTarget?.id === row.id ? 'is-active' : ''}
-                      icon={QrCode}
-                      label={t('admin.sections.memberships.viewCredential')}
-                      onClick={() => setCredentialTarget({ id: row.id, athleteName: row.athlete })}
-                      variant="ghost"
-                    />
-                  )}
-                  {canManage && row.canActivate && (
-                    <AdminIconButton
-                      disabled={pendingId === row.id}
-                      icon={CircleCheck}
-                      spinning={pendingId === row.id}
-                      label={
-                        pendingId === row.id
-                          ? t('admin.sections.memberships.applying')
-                          : t('admin.sections.memberships.activate')
-                      }
-                      onClick={() => applyStatus(row.id, 'activa')}
-                      variant="celeste"
-                    />
-                  )}
-                  {canManage && row.canCancel && (
-                    <AdminIconButton
-                      disabled={pendingId === row.id}
-                      icon={Ban}
-                      spinning={pendingId === row.id}
-                      label={
-                        pendingId === row.id
-                          ? t('admin.sections.memberships.applying')
-                          : t('admin.sections.memberships.cancel')
-                      }
-                      onClick={() => {
-                        setActionError('')
-                        setCancelTarget(row)
-                      }}
-                      variant="ghost"
-                    />
-                  )}
-                  {canDelete && (
-                    <AdminIconButton
-                      disabled={pendingId === row.id}
-                      icon={Trash2}
-                      label="Eliminar afiliación"
-                      onClick={() => {
-                        setActionError('')
-                        setDeleteTarget(row)
-                      }}
-                      variant="danger"
-                    />
-                  )}
-                </div>
-              ),
+              render: (row) => {
+                const hasActions =
+                  row.canViewCredential ||
+                  (canManage && row.canActivate) ||
+                  (canManage && row.canCancel) ||
+                  canDelete
+                if (!hasActions) return <AdminTableActionsEmpty />
+                const pausedLabel = t('admin.sections.memberships.validationPaused')
+                // stopPropagation: la fila entera navega a la ficha del atleta.
+                return (
+                  <AdminTableActions
+                    className="admin-membership-actions"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {row.canViewCredential && (
+                      <AdminIconButton
+                        className={credentialTarget?.id === row.id ? 'is-active' : ''}
+                        icon={QrCode}
+                        label={t('admin.sections.memberships.viewCredential')}
+                        onClick={() =>
+                          setCredentialTarget({ id: row.id, athleteName: row.athlete })
+                        }
+                        variant="ghost"
+                      />
+                    )}
+                    {canManage && row.canActivate && (
+                      <AdminIconButton
+                        disabled={pendingId === row.id || !validationEnabled}
+                        icon={BadgeCheck}
+                        spinning={pendingId === row.id}
+                        label={
+                          pendingId === row.id
+                            ? t('admin.sections.memberships.applying')
+                            : validationEnabled
+                              ? t('admin.sections.memberships.activate')
+                              : pausedLabel
+                        }
+                        onClick={() => applyStatus(row.id, 'activa')}
+                        variant="celeste"
+                      />
+                    )}
+                    {canManage && row.canCancel && (
+                      <AdminIconButton
+                        disabled={pendingId === row.id || !validationEnabled}
+                        icon={Ban}
+                        spinning={pendingId === row.id}
+                        label={
+                          pendingId === row.id
+                            ? t('admin.sections.memberships.applying')
+                            : validationEnabled
+                              ? t('admin.sections.memberships.cancel')
+                              : pausedLabel
+                        }
+                        onClick={() => {
+                          setActionError('')
+                          setCancelTarget(row)
+                        }}
+                        variant="ghost"
+                      />
+                    )}
+                    {canDelete && (
+                      <AdminIconButton
+                        disabled={pendingId === row.id}
+                        icon={Trash2}
+                        label="Eliminar afiliación"
+                        onClick={() => {
+                          setActionError('')
+                          setDeleteTarget(row)
+                        }}
+                        variant="danger"
+                      />
+                    )}
+                  </AdminTableActions>
+                )
+              },
             },
           ]}
           rows={rows}

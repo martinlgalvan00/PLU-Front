@@ -49,12 +49,7 @@ export default function AthleteDetailSection({
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [traceOrderId, setTraceOrderId] = useState(null)
-  const {
-    athlete,
-    memberships = [],
-    registrations = [],
-    payments = [],
-  } = detail ?? {}
+  const { athlete, memberships = [], registrations = [], payments = [] } = detail ?? {}
   const activeMembership = memberships.find((item) => item.status === 'activa')
   // La credencial vigente es la de la afiliación activa; si no hay ninguna, se
   // muestra la última emitida para poder cotejar un QR viejo.
@@ -63,8 +58,16 @@ export default function AthleteDetailSection({
   const tabs = useMemo(
     () => [
       { id: 'profile', label: t('admin.athleteDetail.tabs.profile') },
-      { id: 'memberships', label: t('admin.athleteDetail.tabs.memberships'), count: memberships.length },
-      { id: 'registrations', label: t('admin.athleteDetail.tabs.registrations'), count: registrations.length },
+      {
+        id: 'memberships',
+        label: t('admin.athleteDetail.tabs.memberships'),
+        count: memberships.length,
+      },
+      {
+        id: 'registrations',
+        label: t('admin.athleteDetail.tabs.registrations'),
+        count: registrations.length,
+      },
       { id: 'payments', label: t('admin.athleteDetail.tabs.payments'), count: payments.length },
       { id: 'credential', label: t('admin.athleteDetail.tabs.credential') },
       { id: 'activity', label: t('admin.athleteDetail.tabs.activity') },
@@ -78,7 +81,11 @@ export default function AthleteDetailSection({
         id: 'contact',
         title: t('admin.athleteDetail.groups.contact'),
         fields: [
-          { key: 'document', label: t('admin.athleteDetail.fields.document'), value: athlete?.documentId },
+          {
+            key: 'document',
+            label: t('admin.athleteDetail.fields.document'),
+            value: athlete?.documentId,
+          },
           { key: 'email', label: t('admin.athleteDetail.fields.email'), value: athlete?.email },
           { key: 'phone', label: t('admin.athleteDetail.fields.phone'), value: athlete?.phone },
           {
@@ -93,8 +100,16 @@ export default function AthleteDetailSection({
         id: 'competition',
         title: t('admin.athleteDetail.groups.competition'),
         fields: [
-          { key: 'division', label: t('admin.athleteDetail.fields.division'), value: athlete?.division },
-          { key: 'category', label: t('admin.athleteDetail.fields.category'), value: athlete?.category },
+          {
+            key: 'division',
+            label: t('admin.athleteDetail.fields.division'),
+            value: athlete?.division,
+          },
+          {
+            key: 'category',
+            label: t('admin.athleteDetail.fields.category'),
+            value: athlete?.category,
+          },
           {
             key: 'estimatedWeight',
             label: t('admin.athleteDetail.fields.estimatedWeight'),
@@ -151,12 +166,7 @@ export default function AthleteDetailSection({
         memberCode={activeMembership?.memberCode}
       />
 
-      <DetailTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        variant="editorial"
-      />
+      <DetailTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} variant="editorial" />
 
       {activeTab === 'profile' && (
         <>
@@ -190,13 +200,12 @@ export default function AthleteDetailSection({
               aria-labelledby="athlete-detail-danger-title"
             >
               <div className="athlete-detail__danger-copy">
-                <h3 id="athlete-detail-danger-title">
-                  {t('admin.athleteDetail.delete.title')}
-                </h3>
+                <h3 id="athlete-detail-danger-title">{t('admin.athleteDetail.delete.title')}</h3>
                 <p>{t('admin.athleteDetail.delete.description')}</p>
               </div>
               <Button
                 type="button"
+                variant="danger"
                 className="athlete-detail__danger-action"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
@@ -212,7 +221,13 @@ export default function AthleteDetailSection({
         <div className="athlete-detail__panel">
           <AdminDataTable
             columns={[
-              { key: 'year', label: t('admin.columns.year'), mobile: 'primary', desktop: 'numeric', align: 'end' },
+              {
+                key: 'year',
+                label: t('admin.columns.year'),
+                mobile: 'primary',
+                desktop: 'numeric',
+                align: 'end',
+              },
               {
                 key: 'status',
                 label: t('admin.columns.status'),

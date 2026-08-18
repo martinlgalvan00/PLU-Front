@@ -10,13 +10,16 @@ const mutationHeaders = {
 
 describe('POST /api/launch-interest', () => {
   it('persiste un email nuevo y es idempotente en reintentos', async () => {
-    const upsertInterest = vi.fn()
+    const upsertInterest = vi
+      .fn()
       .mockResolvedValueOnce({ created: true, email: 'agus@example.com' })
       .mockResolvedValueOnce({ created: false, email: 'agus@example.com' })
 
-    const target = listen(createApp({
-      launchInterestRepository: { upsertInterest },
-    }))
+    const target = listen(
+      createApp({
+        launchInterestRepository: { upsertInterest },
+      }),
+    )
     try {
       const first = await fetch(`${target.url}/api/launch-interest`, {
         method: 'POST',
@@ -37,7 +40,11 @@ describe('POST /api/launch-interest', () => {
       })
 
       expect(first.status).toBe(201)
-      expect(await first.json()).toMatchObject({ ok: true, created: true, email: 'agus@example.com' })
+      expect(await first.json()).toMatchObject({
+        ok: true,
+        created: true,
+        email: 'agus@example.com',
+      })
       expect(second.status).toBe(200)
       expect(await second.json()).toMatchObject({ ok: true, created: false })
       expect(upsertInterest).toHaveBeenCalledTimes(2)
@@ -48,9 +55,11 @@ describe('POST /api/launch-interest', () => {
 
   it('rechaza email invalido', async () => {
     const upsertInterest = vi.fn()
-    const target = listen(createApp({
-      launchInterestRepository: { upsertInterest },
-    }))
+    const target = listen(
+      createApp({
+        launchInterestRepository: { upsertInterest },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/launch-interest`, {
         method: 'POST',

@@ -20,10 +20,12 @@ describe('cupos de cupones en administración', () => {
   })
 
   it('distingue un cupón agotado de uno desactivado manualmente', () => {
-    expect(getDiscountCodeAvailability({ active: false, maxRedemptions: 3, redeemedCount: 3 }).status)
-      .toBe('exhausted')
-    expect(getDiscountCodeAvailability({ active: false, maxRedemptions: 3, redeemedCount: 1 }).status)
-      .toBe('inactive')
+    expect(
+      getDiscountCodeAvailability({ active: false, maxRedemptions: 3, redeemedCount: 3 }).status,
+    ).toBe('exhausted')
+    expect(
+      getDiscountCodeAvailability({ active: false, maxRedemptions: 3, redeemedCount: 1 }).status,
+    ).toBe('inactive')
   })
 })
 
@@ -35,7 +37,11 @@ describe('migración de cierre automático de cupos', () => {
 
   it('serializa el último canje y desactiva el cupón en esa misma transacción', () => {
     expect(migration).toContain('for update;')
-    expect(migration).toContain("raise exception 'El código de descuento alcanzó el máximo de usos.'")
-    expect(migration).toMatch(/update public\.discount_codes\s+set active = false, updated_at = now\(\)/)
+    expect(migration).toContain(
+      "raise exception 'El código de descuento alcanzó el máximo de usos.'",
+    )
+    expect(migration).toMatch(
+      /update public\.discount_codes\s+set active = false, updated_at = now\(\)/,
+    )
   })
 })

@@ -13,7 +13,10 @@
 
 function toUtcCompact(dateInput) {
   const date = new Date(dateInput)
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}Z$/, 'Z')
 }
 
 function escapeIcsText(value = '') {

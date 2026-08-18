@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyDeploymentEnvironmentDefaults,
+  buildDirectDatabaseUrl,
   buildRuntimeDatabaseUrl,
   OFFICIAL_APP_URL,
+  POOLER_SESSION_CONNECTION_LIMIT,
   resolveDeploymentAppUrl,
 } from '../server/lib/deploymentEnvironment.js'
 
@@ -89,5 +91,85 @@ describe('deployment environment', () => {
     expect(() => buildRuntimeDatabaseUrl('https://db.example.com')).toThrow(
       'conexión PostgreSQL válida',
     )
+  })
+
+  const POOLER =
+    'postgresql://postgres.proj:clave@aws-1-sa-east-1.pooler.supabase.com:5432/postgres'
+
+  it('pasa el pooler a Transaction mode en serverless', () => {
+    const url = new URL(buildRuntimeDatabaseUrl(POOLER, { VERCEL: '1' }))
+
+    expect(url.port).toBe('6543')
+    expect(url.searchParams.get('pgbouncer')).toBe('true')
+    expect(url.searchParams.get('connection_limit')).toBe('1')
+    expect(url.searchParams.get('pool_timeout')).toBe('15')
+    expect(url.searchParams.get('connect_timeout')).toBe('10')
+  })
+
+  it('no cambia el puerto fuera de serverless ni en hosts que no son el pooler', () => {
+    expect(new URL(buildRuntimeDatabaseUrl(POOLER, {})).port).toBe('5432')
+    expect(
+      new URL(
+        buildRuntimeDatabaseUrl('postgresql://u:p@db.proj.supabase.co:5432/postgres', {
+          VERCEL: '1',
+        }),
+      ).port,
+    ).toBe('5432')
+  })
+
+  /**
+   * El `pool_size` del Session mode es 15 para todo el proyecto. Sin tope, el
+   * default de Prisma (`num_cpus * 2 + 1`) hacía que un solo `npm run dev:api`
+   * se llevara casi el cupo entero: migraciones, Studio y scripts recibían
+   * `FATAL: (EMAXCONNSESSION)`, y cada conexión ociosa seguía costando un
+   * backend de Postgres en una instancia de 1 GB.
+   */
+  it('acota el pool de los procesos de larga vida contra el pooler', () => {
+    const url = new URL(buildRuntimeDatabaseUrl(POOLER, {}))
+
+    expect(url.port).toBe('5432')
+    expect(url.searchParams.get('connection_limit')).toBe(String(POOLER_SESSION_CONNECTION_LIMIT))
+    expect(url.searchParams.get('pool_timeout')).toBe('15')
+    // Session mode soporta prepared statements: desactivarlos sería perder
+    // rendimiento sin motivo.
+    expect(url.searchParams.get('pgbouncer')).toBeNull()
+  })
+
+  it('no toca el pool de una base que no pasa por el pooler', () => {
+    const url = new URL(
+      buildRuntimeDatabaseUrl('postgresql://u:p@db.proj.supabase.co:5432/postgres', {}),
+    )
+
+    expect(url.searchParams.get('connection_limit')).toBeNull()
+    expect(url.searchParams.get('pool_timeout')).toBeNull()
+  })
+
+  it('las migraciones van sin los parámetros de pooling', () => {
+    const url = new URL(buildDirectDatabaseUrl(buildRuntimeDatabaseUrl(POOLER, {})))
+
+    expect(url.port).toBe('5432')
+    expect(url.searchParams.get('connection_limit')).toBeNull()
+    expect(url.searchParams.get('pool_timeout')).toBeNull()
+  })
+
+  // La DATABASE_URL puesta a mano en Vercel ganaba sobre la derivada y el
+  // runtime quedaba sin pooling: es la configuracion que agota la base.
+  it('corrige el pooling de una DATABASE_URL provista por el entorno', () => {
+    const env = { VERCEL: '1', VERCEL_ENV: 'production', DATABASE_URL: POOLER }
+
+    applyDeploymentEnvironmentDefaults(env)
+
+    const url = new URL(env.DATABASE_URL)
+    expect(url.port).toBe('6543')
+    expect(url.searchParams.get('connection_limit')).toBe('1')
+    expect(url.hostname).toBe('aws-1-sa-east-1.pooler.supabase.com')
+  })
+
+  it('deja intacta una DATABASE_URL que no sabe interpretar', () => {
+    const env = { VERCEL: '1', DATABASE_URL: 'no-es-una-url' }
+
+    applyDeploymentEnvironmentDefaults(env)
+
+    expect(env.DATABASE_URL).toBe('no-es-una-url')
   })
 })

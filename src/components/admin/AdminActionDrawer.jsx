@@ -57,7 +57,9 @@ export default function AdminActionDrawer({
           >
             <header className="admin-action-drawer__head">
               <div className="admin-action-drawer__head-copy">
-                <span className="admin-action-drawer__eyebrow">{t('admin.actionQueue.eyebrow')}</span>
+                <span className="admin-action-drawer__eyebrow">
+                  {t('admin.actionQueue.eyebrow')}
+                </span>
                 <h2>{t('admin.actionQueue.title')}</h2>
                 {items.length > 0 && (
                   <p className="admin-action-drawer__subtitle">

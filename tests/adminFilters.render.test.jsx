@@ -6,6 +6,18 @@ import EventsSection from '../src/pages/admin/EventsSection.jsx'
 import MembershipsSection from '../src/pages/admin/MembershipsSection.jsx'
 import RegistrationsSection from '../src/pages/admin/RegistrationsSection.jsx'
 
+vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    fetchPlatformFeatureToggles: vi.fn(async () => ({
+      membershipValidationEnabled: true,
+      registrationValidationEnabled: true,
+      ticketValidationEnabled: true,
+    })),
+  }
+})
+
 beforeAll(() => {
   window.matchMedia ??= () => ({
     matches: false,
@@ -227,7 +239,7 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
     expect(photo?.getAttribute('src')).toBe('https://example.test/ana.jpg')
     expect(screen.getAllByText('Fuerza Sur').length).toBeGreaterThan(0)
 
-    fireEvent.click(container.querySelector('tbody tr'))
+    fireEvent.click(screen.getAllByText('Ana Torres')[0])
     expect(onSelectAthlete).toHaveBeenCalledWith('ath-portrait')
   })
 

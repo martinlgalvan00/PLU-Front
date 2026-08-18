@@ -146,6 +146,26 @@ begin
     end if;
   end loop;
 
+  -- Un overload viejo del combo checkout (p_order_amount) deja a plpgsql_check
+  -- apuntando a configure_atomic_checkout_pricing de 4 argumentos, que ya no
+  -- existe. Tiene que quedar una sola firma, la de 11 argumentos.
+  select count(*)
+  into v_count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.proname = 'create_membership_registration_combo_checkout';
+
+  if v_count <> 1
+    or to_regprocedure(
+      'public.create_membership_registration_combo_checkout(uuid,text,text,text,numeric,text,text,numeric,numeric,text,text)'
+    ) is null then
+    raise exception
+      'create_membership_registration_combo_checkout debe tener una sola firma vigente (11 argumentos). Hay %.',
+      v_count
+      using errcode = 'PLU01';
+  end if;
+
   -- -----------------------------------------------------------------------
   -- 7. La bitacora de cobros es append-only
   -- -----------------------------------------------------------------------

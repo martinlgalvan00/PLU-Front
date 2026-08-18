@@ -26,8 +26,7 @@ export function resolveCaptureScale(explicit) {
   if (typeof window === 'undefined') return CAPTURE_SCALE_DESKTOP
 
   const coarse =
-    window.matchMedia('(pointer: coarse)').matches ||
-    window.matchMedia('(hover: none)').matches
+    window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(hover: none)').matches
   const narrow = window.matchMedia('(max-width: 719px)').matches
 
   return coarse || narrow ? CAPTURE_SCALE_MOBILE : CAPTURE_SCALE_DESKTOP
@@ -159,10 +158,13 @@ export function downloadCard(blob, filename = 'plu-arg-card.png') {
  * @param {string} [filename]
  * @returns {Promise<boolean>} — true si se usó la Share API
  */
-export async function shareCard(blob, text = 'Mi inscripción PLU ARG @pluarg', filename = 'plu-arg-card.png') {
+export async function shareCard(
+  blob,
+  text = 'Mi inscripción PLU ARG @pluarg',
+  filename = 'plu-arg-card.png',
+) {
   const file = new File([blob], filename, { type: 'image/png' })
-  const canShare =
-    typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })
+  const canShare = typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })
 
   if (canShare) {
     await navigator.share({

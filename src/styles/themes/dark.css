@@ -1,7 +1,5 @@
 :root,
-
 [data-theme='dark'] {
-
   --color-bg-primary: var(--plu-cool-950);
 
   --color-bg-secondary: var(--plu-cool-900);
@@ -55,10 +53,8 @@
     transparent 72%
   );
   --theme-atmosphere-stack:
-    var(--theme-atmosphere-vignette),
-    var(--theme-atmosphere-satin),
-    var(--theme-atmosphere-wash-celeste),
-    var(--theme-atmosphere-wash-gold);
+    var(--theme-atmosphere-vignette), var(--theme-atmosphere-satin),
+    var(--theme-atmosphere-wash-celeste), var(--theme-atmosphere-wash-gold);
   /* Capa persistente para el fade de tema (.app-shell::before en base.css):
      se arma con los washes crudos, no con `--theme-atmosphere-stack`. Light
      pone ese stack en `none`, así que apuntar a él hacía que en dark→light el
@@ -66,10 +62,8 @@
      atmósfera cortara de golpe en vez de fundirse. Estos washes no se anulan
      en light: la capa sigue dibujada y lo único que interpola es la opacity. */
   --theme-atmosphere-layer:
-    var(--theme-atmosphere-vignette),
-    var(--theme-atmosphere-satin),
-    var(--theme-atmosphere-wash-celeste),
-    var(--theme-atmosphere-wash-gold);
+    var(--theme-atmosphere-vignette), var(--theme-atmosphere-satin),
+    var(--theme-atmosphere-wash-celeste), var(--theme-atmosphere-wash-gold);
   --theme-atmosphere-wash-celeste-admin: radial-gradient(
     ellipse 90% 55% at 8% -4%,
     color-mix(in srgb, var(--plu-celeste-400) 3%, transparent),
@@ -91,10 +85,8 @@
     transparent 72%
   );
   --theme-atmosphere-stack-admin:
-    var(--theme-atmosphere-vignette-admin),
-    var(--theme-atmosphere-satin-admin),
-    var(--theme-atmosphere-wash-celeste-admin),
-    var(--theme-atmosphere-wash-gold-admin);
+    var(--theme-atmosphere-vignette-admin), var(--theme-atmosphere-satin-admin),
+    var(--theme-atmosphere-wash-celeste-admin), var(--theme-atmosphere-wash-gold-admin);
   --theme-page-sheen: radial-gradient(
     ellipse 76% 28% at 50% 0%,
     color-mix(in srgb, white 2.2%, transparent),
@@ -128,22 +120,14 @@
     ),
     var(--theme-page-sheen);
   --theme-surface-satin:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, white 3.2%, transparent),
-      transparent 22%
-    ),
+    linear-gradient(180deg, color-mix(in srgb, white 3.2%, transparent), transparent 22%),
     linear-gradient(
       135deg,
       color-mix(in srgb, var(--plu-celeste-400) 1.5%, transparent),
       transparent 44%
     );
   --theme-surface-satin-strong:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, white 4.6%, transparent),
-      transparent 20%
-    ),
+    linear-gradient(180deg, color-mix(in srgb, white 4.6%, transparent), transparent 20%),
     radial-gradient(
       ellipse 70% 90% at 96% 100%,
       color-mix(in srgb, var(--plu-gold-500) 2.4%, transparent),
@@ -171,8 +155,6 @@
 
   --color-text-muted-on-light: var(--plu-ink-500);
 
-
-
   --color-text-primary: var(--plu-ink-inverse);
 
   --color-text-secondary: #d4d4dc;
@@ -184,8 +166,6 @@
   --color-text-accent: var(--plu-gold-500);
 
   --color-text-price: var(--plu-celeste-300);
-
-
 
   --color-border: rgba(255, 255, 255, 0.14);
 
@@ -336,7 +316,6 @@
   --scrollbar-thumb: rgba(255, 255, 255, 0.14);
   --scrollbar-thumb-hover: rgba(242, 183, 5, 0.42);
   --scrollbar-track: transparent;
-
 }
 
 [data-theme='dark'] {

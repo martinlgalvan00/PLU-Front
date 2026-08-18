@@ -81,13 +81,13 @@
   /* ── Gradientes de marca — azul → amarillo, sin rojo ──
      El logo no tiene rojo; el rojo queda reservado a estados de
      alerta/error reales (--plu-danger-500), no a identidad visual. ── */
-  --plu-gradient-stripe: linear-gradient(
-    90deg,
-    var(--plu-celeste-600),
-    var(--plu-gold-oklch) 100%
-  );
+  --plu-gradient-stripe: linear-gradient(90deg, var(--plu-celeste-600), var(--plu-gold-oklch) 100%);
   --plu-gradient-brand-bar: linear-gradient(180deg, var(--plu-celeste-600), var(--plu-gold-oklch));
-  --plu-gradient-hero-dark: linear-gradient(200deg, var(--plu-cool-oklch-13), var(--plu-cool-oklch-8) 65%);
+  --plu-gradient-hero-dark: linear-gradient(
+    200deg,
+    var(--plu-cool-oklch-13),
+    var(--plu-cool-oklch-8) 65%
+  );
   --plu-gradient-brand-horizontal: linear-gradient(
     90deg,
     var(--plu-celeste-600),

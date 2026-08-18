@@ -66,7 +66,12 @@ async function waitForCaptureReady(root, { timeoutMs = 8000 } = {}) {
  *                  (default 'square'). Desde el perfil en mobile se abre en
  *                  'story' porque es el formato que se comparte a Instagram.
  */
-export default function CardPreviewModal({ open, onClose, cardData = {}, initialFormat = 'square' }) {
+export default function CardPreviewModal({
+  open,
+  onClose,
+  cardData = {},
+  initialFormat = 'square',
+}) {
   const { t } = useI18n()
   const formatOptions = [
     ['square', t('cardModal.formatSquare'), t('cardModal.formatSquareShort')],
@@ -79,9 +84,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
   const [format, setFormat] = useState(initialFormat) // 'square' | 'story'
   /** Árbol 1080×(1080|1920) solo al generar — no al abrir el modal. */
   const [captureMounted, setCaptureMounted] = useState(false)
-  const canShare =
-    typeof navigator !== 'undefined' &&
-    typeof navigator.share === 'function'
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   function clearGeneratedBlob() {
     blobRef.current = null
@@ -138,7 +141,11 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
   if (!open) return null
 
   const isStory = format === 'story'
-  const filename = buildCardFilename(cardData.athleteName, cardData.eventSlug ?? 'evento', isStory ? 'historia' : '')
+  const filename = buildCardFilename(
+    cardData.athleteName,
+    cardData.eventSlug ?? 'evento',
+    isStory ? 'historia' : '',
+  )
 
   async function ensureCardBlob() {
     if (blobRef.current) return blobRef.current
@@ -191,7 +198,17 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
           propio) y es el CONTENEDOR el que lo recorta a 0×0 visualmente.
           Solo se monta al descargar/compartir para no pesar el open en mobile. */}
       {captureMounted ? (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: 0,
+            height: 0,
+            overflow: 'hidden',
+            pointerEvents: 'none',
+          }}
+        >
           <div ref={captureRef} style={{ width: '1080px', height: isStory ? '1920px' : '1080px' }}>
             <EventShareCard {...cardData} preview={false} format={format} />
           </div>
@@ -204,15 +221,14 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
         role="dialog"
         aria-modal="true"
         aria-label={t('cardModal.modalAria')}
-        onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose()
+        }}
       >
         <div className="card-modal">
-
           {/* Header */}
           <div className="card-modal__header">
-            <span className="card-modal__title">
-              {t('cardModal.title')}
-            </span>
+            <span className="card-modal__title">{t('cardModal.title')}</span>
             <button
               type="button"
               className="card-modal__close"
@@ -235,7 +251,9 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
 
           {/* Preview escalado */}
           <div className="card-modal__preview-wrap">
-            <div className={`card-modal__preview-inner ${isStory ? 'card-modal__preview-inner--story' : ''}`}>
+            <div
+              className={`card-modal__preview-inner ${isStory ? 'card-modal__preview-inner--story' : ''}`}
+            >
               <EventShareCard {...cardData} preview={true} format={format} />
             </div>
           </div>
@@ -254,12 +272,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
             </div>
           ) : (
             <div className="card-modal__actions">
-              <button
-                type="button"
-                className="btn"
-                onClick={handleDownload}
-                id="card-download-btn"
-              >
+              <button type="button" className="btn" onClick={handleDownload} id="card-download-btn">
                 <Download size={15} aria-hidden />
                 {t('cardModal.download')}
               </button>
@@ -275,11 +288,7 @@ export default function CardPreviewModal({ open, onClose, cardData = {}, initial
                   {t('cardModal.share')}
                 </button>
               ) : (
-                <button
-                  type="button"
-                  className="btn btn--outline"
-                  onClick={onClose}
-                >
+                <button type="button" className="btn btn--outline" onClick={onClose}>
                   {t('cardModal.close')}
                 </button>
               )}

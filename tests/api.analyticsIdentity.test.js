@@ -84,9 +84,7 @@ describe('ranking de lo más usado (/api/analytics/elements)', () => {
         clicks: 91,
         visitors: 44,
       })
-      expect(repository.elements).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 10 }),
-      )
+      expect(repository.elements).toHaveBeenCalledWith(expect.objectContaining({ limit: 10 }))
     } finally {
       await target.close()
     }
@@ -164,7 +162,11 @@ describe('recorrido de un atleta (/api/analytics/athletes/:id/journey)', () => {
     // eventos no sirve para nada.
     const { target, cookie, repository } = await setup()
     try {
-      await get(target.url, `/api/analytics/athletes/${ATHLETE_ID}/journey?days=30&limit=25`, cookie)
+      await get(
+        target.url,
+        `/api/analytics/athletes/${ATHLETE_ID}/journey?days=30&limit=25`,
+        cookie,
+      )
       const call = repository.athleteJourney.mock.calls.at(-1)[0]
       expect(call.limit).toBeGreaterThanOrEqual(50)
       expect(call.limit).toBeLessThanOrEqual(500)

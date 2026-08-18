@@ -7,6 +7,10 @@ import { dirname, join, resolve } from 'node:path'
 import { loadEnvFile } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
+import {
+  POOLER_HOST,
+  POOLER_SESSION_CONNECTION_LIMIT,
+} from '../server/lib/deploymentEnvironment.js'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
@@ -110,6 +114,13 @@ export function buildPrismaDatabaseUrl(supabaseDatabaseUrl) {
     throw new Error('SUPABASE_DATABASE_URL debe apuntar al PostgreSQL remoto de Supabase, no a Docker/local.')
   }
   url.searchParams.set('schema', 'plu_prisma')
+  // Mismo cupo que el runtime de larga vida: `prisma studio` queda abierto
+  // horas y `migrate deploy`/`seed` corren mientras el dev server ya tiene sus
+  // conexiones tomadas. Sin esto, cada uno abría `num_cpus * 2 + 1` contra el
+  // Session mode del pooler, que tiene 15 slots para todo el proyecto.
+  if (POOLER_HOST.test(url.hostname)) {
+    url.searchParams.set('connection_limit', String(POOLER_SESSION_CONNECTION_LIMIT))
+  }
   return url.toString()
 }
 

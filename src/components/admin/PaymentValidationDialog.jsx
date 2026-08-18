@@ -3,12 +3,15 @@ import { createPortal } from 'react-dom'
 import { ExternalLink, FileWarning, BadgeCheck, XCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { formatRejectionActor } from '../../lib/paymentAudit.js'
 import { getAthletePaymentProofUrl } from '../../services/athleteApi.js'
 import { getTicketPaymentProofUrl } from '../../services/ticketApi.js'
 
 function guessProofKind(...sources) {
   for (const source of sources) {
-    const path = String(source ?? '').split('?')[0].toLowerCase()
+    const path = String(source ?? '')
+      .split('?')[0]
+      .toLowerCase()
     if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(path)) return 'image'
     if (/\.pdf$/.test(path)) return 'pdf'
   }
@@ -44,7 +47,9 @@ export default function PaymentValidationDialog({
   const dialogStateRef = useRef({ busy, onCancel, rejecting: false })
 
   const proofPath =
-    typeof item?.paymentProofPath === 'string' ? item.paymentProofPath.trim() : item?.paymentProofPath
+    typeof item?.paymentProofPath === 'string'
+      ? item.paymentProofPath.trim()
+      : item?.paymentProofPath
   const hasProof = Boolean(item?.hasProof || proofPath)
   const [proofUrl, setProofUrl] = useState(null)
   const [proofLoading, setProofLoading] = useState(hasProof)
@@ -63,9 +68,7 @@ export default function PaymentValidationDialog({
     const previousFocus = document.activeElement
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    panelRef.current
-      ?.querySelector('.payment-validation-dialog__actions button')
-      ?.focus()
+    panelRef.current?.querySelector('.payment-validation-dialog__actions button')?.focus()
 
     function handleKeyDown(event) {
       if (event.key === 'Escape' && !dialogStateRef.current.busy) {
@@ -171,10 +174,10 @@ export default function PaymentValidationDialog({
   const noProofLead = isSettle
     ? t('admin.paymentValidation.settleNoProofLead')
     : item.cashAtPitbull
-    ? 'Confirmá que el efectivo fue recibido en Pitbull antes de acreditar la orden.'
-    : isView
-    ? t('admin.paymentValidation.viewNoProofLead')
-    : t('admin.paymentValidation.noProofLead')
+      ? 'Confirmá que el efectivo fue recibido en Pitbull antes de acreditar la orden.'
+      : isView
+        ? t('admin.paymentValidation.viewNoProofLead')
+        : t('admin.paymentValidation.noProofLead')
 
   return createPortal(
     <div className="payment-validation-dialog">
@@ -230,6 +233,12 @@ export default function PaymentValidationDialog({
               <dd>{item.documentId}</dd>
             </div>
           ) : null}
+          {item.notes ? (
+            <div>
+              <dt>{t('admin.paymentValidation.notes')}</dt>
+              <dd>{item.notes}</dd>
+            </div>
+          ) : null}
           {item.meta ? (
             <div>
               <dt>{t('admin.paymentValidation.amount')}</dt>
@@ -239,7 +248,22 @@ export default function PaymentValidationDialog({
           {item.paymentProofUploadedAt ? (
             <div>
               <dt>{t('admin.paymentValidation.proofReceivedAt')}</dt>
-              <dd>{new Date(item.paymentProofUploadedAt).toLocaleString(locale === 'en' ? 'en-US' : 'es-AR')}</dd>
+              <dd>
+                {new Date(item.paymentProofUploadedAt).toLocaleString(
+                  locale === 'en' ? 'en-US' : 'es-AR',
+                )}
+              </dd>
+            </div>
+          ) : null}
+          {/* Órdenes ya rechazadas: la decisión previa queda a la vista antes
+              de cualquier acción nueva — mismo dato que la bandeja. */}
+          {item.rejectedBy || item.rejectionReason ? (
+            <div className="payment-validation-dialog__rejection-row">
+              <dt>{t('admin.paymentValidation.rejectedByLabel')}</dt>
+              <dd>
+                <strong>{formatRejectionActor(item.rejectedBy, t)}</strong>
+                {item.rejectionReason ? <span>{item.rejectionReason}</span> : null}
+              </dd>
             </div>
           ) : null}
         </dl>
@@ -259,7 +283,11 @@ export default function PaymentValidationDialog({
                     {t('admin.paymentValidation.proofPending')}
                   </span>
                 ) : null}
-                <strong>{item.cashAtPitbull ? 'Cobro presencial en Pitbull' : t('admin.paymentValidation.noProofTitle')}</strong>
+                <strong>
+                  {item.cashAtPitbull
+                    ? 'Cobro presencial en Pitbull'
+                    : t('admin.paymentValidation.noProofTitle')}
+                </strong>
                 <p>{noProofLead}</p>
               </div>
             </div>
@@ -340,9 +368,7 @@ export default function PaymentValidationDialog({
             <p className="payment-validation-dialog__settle-note" role="note">
               {t('admin.paymentValidation.settleAuditNote')}
             </p>
-            <label htmlFor={settleReasonId}>
-              {t('admin.paymentValidation.settleReasonLabel')}
-            </label>
+            <label htmlFor={settleReasonId}>{t('admin.paymentValidation.settleReasonLabel')}</label>
             <textarea
               id={settleReasonId}
               rows={3}
@@ -388,7 +414,12 @@ export default function PaymentValidationDialog({
         <div className="payment-validation-dialog__actions">
           {rejecting ? (
             <>
-              <Button type="button" variant="secondary" disabled={busy} onClick={() => setRejecting(false)}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => setRejecting(false)}
+              >
                 {t('admin.paymentValidation.cancel')}
               </Button>
               <Button

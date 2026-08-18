@@ -41,10 +41,20 @@ export function createSupabaseAnalyticsRepository(
       )
     },
     async operationalSummary({ from, to }) {
-      return rpc('get_analytics_operational_summary', { p_from: from, p_to: to, p_organization_id: organizationId }, 'No se pudo calcular el resumen operativo.')
+      return rpc(
+        'get_analytics_operational_summary',
+        { p_from: from, p_to: to, p_organization_id: organizationId },
+        'No se pudo calcular el resumen operativo.',
+      )
     },
     async operationalAlerts() {
-      return rpc('get_operational_alerts', { p_organization_id: organizationId }, 'No se pudieron leer las alertas operativas.') ?? []
+      return (
+        rpc(
+          'get_operational_alerts',
+          { p_organization_id: organizationId },
+          'No se pudieron leer las alertas operativas.',
+        ) ?? []
+      )
     },
 
     /**
@@ -88,19 +98,23 @@ export function createSupabaseAnalyticsRepository(
     },
 
     async pages({ from, to, limit = 25 }) {
-      return rpc(
-        'get_analytics_pages',
-        { p_from: from, p_to: to, p_limit: limit, p_organization_id: organizationId },
-        'No se pudieron leer las paginas.',
-      ) ?? []
+      return (
+        rpc(
+          'get_analytics_pages',
+          { p_from: from, p_to: to, p_limit: limit, p_organization_id: organizationId },
+          'No se pudieron leer las paginas.',
+        ) ?? []
+      )
     },
 
     async flows({ from, to, limit = 30 }) {
-      return rpc(
-        'get_analytics_flows',
-        { p_from: from, p_to: to, p_limit: limit, p_organization_id: organizationId },
-        'No se pudieron leer los recorridos.',
-      ) ?? []
+      return (
+        rpc(
+          'get_analytics_flows',
+          { p_from: from, p_to: to, p_limit: limit, p_organization_id: organizationId },
+          'No se pudieron leer los recorridos.',
+        ) ?? []
+      )
     },
 
     async heatmap({ path, from, to, deviceType = null }) {
@@ -118,20 +132,24 @@ export function createSupabaseAnalyticsRepository(
     },
 
     async funnel({ steps, from, to }) {
-      return rpc(
-        'get_analytics_funnel',
-        { p_steps: steps, p_from: from, p_to: to, p_organization_id: organizationId },
-        'No se pudo calcular el embudo.',
-      ) ?? []
+      return (
+        rpc(
+          'get_analytics_funnel',
+          { p_steps: steps, p_from: from, p_to: to, p_organization_id: organizationId },
+          'No se pudo calcular el embudo.',
+        ) ?? []
+      )
     },
 
     /** Lo mas usado del sitio entero, agrupado por elemento y no por ruta. */
     async elements({ from, to, limit = 25 }) {
-      return rpc(
-        'get_analytics_elements',
-        { p_from: from, p_to: to, p_limit: limit, p_organization_id: organizationId },
-        'No se pudieron leer los elementos mas usados.',
-      ) ?? []
+      return (
+        rpc(
+          'get_analytics_elements',
+          { p_from: from, p_to: to, p_limit: limit, p_organization_id: organizationId },
+          'No se pudieron leer los elementos mas usados.',
+        ) ?? []
+      )
     },
 
     /**
