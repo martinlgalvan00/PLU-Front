@@ -117,7 +117,10 @@ export default function SecurityGatePage({
                 ? t('securityGate.tokenLoadingLeadWithEvent', { event: event.title })
                 : t('securityGate.tokenLoadingLead')}
             </p>
-            <span className="plu-spinner plu-spinner--lg security-gate-loading__spinner" aria-hidden />
+            <span
+              className="plu-spinner plu-spinner--lg security-gate-loading__spinner"
+              aria-hidden
+            />
           </section>
         </div>
       </main>

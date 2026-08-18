@@ -3,7 +3,11 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { hasEventScopeAccess } from '../../src/lib/permissions.js'
 import { HttpError } from '../lib/errors.js'
-import { assertPaidCheckoutAvailable, resolvePaidCheckoutOverride } from '../lib/featureAvailability.js'
+import {
+  assertPaidCheckoutAvailable,
+  resolvePaidCheckoutOverride,
+} from '../lib/featureAvailability.js'
+import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
@@ -78,7 +82,8 @@ export function createTicketRoutes({
 }) {
   const router = Router()
   const repo = () => repository ?? createSupabaseTicketRepository(getSupabaseAdmin?.())
-  const athleteRepo = () => athleteRepository ?? createSupabaseAthleteRepository(getSupabaseAdmin?.())
+  const athleteRepo = () =>
+    athleteRepository ?? createSupabaseAthleteRepository(getSupabaseAdmin?.())
   const platformSettingsRepo = () => {
     // Mismo criterio que athletes.js/payments.js: los dobles de test no
     // conocen la tabla de interruptores, así que en test quedan abiertos por
@@ -87,7 +92,9 @@ export function createTicketRoutes({
       // Vacío = abierto: los asserts sólo cortan con `false` explícito.
       return { get: async () => ({}) }
     }
-    return platformSettingsRepository ?? createSupabasePlatformSettingsRepository(getSupabaseAdmin?.())
+    return (
+      platformSettingsRepository ?? createSupabasePlatformSettingsRepository(getSupabaseAdmin?.())
+    )
   }
   const prisma = getPrisma()
   const guard = requirePermission('admin.checkin.execute', { prisma })
@@ -232,27 +239,41 @@ export function createTicketRoutes({
         platformSettingsRepo().get(),
       ])
       const { ticketEnabled, ticketManualEnabled } = resolvePublicCheckoutAvailability(toggles, env)
+      // Ventana corta: el stock que se muestra acá decide una compra. La
+      // reserva real se valida igual al crear la orden, así que 10 s de atraso
+      // no habilitan una venta de más -- como mucho un 409 al confirmar.
+      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
       res.json({ availability, checkout: { ticketEnabled, ticketManualEnabled } })
     } catch (error) {
       next(error)
     }
   })
 
-  router.get('/orders/pending-manual', ...financeReadGuard, staffLimiter, async (_req, res, next) => {
-    try {
-      res.json({ orders: await repo().listPending() })
-    } catch (error) {
-      next(error)
-    }
-  })
-  router.post('/orders/:orderId/approve', ...financeWriteGuard, staffLimiter, async (req, res, next) => {
-    try {
-      assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
-      res.json(await repo().approve(parseOrderId(req), actor(req)))
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.get(
+    '/orders/pending-manual',
+    ...financeReadGuard,
+    staffLimiter,
+    async (_req, res, next) => {
+      try {
+        res.json({ orders: await repo().listPending() })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
+    '/orders/:orderId/approve',
+    ...financeWriteGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertValidationEnabled(await platformSettingsRepo().get(), 'ticket')
+        res.json(await repo().approve(parseOrderId(req), actor(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   /**
    * Rechazo de comprobante: cancela los tickets `pendiente_pago` de la orden
    * para liberar el cupo (mismo efecto que `expire_ticket_reservations`, acá
@@ -385,7 +406,11 @@ export function createTicketRoutes({
         const eventId = await ticketRepository.getRegistrationEventId(req.params.registrationId)
         assertEventScope(req, eventId)
         res.json(
-          await ticketRepository.checkInRegistration(req.params.registrationId, req.body?.gate, actor(req)),
+          await ticketRepository.checkInRegistration(
+            req.params.registrationId,
+            req.body?.gate,
+            actor(req),
+          ),
         )
       } catch (error) {
         next(error)

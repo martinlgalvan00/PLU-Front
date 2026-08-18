@@ -46,7 +46,10 @@ const PERMANENT_PROVIDER_CODES = new Set([
 ])
 
 export class BrevoError extends HttpError {
-  constructor(message, { status = 502, retryable = false, providerCode = null, providerStatus = null } = {}) {
+  constructor(
+    message,
+    { status = 502, retryable = false, providerCode = null, providerStatus = null } = {},
+  ) {
     super(status, message)
     this.name = 'BrevoError'
     this.retryable = retryable
@@ -83,11 +86,17 @@ function normalizeRecipients(value) {
   if (!value) return []
   const list = Array.isArray(value) ? value : [value]
   return list
-    .map((item) => (typeof item === 'string' ? { email: item.trim() } : { ...item, email: item?.email?.trim() }))
+    .map((item) =>
+      typeof item === 'string' ? { email: item.trim() } : { ...item, email: item?.email?.trim() },
+    )
     .filter((item) => item.email)
 }
 
-export function createBrevoAdapter({ env = process.env, fetchImpl = fetch, sleepImpl = sleep } = {}) {
+export function createBrevoAdapter({
+  env = process.env,
+  fetchImpl = fetch,
+  sleepImpl = sleep,
+} = {}) {
   const apiKey = env.BREVO_API_KEY?.trim()
   const senderEmail = env.BREVO_SENDER_EMAIL?.trim()
   const senderName = env.BREVO_SENDER_NAME?.trim() || 'PLU ARG'
@@ -97,7 +106,10 @@ export function createBrevoAdapter({ env = process.env, fetchImpl = fetch, sleep
 
   function assertConfigured() {
     if (!apiKey || !senderEmail) {
-      throw new BrevoError('Brevo no está configurado en el servidor.', { status: 503, retryable: false })
+      throw new BrevoError('Brevo no está configurado en el servidor.', {
+        status: 503,
+        retryable: false,
+      })
     }
   }
 
@@ -116,14 +128,18 @@ export function createBrevoAdapter({ env = process.env, fetchImpl = fetch, sleep
           },
           body: JSON.stringify(payload),
           // AbortSignal.timeout evita que una conexión colgada bloquee el request.
-          signal: typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined,
+          signal:
+            typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined,
         })
       } catch (networkError) {
         // Red caída, DNS, timeout del abort: siempre vale la pena reintentar.
-        lastError = new BrevoError(`No se pudo contactar a Brevo: ${networkError?.message ?? networkError}`, {
-          status: 502,
-          retryable: true,
-        })
+        lastError = new BrevoError(
+          `No se pudo contactar a Brevo: ${networkError?.message ?? networkError}`,
+          {
+            status: 502,
+            retryable: true,
+          },
+        )
         if (attempt < maxAttempts) {
           await sleepImpl(backoffDelay(attempt))
           continue
@@ -135,7 +151,8 @@ export function createBrevoAdapter({ env = process.env, fetchImpl = fetch, sleep
       if (response.ok) return body
 
       const providerCode = body?.code ?? null
-      const retryable = isRetryableStatus(response.status) && !PERMANENT_PROVIDER_CODES.has(providerCode)
+      const retryable =
+        isRetryableStatus(response.status) && !PERMANENT_PROVIDER_CODES.has(providerCode)
 
       lastError = new BrevoError(body?.message ?? `Brevo respondió ${response.status}.`, {
         status: response.status === 401 || response.status === 403 ? 503 : 502,
@@ -216,7 +233,10 @@ export function createBrevoAdapter({ env = process.env, fetchImpl = fetch, sleep
       assertConfigured()
       const numericTemplateId = Number(templateId)
       if (!Number.isInteger(numericTemplateId) || numericTemplateId <= 0) {
-        throw new BrevoError('La plantilla de Brevo no está configurada.', { status: 503, retryable: false })
+        throw new BrevoError('La plantilla de Brevo no está configurada.', {
+          status: 503,
+          retryable: false,
+        })
       }
       return this.send({ to, templateId: numericTemplateId, params })
     },

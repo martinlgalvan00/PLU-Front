@@ -12,17 +12,35 @@ const mutationHeaders = {
   'X-PLU-Request': 'browser',
 }
 
+/**
+ * Precio esperado para un canal manual (transferencia/efectivo).
+ *
+ * Desde `20260824100000_manual_price_per_channel.sql` la base no tiene ninguna
+ * política de precios fija: la API le pasa los dos precios crudos del catálogo
+ * y `plu_private.resolve_channel_price` elige `manual_price` cuando está
+ * configurado, o `price` cuando es nulo.
+ *
+ * Esta suite prueba el *flujo* de checkout, así que deriva el monto del mismo
+ * catálogo en vez de fijar un número: el seed de CI tiene cargada la promo
+ * manual y la base hosteada cobra un precio único, y las dos configuraciones son
+ * válidas. El contenido de la promo se verifica aparte, sobre el archivo del
+ * seed, en `tests/pitbullRegistrationPriceMigration.test.js`.
+ */
+const manualChannelAmount = ({ price, manual_price: manualPrice }) => manualPrice ?? price
+
 describe('checkout real de Pitbull Classic contra Supabase', () => {
   const admin = createSupabaseTestClient()
   const athleteIds = []
-  const target = listen(createApp({
-    supabaseAdmin: admin,
-    notifyPaymentApplied: async () => {},
-    // Inscripción y combo se crean por transferencia: el canal manual va
-    // abierto por doble, no por el estado de la fila compartida.
-    platformSettingsRepository: manualChannelsOpen(),
-    env: { ...process.env, APP_PRODUCTION: 'true', PAYMENTS_MOCK: 'false' },
-  }))
+  const target = listen(
+    createApp({
+      supabaseAdmin: admin,
+      notifyPaymentApplied: async () => {},
+      // Inscripción y combo se crean por transferencia: el canal manual va
+      // abierto por doble, no por el estado de la fila compartida.
+      platformSettingsRepository: manualChannelsOpen(),
+      env: { ...process.env, APP_PRODUCTION: 'true', PAYMENTS_MOCK: 'false' },
+    }),
+  )
 
   afterAll(async () => {
     await target.close()
@@ -43,11 +61,23 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     }
   })
 
-  it('crea y acredita una inscripcion individual por ARS 75.000', async () => {
+  async function readEvent() {
+    const result = await admin
+      .from('events')
+      .select('id, price, manual_price, currency')
+      .eq('slug', EVENT_SLUG)
+      .single()
+    if (result.error) throw new Error(result.error.message)
+    return result.data
+  }
+
+  it('crea y acredita una inscripcion individual al precio manual del catalogo', async () => {
     const athleteId = await createTestAthlete(admin, {
       email: `pitbull-registration-${randomUUID()}@pluarg.test`,
     })
     athleteIds.push(athleteId)
+
+    const event = await readEvent()
 
     const plan = await admin
       .from('membership_plans')
@@ -70,6 +100,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_order_id: membershipOrder.data.order.id,
       p_athlete_id: athleteId,
       p_proof_path: `${membershipOrder.data.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (membershipProof.error) throw new Error(membershipProof.error.message)
     const membershipApproved = await admin.rpc('approve_athlete_payment_order', {
@@ -95,33 +126,23 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
 
     expect(response.status, JSON.stringify(body)).toBe(201)
     expect(body.order).toMatchObject({
-      amount: 75000,
-      currency: 'ARS',
+      amount: manualChannelAmount(event),
+      currency: event.currency,
       method: 'manual_link',
       manual_payment_channel: 'bank_transfer',
     })
     expect(body.registration.payment_order_id).toBe(body.order.id)
-
-    // No depende de la UI: la propia RPC rechaza una transferencia con el
-    // precio de Mercado Pago antes de crear/reanudar una orden.
-    const wrongTransferPrice = await admin.rpc('create_competition_registration_checkout', {
-      p_athlete_id: athleteId,
-      p_event_slug: EVENT_SLUG,
-      p_division: 'Open',
-      p_category: 'Raw',
-      p_bodyweight_kg: 90,
-      p_payment_method: 'manual_link',
-      p_idempotency_key: randomUUID(),
-      p_discount_code: null,
-      p_order_amount: 85000,
-      p_manual_payment_channel: 'bank_transfer',
-    })
-    expect(wrongTransferPrice.error?.message).toContain('La cotizacion no coincide con la politica vigente.')
+    // Con precio manual configurado, la transferencia no puede salir al precio
+    // de Mercado Pago: eso lo resuelve la base, no la UI.
+    if (event.manual_price != null) {
+      expect(body.order.amount).not.toBe(event.price)
+    }
 
     const proof = await admin.rpc('register_athlete_payment_proof', {
       p_order_id: body.order.id,
       p_athlete_id: athleteId,
       p_proof_path: `${body.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (proof.error) throw new Error(proof.error.message)
 
@@ -134,7 +155,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
     expect(approved.data.registration.status).toBe('confirmada')
   })
 
-  it('crea una sola orden combo de ARS 120.000 y acredita ambos derechos', async () => {
+  it('crea una sola orden combo al precio manual del catalogo y acredita ambos derechos', async () => {
     const athleteId = await createTestAthlete(admin, {
       email: `pitbull-combo-${randomUUID()}@pluarg.test`,
     })
@@ -145,6 +166,14 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       .eq('id', athleteId)
       .single()
     if (credential.error) throw new Error(credential.error.message)
+
+    const event = await readEvent()
+    const combo = await admin
+      .from('event_combo_offers')
+      .select('price, manual_price, currency')
+      .eq('event_id', event.id)
+      .single()
+    if (combo.error) throw new Error(combo.error.message)
 
     const cookie = await athleteSessionCookie(admin, athleteId)
     const response = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
@@ -163,8 +192,8 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
 
     expect(response.status, JSON.stringify(body)).toBe(201)
     expect(body.order).toMatchObject({
-      amount: 120000,
-      currency: 'ARS',
+      amount: manualChannelAmount(combo.data),
+      currency: combo.data.currency,
       method: 'manual_link',
       manual_payment_channel: 'bank_transfer',
     })
@@ -175,6 +204,7 @@ describe('checkout real de Pitbull Classic contra Supabase', () => {
       p_order_id: body.order.id,
       p_athlete_id: athleteId,
       p_proof_path: `${body.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (proof.error) throw new Error(proof.error.message)
 

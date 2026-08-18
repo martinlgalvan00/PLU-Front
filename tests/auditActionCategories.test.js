@@ -19,19 +19,39 @@ import {
  * Estas son las acciones reales presentes en la bitacora del sitio.
  */
 const ACCIONES_REALES = [
-  'auth.login_succeeded', 'auth.login_failed', 'auth.session_started', 'auth.session_ended',
-  'account.created', 'athlete.deleted',
-  'payment.order_created', 'payment.preference_created', 'payment.preference_reused',
-  'payment.attempt_claimed', 'payment.provider_submitted', 'payment.applied', 'payment.aprobado',
-  'payment.failed', 'payment.manual_rejection', 'payment_attempt.processing',
+  'auth.login_succeeded',
+  'auth.login_failed',
+  'auth.session_started',
+  'auth.session_ended',
+  'account.created',
+  'athlete.deleted',
+  'payment.order_created',
+  'payment.preference_created',
+  'payment.preference_reused',
+  'payment.attempt_claimed',
+  'payment.provider_submitted',
+  'payment.applied',
+  'payment.aprobado',
+  'payment.failed',
+  'payment.manual_rejection',
+  'payment_attempt.processing',
   'payment_attempt.submitted',
-  'payment.webhook_received', 'payment.webhook_failed', 'payment_webhook.received',
-  'payment_webhook.processing', 'payment_webhook.failed',
-  'payment.reconciled', 'payment_reconciliation.reconciled', 'payment.recovery_run',
+  'payment.webhook_received',
+  'payment.webhook_failed',
+  'payment_webhook.received',
+  'payment_webhook.processing',
+  'payment_webhook.failed',
+  'payment.reconciled',
+  'payment_reconciliation.reconciled',
+  'payment.recovery_run',
   'payment_brick.error',
-  'email.sent', 'email.delivered', 'email.bounced',
-  'membership.activated', 'membership_order.created',
-  'registration.created', 'ticket.checked_in',
+  'email.sent',
+  'email.delivered',
+  'email.bounced',
+  'membership.activated',
+  'membership_order.created',
+  'registration.created',
+  'ticket.checked_in',
 ]
 
 describe('categorias de auditoria', () => {
@@ -119,9 +139,11 @@ describe('categorias de auditoria', () => {
       const patterns = auditCategoryPatterns(key)
       if (!patterns) continue
 
-      const seleccionadas = ACCIONES_REALES.filter((action) =>
-        patterns.include.some((pattern) => likeToRegExp(pattern).test(action))
-        && !patterns.exclude.some((pattern) => likeToRegExp(pattern).test(action)))
+      const seleccionadas = ACCIONES_REALES.filter(
+        (action) =>
+          patterns.include.some((pattern) => likeToRegExp(pattern).test(action)) &&
+          !patterns.exclude.some((pattern) => likeToRegExp(pattern).test(action)),
+      )
 
       const clasificadas = ACCIONES_REALES.filter((action) => categorizeAuditAction(action) === key)
 

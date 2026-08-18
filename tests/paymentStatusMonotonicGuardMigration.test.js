@@ -25,7 +25,9 @@ describe('guarda de transicion monotonica al acreditar un pago', () => {
   })
 
   it('apply_ticket_mercado_pago_payment tiene la misma guarda', () => {
-    expect(migration).toContain('create or replace function public.apply_ticket_mercado_pago_payment(')
+    expect(migration).toContain(
+      'create or replace function public.apply_ticket_mercado_pago_payment(',
+    )
     expect(migration).toContain(guardFor('ticket_payments'))
   })
 

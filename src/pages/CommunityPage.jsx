@@ -10,7 +10,9 @@ import { useI18n } from '../i18n/I18nProvider.jsx'
 function CommunityAction({ description, icon: Icon, label, onClick }) {
   return (
     <button type="button" className="community-action-row" onClick={onClick}>
-      <span className="community-action-row__icon"><Icon size={19} aria-hidden /></span>
+      <span className="community-action-row__icon">
+        <Icon size={19} aria-hidden />
+      </span>
       <span className="community-action-row__copy">
         <strong>{label}</strong>
         <small>{description}</small>
@@ -56,7 +58,10 @@ export default function CommunityPage({ onNavigate }) {
           </section>
         </Reveal>
 
-        <section className="community-participation" aria-labelledby="community-participation-title">
+        <section
+          className="community-participation"
+          aria-labelledby="community-participation-title"
+        >
           <header className="institutional-section-head">
             <p className="institutional-kicker">02 / {t('pages.community.participationEyebrow')}</p>
             <div>
@@ -95,7 +100,9 @@ export default function CommunityPage({ onNavigate }) {
           <div className="community-directory__grid">
             <StaggerGroup className="community-directory__actions" stagger={50}>
               <a className="community-action-row" href="mailto:hola@pluarg.com.ar">
-                <span className="community-action-row__icon"><Mail size={19} aria-hidden /></span>
+                <span className="community-action-row__icon">
+                  <Mail size={19} aria-hidden />
+                </span>
                 <span className="community-action-row__copy">
                   <strong>{t('pages.community.emailTitle')}</strong>
                   <small>hola@pluarg.com.ar</small>
@@ -124,7 +131,9 @@ export default function CommunityPage({ onNavigate }) {
 
             <aside className="community-venue-note">
               <div className="community-venue-note__head">
-                <span><MapPin size={18} aria-hidden /></span>
+                <span>
+                  <MapPin size={18} aria-hidden />
+                </span>
                 <p className="institutional-kicker">{t('pages.community.venueEyebrow')}</p>
               </div>
               <h3>Maximal Strength Club</h3>
@@ -138,14 +147,23 @@ export default function CommunityPage({ onNavigate }) {
         </section>
 
         <Reveal variant="fade">
-          <section className="community-honest-state" aria-labelledby="community-directory-empty-title">
-            <span className="community-honest-state__icon"><CircleCheck size={22} aria-hidden /></span>
+          <section
+            className="community-honest-state"
+            aria-labelledby="community-directory-empty-title"
+          >
+            <span className="community-honest-state__icon">
+              <CircleCheck size={22} aria-hidden />
+            </span>
             <div>
               <p className="institutional-kicker">{t('pages.community.directoryEyebrow')}</p>
               <h2 id="community-directory-empty-title">{t('pages.community.directoryTitle')}</h2>
               <p>{t('pages.community.directoryDesc')}</p>
             </div>
-            <button type="button" className="institutional-button institutional-button--primary" onClick={() => onNavigate?.('contact')}>
+            <button
+              type="button"
+              className="institutional-button institutional-button--primary"
+              onClick={() => onNavigate?.('contact')}
+            >
               {t('pages.community.directoryCta')}
               <ArrowRight size={16} aria-hidden />
             </button>

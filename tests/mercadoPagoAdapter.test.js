@@ -33,13 +33,17 @@ describe('adaptador de Mercado Pago', () => {
   })
 
   it('rechaza credenciales placeholder antes de construir el cliente', () => {
-    expect(() => createMercadoPagoAdapter({
-      env: { MERCADO_PAGO_ACCESS_TOKEN: 'replace-me' },
-    })).toThrow('Mercado Pago no esta configurado')
+    expect(() =>
+      createMercadoPagoAdapter({
+        env: { MERCADO_PAGO_ACCESS_TOKEN: 'replace-me' },
+      }),
+    ).toThrow('Mercado Pago no esta configurado')
 
-    expect(() => createMercadoPagoAdapter({
-      env: { MERCADO_PAGO_ACCESS_TOKEN: 'TEST-xxxx' },
-    })).toThrow('Mercado Pago no esta configurado')
+    expect(() =>
+      createMercadoPagoAdapter({
+        env: { MERCADO_PAGO_ACCESS_TOKEN: 'TEST-xxxx' },
+      }),
+    ).toThrow('Mercado Pago no esta configurado')
   })
 
   it('exige HTTPS para el webhook productivo antes de enviar el pago', async () => {
@@ -51,11 +55,13 @@ describe('adaptador de Mercado Pago', () => {
       },
     })
 
-    await expect(adapter.createPayment({
-      order,
-      idempotencyKey: 'embedded-payment-order-1',
-      formData: { payment_method_id: 'visa', payer: { email: order.payerEmail } },
-    })).rejects.toMatchObject({ status: 503, message: 'API_URL o APP_URL debe usar HTTPS.' })
+    await expect(
+      adapter.createPayment({
+        order,
+        idempotencyKey: 'embedded-payment-order-1',
+        formData: { payment_method_id: 'visa', payer: { email: order.payerEmail } },
+      }),
+    ).rejects.toMatchObject({ status: 503, message: 'API_URL o APP_URL debe usar HTTPS.' })
   })
 
   it('limita la idempotency key al contrato de Mercado Pago', async () => {
@@ -67,11 +73,13 @@ describe('adaptador de Mercado Pago', () => {
       },
     })
 
-    await expect(adapter.createPayment({
-      order,
-      idempotencyKey: 'x'.repeat(65),
-      formData: { payment_method_id: 'visa', payer: { email: order.payerEmail } },
-    })).rejects.toMatchObject({ status: 503 })
+    await expect(
+      adapter.createPayment({
+        order,
+        idempotencyKey: 'x'.repeat(65),
+        formData: { payment_method_id: 'visa', payer: { email: order.payerEmail } },
+      }),
+    ).rejects.toMatchObject({ status: 503 })
   })
 
   it('usa APP_URL como webhook cuando API_URL no esta configurada', async () => {
@@ -93,26 +101,31 @@ describe('adaptador de Mercado Pago', () => {
       idempotencyKey: 'membership-order-1',
     })
 
-    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
-      body: expect.objectContaining({
-        notification_url: 'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
-        items: [expect.objectContaining({
-          title: 'Afiliacion PLU',
-          category_id: 'services',
-        })],
-        back_urls: expect.objectContaining({
-          success: 'https://www.powerliftingunited.ar/perfil?payment=success&order=order-1',
+    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          notification_url: 'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
+          items: [
+            expect.objectContaining({
+              title: 'Afiliacion PLU',
+              category_id: 'services',
+            }),
+          ],
+          back_urls: expect.objectContaining({
+            success: 'https://www.powerliftingunited.ar/perfil?payment=success&order=order-1',
+          }),
         }),
+        requestOptions: expect.objectContaining({ idempotencyKey: 'membership-order-1' }),
       }),
-      requestOptions: expect.objectContaining({ idempotencyKey: 'membership-order-1' }),
-    }))
+    )
   })
 
   it('redirige las inscripciones de atleta al perfil', async () => {
     mpMocks.preferenceCreate.mockResolvedValueOnce({
       id: 'pref-registration',
       init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-registration',
-      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-registration',
+      sandbox_init_point:
+        'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-registration',
     })
     const adapter = createMercadoPagoAdapter({
       env: {
@@ -127,13 +140,16 @@ describe('adaptador de Mercado Pago', () => {
       idempotencyKey: 'registration-order-1',
     })
 
-    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
-      body: expect.objectContaining({
-        back_urls: expect.objectContaining({
-          success: 'https://www.powerliftingunited.ar/perfil?payment=success&order=registration-order-1',
+    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          back_urls: expect.objectContaining({
+            success:
+              'https://www.powerliftingunited.ar/perfil?payment=success&order=registration-order-1',
+          }),
         }),
       }),
-    }))
+    )
   })
 
   it('usa la URL oficial como fallback en produccion Vercel', async () => {
@@ -158,11 +174,13 @@ describe('adaptador de Mercado Pago', () => {
     // Con `www`: el apex responde 308 hacia él y Mercado Pago no sigue
     // redirects, así que la notificación se daba por fallida. Esta afirmación
     // fijaba el apex, que era justamente el valor roto.
-    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(expect.objectContaining({
-      body: expect.objectContaining({
-        notification_url: 'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
+    expect(mpMocks.preferenceCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          notification_url: 'https://www.powerliftingunited.ar/api/payments/webhook/mercadopago',
+        }),
       }),
-    }))
+    )
   })
 
   /**

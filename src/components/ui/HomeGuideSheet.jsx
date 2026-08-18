@@ -26,7 +26,9 @@ export default function HomeGuideSheet({ onAffiliate, onClose }) {
         <header className="home-guide__header">
           <div>
             <h2 id="home-guide-title">{t('homeGuide.title')}</h2>
-            <p id="home-guide-lead" className="home-guide__lead">{t('homeGuide.lead')}</p>
+            <p id="home-guide-lead" className="home-guide__lead">
+              {t('homeGuide.lead')}
+            </p>
           </div>
           <button
             type="button"
@@ -41,7 +43,9 @@ export default function HomeGuideSheet({ onAffiliate, onClose }) {
         <ol className="home-guide__steps">
           {STEPS.map((step, index) => (
             <li key={step.titleKey} className="home-guide__step">
-              <span className="home-guide__index" aria-hidden>{index + 1}</span>
+              <span className="home-guide__index" aria-hidden>
+                {index + 1}
+              </span>
               <div>
                 <h3>{t(step.titleKey)}</h3>
                 <p>{t(step.bodyKey)}</p>

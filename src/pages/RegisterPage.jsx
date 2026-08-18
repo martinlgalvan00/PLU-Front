@@ -29,6 +29,7 @@ import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
 import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
+import RegisterProfileWelcome from '../components/ui/RegisterProfileWelcome.jsx'
 import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
@@ -116,17 +117,25 @@ function ageAtEvent(birthDate, eventDate) {
   const event = new Date(eventDate)
   if (Number.isNaN(birth.getTime()) || Number.isNaN(event.getTime())) return null
   let age = event.getUTCFullYear() - birth.getUTCFullYear()
-  const birthdayThisYear = new Date(Date.UTC(event.getUTCFullYear(), birth.getUTCMonth(), birth.getUTCDate()))
+  const birthdayThisYear = new Date(
+    Date.UTC(event.getUTCFullYear(), birth.getUTCMonth(), birth.getUTCDate()),
+  )
   if (event < birthdayThisYear) age -= 1
   return age >= 0 ? age : null
 }
 
 function RegisterLiveCredential({ form, t }) {
-  const name = form.fullName && form.fullName.trim() ? form.fullName.trim() : t('pages.register.fullNamePlaceholder') || 'Tu nombre y apellido'
+  const name =
+    form.fullName && form.fullName.trim()
+      ? form.fullName.trim()
+      : t('pages.register.fullNamePlaceholder') || 'Tu nombre y apellido'
   // La credencial en vivo refleja el mismo criterio del formulario: DNI para
   // Argentina, ID o pasaporte para el resto.
   const docLabel = form.country && form.country !== 'Argentina' ? 'ID' : 'DNI'
-  const doc = form.documentId && form.documentId.trim() ? `${docLabel} ${form.documentId.trim()}` : `${docLabel} —`
+  const doc =
+    form.documentId && form.documentId.trim()
+      ? `${docLabel} ${form.documentId.trim()}`
+      : `${docLabel} —`
   const locationParts = [form.city, form.province, form.country]
     .map((value) => String(value ?? '').trim())
     .filter(Boolean)
@@ -205,9 +214,7 @@ function isFieldFilled(form, field) {
       // nunca completaba el paso aunque su documento fuera válido.
       const isArgentina = form.country === 'Argentina' || !form.country
       const clean = str.replace(/[.\-\s]/g, '')
-      return isArgentina
-        ? /^\d{7,8}$/.test(clean)
-        : clean.length >= 5 && clean.length <= 20
+      return isArgentina ? /^\d{7,8}$/.test(clean) : clean.length >= 5 && clean.length <= 20
     }
     case 'birthDate':
       return /^\d{4}-\d{2}-\d{2}$/.test(str)
@@ -248,12 +255,21 @@ function getProfileProgress(form, profileSteps) {
   const completedFields = steps.reduce((sum, step) => sum + step.filled, 0)
   const totalFields = steps.reduce((sum, step) => sum + step.total, 0)
   const percent = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0
-  const currentStep = steps.find((step) => step.state === 'active') ?? steps.find((step) => step.state === 'pending')
+  const currentStep =
+    steps.find((step) => step.state === 'active') ?? steps.find((step) => step.state === 'pending')
 
   return { steps, percent, currentStep, complete: percent === 100 }
 }
 
-function RegisterProgress({ activeStepIndex = 0, form, flow, layout = 'stack', onStepSelect, profileSteps, t }) {
+function RegisterProgress({
+  activeStepIndex = 0,
+  form,
+  flow,
+  layout = 'stack',
+  onStepSelect,
+  profileSteps,
+  t,
+}) {
   const progress = useMemo(
     () => (flow === 'profile' ? getProfileProgress(form, profileSteps) : null),
     [flow, form, profileSteps],
@@ -321,8 +337,12 @@ function RegisterMembershipAside({ athlete, locale, t, total }) {
   return (
     <aside className="register-membership-aside" aria-label={t('pages.register.membershipTitle')}>
       <div className="register-membership-ticket">
-        <p className="register-membership-ticket__plan">{t('pages.register.membershipPlanLabel')}</p>
-        <p className="register-membership-ticket__validity">{t('pages.register.membershipValidityNote')}</p>
+        <p className="register-membership-ticket__plan">
+          {t('pages.register.membershipPlanLabel')}
+        </p>
+        <p className="register-membership-ticket__validity">
+          {t('pages.register.membershipValidityNote')}
+        </p>
         {athlete?.fullName ? (
           <p className="register-membership-ticket__athlete">{athlete.fullName}</p>
         ) : null}
@@ -337,7 +357,11 @@ function RegisterMembershipAside({ athlete, locale, t, total }) {
 
 function RegisterCompetitionAside({ athlete, form, locale, packageLabel, t, total }) {
   const pending = t('pages.register.competitionSummaryPending')
-  const picks = [form.division, form.category, form.estimatedWeight ? `${form.estimatedWeight} kg` : '']
+  const picks = [
+    form.division,
+    form.category,
+    form.estimatedWeight ? `${form.estimatedWeight} kg` : '',
+  ]
     .filter(Boolean)
     .join(' · ')
 
@@ -398,7 +422,8 @@ export default function RegisterPage({
   // usuario puede cambiarlo dentro del modal.
   const [cardInitialFormat, setCardInitialFormat] = useState('square')
   function openCardModal() {
-    const prefersStory = typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches
+    const prefersStory =
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 720px)').matches
     setCardInitialFormat(prefersStory ? 'story' : 'square')
     setCardOpen(true)
   }
@@ -414,9 +439,12 @@ export default function RegisterPage({
   const [discountPreview, setDiscountPreview] = useState(null)
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
-  const [accessRequirements, setAccessRequirements] = useState({ membership: false, registration: false })
-  const [accessRequirementsLoading, setAccessRequirementsLoading] = useState(
-    () => ['membership', 'competition'].includes(flow),
+  const [accessRequirements, setAccessRequirements] = useState({
+    membership: false,
+    registration: false,
+  })
+  const [accessRequirementsLoading, setAccessRequirementsLoading] = useState(() =>
+    ['membership', 'competition'].includes(flow),
   )
   const [accessRequirementsError, setAccessRequirementsError] = useState('')
   const [membershipAccessCode, setMembershipAccessCode] = useState('')
@@ -436,20 +464,26 @@ export default function RegisterPage({
   )
   const committedCompetitionRegistration = useMemo(() => {
     if (flow !== 'competition' || !athlete || !event?.slug) return null
-    return registrations.find((registration) => (
-      registration.athleteId === athlete.id &&
-      registration.eventSlug === event.slug &&
-      !['cancelada', 'cancelled'].includes(String(registration.status ?? '').toLowerCase())
-    )) ?? null
+    return (
+      registrations.find(
+        (registration) =>
+          registration.athleteId === athlete.id &&
+          registration.eventSlug === event.slug &&
+          !['cancelada', 'cancelled'].includes(String(registration.status ?? '').toLowerCase()),
+      ) ?? null
+    )
   }, [athlete, event?.slug, flow, registrations])
   const competitionProfileDetails = useMemo(() => {
     if (flow !== 'competition' || !athlete) return []
     const age = ageAtEvent(athlete.birthDate, event?.startsAt ?? event?.starts_at)
     return [
       [t('account.personalData.fullName'), athlete.fullName],
-      [t('account.personalData.birthDate'), athlete.birthDate
-        ? `${formatShortDate(athlete.birthDate, locale)}${age === null ? '' : ` · ${age} ${t('pages.register.competitionProfileYears')}`}`
-        : null],
+      [
+        t('account.personalData.birthDate'),
+        athlete.birthDate
+          ? `${formatShortDate(athlete.birthDate, locale)}${age === null ? '' : ` · ${age} ${t('pages.register.competitionProfileYears')}`}`
+          : null,
+      ],
       [t('account.personalData.phone'), athlete.phone],
       [t('account.personalData.email'), athlete.email],
       [t('pages.register.competitionProfileSex'), athlete.sex],
@@ -457,7 +491,10 @@ export default function RegisterPage({
       [t('pages.register.country'), athlete.country],
       [t('account.personalData.province'), athlete.province],
       [t('account.personalData.city'), athlete.city],
-      [t('account.personalData.bestTotal'), athlete.bestTotalKg ? `${athlete.bestTotalKg} kg` : null],
+      [
+        t('account.personalData.bestTotal'),
+        athlete.bestTotalKg ? `${athlete.bestTotalKg} kg` : null,
+      ],
     ].filter(([, value]) => value)
   }, [athlete, event, flow, locale, t])
   const profileProgress = useMemo(
@@ -529,7 +566,7 @@ export default function RegisterPage({
     try {
       const preview = await previewDiscountCode({
         code,
-        appliesTo: 'registration',
+        appliesTo: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
         eventSlug: event.slug,
         paymentMethod: toApiPaymentMethod(form.paymentMethod),
       })
@@ -560,11 +597,27 @@ export default function RegisterPage({
     setDiscountError('')
   }
 
+  // Un cupón aplicado sobre 'registration' no necesariamente vale sobre
+  // 'combo' (sólo applies_to = 'both' cubre el combo) y viceversa: cambiar de
+  // paquete invalida el preview en pantalla en vez de dejarlo aplicado a un
+  // alcance que ya no corresponde.
+  useEffect(() => {
+    clearDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purchaseType])
+
   const content = {
-    profile: [t('pages.register.profileTitle'), t('pages.register.profileDesc'), t('pages.register.profileSubmit')],
+    profile: [
+      t('pages.register.profileTitle'),
+      t('pages.register.profileDesc'),
+      t('pages.register.profileSubmit'),
+    ],
     competition: [
       t('pages.register.competitionTitle'),
-      t('pages.register.competitionDesc', { name: athlete?.fullName ?? '', event: event?.title ?? '' }),
+      t('pages.register.competitionDesc', {
+        name: athlete?.fullName ?? '',
+        event: event?.title ?? '',
+      }),
       t('pages.register.competitionSubmit'),
     ],
     membership: [
@@ -574,7 +627,7 @@ export default function RegisterPage({
     ],
   }[flow]
 
-  const visibleOrder = flow === 'profile' ? null : createdOrder?.type === flow ? createdOrder : null
+  const visibleOrder = createdOrder?.type === flow ? createdOrder : null
   // La vigente primero; si todavía no hay ninguna (la afiliación recién
   // creada está pendiente de pago) cae a la más reciente, que es la de esta
   // misma orden. Antes tomaba la primera del array sin mirar el estado, así
@@ -600,34 +653,40 @@ export default function RegisterPage({
   )
   const comboEnabled = flow === 'competition' && comboAvailability.enabled
   const comboComingSoon = flow === 'competition' && comboAvailability.comingSoon
-  const checkoutKind = flow === 'membership'
-    ? 'membership'
-    : purchaseType === 'combo'
-      ? 'combo'
-      : 'registration'
-  const conceptCheckoutEnabled = checkoutKind === 'membership'
-    ? checkoutAvailability.membershipEnabled !== false
-    : checkoutKind === 'combo'
-      ? checkoutAvailability.membershipEnabled !== false &&
-        checkoutAvailability.registrationEnabled !== false
-      : checkoutAvailability.registrationEnabled !== false
+  const checkoutKind =
+    flow === 'membership' ? 'membership' : purchaseType === 'combo' ? 'combo' : 'registration'
+  const conceptCheckoutEnabled =
+    checkoutKind === 'membership'
+      ? checkoutAvailability.membershipEnabled !== false
+      : checkoutKind === 'combo'
+        ? checkoutAvailability.membershipEnabled !== false &&
+          checkoutAvailability.registrationEnabled !== false
+        : checkoutAvailability.registrationEnabled !== false
   const paidCheckoutOpen =
-    conceptCheckoutEnabled &&
-    isPaidCheckoutOpen(event, env, new Date(), { checkoutKind })
-  const checkoutFlowsLocked =
-    (flow === 'competition' || flow === 'membership') && !paidCheckoutOpen
-  const effectivePurchaseType = comboEnabled && purchaseType === 'combo'
-    ? 'combo'
-    : 'registration'
-  const checkoutTotal = previewCheckoutPrice({
-    concept: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
-    paymentMethod: form.paymentMethod,
-    fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
-  })
+    conceptCheckoutEnabled && isPaidCheckoutOpen(event, env, new Date(), { checkoutKind })
+  const checkoutFlowsLocked = (flow === 'competition' || flow === 'membership') && !paidCheckoutOpen
+  const effectivePurchaseType = comboEnabled && purchaseType === 'combo' ? 'combo' : 'registration'
   const eventPricing = useMemo(() => resolveEventPricing(event), [event])
   const membershipListPrice = Number(eventPricing.membership) || 0
   const registrationListPrice = Number(total) || Number(eventPricing.registration) || 0
   const comboListPrice = comboAvailability.offer ? Number(comboAvailability.offer.price) : 0
+  const checkoutListTotal = previewCheckoutPrice({
+    paymentMethod: form.paymentMethod,
+    manualPrice:
+      effectivePurchaseType === 'combo'
+        ? comboAvailability.offer.manualPrice
+        : eventPricing.registrationManual,
+    fallback: effectivePurchaseType === 'combo' ? comboAvailability.offer.price : total,
+  })
+  // Con un código aplicado, lo que se cobra es el importe del preview — sea un
+  // descuento porcentual o una promo de precio fijo. Mostrar el de lista dejaba
+  // el resumen y la barra de checkout diciendo un número que no era el de la
+  // orden. El importe definitivo sigue saliendo de la respuesta del POST.
+  const discountedTotal = Number(discountPreview?.finalAmount)
+  const checkoutTotal =
+    discountPreview?.valid && Number.isFinite(discountedTotal) && discountedTotal > 0
+      ? discountedTotal
+      : checkoutListTotal
   const comboSavings =
     comboAvailability.offer && membershipListPrice + registrationListPrice > comboListPrice
       ? membershipListPrice + registrationListPrice - comboListPrice
@@ -640,17 +699,17 @@ export default function RegisterPage({
     : ''
   const showEligibilityNote = membershipGatePending && effectivePurchaseType !== 'combo'
   const isPaidCheckout = flow === 'competition' || flow === 'membership'
-  const emailVerifiedLocally =
-    resendState === 'verified' || verificationCodeState === 'verified'
+  const emailVerifiedLocally = resendState === 'verified' || verificationCodeState === 'verified'
   const showEmailVerify =
-    isPaidCheckout &&
-    !emailVerifiedLocally &&
-    (emailBlocked || athlete?.emailVerifiedAt === null)
+    isPaidCheckout && !emailVerifiedLocally && (emailBlocked || athlete?.emailVerifiedAt === null)
 
   useEffect(() => {
     if (!emailBlocked) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    emailVerifyRef.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' })
+    emailVerifyRef.current?.scrollIntoView({
+      block: 'start',
+      behavior: reduced ? 'auto' : 'smooth',
+    })
   }, [emailBlocked])
 
   useEffect(() => {
@@ -682,7 +741,9 @@ export default function RegisterPage({
     let active = true
     setAccessRequirementsLoading(true)
     setAccessRequirementsError('')
-    fetchRegistrationAccessRequirements({ eventSlug: flow === 'competition' ? event?.slug : undefined })
+    fetchRegistrationAccessRequirements({
+      eventSlug: flow === 'competition' ? event?.slug : undefined,
+    })
       .then((requirements) => {
         if (!active) return
         setAccessRequirements(requirements)
@@ -696,7 +757,9 @@ export default function RegisterPage({
       .finally(() => {
         if (active) setAccessRequirementsLoading(false)
       })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [
     checkoutAvailability.membershipEnabled,
     checkoutAvailability.membershipManualEnabled,
@@ -715,9 +778,8 @@ export default function RegisterPage({
     }
   }, [accessRequirementsError, accessRequirementsLoading, t])
 
-  const needsMembershipAccessCode = accessRequirements.membership && (
-    flow === 'membership' || effectivePurchaseType === 'combo'
-  )
+  const needsMembershipAccessCode =
+    accessRequirements.membership && (flow === 'membership' || effectivePurchaseType === 'combo')
   const needsRegistrationAccessCode = accessRequirements.registration && flow === 'competition'
 
   /**
@@ -756,8 +818,10 @@ export default function RegisterPage({
   }
 
   // Mercado Pago es el canal inicial. Transferencia y efectivo requieren una
-  // habilitación explícita de ambos alcances para el combo.
-  const manualPaymentEnabled =
+  // habilitación explícita de ambos alcances para el combo — salvo que el
+  // código aplicado destrabe ese canal puntualmente. Cada canal se decide por
+  // separado: un código puede abrir sólo transferencia, sólo efectivo o los dos.
+  const manualChannelsOpenGlobally =
     checkoutAvailability.membershipManualEnabled !== false &&
     (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
     // accessRequirements todavía no resolvió (arranca undefined): con !==
@@ -766,15 +830,24 @@ export default function RegisterPage({
     // `manualChannelEnabled` evita en MembershipPurchaseSection.
     accessRequirements.membershipManualEnabled === true &&
     (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
-  const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
+  const codeChannels = discountPreview?.manualChannels ?? []
+  const transferEnabled = manualChannelsOpenGlobally || codeChannels.includes('bank_transfer')
+  const cashEnabled = manualChannelsOpenGlobally || codeChannels.includes('cash_pitbull')
+  const manualPaymentEnabled = transferEnabled || cashEnabled
+  const selectedMethodEnabled =
+    form.paymentMethod === 'manual_link'
+      ? transferEnabled
+      : form.paymentMethod === 'cash_pitbull'
+        ? cashEnabled
+        : true
 
-  // El canal manual se cerró mientras la pantalla estaba abierta: la selección
-  // vuelve a Mercado Pago para que el formulario no envíe un medio que el
-  // backend va a rechazar.
+  // El canal manual se cerró mientras la pantalla estaba abierta —o el código
+  // aplicado no habilita el que estaba elegido—: la selección vuelve a Mercado
+  // Pago para que el formulario no envíe un medio que el backend va a rechazar.
   useEffect(() => {
-    if (manualPaymentEnabled || !manualMethodSelected) return
+    if (selectedMethodEnabled) return
     onUpdateForm({ target: { name: 'paymentMethod', value: 'mercado_pago' } })
-  }, [manualMethodSelected, manualPaymentEnabled, onUpdateForm])
+  }, [selectedMethodEnabled, onUpdateForm])
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -783,7 +856,9 @@ export default function RegisterPage({
   const visibleErrors = useMemo(() => {
     if (flow !== 'profile') return errors
     return Object.fromEntries(
-      Object.entries(errors).filter(([field, message]) => Boolean(message) && (touched[field] || stepErrorsVisible)),
+      Object.entries(errors).filter(
+        ([field, message]) => Boolean(message) && (touched[field] || stepErrorsVisible),
+      ),
     )
   }, [errors, flow, stepErrorsVisible, touched])
 
@@ -836,9 +911,10 @@ export default function RegisterPage({
       // ya tipeado puede quedar inválido (letras en un DNI), así que se sanea
       // hacia el formato del país elegido y el error de formato se replantea.
       if (form.documentId) {
-        const clean = event.target.value === 'Argentina'
-          ? form.documentId.replace(/[^\d]/g, '')
-          : form.documentId
+        const clean =
+          event.target.value === 'Argentina'
+            ? form.documentId.replace(/[^\d]/g, '')
+            : form.documentId
         onUpdateForm({ target: { name: 'documentId', value: clean } })
       }
       if (errors.documentId) setErrors((current) => ({ ...current, documentId: '' }))
@@ -1027,7 +1103,10 @@ export default function RegisterPage({
     }
     if (flow === 'competition') {
       const method = result?.createdOrder?.paymentMethod ?? result?.payment?.method
-      if (method === 'manual_link' && result?.createdOrder?.manualPaymentChannel !== 'cash_pitbull') {
+      if (
+        method === 'manual_link' &&
+        result?.createdOrder?.manualPaymentChannel !== 'cash_pitbull'
+      ) {
         setChangingMethod(false)
         setTransferOrderId(result?.createdOrder?.paymentId ?? result?.payment?.id ?? null)
         setTransferOpen(true)
@@ -1037,7 +1116,10 @@ export default function RegisterPage({
       } else {
         setChangingMethod(false)
       }
-    } else if (flow === 'profile') onNavigate?.('profile')
+    }
+    // flow === 'profile': sin navegación automática. `visibleOrder` pasa a
+    // reflejar la cuenta recién creada y la pantalla de bienvenida
+    // (RegisterProfileWelcome) es la que dispara el paso a 'profile'.
   }
 
   async function submit(eventObject) {
@@ -1129,7 +1211,9 @@ export default function RegisterPage({
       result = await onSubmit(eventObject, event, {
         purchaseType: effectivePurchaseType,
         paymentMethod: form.paymentMethod,
-        discountCode: effectivePurchaseType === 'registration' ? discountPreview?.code : undefined,
+        discountCode: ['registration', 'combo'].includes(effectivePurchaseType)
+          ? discountPreview?.code
+          : undefined,
         membershipAccessCode,
         registrationAccessCode,
       })
@@ -1165,17 +1249,15 @@ export default function RegisterPage({
     setSubmitting(true)
     let result
     try {
-      result = await onSubmit(
-        { preventDefault() {} },
-        event,
-        {
-          purchaseType: effectivePurchaseType,
-          paymentMethod: 'manual_link',
-          discountCode: effectivePurchaseType === 'registration' ? discountPreview?.code : undefined,
-          membershipAccessCode,
-          registrationAccessCode,
-        },
-      )
+      result = await onSubmit({ preventDefault() {} }, event, {
+        purchaseType: effectivePurchaseType,
+        paymentMethod: 'manual_link',
+        discountCode: ['registration', 'combo'].includes(effectivePurchaseType)
+          ? discountPreview?.code
+          : undefined,
+        membershipAccessCode,
+        registrationAccessCode,
+      })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
     } finally {
@@ -1245,60 +1327,66 @@ export default function RegisterPage({
   const membershipOrderConfirmed = flow === 'membership' && visibleOrder
   const membershipConfirmedActive =
     membershipOrderConfirmed && getStatusMeta(visibleOrder.status, t).tone === 'success'
+  const profileOrderConfirmed = flow === 'profile' && Boolean(visibleOrder)
   const competitionSettling = flow === 'competition' && Boolean(visibleOrder) && !changingMethod
   const mpSettling = competitionSettling && visibleOrder.paymentMethod === 'mercado_pago'
 
-  const registerIntro =
-    membershipOrderConfirmed ? (
-      <header className="register-intro register-intro--membership register-intro--confirmed">
-        <h1 className="register-intro__title">
-          {membershipConfirmedActive
-            ? t('pages.register.membershipConfirmedActiveTitle')
-            : t('pages.register.membershipConfirmedPendingTitle')}
-        </h1>
-        <p className="register-intro__desc">
-          {membershipConfirmedActive
-            ? t('pages.register.membershipConfirmedActiveDesc')
-            : t('pages.register.membershipConfirmedPendingDesc')}
-        </p>
-      </header>
-    ) : flow === 'membership' ? (
-      <header className="register-intro register-intro--membership">
-        <p className="register-intro__eyebrow">{t('pages.register.profileEyebrow')}</p>
-        <h1 className="register-intro__title">{t('pages.register.membershipTitle')}</h1>
-        <p className="register-intro__desc">{t('pages.register.membershipDesc')}</p>
-        {athlete?.fullName ? (
-          <div className="register-intro__meta register-intro__meta--membership">
-            <strong className="register-intro__athlete">{athlete.fullName}</strong>
-          </div>
-        ) : null}
-      </header>
-    ) : flow === 'competition' ? (
-      <header className="register-intro register-intro--competition">
-        <p className="register-intro__eyebrow">{t('pages.register.competitionEyebrow')}</p>
-        <h1 className="register-intro__title">{event?.title || content[0]}</h1>
-        <p className="register-intro__desc">
-          {t('pages.register.competitionDescShort', { name: athlete?.fullName ?? '' })}
-        </p>
-        <div className="register-intro__meta register-intro__meta--competition">
-          {athlete?.fullName ? (
-            <strong className="register-intro__athlete">{athlete.fullName}</strong>
-          ) : null}
-          {event?.date ? <span>{formatShortDate(event.date, locale)}</span> : null}
-          {(event?.venue || event?.location) ? (
-            <span>{event?.venue || event?.location}</span>
-          ) : null}
+  const registerIntro = profileOrderConfirmed ? (
+    <header className="register-intro register-intro--profile register-intro--confirmed">
+      <p className="register-intro__eyebrow">{t('pages.register.profileWelcomeEyebrow')}</p>
+      <h1 className="register-intro__title">{t('pages.register.profileWelcomeTitle')}</h1>
+      <p className="register-intro__desc">{t('pages.register.profileWelcomeDesc')}</p>
+    </header>
+  ) : membershipOrderConfirmed ? (
+    <header className="register-intro register-intro--membership register-intro--confirmed">
+      <h1 className="register-intro__title">
+        {membershipConfirmedActive
+          ? t('pages.register.membershipConfirmedActiveTitle')
+          : t('pages.register.membershipConfirmedPendingTitle')}
+      </h1>
+      <p className="register-intro__desc">
+        {membershipConfirmedActive
+          ? t('pages.register.membershipConfirmedActiveDesc')
+          : t('pages.register.membershipConfirmedPendingDesc')}
+      </p>
+    </header>
+  ) : flow === 'membership' ? (
+    <header className="register-intro register-intro--membership">
+      <p className="register-intro__eyebrow">{t('pages.register.profileEyebrow')}</p>
+      <h1 className="register-intro__title">{t('pages.register.membershipTitle')}</h1>
+      <p className="register-intro__desc">{t('pages.register.membershipDesc')}</p>
+      {athlete?.fullName ? (
+        <div className="register-intro__meta register-intro__meta--membership">
+          <strong className="register-intro__athlete">{athlete.fullName}</strong>
         </div>
-      </header>
-    ) : (
-      <header className={`register-intro${flow === 'profile' ? ' register-intro--profile' : ''}`.trim()}>
-        {flow === 'profile' ? (
-          <p className="register-intro__eyebrow">{t('pages.register.profileEyebrow')}</p>
+      ) : null}
+    </header>
+  ) : flow === 'competition' ? (
+    <header className="register-intro register-intro--competition">
+      <p className="register-intro__eyebrow">{t('pages.register.competitionEyebrow')}</p>
+      <h1 className="register-intro__title">{event?.title || content[0]}</h1>
+      <p className="register-intro__desc">
+        {t('pages.register.competitionDescShort', { name: athlete?.fullName ?? '' })}
+      </p>
+      <div className="register-intro__meta register-intro__meta--competition">
+        {athlete?.fullName ? (
+          <strong className="register-intro__athlete">{athlete.fullName}</strong>
         ) : null}
-        <h1 className="register-intro__title">{content[0]}</h1>
-        <p className="register-intro__desc">{content[1]}</p>
-      </header>
-    )
+        {event?.date ? <span>{formatShortDate(event.date, locale)}</span> : null}
+        {event?.venue || event?.location ? <span>{event?.venue || event?.location}</span> : null}
+      </div>
+    </header>
+  ) : (
+    <header
+      className={`register-intro${flow === 'profile' ? ' register-intro--profile' : ''}`.trim()}
+    >
+      {flow === 'profile' ? (
+        <p className="register-intro__eyebrow">{t('pages.register.profileEyebrow')}</p>
+      ) : null}
+      <h1 className="register-intro__title">{content[0]}</h1>
+      <p className="register-intro__desc">{content[1]}</p>
+    </header>
+  )
 
   const membershipPaymentHint =
     flow === 'membership' && !visibleOrder
@@ -1309,8 +1397,7 @@ export default function RegisterPage({
 
   // En competencia sin orden el total vive en el aside + footer: el hint vacío
   // solo sumaba ruido al viewport.
-  const registerStatus =
-    flow !== 'profile' &&
+  const registerStatus = flow !== 'profile' &&
     visibleOrder &&
     flow !== 'membership' &&
     !((mpSettling || changingMethod) && !cardData) && (
@@ -1412,9 +1499,7 @@ export default function RegisterPage({
             <button
               type="button"
               className="register-topbar__back"
-              onClick={() =>
-                onNavigate(flow === 'competition' ? 'events' : 'members')
-              }
+              onClick={() => onNavigate(flow === 'competition' ? 'events' : 'members')}
             >
               <ArrowLeft size={15} aria-hidden />
               {flow === 'membership'
@@ -1423,8 +1508,12 @@ export default function RegisterPage({
                   ? t('nav.events')
                   : t('pages.register.backMembership')}
             </button>
-            {flow === 'profile' && (
-              <button type="button" className="register-topbar__link" onClick={() => onNavigate('login')}>
+            {flow === 'profile' && !profileOrderConfirmed && (
+              <button
+                type="button"
+                className="register-topbar__link"
+                onClick={() => onNavigate('login')}
+              >
                 {t('pages.register.haveAccount')}
                 <ArrowRight size={14} aria-hidden />
               </button>
@@ -1467,10 +1556,19 @@ export default function RegisterPage({
                 onStepSelect={selectProfileStep}
               />
             )}
-            {(flow !== 'profile' || visibleOrder) && !(flow === 'membership' && visibleOrder) && registerStatus}
+            {(flow !== 'profile' || visibleOrder) &&
+              !(flow === 'membership' && visibleOrder) &&
+              registerStatus}
           </div>
 
-          {membershipOrderConfirmed ? (
+          {profileOrderConfirmed ? (
+            <div className="register-card register-card--confirmation">
+              <RegisterProfileWelcome
+                athleteName={visibleOrder.athleteName}
+                onNavigate={onNavigate}
+              />
+            </div>
+          ) : membershipOrderConfirmed ? (
             <div className="register-card register-card--confirmation">
               <RegisterMembershipConfirmation
                 cardData={cardData}
@@ -1504,7 +1602,9 @@ export default function RegisterPage({
                 className="register-feature-locked"
                 eyebrow={t('pages.register.registrationCheckoutSoonEyebrow')}
                 icon={CalendarClock}
-                lead={t('pages.register.registrationCheckoutSoonLead', { event: event?.title ?? t('nav.events') })}
+                lead={t('pages.register.registrationCheckoutSoonLead', {
+                  event: event?.title ?? t('nav.events'),
+                })}
                 role="status"
                 title={t('pages.register.registrationCheckoutSoonTitle')}
                 variant="inline"
@@ -1592,603 +1692,646 @@ export default function RegisterPage({
               )}
             </div>
           ) : (
-          <form className="register-card athlete-form" onSubmit={submit} noValidate>
-            {showEmailVerify ? (
-              <div ref={emailVerifyRef} className="register-verify" role="alert">
-                <Pill tone="warning">{t('pages.register.emailVerificationPill')}</Pill>
-                <p className="register-verify__title">{t('pages.register.emailVerificationTitle')}</p>
-                <p className="register-verify__lead">
-                  {resendState === 'sent'
-                    ? t('pages.register.emailVerificationSent')
-                    : resendState === 'error'
-                      ? t('pages.register.emailVerificationError')
-                      : t('pages.register.emailVerificationLead')}
-                </p>
-                {athlete?.email ? (
-                  <p className="register-verify__email">{athlete.email}</p>
-                ) : null}
-                <div className="register-verify__otp">
-                  <label htmlFor="register-verify-code">
-                    {t('account.emailVerification.otpLabel')}
-                  </label>
-                  <div className="register-verify__otp-row">
-                    <input
-                      id="register-verify-code"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      pattern="\d{8}"
-                      maxLength={8}
-                      placeholder="00000000"
-                      value={verificationCode}
-                      disabled={verificationCodeState === 'verifying'}
-                      onChange={(event) => {
-                        setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 8))
-                        setVerificationCodeError('')
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault()
-                          verifyEmailCode()
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      disabled={verificationCodeState === 'verifying' || verificationCode.length !== 8}
-                      onClick={() => verifyEmailCode()}
-                    >
-                      {verificationCodeState === 'verifying'
-                        ? t('account.emailVerification.otpVerifying')
-                        : t('account.emailVerification.otpSubmit')}
-                    </button>
-                  </div>
-                  {verificationCodeError ? (
-                    <p className="register-verify__otp-error" role="alert">
-                      {verificationCodeError}
-                    </p>
+            <form className="register-card athlete-form" onSubmit={submit} noValidate>
+              {showEmailVerify ? (
+                <div ref={emailVerifyRef} className="register-verify" role="alert">
+                  <Pill tone="warning">{t('pages.register.emailVerificationPill')}</Pill>
+                  <p className="register-verify__title">
+                    {t('pages.register.emailVerificationTitle')}
+                  </p>
+                  <p className="register-verify__lead">
+                    {resendState === 'sent'
+                      ? t('pages.register.emailVerificationSent')
+                      : resendState === 'error'
+                        ? t('pages.register.emailVerificationError')
+                        : t('pages.register.emailVerificationLead')}
+                  </p>
+                  {athlete?.email ? (
+                    <p className="register-verify__email">{athlete.email}</p>
                   ) : null}
-                </div>
-                <button
-                  type="button"
-                  className="register-verify__resend"
-                  disabled={resendState === 'sending'}
-                  onClick={resendVerification}
-                >
-                  {resendState === 'sending'
-                    ? t('pages.register.emailVerificationSending')
-                    : resendState === 'sent'
-                      ? t('pages.register.emailVerificationResendAgain')
-                      : t('pages.register.emailVerificationResend')}
-                </button>
-              </div>
-            ) : emailVerifiedLocally && isPaidCheckout ? (
-              <div className="register-verify register-verify--done" role="status">
-                <Pill tone="success">{t('pages.register.emailVerificationConfirmedPill')}</Pill>
-                <p className="register-verify__lead">{t('pages.register.emailVerificationAlready')}</p>
-              </div>
-            ) : null}
-
-            {flow === 'profile' && (
-              // Contenedor en grilla + mode="sync": los dos pasos comparten
-              // celda durante el crossfade, así la tarjeta no colapsa de alto
-              // entre "Datos personales" (6 campos) y "Ubicación" (5).
-              <div className="register-wizard-swap">
-              <MotionContentSwap
-                className="register-wizard"
-                direction={wizardDirection}
-                mode="sync"
-                swapKey={activeProfileStep.id}
-              >
-                {profileStepIndex === 0 && (
-                  <FormSection
-                    title={t('pages.register.personalTitle')}
-                    description={t('pages.register.personalDesc')}
-                  >
-                    <div className="form-grid">
-                      <Field
-                        autoComplete="name"
-                        className="field--span-2"
-                        error={visibleErrors.fullName}
-                        icon={User}
-                        label={t('pages.register.fullName')}
-                        name="fullName"
-                        placeholder={t('pages.register.fullNamePlaceholder')}
-                        value={form.fullName}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
-                      <Select
-                        error={visibleErrors.country}
-                        icon={Globe}
-                        label={t('pages.register.nationalityLabel')}
-                        name="country"
-                        value={form.country}
-                        onBlur={blurField}
-                        onChange={changeField}
-                        options={formOptions.country}
-                      />
-                      <Field
-                        disabled={!form.country}
-                        error={visibleErrors.documentId}
-                        icon={Hash}
-                        inputMode={form.country && form.country !== 'Argentina' ? 'text' : 'numeric'}
-                        label={
-                          form.country && form.country !== 'Argentina'
-                            ? t('pages.register.documentIdPassport')
-                            : t('pages.register.documentIdLabel')
-                        }
-                        name="documentId"
-                        placeholder={
-                          form.country
-                            ? form.country !== 'Argentina'
-                              ? t('pages.register.documentPlaceholderPassport')
-                              : t('pages.register.documentPlaceholder')
-                            : t('pages.register.documentPlaceholderWaiting')
-                        }
-                        value={form.documentId}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
-                      <DateField
-                        error={visibleErrors.birthDate}
-                        icon={Calendar}
-                        label={t('pages.register.birthDate')}
-                        name="birthDate"
-                        value={form.birthDate}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
-                      <Field
-                        autoComplete="email"
-                        error={visibleErrors.email}
-                        icon={Mail}
-                        label={t('pages.register.email')}
-                        name="email"
-                        placeholder={t('pages.register.emailPlaceholder')}
-                        type="email"
-                        value={form.email}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
-                      <Field
-                        autoComplete="tel"
-                        error={visibleErrors.phone}
-                        icon={Phone}
-                        inputMode="tel"
-                        label={t('pages.register.phone')}
-                        name="phone"
-                        placeholder={t('pages.register.phonePlaceholder')}
-                        value={form.phone}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
-                      <div className="field--span-2">
-                        <Field
-                          autoComplete="new-password"
-                          error={visibleErrors.password}
-                          icon={Lock}
-                          label={t('login.password')}
-                          name="password"
-                          type={showPassword ? 'text' : 'password'}
-                          value={form.password}
-                          onBlur={blurField}
-                          onChange={changeField}
-                          trailing={
-                            <button
-                              type="button"
-                              className="field__toggle"
-                              aria-label={
-                                showPassword ? t('login.hidePassword') : t('login.showPassword')
-                              }
-                              aria-pressed={showPassword}
-                              onClick={(event) => {
-                                event.preventDefault()
-                                setShowPassword((visible) => !visible)
-                              }}
-                              onMouseDown={(event) => event.preventDefault()}
-                            >
-                              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
+                  <div className="register-verify__otp">
+                    <label htmlFor="register-verify-code">
+                      {t('account.emailVerification.otpLabel')}
+                    </label>
+                    <div className="register-verify__otp-row">
+                      <input
+                        id="register-verify-code"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        pattern="\d{8}"
+                        maxLength={8}
+                        placeholder="00000000"
+                        value={verificationCode}
+                        disabled={verificationCodeState === 'verifying'}
+                        onChange={(event) => {
+                          setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 8))
+                          setVerificationCodeError('')
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault()
+                            verifyEmailCode()
                           }
-                        />
-                        <PasswordStrengthMeter password={form.password} t={t} />
-                      </div>
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={
+                          verificationCodeState === 'verifying' || verificationCode.length !== 8
+                        }
+                        onClick={() => verifyEmailCode()}
+                      >
+                        {verificationCodeState === 'verifying'
+                          ? t('account.emailVerification.otpVerifying')
+                          : t('account.emailVerification.otpSubmit')}
+                      </button>
                     </div>
-                  </FormSection>
-                )}
-
-                {profileStepIndex === 1 && (
-                  <FormSection
-                    title={t('pages.register.locationTitle')}
-                    description={t('pages.register.locationDesc')}
+                    {verificationCodeError ? (
+                      <p className="register-verify__otp-error" role="alert">
+                        {verificationCodeError}
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="register-verify__resend"
+                    disabled={resendState === 'sending'}
+                    onClick={resendVerification}
                   >
-                    <div className="form-grid">
+                    {resendState === 'sending'
+                      ? t('pages.register.emailVerificationSending')
+                      : resendState === 'sent'
+                        ? t('pages.register.emailVerificationResendAgain')
+                        : t('pages.register.emailVerificationResend')}
+                  </button>
+                </div>
+              ) : emailVerifiedLocally && isPaidCheckout ? (
+                <div className="register-verify register-verify--done" role="status">
+                  <Pill tone="success">{t('pages.register.emailVerificationConfirmedPill')}</Pill>
+                  <p className="register-verify__lead">
+                    {t('pages.register.emailVerificationAlready')}
+                  </p>
+                </div>
+              ) : null}
 
-                      <Field
-                        error={visibleErrors.province}
-                        icon={MapPin}
-                        label={t('pages.register.province')}
-                        name="province"
-                        placeholder={t('pages.register.provincePlaceholder')}
-                        value={form.province}
+              {flow === 'profile' && (
+                // Contenedor en grilla + mode="sync": los dos pasos comparten
+                // celda durante el crossfade, así la tarjeta no colapsa de alto
+                // entre "Datos personales" (6 campos) y "Ubicación" (5).
+                <div className="register-wizard-swap">
+                  <MotionContentSwap
+                    className="register-wizard"
+                    direction={wizardDirection}
+                    mode="sync"
+                    swapKey={activeProfileStep.id}
+                  >
+                    {profileStepIndex === 0 && (
+                      <FormSection
+                        title={t('pages.register.personalTitle')}
+                        description={t('pages.register.personalDesc')}
+                      >
+                        <div className="form-grid">
+                          <Field
+                            autoComplete="name"
+                            className="field--span-2"
+                            error={visibleErrors.fullName}
+                            icon={User}
+                            label={t('pages.register.fullName')}
+                            name="fullName"
+                            placeholder={t('pages.register.fullNamePlaceholder')}
+                            value={form.fullName}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <Select
+                            error={visibleErrors.country}
+                            icon={Globe}
+                            label={t('pages.register.nationalityLabel')}
+                            name="country"
+                            value={form.country}
+                            onBlur={blurField}
+                            onChange={changeField}
+                            options={formOptions.country}
+                          />
+                          <Field
+                            disabled={!form.country}
+                            error={visibleErrors.documentId}
+                            icon={Hash}
+                            inputMode={
+                              form.country && form.country !== 'Argentina' ? 'text' : 'numeric'
+                            }
+                            label={
+                              form.country && form.country !== 'Argentina'
+                                ? t('pages.register.documentIdPassport')
+                                : t('pages.register.documentIdLabel')
+                            }
+                            name="documentId"
+                            placeholder={
+                              form.country
+                                ? form.country !== 'Argentina'
+                                  ? t('pages.register.documentPlaceholderPassport')
+                                  : t('pages.register.documentPlaceholder')
+                                : t('pages.register.documentPlaceholderWaiting')
+                            }
+                            value={form.documentId}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <DateField
+                            error={visibleErrors.birthDate}
+                            icon={Calendar}
+                            label={t('pages.register.birthDate')}
+                            name="birthDate"
+                            value={form.birthDate}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <Field
+                            autoComplete="email"
+                            error={visibleErrors.email}
+                            icon={Mail}
+                            label={t('pages.register.email')}
+                            name="email"
+                            placeholder={t('pages.register.emailPlaceholder')}
+                            type="email"
+                            value={form.email}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <Field
+                            autoComplete="tel"
+                            error={visibleErrors.phone}
+                            icon={Phone}
+                            inputMode="tel"
+                            label={t('pages.register.phone')}
+                            name="phone"
+                            placeholder={t('pages.register.phonePlaceholder')}
+                            value={form.phone}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <div className="field--span-2">
+                            <Field
+                              autoComplete="new-password"
+                              error={visibleErrors.password}
+                              icon={Lock}
+                              label={t('login.password')}
+                              name="password"
+                              type={showPassword ? 'text' : 'password'}
+                              value={form.password}
+                              onBlur={blurField}
+                              onChange={changeField}
+                              trailing={
+                                <button
+                                  type="button"
+                                  className="field__toggle"
+                                  aria-label={
+                                    showPassword ? t('login.hidePassword') : t('login.showPassword')
+                                  }
+                                  aria-pressed={showPassword}
+                                  onClick={(event) => {
+                                    event.preventDefault()
+                                    setShowPassword((visible) => !visible)
+                                  }}
+                                  onMouseDown={(event) => event.preventDefault()}
+                                >
+                                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              }
+                            />
+                            <PasswordStrengthMeter password={form.password} t={t} />
+                          </div>
+                        </div>
+                      </FormSection>
+                    )}
+
+                    {profileStepIndex === 1 && (
+                      <FormSection
+                        title={t('pages.register.locationTitle')}
+                        description={t('pages.register.locationDesc')}
+                      >
+                        <div className="form-grid">
+                          <Field
+                            error={visibleErrors.province}
+                            icon={MapPin}
+                            label={t('pages.register.province')}
+                            name="province"
+                            placeholder={t('pages.register.provincePlaceholder')}
+                            value={form.province}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <Field
+                            error={visibleErrors.city}
+                            icon={MapPin}
+                            label={t('pages.register.city')}
+                            name="city"
+                            placeholder={t('pages.register.cityPlaceholder')}
+                            value={form.city}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <Field
+                            error={visibleErrors.gym}
+                            icon={Dumbbell}
+                            label={t('pages.register.gym')}
+                            name="gym"
+                            placeholder={t('pages.register.gymPlaceholder')}
+                            value={form.gym}
+                            onBlur={blurField}
+                            onChange={changeField}
+                          />
+                          <ChoiceField
+                            error={visibleErrors.sex}
+                            label={t('pages.register.sexCompetitive')}
+                            name="sex"
+                            value={form.sex}
+                            onBlur={blurField}
+                            onChange={changeField}
+                            options={formOptions.sex}
+                          />
+                        </div>
+                      </FormSection>
+                    )}
+                  </MotionContentSwap>
+                </div>
+              )}
+
+              {flow === 'competition' && changingMethod ? (
+                <div className="register-competition-form register-competition-form--change-method">
+                  <button
+                    type="button"
+                    className="register-topbar__back"
+                    onClick={cancelPaymentMethodChange}
+                  >
+                    <ArrowLeft size={15} aria-hidden />
+                    {visibleOrder?.paymentMethod === 'manual_link'
+                      ? t('pages.register.backToTransfer')
+                      : t('pages.register.backToMercadoPago')}
+                  </button>
+                  <FormSection
+                    title={t('pages.register.competitionPaymentTitle')}
+                    description={t('pages.register.changePaymentLead')}
+                  >
+                    <RegisterSettle
+                      cashEnabled={cashEnabled}
+                      transferEnabled={transferEnabled}
+                      onPaymentBlur={blurField}
+                      onPaymentChange={changeField}
+                      paymentError={errors.paymentMethod}
+                      paymentMethod={form.paymentMethod}
+                      showPayment
+                    />
+                  </FormSection>
+                </div>
+              ) : flow === 'competition' ? (
+                <div className="register-competition-form">
+                  <section
+                    aria-labelledby="competition-profile-title"
+                    className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}
+                  >
+                    <div className="register-profile-readiness__header">
+                      <div>
+                        <span className="register-profile-readiness__state">
+                          <Check aria-hidden size={13} strokeWidth={2.5} />
+                          {competitionProfileMissing.length
+                            ? t('pages.register.competitionProfileStateIncomplete')
+                            : t('pages.register.competitionProfileStateReady')}
+                        </span>
+                        <h2 id="competition-profile-title">
+                          {t('pages.register.competitionProfileTitle')}
+                        </h2>
+                        <p>
+                          {competitionProfileMissing.length
+                            ? t('pages.register.competitionProfileMissing')
+                            : t('pages.register.competitionProfileReady')}
+                        </p>
+                      </div>
+                      <button
+                        className="register-profile-readiness__action"
+                        type="button"
+                        onClick={() => onNavigate?.('profile', { tab: 'account-personal-data' })}
+                      >
+                        <span>
+                          {competitionProfileMissing.length
+                            ? t('pages.register.competitionProfileAction')
+                            : t('pages.register.competitionProfileReview')}
+                        </span>
+                        <ArrowRight aria-hidden size={15} strokeWidth={2.25} />
+                      </button>
+                    </div>
+                    {competitionProfileDetails.length ? (
+                      <dl className="register-profile-readiness__details">
+                        {competitionProfileDetails.map(([label, value]) => (
+                          <div key={label}>
+                            <dt>{label}</dt>
+                            <dd title={value}>{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : null}
+                  </section>
+                  {/* Sin `step`: la inscripción tiene una sola sección. El "01"
+                    prometía una secuencia que no existe. */}
+                  <FormSection
+                    title={t('pages.register.competitionFormTitle')}
+                    description={t('pages.register.competitionFormDesc')}
+                  >
+                    {committedCompetitionRegistration ? (
+                      <p className="register-competition-commitment" role="status">
+                        {t('pages.register.competitionCommitmentLocked')}
+                      </p>
+                    ) : null}
+                    <div className="register-competition-fields">
+                      <ChoiceField
+                        className="register-competition-choice register-competition-choice--division"
+                        disabled={Boolean(committedCompetitionRegistration)}
+                        error={errors.division}
+                        label={t('pages.register.division')}
+                        name="division"
+                        value={form.division}
                         onBlur={blurField}
                         onChange={changeField}
-                      />
-                      <Field
-                        error={visibleErrors.city}
-                        icon={MapPin}
-                        label={t('pages.register.city')}
-                        name="city"
-                        placeholder={t('pages.register.cityPlaceholder')}
-                        value={form.city}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
-                      <Field
-                        error={visibleErrors.gym}
-                        icon={Dumbbell}
-                        label={t('pages.register.gym')}
-                        name="gym"
-                        placeholder={t('pages.register.gymPlaceholder')}
-                        value={form.gym}
-                        onBlur={blurField}
-                        onChange={changeField}
+                        options={formOptions.division}
                       />
                       <ChoiceField
-                        error={visibleErrors.sex}
-                        label={t('pages.register.sexCompetitive')}
-                        name="sex"
-                        value={form.sex}
+                        className="register-competition-choice register-competition-choice--category"
+                        disabled={Boolean(committedCompetitionRegistration)}
+                        error={errors.category}
+                        label={t('pages.register.category')}
+                        name="category"
+                        value={form.category}
                         onBlur={blurField}
                         onChange={changeField}
-                        options={formOptions.sex}
+                        options={formOptions.category}
+                      />
+                      <Field
+                        className="register-competition-weight"
+                        disabled={Boolean(committedCompetitionRegistration)}
+                        error={errors.estimatedWeight}
+                        inputMode="decimal"
+                        label={t('pages.register.bodyWeight')}
+                        name="estimatedWeight"
+                        placeholder={t('pages.register.bodyWeightPlaceholder')}
+                        value={form.estimatedWeight}
+                        onBlur={blurField}
+                        onChange={changeField}
                       />
                     </div>
                   </FormSection>
-                )}
-              </MotionContentSwap>
-              </div>
-            )}
 
-            {flow === 'competition' && changingMethod ? (
-              <div className="register-competition-form register-competition-form--change-method">
-                <button
-                  type="button"
-                  className="register-topbar__back"
-                  onClick={cancelPaymentMethodChange}
-                >
-                  <ArrowLeft size={15} aria-hidden />
-                  {visibleOrder?.paymentMethod === 'manual_link'
-                    ? t('pages.register.backToTransfer')
-                    : t('pages.register.backToMercadoPago')}
-                </button>
-                <FormSection
-                  title={t('pages.register.competitionPaymentTitle')}
-                  description={t('pages.register.changePaymentLead')}
-                >
+                  {showComboChoice || (isPaidCheckout && flow === 'competition') ? (
+                    <RegisterSettle
+                      comboComingSoon={comboComingSoon}
+                      comboEnabled={comboEnabled}
+                      comboOffer={comboAvailability.offer}
+                      comboSavings={comboSavings}
+                      cashEnabled={cashEnabled}
+                      transferEnabled={transferEnabled}
+                      membershipPrice={membershipListPrice}
+                      onPaymentBlur={blurField}
+                      onPaymentChange={changeField}
+                      onPurchaseTypeChange={setPurchaseType}
+                      paymentError={errors.paymentMethod}
+                      paymentMethod={form.paymentMethod}
+                      purchaseType={effectivePurchaseType}
+                      registrationPrice={registrationListPrice}
+                      registrationManualPrice={eventPricing.registrationManual}
+                      showPackage={showComboChoice}
+                      showPayment={isPaidCheckout}
+                    />
+                  ) : null}
+
+                  {isPaidCheckout && ['registration', 'combo'].includes(effectivePurchaseType) ? (
+                    <div className="register-discount">
+                      {discountPreview ? (
+                        <p className="register-discount__applied">
+                          <Tag size={14} aria-hidden />
+                          {discountPreview.kind === 'fixed_price'
+                            ? t('pages.register.discountAppliedFixed', {
+                                code: discountPreview.code,
+                                amount: money(discountPreview.finalAmount, locale),
+                              })
+                            : t('pages.register.discountApplied', {
+                                code: discountPreview.code,
+                                amount: money(discountPreview.discountAmount, locale),
+                              })}
+                          <button type="button" onClick={clearDiscountCode} disabled={submitting}>
+                            {t('pages.register.discountRemove')}
+                          </button>
+                        </p>
+                      ) : (
+                        <>
+                          <label
+                            className="register-discount__label"
+                            htmlFor="registration-discount-code"
+                          >
+                            {t('pages.register.discountLabel')}
+                          </label>
+                          <div className="register-discount__row">
+                            <input
+                              id="registration-discount-code"
+                              type="text"
+                              autoComplete="off"
+                              spellCheck={false}
+                              placeholder={t('pages.register.discountPlaceholder')}
+                              value={discountCodeInput}
+                              disabled={submitting || discountChecking}
+                              onChange={(event) =>
+                                setDiscountCodeInput(event.target.value.toUpperCase())
+                              }
+                            />
+                            <button
+                              type="button"
+                              disabled={submitting || discountChecking || !discountCodeInput.trim()}
+                              onClick={applyDiscountCode}
+                            >
+                              {discountChecking
+                                ? t('pages.register.discountChecking')
+                                : t('pages.register.discountApply')}
+                            </button>
+                          </div>
+                          {discountError ? (
+                            <p className="register-discount__error" role="alert">
+                              {discountError}
+                            </p>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {showEligibilityNote && (
+                    <div className="register-eligibility-note" role="status">
+                      <p>{t('pages.register.membershipRequiredForCompetition')}</p>
+                      {onNavigate && !comboEnabled && (
+                        <button
+                          type="button"
+                          className="register-eligibility-note__action"
+                          onClick={() => onNavigate('membership')}
+                        >
+                          {t('pages.register.membershipRequiredAction')}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {submitError && !emailBlocked && (
+                <div className="form-submit-error" role="alert">
+                  <p>
+                    {membershipPaymentInProgress
+                      ? t('pages.register.membershipPaymentInProgress')
+                      : submitError}
+                  </p>
+                  {membershipPaymentInProgress ? (
+                    <button
+                      type="button"
+                      className="btn btn--outline"
+                      onClick={() => onNavigate?.('membership')}
+                    >
+                      {t('pages.register.membershipPaymentInProgressAction')}
+                    </button>
+                  ) : null}
+                </div>
+              )}
+
+              <div
+                className={`register-card__footer form-actions${
+                  flow === 'profile'
+                    ? ` register-card__footer--profile register-card__footer--wizard${profileStepIndex > 0 ? ' register-card__footer--wizard-back' : ''}`
+                    : isPaidCheckout
+                      ? ' register-checkout'
+                      : ' register-card__footer--checkout'
+                }`}
+              >
+                {flow === 'membership' ? (
                   <RegisterSettle
-                    manualPaymentEnabled={manualPaymentEnabled}
+                    cashEnabled={cashEnabled}
+                    transferEnabled={transferEnabled}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
                     paymentError={errors.paymentMethod}
+                    paymentHint={membershipPaymentHint}
                     paymentMethod={form.paymentMethod}
                     showPayment
                   />
-                </FormSection>
-              </div>
-            ) : flow === 'competition' ? (
-              <div className="register-competition-form">
-                <section
-                  aria-labelledby="competition-profile-title"
-                  className={`register-profile-readiness${competitionProfileMissing.length ? ' register-profile-readiness--incomplete' : ''}`}
-                >
-                  <div className="register-profile-readiness__header">
-                    <div>
-                      <span className="register-profile-readiness__state">
-                        <Check aria-hidden size={13} strokeWidth={2.5} />
-                        {competitionProfileMissing.length
-                          ? t('pages.register.competitionProfileStateIncomplete')
-                          : t('pages.register.competitionProfileStateReady')}
-                      </span>
-                      <h2 id="competition-profile-title">{t('pages.register.competitionProfileTitle')}</h2>
+                ) : null}
+
+                {requiredAccessScopes.length ? (
+                  accessLocked ? (
+                    <div className="registration-access-locked">
                       <p>
-                        {competitionProfileMissing.length
-                          ? t('pages.register.competitionProfileMissing')
-                          : t('pages.register.competitionProfileReady')}
+                        <strong>{t('pages.register.accessGate.lockedTitle')}</strong>
+                        {t('pages.register.accessGate.lockedText')}
                       </p>
-                    </div>
-                    <button
-                      className="register-profile-readiness__action"
-                      type="button"
-                      onClick={() => onNavigate?.('profile', { tab: 'account-personal-data' })}
-                    >
-                      <span>
-                        {competitionProfileMissing.length
-                          ? t('pages.register.competitionProfileAction')
-                          : t('pages.register.competitionProfileReview')}
-                      </span>
-                      <ArrowRight aria-hidden size={15} strokeWidth={2.25} />
-                    </button>
-                  </div>
-                  {competitionProfileDetails.length ? (
-                    <dl className="register-profile-readiness__details">
-                      {competitionProfileDetails.map(([label, value]) => (
-                        <div key={label}>
-                          <dt>{label}</dt>
-                          <dd title={value}>{value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : null}
-                </section>
-                {/* Sin `step`: la inscripción tiene una sola sección. El "01"
-                    prometía una secuencia que no existe. */}
-                <FormSection
-                  title={t('pages.register.competitionFormTitle')}
-                  description={t('pages.register.competitionFormDesc')}
-                >
-                  {committedCompetitionRegistration ? (
-                    <p className="register-competition-commitment" role="status">
-                      {t('pages.register.competitionCommitmentLocked')}
-                    </p>
-                  ) : null}
-                  <div className="register-competition-fields">
-                    <ChoiceField
-                      className="register-competition-choice register-competition-choice--division"
-                      disabled={Boolean(committedCompetitionRegistration)}
-                      error={errors.division}
-                      label={t('pages.register.division')}
-                      name="division"
-                      value={form.division}
-                      onBlur={blurField}
-                      onChange={changeField}
-                      options={formOptions.division}
-                    />
-                    <ChoiceField
-                      className="register-competition-choice register-competition-choice--category"
-                      disabled={Boolean(committedCompetitionRegistration)}
-                      error={errors.category}
-                      label={t('pages.register.category')}
-                      name="category"
-                      value={form.category}
-                      onBlur={blurField}
-                      onChange={changeField}
-                      options={formOptions.category}
-                    />
-                    <Field
-                      className="register-competition-weight"
-                      disabled={Boolean(committedCompetitionRegistration)}
-                      error={errors.estimatedWeight}
-                      inputMode="decimal"
-                      label={t('pages.register.bodyWeight')}
-                      name="estimatedWeight"
-                      placeholder={t('pages.register.bodyWeightPlaceholder')}
-                      value={form.estimatedWeight}
-                      onBlur={blurField}
-                      onChange={changeField}
-                    />
-                  </div>
-                </FormSection>
-
-                {showComboChoice || (isPaidCheckout && flow === 'competition') ? (
-                  <RegisterSettle
-                    comboComingSoon={comboComingSoon}
-                    comboEnabled={comboEnabled}
-                    comboOffer={comboAvailability.offer}
-                    comboSavings={comboSavings}
-                    manualPaymentEnabled={manualPaymentEnabled}
-                    membershipPrice={membershipListPrice}
-                    onPaymentBlur={blurField}
-                    onPaymentChange={changeField}
-                    onPurchaseTypeChange={setPurchaseType}
-                    paymentError={errors.paymentMethod}
-                    paymentMethod={form.paymentMethod}
-                    purchaseType={effectivePurchaseType}
-                    registrationPrice={registrationListPrice}
-                    showPackage={showComboChoice}
-                    showPayment={isPaidCheckout}
-                  />
-                ) : null}
-
-                {isPaidCheckout && effectivePurchaseType === 'registration' ? (
-                  <div className="register-discount">
-                    {discountPreview ? (
-                      <p className="register-discount__applied">
-                        <Tag size={14} aria-hidden />
-                        {t('pages.register.discountApplied', {
-                          code: discountPreview.code,
-                          amount: money(discountPreview.discountAmount, locale),
-                        })}
-                        <button type="button" onClick={clearDiscountCode} disabled={submitting}>
-                          {t('pages.register.discountRemove')}
-                        </button>
-                      </p>
-                    ) : (
-                      <>
-                        <label className="register-discount__label" htmlFor="registration-discount-code">
-                          {t('pages.register.discountLabel')}
-                        </label>
-                        <div className="register-discount__row">
-                          <input
-                            id="registration-discount-code"
-                            type="text"
-                            autoComplete="off"
-                            spellCheck={false}
-                            placeholder={t('pages.register.discountPlaceholder')}
-                            value={discountCodeInput}
-                            disabled={submitting || discountChecking}
-                            onChange={(event) => setDiscountCodeInput(event.target.value.toUpperCase())}
-                          />
-                          <button
-                            type="button"
-                            disabled={submitting || discountChecking || !discountCodeInput.trim()}
-                            onClick={applyDiscountCode}
-                          >
-                            {discountChecking ? t('pages.register.discountChecking') : t('pages.register.discountApply')}
-                          </button>
-                        </div>
-                        {discountError ? (
-                          <p className="register-discount__error" role="alert">{discountError}</p>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                ) : null}
-
-                {showEligibilityNote && (
-                  <div className="register-eligibility-note" role="status">
-                    <p>{t('pages.register.membershipRequiredForCompetition')}</p>
-                    {onNavigate && !comboEnabled && (
                       <button
                         type="button"
-                        className="register-eligibility-note__action"
-                        onClick={() => onNavigate('membership')}
+                        onClick={() => setAccessGateOpen(true)}
+                        disabled={submitting}
                       >
-                        {t('pages.register.membershipRequiredAction')}
+                        <LockKeyhole size={15} aria-hidden />
+                        {t('pages.register.accessGate.lockedAction')}
                       </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : null}
+                    </div>
+                  ) : (
+                    <p className="registration-access-unlocked">
+                      <ShieldCheck size={15} aria-hidden />
+                      {t('pages.register.accessGate.unlocked')}
+                    </p>
+                  )
+                ) : null}
 
-            {submitError && !emailBlocked && (
-              <div className="form-submit-error" role="alert">
-                <p>
-                  {membershipPaymentInProgress
-                    ? t('pages.register.membershipPaymentInProgress')
-                    : submitError}
-                </p>
-                {membershipPaymentInProgress ? (
+                {flow === 'profile' && profileStepIndex > 0 && (
                   <button
                     type="button"
-                    className="btn btn--outline"
-                    onClick={() => onNavigate?.('membership')}
+                    className="register-card__back btn btn--outline"
+                    onClick={goBackProfileStep}
                   >
-                    {t('pages.register.membershipPaymentInProgressAction')}
+                    <ArrowLeft size={15} aria-hidden />
+                    {t('pages.register.back')}
                   </button>
-                ) : null}
-              </div>
-            )}
+                )}
 
-            <div
-              className={`register-card__footer form-actions${
-                flow === 'profile'
-                  ? ` register-card__footer--profile register-card__footer--wizard${profileStepIndex > 0 ? ' register-card__footer--wizard-back' : ''}`
-                  : isPaidCheckout
-                    ? ' register-checkout'
-                    : ' register-card__footer--checkout'
-              }`}
-            >
-              {flow === 'membership' ? (
-                <RegisterSettle
-                  manualPaymentEnabled={manualPaymentEnabled}
-                  onPaymentBlur={blurField}
-                  onPaymentChange={changeField}
-                  paymentError={errors.paymentMethod}
-                  paymentHint={membershipPaymentHint}
-                  paymentMethod={form.paymentMethod}
-                  showPayment
-                />
-              ) : null}
-
-              {requiredAccessScopes.length ? (
-                accessLocked ? (
-                  <div className="registration-access-locked">
-                    <p>
-                      <strong>{t('pages.register.accessGate.lockedTitle')}</strong>
-                      {t('pages.register.accessGate.lockedText')}
-                    </p>
-                    <button type="button" onClick={() => setAccessGateOpen(true)} disabled={submitting}>
-                      <LockKeyhole size={15} aria-hidden />
-                      {t('pages.register.accessGate.lockedAction')}
-                    </button>
-                  </div>
+                {flow === 'profile' && !isLastProfileStep ? (
+                  <button
+                    type="button"
+                    className="btn register-card__submit"
+                    onClick={advanceProfileStep}
+                    disabled={advancing}
+                    aria-busy={advancing || undefined}
+                  >
+                    {advancing ? t('common.loading') : t('pages.register.continue')}
+                    {advancing ? (
+                      <span className="plu-spinner" aria-hidden />
+                    ) : (
+                      <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
+                    )}
+                  </button>
                 ) : (
-                  <p className="registration-access-unlocked">
-                    <ShieldCheck size={15} aria-hidden />
-                    {t('pages.register.accessGate.unlocked')}
-                  </p>
-                )
-              ) : null}
-
-              {flow === 'profile' && profileStepIndex > 0 && (
-                <button type="button" className="register-card__back btn btn--outline" onClick={goBackProfileStep}>
-                  <ArrowLeft size={15} aria-hidden />
-                  {t('pages.register.back')}
-                </button>
-              )}
-
-              {flow === 'profile' && !isLastProfileStep ? (
-                <button
-                  type="button"
-                  className="btn register-card__submit"
-                  onClick={advanceProfileStep}
-                  disabled={advancing}
-                  aria-busy={advancing || undefined}
-                >
-                  {advancing ? t('common.loading') : t('pages.register.continue')}
-                  {advancing ? (
-                    <span className="plu-spinner" aria-hidden />
-                  ) : (
-                    <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
-                  )}
-                </button>
-              ) : (
-                <>
-                  {isPaidCheckout ? (
-                    <RegisterCheckoutBar
-                      checkoutTotal={checkoutTotal}
-                      flow={flow}
-                      packageLabel={
-                        flow === 'membership'
-                          ? t('pages.register.membershipPlanLabel')
-                          : packageLabel
-                      }
-                      submitting={submitting}
-                      disabled={accessRequirementsLoading}
-                    />
-                  ) : (
-                    <>
-                      {flow !== 'profile' && (
-                        <div className="register-card__total">
-                          <span>{t('pages.register.total')}</span>
-                          <strong>{money(checkoutTotal, locale)}</strong>
-                        </div>
-                      )}
-                      <button
-                        type="submit"
-                        className={[
-                          'btn register-card__submit',
-                          flow === 'profile' && profileProgress?.complete ? 'register-card__submit--ready' : '',
-                          flow === 'membership' ? 'register-card__submit--membership' : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                        disabled={
-                          submitting ||
-                          accessRequirementsLoading ||
-                          (flow === 'profile' && Boolean(visibleOrder))
+                  <>
+                    {isPaidCheckout ? (
+                      <RegisterCheckoutBar
+                        checkoutTotal={checkoutTotal}
+                        flow={flow}
+                        packageLabel={
+                          flow === 'membership'
+                            ? t('pages.register.membershipPlanLabel')
+                            : packageLabel
                         }
-                        aria-busy={submitting || undefined}
-                      >
-                        {submitting ? t('common.loading') : content[2]}
-                        {submitting ? (
-                          <span className="plu-spinner" aria-hidden />
-                        ) : (
-                          <ArrowRight size={16} className="register-card__submit-arrow" aria-hidden />
+                        submitting={submitting}
+                        disabled={accessRequirementsLoading}
+                      />
+                    ) : (
+                      <>
+                        {flow !== 'profile' && (
+                          <div className="register-card__total">
+                            <span>{t('pages.register.total')}</span>
+                            <strong>{money(checkoutTotal, locale)}</strong>
+                          </div>
                         )}
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </form>
+                        <button
+                          type="submit"
+                          className={[
+                            'btn register-card__submit',
+                            flow === 'profile' && profileProgress?.complete
+                              ? 'register-card__submit--ready'
+                              : '',
+                            flow === 'membership' ? 'register-card__submit--membership' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          disabled={
+                            submitting ||
+                            accessRequirementsLoading ||
+                            (flow === 'profile' && Boolean(visibleOrder))
+                          }
+                          aria-busy={submitting || undefined}
+                        >
+                          {submitting ? t('common.loading') : content[2]}
+                          {submitting ? (
+                            <span className="plu-spinner" aria-hidden />
+                          ) : (
+                            <ArrowRight
+                              size={16}
+                              className="register-card__submit-arrow"
+                              aria-hidden
+                            />
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </form>
           )}
         </div>
       </div>
-      {transferOpen && athlete && (visibleOrder?.paymentMethod === 'manual_link' || form.paymentMethod === 'manual_link') ? (
+      {transferOpen &&
+      athlete &&
+      (visibleOrder?.paymentMethod === 'manual_link' || form.paymentMethod === 'manual_link') ? (
         <TransferPayModal
           athlete={athlete}
           amount={visibleOrder?.amount ?? checkoutTotal}

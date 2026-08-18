@@ -203,9 +203,13 @@
   outline: none;
 }
 
-.field input::placeholder { color: var(--color-text-muted); }
+.field input::placeholder {
+  color: var(--color-text-muted);
+}
 .field input[aria-invalid='true'],
-.field select[aria-invalid='true'] { border-color: var(--color-brand-red); }
+.field select[aria-invalid='true'] {
+  border-color: var(--color-brand-red);
+}
 
 /* Error absoluto: no empuja la grilla ni desalinea inputs vecinos */
 .field__error,
@@ -234,7 +238,9 @@
   z-index: 1;
 }
 
-.field--readonly { align-content: start; }
+.field--readonly {
+  align-content: start;
+}
 .field--readonly .field__value,
 .field--readonly strong {
   align-items: center;
@@ -247,7 +253,9 @@
   min-height: 44px;
   padding: 9px 11px;
 }
-.form-grid--compact { grid-template-columns: minmax(260px, 420px); }
+.form-grid--compact {
+  grid-template-columns: minmax(260px, 420px);
+}
 
 .form-grid {
   display: grid;
@@ -428,7 +436,9 @@
    los bordes, alineado con la caja de la fila y no con su texto: el padding
    lateral lo indenta contra el ícono del medio elegido. */
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__payment-option']:not([class*='mp-checkout-bricks__payment-options']) {
+  [class*='mp-checkout-bricks__payment-option']:not(
+    [class*='mp-checkout-bricks__payment-options']
+  ) {
   background: transparent !important;
   display: grid !important;
   gap: var(--space-md) !important;
@@ -462,7 +472,8 @@
 .mp-embedded-checkout
   [class*='mp-checkout-bricks__payment-option']:not([class*='mp-checkout-bricks__payment-options'])
   form
-  > * + * {
+  > *
+  + * {
   margin-top: var(--space-md) !important;
 }
 
@@ -497,15 +508,25 @@
 }
 
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *):has(input:checked),
+  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *):has(
+    input:checked
+  ),
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[aria-checked='true'],
+  [class*='mp-checkout-bricks__selector']:not(
+    [class*='mp-checkout-bricks__selector'] *
+  )[aria-checked='true'],
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[aria-selected='true'],
+  [class*='mp-checkout-bricks__selector']:not(
+    [class*='mp-checkout-bricks__selector'] *
+  )[aria-selected='true'],
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[class*='selected'],
+  [class*='mp-checkout-bricks__selector']:not(
+    [class*='mp-checkout-bricks__selector'] *
+  )[class*='selected'],
 .mp-embedded-checkout
-  [class*='mp-checkout-bricks__selector']:not([class*='mp-checkout-bricks__selector'] *)[class*='active'] {
+  [class*='mp-checkout-bricks__selector']:not(
+    [class*='mp-checkout-bricks__selector'] *
+  )[class*='active'] {
   background: color-mix(in srgb, var(--color-brand-gold) 9%, transparent) !important;
   border-color: color-mix(in srgb, var(--color-brand-gold) 58%, transparent) !important;
 }
@@ -613,8 +634,13 @@
 }
 
 @keyframes mp-skeleton-pulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -653,8 +679,14 @@
 }
 
 @keyframes mp-result-enter {
-  from { opacity: 0; transform: translateY(6px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -912,7 +944,8 @@
   align-items: center;
   min-height: 36px;
   padding: 0 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-gold) 22%, var(--color-border-subtle));
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-brand-gold) 22%, var(--color-border-subtle));
   background: color-mix(in srgb, var(--color-brand-gold) 6%, var(--color-bg-primary));
   color: var(--color-text-secondary);
   animation: payments-mock-banner-in var(--motion-base) var(--ease-out) both;

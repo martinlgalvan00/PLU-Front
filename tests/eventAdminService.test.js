@@ -14,14 +14,17 @@ import {
 
 describe('eventAdminService', () => {
   it('ignora un precio viejo de localStorage en el runtime conectado', () => {
-    const events = getInitialAdminEvents([
-      {
-        slug: 'pitbull-classic-2026',
-        title: 'Pitbull Classic viejo',
-        price: 2,
-        pricing: { registration: 2, membership: 2, combo: 2 },
-      },
-    ], { allowStoredEvents: false })
+    const events = getInitialAdminEvents(
+      [
+        {
+          slug: 'pitbull-classic-2026',
+          title: 'Pitbull Classic viejo',
+          price: 2,
+          pricing: { registration: 2, membership: 2, combo: 2 },
+        },
+      ],
+      { allowStoredEvents: false },
+    )
 
     const pitbull = events.find((event) => event.slug === 'pitbull-classic-2026')
     expect(pitbull.price).toBe(75000)
@@ -30,14 +33,17 @@ describe('eventAdminService', () => {
   })
 
   it('conserva el catálogo local solamente para el modo demo', () => {
-    const events = getInitialAdminEvents([
-      {
-        slug: 'pitbull-classic-2026',
-        title: 'Pitbull demo',
-        price: 2,
-        pricing: { registration: 2, membership: 2, combo: 2 },
-      },
-    ], { allowStoredEvents: true })
+    const events = getInitialAdminEvents(
+      [
+        {
+          slug: 'pitbull-classic-2026',
+          title: 'Pitbull demo',
+          price: 2,
+          pricing: { registration: 2, membership: 2, combo: 2 },
+        },
+      ],
+      { allowStoredEvents: true },
+    )
 
     expect(events.find((event) => event.slug === 'pitbull-classic-2026').price).toBe(2)
   })

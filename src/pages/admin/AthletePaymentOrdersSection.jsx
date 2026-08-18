@@ -14,7 +14,9 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
+import { formatRejectionActor } from '../../lib/paymentAudit.js'
 import { listAthletePaymentOrders } from '../../services/athleteApi.js'
+import { VALIDATION_DISABLED_CODES } from '../../services/platformSettingsAdminService.js'
 import { revalidatePaymentOrder } from '../../services/paymentService.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
@@ -73,6 +75,12 @@ function canForceSettleRow(row) {
   return row.method === 'mercado_pago' || row.status === 'rechazado'
 }
 
+const TOGGLE_KEY_BY_CODE = {
+  [VALIDATION_DISABLED_CODES.membership]: 'membership',
+  [VALIDATION_DISABLED_CODES.registration]: 'registration',
+  [VALIDATION_DISABLED_CODES.ticket]: 'ticket',
+}
+
 export default function AthletePaymentOrdersSection({
   canEdit,
   canForceSettle = false,
@@ -81,6 +89,7 @@ export default function AthletePaymentOrdersSection({
   onForceSettlePayment,
   onRejectPayment,
   onSummaryChange,
+  onValidationStale,
   refreshKey = 0,
   statusFilter = null,
   validationEnabled = { membership: true, registration: true, ticket: true },
@@ -168,7 +177,11 @@ export default function AthletePaymentOrdersSection({
       manualPaymentChannel: order.manualPaymentChannel,
       status: order.status,
       reference: order.reference,
+      rejectedBy: order.rejectedBy ?? null,
+      rejectionReason: order.rejectionReason ?? null,
+      rejectedAt: order.rejectedAt ?? null,
       createdAt: order.createdAt,
+      notes: order.notes,
       hasProof: Boolean(order.paymentProofPath),
       paymentProofPath: order.paymentProofPath ?? null,
       proofUploadedAt: order.paymentProofUploadedAt,
@@ -183,6 +196,11 @@ export default function AthletePaymentOrdersSection({
       if (result?.error) {
         setError(result.error)
         notifyError(result.error)
+        // El 409 confirma que el toggle está apagado de verdad -- puede
+        // haberse apagado después de que `validationEnabled` (prop) se
+        // calculó. Avisamos al padre para que resincronice en vez de dejar
+        // el botón habilitado hasta el próximo refresh manual.
+        if (TOGGLE_KEY_BY_CODE[result.code]) onValidationStale?.(TOGGLE_KEY_BY_CODE[result.code])
         return false
       }
       // El backend ya devuelve la orden actualizada: parchear la fila en vez
@@ -209,6 +227,8 @@ export default function AthletePaymentOrdersSection({
       const result = await onForceSettlePayment?.(orderId, { reason, reference })
       if (result?.error) {
         setError(result.error)
+        notifyError(result.error)
+        if (TOGGLE_KEY_BY_CODE[result.code]) onValidationStale?.(TOGGLE_KEY_BY_CODE[result.code])
         return false
       }
       if (result?.order) {
@@ -258,6 +278,7 @@ export default function AthletePaymentOrdersSection({
       if (result?.error) {
         setError(result.error)
         notifyError(result.error)
+        if (TOGGLE_KEY_BY_CODE[result.code]) onValidationStale?.(TOGGLE_KEY_BY_CODE[result.code])
         return false
       }
       if (result?.order) {
@@ -288,6 +309,10 @@ export default function AthletePaymentOrdersSection({
       documentId: row.document,
       detail: `${row.concept} · ${row.reference}`,
       meta: money(row.amount, locale),
+      notes: row.notes,
+      rejectedBy: row.rejectedBy,
+      rejectionReason: row.rejectionReason,
+      rejectedAt: row.rejectedAt,
     })
   }
 
@@ -303,7 +328,11 @@ export default function AthletePaymentOrdersSection({
           <span className="admin-orders-block__amount">
             {t('admin.athletePayments.openAmount', { amount: money(counts.openAmount, locale) })}
           </span>
-          <button type="button" className="btn btn--secondary btn--small" onClick={() => void load()}>
+          <button
+            type="button"
+            className="btn btn--secondary btn--small"
+            onClick={() => void load()}
+          >
             <RefreshCw size={15} aria-hidden />
             {t('admin.athletePayments.refresh')}
           </button>
@@ -358,7 +387,9 @@ export default function AthletePaymentOrdersSection({
       ) : (
         <AdminDataTable
           className="admin-data-table--athlete-orders"
-          getRowClassName={(row) => (row.id === highlightOrderId ? 'data-table__row--selected' : '')}
+          getRowClassName={(row) =>
+            row.id === highlightOrderId ? 'data-table__row--selected' : ''
+          }
           columns={[
             {
               key: 'athlete',
@@ -382,16 +413,19 @@ export default function AthletePaymentOrdersSection({
               align: 'end',
               sortable: true,
               render: (row) => (
-                <span className="admin-orders-block__amount-badge">{money(row.amount, locale)}</span>
+                <span className="admin-orders-block__amount-badge">
+                  {money(row.amount, locale)}
+                </span>
               ),
             },
             {
               key: 'method',
               label: t('admin.columns.method'),
               mobile: 'hidden',
-              render: (row) => row.manualPaymentChannel === 'cash_pitbull'
-                ? t('formOptions.payment.cashPitbull')
-                : PAYMENT_METHODS[row.method]?.label ?? row.method,
+              render: (row) =>
+                row.manualPaymentChannel === 'cash_pitbull'
+                  ? t('formOptions.payment.cashPitbull')
+                  : (PAYMENT_METHODS[row.method]?.label ?? row.method),
             },
             {
               key: 'proof',
@@ -402,7 +436,11 @@ export default function AthletePaymentOrdersSection({
                   return <span className="data-table__mono data-table__mono--empty">—</span>
                 }
                 if (row.manualPaymentChannel === 'cash_pitbull') {
-                  return <span className="status-pill status-pill--info">{t('formOptions.payment.cashPitbull')}</span>
+                  return (
+                    <span className="status-pill status-pill--info">
+                      {t('formOptions.payment.cashPitbull')}
+                    </span>
+                  )
                 }
                 if (!row.hasProof) {
                   return (
@@ -411,7 +449,11 @@ export default function AthletePaymentOrdersSection({
                     </span>
                   )
                 }
-                return <span className="admin-orders-block__proof">{formatDateTime(row.proofUploadedAt, locale)}</span>
+                return (
+                  <span className="admin-orders-block__proof">
+                    {formatDateTime(row.proofUploadedAt, locale)}
+                  </span>
+                )
               },
             },
             {
@@ -433,7 +475,25 @@ export default function AthletePaymentOrdersSection({
               key: 'status',
               label: t('admin.columns.status'),
               mobile: 'badge',
-              render: (row) => <StatusBadge value={row.status} />,
+              render: (row) => (
+                <div className="admin-orders-block__status-cell">
+                  <StatusBadge value={row.status} />
+                  {/* Trazabilidad del rechazo: quién decidió y con qué motivo.
+                      Sin esto, la orden rechazada era una etiqueta sin
+                      responsable — el "quién" vivía solo en los logs. */}
+                  {row.status === 'rechazado' && (row.rejectedBy || row.rejectionReason) ? (
+                    <span
+                      className="admin-orders-block__rejection"
+                      title={[row.rejectionReason, row.rejectedAt].filter(Boolean).join(' · ')}
+                    >
+                      {t('admin.athletePayments.rejectedBy', {
+                        actor: formatRejectionActor(row.rejectedBy, t),
+                      })}
+                      {row.rejectionReason ? ` · ${row.rejectionReason}` : ''}
+                    </span>
+                  ) : null}
+                </div>
+              ),
             },
             {
               key: 'action',
@@ -522,9 +582,8 @@ export default function AthletePaymentOrdersSection({
           onCancel={() => setReviewRow(null)}
           onConfirm={(settlement) => {
             const paymentId = reviewRow.paymentId
-            const action = reviewRow.mode === 'settle'
-              ? forceSettle(paymentId, settlement)
-              : approve(paymentId)
+            const action =
+              reviewRow.mode === 'settle' ? forceSettle(paymentId, settlement) : approve(paymentId)
             void action.then((done) => {
               if (done) setReviewRow(null)
             })

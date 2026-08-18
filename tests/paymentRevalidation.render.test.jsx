@@ -71,10 +71,10 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
     listAthletePaymentOrders.mockResolvedValue([MP_ORDER, TRANSFER_ORDER])
     renderSection({ statusFilter: { status: 'all', at: 1 } })
 
-    // La tabla del panel dibuja fila de escritorio y ficha mobile, asi que la
-    // accion aparece dos veces por orden: dos botones = una sola orden de MP.
+    // Con la migración a antd, la tabla renderiza una sola fila, así que hay
+    // solo un botón por orden en vez de dos (escritorio + tarjeta mobile).
     await waitFor(() =>
-      expect(screen.getAllByRole('button', { name: 'Revalidar con Mercado Pago' })).toHaveLength(2),
+      expect(screen.getAllByRole('button', { name: 'Revalidar con Mercado Pago' })).toHaveLength(1),
     )
   })
 

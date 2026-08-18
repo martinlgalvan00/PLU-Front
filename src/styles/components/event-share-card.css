@@ -231,11 +231,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--card-accent-alt) 0%,
-    var(--card-accent) 100%
-  );
+  background: linear-gradient(90deg, var(--card-accent-alt) 0%, var(--card-accent) 100%);
   z-index: 10;
 }
 
@@ -853,8 +849,12 @@
 }
 
 @keyframes card-modal-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .card-modal {
@@ -876,8 +876,14 @@
 }
 
 @keyframes card-modal-slide-up {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Header del modal — chrome compacto */
@@ -909,7 +915,9 @@
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  transition: background 150ms var(--ease-out, ease), color 150ms var(--ease-out, ease);
+  transition:
+    background 150ms var(--ease-out, ease),
+    color 150ms var(--ease-out, ease);
   font-size: 18px;
   line-height: 1;
 }

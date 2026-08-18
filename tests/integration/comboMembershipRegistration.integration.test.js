@@ -63,14 +63,12 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       await cleanup(admin.from('events').delete().in('id', createdEventIds), 'eventos')
     }
 
-    const entityIds = [
-      ...createdAthleteIds,
-      ...createdEventIds,
-      ...orderIds,
-      ...attemptIds,
-    ]
+    const entityIds = [...createdAthleteIds, ...createdEventIds, ...orderIds, ...attemptIds]
     await cleanup(
-      admin.from('transactional_email_logs').delete().like('recipient_email', 'combo-%@pluarg.test'),
+      admin
+        .from('transactional_email_logs')
+        .delete()
+        .like('recipient_email', 'combo-%@pluarg.test'),
       'emails de fixture',
     )
     if (createdAthleteIds.length) {
@@ -107,29 +105,35 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       .limit(1)
       .maybeSingle()
     if (planResult.error || !planResult.data) {
-      throw new Error(`Falta un plan one_time activo para el test: ${planResult.error?.message ?? ''}`)
+      throw new Error(
+        `Falta un plan one_time activo para el test: ${planResult.error?.message ?? ''}`,
+      )
     }
     const plan = planResult.data
     const slug = `combo-integration-${randomUUID()}`
     const now = Date.now()
-    const eventResult = await admin.from('events').insert({
-      organization_id: plan.organization_id,
-      slug,
-      title: 'Combo integration test',
-      description: 'Fixture transaccional',
-      venue: 'Test venue',
-      location: 'Buenos Aires',
-      starts_at: new Date(now + 7 * 86400000).toISOString(),
-      ends_at: new Date(now + 8 * 86400000).toISOString(),
-      registration_opens_at: new Date(now - 86400000).toISOString(),
-      registration_closes_at: new Date(now + 6 * 86400000).toISOString(),
-      capacity: 2,
-      status: 'inscripcion_abierta',
-      published: true,
-      requires_membership: true,
-      price: 45000,
-      currency: plan.currency,
-    }).select().single()
+    const eventResult = await admin
+      .from('events')
+      .insert({
+        organization_id: plan.organization_id,
+        slug,
+        title: 'Combo integration test',
+        description: 'Fixture transaccional',
+        venue: 'Test venue',
+        location: 'Buenos Aires',
+        starts_at: new Date(now + 7 * 86400000).toISOString(),
+        ends_at: new Date(now + 8 * 86400000).toISOString(),
+        registration_opens_at: new Date(now - 86400000).toISOString(),
+        registration_closes_at: new Date(now + 6 * 86400000).toISOString(),
+        capacity: 2,
+        status: 'inscripcion_abierta',
+        published: true,
+        requires_membership: true,
+        price: 45000,
+        currency: plan.currency,
+      })
+      .select()
+      .single()
     if (eventResult.error) throw new Error(eventResult.error.message)
     const competition = eventResult.data
     createdEventIds.push(competition.id)
@@ -184,11 +188,12 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       idempotencyKey,
     }
     const cookie = sessionCookie(athleteResponse)
-    const createCombo = () => fetch(`${listenTarget.url}/api/athletes/me/registration-combos`, {
-      method: 'POST',
-      headers: { ...mutationHeaders, Cookie: cookie },
-      body: JSON.stringify(payload),
-    })
+    const createCombo = () =>
+      fetch(`${listenTarget.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: { ...mutationHeaders, Cookie: cookie },
+        body: JSON.stringify(payload),
+      })
 
     const first = await createCombo()
     const firstBody = await first.json()
@@ -204,6 +209,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       p_order_id: firstBody.order.id,
       p_athlete_id: athleteBody.athlete.id,
       p_proof_path: `${firstBody.order.id}/integration-proof.pdf`,
+      p_notes: null,
     })
     if (proof.error) throw new Error(proof.error.message)
     expect(proof.data.order.status).toBe('validacion_manual')
@@ -230,29 +236,35 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       .limit(1)
       .maybeSingle()
     if (planResult.error || !planResult.data) {
-      throw new Error(`Falta un plan one_time activo para el test: ${planResult.error?.message ?? ''}`)
+      throw new Error(
+        `Falta un plan one_time activo para el test: ${planResult.error?.message ?? ''}`,
+      )
     }
     const plan = planResult.data
     const slug = `combo-payment-integration-${randomUUID()}`
     const now = Date.now()
-    const eventResult = await admin.from('events').insert({
-      organization_id: plan.organization_id,
-      slug,
-      title: 'Combo payment integration test',
-      description: 'Fixture de pago transaccional',
-      venue: 'Test venue',
-      location: 'Buenos Aires',
-      starts_at: new Date(now + 7 * 86400000).toISOString(),
-      ends_at: new Date(now + 8 * 86400000).toISOString(),
-      registration_opens_at: new Date(now - 86400000).toISOString(),
-      registration_closes_at: new Date(now + 6 * 86400000).toISOString(),
-      capacity: 2,
-      status: 'inscripcion_abierta',
-      published: true,
-      requires_membership: true,
-      price: 45000,
-      currency: plan.currency,
-    }).select().single()
+    const eventResult = await admin
+      .from('events')
+      .insert({
+        organization_id: plan.organization_id,
+        slug,
+        title: 'Combo payment integration test',
+        description: 'Fixture de pago transaccional',
+        venue: 'Test venue',
+        location: 'Buenos Aires',
+        starts_at: new Date(now + 7 * 86400000).toISOString(),
+        ends_at: new Date(now + 8 * 86400000).toISOString(),
+        registration_opens_at: new Date(now - 86400000).toISOString(),
+        registration_closes_at: new Date(now + 6 * 86400000).toISOString(),
+        capacity: 2,
+        status: 'inscripcion_abierta',
+        published: true,
+        requires_membership: true,
+        price: 45000,
+        currency: plan.currency,
+      })
+      .select()
+      .single()
     if (eventResult.error) throw new Error(eventResult.error.message)
     const competition = eventResult.data
     createdEventIds.push(competition.id)
@@ -331,9 +343,8 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     expect(preferenceResponse.status, JSON.stringify(preferenceBody)).toBe(201)
     expect(preferenceBody.preference.id).toMatch(/^mock_pref_/)
 
-    const processPayment = (token, paymentMethodId) => fetch(
-      `${listenTarget.url}/api/payments/embedded/process`,
-      {
+    const processPayment = (token, paymentMethodId) =>
+      fetch(`${listenTarget.url}/api/payments/embedded/process`, {
         method: 'POST',
         headers: { ...mutationHeaders, Cookie: cookie },
         body: JSON.stringify({
@@ -346,8 +357,7 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
             payer: { email },
           },
         }),
-      },
-    )
+      })
 
     const failedPayment = await processPayment('mock_card_token_provider_failure', 'mock_error')
     expect(failedPayment.status).toBe(502)
@@ -366,7 +376,10 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
       .single()
     expect(afterFailure.data?.status).toBe('pendiente')
 
-    const approvedPayment = await processPayment('mock_card_token_provider_success', 'mock_approved')
+    const approvedPayment = await processPayment(
+      'mock_card_token_provider_success',
+      'mock_approved',
+    )
     const approvedBody = await approvedPayment.json()
     expect(approvedPayment.status, JSON.stringify(approvedBody)).toBe(201)
     expect(approvedBody.payment.status).toBe('approved')
@@ -374,7 +387,11 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
 
     const [membershipResult, registrationResult, credentialAfterPayment] = await Promise.all([
       admin.from('memberships').select('status').eq('id', comboBody.membership.id).single(),
-      admin.from('event_registrations').select('status').eq('id', comboBody.registration.id).single(),
+      admin
+        .from('event_registrations')
+        .select('status')
+        .eq('id', comboBody.registration.id)
+        .single(),
       admin.from('athletes').select('credential_token').eq('id', athleteBody.athlete.id).single(),
     ])
     expect(membershipResult.data?.status).toBe('activa')
@@ -429,7 +446,10 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     expect(checkIn.data.registration.id).toBe(comboBody.registration.id)
     expect(checkIn.data.checkIn.registration_id).toBe(comboBody.registration.id)
 
-    const duplicatePayment = await processPayment('mock_card_token_provider_success', 'mock_approved')
+    const duplicatePayment = await processPayment(
+      'mock_card_token_provider_success',
+      'mock_approved',
+    )
     const duplicateBody = await duplicatePayment.json()
     expect(duplicatePayment.status, JSON.stringify(duplicateBody)).toBe(200)
     expect(duplicateBody.duplicate).toBe(true)
@@ -437,19 +457,21 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     expect(duplicateBody.order.status).toBe('aprobado')
   })
 
-  const listenTarget = listen(createApp({
-    supabaseAdmin: admin,
-    notifyPaymentApplied: async () => {},
-    // El combo manual exige los dos canales abiertos; en la base compartida
-    // están cerrados porque el lanzamiento va sólo con Mercado Pago.
-    platformSettingsRepository: manualChannelsOpen(),
-    env: {
-      ...process.env,
-      APP_PRODUCTION: 'false',
-      PAYMENTS_MOCK: 'true',
-      AUTH_SECRET: process.env.AUTH_SECRET,
-    },
-  }))
+  const listenTarget = listen(
+    createApp({
+      supabaseAdmin: admin,
+      notifyPaymentApplied: async () => {},
+      // El combo manual exige los dos canales abiertos; en la base compartida
+      // están cerrados porque el lanzamiento va sólo con Mercado Pago.
+      platformSettingsRepository: manualChannelsOpen(),
+      env: {
+        ...process.env,
+        APP_PRODUCTION: 'false',
+        PAYMENTS_MOCK: 'true',
+        AUTH_SECRET: process.env.AUTH_SECRET,
+      },
+    }),
+  )
 
   afterAll(async () => {
     await listenTarget.close()

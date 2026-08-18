@@ -15,9 +15,7 @@ export default function RecentActivity({ compact = false, items = [] }) {
           <h2>{t('admin.recentActivity.title')}</h2>
           <p>{t('admin.recentActivity.subtitle')}</p>
         </div>
-        {items.length > 0 ? (
-          <span className="recent-activity__count">{items.length}</span>
-        ) : null}
+        {items.length > 0 ? <span className="recent-activity__count">{items.length}</span> : null}
       </header>
       <AuditTimeline items={items} />
     </section>

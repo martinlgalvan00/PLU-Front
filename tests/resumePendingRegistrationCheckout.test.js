@@ -29,7 +29,10 @@ describe('migración 20260816120000 — reanudar inscripción pendiente', () => 
 
   it('create_competition_registration_v2 reanuda en vez de PLU08 inmediato', () => {
     const start = migration.indexOf('function public.create_competition_registration_v2')
-    const body = migration.slice(start, migration.indexOf('function public.create_membership_registration_combo_order_core'))
+    const body = migration.slice(
+      start,
+      migration.indexOf('function public.create_membership_registration_combo_order_core'),
+    )
     expect(body).toContain('resume_pending_event_registration_checkout')
     expect(body).not.toMatch(
       /select \* into v_registration from public\.event_registrations\s+where event_id = v_event\.id and athlete_id = p_athlete_id and status <> 'cancelada';\s+if found then\s+raise exception 'Ya estas inscripto/,
@@ -37,7 +40,9 @@ describe('migración 20260816120000 — reanudar inscripción pendiente', () => 
   })
 
   it('el combo reanuda la orden impaga y sigue levantando PLU08 si ya está admitida', () => {
-    const start = migration.indexOf('function public.create_membership_registration_combo_order_core')
+    const start = migration.indexOf(
+      'function public.create_membership_registration_combo_order_core',
+    )
     const body = migration.slice(start)
     expect(body).toContain('resume_pending_event_registration_checkout')
     expect(migration).toContain("errcode = 'PLU08'")

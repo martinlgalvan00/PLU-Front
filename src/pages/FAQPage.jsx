@@ -14,28 +14,37 @@ export default function FAQPage({ onNavigate }) {
   const [category, setCategory] = useState('all')
 
   const normalizedQuery = query.trim().toLocaleLowerCase()
-  const filteredGroups = useMemo(() => FAQ_GROUPS
-    .filter((group) => category === 'all' || group.id === category)
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => {
-        if (!normalizedQuery) return true
-        return `${item.q} ${item.a}`.toLocaleLowerCase().includes(normalizedQuery)
-      }),
-    }))
-    .filter((group) => group.items.length > 0), [FAQ_GROUPS, category, normalizedQuery])
+  const filteredGroups = useMemo(
+    () =>
+      FAQ_GROUPS.filter((group) => category === 'all' || group.id === category)
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => {
+            if (!normalizedQuery) return true
+            return `${item.q} ${item.a}`.toLocaleLowerCase().includes(normalizedQuery)
+          }),
+        }))
+        .filter((group) => group.items.length > 0),
+    [FAQ_GROUPS, category, normalizedQuery],
+  )
 
   const resultCount = filteredGroups.reduce((total, group) => total + group.items.length, 0)
 
   return (
     <main className="institutional-page faq-page--institutional">
       <InstitutionalPageHero
-        aside={(
+        aside={
           <dl className="institutional-hero__ledger">
-            <div><dt>{t('pages.faq.heroLedgerTopics')}</dt><dd>{FAQ_GROUPS.length}</dd></div>
-            <div><dt>{t('pages.faq.heroLedgerChannel')}</dt><dd>{t('pages.faq.heroLedgerChannelValue')}</dd></div>
+            <div>
+              <dt>{t('pages.faq.heroLedgerTopics')}</dt>
+              <dd>{FAQ_GROUPS.length}</dd>
+            </div>
+            <div>
+              <dt>{t('pages.faq.heroLedgerChannel')}</dt>
+              <dd>{t('pages.faq.heroLedgerChannelValue')}</dd>
+            </div>
           </dl>
-        )}
+        }
         breadcrumb={t('pages.faq.heroBreadcrumbShort')}
         description={t('pages.faq.heroDesc')}
         eyebrow={t('pages.faq.heroChapter')}
@@ -52,7 +61,9 @@ export default function FAQPage({ onNavigate }) {
           </div>
           <form className="faq-search" role="search" onSubmit={(event) => event.preventDefault()}>
             <Search size={18} aria-hidden />
-            <label className="visually-hidden" htmlFor="faq-search-input">{t('pages.faq.searchLabel')}</label>
+            <label className="visually-hidden" htmlFor="faq-search-input">
+              {t('pages.faq.searchLabel')}
+            </label>
             <input
               id="faq-search-input"
               autoComplete="off"
@@ -62,13 +73,22 @@ export default function FAQPage({ onNavigate }) {
               value={query}
             />
             {query ? (
-              <button type="button" aria-label={t('pages.faq.clearSearch')} onClick={() => setQuery('')}>
+              <button
+                type="button"
+                aria-label={t('pages.faq.clearSearch')}
+                onClick={() => setQuery('')}
+              >
                 <X size={16} aria-hidden />
               </button>
             ) : null}
           </form>
           <div className="faq-categories" role="group" aria-label={t('pages.faq.categoriesAria')}>
-            <button type="button" className={category === 'all' ? 'is-active' : ''} aria-pressed={category === 'all'} onClick={() => setCategory('all')}>
+            <button
+              type="button"
+              className={category === 'all' ? 'is-active' : ''}
+              aria-pressed={category === 'all'}
+              onClick={() => setCategory('all')}
+            >
               {t('pages.faq.allCategories')}
             </button>
             {FAQ_GROUPS.map((group) => (
@@ -89,23 +109,36 @@ export default function FAQPage({ onNavigate }) {
         </section>
 
         <div className="faq-results">
-          {filteredGroups.length ? filteredGroups.map((group, index) => (
-            <section key={group.id} id={group.id} className="faq-institutional-section" aria-labelledby={`${group.id}-title`}>
-              <header>
-                <span aria-hidden>{String(index + 1).padStart(2, '0')}</span>
-                <h2 id={`${group.id}-title`}>{group.title}</h2>
-                <small>{String(group.items.length).padStart(2, '0')}</small>
-              </header>
-              <FAQAccordion idPrefix={group.id} items={group.items} numbered variant="ref" />
-            </section>
-          )) : (
+          {filteredGroups.length ? (
+            filteredGroups.map((group, index) => (
+              <section
+                key={group.id}
+                id={group.id}
+                className="faq-institutional-section"
+                aria-labelledby={`${group.id}-title`}
+              >
+                <header>
+                  <span aria-hidden>{String(index + 1).padStart(2, '0')}</span>
+                  <h2 id={`${group.id}-title`}>{group.title}</h2>
+                  <small>{String(group.items.length).padStart(2, '0')}</small>
+                </header>
+                <FAQAccordion idPrefix={group.id} items={group.items} numbered variant="ref" />
+              </section>
+            ))
+          ) : (
             <section className="faq-empty-state" aria-labelledby="faq-empty-title">
               <span aria-hidden>00</span>
               <div>
                 <h2 id="faq-empty-title">{t('pages.faq.emptyTitle')}</h2>
                 <p>{t('pages.faq.emptyDesc')}</p>
               </div>
-              <button type="button" onClick={() => { setQuery(''); setCategory('all') }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('')
+                  setCategory('all')
+                }}
+              >
                 {t('pages.faq.emptyReset')}
               </button>
             </section>
@@ -118,7 +151,11 @@ export default function FAQPage({ onNavigate }) {
             <h2 id="faq-support-title">{t('pages.faq.notFoundTitle')}</h2>
             <p>{t('pages.faq.supportDesc')}</p>
           </div>
-          <button type="button" className="institutional-button institutional-button--primary" onClick={() => onNavigate?.('contact')}>
+          <button
+            type="button"
+            className="institutional-button institutional-button--primary"
+            onClick={() => onNavigate?.('contact')}
+          >
             {t('pages.faq.notFoundCta')}
             <ArrowRight size={16} aria-hidden />
           </button>

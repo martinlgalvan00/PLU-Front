@@ -30,12 +30,12 @@ export default function LaunchInterestForm({ source, eventSlug }) {
 
   return (
     <form className="shop-interest-form" onSubmit={handleSubmit}>
-      <input 
-        type="email" 
-        placeholder="Tu correo electrónico" 
-        value={email} 
-        onChange={e => setEmail(e.target.value)} 
-        required 
+      <input
+        type="email"
+        placeholder="Tu correo electrónico"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
         disabled={status === 'loading'}
       />
       <button type="submit" disabled={status === 'loading'} aria-label="Notificarme">

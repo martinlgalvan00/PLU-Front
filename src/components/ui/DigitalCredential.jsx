@@ -132,7 +132,9 @@ export default function DigitalCredential({ athlete, membership }) {
             >
               <span className="account-credential__grain" aria-hidden />
               <div className="account-credential__back-head">
-                <span className="account-credential__back-eyebrow">{t('account.credential.athlete')}</span>
+                <span className="account-credential__back-eyebrow">
+                  {t('account.credential.athlete')}
+                </span>
                 <p className="account-credential__back-name">{athlete.fullName}</p>
               </div>
               <dl className="account-credential__fields">

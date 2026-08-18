@@ -1,7 +1,11 @@
 import { HttpError } from '../lib/errors.js'
 
 function enabledFlag(value) {
-  return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase())
+  return ['true', '1', 'yes'].includes(
+    String(value ?? '')
+      .trim()
+      .toLowerCase(),
+  )
 }
 
 // Lanzamiento separado del toggle operativo: hasta que se habilite de forma
@@ -43,9 +47,21 @@ export function isSpectatorTicketSalesLaunched(env = process.env) {
  */
 
 const ALTA = {
-  membership: ['membershipEnabled', 'Las afiliaciones están cerradas temporalmente.', 'MEMBERSHIP_CHECKOUT_DISABLED'],
-  registration: ['registrationEnabled', 'Las inscripciones están cerradas temporalmente.', 'REGISTRATION_CHECKOUT_DISABLED'],
-  ticket: ['ticketEnabled', 'La venta de entradas está pausada temporalmente.', 'TICKET_CHECKOUT_DISABLED'],
+  membership: [
+    'membershipEnabled',
+    'Las afiliaciones están cerradas temporalmente.',
+    'MEMBERSHIP_CHECKOUT_DISABLED',
+  ],
+  registration: [
+    'registrationEnabled',
+    'Las inscripciones están cerradas temporalmente.',
+    'REGISTRATION_CHECKOUT_DISABLED',
+  ],
+  ticket: [
+    'ticketEnabled',
+    'La venta de entradas está pausada temporalmente.',
+    'TICKET_CHECKOUT_DISABLED',
+  ],
 }
 
 const MANUAL = {
@@ -109,9 +125,13 @@ export function assertRegistrationCheckoutEnabled(toggles) {
 
 export function assertTicketCheckoutEnabled(toggles, env = process.env) {
   if (!isSpectatorTicketSalesLaunched(env)) {
-    throw new HttpError(409, 'La venta de entradas para espectadores estará disponible próximamente.', {
-      code: 'TICKET_SALES_COMING_SOON',
-    })
+    throw new HttpError(
+      409,
+      'La venta de entradas para espectadores estará disponible próximamente.',
+      {
+        code: 'TICKET_SALES_COMING_SOON',
+      },
+    )
   }
   assertToggle(toggles, ALTA, 'ticket')
 }
@@ -119,10 +139,16 @@ export function assertTicketCheckoutEnabled(toggles, env = process.env) {
 /**
  * `scope` es 'membership' | 'registration' | 'ticket'. El combo pasa por los dos
  * primeros: si cualquiera de los dos canales está cerrado no hay combo manual.
+ *
+ * `override` lo enciende un cupón puntual (`enables_manual_payment`) para una
+ * compra particular: no reemplaza el interruptor general, sólo lo salta para
+ * quien tiene el cupón. Queda a cargo de quien llama resolver ese override
+ * (lectura de discount_codes) antes de invocar este assert.
  */
-export function assertManualChannelEnabled(toggles, scope) {
+export function assertManualChannelEnabled(toggles, scope, { override = false } = {}) {
   const entry = MANUAL[scope]
   if (!entry) throw new HttpError(500, `Alcance de interruptor desconocido: ${scope}`)
+  if (override) return
   const [key, message, code] = entry
   // Afiliaciones e inscripciones empiezan solamente con Mercado Pago. Las
   // entradas conservan su contrato previo y sólo se cierran explícitamente.
@@ -164,7 +190,9 @@ export function resolvePublicCheckoutAvailability(toggles, env = process.env) {
     registrationEnabled: open('registrationEnabled'),
     ticketEnabled: ticketLaunched && open('ticketEnabled'),
     membershipManualEnabled: open('membershipEnabled') && toggles?.membershipManualEnabled === true,
-    registrationManualEnabled: open('registrationEnabled') && toggles?.registrationManualEnabled === true,
-    ticketManualEnabled: ticketLaunched && open('ticketEnabled') && toggles?.ticketManualEnabled !== false,
+    registrationManualEnabled:
+      open('registrationEnabled') && toggles?.registrationManualEnabled === true,
+    ticketManualEnabled:
+      ticketLaunched && open('ticketEnabled') && toggles?.ticketManualEnabled !== false,
   }
 }

@@ -17,8 +17,6 @@ describe('regresión de renovación después de un checkout cancelado', () => {
   })
 
   it('mantiene el target de la orden alineado con la vigencia calculada', () => {
-    expect(migration).toContain(
-      'values (v_order.id, v_membership.id, v_start, v_end);',
-    )
+    expect(migration).toContain('values (v_order.id, v_membership.id, v_start, v_end);')
   })
 })

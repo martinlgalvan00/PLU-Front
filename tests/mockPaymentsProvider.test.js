@@ -72,55 +72,73 @@ describe('createPaymentProviderAdapter', () => {
   })
 
   it('prioriza PAYMENTS_MOCK true|false sobre PAYMENTS_PROVIDER', () => {
-    expect(resolvePaymentsProvider({ PAYMENTS_MOCK: 'true', PAYMENTS_PROVIDER: 'mercado_pago' })).toBe('mock')
-    expect(resolvePaymentsProvider({ PAYMENTS_MOCK: 'false', PAYMENTS_PROVIDER: 'mock' })).toBe('mercado_pago')
+    expect(
+      resolvePaymentsProvider({ PAYMENTS_MOCK: 'true', PAYMENTS_PROVIDER: 'mercado_pago' }),
+    ).toBe('mock')
+    expect(resolvePaymentsProvider({ PAYMENTS_MOCK: 'false', PAYMENTS_PROVIDER: 'mock' })).toBe(
+      'mercado_pago',
+    )
     expect(resolvePaymentsProvider({ PAYMENTS_PROVIDER: 'mock' })).toBe('mock')
   })
 
   it('rechaza PAYMENTS_MOCK invalido', () => {
-    expect(() => resolvePaymentsProvider({ PAYMENTS_MOCK: 'maybe' })).toThrow(/PAYMENTS_MOCK invalido/)
+    expect(() => resolvePaymentsProvider({ PAYMENTS_MOCK: 'maybe' })).toThrow(
+      /PAYMENTS_MOCK invalido/,
+    )
   })
 
   it('permite mock solo fuera de production/preview', () => {
     expect(isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'development' })).toBe(true)
     expect(isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'production' })).toBe(false)
-    expect(isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'development', VERCEL_ENV: 'preview' })).toBe(false)
-    expect(isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'development', VERCEL_ENV: 'production' })).toBe(false)
+    expect(
+      isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'development', VERCEL_ENV: 'preview' }),
+    ).toBe(false)
+    expect(
+      isPaymentsMockEnvironmentAllowed({ NODE_ENV: 'development', VERCEL_ENV: 'production' }),
+    ).toBe(false)
   })
 
   it('rechaza mock en production', () => {
-    expect(() => createPaymentProviderAdapter({
-      env: { PAYMENTS_PROVIDER: 'mock', NODE_ENV: 'production' },
-    })).toThrow(/solo esta permitido en local\/dev/)
+    expect(() =>
+      createPaymentProviderAdapter({
+        env: { PAYMENTS_PROVIDER: 'mock', NODE_ENV: 'production' },
+      }),
+    ).toThrow(/solo esta permitido en local\/dev/)
   })
 
   it('crea el adaptador real cuando provider=mercado_pago', () => {
-    expect(() => createPaymentProviderAdapter({
-      env: {
+    expect(() =>
+      createPaymentProviderAdapter({
+        env: {
+          PAYMENTS_PROVIDER: 'mercado_pago',
+          MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+          MERCADO_PAGO_WEBHOOK_SECRET: 'webhook-secret-for-tests',
+          VITE_MERCADO_PAGO_PUBLIC_KEY: 'TEST-public-key',
+        },
+      }),
+    ).not.toThrow()
+  })
+
+  it('impide iniciar cobros reales sin webhook firmado configurable', () => {
+    expect(() =>
+      createPaymentProviderAdapter({
+        env: {
+          PAYMENTS_PROVIDER: 'mercado_pago',
+          MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        },
+      }),
+    ).toThrow(/WEBHOOK_SECRET valido/)
+  })
+
+  it('expone un diagnostico seguro y completo para Finanzas', () => {
+    expect(
+      getPaymentsRuntimeStatus({
         PAYMENTS_PROVIDER: 'mercado_pago',
         MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
         MERCADO_PAGO_WEBHOOK_SECRET: 'webhook-secret-for-tests',
         VITE_MERCADO_PAGO_PUBLIC_KEY: 'TEST-public-key',
-      },
-    })).not.toThrow()
-  })
-
-  it('impide iniciar cobros reales sin webhook firmado configurable', () => {
-    expect(() => createPaymentProviderAdapter({
-      env: {
-        PAYMENTS_PROVIDER: 'mercado_pago',
-        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
-      },
-    })).toThrow(/WEBHOOK_SECRET valido/)
-  })
-
-  it('expone un diagnostico seguro y completo para Finanzas', () => {
-    expect(getPaymentsRuntimeStatus({
-      PAYMENTS_PROVIDER: 'mercado_pago',
-      MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
-      MERCADO_PAGO_WEBHOOK_SECRET: 'webhook-secret-for-tests',
-      VITE_MERCADO_PAGO_PUBLIC_KEY: 'TEST-public-key',
-    })).toEqual({
+      }),
+    ).toEqual({
       provider: 'mercado_pago',
       ready: true,
       accessTokenConfigured: true,
@@ -189,14 +207,16 @@ describe('mockMercadoPagoAdapter', () => {
 
   it('simula falla del proveedor con mock_error', async () => {
     const adapter = createMockMercadoPagoAdapter()
-    await expect(adapter.createPayment({
-      order,
-      idempotencyKey: 'key-error',
-      formData: {
-        payment_method_id: 'mock_error',
-        payer: { email: order.payerEmail },
-      },
-    })).rejects.toMatchObject({ status: 502 })
+    await expect(
+      adapter.createPayment({
+        order,
+        idempotencyKey: 'key-error',
+        formData: {
+          payment_method_id: 'mock_error',
+          payer: { email: order.payerEmail },
+        },
+      }),
+    ).rejects.toMatchObject({ status: 502 })
   })
 
   it('aplica delay configurable sin superar el tope', async () => {
@@ -303,5 +323,66 @@ describe('processEmbeddedPayment con mock', () => {
 
     expect(result.payment.status).toBe('in_process')
     expect(result.order.status).toBe('pendiente')
+  })
+
+  it('reconcilia contra el proveedor en vez de fallar cuando createPayment explota pero MP ya cobró', async () => {
+    const repository = createRepositoryFake()
+    const mercadoPago = {
+      createPayment: vi.fn(async () => {
+        throw new Error('socket hang up')
+      }),
+      searchPaymentsForOrder: vi.fn(async () => [
+        {
+          id: 'mp-provider-side-charge',
+          status: 'approved',
+          status_detail: 'accredited',
+          transaction_amount: order.amount,
+          currency_id: order.currency,
+          external_reference: order.id,
+          payer: { email: order.payerEmail },
+        },
+      ]),
+    }
+
+    const result = await processEmbeddedPayment(
+      {
+        paymentOrderId: order.id,
+        formData: {
+          token: 'temporary-card-token',
+          payment_method_id: 'visa',
+          payer: { email: order.payerEmail },
+        },
+      },
+      { repository, mercadoPago },
+    )
+
+    expect(mercadoPago.searchPaymentsForOrder).toHaveBeenCalledOnce()
+    expect(result.duplicate).toBe(false)
+    expect(result.payment.id).toBe('mp-provider-side-charge')
+    expect(result.order.status).toBe('aprobado')
+  })
+
+  it('sigue fallando si createPayment explota y el proveedor no tiene ningún pago para la orden', async () => {
+    const repository = createRepositoryFake()
+    const mercadoPago = {
+      createPayment: vi.fn(async () => {
+        throw new Error('socket hang up')
+      }),
+      searchPaymentsForOrder: vi.fn(async () => []),
+    }
+
+    await expect(
+      processEmbeddedPayment(
+        {
+          paymentOrderId: order.id,
+          formData: {
+            token: 'temporary-card-token',
+            payment_method_id: 'visa',
+            payer: { email: order.payerEmail },
+          },
+        },
+        { repository, mercadoPago },
+      ),
+    ).rejects.toThrow('socket hang up')
   })
 })

@@ -88,6 +88,7 @@ export default function AdminPage({
   onSetMembershipPlanRetirement,
   onUpsertDiscountCode,
   onSetDiscountCodeActive,
+  onDeleteDiscountCode,
   billingSubscriptions,
   billingSubscriptionsLoading,
   billingSubscriptionsError,
@@ -293,13 +294,22 @@ export default function AdminPage({
         )
       }
 
-      return <AthletesSection athletes={athletes} onSelectAthlete={handleSelectAthlete} />
+      return (
+        <AthletesSection
+          athletes={athletes}
+          registrations={registrations}
+          payments={payments}
+          gatePendingIds={gatePendingIds}
+          onSelectAthlete={handleSelectAthlete}
+        />
+      )
     }
 
     if (section === 'memberships') {
       return (
         <MembershipsSection
           memberships={enrichedMemberships}
+          registrations={registrations}
           unreconciledPayments={unreconciledMembershipPayments}
           onSelectAthlete={handleSelectAthlete}
           onSetMembershipStatus={onSetMembershipStatus}
@@ -457,6 +467,7 @@ export default function AdminPage({
           onSetPlanRetirement={onSetMembershipPlanRetirement}
           onUpsertDiscountCode={onUpsertDiscountCode}
           onSetDiscountCodeActive={onSetDiscountCodeActive}
+          onDeleteDiscountCode={onDeleteDiscountCode}
           subscriptions={billingSubscriptions}
           subscriptionsLoading={billingSubscriptionsLoading}
           subscriptionsError={billingSubscriptionsError}

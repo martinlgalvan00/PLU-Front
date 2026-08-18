@@ -71,12 +71,11 @@ function ContextList({ entries, emptyLabel, labels, locale, onOpen, currentId })
   return (
     <ol className="audit-detail__timeline">
       {entries.map((entry) => (
-        <li
-          key={entry.id}
-          className={entry.id === currentId ? 'is-current' : ''}
-        >
+        <li key={entry.id} className={entry.id === currentId ? 'is-current' : ''}>
           <time dateTime={entry.createdAt}>{formatDateTime(entry.createdAt, locale)}</time>
-          <span className={`status-pill status-pill--${entry.tone === 'default' ? 'neutral' : entry.tone}`}>
+          <span
+            className={`status-pill status-pill--${entry.tone === 'default' ? 'neutral' : entry.tone}`}
+          >
             {labels.action(entry.action)}
           </span>
           <span className="audit-detail__timeline-entity">
@@ -196,9 +195,7 @@ export default function AuditEventDialog({ eventId, onClose }) {
           <span className="payment-validation-dialog__eyebrow">
             {t('admin.auditDetail.eyebrow')}
           </span>
-          <h2 id={titleId}>
-            {event ? labels.action(event.action) : t('admin.auditDetail.title')}
-          </h2>
+          <h2 id={titleId}>{event ? labels.action(event.action) : t('admin.auditDetail.title')}</h2>
           {event ? (
             <p className="payment-validation-dialog__lead">
               {[
@@ -216,13 +213,19 @@ export default function AuditEventDialog({ eventId, onClose }) {
         </header>
 
         {loading ? <p role="status">{t('admin.auditDetail.loading')}</p> : null}
-        {error ? <p role="alert" className="audit-detail__error">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="audit-detail__error">
+            {error}
+          </p>
+        ) : null}
 
         {event && !loading ? (
           <div className="audit-detail__body">
             {/* Qué pasó: los hechos duros, antes de cualquier interpretación. */}
             <section className="audit-detail__block">
-              <h3><Info size={15} aria-hidden /> {t('admin.auditDetail.whatTitle')}</h3>
+              <h3>
+                <Info size={15} aria-hidden /> {t('admin.auditDetail.whatTitle')}
+              </h3>
               <dl className="audit-detail__facts">
                 <Fact label={t('admin.auditDetail.factEntity')}>
                   {`${labels.entity(event.entityType)} · ${event.entityId ?? '—'}`}
@@ -239,7 +242,9 @@ export default function AuditEventDialog({ eventId, onClose }) {
 
             {failure ? (
               <section className="audit-detail__block audit-detail__block--failure">
-                <h3><TriangleAlert size={15} aria-hidden /> {t('admin.auditDetail.failureTitle')}</h3>
+                <h3>
+                  <TriangleAlert size={15} aria-hidden /> {t('admin.auditDetail.failureTitle')}
+                </h3>
 
                 {failure.message ? (
                   <p className="audit-detail__message">{failure.message}</p>
@@ -279,7 +284,9 @@ export default function AuditEventDialog({ eventId, onClose }) {
                     {failure.diagnosis?.cause ? <p>{failure.diagnosis.cause}</p> : null}
                     {failure.reason ? <p>{String(failure.reason)}</p> : null}
                     {failure.statusDetail ? (
-                      <p><code>{String(failure.statusDetail)}</code></p>
+                      <p>
+                        <code>{String(failure.statusDetail)}</code>
+                      </p>
                     ) : null}
 
                     {/* Los pasos que el catálogo de fallas ya tenía escritos y
@@ -299,7 +306,9 @@ export default function AuditEventDialog({ eventId, onClose }) {
 
                 {failure.origin ? (
                   <div className="audit-detail__where">
-                    <h4><FileCode2 size={14} aria-hidden /> {t('admin.auditDetail.whereTitle')}</h4>
+                    <h4>
+                      <FileCode2 size={14} aria-hidden /> {t('admin.auditDetail.whereTitle')}
+                    </h4>
                     <OriginLine origin={failure.origin} />
                   </div>
                 ) : null}
@@ -329,12 +338,16 @@ export default function AuditEventDialog({ eventId, onClose }) {
 
             {/* Qué venía haciendo. El eje que antes no existía. */}
             <section className="audit-detail__block">
-              <h3><History size={15} aria-hidden /> {t('admin.auditDetail.contextTitle')}</h3>
+              <h3>
+                <History size={15} aria-hidden /> {t('admin.auditDetail.contextTitle')}
+              </h3>
 
               {context.request.length ? (
                 <div className="audit-detail__axis">
                   <h4>{t('admin.auditDetail.axisRequest')}</h4>
-                  <p className="audit-detail__axis-hint">{t('admin.auditDetail.axisRequestHint')}</p>
+                  <p className="audit-detail__axis-hint">
+                    {t('admin.auditDetail.axisRequestHint')}
+                  </p>
                   <ContextList
                     entries={context.request}
                     emptyLabel={t('admin.auditDetail.axisEmpty')}

@@ -8,10 +8,7 @@ import { describe, expect, it } from 'vitest'
  */
 
 const migration = readFileSync(
-  resolve(
-    process.cwd(),
-    'supabase/migrations/20260810120000_credential_verification_photo.sql',
-  ),
+  resolve(process.cwd(), 'supabase/migrations/20260810120000_credential_verification_photo.sql'),
   'utf8',
 )
 

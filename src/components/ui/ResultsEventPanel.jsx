@@ -41,7 +41,9 @@ export default function ResultsEventPanel({ entry, onClose }) {
 
   useEffect(() => {
     if (groupFilter === 'all') return
-    const stillVisible = filterDivisionNav(navItems, { sex: sexFilter }).some((item) => item.group === groupFilter)
+    const stillVisible = filterDivisionNav(navItems, { sex: sexFilter }).some(
+      (item) => item.group === groupFilter,
+    )
     if (!stillVisible) setGroupFilter('all')
   }, [groupFilter, navItems, sexFilter])
 
@@ -94,7 +96,9 @@ export default function ResultsEventPanel({ entry, onClose }) {
         <Reveal className="results-event-panel__nav" delay={220} distance={10}>
           <div className="results-event-panel__nav-top">
             <div className="results-event-panel__nav-copy">
-              <span className="results-event-panel__nav-label">{t('pages.results.divisionsNavLabel')}</span>
+              <span className="results-event-panel__nav-label">
+                {t('pages.results.divisionsNavLabel')}
+              </span>
               <span className="results-event-panel__nav-count">
                 {t('pages.results.divisionsCount', {
                   shown: visibleItems.length,
@@ -104,7 +108,11 @@ export default function ResultsEventPanel({ entry, onClose }) {
             </div>
 
             {sexOptions ? (
-              <div className="results-event-panel__sex-shell" role="tablist" aria-label={t('pages.results.divisionSexAria')}>
+              <div
+                className="results-event-panel__sex-shell"
+                role="tablist"
+                aria-label={t('pages.results.divisionSexAria')}
+              >
                 {sexOptions.map(([key, label]) => (
                   <button
                     key={key}
@@ -122,7 +130,11 @@ export default function ResultsEventPanel({ entry, onClose }) {
           </div>
 
           {groupOptions ? (
-            <div className="results-event-panel__groups" role="tablist" aria-label={t('pages.results.divisionsNavAria')}>
+            <div
+              className="results-event-panel__groups"
+              role="tablist"
+              aria-label={t('pages.results.divisionsNavAria')}
+            >
               {groupOptions.map(([key, label]) => (
                 <button
                   key={key}
@@ -190,8 +202,12 @@ export default function ResultsEventPanel({ entry, onClose }) {
                         <td>{formatWeight(lifter.squat, locale)}</td>
                         <td>{formatWeight(lifter.bench, locale)}</td>
                         <td>{formatWeight(lifter.deadlift, locale)}</td>
-                        <td className="results-lifters-table__total">{formatWeight(lifter.total, locale)}</td>
-                        <td className="results-lifters-table__dots">{lifter.dots?.toFixed(1) ?? '—'}</td>
+                        <td className="results-lifters-table__total">
+                          {formatWeight(lifter.total, locale)}
+                        </td>
+                        <td className="results-lifters-table__dots">
+                          {lifter.dots?.toFixed(1) ?? '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

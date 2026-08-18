@@ -46,7 +46,9 @@ export default function AdminEventTicketAddonReport({ event, tickets }) {
       </div>
 
       {!report.hasActivity ? (
-        <p className="admin-event-addon-report__empty">{t('admin.eventEditor.ticketAddonReport.empty')}</p>
+        <p className="admin-event-addon-report__empty">
+          {t('admin.eventEditor.ticketAddonReport.empty')}
+        </p>
       ) : (
         <>
           <dl className="admin-event-addon-report__metrics">

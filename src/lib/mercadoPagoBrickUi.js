@@ -1,10 +1,16 @@
 function normalizeOptionText(value) {
-  return String(value ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
 }
 
 function isActiveSelector(element) {
   if (!element) return false
-  if (element.getAttribute('aria-checked') === 'true' || element.getAttribute('aria-selected') === 'true') {
+  if (
+    element.getAttribute('aria-checked') === 'true' ||
+    element.getAttribute('aria-selected') === 'true'
+  ) {
     return true
   }
   if ([...element.classList].some((name) => name === 'active' || name.startsWith('active-'))) {
@@ -23,7 +29,8 @@ export function readActivePaymentSelectorText(root) {
 export function resolveMercadoPagoSubmitKey(optionText) {
   const text = normalizeOptionText(optionText)
   if (!text) return 'payments.submitPay'
-  if (/cr[eé]dito de mercado pago|mercado pago credit/.test(text)) return 'payments.submitPayMpCredit'
+  if (/cr[eé]dito de mercado pago|mercado pago credit/.test(text))
+    return 'payments.submitPayMpCredit'
   if (/tarjeta de d[eé]bito|debit card/.test(text)) return 'payments.submitPayDebit'
   if (/tarjeta de cr[eé]dito|credit card/.test(text)) return 'payments.submitPayCredit'
   if (/rapipago|pago f[aá]cil|ticket|efectivo|cash/.test(text)) return 'payments.submitPayTicket'
@@ -37,9 +44,9 @@ function setControlLabel(button, label) {
     return true
   }
 
-  const textNode = [...button.childNodes].find((node) => (
-    node.nodeType === Node.TEXT_NODE && node.textContent.trim()
-  ))
+  const textNode = [...button.childNodes].find(
+    (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+  )
   if (textNode) {
     textNode.textContent = ` ${label} `
     return true

@@ -19,7 +19,7 @@ import {
  * dos puntos donde se genera una orden manual: la afiliación desde la cuenta y
  * la del alta (`RegisterMembershipConfirmation`).
  */
-export default function TransferProofUpload({ orderId, onUploaded }) {
+export default function TransferProofUpload({ orderId, onUploaded, notes }) {
   const { t } = useI18n()
   const [state, setState] = useState('idle')
   const [error, setError] = useState('')
@@ -42,13 +42,15 @@ export default function TransferProofUpload({ orderId, onUploaded }) {
     setError('')
     try {
       const { storagePath } = await uploadAthletePaymentProof(orderId, file)
-      const result = await registerAthletePaymentProof(orderId, storagePath)
+      const result = await registerAthletePaymentProof(orderId, storagePath, notes)
       setState('done')
       // La orden entra en validación manual recién cuando la API registró la
       // ruta privada. Avisamos a las pantallas abiertas para refrescarla.
-      window.dispatchEvent(new CustomEvent('plu:payment-updated', {
-        detail: { orderId, status: result?.order?.status ?? 'validacion_manual' },
-      }))
+      window.dispatchEvent(
+        new CustomEvent('plu:payment-updated', {
+          detail: { orderId, status: result?.order?.status ?? 'validacion_manual' },
+        }),
+      )
       onUploaded?.(result?.order ?? null)
     } catch (uploadError) {
       setError(uploadError?.message ?? t('account.membership.proofError'))

@@ -61,7 +61,9 @@ export default function MemberProfileCard({
               <p className="member-profile-card__facts">
                 {inlineFacts.map((fact, index) => (
                   <span key={fact}>
-                    {index > 0 ? <span className="member-profile-card__dot" aria-hidden="true" /> : null}
+                    {index > 0 ? (
+                      <span className="member-profile-card__dot" aria-hidden="true" />
+                    ) : null}
                     <span>{fact}</span>
                   </span>
                 ))}

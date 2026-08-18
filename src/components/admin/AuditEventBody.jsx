@@ -33,9 +33,7 @@ export default function AuditEventBody({ row, labels }) {
     row.entityId
       ? { key: 'entity', label: labels.entity(row.entityType), value: row.entityId }
       : null,
-    row.actorId
-      ? { key: 'actor', label: labels.actor(row.actorType), value: row.actorId }
-      : null,
+    row.actorId ? { key: 'actor', label: labels.actor(row.actorType), value: row.actorId } : null,
   ].filter(Boolean)
 
   if (!hasStory && technical.length === 0) {
@@ -50,7 +48,9 @@ export default function AuditEventBody({ row, labels }) {
             'audit-event__lead',
             leadKind === 'error' || leadKind === 'reason' ? 'audit-event__lead--alert' : '',
             row.tone === 'warning' ? 'audit-event__lead--warning' : '',
-          ].filter(Boolean).join(' ')}
+          ]
+            .filter(Boolean)
+            .join(' ')}
         >
           {lead}
         </p>

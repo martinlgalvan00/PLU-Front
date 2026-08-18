@@ -27,7 +27,11 @@ import {
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
-import { cheapestTicketTypePrice, resolveEventPricing, ticketPricingFromEvent } from '../lib/eventPricing.js'
+import {
+  cheapestTicketTypePrice,
+  resolveEventPricing,
+  ticketPricingFromEvent,
+} from '../lib/eventPricing.js'
 import { money } from '../lib/format.js'
 import { fetchPublishedEvents } from '../services/eventAdminService.js'
 import { env } from '../config/env.js'
@@ -56,7 +60,9 @@ function EventsDetailPanel({
 }) {
   if (!event) {
     return (
-      <div className={`events-detail events-detail--empty${minimal ? ' events-detail--minimal' : ''}`}>
+      <div
+        className={`events-detail events-detail--empty${minimal ? ' events-detail--minimal' : ''}`}
+      >
         <p>{t('pages.events.emptyDetail')}</p>
       </div>
     )
@@ -64,7 +70,9 @@ function EventsDetailPanel({
 
   if (isFeaturedSelected) {
     return (
-      <div className={`events-detail events-detail--linked${minimal ? ' events-detail--minimal' : ''}`}>
+      <div
+        className={`events-detail events-detail--linked${minimal ? ' events-detail--minimal' : ''}`}
+      >
         <p className="events-detail__linked-copy">{t('pages.events.selectedIsFeatured')}</p>
         {onViewEvent ? (
           <button type="button" className="events-detail__text-link" onClick={onViewEvent}>
@@ -81,16 +89,11 @@ function EventsDetailPanel({
     isPaidCheckoutOpen(event, env, new Date(), { checkoutKind: 'registration' })
   const statusAllowsRegister =
     event.status === 'inscripcion_abierta' || event.status === 'cupos_limitados'
-  const canRegister =
-    checkoutOpen &&
-    statusAllowsRegister &&
-    athleteStatus !== 'registered'
+  const canRegister = checkoutOpen && statusAllowsRegister && athleteStatus !== 'registered'
   const showComingSoonCta = !checkoutOpen && statusAllowsRegister && athleteStatus !== 'registered'
   const statusCopy = t(`pages.events.statusCopy.${event.status}`)
   const hasStatusCopy = statusCopy && statusCopy !== `pages.events.statusCopy.${event.status}`
-  const athleteStatusLabel = athleteStatus
-    ? t(`pages.events.athleteStatus.${athleteStatus}`)
-    : null
+  const athleteStatusLabel = athleteStatus ? t(`pages.events.athleteStatus.${athleteStatus}`) : null
   const athleteStatusHint = athleteStatus
     ? t(`pages.events.athleteStatusHint.${athleteStatus}`)
     : null
@@ -138,9 +141,7 @@ function EventsDetailPanel({
           </span>
         </p>
 
-        {hasHint ? (
-          <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
-        ) : null}
+        {hasHint ? <p className="events-detail__athlete-hint">{athleteStatusHint}</p> : null}
 
         {showCombo ? (
           <SeasonComboOffer
@@ -170,7 +171,11 @@ function EventsDetailPanel({
             </button>
           ) : null}
           {onViewEvent ? (
-            <button type="button" className="events-detail__text-link motion-icon-shift" onClick={onViewEvent}>
+            <button
+              type="button"
+              className="events-detail__text-link motion-icon-shift"
+              onClick={onViewEvent}
+            >
               {t('pages.events.viewFull')}
               <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
             </button>
@@ -215,8 +220,11 @@ function EventsDetailPanel({
       </p>
 
       {hasStatusCopy ? <p className="events-detail__status-copy">{statusCopy}</p> : null}
-      {athleteStatusLabel ? <p className="events-detail__athlete-status">{athleteStatusLabel}</p> : null}
-      {athleteStatusHint && athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}` ? (
+      {athleteStatusLabel ? (
+        <p className="events-detail__athlete-status">{athleteStatusLabel}</p>
+      ) : null}
+      {athleteStatusHint &&
+      athleteStatusHint !== `pages.events.athleteStatusHint.${athleteStatus}` ? (
         <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
       ) : null}
 
@@ -233,7 +241,10 @@ function EventsDetailPanel({
 
       <div className="events-detail__actions">
         {canRegister && onRegister ? (
-          <Button className="events-detail__cta events-detail__cta--primary motion-icon-shift" onClick={onRegister}>
+          <Button
+            className="events-detail__cta events-detail__cta--primary motion-icon-shift"
+            onClick={onRegister}
+          >
             {resolvedRegisterLabel}
             <ArrowRight size={15} aria-hidden className="motion-icon-shift__target" />
           </Button>
@@ -287,10 +298,14 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
                 <span className="events-public-tickets__price-caption">
                   {t('pages.events.publicTicketsFromCaption')}
                 </span>
-                <span className="events-public-tickets__price-value">{money(ticketPrice, locale)}</span>
+                <span className="events-public-tickets__price-value">
+                  {money(ticketPrice, locale)}
+                </span>
               </>
             ) : (
-              <span className="events-public-tickets__price-closed">{t('pages.events.publicTicketsClosed')}</span>
+              <span className="events-public-tickets__price-closed">
+                {t('pages.events.publicTicketsClosed')}
+              </span>
             )}
           </p>
           <button
@@ -308,12 +323,11 @@ function EventsAudienceTicketsPanel({ event, locale, onBuyTickets, t, minimal = 
   }
 
   return (
-    <section
-      className="events-public-tickets"
-      aria-labelledby="events-public-tickets-title"
-    >
+    <section className="events-public-tickets" aria-labelledby="events-public-tickets-title">
       <div className="events-public-tickets__copy">
-        <span className="events-public-tickets__eyebrow">{t('pages.events.publicTicketsEyebrow')}</span>
+        <span className="events-public-tickets__eyebrow">
+          {t('pages.events.publicTicketsEyebrow')}
+        </span>
         <h3 id="events-public-tickets-title">{t('pages.events.publicTicketsTitle')}</h3>
         <p>{t('pages.events.publicTicketsLead')}</p>
       </div>
@@ -390,28 +404,25 @@ export default function EventsPage({
     [dateFormatter],
   )
 
-  const events = useMemo(
-    () => {
-      const eventsBySlug = new Map()
-      for (const event of eventsProp) {
-        if (event?.slug) eventsBySlug.set(event.slug, event)
-      }
-      for (const event of Object.values(supabaseBySlug)) {
-        if (event?.slug) eventsBySlug.set(event.slug, { ...eventsBySlug.get(event.slug), ...event })
-      }
+  const events = useMemo(() => {
+    const eventsBySlug = new Map()
+    for (const event of eventsProp) {
+      if (event?.slug) eventsBySlug.set(event.slug, event)
+    }
+    for (const event of Object.values(supabaseBySlug)) {
+      if (event?.slug) eventsBySlug.set(event.slug, { ...eventsBySlug.get(event.slug), ...event })
+    }
 
-      return getPublicCatalogEvents([...eventsBySlug.values()], {
-        includeDevelopmentStubs: false,
-      }).map((event) => {
-        const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
-        return {
-          ...merged,
-          displayDate: merged.dateISO ? formatEventDate(merged.dateISO) : merged.date,
-        }
-      })
-    },
-    [eventsProp, supabaseBySlug, formatEventDate],
-  )
+    return getPublicCatalogEvents([...eventsBySlug.values()], {
+      includeDevelopmentStubs: false,
+    }).map((event) => {
+      const merged = ensureEventCalendarFields({ ...event, ...supabaseBySlug[event.slug] })
+      return {
+        ...merged,
+        displayDate: merged.dateISO ? formatEventDate(merged.dateISO) : merged.date,
+      }
+    })
+  }, [eventsProp, supabaseBySlug, formatEventDate])
 
   const pitbull = getFeaturedEvent(events)
   const nextEvent = useMemo(() => getNextUpcomingEvent(events), [events])
@@ -438,9 +449,7 @@ export default function EventsPage({
     if (!linkedEvent) return
 
     setSelectedSlug((current) => (current === linkedEvent.slug ? current : linkedEvent.slug))
-    setCalendarFocus((current) =>
-      current === linkedEvent.dateISO ? current : linkedEvent.dateISO,
-    )
+    setCalendarFocus((current) => (current === linkedEvent.dateISO ? current : linkedEvent.dateISO))
   }, [events, initialEventSlug])
 
   const filters = useMemo(
@@ -504,12 +513,16 @@ export default function EventsPage({
   }
 
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
-  const registerLabel = isAthleteLoggedIn ? t('pages.events.register') : t('pages.events.registerAndCreateProfile')
+  const registerLabel = isAthleteLoggedIn
+    ? t('pages.events.register')
+    : t('pages.events.registerAndCreateProfile')
   const hasActiveMembership = hasCurrentMembership(memberships, session?.athleteId)
   const selectedComboAvailability = selected
     ? getEventComboAvailability(selected, { hasActiveMembership })
     : { offer: null, enabled: false }
-  const selectedComboOffer = selectedComboAvailability.enabled ? selectedComboAvailability.offer : null
+  const selectedComboOffer = selectedComboAvailability.enabled
+    ? selectedComboAvailability.offer
+    : null
   const selectedComboPricing = selectedComboOffer ? resolveEventPricing(selected) : null
   const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
 
@@ -577,7 +590,10 @@ export default function EventsPage({
 
         <MotionContentSwap swapKey={filter} className="events-main-column">
           {listEvents.length > 0 ? (
-            <StaggerReveal className="events-list events-list--design events-list--minimal" stagger={48}>
+            <StaggerReveal
+              className="events-list events-list--design events-list--minimal"
+              stagger={48}
+            >
               {listEvents.map((event) => (
                 <EventCard
                   key={event.slug}
@@ -596,9 +612,7 @@ export default function EventsPage({
                   })}
                   onSelect={() => openEvent(event)}
                   onAction={
-                    isRegistrationOpen(event)
-                      ? () => handleRegister(event)
-                      : () => openEvent(event)
+                    isRegistrationOpen(event) ? () => handleRegister(event) : () => openEvent(event)
                   }
                   actionLabel={
                     isRegistrationOpen(event) ? registerLabel : t('pages.events.viewFull')
@@ -637,7 +651,9 @@ export default function EventsPage({
             />
           ) : (
             <header className="events-calendar-board__head">
-              <h2 className="events-calendar-board__title">{t('pages.events.calendarSectionTitle')}</h2>
+              <h2 className="events-calendar-board__title">
+                {t('pages.events.calendarSectionTitle')}
+              </h2>
             </header>
           )}
           <div className="events-calendar-board__grid">

@@ -1,11 +1,14 @@
 import { env } from '../config/env.js'
 
 class ApiError extends Error {
-  constructor(message, { status, body } = {}) {
+  constructor(message, { status, body, requestId = null } = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.body = body
+    // En un 5xx el mensaje es opaco a proposito (ver server/lib/errors.js): el
+    // requestId es lo unico que ata lo que ve el operador con el stack real.
+    this.requestId = requestId
   }
 }
 
@@ -64,11 +67,20 @@ export async function apiRequest(path, options = {}) {
     const unavailableMessage = env.isDev
       ? 'El servicio no esta disponible en este momento. En local levanta la API con npm run dev:api (o npm run dev:services).'
       : 'No pudimos iniciar el servicio en este momento. Intenta nuevamente o contacta soporte.'
+    const requestId = body?.requestId ?? response.headers?.get?.('X-Request-Id') ?? null
+    // Se loguea aca y no en cada llamador: los `console.error` de los hooks
+    // imprimen el ApiError, y su mensaje es deliberadamente opaco -- sin esta
+    // linea el id de correlacion que la API si manda se pierde en el browser y
+    // un 5xx reportado por un operador no se puede buscar en los logs.
+    if (response.status >= 500 && requestId) {
+      console.error(`[api] ${method} ${path} -> ${response.status} (requestId ${requestId})`)
+    }
     throw new ApiError(
-      unavailable ? unavailableMessage : body?.error ?? `Error ${response.status}`,
+      unavailable ? unavailableMessage : (body?.error ?? `Error ${response.status}`),
       {
         status: response.status,
         body: typeof body === 'object' && body ? body : { error: body },
+        requestId,
       },
     )
   }
@@ -121,7 +133,9 @@ export function deactivateAllSecurityUsersRequest(eventId) {
 }
 
 export function createSecurityAccessLinkRequest(userId, sendEmail = false) {
-  return apiPost(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`, { sendEmail })
+  return apiPost(`/api/auth/security-users/${encodeURIComponent(userId)}/access-link`, {
+    sendEmail,
+  })
 }
 
 export function securityGateRequest(token) {

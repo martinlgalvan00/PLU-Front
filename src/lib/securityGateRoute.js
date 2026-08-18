@@ -12,7 +12,9 @@
  * @param {string} [pathname]
  * @returns {{ eventSlug: string } | null}
  */
-export function matchSecurityGateRoute(pathname = typeof window !== 'undefined' ? window.location.pathname : '') {
+export function matchSecurityGateRoute(
+  pathname = typeof window !== 'undefined' ? window.location.pathname : '',
+) {
   const match = pathname.match(/^\/evento\/([^/]+)\/seguridad\/?$/)
   return match ? { eventSlug: decodeURIComponent(match[1]) } : null
 }

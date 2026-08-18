@@ -122,7 +122,7 @@ describe('vigencia de la afiliación', () => {
     )
     // El ciclo se insertaba con las fechas del target tal cual, sin recalcular
     // nada contra la fecha de acreditación.
-    expect(before).toContain('v_target.starts_at, v_target.ends_at, \'active\'')
+    expect(before).toContain("v_target.starts_at, v_target.ends_at, 'active'")
     expect(before).not.toContain('v_duration')
     expect(before).not.toContain('update public.membership_order_targets')
   })

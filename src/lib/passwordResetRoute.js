@@ -2,7 +2,9 @@
  * Deep link de reset: `/?reset=<token>` abre LoginPage en modo reset.
  */
 
-export function readPasswordResetToken(search = typeof window !== 'undefined' ? window.location.search : '') {
+export function readPasswordResetToken(
+  search = typeof window !== 'undefined' ? window.location.search : '',
+) {
   try {
     const params = new URLSearchParams(search)
     return params.get('reset')?.trim() || null

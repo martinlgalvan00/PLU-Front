@@ -56,8 +56,12 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
     expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, production)).toThrowError(
       thrown('TICKET_SALES_COMING_SOON'),
     )
-    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, { ...production, TICKET_SALES_ENABLED: 'true' }))
-      .not.toThrow()
+    expect(() =>
+      assertTicketCheckoutEnabled(
+        { ticketEnabled: true },
+        { ...production, TICKET_SALES_ENABLED: 'true' },
+      ),
+    ).not.toThrow()
   })
 
   // Las altas siguen abiertas, pero afiliaciones e inscripciones no ofrecen
@@ -73,7 +77,9 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
       expect(() => assert(undefined)).not.toThrow()
     }
     expect(() => assertManualChannelEnabled({}, 'ticket')).not.toThrow()
-    expect(() => assertManualChannelEnabled({}, 'membership')).toThrowError(thrown('MEMBERSHIP_MANUAL_DISABLED'))
+    expect(() => assertManualChannelEnabled({}, 'membership')).toThrowError(
+      thrown('MEMBERSHIP_MANUAL_DISABLED'),
+    )
     expect(() => assertValidationEnabled(undefined, 'membership')).not.toThrow()
   })
 })
@@ -128,7 +134,9 @@ describe('validación y activación por concepto', () => {
   })
 
   it('ignora conceptos que no se validan a mano', () => {
-    expect(() => assertConceptValidationEnabled({ membershipValidationEnabled: false }, 'otro')).not.toThrow()
+    expect(() =>
+      assertConceptValidationEnabled({ membershipValidationEnabled: false }, 'otro'),
+    ).not.toThrow()
   })
 })
 

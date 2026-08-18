@@ -51,10 +51,14 @@ const MORE_NAVIGATION = PUBLIC_NAVIGATION.primary.find(({ key }) => key === 'mor
 
 function getVisibleTrigger(...elements) {
   const present = elements.filter(Boolean)
-  return present.find((el) => {
-    const { width, height } = el.getBoundingClientRect()
-    return width > 0 && height > 0
-  }) ?? present[0] ?? null
+  return (
+    present.find((el) => {
+      const { width, height } = el.getBoundingClientRect()
+      return width > 0 && height > 0
+    }) ??
+    present[0] ??
+    null
+  )
 }
 
 const PROFILE_MENU_MAX_WIDTH = 272
@@ -68,10 +72,12 @@ function computeProfileMenuPosition(rect, viewportWidth) {
   const shouldCenter = viewportWidth <= PROFILE_MENU_CENTER_MAX_WIDTH
   const left = shouldCenter
     ? Math.round((viewportWidth - menuWidth) / 2)
-    : Math.round(Math.min(
-      Math.max(PROFILE_MENU_GUTTER, rect.right - menuWidth),
-      viewportWidth - menuWidth - PROFILE_MENU_GUTTER,
-    ))
+    : Math.round(
+        Math.min(
+          Math.max(PROFILE_MENU_GUTTER, rect.right - menuWidth),
+          viewportWidth - menuWidth - PROFILE_MENU_GUTTER,
+        ),
+      )
 
   return { top, left }
 }
@@ -86,13 +92,10 @@ const DRAWER_SECONDARY = [
   { key: 'contact', labelKey: 'nav.contact' },
 ]
 
-function mapNavGroupItems(group, {
-  activeView,
-  latestEventActive,
-  latestEventHint,
-  latestEventTitle,
-  t,
-}) {
+function mapNavGroupItems(
+  group,
+  { activeView, latestEventActive, latestEventHint, latestEventTitle, t },
+) {
   return {
     label: t(group.labelKey),
     items: group.items.map((item) => ({
@@ -113,14 +116,25 @@ function SharedActiveIndicator() {
       className="plu-global-nav__indicator"
       layoutId="plu-public-nav-active-indicator"
       aria-hidden
-      transition={reducedMotion
-        ? { duration: 0.01 }
-        : { type: 'spring', stiffness: 320, damping: 36, mass: 0.85 }}
+      transition={
+        reducedMotion
+          ? { duration: 0.01 }
+          : { type: 'spring', stiffness: 320, damping: 36, mass: 0.85 }
+      }
     />
   )
 }
 
-function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLeave, tone = 'default' }) {
+function NavLink({
+  active,
+  hovered,
+  children,
+  icon: Icon,
+  onClick,
+  onHover,
+  onLeave,
+  tone = 'default',
+}) {
   const { reducedMotion } = useMotionConfig()
 
   return (
@@ -137,9 +151,11 @@ function NavLink({ active, hovered, children, icon: Icon, onClick, onHover, onLe
           layoutId="plu-nav-hover-pill"
           className="plu-global-nav__hover-pill"
           aria-hidden
-          transition={reducedMotion
-            ? { duration: 0.01 }
-            : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }}
+          transition={
+            reducedMotion
+              ? { duration: 0.01 }
+              : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }
+          }
         />
       ) : null}
       <span className="plu-global-nav__link-content">
@@ -169,14 +185,34 @@ function NavDropdownItem({
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
     >
-      {Icon ? <span className="plu-nav-menu__icon"><Icon size={17} aria-hidden /></span> : null}
-      <span className="plu-nav-menu__copy"><strong>{label}</strong>{description ? <small>{description}</small> : null}</span>
+      {Icon ? (
+        <span className="plu-nav-menu__icon">
+          <Icon size={17} aria-hidden />
+        </span>
+      ) : null}
+      <span className="plu-nav-menu__copy">
+        <strong>{label}</strong>
+        {description ? <small>{description}</small> : null}
+      </span>
       <ArrowRight size={14} aria-hidden />
     </button>
   )
 }
 
-function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuId, open, onClose, onToggle, variant = 'compact', secondary = false }) {
+function NavDropdown({
+  active,
+  hovered,
+  onHover,
+  onLeave,
+  children,
+  label,
+  menuId,
+  open,
+  onClose,
+  onToggle,
+  variant = 'compact',
+  secondary = false,
+}) {
   const rootRef = useRef(null)
   const menuRef = useRef(null)
   const triggerRef = useRef(null)
@@ -247,7 +283,11 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
   }
 
   return (
-    <div className={`plu-global-nav__dropdown${secondary ? ' plu-global-nav__dropdown--secondary' : ''}`} data-open={open || undefined} ref={rootRef}>
+    <div
+      className={`plu-global-nav__dropdown${secondary ? ' plu-global-nav__dropdown--secondary' : ''}`}
+      data-open={open || undefined}
+      ref={rootRef}
+    >
       <button
         type="button"
         id={`${menuId}-trigger`}
@@ -267,13 +307,16 @@ function NavDropdown({ active, hovered, onHover, onLeave, children, label, menuI
             layoutId="plu-nav-hover-pill"
             className="plu-global-nav__hover-pill"
             aria-hidden
-            transition={reducedMotion
-              ? { duration: 0.01 }
-              : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }}
+            transition={
+              reducedMotion
+                ? { duration: 0.01 }
+                : { type: 'spring', stiffness: 340, damping: 34, mass: 0.7 }
+            }
           />
         ) : null}
         <span className="plu-global-nav__link-content">
-          {label}<ChevronDown size={13} aria-hidden className="plu-global-nav__chevron" />
+          {label}
+          <ChevronDown size={13} aria-hidden className="plu-global-nav__chevron" />
         </span>
         {active ? <SharedActiveIndicator /> : null}
       </button>
@@ -312,14 +355,28 @@ function DrawerRowIndicator() {
       className="plu-drawer__row-indicator"
       layoutId="plu-drawer-active-indicator"
       aria-hidden
-      transition={reducedMotion
-        ? { duration: 0.01 }
-        : { type: 'spring', stiffness: 300, damping: 32, mass: 0.9 }}
+      transition={
+        reducedMotion
+          ? { duration: 0.01 }
+          : { type: 'spring', stiffness: 300, damping: 32, mass: 0.9 }
+      }
     />
   )
 }
 
-function DrawerRow({ active = false, children, delay = 0, description, feature = false, icon: Icon, iconSize, indent = false, onClick, reveal = true, tone = 'neutral' }) {
+function DrawerRow({
+  active = false,
+  children,
+  delay = 0,
+  description,
+  feature = false,
+  icon: Icon,
+  iconSize,
+  indent = false,
+  onClick,
+  reveal = true,
+  tone = 'neutral',
+}) {
   const { reducedMotion } = useMotionConfig()
   const motionProps = reveal
     ? {
@@ -341,7 +398,14 @@ function DrawerRow({ active = false, children, delay = 0, description, feature =
       onClick={onClick}
       {...motionProps}
     >
-      {Icon ? <Icon className="plu-drawer__row-icon" size={iconSize ?? (indent ? 16 : 20)} strokeWidth={1.6} aria-hidden /> : null}
+      {Icon ? (
+        <Icon
+          className="plu-drawer__row-icon"
+          size={iconSize ?? (indent ? 16 : 20)}
+          strokeWidth={1.6}
+          aria-hidden
+        />
+      ) : null}
       <span className="plu-drawer__row-copy">
         <strong>{children}</strong>
         {description ? <small>{description}</small> : null}
@@ -498,7 +562,9 @@ export default function NavbarPublic({
     body.style.left = '0'
     body.style.right = '0'
     body.style.width = '100%'
-    backgroundNodes.forEach(({ node }) => { node.inert = true })
+    backgroundNodes.forEach(({ node }) => {
+      node.inert = true
+    })
     const focusFrame = window.requestAnimationFrame(() => closeRef.current?.focus())
 
     function onKeyDown(event) {
@@ -539,7 +605,9 @@ export default function NavbarPublic({
       const skipRestore = suppressScrollRestoreRef.current
       suppressScrollRestoreRef.current = false
       window.scrollTo(0, skipRestore ? 0 : scrollY)
-      backgroundNodes.forEach(({ inert, node }) => { node.inert = inert })
+      backgroundNodes.forEach(({ inert, node }) => {
+        node.inert = inert
+      })
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [drawerOpen])
@@ -565,7 +633,9 @@ export default function NavbarPublic({
     function updatePosition() {
       const trigger = getVisibleTrigger(mobileProfileTriggerRef.current, profileTriggerRef.current)
       if (!trigger) return
-      setProfileMenuPos(computeProfileMenuPosition(trigger.getBoundingClientRect(), window.innerWidth))
+      setProfileMenuPos(
+        computeProfileMenuPosition(trigger.getBoundingClientRect(), window.innerWidth),
+      )
     }
 
     updatePosition()
@@ -581,9 +651,9 @@ export default function NavbarPublic({
     if (dropdown !== 'profile') return undefined
     function isInProfileUi(target) {
       return Boolean(
-        profileTriggerRef.current?.contains(target)
-        || mobileProfileTriggerRef.current?.contains(target)
-        || profileMenuRef.current?.contains(target),
+        profileTriggerRef.current?.contains(target) ||
+        mobileProfileTriggerRef.current?.contains(target) ||
+        profileMenuRef.current?.contains(target),
       )
     }
     function handlePointerDown(event) {
@@ -603,8 +673,13 @@ export default function NavbarPublic({
   const overHero = ['home', 'pitbull', 'tickets'].includes(activeView)
 
   return (
-    <div ref={shellRef} className={`site-header-shell site-header-shell--institutional${drawerOpen ? ' site-header-shell--menu-open' : ''}`}>
-      <a className="skip-link" href="#main-content">{t('nav.skipContent')}</a>
+    <div
+      ref={shellRef}
+      className={`site-header-shell site-header-shell--institutional${drawerOpen ? ' site-header-shell--menu-open' : ''}`}
+    >
+      <a className="skip-link" href="#main-content">
+        {t('nav.skipContent')}
+      </a>
       <header
         className={`site-header site-header--lux site-header--institutional${scrolled ? ' site-header--scrolled' : ''}${overHero ? ' site-header--over-hero' : ''}`}
         inert={drawerOpen ? true : undefined}
@@ -619,7 +694,12 @@ export default function NavbarPublic({
           >
             <BrandLogo variant="argentina" imgClassName="plu-global-nav__emblem" height={46} />
             <span className="plu-global-nav__wordmark" aria-hidden={scrolled || undefined}>
-              <BrandLogo variant="letterhead" letterheadBlend imgClassName="plu-global-nav__letterhead" height={22} />
+              <BrandLogo
+                variant="letterhead"
+                letterheadBlend
+                imgClassName="plu-global-nav__letterhead"
+                height={22}
+              />
               <small>{t('brand.federationLine')}</small>
             </span>
           </button>
@@ -673,7 +753,9 @@ export default function NavbarPublic({
                       menuId="plu-more-menu"
                       open={dropdown === 'more'}
                       onClose={() => setDropdown(null)}
-                      onToggle={() => setDropdown((current) => (current === 'more' ? null : 'more'))}
+                      onToggle={() =>
+                        setDropdown((current) => (current === 'more' ? null : 'more'))
+                      }
                       variant="resources"
                       secondary
                     >
@@ -731,7 +813,10 @@ export default function NavbarPublic({
           </nav>
 
           <div className="plu-global-nav__actions">
-            <div className="plu-global-nav__preferences"><ThemeToggle compact /><LanguageToggle compact /></div>
+            <div className="plu-global-nav__preferences">
+              <ThemeToggle compact />
+              <LanguageToggle compact />
+            </div>
             {session ? (
               <div className="plu-global-nav__account">
                 <button
@@ -777,7 +862,9 @@ export default function NavbarPublic({
                   id="plu-profile-menu-trigger-mobile"
                   ref={mobileProfileTriggerRef}
                   className={`plu-global-nav__mobile-login plu-global-nav__mobile-login--account${
-                    dropdown === 'profile' || activeView === 'profile' || activeView === 'admin' ? ' is-active' : ''
+                    dropdown === 'profile' || activeView === 'profile' || activeView === 'admin'
+                      ? ' is-active'
+                      : ''
                   }`}
                   aria-controls="plu-profile-menu"
                   aria-expanded={dropdown === 'profile'}
@@ -806,9 +893,7 @@ export default function NavbarPublic({
               <button
                 type="button"
                 className={`plu-global-nav__mobile-affiliate${
-                  hasActiveMembership
-                    ? ' plu-global-nav__mobile-affiliate--member'
-                    : ''
+                  hasActiveMembership ? ' plu-global-nav__mobile-affiliate--member' : ''
                 }${
                   hasActiveMembership
                     ? activeView === 'profile'
@@ -827,9 +912,7 @@ export default function NavbarPublic({
                       ? 'page'
                       : undefined
                 }
-                aria-label={
-                  hasActiveMembership ? t('nav.affiliatedAria') : t('nav.affiliate')
-                }
+                aria-label={hasActiveMembership ? t('nav.affiliatedAria') : t('nav.affiliate')}
                 title={hasActiveMembership ? t('nav.affiliatedShort') : t('nav.affiliate')}
                 onClick={() => go(hasActiveMembership ? 'profile' : 'members')}
               >
@@ -869,9 +952,16 @@ export default function NavbarPublic({
               style={{ top: profileMenuPos.top, left: profileMenuPos.left }}
               initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reducedMotion
-                ? { opacity: 0, transition: { duration: 0.01 } }
-                : { opacity: 0, y: 4, scale: 0.99, transition: { duration: 0.14, ease: MOTION_EASE.out } }}
+              exit={
+                reducedMotion
+                  ? { opacity: 0, transition: { duration: 0.01 } }
+                  : {
+                      opacity: 0,
+                      y: 4,
+                      scale: 0.99,
+                      transition: { duration: 0.14, ease: MOTION_EASE.out },
+                    }
+              }
               transition={{ duration: reducedMotion ? 0.08 : 0.2, ease: MOTION_EASE.out }}
             >
               <div className="plu-profile-menu__header">
@@ -886,11 +976,20 @@ export default function NavbarPublic({
                 </div>
               </div>
               <div className="plu-profile-menu__actions">
-                <button type="button" role="menuitem" onClick={() => go(adminSession ? 'admin' : 'profile')}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => go(adminSession ? 'admin' : 'profile')}
+                >
                   <User size={15} strokeWidth={1.6} aria-hidden />
                   <span>{adminSession ? t('nav.admin') : t('nav.myProfile')}</span>
                 </button>
-                <button type="button" role="menuitem" onClick={handleLogout} className="plu-profile-menu__logout">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className="plu-profile-menu__logout"
+                >
                   <LogOut size={15} strokeWidth={1.6} aria-hidden />
                   <span>{t('nav.logout')}</span>
                 </button>
@@ -925,164 +1024,202 @@ export default function NavbarPublic({
                 aria-label={t('nav.mobileMenu')}
                 initial={reducedMotion ? { opacity: 0 } : { opacity: 1, x: '100%' }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={reducedMotion
-                  ? { opacity: 0, transition: { duration: 0.01 } }
-                  : { opacity: 0, x: '100%', transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }}
+                exit={
+                  reducedMotion
+                    ? { opacity: 0, transition: { duration: 0.01 } }
+                    : {
+                        opacity: 0,
+                        x: '100%',
+                        transition: { duration: 0.22, ease: [0.4, 0, 1, 1] },
+                      }
+                }
                 // Settle cinematográfico: el panel desliza y frena suave, sin
                 // rebote — la superficie es grande y un spring se leería
                 // elástico, no lujoso.
                 transition={{ duration: reducedMotion ? 0.01 : 0.34, ease: MOTION_EASE.cinematic }}
               >
-            <m.header
-              className="plu-drawer__head"
-              initial={reducedMotion ? false : { opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reducedMotion ? 0.01 : 0.22, ease: MOTION_EASE.out, delay: reducedMotion ? 0 : 0.04 }}
-            >
-              <div className="plu-drawer__head-bar">
-                <button
-                  type="button"
-                  className={`plu-drawer__brand${activeView === 'home' ? ' is-active' : ''}`}
-                  aria-current={activeView === 'home' ? 'page' : undefined}
-                  aria-label={t('nav.home')}
-                  onClick={() => go('home')}
+                <m.header
+                  className="plu-drawer__head"
+                  initial={reducedMotion ? false : { opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: reducedMotion ? 0.01 : 0.22,
+                    ease: MOTION_EASE.out,
+                    delay: reducedMotion ? 0 : 0.04,
+                  }}
                 >
-                  <BrandLogo variant="argentina" imgClassName="plu-drawer__emblem" height={38} />
-                  <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={18} />
-                </button>
-                <button
-                  type="button"
-                  className="plu-drawer__close"
-                  aria-label={t('nav.closeMenu')}
-                  ref={closeRef}
-                  onClick={() => closeDrawer(true)}
-                >
-                  <X size={18} strokeWidth={1.5} aria-hidden />
-                </button>
-              </div>
-
-              <m.button
-                type="button"
-                className={`plu-drawer__cta${activeView === 'members' ? ' is-active' : ''}`}
-                aria-current={activeView === 'members' ? 'page' : undefined}
-                onClick={() => go('members')}
-                initial={reducedMotion ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: reducedMotion ? 0.01 : 0.22, ease: MOTION_EASE.out, delay: reducedMotion ? 0 : 0.04 }}
-              >
-                <span className="plu-drawer__cta-copy">
-                  <small>{t('nav.calendarSeason')}</small>
-                  <strong>{t('nav.affiliate')}</strong>
-                </span>
-                <ArrowRight className="plu-drawer__cta-arrow" size={16} strokeWidth={1.6} aria-hidden />
-              </m.button>
-            </m.header>
-
-            <div className="plu-drawer__scroll">
-              <LayoutGroup id={`plu-drawer-nav-${locale}`}>
-                <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
-                  <div className="plu-drawer__nav-primary">
-                    <DrawerRow
-                      active={latestEventActive}
-                      delay={0.02}
-                      description={latestEvent?.date ?? t('nav.pitbullHint')}
-                      onClick={() => go(latestEventView, latestEventOptions)}
+                  <div className="plu-drawer__head-bar">
+                    <button
+                      type="button"
+                      className={`plu-drawer__brand${activeView === 'home' ? ' is-active' : ''}`}
+                      aria-current={activeView === 'home' ? 'page' : undefined}
+                      aria-label={t('nav.home')}
+                      onClick={() => go('home')}
                     >
-                      {latestEventTitle}
-                    </DrawerRow>
-                    <DrawerRow
-                      active={['shop', 'tickets'].includes(activeView)}
-                      delay={0.04}
-                      description={t('nav.shopHint')}
-                      onClick={() => go('shop')}
+                      <BrandLogo
+                        variant="argentina"
+                        imgClassName="plu-drawer__emblem"
+                        height={38}
+                      />
+                      <BrandLogo variant="letterhead" imgClassName="plu-drawer__logo" height={18} />
+                    </button>
+                    <button
+                      type="button"
+                      className="plu-drawer__close"
+                      aria-label={t('nav.closeMenu')}
+                      ref={closeRef}
+                      onClick={() => closeDrawer(true)}
                     >
-                      {t('nav.shop')}
-                    </DrawerRow>
-                    <DrawerRow active={activeView === 'events'} delay={0.06} onClick={() => go('events')}>
-                      {t('nav.calendarOfficial')}
-                    </DrawerRow>
-                    <DrawerRow active={activeView === 'results'} delay={0.08} onClick={() => go('results')}>
-                      {t('nav.results')}
-                    </DrawerRow>
-                    <DrawerRow active={activeView === 'records'} delay={0.1} onClick={() => go('records')}>
-                      {t('nav.records')}
-                    </DrawerRow>
+                      <X size={18} strokeWidth={1.5} aria-hidden />
+                    </button>
                   </div>
 
-                  <div className="plu-drawer__nav-secondary" aria-label={t('nav.groupRecursos')}>
-                    {drawerSecondary.map((item, index) => (
-                      <Fragment key={item.key}>
-                        {index > 0 ? (
-                          <span className="plu-drawer__nav-secondary-sep" aria-hidden>
-                            ·
-                          </span>
-                        ) : null}
+                  <m.button
+                    type="button"
+                    className={`plu-drawer__cta${activeView === 'members' ? ' is-active' : ''}`}
+                    aria-current={activeView === 'members' ? 'page' : undefined}
+                    onClick={() => go('members')}
+                    initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: reducedMotion ? 0.01 : 0.22,
+                      ease: MOTION_EASE.out,
+                      delay: reducedMotion ? 0 : 0.04,
+                    }}
+                  >
+                    <span className="plu-drawer__cta-copy">
+                      <small>{t('nav.calendarSeason')}</small>
+                      <strong>{t('nav.affiliate')}</strong>
+                    </span>
+                    <ArrowRight
+                      className="plu-drawer__cta-arrow"
+                      size={16}
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  </m.button>
+                </m.header>
+
+                <div className="plu-drawer__scroll">
+                  <LayoutGroup id={`plu-drawer-nav-${locale}`}>
+                    <nav className="plu-drawer__nav" aria-label={t('nav.mobileMenu')}>
+                      <div className="plu-drawer__nav-primary">
                         <DrawerRow
-                          active={item.active}
-                          delay={0.08 + index * 0.02}
-                          onClick={() => go(item.key)}
+                          active={latestEventActive}
+                          delay={0.02}
+                          description={latestEvent?.date ?? t('nav.pitbullHint')}
+                          onClick={() => go(latestEventView, latestEventOptions)}
                         >
-                          {item.label}
+                          {latestEventTitle}
                         </DrawerRow>
-                      </Fragment>
-                    ))}
-                  </div>
-                </nav>
-              </LayoutGroup>
-            </div>
+                        <DrawerRow
+                          active={['shop', 'tickets'].includes(activeView)}
+                          delay={0.04}
+                          description={t('nav.shopHint')}
+                          onClick={() => go('shop')}
+                        >
+                          {t('nav.shop')}
+                        </DrawerRow>
+                        <DrawerRow
+                          active={activeView === 'events'}
+                          delay={0.06}
+                          onClick={() => go('events')}
+                        >
+                          {t('nav.calendarOfficial')}
+                        </DrawerRow>
+                        <DrawerRow
+                          active={activeView === 'results'}
+                          delay={0.08}
+                          onClick={() => go('results')}
+                        >
+                          {t('nav.results')}
+                        </DrawerRow>
+                        <DrawerRow
+                          active={activeView === 'records'}
+                          delay={0.1}
+                          onClick={() => go('records')}
+                        >
+                          {t('nav.records')}
+                        </DrawerRow>
+                      </div>
 
-            <footer className="plu-drawer__footer">
-              <div className="plu-drawer__preferences" aria-label={t('nav.preferences')}>
-                <ThemeToggle compact />
-                <span className="plu-drawer__utility-sep" aria-hidden>
-                  ·
-                </span>
-                <LanguageToggle compact />
-              </div>
-
-              {session ? (
-                <div className="plu-drawer__footer-account">
-                  <button
-                    type="button"
-                    className="plu-drawer__account-chip"
-                    aria-label={
-                      adminSession
-                        ? `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAdmin')}`
-                        : `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAthlete')}`
-                    }
-                    onClick={() => go(adminSession ? 'admin' : 'profile')}
-                  >
-                    <span className="plu-drawer__account-avatar" aria-hidden>
-                      {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
-                    </span>
-                    <span className="plu-drawer__account-meta">
-                      <span className="plu-drawer__account-name">
-                        {sessionFullName || t('nav.myProfile')}
-                      </span>
-                      <span className="plu-drawer__account-hint">
-                        {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="plu-drawer__account-logout"
-                    onClick={handleLogout}
-                  >
-                    <LogOut size={15} aria-hidden />
-                    <span>{t('nav.logout')}</span>
-                  </button>
+                      <div
+                        className="plu-drawer__nav-secondary"
+                        aria-label={t('nav.groupRecursos')}
+                      >
+                        {drawerSecondary.map((item, index) => (
+                          <Fragment key={item.key}>
+                            {index > 0 ? (
+                              <span className="plu-drawer__nav-secondary-sep" aria-hidden>
+                                ·
+                              </span>
+                            ) : null}
+                            <DrawerRow
+                              active={item.active}
+                              delay={0.08 + index * 0.02}
+                              onClick={() => go(item.key)}
+                            >
+                              {item.label}
+                            </DrawerRow>
+                          </Fragment>
+                        ))}
+                      </div>
+                    </nav>
+                  </LayoutGroup>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  className={`plu-drawer__footer-login${activeView === 'login' ? ' is-active' : ''}`}
-                  onClick={() => go('login')}
-                >
-                  {t('nav.login')}
-                </button>
-              )}
-            </footer>
+
+                <footer className="plu-drawer__footer">
+                  <div className="plu-drawer__preferences" aria-label={t('nav.preferences')}>
+                    <ThemeToggle compact />
+                    <span className="plu-drawer__utility-sep" aria-hidden>
+                      ·
+                    </span>
+                    <LanguageToggle compact />
+                  </div>
+
+                  {session ? (
+                    <div className="plu-drawer__footer-account">
+                      <button
+                        type="button"
+                        className="plu-drawer__account-chip"
+                        aria-label={
+                          adminSession
+                            ? `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAdmin')}`
+                            : `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAthlete')}`
+                        }
+                        onClick={() => go(adminSession ? 'admin' : 'profile')}
+                      >
+                        <span className="plu-drawer__account-avatar" aria-hidden>
+                          {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
+                        </span>
+                        <span className="plu-drawer__account-meta">
+                          <span className="plu-drawer__account-name">
+                            {sessionFullName || t('nav.myProfile')}
+                          </span>
+                          <span className="plu-drawer__account-hint">
+                            {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="plu-drawer__account-logout"
+                        onClick={handleLogout}
+                      >
+                        <LogOut size={15} aria-hidden />
+                        <span>{t('nav.logout')}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`plu-drawer__footer-login${activeView === 'login' ? ' is-active' : ''}`}
+                      onClick={() => go('login')}
+                    >
+                      {t('nav.login')}
+                    </button>
+                  )}
+                </footer>
               </m.aside>
             </>
           ) : null}

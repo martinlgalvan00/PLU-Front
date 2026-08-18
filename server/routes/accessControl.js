@@ -224,7 +224,10 @@ export function createAccessControlRoutes({ getPrisma }) {
         })
         if (!current) throw new HttpError(404, 'El rol no existe.')
         if (!canManageRoleLifecycle(req.auth.user, current)) {
-          throw new HttpError(403, 'No tenés jerarquía suficiente para activar o desactivar este rol.')
+          throw new HttpError(
+            403,
+            'No tenés jerarquía suficiente para activar o desactivar este rol.',
+          )
         }
 
         const active = req.validatedBody.active
@@ -251,13 +254,18 @@ export function createAccessControlRoutes({ getPrisma }) {
         })
 
         res.json({
-          activity: serializeAccessRoleActivity(result.activity, { actor: req.auth.user, roleName: result.role.name }),
+          activity: serializeAccessRoleActivity(result.activity, {
+            actor: req.auth.user,
+            roleName: result.role.name,
+          }),
           role: serializeAccessRole(result.role, {
             canAssign: canActorAssignRole(req.auth.user, result.role),
             canManagePermissions: canManageRolePermissions(req.auth.user, result.role),
           }),
         })
-      } catch (error) { next(error) }
+      } catch (error) {
+        next(error)
+      }
     },
   )
 

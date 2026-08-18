@@ -44,9 +44,7 @@ export function createSupabaseAthleteRepository(
           .createSignedUrls(uniquePaths, PHOTO_URL_TTL_SECONDS),
         'No se pudieron leer las fotos de atletas.',
       )
-      const urlsByPath = new Map(
-        signed.map((entry) => [entry.path, entry.signedUrl]),
-      )
+      const urlsByPath = new Map(signed.map((entry) => [entry.path, entry.signedUrl]))
       uniquePaths.forEach((path) => {
         const url = urlsByPath.get(path)
         if (url) signedPhotoUrlCache.set(path, { url, expiresAt: now + PHOTO_URL_CACHE_MS })
@@ -61,10 +59,14 @@ export function createSupabaseAthleteRepository(
 
   return {
     async register(form, passwordHash) {
-      return rpc('register_athlete_v2', {
-        p_form: form,
-        p_password_hash: passwordHash,
-      }, 'No se pudo registrar el atleta.')
+      return rpc(
+        'register_athlete_v2',
+        {
+          p_form: form,
+          p_password_hash: passwordHash,
+        },
+        'No se pudo registrar el atleta.',
+      )
     },
     /**
      * Solo booleanos: sirve para el alta y el check temprano del formulario.
@@ -74,7 +76,9 @@ export function createSupabaseAthleteRepository(
       const result = { emailTaken: false, documentTaken: false }
       const normalizedEmail = email ? String(email).trim().toLowerCase() : ''
       const normalizedDocument = documentId
-        ? String(documentId).trim().replace(/[.\-\s]/g, '')
+        ? String(documentId)
+            .trim()
+            .replace(/[.\-\s]/g, '')
         : ''
 
       if (normalizedEmail) {
@@ -117,7 +121,11 @@ export function createSupabaseAthleteRepository(
       )
       if (!athlete) return null
       const credentials = assertSupabaseResult(
-        await client.from('athlete_credentials').select('password_hash').eq('athlete_id', athlete.id).maybeSingle(),
+        await client
+          .from('athlete_credentials')
+          .select('password_hash')
+          .eq('athlete_id', athlete.id)
+          .maybeSingle(),
         'No se pudo validar la cuenta.',
       )
       return { ...athlete, password_hash: credentials?.password_hash ?? null }
@@ -127,23 +135,30 @@ export function createSupabaseAthleteRepository(
     // esta expuesta a PostgREST (revocada en 20260716000000), asi que desde
     // aca no se puede tocar; la RPC lo resuelve del lado de la base.
     // Devuelve { revokedSessions }.
-    setPassword: (athleteId, passwordHash, actor = null) => rpc(
-      'set_athlete_password',
-      { p_athlete_id: athleteId, p_password_hash: passwordHash, p_actor: actor },
-      'No se pudo actualizar la credencial del atleta.',
-    ),
-    credential: async (athleteId) => assertSupabaseResult(
-      await client.from('athlete_credentials').select('password_hash').eq('athlete_id', athleteId).maybeSingle(),
-      'No se pudo validar la credencial.',
-    ),
-    createPasswordResetToken: async (athleteId, tokenHash, expiresAt) => assertSupabaseResult(
-      await client.from('athlete_password_reset_tokens').insert({
-        athlete_id: athleteId,
-        token_hash: tokenHash,
-        expires_at: expiresAt.toISOString(),
-      }),
-      'No se pudo crear el token de recuperacion.',
-    ),
+    setPassword: (athleteId, passwordHash, actor = null) =>
+      rpc(
+        'set_athlete_password',
+        { p_athlete_id: athleteId, p_password_hash: passwordHash, p_actor: actor },
+        'No se pudo actualizar la credencial del atleta.',
+      ),
+    credential: async (athleteId) =>
+      assertSupabaseResult(
+        await client
+          .from('athlete_credentials')
+          .select('password_hash')
+          .eq('athlete_id', athleteId)
+          .maybeSingle(),
+        'No se pudo validar la credencial.',
+      ),
+    createPasswordResetToken: async (athleteId, tokenHash, expiresAt) =>
+      assertSupabaseResult(
+        await client.from('athlete_password_reset_tokens').insert({
+          athlete_id: athleteId,
+          token_hash: tokenHash,
+          expires_at: expiresAt.toISOString(),
+        }),
+        'No se pudo crear el token de recuperacion.',
+      ),
     async consumePasswordResetToken({ athleteId, tokenHash }) {
       const row = assertSupabaseResult(
         await client
@@ -168,60 +183,79 @@ export function createSupabaseAthleteRepository(
       )
       return Boolean(consumed)
     },
-    resetPasswordWithToken: ({ athleteId, tokenHash, passwordHash }) => rpc(
-      'reset_athlete_password_with_token',
-      {
-        p_athlete_id: athleteId,
-        p_token_hash: tokenHash,
-        p_password_hash: passwordHash,
-      },
-      'No se pudo restablecer la contraseña.',
-    ),
-    snapshot: async (athleteId) => addSignedPhotoUrls(
-      await rpc('get_athlete_snapshot', { p_athlete_id: athleteId }, 'No se pudo leer el perfil.'),
-    ),
+    resetPasswordWithToken: ({ athleteId, tokenHash, passwordHash }) =>
+      rpc(
+        'reset_athlete_password_with_token',
+        {
+          p_athlete_id: athleteId,
+          p_token_hash: tokenHash,
+          p_password_hash: passwordHash,
+        },
+        'No se pudo restablecer la contraseña.',
+      ),
+    snapshot: async (athleteId) =>
+      addSignedPhotoUrls(
+        await rpc(
+          'get_athlete_snapshot',
+          { p_athlete_id: athleteId },
+          'No se pudo leer el perfil.',
+        ),
+      ),
     async update(athleteId, data) {
-      const row = await rpc('update_athlete_profile_v4', {
-        p_athlete_id: athleteId,
-        p_email: data.email,
-        p_phone: data.phone,
-        p_city: data.city,
-        p_province: data.province,
-        p_gym: data.gym,
-        p_emergency_contact_name: data.emergencyContactName,
-        p_emergency_contact_phone: data.emergencyContactPhone,
-        p_instagram_handle: data.instagramHandle,
-        p_declared_best_total_kg: data.bestTotalKg,
-        p_sex: data.sex ?? null,
-        p_full_name: data.fullName ?? null,
-        p_birth_date: data.birthDate ?? null,
-        p_country: data.country ?? null,
-      }, 'No se pudo actualizar el perfil.')
+      const row = await rpc(
+        'update_athlete_profile_v4',
+        {
+          p_athlete_id: athleteId,
+          p_email: data.email,
+          p_phone: data.phone,
+          p_city: data.city,
+          p_province: data.province,
+          p_gym: data.gym,
+          p_emergency_contact_name: data.emergencyContactName,
+          p_emergency_contact_phone: data.emergencyContactPhone,
+          p_instagram_handle: data.instagramHandle,
+          p_declared_best_total_kg: data.bestTotalKg,
+          p_sex: data.sex ?? null,
+          p_full_name: data.fullName ?? null,
+          p_birth_date: data.birthDate ?? null,
+          p_country: data.country ?? null,
+        },
+        'No se pudo actualizar el perfil.',
+      )
       delete row.password_hash
       return row
     },
-    createMembershipOrder: (athleteId, data) => rpc('create_membership_order_checkout', {
-      p_athlete_id: athleteId,
-      p_payment_method: data.paymentMethod,
-      p_plan_code: data.planCode,
-      p_idempotency_key: data.idempotencyKey,
-      p_discount_code: data.discountCode || null,
-      p_order_amount: data.orderAmount,
-      p_manual_payment_channel: data.manualPaymentChannel,
-    }, 'No se pudo crear la orden de afiliacion.'),
+    createMembershipOrder: (athleteId, data) =>
+      rpc(
+        'create_membership_order_checkout',
+        {
+          p_athlete_id: athleteId,
+          p_payment_method: data.paymentMethod,
+          p_plan_code: data.planCode,
+          p_idempotency_key: data.idempotencyKey,
+          p_discount_code: data.discountCode || null,
+          p_default_price: data.defaultPrice,
+          p_manual_price: data.manualPrice ?? null,
+          p_manual_payment_channel: data.manualPaymentChannel,
+        },
+        'No se pudo crear la orden de afiliacion.',
+      ),
     async findMembershipPlan(planCode) {
-      const readPlan = async (column) => assertSupabaseResult(
-        await client
-          .from('membership_plans')
-          .select('id, code, family_code, version, collection_mode, active, price, currency')
-          .eq('organization_id', organizationId)
-          .eq(column, planCode)
-          .eq('active', true)
-          .order('version', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        'No se pudo validar el plan de afiliacion.',
-      )
+      const readPlan = async (column) =>
+        assertSupabaseResult(
+          await client
+            .from('membership_plans')
+            .select(
+              'id, code, family_code, version, collection_mode, active, price, manual_price, currency',
+            )
+            .eq('organization_id', organizationId)
+            .eq(column, planCode)
+            .eq('active', true)
+            .order('version', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          'No se pudo validar el plan de afiliacion.',
+        )
 
       // `code` identifica una version inmutable (plu-annual-v2); la UI y los
       // enlaces historicos usan el alias estable de familia (plu-annual).
@@ -233,51 +267,109 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('events')
-          .select('id, slug, price, currency')
+          .select('id, slug, price, manual_price, currency')
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
           .maybeSingle(),
         'No se pudo validar el evento.',
       )
     },
-    previewDiscountCode: (athleteId, { code, appliesTo, baseAmount }) => rpc(
-      'athlete_preview_discount_code',
-      {
-        p_organization_id: organizationId,
-        p_athlete_id: athleteId,
-        p_code: code,
-        p_applies_to: appliesTo,
-        p_base_amount: baseAmount,
-      },
-      'No se pudo validar el código de descuento.',
-    ),
-    createRegistration: (athleteId, data) => rpc('create_competition_registration_checkout', {
-      p_athlete_id: athleteId,
-      p_event_slug: data.eventSlug,
-      p_division: data.division,
-      p_category: data.category,
-      p_bodyweight_kg: data.bodyweightKg,
-      p_payment_method: data.paymentMethod,
-      p_idempotency_key: data.idempotencyKey,
-      p_discount_code: data.discountCode || null,
-      p_order_amount: data.orderAmount,
-      p_manual_payment_channel: data.manualPaymentChannel,
-    }, 'No se pudo crear la inscripcion.'),
-    createRegistrationCombo: (athleteId, data) => rpc(
-      'create_membership_registration_combo_checkout',
-      {
-        p_athlete_id: athleteId,
-        p_event_slug: data.eventSlug,
-        p_division: data.division,
-        p_category: data.category,
-        p_bodyweight_kg: data.bodyweightKg,
-        p_payment_method: data.paymentMethod,
-        p_idempotency_key: data.idempotencyKey,
-        p_order_amount: data.orderAmount,
-        p_manual_payment_channel: data.manualPaymentChannel,
-      },
-      'No se pudo crear el combo de afiliacion e inscripcion.',
-    ),
+    // Precio vigente del combo (afiliación + inscripción) para el preview de
+    // cupón: mismo criterio de vigencia (active + ventana starts/ends) que ya
+    // aplica create_membership_registration_combo_order_core al validar la
+    // oferta antes de crear la orden.
+    async findEventComboOffer(eventSlug) {
+      const event = assertSupabaseResult(
+        await client
+          .from('events')
+          .select(
+            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at)',
+          )
+          .eq('organization_id', organizationId)
+          .eq('slug', eventSlug)
+          .maybeSingle(),
+        'No se pudo validar el combo del evento.',
+      )
+      const offer = Array.isArray(event?.comboOffer) ? event.comboOffer[0] : event?.comboOffer
+      if (!offer || !offer.active) return null
+      const now = new Date()
+      if (offer.starts_at && new Date(offer.starts_at) > now) return null
+      if (offer.ends_at && new Date(offer.ends_at) < now) return null
+      return { price: offer.price, manualPrice: offer.manual_price, currency: offer.currency }
+    },
+    previewDiscountCode: (athleteId, { code, appliesTo, baseAmount }) =>
+      rpc(
+        'athlete_preview_discount_code',
+        {
+          p_organization_id: organizationId,
+          p_athlete_id: athleteId,
+          p_code: code,
+          p_applies_to: appliesTo,
+          p_base_amount: baseAmount,
+        },
+        'No se pudo validar el código de descuento.',
+      ),
+    // Lectura simple (no RPC): sólo decide si el canal manual se destraba
+    // para esta compra puntual. La redención real, con todas sus validaciones
+    // (vencido, agotado, ya usado por este atleta), sigue pasando únicamente
+    // por apply_discount_code_to_order dentro de la misma transacción que crea
+    // la orden — si el cupón resulta inválido ahí, la orden entera se cae, así
+    // que una lectura desactualizada acá nunca deja una orden manual sin
+    // cupón real detrás.
+    async discountCodeManualEligibility(code, scope, channel) {
+      if (!code || !channel) return false
+      const row = assertSupabaseResult(
+        await client
+          .from('discount_codes')
+          .select('active, applies_to, expires_at, manual_channels')
+          .eq('organization_id', organizationId)
+          .eq('code', String(code).trim().toUpperCase())
+          .maybeSingle(),
+        'No se pudo validar el cupón.',
+      )
+      if (!row || !row.active) return false
+      // Un código que sólo destraba transferencia no habilita efectivo: el
+      // canal pedido tiene que estar en su lista.
+      if (!(row.manual_channels ?? []).includes(channel)) return false
+      if (row.expires_at && new Date(row.expires_at) < new Date()) return false
+      return row.applies_to === scope || row.applies_to === 'both'
+    },
+    createRegistration: (athleteId, data) =>
+      rpc(
+        'create_competition_registration_checkout',
+        {
+          p_athlete_id: athleteId,
+          p_event_slug: data.eventSlug,
+          p_division: data.division,
+          p_category: data.category,
+          p_bodyweight_kg: data.bodyweightKg,
+          p_payment_method: data.paymentMethod,
+          p_idempotency_key: data.idempotencyKey,
+          p_discount_code: data.discountCode || null,
+          p_default_price: data.defaultPrice,
+          p_manual_price: data.manualPrice ?? null,
+          p_manual_payment_channel: data.manualPaymentChannel,
+        },
+        'No se pudo crear la inscripcion.',
+      ),
+    createRegistrationCombo: (athleteId, data) =>
+      rpc(
+        'create_membership_registration_combo_checkout',
+        {
+          p_athlete_id: athleteId,
+          p_event_slug: data.eventSlug,
+          p_division: data.division,
+          p_category: data.category,
+          p_bodyweight_kg: data.bodyweightKg,
+          p_payment_method: data.paymentMethod,
+          p_idempotency_key: data.idempotencyKey,
+          p_default_price: data.defaultPrice,
+          p_manual_price: data.manualPrice ?? null,
+          p_manual_payment_channel: data.manualPaymentChannel,
+          p_discount_code: data.discountCode || null,
+        },
+        'No se pudo crear el combo de afiliacion e inscripcion.',
+      ),
     // Datos mínimos de contacto para notificar. No usa get_athlete_snapshot
     // porque ese arma el perfil completo con URLs firmadas de foto.
     async findContact(athleteId) {
@@ -328,7 +420,11 @@ export function createSupabaseAthleteRepository(
 
     async findEventSummary(eventId) {
       return assertSupabaseResult(
-        await client.from('events').select('id, title, slug, starts_at, venue').eq('id', eventId).maybeSingle(),
+        await client
+          .from('events')
+          .select('id, title, slug, starts_at, venue')
+          .eq('id', eventId)
+          .maybeSingle(),
         'No se pudo leer el evento.',
       )
     },
@@ -349,7 +445,11 @@ export function createSupabaseAthleteRepository(
     },
     async approvePayment(orderId, actor = null) {
       const order = assertSupabaseResult(
-        await client.from('athlete_payment_orders').select('method,status').eq('id', orderId).maybeSingle(),
+        await client
+          .from('athlete_payment_orders')
+          .select('method,status')
+          .eq('id', orderId)
+          .maybeSingle(),
         'No se pudo leer la orden.',
       )
       if (!order) throw new HttpError(404, 'Orden no encontrada.')
@@ -359,10 +459,14 @@ export function createSupabaseAthleteRepository(
       // `p_actor` viaja hasta domain_audit_logs: sin él la aprobación manual
       // queda registrada sin responsable, que es justo lo que hay que poder
       // reconstruir ante un reclamo.
-      return rpc('approve_athlete_payment_order', {
-        p_order_id: orderId,
-        p_actor: actor,
-      }, 'No se pudo aprobar el pago.')
+      return rpc(
+        'approve_athlete_payment_order',
+        {
+          p_order_id: orderId,
+          p_actor: actor,
+        },
+        'No se pudo aprobar el pago.',
+      )
     },
     /**
      * Acreditación manual de una orden que el proveedor dio por perdida. Es la
@@ -374,39 +478,59 @@ export function createSupabaseAthleteRepository(
      */
     async forceSettlePayment(orderId, { reason, reference = null } = {}, actor = null) {
       const order = assertSupabaseResult(
-        await client.from('athlete_payment_orders').select('status').eq('id', orderId).maybeSingle(),
+        await client
+          .from('athlete_payment_orders')
+          .select('status')
+          .eq('id', orderId)
+          .maybeSingle(),
         'No se pudo leer la orden.',
       )
       if (!order) throw new HttpError(404, 'Orden no encontrada.')
-      return rpc('staff_force_settle_payment_order', {
-        p_order_id: orderId,
-        p_actor: actor,
-        p_reason: reason,
-        p_reference: reference,
-      }, 'No se pudo acreditar el pago a mano.')
+      return rpc(
+        'staff_force_settle_payment_order',
+        {
+          p_order_id: orderId,
+          p_actor: actor,
+          p_reason: reason,
+          p_reference: reference,
+        },
+        'No se pudo acreditar el pago a mano.',
+      )
     },
     async setRegistrationStatus(registrationId, status, reason, actor = null) {
-      return rpc('staff_set_registration_status', {
-        p_registration_id: registrationId,
-        p_status: status,
-        p_actor: actor,
-        p_reason: reason,
-      }, 'No se pudo cambiar el estado de la inscripción.')
+      return rpc(
+        'staff_set_registration_status',
+        {
+          p_registration_id: registrationId,
+          p_status: status,
+          p_actor: actor,
+          p_reason: reason,
+        },
+        'No se pudo cambiar el estado de la inscripción.',
+      )
     },
     async rejectPayment(orderId, reason = null, actor = null) {
       const order = assertSupabaseResult(
-        await client.from('athlete_payment_orders').select('method,status').eq('id', orderId).maybeSingle(),
+        await client
+          .from('athlete_payment_orders')
+          .select('method,status')
+          .eq('id', orderId)
+          .maybeSingle(),
         'No se pudo leer la orden.',
       )
       if (!order) throw new HttpError(404, 'Orden no encontrada.')
       if (order.method === 'mercado_pago') {
         throw new HttpError(400, 'Mercado Pago solo se rechaza por webhook.')
       }
-      return rpc('reject_athlete_payment_order', {
-        p_order_id: orderId,
-        p_reason: reason,
-        p_actor: actor,
-      }, 'No se pudo rechazar el pago.')
+      return rpc(
+        'reject_athlete_payment_order',
+        {
+          p_order_id: orderId,
+          p_reason: reason,
+          p_actor: actor,
+        },
+        'No se pudo rechazar el pago.',
+      )
     },
 
     /**
@@ -446,15 +570,21 @@ export function createSupabaseAthleteRepository(
         'No se pudo leer la orden.',
       )
       if (!order || order.athlete_id !== athleteId) throw new HttpError(404, 'Orden no encontrada.')
-      if (order.method !== 'manual_link') throw new HttpError(400, 'La orden no admite comprobante.')
+      if (order.method !== 'manual_link')
+        throw new HttpError(400, 'La orden no admite comprobante.')
       if (!['pendiente', 'validacion_manual'].includes(order.status)) {
         throw new HttpError(409, 'La orden ya no admite comprobantes.')
       }
       if (order.expires_at && new Date(order.expires_at) < new Date()) {
-        throw new HttpError(409, 'La ventana para adjuntar el comprobante venció. Generá una nueva orden.')
+        throw new HttpError(
+          409,
+          'La ventana para adjuntar el comprobante venció. Generá una nueva orden.',
+        )
       }
 
-      const safeName = String(fileName).replace(/[^\w.\-()+ ]/g, '_').slice(0, 120)
+      const safeName = String(fileName)
+        .replace(/[^\w.\-()+ ]/g, '_')
+        .slice(0, 120)
       const path = `${orderId}/${Date.now()}-${safeName}`
       const signed = assertSupabaseResult(
         await client.storage.from(PAYMENT_PROOF_BUCKET).createSignedUploadUrl(path),
@@ -462,11 +592,17 @@ export function createSupabaseAthleteRepository(
       )
       return { path, token: signed.token }
     },
-    registerPaymentProof: (athleteId, orderId, proofPath) => rpc('register_athlete_payment_proof', {
-      p_order_id: orderId,
-      p_athlete_id: athleteId,
-      p_proof_path: proofPath,
-    }, 'No se pudo registrar el comprobante.'),
+    registerPaymentProof: (athleteId, orderId, proofPath, notes) =>
+      rpc(
+        'register_athlete_payment_proof',
+        {
+          p_order_id: orderId,
+          p_athlete_id: athleteId,
+          p_proof_path: proofPath,
+          p_notes: notes || null,
+        },
+        'No se pudo registrar el comprobante.',
+      ),
     async paymentProofUrl(orderId) {
       const order = assertSupabaseResult(
         await client
@@ -478,7 +614,9 @@ export function createSupabaseAthleteRepository(
       )
       if (!order?.payment_proof_path) throw new HttpError(404, 'La orden no tiene comprobante.')
       const signed = assertSupabaseResult(
-        await client.storage.from(PAYMENT_PROOF_BUCKET).createSignedUrl(order.payment_proof_path, 300),
+        await client.storage
+          .from(PAYMENT_PROOF_BUCKET)
+          .createSignedUrl(order.payment_proof_path, 300),
         'No se pudo abrir el comprobante.',
       )
       return signed.signedUrl
@@ -501,10 +639,15 @@ export function createSupabaseAthleteRepository(
       if (!membership) throw new HttpError(404, 'Afiliación no encontrada.')
       return membership
     },
-    rotateMembershipQrToken: (membershipId, actor) => rpc('staff_rotate_membership_qr_token', {
-      p_membership_id: membershipId,
-      p_actor: actor,
-    }, 'No se pudo rotar el código de la credencial.'),
+    rotateMembershipQrToken: (membershipId, actor) =>
+      rpc(
+        'staff_rotate_membership_qr_token',
+        {
+          p_membership_id: membershipId,
+          p_actor: actor,
+        },
+        'No se pudo rotar el código de la credencial.',
+      ),
 
     /**
      * Distingue alta de renovación para el copy del mail de confirmación:
@@ -525,46 +668,72 @@ export function createSupabaseAthleteRepository(
 
     // Activación/baja manual: los casos sin cobro (cortesía, canje, corrección)
     // no pasan por la aprobación de una orden de pago.
-    setMembershipStatus: (membershipId, status, actor) => rpc('staff_set_membership_status', {
-      p_membership_id: membershipId,
-      p_status: status,
-      p_actor: actor,
-    }, 'No se pudo actualizar el estado de la afiliación.'),
+    setMembershipStatus: (membershipId, status, actor) =>
+      rpc(
+        'staff_set_membership_status',
+        {
+          p_membership_id: membershipId,
+          p_status: status,
+          p_actor: actor,
+        },
+        'No se pudo actualizar el estado de la afiliación.',
+      ),
 
     // La credencial vigente cuelga del atleta, no del período de afiliación
     // (ver 20260806140000): rotar acá es lo que invalida la card impresa.
-    deleteMembership: (membershipId, actor) => rpc('delete_membership', {
-      p_membership_id: membershipId,
-      p_actor: actor,
-    }, 'No se pudo eliminar la afiliación.'),
-    deleteRegistration: (registrationId, actor) => rpc('delete_event_registration', {
-      p_registration_id: registrationId,
-      p_actor: actor,
-    }, 'No se pudo eliminar la inscripción.'),
-    setRegistrationPublicVisibility: (registrationId, publicVisible, actor) => rpc(
-      'staff_set_registration_public_visibility',
-      {
-        p_registration_id: registrationId,
-        p_public_visible: publicVisible,
-        p_actor: actor,
-      },
-      'No se pudo actualizar la visibilidad de la inscripción.',
-    ),
+    deleteMembership: (membershipId, actor) =>
+      rpc(
+        'delete_membership',
+        {
+          p_membership_id: membershipId,
+          p_actor: actor,
+        },
+        'No se pudo eliminar la afiliación.',
+      ),
+    deleteRegistration: (registrationId, actor) =>
+      rpc(
+        'delete_event_registration',
+        {
+          p_registration_id: registrationId,
+          p_actor: actor,
+        },
+        'No se pudo eliminar la inscripción.',
+      ),
+    setRegistrationPublicVisibility: (registrationId, publicVisible, actor) =>
+      rpc(
+        'staff_set_registration_public_visibility',
+        {
+          p_registration_id: registrationId,
+          p_public_visible: publicVisible,
+          p_actor: actor,
+        },
+        'No se pudo actualizar la visibilidad de la inscripción.',
+      ),
 
-    rotateAthleteCredentialToken: (athleteId, actor) => rpc('staff_rotate_athlete_credential_token', {
-      p_athlete_id: athleteId,
-      p_actor: actor,
-    }, 'No se pudo rotar la credencial del atleta.'),
+    rotateAthleteCredentialToken: (athleteId, actor) =>
+      rpc(
+        'staff_rotate_athlete_credential_token',
+        {
+          p_athlete_id: athleteId,
+          p_actor: actor,
+        },
+        'No se pudo rotar la credencial del atleta.',
+      ),
 
     /**
      * Proyección de credencial para el scanner de staff: la pública no trae
      * documento (el member_code es enumerable), pero en la puerta el operador
      * tiene que cotejar el DNI físico.
      */
-    staffCredential: (code, eventSlug) => rpc('staff_get_membership_by_code_or_token', {
-      p_code: code,
-      p_event_slug: eventSlug ?? null,
-    }, 'No se pudo leer la credencial.'),
+    staffCredential: (code, eventSlug) =>
+      rpc(
+        'staff_get_membership_by_code_or_token',
+        {
+          p_code: code,
+          p_event_slug: eventSlug ?? null,
+        },
+        'No se pudo leer la credencial.',
+      ),
 
     /**
      * URL firmada corta para la foto en la página pública de verificación.
@@ -592,19 +761,26 @@ export function createSupabaseAthleteRepository(
         await client.from('athletes').select('photo_path').eq('id', athleteId).maybeSingle(),
         'No se pudo leer la foto actual.',
       )
-      const row = await rpc('register_athlete_photo', {
-        p_athlete_id: athleteId,
-        p_photo_path: photoPath,
-      }, 'No se pudo actualizar la foto.')
+      const row = await rpc(
+        'register_athlete_photo',
+        {
+          p_athlete_id: athleteId,
+          p_photo_path: photoPath,
+        },
+        'No se pudo actualizar la foto.',
+      )
       if (current?.photo_path && current.photo_path !== photoPath) {
         const removal = await client.storage.from(PHOTO_BUCKET).remove([current.photo_path])
-        if (removal.error) console.warn('No se pudo borrar la foto anterior:', removal.error.message)
+        if (removal.error)
+          console.warn('No se pudo borrar la foto anterior:', removal.error.message)
       }
       await addSignedPhotoUrls({ athlete: row })
       return row
     },
     async createPhotoUpload(athleteId, { fileName }) {
-      const safeName = String(fileName).replace(/[^\w.\-()+ ]/g, '_').slice(0, 120)
+      const safeName = String(fileName)
+        .replace(/[^\w.\-()+ ]/g, '_')
+        .slice(0, 120)
       const path = `${athleteId}/${Date.now()}-${safeName}`
       const signed = assertSupabaseResult(
         await client.storage.from(PHOTO_BUCKET).createSignedUploadUrl(path),
@@ -612,47 +788,82 @@ export function createSupabaseAthleteRepository(
       )
       return { path, token: signed.token }
     },
-    async adminData(scope = {}) {
+    /**
+     * `filters` es opcional y hoy nadie lo manda desde el frontend (el panel
+     * sigue pidiendo el snapshot completo: dashboard y badges de navegación
+     * necesitan ver todo). Sirve para dejar la capacidad de recorte
+     * server-side lista sin tener que tocar este método de nuevo cuando algún
+     * listado la necesite de verdad.
+     */
+    async adminData(scope = {}, filters = {}) {
       const read = {
         athletes: scope.athletes !== false,
         memberships: scope.memberships !== false,
         registrations: scope.registrations !== false,
         paymentOrders: scope.paymentOrders !== false,
       }
+      // Encadenan solo si el filtro/paginación vino en la query; sin params
+      // el resultado es exactamente el mismo query de siempre (sin `.range()`).
+      const withStatus = (query, status) => (status ? query.eq('status', status) : query)
+      const withRange = (query) =>
+        filters.limit != null
+          ? query.range(filters.offset ?? 0, (filters.offset ?? 0) + filters.limit - 1)
+          : query
       const [athletes, memberships, registrations, paymentOrders] = await Promise.all([
         read.athletes
-          ? client
-              .from('athletes')
-              .select('id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token')
-              .eq('organization_id', organizationId)
-              .order('created_at', { ascending: false })
+          ? withRange(
+              withStatus(
+                client
+                  .from('athletes')
+                  .select(
+                    'id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token',
+                  )
+                  .eq('organization_id', organizationId)
+                  .order('created_at', { ascending: false }),
+                filters.athleteStatus,
+              ),
+            )
           : Promise.resolve({ data: [], error: null }),
         read.memberships
-          ? client
-              .from('memberships')
-              .select('id, athlete_id, year, status, start_date, expiration_date, member_code, qr_token, payment_order_id, created_at, updated_at')
-              .eq('organization_id', organizationId)
-              .order('created_at', { ascending: false })
+          ? withRange(
+              withStatus(
+                client
+                  .from('memberships')
+                  .select(
+                    'id, athlete_id, year, status, start_date, expiration_date, member_code, qr_token, payment_order_id, created_at, updated_at',
+                  )
+                  .eq('organization_id', organizationId)
+                  .order('created_at', { ascending: false }),
+                filters.membershipStatus,
+              ),
+            )
           : Promise.resolve({ data: [], error: null }),
         read.registrations
-          ? client
-              .from('event_registrations')
-              .select(
-                `
-                  id, athlete_id, category, division, bodyweight_kg, public_visible, status, payment_order_id, created_at, updated_at,
-                  event:events(title, slug, starts_at, ends_at, requires_membership),
-                  checkIn:check_ins(scanned_at),
-                  eventDay:event_days(id, day_index, label, date),
-                  eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
-                `,
-              )
-              .eq('organization_id', organizationId)
-              .order('created_at', { ascending: false })
+          ? withRange(
+              withStatus(
+                client
+                  .from('event_registrations')
+                  .select(
+                    `
+                      id, athlete_id, category, division, bodyweight_kg, public_visible, status, payment_order_id, created_at, updated_at,
+                      event:events(title, slug, starts_at, ends_at, requires_membership),
+                      checkIn:check_ins(scanned_at),
+                      eventDay:event_days(id, day_index, label, date),
+                      eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
+                    `,
+                  )
+                  .eq('organization_id', organizationId)
+                  .order('created_at', { ascending: false }),
+                filters.registrationStatus,
+              ),
+            )
           : Promise.resolve({ data: [], error: null }),
         read.paymentOrders
           ? client
               .from('athlete_payment_orders')
-              .select('id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, created_at')
+              .select(
+                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at',
+              )
               .eq('organization_id', organizationId)
               .order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -660,21 +871,26 @@ export function createSupabaseAthleteRepository(
       const payload = {
         athletes: assertSupabaseResult(athletes, 'No se pudieron leer los atletas.'),
         memberships: assertSupabaseResult(memberships, 'No se pudieron leer las afiliaciones.'),
-        registrations: assertSupabaseResult(registrations, 'No se pudieron leer las inscripciones.').map((row) => ({
+        registrations: assertSupabaseResult(
+          registrations,
+          'No se pudieron leer las inscripciones.',
+        ).map((row) => ({
           registration: row,
           event: row.event,
           checkIn: Array.isArray(row.checkIn) ? row.checkIn[0] : row.checkIn,
-          schedule: row.eventDay ? {
-            day_id: row.eventDay.id,
-            day_index: row.eventDay.day_index,
-            day_label: row.eventDay.label,
-            day_date: row.eventDay.date,
-            session_id: row.eventSession?.id ?? null,
-            session_name: row.eventSession?.name ?? null,
-            platform: row.eventSession?.platform ?? null,
-            weigh_in_at: row.eventSession?.weigh_in_at ?? null,
-            starts_at: row.eventSession?.starts_at ?? null,
-          } : null,
+          schedule: row.eventDay
+            ? {
+                day_id: row.eventDay.id,
+                day_index: row.eventDay.day_index,
+                day_label: row.eventDay.label,
+                day_date: row.eventDay.date,
+                session_id: row.eventSession?.id ?? null,
+                session_name: row.eventSession?.name ?? null,
+                platform: row.eventSession?.platform ?? null,
+                weigh_in_at: row.eventSession?.weigh_in_at ?? null,
+                starts_at: row.eventSession?.starts_at ?? null,
+              }
+            : null,
         })),
         paymentOrders: assertSupabaseResult(paymentOrders, 'No se pudieron leer los pagos.'),
       }
@@ -690,29 +906,36 @@ export function createSupabaseAthleteRepository(
      */
     async deleteAthlete(athleteId, actor) {
       const orders = assertSupabaseResult(
-        await client
-          .from('athlete_payment_orders')
-          .select('id')
-          .eq('athlete_id', athleteId),
+        await client.from('athlete_payment_orders').select('id').eq('athlete_id', athleteId),
         'No se pudieron leer las órdenes del atleta.',
       )
 
-      const deleted = await rpc('delete_athlete', {
-        p_athlete_id: athleteId,
-        p_actor: actor,
-      }, 'No se pudo eliminar el atleta.')
+      const deleted = await rpc(
+        'delete_athlete',
+        {
+          p_athlete_id: athleteId,
+          p_actor: actor,
+        },
+        'No se pudo eliminar el atleta.',
+      )
 
       const removePrefix = async (bucket, prefix) => {
         const listed = await client.storage.from(bucket).list(prefix, { limit: 100 })
         if (listed.error) {
-          console.warn(`No se pudieron listar archivos de ${bucket}/${prefix}:`, listed.error.message)
+          console.warn(
+            `No se pudieron listar archivos de ${bucket}/${prefix}:`,
+            listed.error.message,
+          )
           return
         }
         const paths = (listed.data ?? []).map((file) => `${prefix}/${file.name}`)
         if (paths.length === 0) return
         const removal = await client.storage.from(bucket).remove(paths)
         if (removal.error) {
-          console.warn(`No se pudieron borrar archivos de ${bucket}/${prefix}:`, removal.error.message)
+          console.warn(
+            `No se pudieron borrar archivos de ${bucket}/${prefix}:`,
+            removal.error.message,
+          )
         }
       }
 

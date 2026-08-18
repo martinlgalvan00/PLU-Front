@@ -21,7 +21,11 @@ export default function ResultCard({ athlete, event, total, place, date, feature
       <div className="result-card__top">
         <div className="result-card__rank" aria-label={`Posición: ${rankLabel}`}>
           {medal ? (
-            <Medal className={`result-card__medal ${medal.className}`} aria-hidden strokeWidth={1.6} />
+            <Medal
+              className={`result-card__medal ${medal.className}`}
+              aria-hidden
+              strokeWidth={1.6}
+            />
           ) : (
             <span className="result-card__rank-label">{rankLabel}</span>
           )}
@@ -34,9 +38,7 @@ export default function ResultCard({ athlete, event, total, place, date, feature
 
       <h3 className="result-card__athlete">{athlete}</h3>
 
-      {category && (
-        <p className="result-card__category">{category}</p>
-      )}
+      {category && <p className="result-card__category">{category}</p>}
 
       <div className="result-card__footer">
         <p className="result-card__event">

@@ -158,7 +158,11 @@ describe('alta de staff (/api/users)', () => {
       const response = await fetch(`${target.url}/api/users`, {
         method: 'POST',
         headers: authHeaders(cookie),
-        body: JSON.stringify({ name: 'Otro Max', email: 'max2@pluarg.test', role: 'admin_maximal' }),
+        body: JSON.stringify({
+          name: 'Otro Max',
+          email: 'max2@pluarg.test',
+          role: 'admin_maximal',
+        }),
       })
       const body = await response.json()
 
@@ -178,12 +182,20 @@ describe('alta de staff (/api/users)', () => {
       const superAdmin = await fetch(`${target.url}/api/users`, {
         method: 'POST',
         headers: authHeaders(cookie),
-        body: JSON.stringify({ name: 'Otro Max', email: 'max2@pluarg.test', role: 'admin_maximal' }),
+        body: JSON.stringify({
+          name: 'Otro Max',
+          email: 'max2@pluarg.test',
+          role: 'admin_maximal',
+        }),
       })
       const peer = await fetch(`${target.url}/api/users`, {
         method: 'POST',
         headers: authHeaders(cookie),
-        body: JSON.stringify({ name: 'Otro Admin', email: 'admin2@pluarg.test', role: 'admin_plu_arg' }),
+        body: JSON.stringify({
+          name: 'Otro Admin',
+          email: 'admin2@pluarg.test',
+          role: 'admin_plu_arg',
+        }),
       })
 
       expect(superAdmin.status).toBe(403)
@@ -202,7 +214,11 @@ describe('alta de staff (/api/users)', () => {
       const response = await fetch(`${target.url}/api/users`, {
         method: 'POST',
         headers: authHeaders(cookie),
-        body: JSON.stringify({ name: 'Admin Repetido', email: 'admin@pluarg.test', role: 'admin_plu_arg' }),
+        body: JSON.stringify({
+          name: 'Admin Repetido',
+          email: 'admin@pluarg.test',
+          role: 'admin_plu_arg',
+        }),
       })
 
       expect(response.status).toBe(409)

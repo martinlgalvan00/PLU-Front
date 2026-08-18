@@ -27,7 +27,8 @@ export const CollapsedRail = {
   parameters: {
     docs: {
       description: {
-        story: 'Rail de iconos centrado, sin scroll horizontal. El nombre de cada ítem va en el title nativo.',
+        story:
+          'Rail de iconos centrado, sin scroll horizontal. El nombre de cada ítem va en el title nativo.',
       },
     },
   },

@@ -275,7 +275,8 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .table-skeleton__cell {
-    animation: table-skeleton-shimmer 1.4s var(--ease-standard, ease) var(--skeleton-stagger, 0ms) both;
+    animation: table-skeleton-shimmer 1.4s var(--ease-standard, ease) var(--skeleton-stagger, 0ms)
+      both;
   }
 }
 

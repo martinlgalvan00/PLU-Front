@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { normalizeAuditEntry, auditActionTone, relatedEntityIds } from '../src/services/auditService.js'
-import { registrationCheckinStatus, resolveRegistrationScan } from '../src/services/checkinScanService.js'
+import {
+  normalizeAuditEntry,
+  auditActionTone,
+  relatedEntityIds,
+} from '../src/services/auditService.js'
+import {
+  registrationCheckinStatus,
+  resolveRegistrationScan,
+} from '../src/services/checkinScanService.js'
 import { ApiError } from '../src/lib/api.js'
 
 vi.mock('../src/services/athleteApi.js', () => ({
@@ -8,9 +15,8 @@ vi.mock('../src/services/athleteApi.js', () => ({
   getStaffMembershipCredential: vi.fn(),
 }))
 
-const { getMembershipByCodeOrToken, getStaffMembershipCredential } = await import(
-  '../src/services/athleteApi.js'
-)
+const { getMembershipByCodeOrToken, getStaffMembershipCredential } =
+  await import('../src/services/athleteApi.js')
 
 afterEach(() => {
   vi.resetAllMocks()
@@ -35,13 +41,16 @@ describe('estado de una credencial escaneada', () => {
     // Regresión: la proyección pública no devolvía el check-in, así que
     // `checkedInAt` llegaba siempre null y una credencial ya usada se mostraba
     // lista para ingresar. El rechazo (PLU06) aparecía recién al apretar.
-    expect(registrationCheckinStatus({ status: 'confirmada', checkedInAt: '2026-08-02T10:00:00Z' }))
-      .toBe('usada')
+    expect(
+      registrationCheckinStatus({ status: 'confirmada', checkedInAt: '2026-08-02T10:00:00Z' }),
+    ).toBe('usada')
     expect(registrationCheckinStatus({ status: 'confirmada', checkedInAt: null })).toBe('pagada')
   })
 
   it('no ofrece marcar ingreso dos veces sobre la misma credencial', async () => {
-    getMembershipByCodeOrToken.mockResolvedValue(credential({ checkedInAt: '2026-08-02T10:00:00Z' }))
+    getMembershipByCodeOrToken.mockResolvedValue(
+      credential({ checkedInAt: '2026-08-02T10:00:00Z' }),
+    )
 
     const result = await resolveRegistrationScan(
       { code: 'PLU-ARG-2026-014', eventSlug: 'pitbull-classic-2026' },

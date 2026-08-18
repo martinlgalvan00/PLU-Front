@@ -165,7 +165,12 @@ export default function FinanceSection({ canEdit = false }) {
       <div className="admin-finance__toolbar">
         <label className="admin-finance__field" htmlFor={fromId}>
           <span>{t('admin.ledger.from')}</span>
-          <input id={fromId} type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+          <input
+            id={fromId}
+            type="date"
+            value={from}
+            onChange={(event) => setFrom(event.target.value)}
+          />
         </label>
         <label className="admin-finance__field" htmlFor={toId}>
           <span>{t('admin.ledger.to')}</span>
@@ -244,64 +249,68 @@ export default function FinanceSection({ canEdit = false }) {
         </p>
       ) : null}
 
-      {initialLoading ? <TableSkeleton rows={6} columns={6} /> : (
+      {initialLoading ? (
+        <TableSkeleton rows={6} columns={6} />
+      ) : (
         <AdminDataTable
           rows={report?.rows ?? []}
           emptyMessage={t('admin.ledger.empty')}
           columns={[
-          {
-            key: 'date',
-            label: t('admin.ledger.colDate'),
-            mobile: 'default',
-            sortable: true,
-            defaultSort: 'desc',
-            render: (row) => String(row.occurredOn).slice(0, 10),
-          },
-          {
-            key: 'kind',
-            label: t('admin.ledger.colKind'),
-            mobile: 'badge',
-            sortable: true,
-            render: (row) => (
-              <span className={`admin-finance__kind admin-finance__kind--${row.kind}`}>
-                {row.kind === 'income' ? (
-                  <ArrowUpRight size={13} aria-hidden />
-                ) : (
-                  <ArrowDownRight size={13} aria-hidden />
-                )}
-                {row.kind === 'income' ? t('admin.ledger.kindIncome') : t('admin.ledger.kindExpense')}
-              </span>
-            ),
-          },
-          {
-            key: 'category',
-            label: t('admin.ledger.colCategory'),
-            mobile: 'default',
-            render: (row) => row.category,
-          },
-          {
-            key: 'description',
-            label: t('admin.ledger.colDetail'),
-            mobile: 'primary',
-            render: (row) => row.description,
-          },
-          {
-            key: 'amount',
-            label: t('admin.ledger.colAmount'),
-            mobile: 'default',
-            desktop: 'numeric',
-            align: 'end',
-            sortable: true,
-            render: (row) => money(row.amount, locale),
-          },
-          {
-            key: 'reference',
-            label: t('admin.ledger.colReference'),
-            mobile: 'hidden',
-            className: 'admin-finance__col-reference',
-            render: (row) => row.reference ?? '—',
-          },
-        ]}
+            {
+              key: 'date',
+              label: t('admin.ledger.colDate'),
+              mobile: 'default',
+              sortable: true,
+              defaultSort: 'desc',
+              render: (row) => String(row.occurredOn).slice(0, 10),
+            },
+            {
+              key: 'kind',
+              label: t('admin.ledger.colKind'),
+              mobile: 'badge',
+              sortable: true,
+              render: (row) => (
+                <span className={`admin-finance__kind admin-finance__kind--${row.kind}`}>
+                  {row.kind === 'income' ? (
+                    <ArrowUpRight size={13} aria-hidden />
+                  ) : (
+                    <ArrowDownRight size={13} aria-hidden />
+                  )}
+                  {row.kind === 'income'
+                    ? t('admin.ledger.kindIncome')
+                    : t('admin.ledger.kindExpense')}
+                </span>
+              ),
+            },
+            {
+              key: 'category',
+              label: t('admin.ledger.colCategory'),
+              mobile: 'default',
+              render: (row) => row.category,
+            },
+            {
+              key: 'description',
+              label: t('admin.ledger.colDetail'),
+              mobile: 'primary',
+              render: (row) => row.description,
+            },
+            {
+              key: 'amount',
+              label: t('admin.ledger.colAmount'),
+              mobile: 'default',
+              desktop: 'numeric',
+              align: 'end',
+              sortable: true,
+              render: (row) => money(row.amount, locale),
+            },
+            {
+              key: 'reference',
+              label: t('admin.ledger.colReference'),
+              mobile: 'hidden',
+              className: 'admin-finance__col-reference',
+              render: (row) => row.reference ?? '—',
+            },
+          ]}
         />
       )}
     </section>

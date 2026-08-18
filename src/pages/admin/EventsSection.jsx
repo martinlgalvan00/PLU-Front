@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowUp,
   CalendarDays,
   ChevronDown,
   ClipboardList,
@@ -30,6 +31,8 @@ import Button from '../../components/ui/Button.jsx'
 import StatusPill from '../../components/ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getEventsTourSteps } from '../../lib/adminTourSteps.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { buildEventPagePath } from '../../lib/eventPageRoute.js'
 import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
@@ -55,9 +58,7 @@ function isFinishedEvent(event) {
 }
 
 function formatEventVenueLine(venue, location) {
-  const parts = [venue, location]
-    .map((value) => String(value ?? '').trim())
-    .filter(Boolean)
+  const parts = [venue, location].map((value) => String(value ?? '').trim()).filter(Boolean)
   if (
     parts.length === 2 &&
     parts[0].localeCompare(parts[1], undefined, { sensitivity: 'accent' }) === 0
@@ -85,16 +86,7 @@ function groupByMonthKey(list) {
   return byMonth
 }
 
-function EventListRow({
-  row,
-  selected,
-  canEdit,
-  links,
-  locale,
-  onSelect,
-  onEdit,
-  t,
-}) {
+function EventListRow({ row, selected, canEdit, links, locale, onSelect, onEdit, t }) {
   const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
   const fill = Math.min(rawFill, 100)
   const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
@@ -186,16 +178,6 @@ function EventListRow({
         <StatusPill value={row.status} />
       </div>
 
-      <div className="admin-event-row__actions" onClick={(event) => event.stopPropagation()}>
-        <AdminCopyLinkMenu links={links} />
-        <AdminIconButton
-          disabled={!canEdit}
-          icon={Pencil}
-          label={t('admin.sections.events.edit')}
-          onClick={() => onEdit(row)}
-          variant="ghost"
-        />
-      </div>
     </li>
   )
 }
@@ -223,9 +205,15 @@ export default function EventsSection({
   tickets = [],
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [selectedId, setSelectedId] = useState(adminEvents[0]?.id ?? null)
+
+  useEffect(() => {
+    startTour('admin-events', getEventsTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
   const [formOpen, setFormOpen] = useState(false)
   const [draft, setDraft] = useState(createAdminEventDraft)
   const [editorFocus, setEditorFocus] = useState('details')
@@ -251,13 +239,22 @@ export default function EventsSection({
     setPreviewExpanded(false)
   }, [selectedId])
 
+  function handleBackToList() {
+    const listNode = document.querySelector('.admin-events-workspace__main')
+    if (listNode) {
+      listNode.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   useEffect(() => {
     if (!pendingPreviewScrollRef.current) return
     pendingPreviewScrollRef.current = false
     const node = previewRef.current
     if (!node) return
     const workspace = node.parentElement
-    const columnCount = workspace ? countGridColumns(getComputedStyle(workspace).gridTemplateColumns) : 1
+    const columnCount = workspace
+      ? countGridColumns(getComputedStyle(workspace).gridTemplateColumns)
+      : 1
     if (columnCount >= 2) return
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' })
@@ -534,9 +531,7 @@ export default function EventsSection({
             disabled={isLoading}
             icon={RefreshCw}
             label={
-              isLoading
-                ? t('admin.sections.events.refreshing')
-                : t('admin.sections.events.refresh')
+              isLoading ? t('admin.sections.events.refreshing') : t('admin.sections.events.refresh')
             }
             onClick={onRefresh}
             variant="ghost"
@@ -637,7 +632,12 @@ export default function EventsSection({
                 {t('admin.sections.events.empty')}
               </p>
               {canEdit && adminEvents.length === 0 ? (
-                <Button type="button" variant="gold" className="btn--small" onClick={openCreateForm}>
+                <Button
+                  type="button"
+                  variant="gold"
+                  className="btn--small"
+                  onClick={openCreateForm}
+                >
                   <Plus size={14} aria-hidden />
                   {t('admin.sections.events.createFirst')}
                 </Button>
@@ -663,6 +663,14 @@ export default function EventsSection({
             aria-label={t('admin.sections.events.panelLabel')}
           >
             <div className="admin-event-preview__head">
+              <button
+                type="button"
+                className="admin-event-preview__back-btn"
+                onClick={handleBackToList}
+                aria-label={t('admin.sections.events.backToList', 'Volver a la lista')}
+              >
+                <ArrowUp size={16} aria-hidden />
+              </button>
               <div className="admin-event-preview__head-copy">
                 <div className="admin-event-preview__title-row">
                   <p className="admin-event-preview__selected-title">{selectedEvent.title}</p>
@@ -692,7 +700,7 @@ export default function EventsSection({
                     />
                     <Button
                       type="button"
-                      variant="gold"
+                      variant="outline"
                       className="btn--small admin-event-preview__edit-btn"
                       onClick={() => openEditForm(selectedEvent)}
                     >
@@ -724,33 +732,48 @@ export default function EventsSection({
             ) : null}
 
             <div
-              className="admin-event-preview__command-bar"
+              className="admin-event-preview__command-bar admin-event-preview__command-bar--bento"
               aria-label={t('admin.eventEditor.managementAria')}
             >
               {canEdit ? (
                 <button
                   type="button"
+                  className="admin-bento-action"
                   aria-label={t('admin.eventEditor.manageTicketsLabel', {
                     count: activeTicketTypeCount,
                   })}
                   onClick={() => openEditForm(selectedEvent, 'tickets')}
                 >
-                  <Ticket size={14} aria-hidden />
-                  <span>{t('admin.eventEditor.manageTickets')}</span>
-                  <strong>{activeTicketTypeCount}</strong>
+                  <span className="admin-bento-action__icon">
+                    <Ticket size={18} aria-hidden />
+                  </span>
+                  <span className="admin-bento-action__label">{t('admin.eventEditor.manageTickets')}</span>
+                  <strong className="admin-bento-action__count">{activeTicketTypeCount}</strong>
                 </button>
               ) : null}
               {onManageRegistrations ? (
-                <button type="button" onClick={() => onManageRegistrations(selectedEvent)}>
-                  <ClipboardList size={14} aria-hidden />
-                  <span>{t('admin.eventEditor.manageRegistrations')}</span>
-                  <strong>{selectedEvent.registered ?? 0}</strong>
+                <button 
+                  type="button" 
+                  className="admin-bento-action"
+                  onClick={() => onManageRegistrations(selectedEvent)}
+                >
+                  <span className="admin-bento-action__icon">
+                    <ClipboardList size={18} aria-hidden />
+                  </span>
+                  <span className="admin-bento-action__label">{t('admin.eventEditor.manageRegistrations')}</span>
+                  <strong className="admin-bento-action__count">{selectedEvent.registered ?? 0}</strong>
                 </button>
               ) : null}
               {onManagePayments ? (
-                <button type="button" onClick={() => onManagePayments(selectedEvent)}>
-                  <CreditCard size={14} aria-hidden />
-                  <span>{t('admin.eventEditor.managePayments')}</span>
+                <button 
+                  type="button" 
+                  className="admin-bento-action"
+                  onClick={() => onManagePayments(selectedEvent)}
+                >
+                  <span className="admin-bento-action__icon">
+                    <CreditCard size={18} aria-hidden />
+                  </span>
+                  <span className="admin-bento-action__label">{t('admin.eventEditor.managePayments')}</span>
                 </button>
               ) : null}
             </div>

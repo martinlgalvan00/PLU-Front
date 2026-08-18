@@ -32,9 +32,12 @@ describe('reconciliación visual de pagos', () => {
     const order = { orderId: 'order-1', status: 'pendiente' }
     const tickets = [{ id: 'ticket-1', orderId: 'order-1', status: 'pendiente_pago' }]
 
-    expect(applyPaymentUpdate(order, tickets, { orderId: 'order-2', status: 'approved' }))
-      .toEqual({ createdOrder: order, tickets })
-    expect(applyPaymentUpdate(order, tickets, { orderId: 'order-1', status: 'pending' }).tickets)
-      .toBe(tickets)
+    expect(applyPaymentUpdate(order, tickets, { orderId: 'order-2', status: 'approved' })).toEqual({
+      createdOrder: order,
+      tickets,
+    })
+    expect(
+      applyPaymentUpdate(order, tickets, { orderId: 'order-1', status: 'pending' }).tickets,
+    ).toBe(tickets)
   })
 })

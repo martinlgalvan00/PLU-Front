@@ -113,8 +113,12 @@ export const InscripcionTransferencia = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    const openTransfer = await canvas.findAllByRole('button', { name: /ver datos de transferencia/i })
+    const openTransfer = await canvas.findAllByRole('button', {
+      name: /ver datos de transferencia/i,
+    })
     await userEvent.click(openTransfer[0])
-    await expect(canvas.findByRole('dialog', { name: /completar tu inscripción/i })).resolves.toBeTruthy()
+    await expect(
+      canvas.findByRole('dialog', { name: /completar tu inscripción/i }),
+    ).resolves.toBeTruthy()
   },
 }

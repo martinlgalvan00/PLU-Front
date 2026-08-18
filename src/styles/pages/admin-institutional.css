@@ -466,7 +466,11 @@
 
 .admin-shell .admin-shell__collapse-toggle:hover {
   background: var(--admin-glass-bg, var(--admin-sidebar));
-  border-color: color-mix(in srgb, var(--admin-accent) 32%, var(--admin-glass-border, var(--admin-sidebar-border)));
+  border-color: color-mix(
+    in srgb,
+    var(--admin-accent) 32%,
+    var(--admin-glass-border, var(--admin-sidebar-border))
+  );
   color: var(--admin-accent);
 }
 
@@ -1083,7 +1087,9 @@
   letter-spacing: 0.07em;
   position: relative;
   text-transform: uppercase;
-  transition: gap var(--transition-fast), color var(--transition-fast);
+  transition:
+    gap var(--transition-fast),
+    color var(--transition-fast);
   z-index: 1;
 }
 
@@ -1097,18 +1103,27 @@
 }
 
 .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__copy,
-[data-theme='light'] .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__copy {
+[data-theme='light']
+  .admin-dashboard--executive
+  .admin-attention-bar:hover
+  .admin-attention-bar__copy {
   color: var(--admin-attention-text);
 }
 
 .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action,
-[data-theme='light'] .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__action {
+[data-theme='light']
+  .admin-dashboard--executive
+  .admin-attention-bar:hover
+  .admin-attention-bar__action {
   color: var(--admin-premium, var(--admin-accent));
   gap: 4px;
 }
 
 .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__count,
-[data-theme='light'] .admin-dashboard--executive .admin-attention-bar:hover .admin-attention-bar__count {
+[data-theme='light']
+  .admin-dashboard--executive
+  .admin-attention-bar:hover
+  .admin-attention-bar__count {
   background: var(--admin-accent-soft);
   color: var(--admin-accent);
 }
@@ -1955,7 +1970,10 @@
     display: none !important;
   }
 
-  .admin-shell .admin-list-shell__header:not(:has(.admin-list-shell__actions:not(:empty))):not(:has(.admin-list-shell__meta)) {
+  .admin-shell
+    .admin-list-shell__header:not(:has(.admin-list-shell__actions:not(:empty))):not(
+      :has(.admin-list-shell__meta)
+    ) {
     display: none;
   }
 }

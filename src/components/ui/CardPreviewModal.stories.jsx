@@ -25,7 +25,11 @@ export const Open = {}
 
 export const OpenWithPhoto = {
   args: {
-    cardData: { ...cardData, variant: 'membership', athletePhotoUrl: 'https://picsum.photos/seed/plu-arg/400/400' },
+    cardData: {
+      ...cardData,
+      variant: 'membership',
+      athletePhotoUrl: 'https://picsum.photos/seed/plu-arg/400/400',
+    },
   },
 }
 

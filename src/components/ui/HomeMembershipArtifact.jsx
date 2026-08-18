@@ -31,7 +31,9 @@ function QrGlyph() {
   return (
     <svg viewBox="0 0 11 11" aria-hidden className="hm-artifact__qr-svg">
       {QR_MATRIX.flatMap((row, y) =>
-        row.map((on, x) => (on ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} rx={0.12} /> : null)),
+        row.map((on, x) =>
+          on ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} rx={0.12} /> : null,
+        ),
       )}
     </svg>
   )
@@ -204,13 +206,23 @@ function ArtifactBody({ kind }) {
 // para el drag directo sobre la pieza.
 const RESTING_TILT = { x: 8, y: -12 }
 
-export default function HomeMembershipArtifact({ benefitId, paused = false, reducedMotion = false }) {
+export default function HomeMembershipArtifact({
+  benefitId,
+  paused = false,
+  reducedMotion = false,
+}) {
   const kind = KIND_BY_BENEFIT[benefitId] ?? 'medal'
   const stageRef = useRef(null)
   // null = sin arrastre (el tilt lo dicta la cascada del panel). Un objeto
   // {x,y} congela el tilt mientras se arrastra la pieza.
   const [dragTilt, setDragTilt] = useState(null)
-  const dragRef = useRef({ active: false, startX: 0, startY: 0, baseX: RESTING_TILT.x, baseY: RESTING_TILT.y })
+  const dragRef = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    baseX: RESTING_TILT.x,
+    baseY: RESTING_TILT.y,
+  })
 
   function onPointerDown(event) {
     if (reducedMotion) return

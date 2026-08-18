@@ -16,15 +16,18 @@ export default {
       },
       members: {
         title: 'Membership | PLU Argentina',
-        description: 'Annual membership plans, QR credential and access to the official PLU ARG calendar.',
+        description:
+          'Annual membership plans, QR credential and access to the official PLU ARG calendar.',
       },
       events: {
         title: 'Competition calendar | PLU Argentina',
-        description: 'Official dates, meet registration and status for every PLU Argentina competition.',
+        description:
+          'Official dates, meet registration and status for every PLU Argentina competition.',
       },
       eventDetail: {
         title: '{{eventTitle}} | PLU Argentina',
-        description: 'Official details for {{eventTitle}}: venue, dates and registration at PLU Argentina.',
+        description:
+          'Official details for {{eventTitle}}: venue, dates and registration at PLU Argentina.',
       },
       results: {
         title: 'Results | PLU Argentina',
@@ -36,7 +39,8 @@ export default {
       },
       rulebook: {
         title: 'Rulebook | PLU Argentina',
-        description: 'Official PLU rules: categories, divisions, equipment and competition standards.',
+        description:
+          'Official PLU rules: categories, divisions, equipment and competition standards.',
       },
       standards: {
         title: 'Classification standards | PLU Argentina',
@@ -100,9 +104,11 @@ export default {
   payments: {
     embeddedTitle: 'Pay with Mercado Pago',
     embeddedLead: 'Complete your payment without leaving the site.',
-    walletRedirectNote: 'If you pick Mercado Pago we take you to sign in, and you return here once confirmed.',
+    walletRedirectNote:
+      'If you pick Mercado Pago we take you to sign in, and you return here once confirmed.',
     walletUnavailableTitle: 'Mercado Pago account unavailable',
-    walletUnavailableNote: "We couldn't enable payment with your account right now. You can retry or pay by card below.",
+    walletUnavailableNote:
+      "We couldn't enable payment with your account right now. You can retry or pay by card below.",
     retryWalletPreference: 'Retry',
     subscriptionTitle: 'Enable automatic billing',
     subscriptionLead: 'Enter a card to authorize plan renewals.',
@@ -153,13 +159,17 @@ export default {
     paymentRejectedCvv: 'Check the card security code (CVV).',
     paymentRejectedBadData: "Some of the card details aren't correct. Check them and try again.",
     paymentRejectedInsufficientFunds: "The card doesn't have enough funds for this payment.",
-    paymentRejectedCardDisabled: 'Your card is disabled for online purchases. Call your bank or try another card.',
-    paymentRejectedCallForAuthorize: 'Your bank needs to authorize this payment. Call them or try another card.',
+    paymentRejectedCardDisabled:
+      'Your card is disabled for online purchases. Call your bank or try another card.',
+    paymentRejectedCallForAuthorize:
+      'Your bank needs to authorize this payment. Call them or try another card.',
     paymentRejectedDuplicated:
       "You already made a payment for this exact amount recently. If that's a mistake, wait a few minutes or use another card.",
-    paymentRejectedHighRisk: 'Mercado Pago rejected the payment for security reasons. Try another card or a bank transfer.',
+    paymentRejectedHighRisk:
+      'Mercado Pago rejected the payment for security reasons. Try another card or a bank transfer.',
     paymentRejectedInstallments: "Your card doesn't support that number of installments.",
-    paymentRejectedMaxAttempts: 'You reached the allowed attempt limit. Try again later or with another card.',
+    paymentRejectedMaxAttempts:
+      'You reached the allowed attempt limit. Try again later or with another card.',
     paymentRejectedTimeout: 'Mercado Pago timed out. Please try again.',
     checkStatus: 'Check status',
     tryAgain: 'Try again',
@@ -331,7 +341,8 @@ export default {
     title: 'How it works',
     lead: 'Three steps to compete in an official meet.',
     step1Title: 'Join',
-    step1Body: 'Create your athlete profile and pay for the season. That issues your digital credential.',
+    step1Body:
+      'Create your athlete profile and pay for the season. That issues your digital credential.',
     step2Title: 'Register',
     step2Body: 'Pick the meet, set division and bodyweight, and generate the registration order.',
     step3Title: 'Arrive with your QR',
@@ -355,10 +366,12 @@ export default {
     countdownPending: 'Opening date coming soon',
     countdownPendingAria: 'Opening date is not confirmed yet',
     countdownHeldTitle: 'Inauguration',
-    countdownHeld: 'Annual membership and event registration unlock together at the official opening.',
+    countdownHeld:
+      'Annual membership and event registration unlock together at the official opening.',
     countdownHeldAria: 'Checkout stays closed until the official opening',
     opensOn: '{{date}} · {{time}}',
-    countdownAria: '{{days}} days, {{hours}} hours, {{minutes}} minutes and {{seconds}} seconds remaining',
+    countdownAria:
+      '{{days}} days, {{hours}} hours, {{minutes}} minutes and {{seconds}} seconds remaining',
     days: 'Days',
     hours: 'Hrs',
     minutes: 'Min',
@@ -600,6 +613,19 @@ export default {
     separator: 'or',
     joinPrompt: 'Not part of PLU ARG yet?',
     joinLink: 'Join here',
+    howToToggle: 'How do I sign in?',
+    howToTitle: 'Three ways in',
+    howToStep1Title: 'I already registered',
+    howToStep1Body:
+      'Sign in with the email and password you chose when you completed your profile.',
+    howToStep2Title: 'I got a temporary password',
+    howToStep2Body:
+      'Accounts created by PLU ARG arrive with a temporary password by email. If you can\u2019t find it, request a link and set a new one.',
+    howToStep2Action: 'Get an access link',
+    howToStep3Title: 'I don\u2019t have an account yet',
+    howToStep3Body:
+      'Affiliate first: the form asks for your password there, and it\u2019s ready to sign in right after.',
+    howToStep3Action: 'Join PLU ARG',
     secureNote: 'Official access · PLU ARG',
     footerNote: '© 2026 PLU ARG / Maximal',
     backToSite: 'Back to the public site',
@@ -731,8 +757,7 @@ export default {
       meetPassMeta: 'Registration confirmed',
       membershipPassTitle: 'Membership pass',
       membershipPassPending: 'Pending activation',
-      gateBlockedNote:
-        'Registration ready. Gate access unlocks when your membership is active.',
+      gateBlockedNote: 'Registration ready. Gate access unlocks when your membership is active.',
       empty: 'With an active membership or a confirmed registration you can generate your gate QR.',
       emptyAction: 'Get affiliated to generate my credential',
       emptyCalendarAction: 'View meet calendar',
@@ -830,7 +855,8 @@ export default {
       nextPending: 'Next step: complete payment or attach the receipt.',
       transferUnderReviewTitle: 'Bank transfer under review',
       transferUnderReviewValue: 'Receipt submitted',
-      transferUnderReviewNext: 'Administration is validating your bank transfer. It can take up to 48 hours.',
+      transferUnderReviewNext:
+        'Administration is validating your bank transfer. It can take up to 48 hours.',
       nextRenew: 'Next step: choose a plan to renew your coverage.',
       nextScheduled: 'Payment is validated; the credential activates when coverage begins.',
       nextRefunded: 'Create a new order if you want to become a member again.',
@@ -839,7 +865,8 @@ export default {
       comboTitle: 'Membership + meet registration',
       comboLead:
         'Activate the annual membership and prepare your competition registration in one step.',
-      comboComingSoonLead: 'We are finishing the combined payment integration. In the meantime, you can complete membership and registration separately.',
+      comboComingSoonLead:
+        'We are finishing the combined payment integration. In the meantime, you can complete membership and registration separately.',
       comboSeparate: 'Registration only',
       comboOffer: 'Combo',
       comboSavings: 'Save',
@@ -851,6 +878,7 @@ export default {
       discountApply: 'Apply',
       discountChecking: 'Validating…',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
+      discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -859,6 +887,7 @@ export default {
         not_applicable: 'That code does not apply to this payment.',
         limit_reached: 'That code reached its use limit.',
         already_used: 'You already used that code.',
+        no_savings: 'That code does not improve the price of this purchase.',
       },
       paymentLegend: 'Payment method',
       planSelector: 'Membership plan',
@@ -878,7 +907,8 @@ export default {
       transferComingSoon: 'Bank transfer · Coming soon',
       manualValidation: 'Manual validation',
       paymentMpNote: 'Online payment with automatic confirmation.',
-      paymentTransferNote: 'Transfer, attach the receipt, and Administration validates it within up to 48 hours.',
+      paymentTransferNote:
+        'Transfer, attach the receipt, and Administration validates it within up to 48 hours.',
       completePaymentEyebrow: 'Secure checkout',
       completePaymentTitle: 'Complete payment',
       completePaymentLead: 'Confirm your membership with Mercado Pago.',
@@ -925,10 +955,13 @@ export default {
       transferCopy: 'Copy',
       transferCopied: 'Copied',
       transferCopyField: 'Copy {{field}}',
+      transferNotesLabel: 'Notes (optional)',
+      transferNotesPlaceholder: 'Anything Finance should know about this payment',
       transferUnderstood: 'Send for review',
       proofAction: 'Attach receipt',
       proofUploading: 'Uploading receipt...',
-      proofUploaded: 'We got your receipt. Administration reviews it within up to 48 hours and we email you back.',
+      proofUploaded:
+        'We got your receipt. Administration reviews it within up to 48 hours and we email you back.',
       proofHint: 'JPG, PNG, WEBP or PDF, up to 5 MB. Without a receipt the review can take longer.',
       proofError: 'Could not upload the receipt.',
       cardEyebrow: 'Share your membership',
@@ -1059,7 +1092,8 @@ export default {
       plansEyebrow: '26/27 Season',
       plansTitle: 'Annual membership',
       plansTitleWithCombo: 'Choose how to join',
-      plansLead: 'One annual membership per season. A single payment to compete on the official calendar.',
+      plansLead:
+        'One annual membership per season. A single payment to compete on the official calendar.',
       plansLeadCheckoutSoon: 'We are preparing the 26/27 season opening.',
       promoSoonEyebrow: 'Official opening',
       promoSoonTitle: 'Annual membership + Pitbull Classic registration',
@@ -1094,7 +1128,8 @@ export default {
       planMonthly: 'monthly',
       plansComingSoon: 'Membership plans will be available soon.',
       plansComingSoonEyebrow: 'Current season',
-      plansComingSoonLead: 'Official pricing is being published. In the meantime you can review benefits and requirements.',
+      plansComingSoonLead:
+        'Official pricing is being published. In the meantime you can review benefits and requirements.',
       plansLoading: 'Checking current plans and prices…',
       plansLoadError: 'We could not load the current plans.',
       plansRetry: 'Retry',
@@ -1105,8 +1140,10 @@ export default {
       closureTitleActive: 'Your membership is active',
       closureLead: 'One flow: pay, see active status, and use the same QR at check-in.',
       closureReassure: 'Payment, active status, and the same QR at check-in.',
-      closureLeadSoon: 'When checkout opens, everything closes here: payment, status, and QR on your profile.',
-      closureLeadActive: 'Credential and QR ready on your profile. The official calendar is waiting.',
+      closureLeadSoon:
+        'When checkout opens, everything closes here: payment, status, and QR on your profile.',
+      closureLeadActive:
+        'Credential and QR ready on your profile. The official calendar is waiting.',
       afterPayCtaCredential: 'View my credential',
       afterPayCtaCalendar: 'Go to calendar',
       requirementsTitle: 'Before you apply',
@@ -1384,7 +1421,8 @@ export default {
         coordinatesTitle: 'Address confirmed, coordinates pending',
         coordinatesCopy: 'The map activates once the team publishes verified coordinates.',
         locationTitle: 'Precise location pending',
-        locationCopy: 'The event stays in the calendar; the map activates with a verified address and coordinates.',
+        locationCopy:
+          'The event stays in the calendar; the map activates with a verified address and coordinates.',
         fallbackEyebrowPending: 'Cartography',
         fallbackEyebrowLoading: 'Map',
         fallbackEyebrowEmpty: 'Calendar',
@@ -1872,8 +1910,7 @@ export default {
       costComboSavings: 'Save {{amount}}',
       registerCombo: 'Register',
       cardDescOpen: 'Requires active membership and meet payment.',
-      cardDescCombo:
-        'Annual membership and meet registration, together.',
+      cardDescCombo: 'Annual membership and meet registration, together.',
       cardDescClosed: 'Registration is not open yet. You can join now to get ahead.',
       progressAria: 'Registration progress',
       progressProfile: 'Profile',
@@ -2003,7 +2040,8 @@ export default {
       recentRegistrantsEmptyNote: 'Names appear here as soon as they are confirmed.',
       recentRegistrantsAria: 'Recent tournament registrants',
       recentRegistrantsLiveHint: 'Live',
-      recentRegistrantsFallbackHint: 'Meet capacity is shown as reference until registration opens.',
+      recentRegistrantsFallbackHint:
+        'Meet capacity is shown as reference until registration opens.',
       ticketOnlineLabel: 'Online purchase',
       ticketPresencialLabel: 'At the door',
       ticketOnlineNote: 'Preferred price when buying online',
@@ -2281,14 +2319,16 @@ export default {
       salesPaused: 'Coming soon · spectator ticket sales are not enabled yet.',
       salesPausedEyebrow: 'Tickets',
       salesPausedTitle: 'Coming soon',
-      salesPausedLead: 'We are preparing spectator ticket sales. Check back soon for the available options.',
+      salesPausedLead:
+        'We are preparing spectator ticket sales. Check back soon for the available options.',
       checkoutStepsAria: 'Purchase steps',
       checkoutStep1: 'Quantity',
       checkoutStep2: 'Details',
       checkoutStep3: 'Payment',
       secureFlow: 'Secure payment · QR on confirmation',
       closed: 'Ticket sales are not enabled for this event.',
-      checkoutSoon: 'Ticket sales open with registration. Ask for a notification from Home or Pitbull Classic.',
+      checkoutSoon:
+        'Ticket sales open with registration. Ask for a notification from Home or Pitbull Classic.',
     },
     shop: {
       eyebrow: 'PLU ARG',
@@ -2319,7 +2359,8 @@ export default {
       salesClosed: 'Sales closed',
       buyTickets: 'Buy tickets',
       checkoutSoonLabel: 'Coming soon',
-      checkoutSoonNote: 'Paid checkout is closed. You can still open the event page without paying.',
+      checkoutSoonNote:
+        'Paid checkout is closed. You can still open the event page without paying.',
       drawerTicketsHint: 'Spectator ticket · no membership required',
       merchTitle: 'Official merch',
       merchText:
@@ -2405,7 +2446,8 @@ export default {
       proofSelected: 'Selected file: {{name}}',
       proofSubmit: 'Send receipt',
       proofSubmitting: 'Uploading…',
-      proofUploaded: 'Receipt sent. Administration reviews it within up to 48 hours to enable your QR.',
+      proofUploaded:
+        'Receipt sent. Administration reviews it within up to 48 hours to enable your QR.',
       proofUploadError: 'Could not upload the receipt. Please try again.',
       total: 'Total',
       buy_one: 'Pay',
@@ -2444,6 +2486,21 @@ export default {
       profileEyebrow: 'PLU ARG credential',
       profileDesc: 'Complete your details to activate your digital credential.',
       profileSubmit: 'Create profile',
+      profileWelcomeEyebrow: 'Account created',
+      profileWelcomeTitle: 'Welcome to PLU Argentina',
+      profileWelcomeDesc: "Here's how you'll access it from now on.",
+      sealProfileEyebrow: 'Account verified',
+      sealProfileHello: 'Hi, {{name}}',
+      sealProfileTitle: 'Your account is ready',
+      profileWelcomeStep1Title: "How you'll log back in",
+      profileWelcomeStep1Body: 'With your email and password, from "Log in" on the site.',
+      profileWelcomeStep2Title: 'Your QR credential',
+      profileWelcomeStep2Body:
+        "It activates as soon as you join or register for a meet. You'll find it under the Credential tab in your panel.",
+      profileWelcomeStep3Title: 'Your data and security',
+      profileWelcomeStep3Body:
+        'Edit your profile or change your password anytime, from your panel.',
+      profileWelcomeCta: 'Go to my profile',
       competitionTitle: 'Registration',
       competitionEyebrow: 'Competition registration',
       competitionDesc: '{{name}}, complete your details for {{event}}.',
@@ -2452,14 +2509,17 @@ export default {
       competitionProfileStateReady: 'Profile complete',
       competitionProfileStateIncomplete: 'Details pending',
       competitionProfileReady: 'Your details are ready. Define your entry to continue.',
-      competitionProfileMissing: 'Complete the missing details before generating your registration.',
+      competitionProfileMissing:
+        'Complete the missing details before generating your registration.',
       competitionProfileAction: 'Complete profile',
       competitionProfileReview: 'Review profile',
       competitionProfileYears: 'years',
       competitionProfileSex: 'Competitive sex',
-      competitionCommitmentLocked: 'Your division, category, and declared bodyweight for this competition are already recorded.',
+      competitionCommitmentLocked:
+        'Your division, category, and declared bodyweight for this competition are already recorded.',
       competitionSubmit: 'Generate registration',
-      checkoutSoon: 'Paid checkout and registrations open soon. Create your account and ask to be notified.',
+      checkoutSoon:
+        'Paid checkout and registrations open soon. Create your account and ask to be notified.',
       registrationCheckoutSoonEyebrow: 'Registration closed',
       registrationCheckoutSoonTitle: 'Tournament registration coming soon',
       registrationCheckoutSoonLead:
@@ -2477,6 +2537,7 @@ export default {
       discountApply: 'Apply',
       discountChecking: 'Validating...',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
+      discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -2485,11 +2546,13 @@ export default {
         not_applicable: 'That code does not apply to this payment.',
         limit_reached: 'That code reached its use limit.',
         already_used: 'You already used that code.',
+        no_savings: 'That code does not improve the price of this purchase.',
       },
       competitionPaymentTitle: 'How you pay',
       competitionPaymentDesc: 'Choose how to generate the order.',
       paymentMpHint: 'Automatic confirmation',
-      paymentMercadoPagoOnlyHint: 'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash at Pitbull will be available soon.',
+      paymentMercadoPagoOnlyHint:
+        'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash at Pitbull will be available soon.',
       paymentLinkLabel: 'Payment link',
       paymentTransferLabel: 'Bank transfer',
       paymentCashPitbullLabel: 'Cash at Pitbull',
@@ -2520,7 +2583,8 @@ export default {
       membershipPlanLabel: 'Annual membership',
       membershipValidityNote: 'Valid until December 31.',
       membershipPaymentHintMp: 'Confirming generates the payment order.',
-      membershipPaymentHintManual: 'With bank transfer, Administration validates payment within up to 48 hours before activation.',
+      membershipPaymentHintManual:
+        'With bank transfer, Administration validates payment within up to 48 hours before activation.',
       backToPlans: 'Back to plans',
       membershipConfirmedPendingTitle: 'Order registered',
       membershipConfirmedPendingDesc: 'Complete payment to activate your membership.',
@@ -2532,7 +2596,8 @@ export default {
       membershipAmountLabel: 'Amount',
       membershipNextStepMp: 'Complete payment to activate membership.',
       continueMercadoPago: 'Continue to Mercado Pago',
-      membershipNextStepManual: 'Administration will validate the bank transfer within up to 48 hours.',
+      membershipNextStepManual:
+        'Administration will validate the bank transfer within up to 48 hours.',
       membershipShareCard: 'Download and share my card',
       competitionShareCard: 'Download and share my card',
       competitionCardEyebrow: 'Your spot is confirmed',
@@ -2558,7 +2623,8 @@ export default {
         submit: 'Unlock',
         checking: 'Checking…',
         requirementsChecking: 'Validating access window...',
-        requirementsUnavailable: 'We could not validate whether this window requires a password. Try again in a few seconds.',
+        requirementsUnavailable:
+          'We could not validate whether this window requires a password. Try again in a few seconds.',
         cancel: 'Cancel',
         close: 'Close',
         help: 'If you do not have it, ask the organization before attempting payment.',

@@ -18,7 +18,9 @@ export const Busy = {
 export const Manual = {
   args: {},
   play: async ({ canvasElement }) => {
-    const manualButton = canvasElement.querySelector('.admin-checkin-scanner__mode-switch button:last-child')
+    const manualButton = canvasElement.querySelector(
+      '.admin-checkin-scanner__mode-switch button:last-child',
+    )
     manualButton?.click()
   },
 }

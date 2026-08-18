@@ -24,13 +24,7 @@ describe('navegación pública', () => {
     const primaryKeys = PUBLIC_NAVIGATION.primary.map(({ key }) => key)
 
     expect(new Set(primaryKeys).size).toBe(primaryKeys.length)
-    expect(primaryKeys).toEqual([
-      'members',
-      'competition',
-      'results',
-      'records',
-      'more',
-    ])
+    expect(primaryKeys).toEqual(['members', 'competition', 'results', 'records', 'more'])
   })
 
   it('solo referencia vistas públicas reales', () => {

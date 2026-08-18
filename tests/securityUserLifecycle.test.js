@@ -36,14 +36,24 @@ describe('classifySecurityUsers', () => {
 
   it('trata como huérfano al evento ausente del Map (borrado de Supabase)', () => {
     const users = [{ eventId: 'evt-gone', status: 'active' }]
-    const result = classifySecurityUsers({ users, eventsById: new Map(), now: NOW, graceMs: GRACE_MS })
+    const result = classifySecurityUsers({
+      users,
+      eventsById: new Map(),
+      now: NOW,
+      graceMs: GRACE_MS,
+    })
     expect(result.disableEventIds).toEqual(['evt-gone'])
     expect(result.purgeEventIds).toEqual(['evt-gone'])
   })
 
   it('ignora cuentas sin eventId', () => {
     const users = [{ eventId: null, status: 'active' }]
-    const result = classifySecurityUsers({ users, eventsById: new Map(), now: NOW, graceMs: GRACE_MS })
+    const result = classifySecurityUsers({
+      users,
+      eventsById: new Map(),
+      now: NOW,
+      graceMs: GRACE_MS,
+    })
     expect(result).toEqual({ disableEventIds: [], purgeEventIds: [] })
   })
 

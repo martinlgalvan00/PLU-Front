@@ -3,7 +3,10 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync(
-  resolve(process.cwd(), 'supabase/migrations/20260819160000_repoint_active_pitbull_combo_plan.sql'),
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20260819160000_repoint_active_pitbull_combo_plan.sql',
+  ),
   'utf8',
 )
 
@@ -19,6 +22,8 @@ describe('oferta activa del combo Pitbull', () => {
   it('no bloquea un reset limpio y desactiva una oferta existente sin plan apto', () => {
     expect(migration).toContain('set active = false, updated_at = now()')
     expect(migration).toContain('raise notice')
-    expect(migration).not.toContain("raise exception 'La oferta activa de Pitbull no tiene un plan anual vigente.'")
+    expect(migration).not.toContain(
+      "raise exception 'La oferta activa de Pitbull no tiene un plan anual vigente.'",
+    )
   })
 })

@@ -167,7 +167,8 @@ export const PERMISSION_CATALOG = [
     moduleLabel: 'Tandas de inscripción',
     action: 'read',
     actionLabel: 'Leer',
-    description: 'Consultar los códigos y ventanas de habilitación de afiliaciones e inscripciones.',
+    description:
+      'Consultar los códigos y ventanas de habilitación de afiliaciones e inscripciones.',
     sortOrder: 67,
   },
   {
@@ -436,7 +437,7 @@ function subjectPermissionKeys(subject) {
   const roleKey =
     typeof subject === 'string'
       ? subject
-      : subject?.roleKey ?? subject?.accessRole?.key ?? subject?.role
+      : (subject?.roleKey ?? subject?.accessRole?.key ?? subject?.role)
 
   return DEFAULT_ROLE_PERMISSIONS[roleKey] ?? DEFAULT_ROLE_PERMISSIONS[subject?.role] ?? []
 }
@@ -460,8 +461,7 @@ export function canManageRolePermissions(actor, targetRole) {
   const targetKey = getAccessRoleKey(targetRole)
   const targetLevel = getRoleHierarchyLevel(targetRole)
   const targetIsProtected =
-    targetRole?.isProtected === true ||
-    ['admin_maximal', 'admin_plu_arg'].includes(targetKey)
+    targetRole?.isProtected === true || ['admin_maximal', 'admin_plu_arg'].includes(targetKey)
   const targetIsActive = targetRole?.active !== false
 
   return (
@@ -476,8 +476,14 @@ export function canManageRolePermissions(actor, targetRole) {
 export function canManageRoleLifecycle(actor, targetRole) {
   const actorLevel = getRoleHierarchyLevel(actor)
   const targetKey = getAccessRoleKey(targetRole)
-  const protectedRole = targetRole?.isProtected === true || ['admin_maximal', 'admin_plu_arg'].includes(targetKey)
-  return actorLevel <= 2 && Boolean(targetKey) && !protectedRole && actorLevel < getRoleHierarchyLevel(targetRole)
+  const protectedRole =
+    targetRole?.isProtected === true || ['admin_maximal', 'admin_plu_arg'].includes(targetKey)
+  return (
+    actorLevel <= 2 &&
+    Boolean(targetKey) &&
+    !protectedRole &&
+    actorLevel < getRoleHierarchyLevel(targetRole)
+  )
 }
 
 export function hasPermission(subject, permissionKey) {
@@ -491,10 +497,8 @@ export function hasAnyPermission(subject, permissionKeys) {
 export function hasEventScopeAccess(subject, { eventId = null, eventSlug = null } = {}) {
   if (!hasPermission(subject, 'admin.checkin.execute')) return false
 
-  const assignedEventId =
-    subject && typeof subject === 'object' ? subject.eventId : null
-  const assignedEventSlug =
-    subject && typeof subject === 'object' ? subject.eventSlug : null
+  const assignedEventId = subject && typeof subject === 'object' ? subject.eventId : null
+  const assignedEventSlug = subject && typeof subject === 'object' ? subject.eventSlug : null
 
   if (!assignedEventId && !assignedEventSlug) return true
   if (assignedEventId && eventId) return assignedEventId === eventId

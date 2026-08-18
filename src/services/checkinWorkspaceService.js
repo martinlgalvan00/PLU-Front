@@ -28,9 +28,18 @@ function matchesStatus(row, status) {
 
 const STATUS_ORDER = { pagada: 0, pendiente: 1, pendiente_pago: 1, confirmada: 1, usada: 2 }
 
-export function buildCheckinRows({ athletes = [], registrations = [], tickets = [], eventSlug, ticketTypes = [] }) {
+export function buildCheckinRows({
+  athletes = [],
+  registrations = [],
+  tickets = [],
+  eventSlug,
+  ticketTypes = [],
+}) {
   const athleteRows = registrations
-    .filter((registration) => registration.status !== 'cancelada' && belongsToEvent(registration, eventSlug))
+    .filter(
+      (registration) =>
+        registration.status !== 'cancelada' && belongsToEvent(registration, eventSlug),
+    )
     .map((registration) => {
       const athlete = athletes.find((item) => item.id === registration.athleteId)
       return {
@@ -88,7 +97,10 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
   }
 }
 
-export function filterCheckinRows(rows = [], { query = '', type = 'all', day = 'all', status = 'all' } = {}) {
+export function filterCheckinRows(
+  rows = [],
+  { query = '', type = 'all', day = 'all', status = 'all' } = {},
+) {
   const normalizedQuery = query.trim().toLocaleLowerCase('es')
 
   return rows.filter((row) => {

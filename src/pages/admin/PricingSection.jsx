@@ -18,6 +18,8 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import { FEATURE_KEYS, isFeatureEnabled } from '../../lib/featureAvailability.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
+import { getPricingTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
 import { getDiscountCodeAvailability } from '../../services/pricingAdminService.js'
 
@@ -27,6 +29,7 @@ const EMPTY_PLAN = {
   name: '',
   description: '',
   price: '',
+  manualPrice: '',
   currency: 'ARS',
   billingFrequency: 'annual',
   collectionMode: 'one_time',
@@ -36,15 +39,26 @@ const EMPTY_PLAN = {
   retiresAt: '',
 }
 
+// Mercado Pago no se lista: está siempre disponible y no se puede apagar por
+// código. Sólo los canales manuales son opt-in.
+const MANUAL_PAYMENT_CHANNELS = ['bank_transfer', 'cash_pitbull']
+
 const EMPTY_DISCOUNT_CODE = {
   id: undefined,
   code: '',
   description: '',
+  // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final de
+  // la compra (promo tipo "afiliación + inscripción a $120.000").
+  kind: 'percent',
   percentOff: '',
+  fixedPrice: '',
   appliesTo: 'membership',
   maxRedemptions: '',
   expiresAt: '',
   active: true,
+  // Canales manuales que el código destraba, además de Mercado Pago (que
+  // siempre está disponible). Vacío = sólo Mercado Pago.
+  manualChannels: [],
 }
 
 const SUBSCRIPTION_STATUS_LABELS = {
@@ -67,7 +81,8 @@ function toLocalDateTime(value) {
 const DAY_MS = 86_400_000
 
 function describeExpiry(expiresAt, now, locale, t) {
-  if (!expiresAt) return { label: t('admin.sections.pricing.noExpiry'), urgent: false, expired: false }
+  if (!expiresAt)
+    return { label: t('admin.sections.pricing.noExpiry'), urgent: false, expired: false }
   const date = new Date(expiresAt)
   const dateLabel = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date)
   const diffDays = Math.floor((date.getTime() - now.getTime()) / DAY_MS)
@@ -75,19 +90,30 @@ function describeExpiry(expiresAt, now, locale, t) {
   if (diffDays < 0) {
     const daysAgo = Math.abs(diffDays)
     return {
-      label: daysAgo === 1
-        ? t('admin.sections.pricing.expiredYesterday')
-        : t('admin.sections.pricing.expiredDaysAgo', { count: daysAgo }),
+      label:
+        daysAgo === 1
+          ? t('admin.sections.pricing.expiredYesterday')
+          : t('admin.sections.pricing.expiredDaysAgo', { count: daysAgo }),
       urgent: true,
       expired: true,
     }
   }
-  if (diffDays === 0) return { label: t('admin.sections.pricing.expiresToday'), urgent: true, expired: false }
-  if (diffDays === 1) return { label: t('admin.sections.pricing.expiresTomorrow'), urgent: true, expired: false }
+  if (diffDays === 0)
+    return { label: t('admin.sections.pricing.expiresToday'), urgent: true, expired: false }
+  if (diffDays === 1)
+    return { label: t('admin.sections.pricing.expiresTomorrow'), urgent: true, expired: false }
   if (diffDays <= 7) {
-    return { label: t('admin.sections.pricing.expiresInDays', { count: diffDays }), urgent: true, expired: false }
+    return {
+      label: t('admin.sections.pricing.expiresInDays', { count: diffDays }),
+      urgent: true,
+      expired: false,
+    }
   }
-  return { label: t('admin.sections.pricing.expiresOn', { date: dateLabel }), urgent: false, expired: false }
+  return {
+    label: t('admin.sections.pricing.expiresOn', { date: dateLabel }),
+    urgent: false,
+    expired: false,
+  }
 }
 
 function planStatus(plan, now) {
@@ -96,7 +122,11 @@ function planStatus(plan, now) {
   return 'active'
 }
 
-const PRICING_LIVE_SYNC_MS = 10_000
+// Lo que se mira acá son cupos de códigos de descuento que se canjean de a uno
+// desde los checkouts, no un contador que corra solo. A 10 s una pestaña de
+// panel abierta durante la jornada pedía el catálogo completo unas 2.900 veces
+// por operador; a 30 s el operador ve lo mismo y la función se invoca un tercio.
+const PRICING_LIVE_SYNC_MS = 30_000
 const COPY_FEEDBACK_MS = 2_000
 
 async function copyText(value) {
@@ -131,6 +161,7 @@ export default function PricingSection({
   onSetPlanRetirement,
   onUpsertDiscountCode,
   onSetDiscountCodeActive,
+  onDeleteDiscountCode,
   subscriptions = [],
   subscriptionsLoading = false,
   subscriptionsError,
@@ -138,6 +169,13 @@ export default function PricingSection({
   onCancelSubscription,
 }) {
   const { locale, t } = useI18n()
+  const { startTour } = useAdminTour()
+
+  useEffect(() => {
+    startTour('admin-pricing', getPricingTourSteps(t))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, [])
+
   const [planDraft, setPlanDraft] = useState(null)
   const [planError, setPlanError] = useState('')
   const [planToDelete, setPlanToDelete] = useState(null)
@@ -150,6 +188,7 @@ export default function PricingSection({
   const [comboDraft, setComboDraft] = useState({
     membershipPlanId: '',
     price: '',
+    manualPrice: '',
     startsAt: '',
     endsAt: '',
     active: false,
@@ -159,6 +198,8 @@ export default function PricingSection({
   const [codeDraft, setCodeDraft] = useState(null)
   const [codeError, setCodeError] = useState('')
   const [copiedCodeId, setCopiedCodeId] = useState(null)
+  const [codeToDelete, setCodeToDelete] = useState(null)
+  const [codeDeleteError, setCodeDeleteError] = useState('')
   const [cancelTarget, setCancelTarget] = useState(null)
   const [cancelError, setCancelError] = useState('')
   const planFormRef = useRef(null)
@@ -191,9 +232,12 @@ export default function PricingSection({
     onRefreshSubscriptions?.()
   }, [onRefreshSubscriptions])
 
-  useEffect(() => () => {
-    window.clearTimeout(copyFeedbackTimeoutRef.current)
-  }, [])
+  useEffect(
+    () => () => {
+      window.clearTimeout(copyFeedbackTimeoutRef.current)
+    },
+    [],
+  )
 
   async function copyDiscountCode(code) {
     try {
@@ -209,8 +253,7 @@ export default function PricingSection({
   }
 
   const pricingWritesEnabled = isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-  const locked =
-    !pricingWritesEnabled || configuration.availability?.editable === false || !canEdit
+  const locked = !pricingWritesEnabled || configuration.availability?.editable === false || !canEdit
   const showProductionLock =
     !pricingWritesEnabled || configuration.availability?.reason === 'production_coming_soon'
   const now = useMemo(() => new Date(), [])
@@ -241,21 +284,35 @@ export default function PricingSection({
     })
   }, [configuration.discountCodes, now])
   const oneTimePlans = useMemo(
-    () => plans.filter((plan) => {
-      if (!plan.active || plan.collectionMode !== 'one_time') return false
-      if (plan.effectiveFrom && new Date(plan.effectiveFrom) > now) return false
-      return !plan.retiredAt || new Date(plan.retiredAt) > now
-    }),
+    () =>
+      plans.filter((plan) => {
+        if (!plan.active || plan.collectionMode !== 'one_time') return false
+        if (plan.effectiveFrom && new Date(plan.effectiveFrom) > now) return false
+        return !plan.retiredAt || new Date(plan.retiredAt) > now
+      }),
     [now, plans],
   )
-  const selectedEvent = events.find((event) => event.slug === selectedEventSlug) ?? events[0] ?? null
+  const selectedEvent =
+    events.find((event) => event.slug === selectedEventSlug) ?? events[0] ?? null
   const selectedPlan = oneTimePlans.find((plan) => plan.id === comboDraft.membershipPlanId) ?? null
   const separatePrice =
     Number(selectedPlan?.price ?? 0) + Number(selectedEvent?.registrationPrice ?? 0)
   const comboPriceValue = Number(comboDraft.price)
   const comboSavings =
-    Number.isInteger(comboPriceValue) && comboPriceValue > 0 ? separatePrice - comboPriceValue : null
+    Number.isInteger(comboPriceValue) && comboPriceValue > 0
+      ? separatePrice - comboPriceValue
+      : null
   const comboOverLimit = comboSavings != null && comboSavings < 0
+  // Mismo tope que aplica staff_save_event_combo_offer del lado del servidor:
+  // la suma de los precios manuales (o de catálogo si el plan/evento no tiene
+  // uno propio) del plan y el evento.
+  const separateManualPrice =
+    Number(selectedPlan?.manualPrice ?? selectedPlan?.price ?? 0) +
+    Number(selectedEvent?.registrationManualPrice ?? selectedEvent?.registrationPrice ?? 0)
+  const comboManualPriceValue =
+    comboDraft.manualPrice === '' ? null : Number(comboDraft.manualPrice)
+  const comboManualOverLimit =
+    comboManualPriceValue != null && comboManualPriceValue > separateManualPrice
 
   useEffect(() => {
     if (!selectedEventSlug && events[0]) setSelectedEventSlug(events[0].slug)
@@ -267,6 +324,7 @@ export default function PricingSection({
     setComboDraft({
       membershipPlanId: offer?.membershipPlanId ?? oneTimePlans[0]?.id ?? '',
       price: offer?.price ?? '',
+      manualPrice: offer?.manualPrice ?? '',
       startsAt: toLocalDateTime(offer?.startsAt),
       endsAt: toLocalDateTime(offer?.endsAt),
       active: offer?.active === true,
@@ -284,7 +342,9 @@ export default function PricingSection({
     if (typeof form?.scrollIntoView === 'function') {
       form.scrollIntoView({ block: 'nearest' })
     }
-    const firstField = form?.querySelector('input:not([disabled]), textarea:not([disabled]), select:not([disabled])')
+    const firstField = form?.querySelector(
+      'input:not([disabled]), textarea:not([disabled]), select:not([disabled])',
+    )
     firstField?.focus?.()
     return undefined
   }, [planFormOpen])
@@ -312,6 +372,7 @@ export default function PricingSection({
             name: source.name,
             description: source.description,
             price: source.price,
+            manualPrice: source.manualPrice ?? '',
             currency: 'ARS',
             billingFrequency: source.billingFrequency,
             collectionMode: source.collectionMode,
@@ -328,6 +389,7 @@ export default function PricingSection({
     event.preventDefault()
     setPlanError('')
     const price = Number(planDraft.price)
+    const manualPrice = planDraft.manualPrice === '' ? undefined : Number(planDraft.manualPrice)
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(planDraft.familyCode)) {
       setPlanError(t('admin.sections.pricing.familyCodeHint'))
       return
@@ -336,9 +398,13 @@ export default function PricingSection({
       setPlanError(t('admin.sections.pricing.loadError'))
       return
     }
+    if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
+      setPlanError(t('admin.sections.pricing.loadError'))
+      return
+    }
 
     setPendingAction('plan')
-    const result = await onCreatePlanVersion?.({ ...planDraft, price })
+    const result = await onCreatePlanVersion?.({ ...planDraft, price, manualPrice })
     setPendingAction('')
     if (result?.error) {
       setPlanError(result.error)
@@ -386,11 +452,14 @@ export default function PricingSection({
             id: source.id,
             code: source.code,
             description: source.description,
-            percentOff: source.percentOff,
+            kind: source.kind ?? 'percent',
+            percentOff: source.kind === 'fixed_price' ? '' : source.percentOff,
+            fixedPrice: source.fixedPrice ?? '',
             appliesTo: source.appliesTo,
             maxRedemptions: source.maxRedemptions ?? '',
             expiresAt: toLocalDateTime(source.expiresAt),
             active: source.active,
+            manualChannels: source.manualChannels ?? [],
           }
         : { ...EMPTY_DISCOUNT_CODE },
     )
@@ -399,13 +468,25 @@ export default function PricingSection({
   async function submitCode(event) {
     event.preventDefault()
     setCodeError('')
+    const isFixedPrice = codeDraft.kind === 'fixed_price'
     const percentOff = Number(codeDraft.percentOff)
+    const fixedPrice = Number(codeDraft.fixedPrice)
     if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(codeDraft.code.toUpperCase())) {
       setCodeError(t('admin.sections.pricing.codeFormatHint'))
       return
     }
-    if (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99) {
-      setCodeError(t('admin.sections.pricing.loadError'))
+    if (!isFixedPrice && (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99)) {
+      setCodeError(t('admin.sections.pricing.percentOffInvalid'))
+      return
+    }
+    if (isFixedPrice && (!Number.isInteger(fixedPrice) || fixedPrice < 1)) {
+      setCodeError(t('admin.sections.pricing.fixedPriceInvalid'))
+      return
+    }
+    // El servidor lo rechaza igual; adelantarlo acá evita el viaje y explica
+    // el porqué en el mismo formulario.
+    if (isFixedPrice && codeDraft.appliesTo === 'both') {
+      setCodeError(t('admin.sections.pricing.fixedPriceScopeInvalid'))
       return
     }
 
@@ -413,8 +494,10 @@ export default function PricingSection({
     const result = await onUpsertDiscountCode?.({
       ...codeDraft,
       code: codeDraft.code.toUpperCase(),
-      percentOff,
-      maxRedemptions: codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
+      percentOff: isFixedPrice ? undefined : percentOff,
+      fixedPrice: isFixedPrice ? fixedPrice : undefined,
+      maxRedemptions:
+        codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
     })
     setPendingAction('')
     if (result?.error) {
@@ -432,6 +515,22 @@ export default function PricingSection({
     setPendingAction('')
     if (result?.error) setCodeError(result.error)
     else setNotice(t('admin.sections.pricing.saved'))
+  }
+
+  async function confirmDeleteCode() {
+    if (!codeToDelete) return
+    setPendingAction(`delete-code:${codeToDelete.id}`)
+    setCodeDeleteError('')
+    setNotice('')
+    const result = await onDeleteDiscountCode?.(codeToDelete.id)
+    setPendingAction('')
+    if (result?.error) {
+      setCodeDeleteError(result.error)
+      return
+    }
+    setCodeDraft((current) => (current?.id === codeToDelete.id ? null : current))
+    setCodeToDelete(null)
+    setNotice(t('admin.sections.pricing.codeDeleted'))
   }
 
   async function confirmCancelSubscription() {
@@ -468,12 +567,22 @@ export default function PricingSection({
     setComboError('')
     setNotice('')
     const price = Number(comboDraft.price)
-    const separatePrice = Number(selectedPlan?.price ?? 0) + Number(selectedEvent?.registrationPrice ?? 0)
+    const manualPrice = comboDraft.manualPrice === '' ? undefined : Number(comboDraft.manualPrice)
+    const separatePrice =
+      Number(selectedPlan?.price ?? 0) + Number(selectedEvent?.registrationPrice ?? 0)
     if (!selectedEvent || !selectedPlan || !Number.isInteger(price) || price <= 0) {
       setComboError(t('admin.sections.pricing.loadError'))
       return
     }
     if (price > separatePrice) {
+      setComboError(t('admin.eventEditor.validation.comboTooHigh'))
+      return
+    }
+    if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
+      setComboError(t('admin.sections.pricing.loadError'))
+      return
+    }
+    if (manualPrice !== undefined && manualPrice > separateManualPrice) {
       setComboError(t('admin.eventEditor.validation.comboTooHigh'))
       return
     }
@@ -483,7 +592,11 @@ export default function PricingSection({
     }
 
     setPendingAction('combo')
-    const result = await onSaveComboOffer?.(selectedEvent.slug, { ...comboDraft, price })
+    const result = await onSaveComboOffer?.(selectedEvent.slug, {
+      ...comboDraft,
+      price,
+      manualPrice,
+    })
     setPendingAction('')
     if (result?.error) setComboError(result.error)
     else {
@@ -530,7 +643,11 @@ export default function PricingSection({
           {error}
         </div>
       ) : null}
-      {notice ? <div className="admin-pricing__message" role="status">{notice}</div> : null}
+      {notice ? (
+        <div className="admin-pricing__message" role="status">
+          {notice}
+        </div>
+      ) : null}
       {isLoading && plans.length === 0 ? (
         <p className="admin-pricing__loading">{t('admin.sections.pricing.loading')}</p>
       ) : null}
@@ -552,11 +669,17 @@ export default function PricingSection({
           </button>
         </header>
 
-        <div className="admin-pricing__plan-list" role="list" aria-label={t('admin.sections.pricing.plansTitle')}>
+        <div
+          className="admin-pricing__plan-list"
+          role="list"
+          aria-label={t('admin.sections.pricing.plansTitle')}
+        >
           {plans.map((plan) => {
             const status = planStatus(plan, now)
             const effectiveLabel = plan.effectiveFrom
-              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(plan.effectiveFrom))
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+                  new Date(plan.effectiveFrom),
+                )
               : '—'
 
             return (
@@ -577,11 +700,17 @@ export default function PricingSection({
                     </span>
                   </div>
                   <p className="admin-pricing__plan-meta">
-                    <span><code>{plan.familyCode}</code></span>
-                    <span>{t('admin.sections.pricing.currentVersion', { version: plan.version })}</span>
+                    <span>
+                      <code>{plan.familyCode}</code>
+                    </span>
+                    <span>
+                      {t('admin.sections.pricing.currentVersion', { version: plan.version })}
+                    </span>
                     <span>{t(`admin.sections.pricing.${plan.billingFrequency}`)}</span>
                     <span>
-                      {t(`admin.sections.pricing.${plan.collectionMode === 'recurring' ? 'recurring' : 'oneTime'}`)}
+                      {t(
+                        `admin.sections.pricing.${plan.collectionMode === 'recurring' ? 'recurring' : 'oneTime'}`,
+                      )}
                     </span>
                     <span className="admin-pricing__plan-meta-date">
                       <CalendarClock size={12} aria-hidden />
@@ -643,7 +772,9 @@ export default function PricingSection({
                     />
                     <span aria-hidden />
                     <strong>
-                      {t(`admin.sections.pricing.${plan.active ? 'activeSwitch' : 'cancelledSwitch'}`)}
+                      {t(
+                        `admin.sections.pricing.${plan.active ? 'activeSwitch' : 'cancelledSwitch'}`,
+                      )}
                     </strong>
                   </label>
                 </div>
@@ -690,12 +821,7 @@ export default function PricingSection({
         </div>
 
         {planDraft ? (
-          <form
-            ref={planFormRef}
-            className="admin-pricing__form"
-            onSubmit={submitPlan}
-            noValidate
-          >
+          <form ref={planFormRef} className="admin-pricing__form" onSubmit={submitPlan} noValidate>
             <header>
               <h3>
                 {planDraft.sourcePlanId
@@ -709,7 +835,9 @@ export default function PricingSection({
                 <input
                   name="familyCode"
                   value={planDraft.familyCode}
-                  onChange={(event) => setPlanDraft({ ...planDraft, familyCode: event.target.value.toLowerCase() })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, familyCode: event.target.value.toLowerCase() })
+                  }
                   disabled={Boolean(planDraft.sourcePlanId)}
                   required
                 />
@@ -728,7 +856,9 @@ export default function PricingSection({
                 <span>{t('admin.sections.pricing.description')}</span>
                 <textarea
                   value={planDraft.description}
-                  onChange={(event) => setPlanDraft({ ...planDraft, description: event.target.value })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, description: event.target.value })
+                  }
                   rows={3}
                 />
               </label>
@@ -745,6 +875,21 @@ export default function PricingSection({
                 />
               </label>
               <label>
+                <span>{t('admin.sections.pricing.manualPrice')}</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="10000000"
+                  step="1"
+                  placeholder={t('admin.sections.pricing.manualPricePlaceholder')}
+                  value={planDraft.manualPrice}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, manualPrice: event.target.value })
+                  }
+                />
+                <small>{t('admin.sections.pricing.manualPriceHint')}</small>
+              </label>
+              <label>
                 <span>{t('admin.sections.pricing.currency')}</span>
                 <input value="ARS" disabled />
               </label>
@@ -752,7 +897,9 @@ export default function PricingSection({
                 <span>{t('admin.sections.pricing.billingFrequency')}</span>
                 <select
                   value={planDraft.billingFrequency}
-                  onChange={(event) => setPlanDraft({ ...planDraft, billingFrequency: event.target.value })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, billingFrequency: event.target.value })
+                  }
                 >
                   <option value="annual">{t('admin.sections.pricing.annual')}</option>
                   <option value="monthly">{t('admin.sections.pricing.monthly')}</option>
@@ -762,7 +909,9 @@ export default function PricingSection({
                 <span>{t('admin.sections.pricing.collectionMode')}</span>
                 <select
                   value={planDraft.collectionMode}
-                  onChange={(event) => setPlanDraft({ ...planDraft, collectionMode: event.target.value })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, collectionMode: event.target.value })
+                  }
                 >
                   <option value="one_time">{t('admin.sections.pricing.oneTime')}</option>
                   <option value="recurring">{t('admin.sections.pricing.recurring')}</option>
@@ -776,7 +925,9 @@ export default function PricingSection({
                   max="24"
                   step="1"
                   value={planDraft.intervalCount}
-                  onChange={(event) => setPlanDraft({ ...planDraft, intervalCount: event.target.value })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, intervalCount: event.target.value })
+                  }
                 />
               </label>
               <label>
@@ -787,7 +938,9 @@ export default function PricingSection({
                   max="90"
                   step="1"
                   value={planDraft.graceDays}
-                  onChange={(event) => setPlanDraft({ ...planDraft, graceDays: event.target.value })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, graceDays: event.target.value })
+                  }
                 />
               </label>
               <label>
@@ -795,7 +948,9 @@ export default function PricingSection({
                 <input
                   type="datetime-local"
                   value={planDraft.effectiveFrom}
-                  onChange={(event) => setPlanDraft({ ...planDraft, effectiveFrom: event.target.value })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, effectiveFrom: event.target.value })
+                  }
                 />
               </label>
               <label>
@@ -803,12 +958,18 @@ export default function PricingSection({
                 <input
                   type="datetime-local"
                   value={planDraft.retiresAt}
-                  onChange={(event) => setPlanDraft({ ...planDraft, retiresAt: event.target.value })}
+                  onChange={(event) =>
+                    setPlanDraft({ ...planDraft, retiresAt: event.target.value })
+                  }
                 />
                 <small>{t('admin.sections.pricing.retiresAtHint')}</small>
               </label>
             </fieldset>
-            {planError ? <p className="admin-pricing__form-error" role="alert">{planError}</p> : null}
+            {planError ? (
+              <p className="admin-pricing__form-error" role="alert">
+                {planError}
+              </p>
+            ) : null}
             <div className="admin-pricing__form-actions">
               <button
                 type="button"
@@ -853,7 +1014,10 @@ export default function PricingSection({
         />
       ) : null}
 
-      <section className="admin-pricing__block admin-pricing__block--combo" aria-labelledby="pricing-combo-title">
+      <section
+        className="admin-pricing__block admin-pricing__block--combo"
+        aria-labelledby="pricing-combo-title"
+      >
         <header className="admin-pricing__block-head">
           <div>
             <h2 id="pricing-combo-title">{t('admin.sections.pricing.comboTitle')}</h2>
@@ -914,9 +1078,7 @@ export default function PricingSection({
                 <div>
                   <dt>{t('admin.sections.pricing.comboSavings')}</dt>
                   <dd>
-                    {comboSavings != null && comboSavings >= 0
-                      ? money(comboSavings, locale)
-                      : '—'}
+                    {comboSavings != null && comboSavings >= 0 ? money(comboSavings, locale) : '—'}
                   </dd>
                 </div>
               </dl>
@@ -929,139 +1091,192 @@ export default function PricingSection({
                 onSubmit={submitCombo}
                 noValidate
               >
-            <div className="admin-pricing__combo-toolbar">
-              <label className="admin-pricing__combo-event">
-                <span>{t('admin.sections.pricing.event')}</span>
-                <select
-                  value={selectedEvent?.slug ?? ''}
-                  onChange={(event) => setSelectedEventSlug(event.target.value)}
-                  disabled={locked || pendingAction === 'combo'}
-                >
-                  {events.map((item) => (
-                    <option key={item.id} value={item.slug}>
-                      {item.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="admin-pricing__combo-plan">
-                <span>{t('admin.sections.pricing.membershipPlan')}</span>
-                <select
-                  value={comboDraft.membershipPlanId}
-                  onChange={(event) => setComboDraft({ ...comboDraft, membershipPlanId: event.target.value })}
-                  disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
-                  required
-                >
-                  {oneTimePlans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name} · {money(plan.price, locale)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {selectedPlan && selectedEvent ? (
-              <div
-                className={`admin-pricing__combo-board${comboOverLimit ? ' is-invalid' : ''}`.trim()}
-                aria-live="polite"
-              >
-                <div className="admin-pricing__combo-stack">
-                  <div className="admin-pricing__combo-line">
-                    <span>{t('admin.sections.pricing.membershipAmount')}</span>
-                    <strong>{money(selectedPlan.price, locale)}</strong>
-                  </div>
-                  <div className="admin-pricing__combo-op" aria-hidden>
-                    {t('admin.sections.pricing.comboPlus')}
-                  </div>
-                  <div className="admin-pricing__combo-line">
-                    <span>{t('admin.sections.pricing.registrationPrice')}</span>
-                    <strong>{money(selectedEvent.registrationPrice ?? 0, locale)}</strong>
-                  </div>
-                  <div className="admin-pricing__combo-op" aria-hidden>
-                    {t('admin.sections.pricing.comboEquals')}
-                  </div>
-                  <div className="admin-pricing__combo-line admin-pricing__combo-line--total">
-                    <span>{t('admin.sections.pricing.separateTotal')}</span>
-                    <strong>{money(separatePrice, locale)}</strong>
-                  </div>
-                </div>
-
-                <div className="admin-pricing__combo-decision">
-                  <label>
-                    <span>{t('admin.sections.pricing.comboPrice')}</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10000000"
-                      step="1"
-                      value={comboDraft.price}
-                      onChange={(event) => setComboDraft({ ...comboDraft, price: event.target.value })}
+                <div className="admin-pricing__combo-toolbar">
+                  <label className="admin-pricing__combo-event">
+                    <span>{t('admin.sections.pricing.event')}</span>
+                    <select
+                      value={selectedEvent?.slug ?? ''}
+                      onChange={(event) => setSelectedEventSlug(event.target.value)}
+                      disabled={locked || pendingAction === 'combo'}
+                    >
+                      {events.map((item) => (
+                        <option key={item.id} value={item.slug}>
+                          {item.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="admin-pricing__combo-plan">
+                    <span>{t('admin.sections.pricing.membershipPlan')}</span>
+                    <select
+                      value={comboDraft.membershipPlanId}
+                      onChange={(event) =>
+                        setComboDraft({ ...comboDraft, membershipPlanId: event.target.value })
+                      }
                       disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
                       required
+                    >
+                      {oneTimePlans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} · {money(plan.price, locale)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {selectedPlan && selectedEvent ? (
+                  <div
+                    className={`admin-pricing__combo-board${comboOverLimit ? ' is-invalid' : ''}`.trim()}
+                    aria-live="polite"
+                  >
+                    <div className="admin-pricing__combo-stack">
+                      <div className="admin-pricing__combo-line">
+                        <span>{t('admin.sections.pricing.membershipAmount')}</span>
+                        <strong>{money(selectedPlan.price, locale)}</strong>
+                      </div>
+                      <div className="admin-pricing__combo-op" aria-hidden>
+                        {t('admin.sections.pricing.comboPlus')}
+                      </div>
+                      <div className="admin-pricing__combo-line">
+                        <span>{t('admin.sections.pricing.registrationPrice')}</span>
+                        <strong>{money(selectedEvent.registrationPrice ?? 0, locale)}</strong>
+                      </div>
+                      <div className="admin-pricing__combo-op" aria-hidden>
+                        {t('admin.sections.pricing.comboEquals')}
+                      </div>
+                      <div className="admin-pricing__combo-line admin-pricing__combo-line--total">
+                        <span>{t('admin.sections.pricing.separateTotal')}</span>
+                        <strong>{money(separatePrice, locale)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="admin-pricing__combo-decision">
+                      <label>
+                        <span>{t('admin.sections.pricing.comboPrice')}</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10000000"
+                          step="1"
+                          value={comboDraft.price}
+                          onChange={(event) =>
+                            setComboDraft({ ...comboDraft, price: event.target.value })
+                          }
+                          disabled={
+                            locked || pendingAction === 'combo' || oneTimePlans.length === 0
+                          }
+                          required
+                        />
+                      </label>
+                      <p className="admin-pricing__combo-max">
+                        {t('admin.sections.pricing.comboMax', {
+                          amount: money(separatePrice, locale),
+                        })}
+                      </p>
+                      {comboSavings != null ? (
+                        <p
+                          className={`admin-pricing__combo-delta${comboOverLimit ? ' is-invalid' : ''}`.trim()}
+                        >
+                          {comboOverLimit
+                            ? t('admin.sections.pricing.comboOverLimit')
+                            : t('admin.sections.pricing.comboSavings')}
+                          {': '}
+                          <strong>{money(Math.abs(comboSavings), locale)}</strong>
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
+                <label>
+                  <span>{t('admin.sections.pricing.manualPrice')}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10000000"
+                    step="1"
+                    placeholder={t('admin.sections.pricing.manualPricePlaceholder')}
+                    value={comboDraft.manualPrice}
+                    onChange={(event) =>
+                      setComboDraft({ ...comboDraft, manualPrice: event.target.value })
+                    }
+                    disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
+                  />
+                  <small>
+                    {comboManualOverLimit
+                      ? t('admin.sections.pricing.comboOverLimit')
+                      : t('admin.sections.pricing.comboMax', {
+                          amount: money(separateManualPrice, locale),
+                        })}
+                  </small>
+                </label>
+
+                <fieldset
+                  className="admin-pricing__combo-window"
+                  disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
+                >
+                  <label>
+                    <span>{t('admin.sections.pricing.comboStarts')}</span>
+                    <input
+                      type="datetime-local"
+                      value={comboDraft.startsAt}
+                      onChange={(event) =>
+                        setComboDraft({ ...comboDraft, startsAt: event.target.value })
+                      }
                     />
                   </label>
-                  <p className="admin-pricing__combo-max">
-                    {t('admin.sections.pricing.comboMax', { amount: money(separatePrice, locale) })}
+                  <label>
+                    <span>{t('admin.sections.pricing.comboEnds')}</span>
+                    <input
+                      type="datetime-local"
+                      value={comboDraft.endsAt}
+                      onChange={(event) =>
+                        setComboDraft({ ...comboDraft, endsAt: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="admin-pricing__toggle">
+                    <input
+                      type="checkbox"
+                      checked={comboDraft.active}
+                      onChange={(event) =>
+                        setComboDraft({ ...comboDraft, active: event.target.checked })
+                      }
+                    />
+                    <span>{t('admin.sections.pricing.comboActive')}</span>
+                  </label>
+                </fieldset>
+
+                {oneTimePlans.length === 0 ? (
+                  <p className="admin-pricing__form-error">
+                    {t('admin.sections.pricing.noOneTimePlans')}
                   </p>
-                  {comboSavings != null ? (
-                    <p className={`admin-pricing__combo-delta${comboOverLimit ? ' is-invalid' : ''}`.trim()}>
-                      {comboOverLimit
-                        ? t('admin.sections.pricing.comboOverLimit')
-                        : t('admin.sections.pricing.comboSavings')}
-                      {': '}
-                      <strong>{money(Math.abs(comboSavings), locale)}</strong>
-                    </p>
-                  ) : null}
+                ) : null}
+                {comboError ? (
+                  <p className="admin-pricing__form-error" role="alert">
+                    {comboError}
+                  </p>
+                ) : null}
+
+                <div className="admin-pricing__form-actions">
+                  <button
+                    type="submit"
+                    className="admin-pricing__btn admin-pricing__btn--primary"
+                    disabled={
+                      locked ||
+                      pendingAction === 'combo' ||
+                      oneTimePlans.length === 0 ||
+                      comboOverLimit ||
+                      comboManualOverLimit
+                    }
+                  >
+                    <Save size={15} aria-hidden />
+                    {pendingAction === 'combo'
+                      ? t('admin.sections.pricing.saving')
+                      : t('admin.sections.pricing.saveCombo')}
+                  </button>
                 </div>
-              </div>
-            ) : null}
-
-            <fieldset
-              className="admin-pricing__combo-window"
-              disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0}
-            >
-              <label>
-                <span>{t('admin.sections.pricing.comboStarts')}</span>
-                <input
-                  type="datetime-local"
-                  value={comboDraft.startsAt}
-                  onChange={(event) => setComboDraft({ ...comboDraft, startsAt: event.target.value })}
-                />
-              </label>
-              <label>
-                <span>{t('admin.sections.pricing.comboEnds')}</span>
-                <input
-                  type="datetime-local"
-                  value={comboDraft.endsAt}
-                  onChange={(event) => setComboDraft({ ...comboDraft, endsAt: event.target.value })}
-                />
-              </label>
-              <label className="admin-pricing__toggle">
-                <input
-                  type="checkbox"
-                  checked={comboDraft.active}
-                  onChange={(event) => setComboDraft({ ...comboDraft, active: event.target.checked })}
-                />
-                <span>{t('admin.sections.pricing.comboActive')}</span>
-              </label>
-            </fieldset>
-
-            {oneTimePlans.length === 0 ? (
-              <p className="admin-pricing__form-error">{t('admin.sections.pricing.noOneTimePlans')}</p>
-            ) : null}
-            {comboError ? <p className="admin-pricing__form-error" role="alert">{comboError}</p> : null}
-
-            <div className="admin-pricing__form-actions">
-              <button
-                type="submit"
-                className="admin-pricing__btn admin-pricing__btn--primary"
-                disabled={locked || pendingAction === 'combo' || oneTimePlans.length === 0 || comboOverLimit}
-              >
-                <Save size={15} aria-hidden />
-                {pendingAction === 'combo' ? t('admin.sections.pricing.saving') : t('admin.sections.pricing.saveCombo')}
-              </button>
-            </div>
               </form>
             ) : null}
           </>
@@ -1081,20 +1296,26 @@ export default function PricingSection({
             disabled={locked}
           >
             <CirclePlus size={15} aria-hidden />
-            <span className="admin-pricing__btn-label">{t('admin.sections.pricing.newDiscountCode')}</span>
+            <span className="admin-pricing__btn-label">
+              {t('admin.sections.pricing.newDiscountCode')}
+            </span>
           </button>
         </header>
 
-        <div className="admin-pricing__plan-list" role="list" aria-label={t('admin.sections.pricing.discountCodesTitle')}>
+        <div
+          className="admin-pricing__plan-list"
+          role="list"
+          aria-label={t('admin.sections.pricing.discountCodesTitle')}
+        >
           {discountCodes.map((code) => {
             const availability = getDiscountCodeAvailability(code, now)
             const { status } = availability
             const expiry = describeExpiry(code.expiresAt, now, locale, t)
             const usageLabel = availability.hasLimit
               ? t('admin.sections.pricing.redeemedOf', {
-                count: availability.redeemedCount,
-                max: availability.maxRedemptions,
-              })
+                  count: availability.redeemedCount,
+                  max: availability.maxRedemptions,
+                })
               : t('admin.sections.pricing.redeemedUnlimited', { count: availability.redeemedCount })
 
             return (
@@ -1109,25 +1330,38 @@ export default function PricingSection({
                       className={`admin-pricing__status-dot${status === 'active' ? ' admin-pricing__status-dot--active' : ''}`}
                       aria-hidden
                     />
-                    <h3><code>{code.code}</code></h3>
+                    <h3>
+                      <code>{code.code}</code>
+                    </h3>
                     <button
                       type="button"
                       className="admin-pricing__btn admin-pricing__btn--quiet admin-pricing__copy-code"
                       onClick={() => copyDiscountCode(code)}
                       aria-label={t('admin.sections.pricing.copyDiscountCode', { code: code.code })}
                     >
-                      {copiedCodeId === code.id
-                        ? <Check size={14} aria-hidden />
-                        : <Copy size={14} aria-hidden />}
+                      {copiedCodeId === code.id ? (
+                        <Check size={14} aria-hidden />
+                      ) : (
+                        <Copy size={14} aria-hidden />
+                      )}
                       <span aria-live="polite">
                         {copiedCodeId === code.id
                           ? t('admin.sections.pricing.discountCodeCopied')
                           : t('admin.sections.pricing.copy')}
                       </span>
                     </button>
-                    <span className={`admin-pricing__status${status === 'active' ? ' admin-pricing__status--active' : ''}`}>
+                    <span
+                      className={`admin-pricing__status${status === 'active' ? ' admin-pricing__status--active' : ''}`}
+                    >
                       {t(`admin.sections.pricing.discountStatus.${status}`)}
                     </span>
+                    {(code.manualChannels ?? []).length ? (
+                      <span className="admin-pricing__status admin-pricing__status--manual">
+                        {t(
+                          `admin.sections.pricing.manualChannelsBadge.${[...(code.manualChannels ?? [])].sort().join('+')}`,
+                        )}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="admin-pricing__plan-meta">
                     <span>{t(`admin.sections.pricing.appliesTo.${code.appliesTo}`)}</span>
@@ -1144,7 +1378,11 @@ export default function PricingSection({
                   {availability.hasLimit ? (
                     <div className="admin-pricing__coupon-usage">
                       <div className="admin-pricing__coupon-usage-head">
-                        <span>{t('admin.sections.pricing.remainingRedemptions', { count: availability.remaining })}</span>
+                        <span>
+                          {t('admin.sections.pricing.remainingRedemptions', {
+                            count: availability.remaining,
+                          })}
+                        </span>
                         <strong>{usageLabel}</strong>
                       </div>
                       <progress
@@ -1158,12 +1396,20 @@ export default function PricingSection({
                       />
                     </div>
                   ) : null}
-                  {code.description ? <p className="admin-pricing__plan-meta">{code.description}</p> : null}
+                  {code.description ? (
+                    <p className="admin-pricing__plan-meta">{code.description}</p>
+                  ) : null}
                 </div>
 
-                <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
-                  −{code.percentOff}%
-                </strong>
+                {code.kind === 'fixed_price' ? (
+                  <strong className="admin-pricing__plan-amount">
+                    {money(code.fixedPrice ?? 0, locale)}
+                  </strong>
+                ) : (
+                  <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
+                    −{code.percentOff}%
+                  </strong>
+                )}
 
                 <div className="admin-pricing__plan-actions">
                   <button
@@ -1174,6 +1420,22 @@ export default function PricingSection({
                   >
                     <Pencil size={14} aria-hidden />
                     {t('admin.sections.pricing.edit')}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet is-danger"
+                    onClick={() => {
+                      setCodeToDelete(code)
+                      setCodeDeleteError('')
+                      setNotice('')
+                    }}
+                    disabled={locked || pendingAction === `delete-code:${code.id}`}
+                    aria-label={t('admin.sections.pricing.deleteDiscountCodeAria', {
+                      code: code.code,
+                    })}
+                  >
+                    <Trash2 size={14} aria-hidden />
+                    {t('admin.sections.pricing.deleteDiscountCode')}
                   </button>
                   <label
                     className={`admin-pricing__switch${code.active ? ' is-active' : ' is-cancelled'}`.trim()}
@@ -1189,7 +1451,9 @@ export default function PricingSection({
                     <strong>
                       {availability.exhausted
                         ? t('admin.sections.pricing.exhaustedSwitch')
-                        : t(`admin.sections.pricing.${code.active ? 'activeSwitch' : 'cancelledSwitch'}`)}
+                        : t(
+                            `admin.sections.pricing.${code.active ? 'activeSwitch' : 'cancelledSwitch'}`,
+                          )}
                     </strong>
                   </label>
                 </div>
@@ -1216,32 +1480,87 @@ export default function PricingSection({
                 <input
                   name="code"
                   value={codeDraft.code}
-                  onChange={(event) => setCodeDraft({ ...codeDraft, code: event.target.value.toUpperCase() })}
+                  onChange={(event) =>
+                    setCodeDraft({ ...codeDraft, code: event.target.value.toUpperCase() })
+                  }
                   required
                 />
                 <small>{t('admin.sections.pricing.codeFormatHint')}</small>
               </label>
               <label>
-                <span>{t('admin.sections.pricing.percentOff')}</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="99"
-                  step="1"
-                  value={codeDraft.percentOff}
-                  onChange={(event) => setCodeDraft({ ...codeDraft, percentOff: event.target.value })}
-                  required
-                />
+                <span>{t('admin.sections.pricing.codeKindLabel')}</span>
+                <select
+                  value={codeDraft.kind}
+                  onChange={(event) => {
+                    const kind = event.target.value
+                    setCodeDraft({
+                      ...codeDraft,
+                      kind,
+                      // Un precio promocional necesita alcance único: si venía
+                      // en "afiliación e inscripción", se cae a afiliación.
+                      appliesTo:
+                        kind === 'fixed_price' && codeDraft.appliesTo === 'both'
+                          ? 'membership'
+                          : codeDraft.appliesTo,
+                    })
+                  }}
+                >
+                  <option value="percent">{t('admin.sections.pricing.codeKind.percent')}</option>
+                  <option value="fixed_price">
+                    {t('admin.sections.pricing.codeKind.fixed_price')}
+                  </option>
+                </select>
+                <small>{t('admin.sections.pricing.codeKindHint')}</small>
               </label>
+              {codeDraft.kind === 'fixed_price' ? (
+                <label>
+                  <span>{t('admin.sections.pricing.fixedPrice')}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={codeDraft.fixedPrice}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, fixedPrice: event.target.value })
+                    }
+                    required
+                  />
+                  <small>{t('admin.sections.pricing.fixedPriceHint')}</small>
+                </label>
+              ) : (
+                <label>
+                  <span>{t('admin.sections.pricing.percentOff')}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    step="1"
+                    value={codeDraft.percentOff}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, percentOff: event.target.value })
+                    }
+                    required
+                  />
+                </label>
+              )}
               <label>
                 <span>{t('admin.sections.pricing.appliesToLabel')}</span>
                 <select
                   value={codeDraft.appliesTo}
-                  onChange={(event) => setCodeDraft({ ...codeDraft, appliesTo: event.target.value })}
+                  onChange={(event) =>
+                    setCodeDraft({ ...codeDraft, appliesTo: event.target.value })
+                  }
                 >
-                  <option value="membership">{t('admin.sections.pricing.appliesTo.membership')}</option>
-                  <option value="registration">{t('admin.sections.pricing.appliesTo.registration')}</option>
-                  <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
+                  <option value="membership">
+                    {t('admin.sections.pricing.appliesTo.membership')}
+                  </option>
+                  <option value="registration">
+                    {t('admin.sections.pricing.appliesTo.registration')}
+                  </option>
+                  <option value="combo">{t('admin.sections.pricing.appliesTo.combo')}</option>
+                  {codeDraft.kind === 'fixed_price' ? null : (
+                    <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
+                  )}
                 </select>
               </label>
               <label>
@@ -1252,7 +1571,9 @@ export default function PricingSection({
                   step="1"
                   placeholder={t('admin.sections.pricing.unlimitedUses')}
                   value={codeDraft.maxRedemptions}
-                  onChange={(event) => setCodeDraft({ ...codeDraft, maxRedemptions: event.target.value })}
+                  onChange={(event) =>
+                    setCodeDraft({ ...codeDraft, maxRedemptions: event.target.value })
+                  }
                 />
                 <small>{t('admin.sections.pricing.maxRedemptionsHint')}</small>
               </label>
@@ -1261,7 +1582,9 @@ export default function PricingSection({
                 <input
                   type="datetime-local"
                   value={codeDraft.expiresAt}
-                  onChange={(event) => setCodeDraft({ ...codeDraft, expiresAt: event.target.value })}
+                  onChange={(event) =>
+                    setCodeDraft({ ...codeDraft, expiresAt: event.target.value })
+                  }
                 />
                 <small>{t('admin.sections.pricing.expiresAtHint')}</small>
               </label>
@@ -1269,11 +1592,38 @@ export default function PricingSection({
                 <span>{t('admin.sections.pricing.description')}</span>
                 <input
                   value={codeDraft.description}
-                  onChange={(event) => setCodeDraft({ ...codeDraft, description: event.target.value })}
+                  onChange={(event) =>
+                    setCodeDraft({ ...codeDraft, description: event.target.value })
+                  }
                 />
               </label>
+              <fieldset className="admin-pricing__channels admin-pricing__wide">
+                <legend>{t('admin.sections.pricing.manualChannelsLegend')}</legend>
+                {MANUAL_PAYMENT_CHANNELS.map((channel) => (
+                  <label className="admin-pricing__toggle" key={channel}>
+                    <input
+                      type="checkbox"
+                      checked={(codeDraft.manualChannels ?? []).includes(channel)}
+                      onChange={(event) =>
+                        setCodeDraft({
+                          ...codeDraft,
+                          manualChannels: event.target.checked
+                            ? [...new Set([...(codeDraft.manualChannels ?? []), channel])]
+                            : (codeDraft.manualChannels ?? []).filter((item) => item !== channel),
+                        })
+                      }
+                    />
+                    <span>{t(`admin.sections.pricing.manualChannel.${channel}`)}</span>
+                  </label>
+                ))}
+                <small>{t('admin.sections.pricing.manualChannelsHint')}</small>
+              </fieldset>
             </fieldset>
-            {codeError ? <p className="admin-pricing__form-error" role="alert">{codeError}</p> : null}
+            {codeError ? (
+              <p className="admin-pricing__form-error" role="alert">
+                {codeError}
+              </p>
+            ) : null}
             <div className="admin-pricing__form-actions">
               <button
                 type="button"
@@ -1297,10 +1647,33 @@ export default function PricingSection({
         ) : null}
       </section>
 
+      {codeToDelete ? (
+        <AdminDeleteConfirmDialog
+          busy={pendingAction === `delete-code:${codeToDelete.id}`}
+          error={codeDeleteError}
+          title={t('admin.sections.pricing.deleteCodeConfirmTitle', { code: codeToDelete.code })}
+          description={t('admin.sections.pricing.deleteCodeConfirmDescription', {
+            code: codeToDelete.code,
+          })}
+          warning={t('admin.sections.pricing.deleteCodeConfirmWarning')}
+          cancelLabel={t('admin.sections.pricing.deleteCodeConfirmCancel')}
+          confirmLabel={t('admin.sections.pricing.deleteCodeConfirmConfirm')}
+          busyLabel={t('admin.sections.pricing.deleting')}
+          onCancel={() => {
+            if (pendingAction === `delete-code:${codeToDelete.id}`) return
+            setCodeToDelete(null)
+            setCodeDeleteError('')
+          }}
+          onConfirm={confirmDeleteCode}
+        />
+      ) : null}
+
       <section className="admin-pricing__block" aria-labelledby="pricing-subscriptions-title">
         <header className="admin-pricing__block-head">
           <div>
-            <h2 id="pricing-subscriptions-title">{t('admin.sections.pricing.subscriptionsTitle')}</h2>
+            <h2 id="pricing-subscriptions-title">
+              {t('admin.sections.pricing.subscriptionsTitle')}
+            </h2>
             <p>{t('admin.sections.pricing.subscriptionsLead')}</p>
           </div>
         </header>
@@ -1314,12 +1687,18 @@ export default function PricingSection({
           <p className="admin-pricing__loading">{t('admin.sections.pricing.loading')}</p>
         ) : null}
 
-        <div className="admin-pricing__plan-list" role="list" aria-label={t('admin.sections.pricing.subscriptionsTitle')}>
+        <div
+          className="admin-pricing__plan-list"
+          role="list"
+          aria-label={t('admin.sections.pricing.subscriptionsTitle')}
+        >
           {subscriptions.map((subscription) => {
             const statusKey = SUBSCRIPTION_STATUS_LABELS[subscription.status] ?? 'pending'
             const canCancel = !['cancelled', 'ended'].includes(subscription.status)
             const nextBillingLabel = subscription.nextBillingAt
-              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(subscription.nextBillingAt))
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+                  new Date(subscription.nextBillingAt),
+                )
               : '—'
 
             return (
@@ -1331,7 +1710,9 @@ export default function PricingSection({
                       aria-hidden
                     />
                     <h3>{subscription.athleteName}</h3>
-                    <span className={`admin-pricing__status${subscription.status === 'authorized' ? ' admin-pricing__status--active' : ''}`}>
+                    <span
+                      className={`admin-pricing__status${subscription.status === 'authorized' ? ' admin-pricing__status--active' : ''}`}
+                    >
                       {t(`admin.sections.pricing.subscriptionStatus.${statusKey}`)}
                     </span>
                   </div>
@@ -1345,13 +1726,18 @@ export default function PricingSection({
                   </p>
                 </div>
 
-                <strong className="admin-pricing__plan-amount">{money(subscription.amount, locale)}</strong>
+                <strong className="admin-pricing__plan-amount">
+                  {money(subscription.amount, locale)}
+                </strong>
 
                 <div className="admin-pricing__plan-actions">
                   <button
                     type="button"
                     className="admin-pricing__btn admin-pricing__btn--quiet is-danger"
-                    onClick={() => { setCancelError(''); setCancelTarget(subscription) }}
+                    onClick={() => {
+                      setCancelError('')
+                      setCancelTarget(subscription)
+                    }}
                     disabled={!canEditSubscriptions || !canCancel}
                   >
                     <X size={14} aria-hidden />

@@ -21,6 +21,11 @@
   justify-content: space-between;
 }
 
+/* El contador se lee junto al título del bloque, no al pie de su descripción. */
+.admin-registration-access__block-head {
+  align-items: flex-start;
+}
+
 .admin-registration-access__hero {
   border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   padding-bottom: 1rem;
@@ -48,11 +53,20 @@
   line-height: 1.02;
 }
 
-.admin-registration-access h2,
+/* Tres roles, tres tamaños distintos. Antes h2 (bloque), h3 (eje) y h3 (fila)
+   caían todos entre 0.92 y 1rem, así que la pantalla no tenía jerarquía: el
+   nombre de un interruptor pesaba igual que el título de su grupo. */
+.admin-registration-access h2 {
+  color: var(--color-text-primary);
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+}
+
 .admin-registration-access h3 {
   color: var(--color-text-primary);
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .admin-registration-access__subtitle,
@@ -115,16 +129,31 @@
 }
 
 /* Tres ejes de habilitación (altas, canal manual, validación) en el mismo
-   bloque. El encabezado de grupo etiqueta el eje; usa la escala de __subhead
-   para que no compita con el título de cada interruptor. */
+   bloque. El encabezado de grupo etiqueta el eje: es un rótulo de columna, no
+   un título, así que baja de escala y sube de tracking para no competir con el
+   nombre de cada interruptor. */
 .admin-registration-access__toggle-group {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.45rem;
   min-width: 0;
 }
 
+/* Aire real entre ejes: sin esto el rótulo del grupo siguiente quedaba pegado a
+   la caja del anterior y los tres ejes se leían como una sola lista de diez. */
+.admin-registration-access__toggle-group + .admin-registration-access__toggle-group {
+  margin-top: 0.6rem;
+}
+
 .admin-registration-access__toggle-group-head h3 {
-  font-size: 0.92rem;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.admin-registration-access__toggle-group-head p {
+  margin-top: 0.2rem;
 }
 
 .admin-registration-access__rules--primary {
@@ -134,14 +163,29 @@
   overflow: hidden;
 }
 
+/* Columna 1 de ancho fijo para el indicador: es lo que alinea los diez nombres
+   en la misma X. Con el estado como badge de ancho variable delante del título,
+   cada fila arrancaba en una sangría distinta y la lista no se podía escanear. */
 .admin-registration-access__rule {
-  align-items: center;
+  align-items: start;
   border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  column-gap: 0.75rem;
   display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 0.9rem 0.15rem;
+  grid-template-columns: 0.75rem minmax(0, 1fr) auto;
+  padding: 0.8rem 0.15rem;
   transition: background-color 160ms var(--ease-out, ease);
+}
+
+/* El indicador se alinea con la primera línea del nombre, no con el centro de
+   la fila: con dos líneas de descripción quedaba a la altura del texto chico. */
+.admin-registration-access__dot {
+  margin-top: 0.33rem;
+}
+
+.admin-registration-access__trailing,
+.admin-registration-access__rule > .admin-registration-access__switch,
+.admin-registration-access__rule > .admin-registration-access__state {
+  align-self: center;
 }
 
 .admin-registration-access__list .admin-registration-access__rule:hover {
@@ -149,28 +193,94 @@
 }
 
 .admin-registration-access__rules--primary .admin-registration-access__rule {
-  padding: 1rem;
+  padding: 0.8rem 1rem;
 }
 
 .admin-registration-access__rules--primary .admin-registration-access__rule:last-child {
   border-bottom: 0;
 }
 
+/* El maestro apaga los otros nueve: se distingue por composición (caja propia,
+   más aire, icono de encendido) y no por un color de estado distinto. */
 .admin-registration-access__rule--master {
   background: color-mix(in srgb, var(--color-brand-celeste) 5%, transparent);
   box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-brand-celeste) 70%, transparent);
+  grid-template-columns: 1.15rem minmax(0, 1fr) auto;
+  padding-block: 1rem;
 }
 
-.admin-registration-access__rules--primary .admin-registration-access__rule > div {
-  align-items: baseline;
-  display: grid;
-  gap: 0.3rem 0.65rem;
-  grid-template-columns: auto minmax(0, 1fr);
+/* Cortados los cobros generales no entra un peso a la plataforma: es el único
+   estado de esta pantalla que justifica el rojo. */
+.admin-registration-access__rule--halted {
+  background: color-mix(in srgb, var(--admin-status-danger) 7%, transparent);
+  box-shadow: inset 2px 0 0 var(--admin-status-danger);
 }
 
-.admin-registration-access__rules--primary .admin-registration-access__rule p {
-  grid-column: 1 / -1;
-  margin-top: 0;
+.admin-registration-access__rule-copy {
+  min-width: 0;
+}
+
+.admin-registration-access__trailing {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+/* Indicador de estado: color + relleno. Cerrado queda hueco, así el estado se
+   distingue por forma y no solo por color. */
+.admin-registration-access__dot {
+  align-items: center;
+  border-radius: 50%;
+  display: inline-flex;
+  flex: none;
+  height: 0.6rem;
+  justify-content: center;
+  width: 0.6rem;
+}
+
+.admin-registration-access__dot--on,
+.admin-registration-access__dot--abierta {
+  background: var(--admin-status-success);
+  box-shadow: 0 0 0 3px var(--admin-status-success-bg);
+}
+
+.admin-registration-access__dot--programada {
+  background: var(--admin-status-info);
+  box-shadow: 0 0 0 3px var(--admin-status-info-bg);
+}
+
+.admin-registration-access__dot--off,
+.admin-registration-access__dot--cerrada,
+.admin-registration-access__dot--vencida {
+  background: transparent;
+  border: 1.5px solid color-mix(in srgb, var(--color-text-muted) 70%, transparent);
+}
+
+.admin-registration-access__rule--master .admin-registration-access__dot {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--admin-status-success);
+  height: auto;
+  margin-top: 0.05rem;
+  width: auto;
+}
+
+.admin-registration-access__rule--halted .admin-registration-access__dot {
+  color: var(--admin-status-danger);
+}
+
+.admin-registration-access__summary {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  flex: none;
+  font-size: 0.8rem;
+  font-weight: 650;
+  gap: 0.45rem;
+  white-space: nowrap;
 }
 
 .admin-registration-access__list {
@@ -202,27 +312,27 @@
   margin: 0;
 }
 
+/* El estado ya no es un badge uppercase por fila: eran diez rótulos gritando lo
+   mismo que el interruptor de al lado. Queda como texto de la columna derecha,
+   con el color del indicador. */
 .admin-registration-access__state {
   display: inline-flex;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  margin-bottom: 0.38rem;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 650;
+  justify-content: flex-end;
+  min-width: 5.5rem;
 }
 
-.admin-registration-access__rules--primary .admin-registration-access__state {
-  margin-bottom: 0;
-}
-
+.admin-registration-access__state--on,
 .admin-registration-access__state--abierta {
-  color: var(--color-brand-gold);
+  color: var(--admin-status-success);
 }
 
 .admin-registration-access__state--programada {
-  color: var(--color-brand-celeste);
+  color: var(--admin-status-info);
 }
 
+.admin-registration-access__state--off,
 .admin-registration-access__state--cerrada,
 .admin-registration-access__state--vencida {
   color: var(--color-text-muted);
@@ -386,13 +496,16 @@
   width: 16px;
 }
 
+/* Verde de estado, no oro: el oro es acción principal y distinción, y con diez
+   interruptores encendidos teñía la pantalla entera de acento hasta volverlo
+   invisible. */
 .admin-registration-access__switch input:checked {
-  background: color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  background: var(--admin-status-success-bg);
+  border-color: var(--admin-status-success-border);
 }
 
 .admin-registration-access__switch input:checked::after {
-  background: var(--color-brand-gold);
+  background: var(--admin-status-success);
   transform: translateX(18px);
 }
 
@@ -410,7 +523,11 @@
   align-items: center;
   display: inline-flex;
   gap: 0.35rem;
-  min-width: 96px;
+  min-width: 5.5rem;
+}
+
+.admin-registration-access__switch input:checked + span {
+  color: var(--admin-status-success);
 }
 
 .admin-registration-access__message {
@@ -435,7 +552,7 @@
 }
 
 .admin-registration-access__notice {
-  color: var(--color-brand-gold);
+  color: var(--admin-status-success);
 }
 
 @supports (container-type: inline-size) {
@@ -454,9 +571,25 @@
       flex-direction: column;
     }
 
-    .admin-registration-access__rule {
+    /* El indicador se queda pegado al nombre; la columna derecha baja completa
+       debajo, alineada con el texto y no con el punto. */
+    .admin-registration-access__rule,
+    .admin-registration-access__rule--master {
       align-items: start;
-      grid-template-columns: 1fr;
+      grid-template-columns: 0.75rem minmax(0, 1fr);
+      row-gap: 0.7rem;
+    }
+
+    .admin-registration-access__trailing,
+    .admin-registration-access__rule > .admin-registration-access__switch,
+    .admin-registration-access__rule > .admin-registration-access__state {
+      grid-column: 2 / -1;
+      justify-content: flex-start;
+    }
+
+    .admin-registration-access__trailing {
+      justify-content: space-between;
+      width: 100%;
     }
 
     .admin-registration-access__switch {

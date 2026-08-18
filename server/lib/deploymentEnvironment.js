@@ -90,6 +90,29 @@ function isServerlessRuntime(env) {
   return Boolean(env.VERCEL || env.AWS_LAMBDA_FUNCTION_NAME)
 }
 
+/** Host del pooler de Supabase (Supavisor). 5432 = session, 6543 = transaction. */
+export const POOLER_HOST = /\.pooler\.supabase\.com$/i
+
+/**
+ * Tope de conexiones para procesos de larga vida (`npm run dev:api`, un
+ * contenedor, Prisma Studio) que entran por el Session mode del pooler.
+ *
+ * El Session mode tiene un `pool_size` de 15 **compartido por todo el
+ * proyecto**, no por proceso. Prisma, sin `connection_limit`, abre
+ * `num_cpus * 2 + 1` conexiones: una sola máquina de desarrollo se lleva casi
+ * el cupo entero y el resto —migraciones, Studio, los scripts de `scripts/`,
+ * otra persona del equipo— empieza a recibir
+ * `FATAL: (EMAXCONNSESSION) max clients reached in session mode`.
+ *
+ * Además cada una de esas conexiones es un backend de Postgres vivo en una
+ * instancia de 1 GB, ocioso la mayor parte del tiempo. Dos alcanzan para
+ * desarrollar (una consulta en vuelo más una de reserva) y devuelven el resto
+ * del cupo al proyecto.
+ *
+ * En serverless no aplica: ahí se usa Transaction mode con `connection_limit=1`.
+ */
+export const POOLER_SESSION_CONNECTION_LIMIT = 2
+
 export function buildRuntimeDatabaseUrl(supabaseDatabaseUrl, env = process.env) {
   const url = new URL(supabaseDatabaseUrl)
   if (!['postgres:', 'postgresql:'].includes(url.protocol)) {
@@ -97,15 +120,59 @@ export function buildRuntimeDatabaseUrl(supabaseDatabaseUrl, env = process.env) 
   }
   url.searchParams.set('schema', 'plu_prisma')
 
+  const isPooler = POOLER_HOST.test(url.hostname)
+
   if (isServerlessRuntime(env)) {
+    // El Session mode (5432) le reserva a cada instancia una conexión de
+    // Postgres mientras viva, aunque esté ociosa. En serverless las instancias
+    // se multiplican con el tráfico y la base es NANO (`max_connections` 60):
+    // el pico de check-in agota el cupo y Prisma empieza a fallar la primera
+    // consulta de cada instancia nueva -- el sintoma es un 500 intermitente en
+    // *todas* las rutas mientras PostgREST sigue respondiendo bien, porque no
+    // pasa por Postgres directo. El Transaction mode devuelve la conexión al
+    // terminar cada consulta, que es lo que corresponde acá.
+    if (isPooler && url.port === '5432') url.port = '6543'
     url.searchParams.set('connection_limit', '1')
     // Sin esto, agotado el pool la request queda colgada 10 s (default) antes
     // de fallar; con maxDuration de 60 s eso se come el presupuesto entero.
     url.searchParams.set('pool_timeout', '15')
+    // El default de Prisma son 5 s. Alcanzan de sobra con la función en la
+    // región de la base (`regions: ["gru1"]` en vercel.json), pero un cold
+    // start que además tenga que resolver DNS y negociar TLS se pasaba, y la
+    // instancia nacía fallando.
+    url.searchParams.set('connect_timeout', '10')
     if (url.port === '6543') url.searchParams.set('pgbouncer', 'true')
+  } else if (isPooler) {
+    // Proceso de larga vida contra el pooler compartido: se acota el pool para
+    // no quedarse con el cupo de Session mode del proyecto entero
+    // (ver POOLER_SESSION_CONNECTION_LIMIT). No se cambia el puerto: el Session
+    // mode conserva los prepared statements y acá no hay instancias que se
+    // multipliquen, que es lo que obliga al Transaction mode en serverless.
+    url.searchParams.set('connection_limit', String(POOLER_SESSION_CONNECTION_LIMIT))
+    url.searchParams.set('pool_timeout', '15')
+    url.searchParams.set('connect_timeout', '10')
   }
 
   return url.toString()
+}
+
+/**
+ * Normaliza una `DATABASE_URL` provista por el entorno.
+ *
+ * Vercel necesita `DATABASE_URL` seteada a mano para que `prisma generate` corra
+ * en el build, y esa variable ganaba sobre la derivada: el runtime terminaba con
+ * la URL cruda, sin `connection_limit` ni Transaction mode, que es exactamente
+ * la configuración que agota la base. Se respeta el destino que puso el operador
+ * y se corrigen solo los parámetros de pooling.
+ */
+export function normalizeRuntimeDatabaseUrl(databaseUrl, env = process.env) {
+  try {
+    return buildRuntimeDatabaseUrl(databaseUrl, env)
+  } catch {
+    // Si no es una URL que sepamos interpretar, se deja intacta: fallar el
+    // arranque por no poder optimizar sería peor que no optimizar.
+    return databaseUrl
+  }
 }
 
 /**
@@ -131,6 +198,10 @@ export function applyDeploymentEnvironmentDefaults(env = process.env) {
   if (appUrl) {
     env.APP_URL ||= appUrl
     env.API_URL ||= appUrl
+  }
+
+  if (env.DATABASE_URL?.trim()) {
+    env.DATABASE_URL = normalizeRuntimeDatabaseUrl(env.DATABASE_URL, env)
   }
 
   if (env.SUPABASE_DATABASE_URL?.trim()) {

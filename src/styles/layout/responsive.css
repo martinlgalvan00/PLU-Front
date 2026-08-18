@@ -66,10 +66,7 @@ picture {
 @media (min-width: 2560px) {
   :root {
     --max-width-content: min(1560px, 72vw);
-    --admin-content-max: min(
-      1880px,
-      calc(100vw - var(--admin-sidebar-width) - 48px)
-    );
+    --admin-content-max: min(1880px, calc(100vw - var(--admin-sidebar-width) - 48px));
   }
 }
 
@@ -95,10 +92,7 @@ picture {
 @media (min-width: 2560px) {
   [data-theme='dark'] {
     --max-width-content: min(1880px, 78vw);
-    --admin-content-max: min(
-      1960px,
-      calc(100vw - var(--admin-sidebar-width) - 56px)
-    );
+    --admin-content-max: min(1960px, calc(100vw - var(--admin-sidebar-width) - 56px));
   }
 }
 

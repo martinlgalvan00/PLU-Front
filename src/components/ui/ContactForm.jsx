@@ -44,7 +44,11 @@ export default function ContactForm() {
           </p>
         </header>
 
-        <div className="contact-form__motives" role="radiogroup" aria-labelledby="contact-motive-label">
+        <div
+          className="contact-form__motives"
+          role="radiogroup"
+          aria-labelledby="contact-motive-label"
+        >
           {MOTIVES.map((key) => (
             <button
               key={key}
@@ -98,7 +102,12 @@ export default function ContactForm() {
           </div>
           <label className="contact-form__field">
             <span>{t('contact.message')}</span>
-            <textarea name="message" rows={4} required placeholder={t('contact.messagePlaceholder')} />
+            <textarea
+              name="message"
+              rows={4}
+              required
+              placeholder={t('contact.messagePlaceholder')}
+            />
           </label>
         </div>
       </section>

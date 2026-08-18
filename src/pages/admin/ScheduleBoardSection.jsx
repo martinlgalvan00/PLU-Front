@@ -111,11 +111,7 @@ function fromLocalInputValue(value) {
  * Las tandas se editan inline (nombre, plataforma, pesaje) sin salir del
  * tablero, via `saveSessions` → RPC staff_save_event_sessions.
  */
-export default function ScheduleBoardSection({
-  adminEvents = [],
-  canEdit = false,
-  onGoToEvents,
-}) {
+export default function ScheduleBoardSection({ adminEvents = [], canEdit = false, onGoToEvents }) {
   const { locale, t } = useI18n()
 
   const eventOptions = useMemo(
@@ -144,17 +140,8 @@ export default function ScheduleBoardSection({
     if (!eventSlug && eventOptions.length > 0) setEventSlug(eventOptions[0].slug)
   }, [eventOptions, eventSlug])
 
-  const {
-    assign,
-    autofill,
-    busy,
-    days,
-    error,
-    saveSessions,
-    status,
-    totals,
-    unassigned,
-  } = useEventBoard(eventSlug, { enabled: Boolean(eventSlug) })
+  const { assign, autofill, busy, days, error, saveSessions, status, totals, unassigned } =
+    useEventBoard(eventSlug, { enabled: Boolean(eventSlug) })
 
   // Cambiar de evento invalida la selección: son inscripciones de otro torneo.
   useEffect(() => {
@@ -335,9 +322,7 @@ export default function ScheduleBoardSection({
 
       {status === 'loading' && <p className="admin-board__empty">{t('admin.board.loading')}</p>}
 
-      {status === 'ready' && days.length === 0 && (
-        <SetupEmpty onGoToEvents={onGoToEvents} t={t} />
-      )}
+      {status === 'ready' && days.length === 0 && <SetupEmpty onGoToEvents={onGoToEvents} t={t} />}
 
       {status === 'ready' && days.length > 0 && (
         <DndContext
@@ -381,9 +366,7 @@ export default function ScheduleBoardSection({
             </p>
           )}
 
-          {canEdit && (
-            <p className="admin-board__drag-hint">{t('admin.board.dragHint')}</p>
-          )}
+          {canEdit && <p className="admin-board__drag-hint">{t('admin.board.dragHint')}</p>}
 
           {selectedIds.length > 0 && (
             <MoveBar
@@ -442,9 +425,7 @@ export default function ScheduleBoardSection({
             {activeDrag ? (
               <DragChip
                 athlete={activeDrag.athlete}
-                count={
-                  selected.has(activeDrag.athlete.registrationId) ? selectedIds.length : 1
-                }
+                count={selected.has(activeDrag.athlete.registrationId) ? selectedIds.length : 1}
                 t={t}
               />
             ) : null}
@@ -594,11 +575,7 @@ function AthletePool({ athletes, canDrag, onToggle, onToggleMany, selected, t })
         </p>
       ) : (
         <>
-          <button
-            type="button"
-            className="admin-board__text-btn"
-            onClick={() => onToggleMany(ids)}
-          >
+          <button type="button" className="admin-board__text-btn" onClick={() => onToggleMany(ids)}>
             {t('admin.board.toggleAll')}
           </button>
           <AthleteList
@@ -722,9 +699,7 @@ function DayColumn({
                         required
                         maxLength={80}
                         value={editingSession.name}
-                        onChange={(event) =>
-                          onSessionDraftChange({ name: event.target.value })
-                        }
+                        onChange={(event) => onSessionDraftChange({ name: event.target.value })}
                         disabled={busy}
                       />
                     </label>
@@ -734,9 +709,7 @@ function DayColumn({
                         type="text"
                         maxLength={80}
                         value={editingSession.platform}
-                        onChange={(event) =>
-                          onSessionDraftChange({ platform: event.target.value })
-                        }
+                        onChange={(event) => onSessionDraftChange({ platform: event.target.value })}
                         disabled={busy}
                       />
                     </label>

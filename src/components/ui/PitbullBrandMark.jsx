@@ -19,9 +19,7 @@ export default function PitbullBrandMark({
   return (
     <div
       className={classes}
-      {...(decorative
-        ? { 'aria-hidden': true }
-        : { role: 'img', 'aria-label': label })}
+      {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
     >
       <img
         className="pitbull-brand-mark__emblem"

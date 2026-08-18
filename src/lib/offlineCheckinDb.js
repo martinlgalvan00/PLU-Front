@@ -129,5 +129,9 @@ export async function listResolvedConflicts() {
 /** Log corto de auditoría: check-ins offline que perdieron la carrera contra otro dispositivo. */
 export async function addResolvedConflict(entry) {
   const conflicts = await listResolvedConflicts()
-  await set(CONFLICTS_KEY, [{ ...entry, resolvedAt: new Date().toISOString() }, ...conflicts].slice(0, 50), store)
+  await set(
+    CONFLICTS_KEY,
+    [{ ...entry, resolvedAt: new Date().toISOString() }, ...conflicts].slice(0, 50),
+    store,
+  )
 }

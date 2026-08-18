@@ -8,7 +8,12 @@ import { getFormOptions } from '../../lib/formOptions.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdatePhoto, onRemovePhoto }) {
+export default function PersonalDataSection({
+  athlete,
+  onUpdateProfile,
+  onUpdatePhoto,
+  onRemovePhoto,
+}) {
   const { t } = useI18n()
   const [form, setForm] = useState({
     email: athlete.email ?? '',
@@ -23,7 +28,10 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
     emergencyContactName: athlete.emergencyContactName ?? '',
     emergencyContactPhone: athlete.emergencyContactPhone ?? '',
     instagramHandle: athlete.instagramHandle ?? '',
-    bestTotalKg: athlete.bestTotalKg === null || athlete.bestTotalKg === undefined ? '' : String(athlete.bestTotalKg),
+    bestTotalKg:
+      athlete.bestTotalKg === null || athlete.bestTotalKg === undefined
+        ? ''
+        : String(athlete.bestTotalKg),
   })
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
@@ -168,9 +176,12 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
           </h2>
           {!profileStatus.complete ? (
             <p className="account-profile-status account-profile-status--pending" role="status">
-              {t(`account.personalData.profileIncomplete_${profileStatus.missing.length === 1 ? 'one' : 'other'}`, {
-                count: profileStatus.missing.length,
-              })}
+              {t(
+                `account.personalData.profileIncomplete_${profileStatus.missing.length === 1 ? 'one' : 'other'}`,
+                {
+                  count: profileStatus.missing.length,
+                },
+              )}
             </p>
           ) : null}
         </div>
@@ -192,12 +203,15 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
             />
           </div>
           <span className="account-profile-progress__label">
-            {profileStatus.filled}/{profileStatus.total} {t('account.personalData.requiredForRegistration')}
+            {profileStatus.filled}/{profileStatus.total}{' '}
+            {t('account.personalData.requiredForRegistration')}
           </span>
         </div>
       )}
 
-      <p className="account-section__lead account-section__lead--compact">{t('account.personalData.lead')}</p>
+      <p className="account-section__lead account-section__lead--compact">
+        {t('account.personalData.lead')}
+      </p>
 
       {/* Identidad: foto + datos oficiales readonly en una sola franja */}
       <div className="account-identity">
@@ -217,7 +231,9 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
                 onClick={() => fileInputRef.current?.click()}
                 disabled={photoStatus === 'uploading'}
               >
-                {photoStatus === 'uploading' ? t('account.personalData.photoUploading') : t('account.personalData.photoUpload')}
+                {photoStatus === 'uploading'
+                  ? t('account.personalData.photoUploading')
+                  : t('account.personalData.photoUpload')}
               </button>
               {athlete.photoUrl && (
                 <button
@@ -239,7 +255,11 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
               className="account-photo__input"
               onChange={handlePhotoChange}
             />
-            {photoStatus === 'error' && <p className="account-photo__error" role="alert">{photoError}</p>}
+            {photoStatus === 'error' && (
+              <p className="account-photo__error" role="alert">
+                {photoError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -255,7 +275,11 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
               <dd>{athlete.country || '—'}</dd>
             </div>
             <div>
-              <dt>{athlete.country === 'Argentina' || !athlete.country ? t('account.personalData.documentId') : t('account.personalData.documentIdPassport')}</dt>
+              <dt>
+                {athlete.country === 'Argentina' || !athlete.country
+                  ? t('account.personalData.documentId')
+                  : t('account.personalData.documentIdPassport')}
+              </dt>
               <dd>{athlete.documentId}</dd>
             </div>
             <div>
@@ -271,8 +295,12 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
         {missingOfficialFields.length ? (
           <section className="account-data-group account-data-group--official-completion account-data-group--required">
             <div className="account-data-group__meta">
-              <p className="account-data-group__label">{t('account.personalData.officialCompletionTitle')}</p>
-              <p className="account-data-group__note">{t('account.personalData.officialCompletionNote')}</p>
+              <p className="account-data-group__label">
+                {t('account.personalData.officialCompletionTitle')}
+              </p>
+              <p className="account-data-group__note">
+                {t('account.personalData.officialCompletionNote')}
+              </p>
             </div>
             <div className="form-grid form-grid--account account-data-group__content">
               {missingOfficialFields.includes('fullName') ? (
@@ -317,7 +345,9 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
             onClick={() => toggleGroup('contact')}
           >
             <span className="account-data-group__summary-copy">
-              <span className="account-data-group__label">{t('account.personalData.contactGroup')}</span>
+              <span className="account-data-group__label">
+                {t('account.personalData.contactGroup')}
+              </span>
               <span className="account-data-group__summary-note">
                 {t('account.personalData.contactSummary')}
               </span>
@@ -375,7 +405,9 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
             onClick={() => toggleGroup('sports')}
           >
             <span className="account-data-group__summary-copy">
-              <span className="account-data-group__label">{t('account.personalData.sportsGroup')}</span>
+              <span className="account-data-group__label">
+                {t('account.personalData.sportsGroup')}
+              </span>
               <span className="account-data-group__summary-note">
                 {t('account.personalData.sportsSummary')}
               </span>
@@ -444,7 +476,9 @@ export default function PersonalDataSection({ athlete, onUpdateProfile, onUpdate
             onClick={() => toggleGroup('emergency')}
           >
             <span className="account-data-group__summary-copy">
-              <span className="account-data-group__label">{t('account.personalData.emergencyGroup')}</span>
+              <span className="account-data-group__label">
+                {t('account.personalData.emergencyGroup')}
+              </span>
               <span className="account-data-group__summary-note">
                 {t('account.personalData.emergencyNote')}
               </span>

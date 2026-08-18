@@ -1,20 +1,12 @@
 import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
+import { assertSupabaseResult } from '../../lib/supabaseRpc.js'
+import { displayPaymentConcept } from '../notifications/paymentNotificationService.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
 
 function assertResult(result, fallbackMessage) {
-  if (result.error) {
-    throw new HttpError(503, result.error.message || fallbackMessage)
-  }
-  return result.data
-}
-
-function displayConcept(concept) {
-  if (concept === 'membership') return 'Afiliacion PLU'
-  if (concept === 'registration') return 'Inscripcion a competencia'
-  if (concept === 'combo') return 'Afiliacion + inscripcion'
-  return 'Pago PLU ARG'
+  return assertSupabaseResult(result, fallbackMessage)
 }
 
 export function createSupabasePaymentRepository(
@@ -35,7 +27,8 @@ export function createSupabasePaymentRepository(
       .eq('id', orderId)
       .eq('organization_id', organizationId)
       .maybeSingle()
-    if (athleteResult.error) throw new HttpError(503, athleteResult.error.message || 'No se pudo leer la orden.')
+    if (athleteResult.error)
+      throw new HttpError(503, athleteResult.error.message || 'No se pudo leer la orden.')
 
     if (athleteResult.data) {
       const data = athleteResult.data
@@ -47,7 +40,7 @@ export function createSupabasePaymentRepository(
         amount: data.amount,
         currency: data.currency,
         concept: data.concept,
-        displayConcept: displayConcept(data.concept),
+        displayConcept: displayPaymentConcept(data.concept),
         method: data.method,
         status: data.status,
         reference: data.reference,
@@ -58,7 +51,9 @@ export function createSupabasePaymentRepository(
         payerEmail: data.payer_email ?? data.athlete?.email ?? null,
         athlete: data.athlete,
         // PostgREST devuelve un array en la relación inversa; interesa la única.
-        registration: Array.isArray(data.registration) ? (data.registration[0] ?? null) : (data.registration ?? null),
+        registration: Array.isArray(data.registration)
+          ? (data.registration[0] ?? null)
+          : (data.registration ?? null),
       }
     }
 
@@ -134,17 +129,24 @@ export function createSupabasePaymentRepository(
       return order
     },
 
-    async claimEmbeddedAttempt({ order, tokenFingerprint, idempotencyKey, operationKind = 'payment' }) {
+    async claimEmbeddedAttempt({
+      order,
+      tokenFingerprint,
+      idempotencyKey,
+      operationKind = 'payment',
+    }) {
       return assertResult(
         await client.rpc(
           operationKind === 'subscription'
             ? 'claim_embedded_subscription_attempt'
-            : 'claim_embedded_payment_attempt', {
-          p_order_kind: order.kind,
-          p_order_id: order.id,
-          p_token_fingerprint: tokenFingerprint,
-          p_idempotency_key: idempotencyKey,
-          }),
+            : 'claim_embedded_payment_attempt',
+          {
+            p_order_kind: order.kind,
+            p_order_id: order.id,
+            p_token_fingerprint: tokenFingerprint,
+            p_idempotency_key: idempotencyKey,
+          },
+        ),
         'No se pudo iniciar el pago embebido.',
       )
     },
@@ -242,10 +244,12 @@ export function createSupabasePaymentRepository(
     },
 
     async claimDueWebhookEvents(limit = 20) {
-      return assertResult(
-        await client.rpc('claim_due_payment_integration_events', { p_limit: limit }),
-        'No se pudieron recuperar eventos de pago.',
-      ) ?? []
+      return (
+        assertResult(
+          await client.rpc('claim_due_payment_integration_events', { p_limit: limit }),
+          'No se pudieron recuperar eventos de pago.',
+        ) ?? []
+      )
     },
 
     async markWebhookProcessed(eventId, result) {
@@ -273,10 +277,12 @@ export function createSupabasePaymentRepository(
     },
 
     async claimEmbeddedReconciliations(limit = 20) {
-      return assertResult(
-        await client.rpc('claim_embedded_payment_reconciliations', { p_limit: limit }),
-        'No se pudieron reclamar conciliaciones de pago.',
-      ) ?? []
+      return (
+        assertResult(
+          await client.rpc('claim_embedded_payment_reconciliations', { p_limit: limit }),
+          'No se pudieron reclamar conciliaciones de pago.',
+        ) ?? []
+      )
     },
 
     async claimEmbeddedReconciliation(attemptId, { force = false } = {}) {
@@ -306,10 +312,7 @@ export function createSupabasePaymentRepository(
         client.rpc('get_payment_operations_summary'),
         client.rpc('get_payment_system_health'),
       ])
-      const summary = assertResult(
-        summaryResult,
-        'No se pudo obtener el estado de Mercado Pago.',
-      )
+      const summary = assertResult(summaryResult, 'No se pudo obtener el estado de Mercado Pago.')
       const health = assertResult(
         healthResult,
         'No se pudo verificar la integridad de Mercado Pago.',
@@ -376,7 +379,9 @@ export function createSupabasePaymentRepository(
       sinceDays = 30,
       limit = 25,
     } = {}) {
-      const since = new Date(Date.now() - Math.max(1, sinceDays) * 24 * 60 * 60 * 1000).toISOString()
+      const since = new Date(
+        Date.now() - Math.max(1, sinceDays) * 24 * 60 * 60 * 1000,
+      ).toISOString()
       const cap = Math.max(1, Math.min(limit, 100))
 
       const [athleteOrders, ticketOrders] = await Promise.all([
@@ -400,10 +405,12 @@ export function createSupabasePaymentRepository(
           .limit(cap),
       ])
 
-      const athletes = (assertResult(athleteOrders, 'No se pudieron leer las ordenes a revalidar.') ?? [])
-        .map((row) => ({ ...row, kind: 'athlete' }))
-      const tickets = (assertResult(ticketOrders, 'No se pudieron leer las ordenes a revalidar.') ?? [])
-        .map((row) => ({ ...row, kind: 'ticket', concept: 'tickets' }))
+      const athletes = (
+        assertResult(athleteOrders, 'No se pudieron leer las ordenes a revalidar.') ?? []
+      ).map((row) => ({ ...row, kind: 'athlete' }))
+      const tickets = (
+        assertResult(ticketOrders, 'No se pudieron leer las ordenes a revalidar.') ?? []
+      ).map((row) => ({ ...row, kind: 'ticket', concept: 'tickets' }))
 
       return [...athletes, ...tickets]
         .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
@@ -413,7 +420,9 @@ export function createSupabasePaymentRepository(
     async listIntegrationEvents({ status, limit = 50 } = {}) {
       let query = client
         .from('payment_integration_events')
-        .select('id, notification_id, resource_id, event_type, action, status, attempts_count, max_attempts, error, received_at, last_attempt_at, processed_at, next_retry_at')
+        .select(
+          'id, notification_id, resource_id, event_type, action, status, attempts_count, max_attempts, error, received_at, last_attempt_at, processed_at, next_retry_at',
+        )
         .eq('organization_id', organizationId)
         .eq('provider', 'mercado_pago')
         .order('updated_at', { ascending: false })
@@ -423,18 +432,22 @@ export function createSupabasePaymentRepository(
     },
 
     async listReconciliationAttempts({ limit = 50 } = {}) {
-      return assertResult(
-        await client
-          .from('embedded_payment_attempts')
-          .select('id, order_kind, order_id, external_payment_id, status, reconciliation_status, reconciliation_attempts, next_reconcile_at, reconciled_at, error, created_at, updated_at')
-          .eq('organization_id', organizationId)
-          .eq('operation_kind', 'payment')
-          .not('external_payment_id', 'is', null)
-          .neq('reconciliation_status', 'reconciled')
-          .order('updated_at', { ascending: false })
-          .limit(Math.max(1, Math.min(limit, 100))),
-        'No se pudieron listar las conciliaciones.',
-      ) ?? []
+      return (
+        assertResult(
+          await client
+            .from('embedded_payment_attempts')
+            .select(
+              'id, order_kind, order_id, external_payment_id, status, reconciliation_status, reconciliation_attempts, next_reconcile_at, reconciled_at, error, created_at, updated_at',
+            )
+            .eq('organization_id', organizationId)
+            .eq('operation_kind', 'payment')
+            .not('external_payment_id', 'is', null)
+            .neq('reconciliation_status', 'reconciled')
+            .order('updated_at', { ascending: false })
+            .limit(Math.max(1, Math.min(limit, 100))),
+          'No se pudieron listar las conciliaciones.',
+        ) ?? []
+      )
     },
 
     /**
@@ -446,22 +459,27 @@ export function createSupabasePaymentRepository(
     async applyPayment(payment) {
       const kind = payment.orderKind ?? (await getOrder(payment.orderId)).kind
       return assertResult(
-        await client.rpc(kind === 'ticket' ? 'apply_ticket_mercado_pago_payment' : 'apply_mercado_pago_payment', {
-          p_order_id: payment.orderId,
-          p_external_payment_id: String(payment.externalPaymentId),
-          p_status: payment.status,
-          p_amount: payment.amount,
-          p_currency: payment.currency,
-          p_payer_email: payment.payerEmail,
-          p_status_detail: payment.statusDetail,
-          p_payload: payment.raw,
-        }),
+        await client.rpc(
+          kind === 'ticket' ? 'apply_ticket_mercado_pago_payment' : 'apply_mercado_pago_payment',
+          {
+            p_order_id: payment.orderId,
+            p_external_payment_id: String(payment.externalPaymentId),
+            p_status: payment.status,
+            p_amount: payment.amount,
+            p_currency: payment.currency,
+            p_payer_email: payment.payerEmail,
+            p_status_detail: payment.statusDetail,
+            p_payload: payment.raw,
+          },
+        ),
         'No se pudo aplicar el pago.',
       )
     },
 
     async listPlans() {
-      const now = new Date().toISOString()
+      // 5-second buffer para evitar que la truncacion de milisegundos en JS
+      // oculte planes creados en la misma transaccion por la base de datos.
+      const now = new Date(Date.now() + 5000).toISOString()
       return assertResult(
         await client
           .from('membership_plans')
@@ -477,7 +495,8 @@ export function createSupabasePaymentRepository(
 
     async prepareSubscription({ paymentOrderId, planCode }) {
       const order = await getOrder(paymentOrderId)
-      if (order.kind !== 'athlete') throw new HttpError(400, 'La orden no corresponde a una afiliacion.')
+      if (order.kind !== 'athlete')
+        throw new HttpError(400, 'La orden no corresponde a una afiliacion.')
       if (order.concept !== 'membership') {
         throw new HttpError(409, 'La orden no corresponde a una suscripcion de afiliacion.')
       }
@@ -493,7 +512,10 @@ export function createSupabasePaymentRepository(
       )
       const { plan, membership, subscription, created } = prepared
       if (!plan || !membership || !subscription) {
-        throw new HttpError(503, 'La preparacion de la suscripcion devolvio un contrato incompleto.')
+        throw new HttpError(
+          503,
+          'La preparacion de la suscripcion devolvio un contrato incompleto.',
+        )
       }
       if (order.planId !== plan.id || membership.athlete_id !== order.athleteId) {
         throw new HttpError(409, 'La orden no coincide con el contrato de suscripcion.')

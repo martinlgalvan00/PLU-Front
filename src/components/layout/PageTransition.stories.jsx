@@ -10,7 +10,9 @@ export default {
   },
   render: (args) => (
     <PageTransition {...args}>
-      <div className="surface-card" style={{ padding: '1.5rem' }}>Contenido de la vista</div>
+      <div className="surface-card" style={{ padding: '1.5rem' }}>
+        Contenido de la vista
+      </div>
     </PageTransition>
   ),
 }

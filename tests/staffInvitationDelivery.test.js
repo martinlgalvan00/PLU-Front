@@ -184,7 +184,11 @@ describe('entrega de la invitación de staff', () => {
       expect(accepted.headers.get('set-cookie')).toContain('plu_session=')
       expect(session.user).toMatchObject({ status: 'active', mustChangePassword: false })
 
-      const reused = await acceptInvitation(target.url, invitationTokenFrom(send), 'Otra-clave-segura-2026')
+      const reused = await acceptInvitation(
+        target.url,
+        invitationTokenFrom(send),
+        'Otra-clave-segura-2026',
+      )
       expect(reused.status).toBe(400)
     } finally {
       await target.close()

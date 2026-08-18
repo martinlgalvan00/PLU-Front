@@ -6,7 +6,10 @@ import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicWriteLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
-import { describeCatalog, MANUALLY_SENDABLE_EMAIL_TYPES } from '../modules/notifications/emailCatalog.js'
+import {
+  describeCatalog,
+  MANUALLY_SENDABLE_EMAIL_TYPES,
+} from '../modules/notifications/emailCatalog.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import {
   createEventAudienceRepository,
@@ -59,8 +62,16 @@ const suppressionSchema = z.object({
 const logsQuerySchema = z.object({
   status: z
     .enum([
-      'pending', 'processing', 'retrying', 'sent', 'delivered',
-      'rejected', 'failed', 'bounced', 'skipped', 'suppressed',
+      'pending',
+      'processing',
+      'retrying',
+      'sent',
+      'delivered',
+      'rejected',
+      'failed',
+      'bounced',
+      'skipped',
+      'suppressed',
     ])
     .optional(),
   type: z.string().trim().min(1).max(60).optional(),
@@ -145,18 +156,24 @@ export function createEmailRoutes(deps = {}) {
       env,
     })
 
-  router.post('/send', sendGuard, staffLimiter, validateBody(sendSchema), async (req, res, next) => {
-    try {
-      const { type, ...input } = req.validatedBody
-      const result = await buildDispatcher().send(type, input)
-      res.status(result.created ? 202 : 200).json({
-        status: result.status,
-        emailLog: result.emailLog,
-      })
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/send',
+    sendGuard,
+    staffLimiter,
+    validateBody(sendSchema),
+    async (req, res, next) => {
+      try {
+        const { type, ...input } = req.validatedBody
+        const result = await buildDispatcher().send(type, input)
+        res.status(result.created ? 202 : 200).json({
+          status: result.status,
+          emailLog: result.emailLog,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   /**
    * Brevo manda los eventos en lote o de a uno. Siempre respondemos 200: un
@@ -175,7 +192,11 @@ export function createEmailRoutes(deps = {}) {
     }
 
     const payload = req.body
-    const events = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [payload]
+    const events = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : [payload]
 
     let processed = 0
     try {
@@ -216,8 +237,7 @@ export function createEmailRoutes(deps = {}) {
         const repository = buildRepository()
         const notifyEvent = createEventNotificationService({
           audienceRepository:
-            deps.eventAudienceRepository ??
-            createEventAudienceRepository(resolveSupabaseAdmin()),
+            deps.eventAudienceRepository ?? createEventAudienceRepository(resolveSupabaseAdmin()),
           notificationRepository: repository,
           dispatcher: createEmailDispatcher({
             repository,
@@ -249,14 +269,23 @@ export function createEmailRoutes(deps = {}) {
     res.json({ configured: brevo.configured, types: describeCatalog(env) })
   })
 
-  router.post('/suppressions', sendGuard, staffLimiter, validateBody(suppressionSchema), async (req, res, next) => {
-    try {
-      const suppression = await buildRepository().suppress({ ...req.validatedBody, source: 'manual' })
-      res.status(201).json({ suppression })
-    } catch (error) {
-      next(error)
-    }
-  })
+  router.post(
+    '/suppressions',
+    sendGuard,
+    staffLimiter,
+    validateBody(suppressionSchema),
+    async (req, res, next) => {
+      try {
+        const suppression = await buildRepository().suppress({
+          ...req.validatedBody,
+          source: 'manual',
+        })
+        res.status(201).json({ suppression })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.delete('/suppressions/:email', sendGuard, staffLimiter, async (req, res, next) => {
     try {

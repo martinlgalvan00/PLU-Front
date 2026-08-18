@@ -69,11 +69,11 @@ describe('telemetría del Brick separada del cupo de checkout', () => {
     // problema y recibía "Demasiados intentos de checkout" sin haber llegado a
     // enviar un pago. Mismo bug que ya se corrigió en el login de atleta.
     expect(rateLimits).toContain('export const paymentTelemetryLimiter')
-    expect(paymentRoutes).toContain("router.post('/telemetry', paymentTelemetryLimiter")
+    expect(paymentRoutes).toMatch(/router\.post\(\s*'\/telemetry',\s*paymentTelemetryLimiter/)
 
     // El resto del checkout sí comparte cupo a propósito.
-    expect(paymentRoutes).toContain("router.post('/preferences', checkoutLimiter")
-    expect(paymentRoutes).toContain("router.post('/embedded/process', checkoutLimiter")
+    expect(paymentRoutes).toMatch(/router\.post\(\s*'\/preferences',\s*checkoutLimiter/)
+    expect(paymentRoutes).toMatch(/router\.post\(\s*'\/subscriptions\/process',\s*checkoutLimiter/)
   })
 })
 
@@ -101,11 +101,13 @@ describe('la orden se resuelve una sola vez por pago', () => {
         payer: { email: formData.payer.email },
       })),
     }
-    const target = listen(createApp({
-      paymentRepository: repository,
-      mercadoPago,
-      env: { APP_PRODUCTION: 'false', PAID_CHECKOUT_ENABLED: 'true' },
-    }))
+    const target = listen(
+      createApp({
+        paymentRepository: repository,
+        mercadoPago,
+        env: { APP_PRODUCTION: 'false', PAID_CHECKOUT_ENABLED: 'true' },
+      }),
+    )
 
     const response = await fetch(`${target.url}/api/payments/embedded/process`, {
       method: 'POST',
@@ -141,9 +143,8 @@ describe('la orden se resuelve una sola vez por pago', () => {
   it('vuelve a leer la orden si el llamador pasa una que no corresponde', async () => {
     // La reutilización nunca puede desalinear la orden del body: si no coincide
     // el id, gana la lectura autoritativa.
-    const { processEmbeddedPayment } = await import(
-      '../server/modules/payments/embeddedPaymentWorkflow.js'
-    )
+    const { processEmbeddedPayment } =
+      await import('../server/modules/payments/embeddedPaymentWorkflow.js')
     const repository = {
       getOrder: vi.fn(async () => ({ ...ticketOrder(), status: 'aprobado' })),
       claimEmbeddedAttempt: vi.fn(),
@@ -151,7 +152,11 @@ describe('la orden se resuelve una sola vez por pago', () => {
 
     const result = await processEmbeddedPayment(
       { paymentOrderId: ORDER_ID, formData: { payment_method_id: 'visa', payer: {} } },
-      { repository, mercadoPago: {}, order: { id: 'otra-orden', kind: 'athlete', status: 'pendiente' } },
+      {
+        repository,
+        mercadoPago: {},
+        order: { id: 'otra-orden', kind: 'athlete', status: 'pendiente' },
+      },
     )
 
     expect(repository.getOrder).toHaveBeenCalledWith(ORDER_ID)

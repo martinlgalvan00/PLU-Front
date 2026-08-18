@@ -17,11 +17,13 @@ describe('Descartes de la cola de trabajo', () => {
       dismissedBy: 'cola-dismiss@plu.test',
       dismissedAt: '2026-08-22T10:00:00.000Z',
     })
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      adminQueueRepository: { list: vi.fn(), dismiss, undismiss: vi.fn() },
-      env: { AUTH_SECRET: 'admin-queue-dismiss-test-secret', APP_URL: 'http://localhost:5173' },
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        adminQueueRepository: { list: vi.fn(), dismiss, undismiss: vi.fn() },
+        env: { AUTH_SECRET: 'admin-queue-dismiss-test-secret', APP_URL: 'http://localhost:5173' },
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })
@@ -53,11 +55,13 @@ describe('Descartes de la cola de trabajo', () => {
   it('restaura un ítem descartado', async () => {
     const staff = await buildStaffUser({ email: 'cola-undismiss@plu.test' })
     const undismiss = vi.fn().mockResolvedValue({ itemKey: 'action-gate-42', restored: true })
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      adminQueueRepository: { list: vi.fn(), dismiss: vi.fn(), undismiss },
-      env: { AUTH_SECRET: 'admin-queue-undismiss-test-secret', APP_URL: 'http://localhost:5173' },
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        adminQueueRepository: { list: vi.fn(), dismiss: vi.fn(), undismiss },
+        env: { AUTH_SECRET: 'admin-queue-undismiss-test-secret', APP_URL: 'http://localhost:5173' },
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })
@@ -67,8 +71,13 @@ describe('Descartes de la cola de trabajo', () => {
       })
 
       expect(response.status).toBe(200)
-      expect(await response.json()).toEqual({ restored: { itemKey: 'action-gate-42', restored: true } })
-      expect(undismiss).toHaveBeenCalledWith('action-gate-42', expect.stringContaining('cola-undismiss@plu.test'))
+      expect(await response.json()).toEqual({
+        restored: { itemKey: 'action-gate-42', restored: true },
+      })
+      expect(undismiss).toHaveBeenCalledWith(
+        'action-gate-42',
+        expect.stringContaining('cola-undismiss@plu.test'),
+      )
     } finally {
       await target.close()
     }
@@ -77,11 +86,13 @@ describe('Descartes de la cola de trabajo', () => {
   it('rechaza un payload de descarte inválido', async () => {
     const staff = await buildStaffUser({ email: 'cola-invalid@plu.test' })
     const dismiss = vi.fn()
-    const target = listen(createApp({
-      prisma: createPrismaDouble([staff]),
-      adminQueueRepository: { list: vi.fn(), dismiss, undismiss: vi.fn() },
-      env: { AUTH_SECRET: 'admin-queue-invalid-test-secret', APP_URL: 'http://localhost:5173' },
-    }))
+    const target = listen(
+      createApp({
+        prisma: createPrismaDouble([staff]),
+        adminQueueRepository: { list: vi.fn(), dismiss, undismiss: vi.fn() },
+        env: { AUTH_SECRET: 'admin-queue-invalid-test-secret', APP_URL: 'http://localhost:5173' },
+      }),
+    )
 
     try {
       const { cookie } = await loginStaff(target.url, { email: staff.email })

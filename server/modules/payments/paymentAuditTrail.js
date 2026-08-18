@@ -97,15 +97,16 @@ export function summarizeFailure(error, { stage } = {}) {
 function noopTrail() {
   return {
     enabled: false,
-    async record() { return false },
-    async recordFailure() { return false },
+    async record() {
+      return false
+    },
+    async recordFailure() {
+      return false
+    },
   }
 }
 
-export function createPaymentAuditTrail({
-  client,
-  organizationId = PRIMARY_ORGANIZATION_ID,
-} = {}) {
+export function createPaymentAuditTrail({ client, organizationId = PRIMARY_ORGANIZATION_ID } = {}) {
   if (!client || typeof client.from !== 'function') return noopTrail()
 
   async function insert(row) {

@@ -65,9 +65,7 @@ function AdminCompactCard({ columns, row, className, interactionProps }) {
     if (col.mobile != null) return false
     return col.key === 'action'
   })
-  const usedKeys = new Set(
-    [...selectCols, ...primary, ...badges, ...actions].map((col) => col.key),
-  )
+  const usedKeys = new Set([...selectCols, ...primary, ...badges, ...actions].map((col) => col.key))
 
   const primaryCols = primary.length
     ? primary
@@ -194,8 +192,7 @@ export default function DataTable({
   const [sort, setSort] = useState(() => initialSortFromColumns(columns))
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const activeSortColumn = sort ? columns.find((item) => item.key === sort.key) : null
-  const singleMobileSortColumn =
-    mobileSortColumns.length === 1 ? mobileSortColumns[0] : null
+  const singleMobileSortColumn = mobileSortColumns.length === 1 ? mobileSortColumns[0] : null
   // Un solo campo con orden por defecto (ej. pagos por fecha): sin toolbar.
   const showMobileSortToolbar =
     useCompactCards &&
@@ -368,12 +365,24 @@ export default function DataTable({
               </span>
               {sort?.key === singleMobileSortColumn.key ? (
                 sort.direction === 'asc' ? (
-                  <ArrowUp size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                  <ArrowUp
+                    size={13}
+                    aria-hidden
+                    className="data-table-mobile-toolbar__trigger-icon"
+                  />
                 ) : (
-                  <ArrowDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                  <ArrowDown
+                    size={13}
+                    aria-hidden
+                    className="data-table-mobile-toolbar__trigger-icon"
+                  />
                 )
               ) : (
-                <ChevronsUpDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                <ChevronsUpDown
+                  size={13}
+                  aria-hidden
+                  className="data-table-mobile-toolbar__trigger-icon"
+                />
               )}
             </button>
           </div>
@@ -398,12 +407,24 @@ export default function DataTable({
                 </span>
                 {activeSortColumn ? (
                   sort.direction === 'asc' ? (
-                    <ArrowUp size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                    <ArrowUp
+                      size={13}
+                      aria-hidden
+                      className="data-table-mobile-toolbar__trigger-icon"
+                    />
                   ) : (
-                    <ArrowDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                    <ArrowDown
+                      size={13}
+                      aria-hidden
+                      className="data-table-mobile-toolbar__trigger-icon"
+                    />
                   )
                 ) : (
-                  <ChevronsUpDown size={13} aria-hidden className="data-table-mobile-toolbar__trigger-icon" />
+                  <ChevronsUpDown
+                    size={13}
+                    aria-hidden
+                    className="data-table-mobile-toolbar__trigger-icon"
+                  />
                 )}
               </button>
 
@@ -441,9 +462,17 @@ export default function DataTable({
                       <span>{column.mobileSortLabel ?? column.label}</span>
                       {active ? (
                         sort.direction === 'asc' ? (
-                          <ArrowUp size={12} aria-hidden className="data-table-mobile-toolbar__chip-icon" />
+                          <ArrowUp
+                            size={12}
+                            aria-hidden
+                            className="data-table-mobile-toolbar__chip-icon"
+                          />
                         ) : (
-                          <ArrowDown size={12} aria-hidden className="data-table-mobile-toolbar__chip-icon" />
+                          <ArrowDown
+                            size={12}
+                            aria-hidden
+                            className="data-table-mobile-toolbar__chip-icon"
+                          />
                         )
                       ) : null}
                     </button>

@@ -58,5 +58,12 @@ export function createSupabasePricingRepository(client) {
         { p_code_id: codeId, p_active: active, p_actor: actor },
         'No se pudo cambiar el estado del código de descuento.',
       ),
+
+    deleteDiscountCode: (codeId, actor) =>
+      rpc(
+        'staff_delete_discount_code',
+        { p_code_id: codeId, p_actor: actor },
+        'No se pudo eliminar el código de descuento.',
+      ),
   }
 }

@@ -45,10 +45,22 @@ export default function MembersPluHero({
   }, [previewCode])
 
   const quickLinks = [
-    { id: 'afiliarme', label: t('pages.members.quickNavAffiliate'), onClick: () => scrollToId('planes') },
+    {
+      id: 'afiliarme',
+      label: t('pages.members.quickNavAffiliate'),
+      onClick: () => scrollToId('planes'),
+    },
     { id: 'cuenta', label: t('pages.members.quickNavAccount'), onClick: () => onNavigate('login') },
-    { id: 'comunidad', label: t('pages.members.quickNavCommunity'), onClick: () => onNavigate('community') },
-    { id: 'reglamento', label: t('pages.members.quickNavRulebook'), onClick: () => onNavigate('rulebook') },
+    {
+      id: 'comunidad',
+      label: t('pages.members.quickNavCommunity'),
+      onClick: () => onNavigate('community'),
+    },
+    {
+      id: 'reglamento',
+      label: t('pages.members.quickNavRulebook'),
+      onClick: () => onNavigate('rulebook'),
+    },
     { id: 'faq', label: t('pages.members.quickNavFaq'), onClick: () => scrollToId('members-faq') },
   ]
 
@@ -84,14 +96,24 @@ export default function MembersPluHero({
               </p>
             ) : (
               <>
-                <span className="members-plu-hero__account-label">{t('pages.members.existingMember')}</span>
-                <button type="button" className="members-plu-hero__account-link" onClick={() => onNavigate('login')}>
+                <span className="members-plu-hero__account-label">
+                  {t('pages.members.existingMember')}
+                </span>
+                <button
+                  type="button"
+                  className="members-plu-hero__account-link"
+                  onClick={() => onNavigate('login')}
+                >
                   {t('pages.members.loginLink')}
                 </button>
                 <span className="members-plu-hero__account-sep" aria-hidden>
                   ·
                 </span>
-                <button type="button" className="members-plu-hero__account-link" onClick={() => onNavigate('register')}>
+                <button
+                  type="button"
+                  className="members-plu-hero__account-link"
+                  onClick={() => onNavigate('register')}
+                >
                   {t('pages.members.registerLink')}
                 </button>
               </>
@@ -125,7 +147,11 @@ export default function MembersPluHero({
       <nav className="members-plu-quicknav" aria-label={t('pages.members.quickNavAria')}>
         {quickLinks.map((link, index) => (
           <span key={link.id} className="members-plu-quicknav__item">
-            {index > 0 && <span className="members-plu-quicknav__sep" aria-hidden>/</span>}
+            {index > 0 && (
+              <span className="members-plu-quicknav__sep" aria-hidden>
+                /
+              </span>
+            )}
             <button type="button" className="members-plu-quicknav__link" onClick={link.onClick}>
               {link.label}
             </button>

@@ -118,8 +118,8 @@ describe('Tarifas — alta de planes y combo', () => {
     renderPricing({ onUpsertDiscountCode })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
-    expect(screen.getByRole('heading', { name: 'Nuevo código de descuento' })).toBeTruthy()
-    expect(screen.queryByText('Todavía no hay códigos de descuento.')).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Nuevo código' })).toBeTruthy()
+    expect(screen.queryByText('Todavía no hay códigos cargados.')).toBeNull()
 
     fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'club-25' } })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '25' } })
@@ -129,10 +129,126 @@ describe('Tarifas — alta de planes y combo', () => {
 
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
       code: 'CLUB-25',
+      kind: 'percent',
       percentOff: 25,
+      fixedPrice: undefined,
       appliesTo: 'both',
       maxRedemptions: 12,
     }))
+  })
+
+  it('crea una promo de precio fijo para el combo y no manda el porcentaje', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'pitbull' } })
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    // El campo de porcentaje deja lugar al del precio promocional.
+    expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
+    fireEvent.change(screen.getByLabelText(/Precio promocional/), { target: { value: '120000' } })
+    fireEvent.change(screen.getByLabelText('Aplica a'), { target: { value: 'combo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'PITBULL',
+      kind: 'fixed_price',
+      fixedPrice: 120000,
+      percentOff: undefined,
+      appliesTo: 'combo',
+    }))
+  })
+
+  it('no ofrece el alcance combinado para una promo de precio fijo', () => {
+    renderPricing()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    expect(screen.getByRole('option', { name: 'Afiliación e inscripción' })).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    expect(screen.queryByRole('option', { name: 'Afiliación e inscripción' })).toBeNull()
+    expect(screen.getByRole('option', { name: 'Combo (afiliación + inscripción)' })).toBeTruthy()
+  })
+
+  it('deja elegir qué canales manuales habilita el código', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'solo-efectivo' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    // Mercado Pago no se lista: nunca se apaga.
+    expect(screen.queryByRole('checkbox', { name: /Mercado Pago/ })).toBeNull()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'SOLO-EFECTIVO', manualChannels: ['cash_pitbull'] }),
+    )
+  })
+
+  it('no habilita ningún canal manual por defecto', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'solo-mp' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'SOLO-MP', manualChannels: [] }),
+    )
+  })
+
+  it('resume en la fila qué canales destraba el código', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-transfer',
+            code: 'SOLO-TRANSFER',
+            percentOff: 10,
+            appliesTo: 'membership',
+            manualChannels: ['bank_transfer'],
+            redeemedCount: 0,
+            active: true,
+          },
+        ],
+      },
+    })
+
+    expect(screen.getByText('Habilita transferencia')).toBeTruthy()
+    expect(screen.queryByText('Habilita transferencia y efectivo')).toBeNull()
+  })
+
+  it('muestra el importe de la promo en la fila, no un porcentaje', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-pitbull',
+            code: 'PITBULL',
+            kind: 'fixed_price',
+            percentOff: 0,
+            fixedPrice: 120000,
+            appliesTo: 'combo',
+            redeemedCount: 0,
+            active: true,
+          },
+        ],
+      },
+    })
+
+    expect(screen.getByText('Combo (afiliación + inscripción)')).toBeTruthy()
+    expect(screen.getByText(/120\.000/)).toBeTruthy()
+    expect(screen.queryByText('−0%')).toBeNull()
   })
 
   it('muestra los canjes restantes y desactiva el control al agotar el cupón', () => {

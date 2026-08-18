@@ -29,7 +29,9 @@ describe('athleteEventStatus', () => {
       resolveAthleteEventStatus({
         event,
         session: { role: 'athlete_plu', athleteId: 'a1' },
-        registrations: [{ athleteId: 'a1', eventSlug: 'pitbull-classic-2026', status: 'confirmada' }],
+        registrations: [
+          { athleteId: 'a1', eventSlug: 'pitbull-classic-2026', status: 'confirmada' },
+        ],
         memberships: [{ athleteId: 'a1', status: 'activa' }],
       }),
     ).toBe('registered')

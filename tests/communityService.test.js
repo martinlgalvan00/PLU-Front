@@ -18,7 +18,8 @@ describe('communityService', () => {
       })),
     }))
 
-    const { fetchCommunitySpotlight, getRecentMembers } = await import('../src/services/communityService.js')
+    const { fetchCommunitySpotlight, getRecentMembers } =
+      await import('../src/services/communityService.js')
     const spotlight = await fetchCommunitySpotlight(5, 'es')
 
     expect(spotlight.source).toBe('supabase')
@@ -38,7 +39,8 @@ describe('communityService', () => {
       }),
     }))
 
-    const { fetchCommunitySpotlight, getRecentMembers } = await import('../src/services/communityService.js')
+    const { fetchCommunitySpotlight, getRecentMembers } =
+      await import('../src/services/communityService.js')
     const spotlight = await fetchCommunitySpotlight(5, 'es')
 
     expect(spotlight.source).toBe('fallback')

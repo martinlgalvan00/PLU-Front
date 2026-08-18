@@ -128,20 +128,28 @@ describe('tiempo activo y engagement', () => {
     // Calcularlos en la aplicación permitiría que una sesión quede marcada con
     // un criterio y otra con otro.
     expect(activeTimeMigration).toContain('generated always as (')
-    expect(activeTimeMigration).toContain('active_seconds >= 10 or page_count >= 2 or conversion_count >= 1')
-    expect(activeTimeMigration).toContain('generated always as (page_count >= 2 or conversion_count >= 1) stored')
+    expect(activeTimeMigration).toContain(
+      'active_seconds >= 10 or page_count >= 2 or conversion_count >= 1',
+    )
+    expect(activeTimeMigration).toContain(
+      'generated always as (page_count >= 2 or conversion_count >= 1) stored',
+    )
   })
 
   it('el tiempo activo nunca supera al reloj de pared', () => {
     // Un cliente con la hora corrida mostraría "3 minutos de atención" en una
     // sesión de 40 segundos.
-    expect(activeTimeMigration).toContain('active_seconds = least(active_seconds + v_active_seconds, v_duration)')
+    expect(activeTimeMigration).toContain(
+      'active_seconds = least(active_seconds + v_active_seconds, v_duration)',
+    )
   })
 
   it('el rebote se calcula sobre engagement y no sobre el contador de eventos', () => {
     // La condición vieja (`page_count <= 1 and event_count <= 1`) daba 8% de
     // rebote porque el tracker emite scroll y clicks por su cuenta.
-    expect(activeTimeMigration).toContain('count(*) filter (where not is_engaged)::numeric / count(*)')
+    expect(activeTimeMigration).toContain(
+      'count(*) filter (where not is_engaged)::numeric / count(*)',
+    )
     expect(activeTimeMigration).toContain("'engagementRate'")
     expect(activeTimeMigration).toContain("'avgActiveSeconds'")
     // La lectura sin término temporal es la única comparable contra lo

@@ -10,8 +10,8 @@ const querySchema = z.object({
 export function createCommunityRoutes(deps = {}) {
   const router = Router()
   const repository =
-    deps.communityRepository
-    ?? createSupabaseCommunityRepository({
+    deps.communityRepository ??
+    createSupabaseCommunityRepository({
       getSupabaseAdmin: deps.getSupabaseAdmin,
     })
 

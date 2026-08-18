@@ -3,10 +3,7 @@ import { Check, Copy, QrCode, RefreshCcw, ShieldAlert } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildCredentialUrl, generateStyledAthleteCredentialQr } from '../../lib/credentialQr.js'
 import { formatShortDate } from '../../lib/format.js'
-import {
-  getMembershipCredential,
-  rotateAthleteCredentialToken,
-} from '../../services/athleteApi.js'
+import { getMembershipCredential, rotateAthleteCredentialToken } from '../../services/athleteApi.js'
 import StatusBadge from '../ui/StatusBadge.jsx'
 
 /**
@@ -149,9 +146,7 @@ export default function AdminMembershipCredential({
           </div>
         ) : null}
 
-        <p className="admin-credential__code data-table__mono">
-          {membership?.memberCode ?? '—'}
-        </p>
+        <p className="admin-credential__code data-table__mono">{membership?.memberCode ?? '—'}</p>
 
         <dl className="admin-credential__rows">
           <div>
@@ -186,9 +181,7 @@ export default function AdminMembershipCredential({
               type="button"
               className="admin-credential__copy-btn"
               onClick={copyToken}
-              aria-label={
-                copied ? t('admin.credential.copied') : t('admin.credential.copyToken')
-              }
+              aria-label={copied ? t('admin.credential.copied') : t('admin.credential.copyToken')}
             >
               {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
               <span>{copied ? t('admin.credential.copied') : t('admin.credential.copyToken')}</span>
@@ -223,7 +216,9 @@ export default function AdminMembershipCredential({
                     disabled={rotating}
                     onClick={rotate}
                   >
-                    {rotating ? t('admin.credential.rotating') : t('admin.credential.rotateConfirm')}
+                    {rotating
+                      ? t('admin.credential.rotating')
+                      : t('admin.credential.rotateConfirm')}
                   </button>
                   <button
                     type="button"

@@ -363,7 +363,8 @@
 
 .admin-pricing__status-dot--active {
   background: var(--plu-gold-500, var(--color-brand-gold));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 18%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 18%, transparent);
 }
 
 .admin-pricing__status-dot--scheduled {
@@ -382,10 +383,18 @@
 }
 
 .admin-pricing__status--active {
-  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 90%, var(--color-text-primary));
+  color: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 90%,
+    var(--color-text-primary)
+  );
 }
 
 .admin-pricing__status--scheduled {
+  color: var(--color-brand-celeste);
+}
+
+.admin-pricing__status--manual {
   color: var(--color-brand-celeste);
 }
 
@@ -456,7 +465,11 @@
 }
 
 .admin-pricing__plan-amount--percent {
-  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 92%, var(--color-text-primary));
+  color: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 92%,
+    var(--color-text-primary)
+  );
 }
 
 .admin-pricing__copy-code {
@@ -487,7 +500,8 @@
   font-weight: 650;
 }
 
-.admin-pricing__coupon-row:not(.admin-pricing__coupon-row--active) .admin-pricing__plan-amount--percent {
+.admin-pricing__coupon-row:not(.admin-pricing__coupon-row--active)
+  .admin-pricing__plan-amount--percent {
   color: var(--color-text-muted);
 }
 
@@ -634,7 +648,11 @@
 }
 
 .admin-pricing__switch.is-active {
-  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 86%, var(--color-text-primary));
+  color: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 86%,
+    var(--color-text-primary)
+  );
 }
 
 .admin-pricing__switch.is-active > span {
@@ -702,7 +720,11 @@
 
 .admin-pricing__offer-pill.is-on {
   border-color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 45%, transparent);
-  color: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 92%, var(--color-text-primary));
+  color: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 92%,
+    var(--color-text-primary)
+  );
 }
 
 .admin-pricing__combo-toolbar {
@@ -762,7 +784,11 @@
 }
 
 .admin-pricing__combo-board.is-invalid {
-  border-bottom-color: color-mix(in srgb, var(--color-danger-text, var(--color-brand-red)) 45%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-danger-text, var(--color-brand-red)) 45%,
+    transparent
+  );
 }
 
 .admin-pricing__combo-stack {
@@ -1465,9 +1491,15 @@
   animation: admin-block-enter 0.3s var(--ease-out, ease) backwards;
 }
 
-.admin-pricing > *:nth-child(2) { animation-delay: 35ms; }
-.admin-pricing > *:nth-child(3) { animation-delay: 70ms; }
-.admin-pricing > *:nth-child(n + 4) { animation-delay: 100ms; }
+.admin-pricing > *:nth-child(2) {
+  animation-delay: 35ms;
+}
+.admin-pricing > *:nth-child(3) {
+  animation-delay: 70ms;
+}
+.admin-pricing > *:nth-child(n + 4) {
+  animation-delay: 100ms;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .admin-pricing > *,
@@ -1502,7 +1534,8 @@
 
 [data-theme='light'] .admin-pricing__status-dot--active {
   background: var(--plu-gold-600, var(--color-brand-gold));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--plu-gold-600, var(--color-brand-gold)) 18%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--plu-gold-600, var(--color-brand-gold)) 18%, transparent);
 }
 
 [data-theme='light'] .admin-pricing__switch.is-active {
@@ -1526,9 +1559,17 @@
 }
 
 [data-theme='light'] .admin-pricing__combo-decision input {
-  border-bottom-color: color-mix(in srgb, var(--plu-gold-600, var(--color-brand-gold)) 55%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--plu-gold-600, var(--color-brand-gold)) 55%,
+    transparent
+  );
 }
 
 [data-theme='light'] .admin-pricing__retirement-form input:focus-visible {
-  border-bottom-color: color-mix(in srgb, var(--plu-gold-600, var(--color-brand-gold)) 55%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--plu-gold-600, var(--color-brand-gold)) 55%,
+    transparent
+  );
 }

@@ -56,7 +56,12 @@ describe('tanda privada de afiliación — POST /me/membership-orders', () => {
       registrationAccessRepository: { findActiveGate, recordUse },
       athleteRepository: {
         findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+        findMembershipPlan: vi.fn().mockResolvedValue({
+          code: 'plu-annual',
+          collection_mode: 'one_time',
+          price: 85000,
+          manual_price: null,
+        }),
         applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
         createMembershipOrder,
       },
@@ -106,7 +111,9 @@ describe('tanda privada de afiliación — POST /me/membership-orders', () => {
   })
 
   it('deja pasar la orden con el código correcto y audita el uso', async () => {
-    const { target, createMembershipOrder, recordUse } = await buildApp(await hashPassword('TANDA-PLU-2026'))
+    const { target, createMembershipOrder, recordUse } = await buildApp(
+      await hashPassword('TANDA-PLU-2026'),
+    )
     try {
       const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
         method: 'POST',
@@ -124,7 +131,8 @@ describe('tanda privada de afiliación — POST /me/membership-orders', () => {
         '11111111-1111-4111-8111-111111111111',
         expect.objectContaining({
           paymentMethod: 'mercado_pago',
-          orderAmount: 85000,
+          defaultPrice: 85000,
+          manualPrice: null,
           manualPaymentChannel: null,
         }),
       )
@@ -137,17 +145,21 @@ describe('tanda privada de afiliación — POST /me/membership-orders', () => {
   it('sin tanda activa no exige código', async () => {
     const findActiveGate = vi.fn().mockResolvedValue(null)
     const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-1' } })
-    const target = listen(createApp({
-      env: {},
-      supabaseAdmin: authenticatedSupabase(),
-      registrationAccessRepository: { findActiveGate, recordUse: vi.fn() },
-      athleteRepository: {
-        findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
-        findMembershipPlan: vi.fn().mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
-        applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
-        createMembershipOrder,
-      },
-    }))
+    const target = listen(
+      createApp({
+        env: {},
+        supabaseAdmin: authenticatedSupabase(),
+        registrationAccessRepository: { findActiveGate, recordUse: vi.fn() },
+        athleteRepository: {
+          findContact: vi.fn().mockResolvedValue({ email_verified_at: '2026-08-01T00:00:00Z' }),
+          findMembershipPlan: vi
+            .fn()
+            .mockResolvedValue({ code: 'plu-annual', collection_mode: 'one_time' }),
+          applyCheckoutPrice: vi.fn().mockResolvedValue({ id: 'order-1' }),
+          createMembershipOrder,
+        },
+      }),
+    )
     try {
       const response = await fetch(`${target.url}/api/athletes/me/membership-orders`, {
         method: 'POST',
@@ -197,7 +209,11 @@ describe('verificación previa del código — POST /me/registration-access/veri
     try {
       const response = await verify(target, { scope: 'membership', code: 'TANDA-PLU-2026' })
       expect(response.status).toBe(200)
-      expect(await response.json()).toMatchObject({ valid: true, required: true, scope: 'membership' })
+      expect(await response.json()).toMatchObject({
+        valid: true,
+        required: true,
+        scope: 'membership',
+      })
       // El uso se audita cuando se paga, no cuando se prueba la contraseña.
       expect(recordUse).not.toHaveBeenCalled()
       expect(createMembershipOrder).not.toHaveBeenCalled()

@@ -18,10 +18,10 @@ export default function PitbullHeroRail({
   const isOps = variant === 'ops'
 
   const primaryLabel = t('pages.pitbull.register')
-  const secondaryLabel = ticketsOpen ? t('pages.pitbull.heroTickets') : t('pages.pitbull.ctaCategories')
-  const rootClass = isOps
-    ? 'pitbull-hero-ops'
-    : 'pitbull-hero-rail pitbull-hero-rail--luxury'
+  const secondaryLabel = ticketsOpen
+    ? t('pages.pitbull.heroTickets')
+    : t('pages.pitbull.ctaCategories')
+  const rootClass = isOps ? 'pitbull-hero-ops' : 'pitbull-hero-rail pitbull-hero-rail--luxury'
 
   return (
     <div className={rootClass} role="group" aria-label={t('pages.pitbull.heroMetricsAria')}>
@@ -38,7 +38,9 @@ export default function PitbullHeroRail({
             </div>
           </>
         ) : null}
-        <div className={`${isOps ? 'pitbull-hero-ops__fact' : 'pitbull-hero-rail__metric'}${canRegister ? ' pitbull-hero-rail__metric--open' : ''}`}>
+        <div
+          className={`${isOps ? 'pitbull-hero-ops__fact' : 'pitbull-hero-rail__metric'}${canRegister ? ' pitbull-hero-rail__metric--open' : ''}`}
+        >
           <dt>{t('pages.pitbull.heroSlots')}</dt>
           <dd>
             {pitbullClassic.registered}/{pitbullClassic.slots}
@@ -64,7 +66,11 @@ export default function PitbullHeroRail({
         </button>
         <button
           type="button"
-          className={isOps ? 'pitbull-hero-ops__cta pitbull-hero-ops__cta--muted' : 'pitbull-hero-rail__cta pitbull-hero-rail__cta--muted'}
+          className={
+            isOps
+              ? 'pitbull-hero-ops__cta pitbull-hero-ops__cta--muted'
+              : 'pitbull-hero-rail__cta pitbull-hero-rail__cta--muted'
+          }
           onClick={onSecondary}
         >
           {secondaryLabel}

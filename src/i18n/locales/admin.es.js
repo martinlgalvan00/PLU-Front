@@ -15,11 +15,183 @@ export default {
     hideSidebar: 'Ocultar panel lateral',
     showSidebar: 'Mostrar panel lateral',
     defaultSection: 'Panel',
+    breadcrumbRoot: 'Admin',
     navAria: 'Navegación operativa',
     navBadgeAria: '{{label}}, {{count}} pendientes',
     goToDashboard: 'Ir al resumen',
     syncing: 'Sincronizando',
     updated: 'Actualizado',
+  },
+  tour: {
+    startAria: 'Ver recorrido guiado del panel',
+    close: 'Cerrar recorrido',
+    skip: 'Saltear',
+    back: 'Atrás',
+    next: 'Siguiente',
+    finish: 'Entendido',
+    stepOf: 'Paso {{current}} de {{total}}',
+    menuReplay: 'Ver este recorrido',
+    menuModeLabel: 'Mostrar automáticamente',
+    mode: {
+      once: 'Una vez (recomendado)',
+      always: 'Siempre',
+      off: 'Nunca',
+    },
+    nav: {
+      title: 'Navegación',
+      body: 'Acá vivís las secciones del panel: plantel, competencia, cobros y acceso. El ícono resaltado es la sección activa.',
+    },
+    search: {
+      title: 'Buscador global',
+      body: 'Buscá un atleta, un DNI o un evento sin cambiar de sección. Enter te lleva directo al resultado.',
+    },
+    kpis: {
+      title: 'Estado operativo',
+      body: 'Estos números resumen atletas, afiliaciones, inscripciones y pagos pendientes en tiempo real. Tocá una tarjeta para ir directo a esa sección.',
+    },
+    quicklinks: {
+      title: 'Accesos rápidos',
+      body: 'Atajos a las secciones que más se usan en el día a día, sin pasar por el menú lateral.',
+    },
+    queue: {
+      title: 'Pendientes',
+      body: 'Lo que necesita una decisión tuya -- pagos por validar, inscripciones a revisar -- queda listado acá, separado de lo que ya sigue su curso solo.',
+    },
+    help: {
+      title: 'Repetir este recorrido',
+      body: 'Cuando quieras, volvé a ver esta guía desde este botón. También cambia el tema y el idioma del panel.',
+    },
+    athletes: {
+      search: {
+        title: 'Buscá un atleta',
+        body: 'Por nombre, gimnasio, DNI o email -- filtra la lista al toque, sin recargar la página.',
+      },
+      filters: {
+        title: 'Estado del atleta',
+        body: 'Todos, afiliados activos o solo registrados sin afiliación. El número en cada chip es el conteo real de esa vista.',
+      },
+      stats: {
+        title: 'Resumen del plantel',
+        body: 'Activos, vencidos y bloqueados de un vistazo, antes de entrar a revisar fila por fila.',
+      },
+      table: {
+        title: 'Ficha del atleta',
+        body: 'Tocá cualquier fila para abrir la ficha completa: datos de contacto, afiliaciones, inscripciones, pagos y credencial.',
+      },
+    },
+    memberships: {
+      search: {
+        title: 'Buscá una afiliación',
+        body: 'Por nombre del atleta, gimnasio o código de socio.',
+      },
+      filters: {
+        title: 'Estado y vencimiento',
+        body: 'Filtrá por estado de la afiliación, o activá el toggle para ver solo las que vencen pronto y necesitan renovación.',
+      },
+      stats: {
+        title: 'Salud de las afiliaciones',
+        body: 'Activas, altas del mes, por vencer y con pago pendiente -- las cuatro señales que definen si hay que salir a cobrar o a renovar.',
+      },
+      actions: {
+        title: 'Acciones por fila',
+        body: 'Ver credencial, activar, dar de baja o eliminar -- según tu permiso. Un click en la fila abre la ficha del atleta; estos botones no.',
+      },
+    },
+    registrations: {
+      search: {
+        title: 'Buscá una inscripción',
+        body: 'Por atleta, gimnasio, DNI o categoría, dentro del evento que estés mirando.',
+      },
+      filters: {
+        title: 'Evento y estado',
+        body: 'Si hay más de un evento con inscripciones abiertas, elegí cuál mirar. El estado filtra confirmadas, pendientes de pago o sin afiliación.',
+      },
+      exports: {
+        title: 'Exportar',
+        body: 'CSV con todo el detalle operativo, o la planilla en el formato que espera PLU USA -- sin tocar datos ni exponer de más.',
+      },
+      stats: {
+        title: 'Estado de la caja',
+        body: 'Total, pendientes de pago, con validación manual y confirmadas -- el pulso de inscripciones del evento.',
+      },
+      table: {
+        title: 'Validar y gestionar',
+        body: 'Aprobar pago manual, mostrar/ocultar del padrón público, cambiar estado o eliminar -- todo desde la fila, sin salir de la lista.',
+      },
+    },
+    events: {
+      create: {
+        title: 'Nuevo evento',
+        body: 'Alta de un meet: fecha, sede, categorías y cupos. El botón de al lado refresca la lista contra lo último guardado.',
+      },
+      kpis: {
+        title: 'Pulso de competencias',
+        body: 'Próximos, inscriptos totales y ocupación -- para saber de un vistazo si un evento se está llenando.',
+      },
+      list: {
+        title: 'Todos los meets',
+        body: 'Agrupados por estado. Tocá uno para ver su detalle y editarlo a la derecha.',
+      },
+      preview: {
+        title: 'Detalle del evento',
+        body: 'Estado de inscripción, visibilidad pública, cupos y accesos directos a entradas, inscripciones y cobros de ese evento.',
+      },
+    },
+    payments: {
+      rejectionActorProvider: 'Mercado Pago',
+      kpis: {
+        title: 'Radar de cobros',
+        body: 'Órdenes por validar, entradas pendientes, webhooks fallidos, conciliaciones e integridad general -- tocá cualquiera para ir directo a esa cola.',
+      },
+      athletes: {
+        title: 'Órdenes de atleta',
+        body: 'Transferencias y acreditaciones de Mercado Pago por validar. Acá aprobás, rechazás o forzás la acreditación manual.',
+      },
+      tickets: {
+        title: 'Entradas y transferencias',
+        body: 'Órdenes manuales de compra de entradas esperando comprobante o validación.',
+      },
+      ledger: {
+        title: 'Bitácora técnica',
+        body: 'Webhooks fallidos y conciliaciones pendientes con Mercado Pago -- el detalle para diagnosticar cuando algo no cuadra.',
+      },
+    },
+    pricing: {
+      intro: {
+        title: 'Tarifas',
+        body: 'Todo lo que define cuánto y cómo se cobra: planes de afiliación, combos con eventos, códigos de descuento y suscripciones recurrentes.',
+      },
+      plans: {
+        title: 'Planes de afiliación',
+        body: 'Cada plan tiene versiones con precio y vigencia propia -- crear una versión nueva no borra el historial de precios ya cobrados. "Retirar" saca un plan de la venta sin tocar las afiliaciones activas.',
+      },
+      combos: {
+        title: 'Combos evento + afiliación',
+        body: 'Precio especial cuando alguien se afilia e inscribe a un evento en la misma compra. Se arma por evento, con su propia ventana de vigencia.',
+      },
+      codes: {
+        title: 'Códigos de descuento',
+        body: 'Cupones manuales por monto o porcentaje, con tope de usos y vigencia. Se pueden combinar con las promociones automáticas o no, según cómo se configuren.',
+      },
+      subscriptions: {
+        title: 'Suscripciones activas',
+        body: 'El estado real de cada suscripción recurrente contra Mercado Pago: próximo cobro, mora y cancelación -- la fuente de verdad es el proveedor, esto es un espejo operativo.',
+      },
+    },
+    accessGates: {
+      intro: {
+        title: 'Acceso y habilitación',
+        body: 'Los interruptores que deciden si alguien puede empezar a afiliarse, inscribirse o comprar una entrada ahora mismo -- antes de que llegue a completar ningún formulario.',
+      },
+      toggles: {
+        title: 'Habilitación general',
+        body: 'Un corte total por tipo de operación (afiliación, inscripción, entrada, suscripción). Apagado acá, nadie puede arrancar esa operación, tenga o no tenga código.',
+      },
+      gates: {
+        title: 'Tandas privadas',
+        body: 'Además del corte general, cada tanda de un evento puede pedir un código propio para abrir de a poco -- útil para preventas o cupos reservados antes de la apertura pública.',
+      },
+    },
   },
   nav: {
     groups: {
@@ -51,6 +223,8 @@ export default {
   },
   filters: {
     status: 'Estado',
+    affiliation: 'Afiliación',
+    registrationStatus: 'Inscripción',
     event: 'Evento',
     expiration: 'Vencimiento',
     allStatuses: 'Todos los estados',
@@ -64,6 +238,8 @@ export default {
     membershipRefunded: 'Reembolsadas',
     paymentApproved: 'Pago aprobado',
     gatePending: 'Confirmada sin afiliación',
+    allTournament: 'Todos',
+    registeredToTournament: 'Inscriptos a un torneo',
     toggle: 'Filtros',
     activeCount: '{{count}} filtros activos',
     clearSearch: 'Limpiar búsqueda',
@@ -256,9 +432,14 @@ export default {
       actionError: 'No pudimos actualizar la afiliación.',
       cancelConfirmTitle: 'Confirmar baja de afiliación',
       cancelConfirmDescription: 'Vas a dar de baja la afiliación de {{athlete}}.',
-      cancelConfirmWarning: 'La credencial deja de habilitar el ingreso y el atleta recibe un email con el cambio.',
+      cancelConfirmWarning:
+        'La credencial deja de habilitar el ingreso y el atleta recibe un email con el cambio.',
       keepActive: 'Mantener activa',
       confirmCancel: 'Confirmar baja',
+      registeredToTournamentBadge: 'Torneo',
+      validationPaused: 'La validación de afiliaciones está pausada desde Acceso y habilitación.',
+      validationPausedLead:
+        'Activar o dar de baja queda bloqueado hasta que se reabra el interruptor en esa pantalla.',
     },
     pricing: {
       eyebrow: 'Configuración económica',
@@ -270,7 +451,8 @@ export default {
       retry: 'Reintentar',
       loading: 'Cargando tarifas…',
       plansTitle: 'Planes de afiliación',
-      plansLead: 'Publicá un plan o una versión nueva. El precio de una versión ya cobrada no se pisa.',
+      plansLead:
+        'Publicá un plan o una versión nueva. El precio de una versión ya cobrada no se pisa.',
       newPlan: 'Nuevo plan',
       newVersion: 'Nueva versión',
       edit: 'Editar',
@@ -297,6 +479,10 @@ export default {
       name: 'Nombre público',
       description: 'Descripción',
       price: 'Precio',
+      manualPrice: 'Precio por transferencia/efectivo',
+      manualPricePlaceholder: 'Igual que el precio de Mercado Pago',
+      manualPriceHint:
+        'Opcional. Si lo dejás vacío, transferencia y efectivo cobran lo mismo que Mercado Pago.',
       currency: 'Moneda',
       billingFrequency: 'Vigencia',
       collectionMode: 'Modalidad de cobro',
@@ -311,11 +497,13 @@ export default {
       deleting: 'Eliminando...',
       deleteConfirmTitle: 'Eliminar {{name}}',
       deleteConfirmDescription: 'Vas a borrar el plan {{code}} del catálogo de afiliaciones.',
-      deleteConfirmWarning: 'Solo se puede eliminar si no tiene afiliaciones, órdenes o suscripciones asociadas.',
+      deleteConfirmWarning:
+        'Solo se puede eliminar si no tiene afiliaciones, órdenes o suscripciones asociadas.',
       deleteConfirmCancel: 'Conservar plan',
       deleteConfirmConfirm: 'Eliminar plan',
       comboTitle: 'Oferta combo',
-      comboLead: 'Combiná una afiliación y una inscripción. El precio final debe ser menor al total por separado.',
+      comboLead:
+        'Combiná una afiliación y una inscripción. El precio final debe ser menor al total por separado.',
       event: 'Evento',
       membershipPlan: 'Plan incluido',
       membershipAmount: 'Afiliación',
@@ -348,24 +536,62 @@ export default {
       retiresAtHint: 'Opcional. Después de esta fecha el plan deja de ofrecerse.',
       retiresOn: 'Vence {{date}}',
       scheduleRetirement: 'Programar vigencia',
-      discountCodesTitle: 'Códigos de descuento',
-      discountCodesLead: 'Creá cupos para las primeras personas que canjeen, con vencimiento y seguimiento en vivo.',
-      discountCodesEmpty: 'Todavía no hay códigos de descuento.',
+      discountCodesTitle: 'Códigos de descuento y promoción',
+      discountCodesLead:
+        'Descuentos por porcentaje o promos con precio fijo, con cupos, vencimiento y seguimiento en vivo.',
+      discountCodesEmpty: 'Todavía no hay códigos cargados.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
-      formTitleNewCode: 'Nuevo código de descuento',
+      formTitleNewCode: 'Nuevo código',
       formTitleEditCode: 'Editar {{code}}',
       code: 'Código',
       codeFormatHint: 'Mayúsculas, números y guiones.',
       percentOff: 'Descuento (%)',
+      percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
+      codeKindLabel: 'Modalidad',
+      codeKindHint:
+        'El descuento resta un porcentaje del precio vigente. El precio promocional fija cuánto se paga, sin importar el medio de pago.',
+      codeKind: {
+        percent: 'Descuento por porcentaje',
+        fixed_price: 'Precio promocional fijo',
+      },
+      fixedPrice: 'Precio promocional (ARS)',
+      fixedPriceHint:
+        'Lo que paga quien use el código. Tiene que ser menor al precio vigente de lo que compra.',
+      fixedPriceInvalid: 'El precio promocional tiene que ser un número entero mayor a 0.',
+      fixedPriceScopeInvalid:
+        'Un precio promocional necesita un alcance único: afiliación, inscripción o combo.',
+      manualChannelsLegend: 'Medios de pago que habilita',
+      manualChannelsHint:
+        'Mercado Pago siempre está disponible. Marcá un canal para que este código lo destrabe sólo para quien lo use, aunque esté apagado en general. Sin marcar nada, la compra va únicamente por Mercado Pago.',
+      manualChannel: {
+        bank_transfer: 'Transferencia bancaria',
+        cash_pitbull: 'Efectivo en Pitbull',
+      },
+      manualChannelsBadge: {
+        bank_transfer: 'Habilita transferencia',
+        cash_pitbull: 'Habilita efectivo',
+        'bank_transfer+cash_pitbull': 'Habilita transferencia y efectivo',
+      },
+      deleteDiscountCode: 'Eliminar',
+      deleteDiscountCodeAria: 'Eliminar código {{code}}',
+      deleteCodeConfirmTitle: 'Eliminar {{code}}',
+      deleteCodeConfirmDescription: 'Vas a borrar el código de descuento {{code}} del catálogo.',
+      deleteCodeConfirmWarning:
+        'Solo se puede eliminar si no tiene canjes registrados. Si ya se usó, desactivalo en su lugar.',
+      deleteCodeConfirmCancel: 'Conservar código',
+      deleteCodeConfirmConfirm: 'Eliminar código',
+      codeDeleted: 'Código de descuento eliminado.',
       appliesToLabel: 'Aplica a',
       appliesTo: {
-        membership: 'Membresías',
-        registration: 'Inscripciones',
-        both: 'Ambos',
+        membership: 'Afiliación',
+        registration: 'Inscripción',
+        combo: 'Combo (afiliación + inscripción)',
+        both: 'Afiliación e inscripción',
       },
       maxRedemptions: 'Límite de canjes',
-      maxRedemptionsHint: 'Dejalo vacío si no querés limitarlo. Cada canje descuenta un cupo automáticamente.',
+      maxRedemptionsHint:
+        'Dejalo vacío si no querés limitarlo. Cada canje descuenta un cupo automáticamente.',
       unlimitedUses: 'Sin tope',
       expiresAt: 'Vencimiento',
       expiresAtHint: 'Dejalo vacío para que el código nunca expire.',
@@ -395,12 +621,15 @@ export default {
       subscriptionsTitle: 'Suscripciones activas',
       subscriptionsLead: 'Afiliaciones con cobro recurrente en Mercado Pago.',
       subscriptionsEmpty: 'Todavía no hay suscripciones activas.',
-      subscriptionsEmptyHint: 'Las afiliaciones recurrentes van a aparecer acá con su próximo cobro y estado.',
+      subscriptionsEmptyHint:
+        'Las afiliaciones recurrentes van a aparecer acá con su próximo cobro y estado.',
       nextBilling: 'Próximo cobro: {{date}}',
       cancelSubscription: 'Cancelar suscripción',
       cancelSubscriptionConfirmTitle: 'Cancelar suscripción',
-      cancelSubscriptionConfirmDescription: 'Se cancela la suscripción recurrente de {{athlete}} en Mercado Pago.',
-      cancelSubscriptionConfirmWarning: 'La afiliación deja de renovarse automáticamente. Esta acción no se puede deshacer.',
+      cancelSubscriptionConfirmDescription:
+        'Se cancela la suscripción recurrente de {{athlete}} en Mercado Pago.',
+      cancelSubscriptionConfirmWarning:
+        'La afiliación deja de renovarse automáticamente. Esta acción no se puede deshacer.',
       subscriptionStatus: {
         pending: 'Pendiente',
         active: 'Activa',
@@ -413,7 +642,8 @@ export default {
     accessGates: {
       eyebrow: 'Aperturas controladas',
       title: 'Acceso y habilitación',
-      subtitle: 'Controlá quién puede iniciar una afiliación o inscripción antes de abrirla al público.',
+      subtitle:
+        'Controlá quién puede iniciar una afiliación o inscripción antes de abrirla al público.',
       refresh: 'Actualizar',
       retry: 'Reintentar',
       loading: 'Cargando accesos…',
@@ -434,6 +664,7 @@ export default {
       togglesTitle: 'Habilitación general',
       togglesLead:
         'Corte total, con o sin código: apagado acá, nadie puede empezar una afiliación, inscripción, entrada o suscripción nueva.',
+      togglesSummary: '{{open}} de {{total}} habilitados',
       togglesLoading: 'Cargando interruptores…',
       togglesLoadError: 'No se pudieron leer los interruptores generales.',
       togglesSaveError: 'No se pudo actualizar el interruptor.',
@@ -545,6 +776,9 @@ export default {
       emptyFilteredTitle: 'Sin resultados',
       emptyFiltered: 'No hay inscripciones que coincidan con la búsqueda o el estado elegido.',
       clearFilters: 'Limpiar filtros',
+      validationPaused: 'La validación de inscripciones está pausada desde Acceso y habilitación.',
+      validationPausedLead:
+        'Aprobar un pago queda bloqueado hasta que se reabra el interruptor en esa pantalla.',
     },
     events: {
       eyebrow: 'Competencias',
@@ -1100,8 +1334,7 @@ export default {
     breakdownEvents: 'Eventos',
     flowsEyebrow: 'Circuitos',
     flowsTitle: 'Estado de los flujos',
-    flowsSubtitle:
-      'Separá lo que sigue su curso de lo que necesita una decisión del equipo.',
+    flowsSubtitle: 'Separá lo que sigue su curso de lo que necesita una decisión del equipo.',
     flowOpen: 'Abrir',
     flowPaymentsTitle: 'Cobros',
     flowPaymentsProgressing: 'en seguimiento',
@@ -1229,7 +1462,8 @@ export default {
     axisRequestHint:
       'Todo lo que ocurrió dentro de la misma llamada al servidor. Es la cadena real de causas, no una coincidencia de horario.',
     axisBefore: 'Qué hizo antes esta persona',
-    axisBeforeHint: 'Sus últimas acciones en las 24 horas previas, de la más vieja a la más reciente.',
+    axisBeforeHint:
+      'Sus últimas acciones en las 24 horas previas, de la más vieja a la más reciente.',
     axisBeforeEmpty: 'No hay acciones previas de este actor en las últimas 24 horas.',
     axisAfter: 'Qué hizo después',
     axisEntity: 'Historia de esta entidad',
@@ -1265,7 +1499,8 @@ export default {
       expiredWithoutPayment: {
         title: 'Vencimiento automÃ¡tico sin pago',
         summary: 'La ventana de pago venciÃ³ el {{expiresAt}}.',
-        action: 'No acreditar manualmente. Pedile a la persona que genere una nueva orden. Si informa un dÃ©bito, revalidÃ¡ primero contra Mercado Pago.',
+        action:
+          'No acreditar manualmente. Pedile a la persona que genere una nueva orden. Si informa un dÃ©bito, revalidÃ¡ primero contra Mercado Pago.',
       },
     },
   },
@@ -1300,10 +1535,13 @@ export default {
     document: 'Documento',
     detail: 'Concepto',
     amount: 'Monto',
+    notes: 'Observaciones del atleta',
     proofReceivedAt: 'Comprobante recibido',
+    rejectedByLabel: 'Rechazo anterior',
     proofPending: 'Archivo pendiente',
     noProofTitle: 'Sin comprobante cargado',
-    noProofLead: 'La transferencia se puede acreditar sólo después de adjuntar y revisar un comprobante.',
+    noProofLead:
+      'La transferencia se puede acreditar sólo después de adjuntar y revisar un comprobante.',
     proofLoading: 'Cargando comprobante…',
     proofErrorTitle: 'No se pudo cargar el comprobante',
     proofError: 'No se pudo abrir el comprobante. Intentá de nuevo.',
@@ -1319,12 +1557,16 @@ export default {
     confirming: 'Validando…',
     confirmError: 'No se pudo validar el pago. Intentá de nuevo.',
     settleTitle: 'Acreditar a mano',
-    settleLead: 'Mercado Pago no confirmó este cobro, pero el dinero entró. Revisá el comprobante antes de acreditarlo.',
+    settleLead:
+      'Mercado Pago no confirmó este cobro, pero el dinero entró. Revisá el comprobante antes de acreditarlo.',
     settleNoProofLead: 'Adjuntá el comprobante del pago recibido antes de acreditarlo a mano.',
-    settleAuditNote: 'Esta acción acredita el cobro sin confirmación del proveedor: activa la afiliación o inscripción, suma el monto al reporte financiero y queda registrada en la auditoría a tu nombre.',
+    settleAuditNote:
+      'Esta acción acredita el cobro sin confirmación del proveedor: activa la afiliación o inscripción, suma el monto al reporte financiero y queda registrada en la auditoría a tu nombre.',
     settleReasonLabel: 'Motivo de la acreditación',
-    settleReasonPlaceholder: 'Ej.: transferencia recibida el 12/08, Mercado Pago la marcó cancelada por vencimiento.',
-    settleReasonHint: 'Queda en la auditoría junto a tu usuario. Explicá por qué el cobro es válido.',
+    settleReasonPlaceholder:
+      'Ej.: transferencia recibida el 12/08, Mercado Pago la marcó cancelada por vencimiento.',
+    settleReasonHint:
+      'Queda en la auditoría junto a tu usuario. Explicá por qué el cobro es válido.',
     settleReferenceLabel: 'Referencia del pago (opcional)',
     settleReferencePlaceholder: 'Ej.: ID de operación, número de transferencia',
     settleConfirm: 'Acreditar el cobro',
@@ -1551,8 +1793,11 @@ export default {
     publish: 'Publicar evento',
     priceMembership: 'Afiliación',
     priceRegistration: 'Inscripción',
+    priceRegistrationManual: 'Inscripción · transferencia/efectivo',
+    priceRegistrationManualPlaceholder: 'Igual que el precio de Mercado Pago',
     priceCombo: 'Combo afiliación + meet',
-    pricingCatalogHint: 'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
+    pricingCatalogHint:
+      'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Beneficios en la compra de entradas',
     ticketAddonsLead:
@@ -1793,7 +2038,8 @@ export default {
       slotsInvalid: 'Ingresá un número de cupos válido.',
       slotsInt: 'Los cupos tienen que ser un número entero.',
       slotsMin: 'Definí al menos 1 cupo.',
-      slotsBelowRegistered: 'El cupo no puede ser menor a las {{count}} inscripciones ya reservadas.',
+      slotsBelowRegistered:
+        'El cupo no puede ser menor a las {{count}} inscripciones ya reservadas.',
       slotsMax: 'El máximo permitido es 5000 cupos.',
       venueMin: 'Indicá la sede del evento.',
       venueMax: 'El nombre de la sede es demasiado largo.',
@@ -1838,8 +2084,7 @@ export default {
   analytics: {
     eyebrow: 'Sitio público',
     title: 'Analítica',
-    subtitle:
-      'Tráfico, recorridos e interacciones del sitio público.',
+    subtitle: 'Tráfico, recorridos e interacciones del sitio público.',
     loading: 'Cargando analítica…',
     error: 'No se pudo cargar la analítica.',
     refresh: 'Actualizar',
@@ -1854,8 +2099,7 @@ export default {
       athlete: 'Atleta',
     },
     activityTitle: 'Actividad y accesos',
-    activitySummary:
-      '{{people}} personas comprometidas · {{entries}} ingresos registrados',
+    activitySummary: '{{people}} personas comprometidas · {{entries}} ingresos registrados',
     activityActions: 'Acciones realizadas',
     activityGates: 'Ingresos por puerta',
     activityPeople: '{{count}} personas',
@@ -1891,7 +2135,8 @@ export default {
       attempts: '{{count}} intentos',
       failed: 'Intentos fallidos',
       blocked: 'Personas que nunca entraron',
-      blockedHint: 'Fallaron en todos sus intentos del período: son las que siguen sin poder entrar.',
+      blockedHint:
+        'Fallaron en todos sus intentos del período: son las que siguen sin poder entrar.',
       failureRate: 'Tasa de fallo',
       accountsCreated: 'Cuentas creadas',
       reasonsTitle: 'Motivos de rechazo',
@@ -2181,6 +2426,7 @@ export default {
     filterManual: 'Con comprobante',
     filterApproved: 'Aprobadas',
     filterAll: 'Todas',
+    rejectedBy: 'Rechazada por {{actor}}',
     columnProof: 'Comprobante',
     proofMissing: 'Sin comprobante',
     proofError: 'No se pudo abrir el comprobante.',

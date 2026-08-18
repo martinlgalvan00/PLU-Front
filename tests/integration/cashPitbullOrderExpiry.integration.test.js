@@ -85,7 +85,8 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_payment_method: 'manual_link',
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 75000,
+      p_manual_price: null,
       p_manual_payment_channel: 'cash_pitbull',
     })
     if (created.error) throw new Error(created.error.message)
@@ -107,7 +108,8 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_plan_code: await activeAnnualPlanCode(),
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 75000,
+      p_manual_price: null,
       p_manual_payment_channel: 'cash_pitbull',
     })
     if (created.error) throw new Error(created.error.message)
@@ -130,7 +132,8 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_payment_method: 'manual_link',
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 75000,
+      p_manual_price: null,
       p_manual_payment_channel: 'bank_transfer',
     })
     if (created.error) throw new Error(created.error.message)
@@ -153,7 +156,8 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_plan_code: planCode,
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 75000,
+      p_manual_price: null,
       p_manual_payment_channel: 'cash_pitbull',
     })
     if (cash.error) throw new Error(cash.error.message)
@@ -164,7 +168,8 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_plan_code: planCode,
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 75000,
+      p_manual_price: null,
       p_manual_payment_channel: 'bank_transfer',
     })
     if (back.error) throw new Error(back.error.message)
@@ -192,7 +197,8 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_payment_method: 'manual_link',
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 75000,
+      p_manual_price: null,
       p_manual_payment_channel: 'cash_pitbull',
     })
     if (created.error) throw new Error(created.error.message)
@@ -226,7 +232,8 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_payment_method: 'manual_link',
       p_idempotency_key: randomUUID(),
       p_discount_code: null,
-      p_order_amount: 75000,
+      p_default_price: 75000,
+      p_manual_price: null,
       p_manual_payment_channel: 'bank_transfer',
     })
     if (created.error) throw new Error(created.error.message)

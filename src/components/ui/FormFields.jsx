@@ -96,7 +96,13 @@ export function DateField({
 
 export function Select({ className = '', error, icon: Icon, label, options, ...props }) {
   const errorId = `${props.name}-error`
-  const fieldClass = ['field', 'field--select', className, error ? 'is-invalid' : '', Icon ? 'field--has-icon' : '']
+  const fieldClass = [
+    'field',
+    'field--select',
+    className,
+    error ? 'is-invalid' : '',
+    Icon ? 'field--has-icon' : '',
+  ]
     .filter(Boolean)
     .join(' ')
   const emptySelected = props.value === '' || props.value == null
@@ -150,7 +156,11 @@ export function ChoiceField({
     .join(' ')
 
   return (
-    <fieldset className={fieldClass} aria-describedby={error ? errorId : undefined} aria-invalid={Boolean(error)}>
+    <fieldset
+      className={fieldClass}
+      aria-describedby={error ? errorId : undefined}
+      aria-invalid={Boolean(error)}
+    >
       <legend className="field__label">{label}</legend>
       <div className="field__choices" role="radiogroup" aria-label={label}>
         {options.map((option) => {
@@ -160,7 +170,10 @@ export function ChoiceField({
           const active = value === optionValue
 
           return (
-            <label key={optionValue} className={`field__choice${active ? ' is-active' : ''}`.trim()}>
+            <label
+              key={optionValue}
+              className={`field__choice${active ? ' is-active' : ''}`.trim()}
+            >
               <input
                 checked={active}
                 disabled={disabled}

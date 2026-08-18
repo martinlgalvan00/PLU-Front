@@ -49,7 +49,11 @@ describe('getFailureReasonBreakdown', () => {
       FAILED_ROW({
         entity_id: 'order-3',
         metadata: {
-          diagnosis: { code: 'CARD_DECLINED', title: 'Tarjeta rechazada por el banco', severity: 'expected' },
+          diagnosis: {
+            code: 'CARD_DECLINED',
+            title: 'Tarjeta rechazada por el banco',
+            severity: 'expected',
+          },
         },
       }),
     ])
@@ -58,8 +62,22 @@ describe('getFailureReasonBreakdown', () => {
     const reasons = await repository.getFailureReasonBreakdown({})
 
     expect(reasons).toEqual([
-      { code: 'AMOUNT_MISMATCH', title: 'El monto no coincide con la preferencia', severity: 'blocker', count: 2, sampleOrderId: 'order-1', lastSeenAt: '2026-08-13T00:00:00.000Z' },
-      { code: 'CARD_DECLINED', title: 'Tarjeta rechazada por el banco', severity: 'expected', count: 1, sampleOrderId: 'order-3', lastSeenAt: '2026-08-13T00:00:00.000Z' },
+      {
+        code: 'AMOUNT_MISMATCH',
+        title: 'El monto no coincide con la preferencia',
+        severity: 'blocker',
+        count: 2,
+        sampleOrderId: 'order-1',
+        lastSeenAt: '2026-08-13T00:00:00.000Z',
+      },
+      {
+        code: 'CARD_DECLINED',
+        title: 'Tarjeta rechazada por el banco',
+        severity: 'expected',
+        count: 1,
+        sampleOrderId: 'order-3',
+        lastSeenAt: '2026-08-13T00:00:00.000Z',
+      },
     ])
   })
 

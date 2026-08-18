@@ -1,11 +1,7 @@
 import '../../styles/pages/members.css'
 import MembershipCard from './MembershipCard.jsx'
 
-const pluFeatures = [
-  'Mayores de 18 años',
-  'Credencial digital',
-  'Eventos del calendario PLU ARG',
-]
+const pluFeatures = ['Mayores de 18 años', 'Credencial digital', 'Eventos del calendario PLU ARG']
 
 function PluFrame({ children }) {
   return (
@@ -88,11 +84,7 @@ export const PluWithDistinctKicker = {
     title: 'Afiliación + Pitbull Classic',
     kicker: 'Hasta el 28 ago',
     price: 120000,
-    features: [
-      'Afiliación anual PLU ARG',
-      'Inscripción Pitbull Classic',
-      'Un solo pago',
-    ],
+    features: ['Afiliación anual PLU ARG', 'Inscripción Pitbull Classic', 'Un solo pago'],
     compareWith: [{ price: 75000 }, { price: 75000 }],
   },
   decorators: [

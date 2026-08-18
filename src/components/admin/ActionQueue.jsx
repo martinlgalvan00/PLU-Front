@@ -23,7 +23,10 @@ const TYPE_ICONS = {
 }
 
 function itemHasProof(item) {
-  const path = typeof item?.paymentProofPath === 'string' ? item.paymentProofPath.trim() : item?.paymentProofPath
+  const path =
+    typeof item?.paymentProofPath === 'string'
+      ? item.paymentProofPath.trim()
+      : item?.paymentProofPath
   return Boolean(item?.hasProof || path)
 }
 
@@ -188,10 +191,15 @@ export default function ActionQueue({
 
       <div className="action-queue__groups">
         {groups.map(({ priority, types }) => (
-          <section key={priority} className={`action-queue__group action-queue__group--${priority}`}>
+          <section
+            key={priority}
+            className={`action-queue__group action-queue__group--${priority}`}
+          >
             {showGroupHeads ? (
               <header className="action-queue__group-head">
-                <span className={`action-queue__group-label action-queue__group-label--${priority}`}>
+                <span
+                  className={`action-queue__group-label action-queue__group-label--${priority}`}
+                >
                   {t(`admin.actionQueue.priority.${priority}`)}
                 </span>
                 <span className="action-queue__group-count">
@@ -221,14 +229,17 @@ export default function ActionQueue({
                         const isPaymentTask = Boolean(item.paymentId || item.orderId)
                         const hasPrimaryAction = Boolean(
                           canEdit &&
-                            ((item.paymentId &&
-                              item.method === 'manual_link' &&
-                              (hasProof || item.cashAtPitbull)) ||
-                              (item.orderId && item.provider === 'manual' && hasProof)),
+                          ((item.paymentId &&
+                            item.method === 'manual_link' &&
+                            (hasProof || item.cashAtPitbull)) ||
+                            (item.orderId && item.provider === 'manual' && hasProof)),
                         )
 
                         return (
-                          <li key={item.id} className={`action-queue__card action-queue__card--${item.priority}`}>
+                          <li
+                            key={item.id}
+                            className={`action-queue__card action-queue__card--${item.priority}`}
+                          >
                             <div className="action-queue__card-body">
                               <strong className="action-queue__subject">{item.subject}</strong>
                               <span className="action-queue__meta">
@@ -263,7 +274,10 @@ export default function ActionQueue({
                                 {item.meta}
                               </span>
                             ) : (
-                              <span className="action-queue__amount action-queue__amount--empty" aria-hidden />
+                              <span
+                                className="action-queue__amount action-queue__amount--empty"
+                                aria-hidden
+                              />
                             )}
 
                             <div className="action-queue__actions">

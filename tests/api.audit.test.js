@@ -23,7 +23,7 @@ function auditRow(overrides = {}) {
     actor_id: 'mp-8891',
     metadata: { amount: 75000, externalPaymentId: 'mp-8891' },
     created_at: '2026-08-02T12:00:00.000Z',
-    ...overrides
+    ...overrides,
   }
 }
 
@@ -43,11 +43,18 @@ function createAuditRepositoryDouble(rows = [auditRow()]) {
   }))
   const getById = vi.fn(async (id) => rows.find((row) => row.id === id) ?? null)
   const context = vi.fn(async () => ({
-    request: [], actorBefore: [], actorAfter: [], entity: [],
+    request: [],
+    actorBefore: [],
+    actorAfter: [],
+    entity: [],
   }))
   return {
     repository: { list, facets, overview, getById, context },
-    list, facets, overview, getById, context,
+    list,
+    facets,
+    overview,
+    getById,
+    context,
   }
 }
 
@@ -191,7 +198,10 @@ describe('API de auditoría (/api/audit)', () => {
 
   it('devuelve cursor solo cuando la página vino completa', async () => {
     const rows = Array.from({ length: 100 }, (_, index) =>
-      auditRow({ id: `row-${index}`, created_at: `2026-08-02T12:00:${String(index).padStart(2, '0')}.000Z` }),
+      auditRow({
+        id: `row-${index}`,
+        created_at: `2026-08-02T12:00:${String(index).padStart(2, '0')}.000Z`,
+      }),
     )
     const { target, cookie } = await setup({ rows })
 
@@ -201,7 +211,9 @@ describe('API de auditoría (/api/audit)', () => {
       expect(fullBody.nextCursor).toBe(rows.at(-1).created_at)
       expect(fullBody.nextCursorId).toBe(rows.at(-1).id)
 
-      const partial = await fetch(`${target.url}/api/audit?limit=200`, { headers: { Cookie: cookie } })
+      const partial = await fetch(`${target.url}/api/audit?limit=200`, {
+        headers: { Cookie: cookie },
+      })
       const partialBody = await partial.json()
       expect(partialBody.nextCursor).toBeNull()
       expect(partialBody.nextCursorId).toBeNull()
@@ -275,15 +287,17 @@ describe('contexto de un evento (/api/audit/:id/context)', () => {
 
   it('devuelve el evento con su metadata completa y los cuatro ejes de contexto', async () => {
     const { target, cookie, audit } = await setup({
-      rows: [auditRow({
-        action: 'payment.failed',
-        severity: 'danger',
-        status: 'failed',
-        metadata: {
-          requestId: 'req-1',
-          error: { message: 'falló', code: 'X', stack: 'HttpError: falló\n  at algo' },
-        },
-      })],
+      rows: [
+        auditRow({
+          action: 'payment.failed',
+          severity: 'danger',
+          status: 'failed',
+          metadata: {
+            requestId: 'req-1',
+            error: { message: 'falló', code: 'X', stack: 'HttpError: falló\n  at algo' },
+          },
+        }),
+      ],
     })
 
     try {
@@ -297,7 +311,10 @@ describe('contexto de un evento (/api/audit/:id/context)', () => {
       // detalle sin lo único que ubica la falla en el código.
       expect(body.event.metadata.error.stack).toContain('at algo')
       expect(body.context).toMatchObject({
-        request: [], actorBefore: [], actorAfter: [], entity: [],
+        request: [],
+        actorBefore: [],
+        actorAfter: [],
+        entity: [],
       })
       expect(audit.getById).toHaveBeenCalledWith(EVENT_ID)
       expect(audit.context).toHaveBeenCalled()

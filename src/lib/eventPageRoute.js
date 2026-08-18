@@ -12,7 +12,9 @@
  * @param {string} [pathname]
  * @returns {{ eventSlug: string } | null}
  */
-export function matchEventPageRoute(pathname = typeof window !== 'undefined' ? window.location.pathname : '') {
+export function matchEventPageRoute(
+  pathname = typeof window !== 'undefined' ? window.location.pathname : '',
+) {
   const match = pathname.match(/^\/evento\/([^/]+)\/?$/)
   if (!match) return null
   const slug = decodeURIComponent(match[1])

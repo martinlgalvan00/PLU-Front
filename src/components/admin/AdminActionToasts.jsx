@@ -33,10 +33,15 @@ export default function AdminActionToasts() {
       const hasAction = Boolean(action?.label && typeof action.onClick === 'function')
       const id = ++toastSeq
       setToasts((current) =>
-        [...current, { id, variant, message, action: hasAction ? action : null }].slice(-MAX_VISIBLE),
+        [...current, { id, variant, message, action: hasAction ? action : null }].slice(
+          -MAX_VISIBLE,
+        ),
       )
       const delay = hasAction ? DISMISS_WITH_ACTION_MS : DISMISS_MS
-      timersRef.current.set(id, window.setTimeout(() => dismiss(id), delay))
+      timersRef.current.set(
+        id,
+        window.setTimeout(() => dismiss(id), delay),
+      )
     }
 
     window.addEventListener(ADMIN_TOAST_EVENT, onToast)
@@ -62,7 +67,10 @@ export default function AdminActionToasts() {
 
   function resume(id) {
     if (timersRef.current.has(id)) return
-    timersRef.current.set(id, window.setTimeout(() => dismiss(id), DISMISS_MS))
+    timersRef.current.set(
+      id,
+      window.setTimeout(() => dismiss(id), DISMISS_MS),
+    )
   }
 
   if (toasts.length === 0) return null

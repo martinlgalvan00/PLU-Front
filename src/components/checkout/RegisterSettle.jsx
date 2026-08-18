@@ -9,6 +9,9 @@ import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
  * para el escritorio de cobro. No crea la orden.
  */
 export default function RegisterSettle({
+  // Cada canal manual se ofrece por separado: Administración puede abrirlos a
+  // todos, o un código de promoción destrabar sólo uno para quien lo use.
+  cashEnabled = false,
   comboComingSoon = false,
   comboEnabled = false,
   comboOffer = null,
@@ -17,6 +20,7 @@ export default function RegisterSettle({
   // habilitación explícita desde Administración.
   manualPaymentEnabled = false,
   membershipPrice = 0,
+  membershipManualPrice = null,
   onPaymentBlur,
   onPaymentChange,
   onPurchaseTypeChange,
@@ -25,16 +29,30 @@ export default function RegisterSettle({
   paymentMethod,
   purchaseType = 'combo',
   registrationPrice = 0,
+  registrationManualPrice = null,
   showPackage = false,
   showPayment = false,
+  transferEnabled = false,
 }) {
   const { locale, t } = useI18n()
   if (!showPackage && !showPayment) return null
 
   const comboSelected = purchaseType === 'combo'
-  const displayedMembershipPrice = previewCheckoutPrice({ concept: 'membership', paymentMethod, fallback: membershipPrice })
-  const displayedRegistrationPrice = previewCheckoutPrice({ concept: 'registration', paymentMethod, fallback: registrationPrice })
-  const displayedComboPrice = previewCheckoutPrice({ concept: 'combo', paymentMethod, fallback: comboOffer?.price ?? 0 })
+  const displayedMembershipPrice = previewCheckoutPrice({
+    paymentMethod,
+    manualPrice: membershipManualPrice,
+    fallback: membershipPrice,
+  })
+  const displayedRegistrationPrice = previewCheckoutPrice({
+    paymentMethod,
+    manualPrice: registrationManualPrice,
+    fallback: registrationPrice,
+  })
+  const displayedComboPrice = previewCheckoutPrice({
+    paymentMethod,
+    manualPrice: comboOffer?.manualPrice,
+    fallback: comboOffer?.price ?? 0,
+  })
   const displayedDeal = resolveComboDeal({
     membership: displayedMembershipPrice,
     registration: displayedRegistrationPrice,
@@ -59,14 +77,15 @@ export default function RegisterSettle({
         : '',
       // Mismo criterio para el bloque de promo: `SeasonComboOffer` se apaga
       // solo si no hay ahorro, y la fila quedaba sin ningún precio visible.
-      deal: comboOffer && displayedDeal?.live
-        ? {
-          membershipPrice: displayedMembershipPrice,
-          registrationPrice: displayedRegistrationPrice,
-          comboPrice: displayedComboPrice,
-          endsAt: comboOffer.endsAt,
-        }
-        : null,
+      deal:
+        comboOffer && displayedDeal?.live
+          ? {
+              membershipPrice: displayedMembershipPrice,
+              registrationPrice: displayedRegistrationPrice,
+              comboPrice: displayedComboPrice,
+              endsAt: comboOffer.endsAt,
+            }
+          : null,
     })
   }
 
@@ -79,16 +98,19 @@ export default function RegisterSettle({
   }
 
   // Canal manual cerrado desde el panel: transferencia y efectivo no se ofrecen,
-  // en vez de aparecer y fallar con 409 al enviar.
+  // en vez de aparecer y fallar con 409 al enviar. `manualPaymentEnabled` es el
+  // compatible histórico: abre los dos salvo que se pase cada canal aparte.
+  const transferOffered = transferEnabled || manualPaymentEnabled
+  const cashOffered = cashEnabled || manualPaymentEnabled
   const methods = showPayment
-      ? [
-          { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
-          ...(manualPaymentEnabled
-            ? [
-                { value: 'manual_link', label: t('pages.register.paymentTransferLabel') },
-                { value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') },
-              ]
-            : []),
+    ? [
+        { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
+        ...(transferOffered
+          ? [{ value: 'manual_link', label: t('pages.register.paymentTransferLabel') }]
+          : []),
+        ...(cashOffered
+          ? [{ value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') }]
+          : []),
       ]
     : []
 
@@ -102,7 +124,10 @@ export default function RegisterSettle({
       offerName="competition-purchase-type"
       offers={offers}
       paymentError={paymentError}
-      paymentHint={paymentHint || (!manualPaymentEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : '')}
+      paymentHint={
+        paymentHint ||
+        (!transferOffered && !cashOffered ? t('pages.register.paymentMercadoPagoOnlyHint') : '')
+      }
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}
       onOfferChange={onPurchaseTypeChange}
@@ -138,7 +163,13 @@ export function RegisterCheckoutBar({
       ]
         .filter(Boolean)
         .join(' ')}
-      ctaLabel={hideCta ? undefined : submitting ? t('common.loading') : t('pages.register.checkoutContinue')}
+      ctaLabel={
+        hideCta
+          ? undefined
+          : submitting
+            ? t('common.loading')
+            : t('pages.register.checkoutContinue')
+      }
       disabled={disabled}
       hideCta={hideCta}
       packageLabel={packageLabel}

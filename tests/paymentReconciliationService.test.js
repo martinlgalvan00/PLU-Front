@@ -21,41 +21,77 @@ describe('findUnreconciledApprovedPayments', () => {
       },
     ]
     const memberships = [
-      { id: 'membership-1', athleteId: 'athlete-1', paymentOrderId: 'order-2', status: 'cancelada' },
+      {
+        id: 'membership-1',
+        athleteId: 'athlete-1',
+        paymentOrderId: 'order-2',
+        status: 'cancelada',
+      },
     ]
 
-    const result = findUnreconciledApprovedPayments({ memberships, registrations: [], payments, athletes })
+    const result = findUnreconciledApprovedPayments({
+      memberships,
+      registrations: [],
+      payments,
+      athletes,
+    })
 
     expect(result).toHaveLength(1)
-    expect(result[0]).toMatchObject({ id: 'order-1', missingMembership: true, missingRegistration: false })
+    expect(result[0]).toMatchObject({
+      id: 'order-1',
+      missingMembership: true,
+      missingRegistration: false,
+    })
     expect(result[0].athlete.fullName).toBe('Martin Galvan')
   })
 
   it('no marca nada cuando la orden aprobada activó su membership', () => {
     const payments = [
-      { id: 'order-1', athleteId: 'athlete-1', conceptType: 'membership', status: 'aprobado', amount: 85000 },
+      {
+        id: 'order-1',
+        athleteId: 'athlete-1',
+        conceptType: 'membership',
+        status: 'aprobado',
+        amount: 85000,
+      },
     ]
     const memberships = [
       { id: 'membership-1', athleteId: 'athlete-1', paymentOrderId: 'order-1', status: 'activa' },
     ]
 
-    expect(findUnreconciledApprovedPayments({ memberships, registrations: [], payments, athletes })).toEqual([])
+    expect(
+      findUnreconciledApprovedPayments({ memberships, registrations: [], payments, athletes }),
+    ).toEqual([])
   })
 
   it('una membership vencida no cuenta como sin conciliar (cumplió su ciclo)', () => {
     const payments = [
-      { id: 'order-1', athleteId: 'athlete-1', conceptType: 'membership', status: 'aprobado', amount: 85000 },
+      {
+        id: 'order-1',
+        athleteId: 'athlete-1',
+        conceptType: 'membership',
+        status: 'aprobado',
+        amount: 85000,
+      },
     ]
     const memberships = [
       { id: 'membership-1', athleteId: 'athlete-1', paymentOrderId: 'order-1', status: 'vencida' },
     ]
 
-    expect(findUnreconciledApprovedPayments({ memberships, registrations: [], payments, athletes })).toEqual([])
+    expect(
+      findUnreconciledApprovedPayments({ memberships, registrations: [], payments, athletes }),
+    ).toEqual([])
   })
 
   it('ignora órdenes que no están aprobadas', () => {
     const payments = [
-      { id: 'order-1', athleteId: 'athlete-1', conceptType: 'membership', status: 'cancelado', amount: 1 },
+      {
+        id: 'order-1',
+        athleteId: 'athlete-1',
+        conceptType: 'membership',
+        status: 'cancelado',
+        amount: 1,
+      },
     ]
 
     expect(
@@ -65,16 +101,32 @@ describe('findUnreconciledApprovedPayments', () => {
 
   it('un combo aprobado sin inscripción confirmada se marca solo del lado de inscripción', () => {
     const payments = [
-      { id: 'order-1', athleteId: 'athlete-1', conceptType: 'combo', status: 'aprobado', amount: 100000 },
+      {
+        id: 'order-1',
+        athleteId: 'athlete-1',
+        conceptType: 'combo',
+        status: 'aprobado',
+        amount: 100000,
+      },
     ]
     const memberships = [
       { id: 'membership-1', athleteId: 'athlete-1', paymentOrderId: 'order-1', status: 'activa' },
     ]
     const registrations = [
-      { id: 'registration-1', athleteId: 'athlete-1', paymentOrderId: 'order-1', status: 'pendiente_pago' },
+      {
+        id: 'registration-1',
+        athleteId: 'athlete-1',
+        paymentOrderId: 'order-1',
+        status: 'pendiente_pago',
+      },
     ]
 
-    const result = findUnreconciledApprovedPayments({ memberships, registrations, payments, athletes })
+    const result = findUnreconciledApprovedPayments({
+      memberships,
+      registrations,
+      payments,
+      athletes,
+    })
 
     expect(result).toHaveLength(1)
     expect(result[0]).toMatchObject({ missingMembership: false, missingRegistration: true })

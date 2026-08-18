@@ -16,7 +16,9 @@ export function markSignedOut(displayName = '') {
   } catch {
     // Modo privado o storage bloqueado: el evento cubre el mismo tab.
   }
-  window.dispatchEvent(new CustomEvent(SIGNED_OUT_EVENT, { detail: { name: String(displayName ?? '').trim() } }))
+  window.dispatchEvent(
+    new CustomEvent(SIGNED_OUT_EVENT, { detail: { name: String(displayName ?? '').trim() } }),
+  )
 }
 
 /**
@@ -45,5 +47,7 @@ export { SIGNED_OUT_EVENT }
 export const SIGNED_IN_EVENT = 'plu:session-signed-in'
 
 export function markSignedIn(displayName = '') {
-  window.dispatchEvent(new CustomEvent(SIGNED_IN_EVENT, { detail: { name: String(displayName ?? '').trim() } }))
+  window.dispatchEvent(
+    new CustomEvent(SIGNED_IN_EVENT, { detail: { name: String(displayName ?? '').trim() } }),
+  )
 }

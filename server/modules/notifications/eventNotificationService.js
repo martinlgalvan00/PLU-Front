@@ -25,7 +25,10 @@ import { resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 
 const AUDIENCES = Object.freeze(['registered', 'members', 'all_athletes'])
 
-export function createEventAudienceRepository(client, { organizationId = PRIMARY_ORGANIZATION_ID } = {}) {
+export function createEventAudienceRepository(
+  client,
+  { organizationId = PRIMARY_ORGANIZATION_ID } = {},
+) {
   if (!client) throw new HttpError(503, 'Supabase Admin no está configurado.')
 
   function assertResult(result, message) {
@@ -152,7 +155,11 @@ export function createEventNotificationService({
     for (const [index, result] of results.entries()) {
       if (result.status === 'rejected') {
         failed += 1
-        console.warn('[event-notification]', deliverable[index]?.email, result.reason?.message ?? result.reason)
+        console.warn(
+          '[event-notification]',
+          deliverable[index]?.email,
+          result.reason?.message ?? result.reason,
+        )
       } else if (result.value?.status === 'sent') {
         sent += 1
       } else {

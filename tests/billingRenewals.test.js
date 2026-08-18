@@ -15,7 +15,9 @@ describe('membership renewal delivery', () => {
   it('limita los avisos a 30, 7 y 0 días y conserva auditados los descartados', () => {
     expect(DEFAULT_MEMBERSHIP_RENEWAL_OFFSETS).toEqual([30, 7, 0])
     expect(frequencyPolicyMigration).toContain('p_offsets int[] default array[30, 7, 0]')
-    expect(frequencyPolicyMigration).toContain("notification_key in ('expires_in_30', 'expires_in_7', 'expires_in_0')")
+    expect(frequencyPolicyMigration).toContain(
+      "notification_key in ('expires_in_30', 'expires_in_7', 'expires_in_0')",
+    )
     expect(frequencyPolicyMigration).toContain("notification_key in ('expires_in_1', 'expired')")
     expect(frequencyPolicyMigration).toContain("status = 'cancelled'")
     expect(frequencyPolicyMigration).not.toContain("'expired', a.email")
@@ -49,7 +51,9 @@ describe('membership renewal delivery', () => {
       ]),
       completeRenewal,
     }
-    const send = vi.fn().mockResolvedValue({ status: 'sent', created: true, emailLog: { id: 'log-1' } })
+    const send = vi
+      .fn()
+      .mockResolvedValue({ status: 'sent', created: true, emailLog: { id: 'log-1' } })
 
     const result = await processMembershipRenewals({
       repository,
@@ -76,8 +80,18 @@ describe('membership renewal delivery', () => {
     const completeRenewal = vi.fn()
     const repository = {
       claimRenewals: vi.fn().mockResolvedValue([
-        { id: 'notice-1', recipientEmail: 'a@example.com', athleteName: 'A', expirationDate: '2026-12-31' },
-        { id: 'notice-2', recipientEmail: 'b@example.com', athleteName: 'B', expirationDate: '2026-12-31' },
+        {
+          id: 'notice-1',
+          recipientEmail: 'a@example.com',
+          athleteName: 'A',
+          expirationDate: '2026-12-31',
+        },
+        {
+          id: 'notice-2',
+          recipientEmail: 'b@example.com',
+          athleteName: 'B',
+          expirationDate: '2026-12-31',
+        },
       ]),
       completeRenewal,
     }
@@ -93,7 +107,10 @@ describe('membership renewal delivery', () => {
     })
 
     expect(result).toEqual({ processed: 2, sent: 1, failed: 1, skipped: false })
-    expect(completeRenewal).toHaveBeenCalledWith('notice-1', { sent: false, error: 'Brevo respondió 500.' })
+    expect(completeRenewal).toHaveBeenCalledWith('notice-1', {
+      sent: false,
+      error: 'Brevo respondió 500.',
+    })
     expect(completeRenewal).toHaveBeenCalledWith('notice-2', { sent: true })
   })
 
@@ -124,7 +141,11 @@ describe('membership renewal delivery', () => {
       fetchImpl,
     })
 
-    await adapter.sendTemplate({ to: 'socia@example.com', templateId: 7, params: { name: 'Socia' } })
+    await adapter.sendTemplate({
+      to: 'socia@example.com',
+      templateId: 7,
+      params: { name: 'Socia' },
+    })
 
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://api.brevo.com/v3/smtp/email',

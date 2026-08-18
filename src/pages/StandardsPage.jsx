@@ -51,7 +51,9 @@ export default function StandardsPage({ onNavigate }) {
               <li key={key}>
                 <h3>{t(`pages.standards.categories.${key}.title`)}</h3>
                 <p>{t(`pages.standards.categories.${key}.desc`)}</p>
-                <p className="standards-grid__note">{t(`pages.standards.categories.${key}.note`)}</p>
+                <p className="standards-grid__note">
+                  {t(`pages.standards.categories.${key}.note`)}
+                </p>
               </li>
             ))}
           </ul>
@@ -118,11 +120,19 @@ export default function StandardsPage({ onNavigate }) {
 
         <Reveal delay={40}>
           <div className="institutional-cta-row">
-            <button type="button" className="institutional-cta" onClick={() => onNavigate?.('rulebook')}>
+            <button
+              type="button"
+              className="institutional-cta"
+              onClick={() => onNavigate?.('rulebook')}
+            >
               <span>{t('pages.standards.ctaRulebook')}</span>
               <ArrowRight size={14} aria-hidden />
             </button>
-            <button type="button" className="institutional-cta institutional-cta--ghost" onClick={() => onNavigate?.('records')}>
+            <button
+              type="button"
+              className="institutional-cta institutional-cta--ghost"
+              onClick={() => onNavigate?.('records')}
+            >
               <span>{t('pages.standards.ctaRecords')}</span>
               <ArrowRight size={14} aria-hidden />
             </button>

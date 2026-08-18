@@ -50,8 +50,14 @@ describe('migración 20260814120000 — reinscripción tras cancelada', () => {
   })
 
   it('mantiene el resto de las validaciones intactas (cupo, evento, idempotencia)', () => {
-    const registration = functionBody(migration, 'function public.create_competition_registration_v2')
-    const combo = functionBody(migration, 'function public.create_membership_registration_combo_order_core')
+    const registration = functionBody(
+      migration,
+      'function public.create_competition_registration_v2',
+    )
+    const combo = functionBody(
+      migration,
+      'function public.create_membership_registration_combo_order_core',
+    )
     for (const body of [registration, combo]) {
       expect(body).toContain("errcode = 'PLU04'")
       expect(body).toContain("errcode = 'PLU02'")

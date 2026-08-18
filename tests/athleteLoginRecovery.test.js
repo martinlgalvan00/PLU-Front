@@ -54,18 +54,27 @@ describe('email del atleta normalizado a minúsculas', () => {
   it('la versión vieja guardaba el email crudo del formulario', () => {
     // Punto de partida del bug: `findLogin` busca por email.toLowerCase(), así
     // que cualquier alta con una mayúscula quedaba sin login ni recuperación.
-    const body = functionBody(phase2, 'create or replace function public.register_athlete(p_form jsonb)')
+    const body = functionBody(
+      phase2,
+      'create or replace function public.register_athlete(p_form jsonb)',
+    )
     expect(body).toContain("p_form ->> 'email'")
     expect(body).not.toContain("lower(trim(p_form ->> 'email'))")
   })
 
   it('register_athlete normaliza antes de insertar', () => {
-    const body = functionBody(migration, 'create or replace function public.register_athlete(p_form jsonb)')
+    const body = functionBody(
+      migration,
+      'create or replace function public.register_athlete(p_form jsonb)',
+    )
     expect(body).toContain("lower(trim(p_form ->> 'email'))")
   })
 
   it('update_athlete_profile normaliza al editar el contacto', () => {
-    const body = functionBody(migration, 'create or replace function public.update_athlete_profile(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.update_athlete_profile(',
+    )
     expect(body).toContain('lower(trim(p_email))')
   })
 
@@ -78,7 +87,8 @@ describe('email del atleta normalizado a minúsculas', () => {
   it('los tres schemas de la API bajan el email a minúsculas', () => {
     // register, login y el PATCH de perfil: si cualquiera se saltea la
     // normalización vuelve a existir una cuenta inalcanzable.
-    const normalizing = athleteRoutes.match(/z\.string\(\)\.trim\(\)\.toLowerCase\(\)\.email\(\)/g) ?? []
+    const normalizing =
+      athleteRoutes.match(/z\.string\(\)\.trim\(\)\.toLowerCase\(\)\.email\(\)/g) ?? []
     expect(normalizing.length).toBeGreaterThanOrEqual(3)
     expect(athleteRoutes).not.toMatch(/email: z\.string\(\)\.trim\(\)\.email\(\)/)
   })
@@ -120,18 +130,27 @@ describe('reuso de orden de afiliación', () => {
     // Elegir transferencia y después Mercado Pago devolvía la orden manual: el
     // checkout embebido no se monta para ese método, así que el atleta se
     // quedaba sin forma de pagar hasta que la orden vencía (24 h).
-    const body = functionBody(hardening, 'create or replace function public.create_membership_order_v2(')
+    const body = functionBody(
+      hardening,
+      'create or replace function public.create_membership_order_v2(',
+    )
     expect(body).toContain("o.status in ('pendiente', 'validacion_manual')")
     expect(body).not.toContain('o.method = p_payment_method')
   })
 
   it('el reuso exige el mismo medio de pago', () => {
-    const body = functionBody(migration, 'create or replace function public.create_membership_order_v2(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.create_membership_order_v2(',
+    )
     expect(body).toContain('and o.method = p_payment_method')
   })
 
   it('cancela la orden abierta del medio anterior', () => {
-    const body = functionBody(migration, 'create or replace function public.create_membership_order_v2(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.create_membership_order_v2(',
+    )
     expect(body).toContain("set status = 'cancelado'")
     expect(body).toContain('o.method <> p_payment_method')
   })
@@ -140,7 +159,10 @@ describe('reuso de orden de afiliación', () => {
     // Verificado contra Postgres: sin esto, cambiar de medio calculaba el
     // período desde el vencimiento de una afiliación que todavía no se cobró y
     // dejaba al atleta con dos (2026 pendiente + 2027 pendiente).
-    const body = functionBody(migration, 'create or replace function public.create_membership_order_v2(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.create_membership_order_v2(',
+    )
     expect(body).toContain("and m.status = 'pendiente_pago'")
     expect(body).toContain('if v_pending.id is not null then')
     // La renovación se sigue calculando sobre el último período cobrado.
@@ -150,7 +172,10 @@ describe('reuso de orden de afiliación', () => {
   it('repunta la afiliación reusada a la orden viva', () => {
     // Si quedaba apuntando a la orden que se acaba de cancelar, Finanzas no
     // podía aprobarla.
-    const body = functionBody(migration, 'create or replace function public.create_membership_order_v2(')
+    const body = functionBody(
+      migration,
+      'create or replace function public.create_membership_order_v2(',
+    )
     expect(body).toMatch(/update public\.memberships\s+set payment_order_id = v_order\.id/)
   })
 })
@@ -195,31 +220,21 @@ describe('rate limit del login de atleta', () => {
     // Compartir `authLimiter` hacía que cada intento gastara dos cupos: el
     // cliente prueba el login de staff primero y cae al de atleta ante el 401.
     expect(rateLimits).toContain('export const athleteAuthLimiter')
-    expect(athleteRoutes).toContain("router.post('/login', athleteAuthLimiter")
+    expect(athleteRoutes).toMatch(/router\.post\(\s*'\/login',\s*athleteAuthLimiter/)
     expect(athleteRoutes).not.toContain('authLimiter,')
   })
 })
 
 describe('alta de atleta', () => {
   it('reserva los mails de onboarding antes de responder', () => {
-    // El dispatcher persiste el outbox antes de contactar a Brevo. Esperarlo
-    // evita que una función serverless termine sin envío ni reintento durable;
-    // el best-effort mantiene exitoso el alta aunque el proveedor esté caído.
-    const handler = athleteRoutes.slice(
-      athleteRoutes.indexOf("router.post('/register'"),
-      athleteRoutes.indexOf("router.post('/verify-email'"),
-    )
-    const respondsAt = handler.indexOf('res.status(201).json')
-    const sendsAt = handler.indexOf('sendOnboardingEmails(row)')
-    expect(respondsAt).toBeGreaterThan(-1)
-    expect(sendsAt).toBeGreaterThan(-1)
-    expect(respondsAt).toBeGreaterThan(sendsAt)
+    expect(athleteRoutes).toMatch(/sendOnboardingEmails\(row\)[\s\S]*?res\.status\(201\)\.json/)
     expect(athleteRoutes).not.toContain("sendBestEffort('welcome'")
     expect(athleteRoutes).toContain('sendVerificationEmail(row)')
     expect(athleteRoutes).toContain('verificationCode')
     expect(athleteRoutes).toContain('await repo().storeEmailOtp(row.id, codeHash, otpExpiresAt)')
-    expect(athleteRoutes.indexOf('await repo().storeEmailOtp(row.id, codeHash, otpExpiresAt)'))
-      .toBeLessThan(athleteRoutes.indexOf("sendBestEffort('email_verification'"))
+    expect(
+      athleteRoutes.indexOf('await repo().storeEmailOtp(row.id, codeHash, otpExpiresAt)'),
+    ).toBeLessThan(athleteRoutes.indexOf("sendBestEffort('email_verification'"))
     expect(athleteRoutes).toContain("'/me/verify-email-code'")
     expect(athleteRoutes).toContain('.regex(/^\\d{8}$/')
     expect(athleteRoutes).toContain('emailVerification: { sent:')
@@ -280,8 +295,18 @@ describe('vigencia de la afiliación en el cliente', () => {
 
   it('hasCurrentMembership resuelve por atleta', () => {
     const memberships = [
-      { athleteId: 'ath-001', status: 'activa', startDate: '2026-01-01', expirationDate: '2027-01-31' },
-      { athleteId: 'ath-002', status: 'activa', startDate: '2024-01-01', expirationDate: '2025-01-31' },
+      {
+        athleteId: 'ath-001',
+        status: 'activa',
+        startDate: '2026-01-01',
+        expirationDate: '2027-01-31',
+      },
+      {
+        athleteId: 'ath-002',
+        status: 'activa',
+        startDate: '2024-01-01',
+        expirationDate: '2025-01-31',
+      },
     ]
     expect(hasCurrentMembership(memberships, 'ath-001', today)).toBe(true)
     expect(hasCurrentMembership(memberships, 'ath-002', today)).toBe(false)

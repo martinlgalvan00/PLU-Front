@@ -9,6 +9,15 @@ const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-
 /** Store compartido entre requests del mismo proceso (solo mock). */
 let sharedMockAdapter = null
 
+/**
+ * Adaptadores reales compartidos entre requests del mismo proceso, cacheados
+ * por token+timeout. `createPaymentProviderAdapter` se llama en casi todas
+ * las rutas de pago y en cada corrida del job de recuperacion (60s): sin este
+ * cache, cada llamada instanciaba de nuevo los 5 clientes del SDK de Mercado
+ * Pago aunque el access token no hubiera cambiado.
+ */
+const sharedMercadoPagoAdapters = new Map()
+
 export function isPaymentsMockEnvironmentAllowed(env = process.env) {
   if (env.NODE_ENV === 'production') return false
   if (PRODUCTIVE_VERCEL.has(String(env.VERCEL_ENV ?? '').toLowerCase())) return false
@@ -16,7 +25,9 @@ export function isPaymentsMockEnvironmentAllowed(env = process.env) {
 }
 
 function parsePaymentsMockFlag(value) {
-  const raw = String(value ?? '').trim().toLowerCase()
+  const raw = String(value ?? '')
+    .trim()
+    .toLowerCase()
   if (!raw) return null
   if (['true', '1', 'yes'].includes(raw)) return true
   if (['false', '0', 'no'].includes(raw)) return false
@@ -29,7 +40,9 @@ export function resolvePaymentsProvider(env = process.env) {
   if (mockFlag === true) return 'mock'
   if (mockFlag === false) return 'mercado_pago'
 
-  const raw = String(env.PAYMENTS_PROVIDER ?? 'mercado_pago').trim().toLowerCase()
+  const raw = String(env.PAYMENTS_PROVIDER ?? 'mercado_pago')
+    .trim()
+    .toLowerCase()
   if (raw === 'mock' || raw === 'mercado_pago') return raw
   throw new HttpError(
     503,
@@ -49,10 +62,7 @@ export function assertPaymentsMockAllowed(env = process.env) {
 export function assertMercadoPagoRuntimeReady(env = process.env) {
   const status = getPaymentsRuntimeStatus(env)
   if (!status.ready) {
-    throw new HttpError(
-      503,
-      `Mercado Pago no puede iniciar cobros: ${status.issues.join(' ')}`,
-    )
+    throw new HttpError(503, `Mercado Pago no puede iniciar cobros: ${status.issues.join(' ')}`)
   }
 }
 
@@ -110,10 +120,17 @@ export function createPaymentProviderAdapter({ env = process.env, timeout, store
   // Fallar antes de mostrar/procesar el checkout evita aceptar dinero cuando
   // la notificacion canonica no podria acreditarse en el dominio.
   assertMercadoPagoRuntimeReady(env)
-  return createMercadoPagoAdapter({ env, timeout })
+  const cacheKey = `${env.MERCADO_PAGO_ACCESS_TOKEN ?? ''}:${timeout ?? 'default'}`
+  let adapter = sharedMercadoPagoAdapters.get(cacheKey)
+  if (!adapter) {
+    adapter = createMercadoPagoAdapter({ env, timeout })
+    sharedMercadoPagoAdapters.set(cacheKey, adapter)
+  }
+  return adapter
 }
 
-/** Solo tests: limpia el singleton mock entre casos. */
+/** Solo tests: limpia los singletons de adaptadores entre casos. */
 export function resetSharedMockPaymentAdapter() {
   sharedMockAdapter = null
+  sharedMercadoPagoAdapters.clear()
 }
