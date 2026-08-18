@@ -12,6 +12,7 @@ export default function AdminDataTable({
   onRowClick,
   rowClassName,
   loading = false,
+  pagination = true,
 }) {
   const scrollRef = useHorizontalScroll()
 
@@ -63,11 +64,15 @@ export default function AdminDataTable({
           }
         }}
         rowClassName={rowClassName}
-        pagination={{
-          placement: ['bottomCenter'],
-          hideOnSinglePage: true,
-          showSizeChanger: true,
-        }}
+        pagination={
+          pagination
+            ? {
+                placement: ['bottomCenter'],
+                hideOnSinglePage: true,
+                showSizeChanger: true,
+              }
+            : false
+        }
         scroll={{ x: 'max-content' }}
       />
     </div>

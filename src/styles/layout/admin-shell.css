@@ -1411,10 +1411,7 @@
     padding-bottom: 0;
   }
 
-  .admin-page-toolbar__eyebrow,
-  .admin-page-toolbar__headline h1 {
-    display: none;
-  }
+
 
   .admin-page-toolbar__subtitle {
     font-size: 13px;
@@ -1900,10 +1897,7 @@
     padding-bottom: 0;
   }
 
-  .admin-page-toolbar__eyebrow,
-  .admin-page-toolbar__headline h1 {
-    display: none;
-  }
+
 
   .admin-page-toolbar__subtitle {
     font-size: 13px;

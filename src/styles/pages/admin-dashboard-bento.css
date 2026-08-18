@@ -2174,6 +2174,12 @@
   }
 }
 
+@media (max-width: 719px) {
+  .admin-ops__recent-item:nth-child(n+4) {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-transparency: reduce) {
   .admin-ops__kpi,
   .admin-ops__kpis,

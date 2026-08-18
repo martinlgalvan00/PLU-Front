@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowUp,
   CalendarDays,
   ChevronDown,
   ClipboardList,
@@ -177,16 +178,6 @@ function EventListRow({ row, selected, canEdit, links, locale, onSelect, onEdit,
         <StatusPill value={row.status} />
       </div>
 
-      <div className="admin-event-row__actions" onClick={(event) => event.stopPropagation()}>
-        <AdminCopyLinkMenu links={links} />
-        <AdminIconButton
-          disabled={!canEdit}
-          icon={Pencil}
-          label={t('admin.sections.events.edit')}
-          onClick={() => onEdit(row)}
-          variant="ghost"
-        />
-      </div>
     </li>
   )
 }
@@ -247,6 +238,13 @@ export default function EventsSection({
   useEffect(() => {
     setPreviewExpanded(false)
   }, [selectedId])
+
+  function handleBackToList() {
+    const listNode = document.querySelector('.admin-events-workspace__main')
+    if (listNode) {
+      listNode.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   useEffect(() => {
     if (!pendingPreviewScrollRef.current) return
@@ -665,6 +663,14 @@ export default function EventsSection({
             aria-label={t('admin.sections.events.panelLabel')}
           >
             <div className="admin-event-preview__head">
+              <button
+                type="button"
+                className="admin-event-preview__back-btn"
+                onClick={handleBackToList}
+                aria-label={t('admin.sections.events.backToList', 'Volver a la lista')}
+              >
+                <ArrowUp size={16} aria-hidden />
+              </button>
               <div className="admin-event-preview__head-copy">
                 <div className="admin-event-preview__title-row">
                   <p className="admin-event-preview__selected-title">{selectedEvent.title}</p>
@@ -694,7 +700,7 @@ export default function EventsSection({
                     />
                     <Button
                       type="button"
-                      variant="gold"
+                      variant="outline"
                       className="btn--small admin-event-preview__edit-btn"
                       onClick={() => openEditForm(selectedEvent)}
                     >
@@ -726,33 +732,48 @@ export default function EventsSection({
             ) : null}
 
             <div
-              className="admin-event-preview__command-bar"
+              className="admin-event-preview__command-bar admin-event-preview__command-bar--bento"
               aria-label={t('admin.eventEditor.managementAria')}
             >
               {canEdit ? (
                 <button
                   type="button"
+                  className="admin-bento-action"
                   aria-label={t('admin.eventEditor.manageTicketsLabel', {
                     count: activeTicketTypeCount,
                   })}
                   onClick={() => openEditForm(selectedEvent, 'tickets')}
                 >
-                  <Ticket size={14} aria-hidden />
-                  <span>{t('admin.eventEditor.manageTickets')}</span>
-                  <strong>{activeTicketTypeCount}</strong>
+                  <span className="admin-bento-action__icon">
+                    <Ticket size={18} aria-hidden />
+                  </span>
+                  <span className="admin-bento-action__label">{t('admin.eventEditor.manageTickets')}</span>
+                  <strong className="admin-bento-action__count">{activeTicketTypeCount}</strong>
                 </button>
               ) : null}
               {onManageRegistrations ? (
-                <button type="button" onClick={() => onManageRegistrations(selectedEvent)}>
-                  <ClipboardList size={14} aria-hidden />
-                  <span>{t('admin.eventEditor.manageRegistrations')}</span>
-                  <strong>{selectedEvent.registered ?? 0}</strong>
+                <button 
+                  type="button" 
+                  className="admin-bento-action"
+                  onClick={() => onManageRegistrations(selectedEvent)}
+                >
+                  <span className="admin-bento-action__icon">
+                    <ClipboardList size={18} aria-hidden />
+                  </span>
+                  <span className="admin-bento-action__label">{t('admin.eventEditor.manageRegistrations')}</span>
+                  <strong className="admin-bento-action__count">{selectedEvent.registered ?? 0}</strong>
                 </button>
               ) : null}
               {onManagePayments ? (
-                <button type="button" onClick={() => onManagePayments(selectedEvent)}>
-                  <CreditCard size={14} aria-hidden />
-                  <span>{t('admin.eventEditor.managePayments')}</span>
+                <button 
+                  type="button" 
+                  className="admin-bento-action"
+                  onClick={() => onManagePayments(selectedEvent)}
+                >
+                  <span className="admin-bento-action__icon">
+                    <CreditCard size={18} aria-hidden />
+                  </span>
+                  <span className="admin-bento-action__label">{t('admin.eventEditor.managePayments')}</span>
                 </button>
               ) : null}
             </div>

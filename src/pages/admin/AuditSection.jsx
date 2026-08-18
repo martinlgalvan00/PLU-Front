@@ -333,7 +333,9 @@ export default function AuditSection() {
         render: (row) => (
           <div className="audit-entry__entity">
             <span className="audit-entry__entity-type">{entityLabel(row.entityType)}</span>
-            <AdminMonoCell>{row.entityId}</AdminMonoCell>
+            <span className="audit-id-truncate" title={row.entityId}>
+              <AdminMonoCell>{row.entityId}</AdminMonoCell>
+            </span>
             {TRACEABLE_ENTITY_TYPES.has(row.entityType) && row.entityId ? (
               <AdminIconButton
                 icon={Route}
@@ -357,7 +359,11 @@ export default function AuditSection() {
         render: (row) => (
           <div className="audit-entry__actor">
             <span className="audit-entry__actor-type">{actorLabel(row.actorType)}</span>
-            {row.actorId ? <AdminMonoCell>{row.actorId}</AdminMonoCell> : null}
+            {row.actorId ? (
+              <span className="audit-id-truncate" title={row.actorId}>
+                <AdminMonoCell>{row.actorId}</AdminMonoCell>
+              </span>
+            ) : null}
           </div>
         ),
       },
@@ -512,7 +518,6 @@ export default function AuditSection() {
       title={t('admin.audit.title')}
       subtitle={t('admin.audit.subtitle')}
       totalCount={entries.length}
-      beforeFilters={health}
       filters={filterOptions}
       filterActions={
         <>
@@ -541,6 +546,8 @@ export default function AuditSection() {
       }
       onQueryChange={setQuery}
     >
+      {health}
+
       {error ? (
         <ErrorState
           title={t('admin.audit.loadErrorTitle')}
@@ -557,6 +564,7 @@ export default function AuditSection() {
             className="admin-data-table--audit"
             columns={columns}
             rows={displayedEntries}
+            pagination={false}
             emptyMessage={
               onlyIncidents && entries.length > 0
                 ? t('admin.audit.onlyIncidentsEmpty')

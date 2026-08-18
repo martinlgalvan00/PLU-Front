@@ -115,8 +115,8 @@ export default function AdminFilterChipGroup({
     state.active = false
     el.classList.remove('is-dragging')
 
-    if (state.pointerId != null && el.hasPointerCapture?.(state.pointerId)) {
-      el.releasePointerCapture(state.pointerId)
+    if (state.pointerId != null) {
+      // capture removed
     }
 
     // Si hubo arrastre real, bloqueá el click del chip una sola vez.
@@ -146,7 +146,6 @@ export default function AdminFilterChipGroup({
       scrollLeft: el.scrollLeft,
       pointerId: event.pointerId,
     }
-    el.setPointerCapture?.(event.pointerId)
     el.classList.add('is-dragging')
   }
 
