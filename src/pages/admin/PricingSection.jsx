@@ -62,14 +62,38 @@ const EMPTY_DISCOUNT_CODE = {
   kind: 'percent',
   percentOff: '',
   fixedPrice: '',
+  // Importe final para transferencia y efectivo. Vacío = cobra lo mismo que
+  // `fixedPrice` en cualquier canal, que es el caso más común.
+  fixedPriceManual: '',
   appliesTo: 'membership',
   maxRedemptions: '',
+  startsAt: '',
   expiresAt: '',
   active: true,
   // Canales manuales que el código destraba, además de Mercado Pago (que
   // siempre está disponible). Vacío = sólo Mercado Pago.
   manualChannels: [],
+  // Exclusividad nominal, un email por línea. Vacío = promo abierta.
+  inviteesText: '',
 }
+
+/**
+ * Los emails de la lista de invitados se tipean de a uno por línea, pero pegar
+ * una columna de una planilla trae comas, punto y coma o tabulaciones. Se
+ * aceptan los cuatro separadores y se normaliza a minúsculas sin repetidos.
+ */
+function parseInvitees(text) {
+  return [
+    ...new Set(
+      String(text ?? '')
+        .split(/[\s,;]+/)
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ]
+}
+
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 const SUBSCRIPTION_STATUS_LABELS = {
   pending: 'pending',
@@ -376,6 +400,9 @@ export default function PricingSection({
   }, [planFormOpen])
 
   const codeFormOpen = Boolean(codeDraft)
+  // La exclusividad se lee del contador en vivo: el operador tiene que ver
+  // cuántas direcciones quedaron cargadas antes de guardar, no después.
+  const draftInviteeCount = codeDraft ? parseInvitees(codeDraft.inviteesText).length : 0
   useEffect(() => {
     if (!codeFormOpen) return undefined
     const form = codeFormRef.current
@@ -482,11 +509,14 @@ export default function PricingSection({
             audience: source.audience === 'public' ? 'public' : 'code',
             percentOff: source.kind === 'fixed_price' ? '' : source.percentOff,
             fixedPrice: source.fixedPrice ?? '',
+            fixedPriceManual: source.fixedPriceManual ?? '',
             appliesTo: source.appliesTo,
             maxRedemptions: source.maxRedemptions ?? '',
+            startsAt: toLocalDateTime(source.startsAt),
             expiresAt: toLocalDateTime(source.expiresAt),
             active: source.active,
             manualChannels: source.manualChannels ?? [],
+            inviteesText: (source.invitees ?? []).join('\n'),
           }
         : { ...EMPTY_DISCOUNT_CODE },
     )
@@ -510,6 +540,38 @@ export default function PricingSection({
       setCodeError(t('admin.sections.pricing.fixedPriceInvalid'))
       return
     }
+    // A propósito sin comparar contra `fixedPrice`: el precio del canal manual
+    // puede ser igual, menor o mayor. Sólo se valida que sea un importe real.
+    const fixedPriceManual =
+      codeDraft.fixedPriceManual === '' || codeDraft.fixedPriceManual == null
+        ? undefined
+        : Number(codeDraft.fixedPriceManual)
+    if (
+      isFixedPrice &&
+      fixedPriceManual !== undefined &&
+      (!Number.isInteger(fixedPriceManual) || fixedPriceManual < 1)
+    ) {
+      setCodeError(t('admin.sections.pricing.fixedPriceManualInvalid'))
+      return
+    }
+    if (
+      codeDraft.startsAt &&
+      codeDraft.expiresAt &&
+      new Date(codeDraft.expiresAt) <= new Date(codeDraft.startsAt)
+    ) {
+      setCodeError(t('admin.sections.pricing.promoWindowInvalid'))
+      return
+    }
+    const invitees = parseInvitees(codeDraft.inviteesText)
+    const invalidEmail = invitees.find((email) => !EMAIL_PATTERN.test(email))
+    if (invalidEmail) {
+      setCodeError(t('admin.sections.pricing.inviteesInvalid', { email: invalidEmail }))
+      return
+    }
+    if (invitees.length > 500) {
+      setCodeError(t('admin.sections.pricing.inviteesTooMany'))
+      return
+    }
     // El servidor lo rechaza igual; adelantarlo acá evita el viaje y explica
     // el porqué en el mismo formulario.
     if (isFixedPrice && codeDraft.appliesTo === 'both') {
@@ -527,8 +589,10 @@ export default function PricingSection({
       code: codeDraft.code.toUpperCase(),
       percentOff: isFixedPrice ? undefined : percentOff,
       fixedPrice: isFixedPrice ? fixedPrice : undefined,
+      fixedPriceManual: isFixedPrice ? fixedPriceManual : undefined,
       maxRedemptions:
         codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
+      invitees,
     })
     setPendingAction('')
     if (result?.error) {
@@ -1471,8 +1535,12 @@ export default function PricingSection({
                           : t('admin.sections.pricing.copy')}
                       </span>
                     </button>
+                    {/* El modificador por estado deja que `scheduled` tome el
+                        token celeste que ya existe para los planes; los estados
+                        sin variante propia (agotado, vencido, desactivado) caen
+                        en el estilo base, como antes. */}
                     <span
-                      className={`admin-pricing__status${status === 'active' ? ' admin-pricing__status--active' : ''}`}
+                      className={`admin-pricing__status admin-pricing__status--${status}`}
                     >
                       {t(`admin.sections.pricing.discountStatus.${status}`)}
                     </span>
@@ -1488,10 +1556,28 @@ export default function PricingSection({
                         )}
                       </span>
                     ) : null}
+                    {availability.exclusive ? (
+                      <span className="admin-pricing__status admin-pricing__status--exclusive">
+                        {t('admin.sections.pricing.exclusiveBadge', {
+                          count: availability.inviteeCount,
+                        })}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="admin-pricing__plan-meta">
                     <span>{t(`admin.sections.pricing.appliesTo.${code.appliesTo}`)}</span>
                     {!availability.hasLimit ? <span>{usageLabel}</span> : null}
+                    {availability.scheduled ? (
+                      <span className="admin-pricing__plan-meta-date">
+                        <CalendarClock size={12} aria-hidden />
+                        {t('admin.sections.pricing.opensOn', {
+                          date: new Intl.DateTimeFormat(locale, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          }).format(new Date(code.startsAt)),
+                        })}
+                      </span>
+                    ) : null}
                     <span
                       className={`admin-pricing__plan-meta-date${
                         expiry.urgent ? ' admin-pricing__plan-meta-date--urgent' : ''
@@ -1528,9 +1614,21 @@ export default function PricingSection({
                 </div>
 
                 {code.kind === 'fixed_price' ? (
-                  <strong className="admin-pricing__plan-amount">
-                    {money(code.fixedPrice ?? 0, locale)}
-                  </strong>
+                  <div className="admin-pricing__plan-amount-stack">
+                    <strong className="admin-pricing__plan-amount">
+                      {money(code.fixedPrice ?? 0, locale)}
+                    </strong>
+                    {/* Sólo cuando difiere: si el canal manual cobra lo mismo,
+                        repetir el importe no informa nada. */}
+                    {code.fixedPriceManual != null &&
+                    code.fixedPriceManual !== code.fixedPrice ? (
+                      <span className="admin-pricing__plan-amount-note">
+                        {t('admin.sections.pricing.fixedPriceManualNote', {
+                          amount: money(code.fixedPriceManual, locale),
+                        })}
+                      </span>
+                    ) : null}
+                  </div>
                 ) : (
                   <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
                     −{code.percentOff}%
@@ -1677,7 +1775,24 @@ export default function PricingSection({
                   />
                   <small>{t('admin.sections.pricing.fixedPriceHint')}</small>
                 </label>
-              ) : (
+              ) : null}
+              {codeDraft.kind === 'fixed_price' ? (
+                <label>
+                  <span>{t('admin.sections.pricing.fixedPriceManual')}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder={t('admin.sections.pricing.fixedPriceManualPlaceholder')}
+                    value={codeDraft.fixedPriceManual}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, fixedPriceManual: event.target.value })
+                    }
+                  />
+                  <small>{t('admin.sections.pricing.fixedPriceManualHint')}</small>
+                </label>
+              ) : null}
+              {codeDraft.kind === 'fixed_price' ? null : (
                 <label>
                   <span>{t('admin.sections.pricing.percentOff')}</span>
                   <input
@@ -1726,6 +1841,15 @@ export default function PricingSection({
                   }
                 />
                 <small>{t('admin.sections.pricing.maxRedemptionsHint')}</small>
+              </label>
+              <label>
+                <span>{t('admin.sections.pricing.startsAt')}</span>
+                <input
+                  type="datetime-local"
+                  value={codeDraft.startsAt}
+                  onChange={(event) => setCodeDraft({ ...codeDraft, startsAt: event.target.value })}
+                />
+                <small>{t('admin.sections.pricing.startsAtHint')}</small>
               </label>
               <label>
                 <span>{t('admin.sections.pricing.expiresAt')}</span>
@@ -1796,6 +1920,22 @@ export default function PricingSection({
                     : t('admin.sections.pricing.manualChannelsHint')}
                 </small>
               </fieldset>
+              <label className="admin-pricing__wide">
+                <span>{t('admin.sections.pricing.invitees')}</span>
+                <textarea
+                  rows={4}
+                  placeholder={t('admin.sections.pricing.inviteesPlaceholder')}
+                  value={codeDraft.inviteesText}
+                  onChange={(event) =>
+                    setCodeDraft({ ...codeDraft, inviteesText: event.target.value })
+                  }
+                />
+                <small>
+                  {draftInviteeCount > 0
+                    ? t('admin.sections.pricing.inviteesCountHint', { count: draftInviteeCount })
+                    : t('admin.sections.pricing.inviteesHint')}
+                </small>
+              </label>
             </fieldset>
             {codeError ? (
               <p className="admin-pricing__form-error" role="alert">

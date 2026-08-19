@@ -573,15 +573,22 @@ export default {
       percentOffInvalid: 'The discount must be a whole number between 1 and 99.',
       codeKindLabel: 'Type',
       codeKindHint:
-        'A discount takes a percentage off the current price. A promo price sets what is paid, regardless of the payment method.',
+        'A discount takes a percentage off. A promo price sets what is paid, agreed separately per payment method.',
       codeKind: {
         percent: 'Percentage discount',
         fixed_price: 'Fixed promo price',
       },
-      fixedPrice: 'Promo price (ARS)',
+      fixedPrice: 'Promo price via Mercado Pago (ARS)',
       fixedPriceHint:
-        'What whoever uses the code pays. It must be lower than the current price of what they buy.',
+        'What whoever uses the code pays through Mercado Pago. It must be lower than the current price of what they buy.',
       fixedPriceInvalid: 'The promo price must be a whole number greater than 0.',
+      fixedPriceManual: 'Promo price via transfer/cash (ARS)',
+      fixedPriceManualPlaceholder: 'Same as the Mercado Pago price',
+      fixedPriceManualHint:
+        'Empty = they pay the same as through Mercado Pago. Can be equal, lower or higher.',
+      fixedPriceManualInvalid:
+        'The transfer or cash price must be a whole number greater than 0.',
+      fixedPriceManualNote: 'Transfer and cash: {{amount}}',
       fixedPriceScopeInvalid:
         'A promo price needs a single scope: membership, registration or combo.',
       audienceLabel: 'Who can access it',
@@ -661,6 +668,18 @@ export default {
       maxRedemptions: 'Redemption limit',
       maxRedemptionsHint: 'Leave empty for no limit. Each redemption automatically uses one spot.',
       unlimitedUses: 'No limit',
+      startsAt: 'Opens',
+      startsAtHint: 'Empty = opens as soon as you enable it. With a date, it starts on its own.',
+      opensOn: 'Opens {{date}}',
+      promoWindowInvalid: 'The promotion must close after it opens.',
+      invitees: 'Exclusive to (emails)',
+      inviteesPlaceholder: 'one email per line',
+      inviteesHint:
+        'Empty = open to anyone. With addresses, only those accounts can use it.',
+      inviteesCountHint: 'Exclusive to {{count}} account(s). Clear the list to open it.',
+      inviteesInvalid: '{{email}} is not a valid email address.',
+      inviteesTooMany: 'The invite list cannot hold more than 500 addresses.',
+      exclusiveBadge: 'Exclusive · {{count}}',
       expiresAt: 'Expires',
       expiresAtHint: 'Leave empty so the code never expires.',
       noExpiry: 'No expiration',
@@ -684,6 +703,7 @@ export default {
         exhausted: 'Exhausted',
         expired: 'Expired',
         inactive: 'Disabled',
+        scheduled: 'Scheduled',
       },
       exhaustedSwitch: 'Exhausted',
       subscriptionsTitle: 'Active subscriptions',

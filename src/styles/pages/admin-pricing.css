@@ -776,6 +776,33 @@
   color: var(--color-brand-celeste);
 }
 
+/* Oro y no celeste: en este sistema el oro es el token de distinción y
+   membresía, y ya está presente en esta misma fila (el importe de una promo
+   por porcentaje). "Exclusiva" es el único badge que significa distinción, y
+   aparece una sola vez por fila. */
+.admin-pricing__status--exclusive {
+  color: var(--color-brand-gold);
+}
+
+/* Una promo de precio fijo puede cotizar distinto por canal: el importe de
+   Mercado Pago manda y el manual se anota abajo, sin robarle jerarquía. */
+.admin-pricing__plan-amount-stack {
+  align-items: flex-end;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: right;
+}
+
+.admin-pricing__plan-amount-note {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .admin-pricing__form {
   animation: admin-block-enter 0.28s var(--ease-out, ease) backwards;
   background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);

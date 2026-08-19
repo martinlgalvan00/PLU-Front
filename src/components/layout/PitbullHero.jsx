@@ -74,6 +74,7 @@ const HERO_COLLAGE = [
 ]
 
 function PitbullHeroPanel({
+  athleteStatus = null,
   canRegister,
   checkoutLocked,
   eventStatus,
@@ -91,13 +92,20 @@ function PitbullHeroPanel({
   // Cobros cerrados (kill switch / schedule) pesan igual que el status
   // "proximamente": no ofrecer "Afiliarme" si el destino real sigue gateado.
   const isComingSoon = checkoutLocked || eventStatus === 'proximamente'
-  const primaryLabel = canRegister
-    ? t('pages.pitbull.register')
-    : isFinished
-      ? t('pages.home.viewResults')
-      : isComingSoon
-        ? t('launchTeaser.notifyCta')
-        : t('pages.pitbull.joinNow')
+  // El estado propio manda sobre el del meet: a quien ya tiene cupo no se le
+  // ofrece "Inscribirme", y a quien dejó el pago a medias se le ofrece cerrarlo.
+  const primaryLabel =
+    athleteStatus === 'registered'
+      ? t('pages.pitbull.viewMyRegistration')
+      : athleteStatus === 'pending_payment'
+        ? t('pages.events.athleteStatusAction.pending_payment')
+        : canRegister
+          ? t('pages.pitbull.register')
+          : isFinished
+            ? t('pages.home.viewResults')
+            : isComingSoon
+              ? t('launchTeaser.notifyCta')
+              : t('pages.pitbull.joinNow')
   const secondaryLabel = ticketsOpen
     ? t('pages.pitbull.heroTickets')
     : t('pages.pitbull.ctaCategories')
@@ -233,6 +241,7 @@ function PitbullHeroFrame({ reducedMotion = false }) {
 }
 
 export default function PitbullHero({
+  athleteStatus = null,
   canRegister,
   checkoutLocked = false,
   eventStatus,
@@ -248,6 +257,7 @@ export default function PitbullHero({
 
   const panel = (
     <PitbullHeroPanel
+      athleteStatus={athleteStatus}
       canRegister={canRegister}
       checkoutLocked={checkoutLocked}
       eventStatus={eventStatus}

@@ -323,7 +323,11 @@ export function createSupabaseAthleteRepository(
         accessCode: offer.access_code ?? null,
       }
     },
-    previewDiscountCode: (athleteId, { code, appliesTo, baseAmount }) =>
+    // `paymentMethod` es el `method` con el que se guardaría la orden
+    // (`storagePaymentMethod`), no el medio que eligió el atleta: la RPC lo usa
+    // para elegir entre `fixed_price` y `fixed_price_manual`, con el mismo
+    // criterio que `resolve_channel_price` usa para el precio de catálogo.
+    previewDiscountCode: (athleteId, { code, appliesTo, baseAmount, paymentMethod = null }) =>
       rpc(
         'athlete_preview_discount_code',
         {
@@ -332,6 +336,7 @@ export function createSupabaseAthleteRepository(
           p_code: code,
           p_applies_to: appliesTo,
           p_base_amount: baseAmount,
+          p_payment_method: paymentMethod,
         },
         'No se pudo validar el código de descuento.',
       ),
@@ -347,7 +352,7 @@ export function createSupabaseAthleteRepository(
       const row = assertSupabaseResult(
         await client
           .from('discount_codes')
-          .select('active, applies_to, expires_at, manual_channels')
+          .select('active, applies_to, starts_at, expires_at, manual_channels')
           .eq('organization_id', organizationId)
           .eq('code', String(code).trim().toUpperCase())
           .maybeSingle(),
@@ -357,7 +362,15 @@ export function createSupabaseAthleteRepository(
       // Un código que sólo destraba transferencia no habilita efectivo: el
       // canal pedido tiene que estar en su lista.
       if (!(row.manual_channels ?? []).includes(channel)) return false
-      if (row.expires_at && new Date(row.expires_at) < new Date()) return false
+      const now = new Date()
+      // Una promo programada todavía no abre nada: sin este chequeo el canal se
+      // ofrecía desde que la promo existía, no desde que empezaba.
+      if (row.starts_at && new Date(row.starts_at) > now) return false
+      if (row.expires_at && new Date(row.expires_at) < now) return false
+      // La lista de invitados NO se chequea acá: esta lectura no conoce al
+      // atleta. Quien no esté invitado ve el canal ofrecido y la orden se cae
+      // con PLU26 al enviarla — el preview (`/me/discount-preview`) sí devuelve
+      // `not_invited` antes, así que el caso queda explicado en pantalla.
       return row.applies_to === scope || row.applies_to === 'both'
     },
     createRegistration: (athleteId, data) =>

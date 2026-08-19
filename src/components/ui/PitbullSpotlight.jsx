@@ -71,11 +71,13 @@ const panelItem = {
 
 export default function PitbullSpotlight({
   variant = 'card',
+  athleteStatus = null,
   capacityStatus = 'loading',
   event,
   onDetail,
   onRegister,
   onJoin,
+  onProfile,
   onResults,
   recent = [],
   registerLabel,
@@ -245,6 +247,15 @@ export default function PitbullSpotlight({
     } else if (isClosed) {
       primaryLabel = t('pages.pitbull.joinNow')
       primaryAction = onJoin ?? onDetail
+    }
+    // El derecho propio pisa cualquier rama de arriba: la landing no puede
+    // ofrecerle "Registrarme" a quien ya pagó su inscripción.
+    if (athleteStatus === 'registered') {
+      primaryLabel = t('pages.pitbull.viewMyRegistration')
+      primaryAction = onProfile ?? onDetail
+    } else if (athleteStatus === 'pending_payment') {
+      primaryLabel = t('pages.events.athleteStatusAction.pending_payment')
+      primaryAction = onRegister ?? onDetail
     }
     const showSecondary = primaryAction !== onDetail
     const soonHint =

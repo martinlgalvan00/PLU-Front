@@ -5,9 +5,10 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import { hasPlayedCredentialMerge } from '../lib/credentialMerge.js'
-import { DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'
+import { ACCOUNT_TAB_IDS, DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'
 import { isRegistrationAdmitted } from '../lib/status.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
+import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import GateMembershipBanner from '../components/ui/GateMembershipBanner.jsx'
@@ -42,6 +43,25 @@ export default function AthleteProfilePage({
   const [activeTab, setActiveTab] = useState(initialTab || DEFAULT_ACCOUNT_TAB)
   const mainRef = useRef(null)
   const isFirstTabRef = useRef(true)
+
+  // El panel entra desde el lado de la cinta por el que se movió el foco: hacia
+  // adelante entra por la derecha, hacia atrás por la izquierda. No es adorno —
+  // es lo único que ata el panel al tab que lo abrió. Antes todos los cambios
+  // eran el mismo fade y la cinta y el contenido parecían dos cosas sueltas.
+  //
+  // La dirección se guarda junto al índice y no se recalcula contra "el índice
+  // anterior": un segundo render del mismo tab (StrictMode, o cualquier cambio
+  // de props) volvería a comparar el índice contra sí mismo y perdería la
+  // dirección a mitad de la transición.
+  const tabIndex = ACCOUNT_TAB_IDS.indexOf(activeTab)
+  const swapRef = useRef({ index: tabIndex, direction: undefined })
+  if (tabIndex >= 0 && tabIndex !== swapRef.current.index) {
+    swapRef.current = {
+      index: tabIndex,
+      direction: swapRef.current.index >= 0 && tabIndex > swapRef.current.index ? 1 : -1,
+    }
+  }
+  const swapDirection = swapRef.current.direction
 
   const athleteId = athlete?.id ?? null
   const athleteMemberships = athleteId
@@ -178,10 +198,19 @@ export default function AthleteProfilePage({
             pendingEvents={gatePendingRegistrations}
             onCompleteMembership={() => setActiveTab('account-membership')}
           />
+          {/* `sync` y no `wait`: el panel saliente sigue montado mientras entra
+              el nuevo, así el contenedor no colapsa un frame y la página no da
+              un salto de scroll en los tabs altos. Los dos paneles comparten la
+              celda de la grilla (ver .account-sections en account.css). */}
           <div className="account-sections">
-            <div key={activeTab} className="account-tab-panel">
+            <MotionContentSwap
+              className="account-tab-panel"
+              swapKey={activeTab}
+              direction={swapDirection}
+              mode="sync"
+            >
               {tabContent[activeTab]}
-            </div>
+            </MotionContentSwap>
           </div>
         </div>
       </div>

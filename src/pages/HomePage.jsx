@@ -23,6 +23,7 @@ import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { MOTION_TIER_SCALE } from '../motion/tokens.ts'
+import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
 /** Cascada de entrada del dúo de teasers, escalada por tier de dispositivo:
@@ -46,6 +47,7 @@ export default function HomePage({
   events = [],
   session,
   memberships = [],
+  registrations = [],
   checkoutAvailability = {},
 }) {
   const { reducedMotion, tier } = useMotionConfig()
@@ -55,6 +57,14 @@ export default function HomePage({
   const isLoggedInAthlete = session?.role === 'athlete_plu'
   const hasActiveMembership =
     isLoggedInAthlete && hasCurrentMembership(memberships, session.athleteId)
+  // Mismo resolver que la cuenta y la página del meet: la landing tampoco
+  // puede contradecir al perfil sobre si esta persona ya está inscripta.
+  const athleteEventStatus = resolveAthleteEventStatus({
+    event: launchEvent,
+    session,
+    registrations,
+    memberships,
+  })
   const {
     status: capacityStatus,
     registered: liveRegistered,
@@ -156,11 +166,13 @@ export default function HomePage({
         <div className="home-section__inner home-section__inner--bleed">
           <PitbullSpotlight
             variant="home"
+            athleteStatus={athleteEventStatus}
             capacityStatus={capacityStatus}
             event={launchEvent}
             onDetail={openFeaturedEvent}
             onRegister={handlePitbullRegister}
             onJoin={() => onNavigate?.('members')}
+            onProfile={() => onNavigate?.('profile')}
             onResults={() => onNavigate?.('results')}
             registrationCheckoutEnabled={registrationCheckoutEnabled}
             recent={recentRegistrants}
