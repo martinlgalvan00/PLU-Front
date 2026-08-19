@@ -41,8 +41,18 @@ export function resolveEnvironmentHolds(env = process.env) {
 }
 
 export const PAYMENT_CONCEPTS = Object.freeze(['membership', 'registration', 'ticket'])
-export const PAYMENT_CHANNELS = Object.freeze(['mercado_pago', 'bank_transfer', 'cash_pitbull'])
-/** Los que dependen de que alguien acredite el cobro a mano. */
+export const PAYMENT_CHANNELS = Object.freeze([
+  'mercado_pago',
+  'bank_transfer',
+  'cash_pitbull',
+  'wise_transfer',
+])
+/**
+ * Los que dependen de que alguien acredite el cobro a mano. Wise queda
+ * afuera a propósito: no comparte interruptor "los dos juntos" con
+ * transferencia/efectivo ni el override por cupón — tiene su propia celda,
+ * gobernada sólo por sí misma.
+ */
 export const MANUAL_PAYMENT_CHANNELS = Object.freeze(['bank_transfer', 'cash_pitbull'])
 
 /**
@@ -111,12 +121,14 @@ const CHANNEL_CODE = {
   mercado_pago: 'MERCADO_PAGO',
   bank_transfer: 'BANK_TRANSFER',
   cash_pitbull: 'CASH_PITBULL',
+  wise_transfer: 'WISE_TRANSFER',
 }
 
 const CHANNEL_LABEL = {
   mercado_pago: 'Mercado Pago',
   bank_transfer: 'transferencia bancaria',
   cash_pitbull: 'efectivo en Pitbull',
+  wise_transfer: 'Wise',
 }
 
 const CONCEPT_LABEL = {
@@ -169,6 +181,9 @@ export function assertTicketCheckoutEnabled(toggles, env = process.env) {
  * previo, que sólo se cierra explícitamente.
  */
 function defaultChannelState(concept, channel) {
+  // Wise no existía antes de esta celda: nace cerrado en los tres conceptos,
+  // sin heredar el estado de ningún interruptor previo.
+  if (channel === 'wise_transfer') return false
   if (channel === 'mercado_pago') return true
   return concept === 'ticket'
 }

@@ -28,7 +28,7 @@ const { fetchPlatformFeatureToggles, savePaymentChannel, PLATFORM_TOGGLE_KEYS } 
   '../src/services/platformSettingsAdminService.js'
 )
 
-const ALL_OPEN = { mercado_pago: true, bank_transfer: true, cash_pitbull: true }
+const ALL_OPEN = { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true }
 
 /**
  * Estado que devuelve el servicio: los booleanos por concepto más la matriz de
@@ -149,9 +149,10 @@ describe('pantalla de Acceso y habilitación', () => {
     renderAccessSection()
     await waitFor(() => expect(fetchPlatformFeatureToggles).toHaveBeenCalled())
 
-    // 1 maestro + 3 altas + 3 validaciones + 8 celdas de canal (entradas no
-    // ofrece efectivo, que no existe en su checkout).
-    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(15))
+    // 1 maestro + 3 altas + 3 validaciones + 11 celdas de canal (entradas no
+    // ofrece efectivo, que no existe en su checkout; Wise sí se ofrece en los
+    // tres conceptos).
+    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(18))
 
     // Un bloque por concepto, no cuatro grupos por eje. Se busca dentro de la
     // sección de interruptores: la de tandas privadas también nombra los
@@ -165,8 +166,11 @@ describe('pantalla de Acceso y habilitación', () => {
       /habilitar mercado pago para afiliaciones/i,
       /habilitar transferencia bancaria para afiliaciones/i,
       /habilitar efectivo en pitbull para afiliaciones/i,
+      /habilitar wise para afiliaciones/i,
       /habilitar mercado pago para inscripciones/i,
+      /habilitar wise para inscripciones/i,
       /habilitar transferencia bancaria para entradas/i,
+      /habilitar wise para entradas/i,
       /habilitar venta de entradas/i,
       /habilitar validación de entradas/i,
     ]) {
@@ -189,8 +193,8 @@ describe('pantalla de Acceso y habilitación', () => {
     renderAccessSection()
 
     // El operador tiene que poder responder "¿está todo abierto?" sin leer las
-    // quince filas.
-    expect(await screen.findByText('13 de 15 habilitados')).toBeTruthy()
+    // dieciocho filas.
+    expect(await screen.findByText('16 de 18 habilitados')).toBeTruthy()
   })
 
   // Lo que antes era imposible desde el panel: la pasarela no era cerrable.
@@ -219,7 +223,14 @@ describe('pantalla de Acceso y habilitación', () => {
   it('avisa cuando un concepto queda sin ningún medio de cobro', async () => {
     vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
       togglesState({
-        channels: { registration: { mercado_pago: false, bank_transfer: false, cash_pitbull: false } },
+        channels: {
+          registration: {
+            mercado_pago: false,
+            bank_transfer: false,
+            cash_pitbull: false,
+            wise_transfer: false,
+          },
+        },
       }),
     )
 
@@ -255,7 +266,7 @@ describe('pantalla de Acceso y habilitación', () => {
     expect(screen.getByText('Cerradas')).toBeTruthy()
     expect(screen.getByText('Habilitados')).toBeTruthy()
     expect(screen.getAllByText('Habilitada')).toHaveLength(3)
-    expect(screen.getAllByText('Activo')).toHaveLength(8)
+    expect(screen.getAllByText('Activo')).toHaveLength(11)
   })
 
   it('muestra cerrado el interruptor apagado', async () => {

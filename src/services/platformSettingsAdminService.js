@@ -27,16 +27,18 @@ export const PLATFORM_DERIVED_KEYS = [
 ]
 
 export const PAYMENT_CONCEPTS = ['membership', 'registration', 'ticket']
-export const PAYMENT_CHANNELS = ['mercado_pago', 'bank_transfer', 'cash_pitbull']
+export const PAYMENT_CHANNELS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
 
 /**
  * Misma política por omisión que `server/services/platformFeatureToggleService.js`:
  * Mercado Pago abierto, canal manual de afiliación e inscripción cerrado hasta
- * habilitarlo, entradas sólo cerradas explícitamente. Se replica acá porque el
- * panel no importa código del server; en la práctica el payload trae las nueve
- * celdas y esto sólo cubre una lectura incompleta.
+ * habilitarlo, entradas sólo cerradas explícitamente, Wise cerrado en los
+ * tres. Se replica acá porque el panel no importa código del server; en la
+ * práctica el payload trae las doce celdas y esto sólo cubre una lectura
+ * incompleta.
  */
 function defaultChannelState(concept, channel) {
+  if (channel === 'wise_transfer') return false
   if (channel === 'mercado_pago') return true
   return concept === 'ticket'
 }

@@ -43,6 +43,7 @@ import {
   manualPaymentChannel,
   paymentChannelOf,
   storagePaymentMethod,
+  wisePriceFor,
 } from '../modules/pricing/checkoutPricePolicy.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import {
@@ -272,7 +273,7 @@ const discountCodeField = z.string().trim().toUpperCase().max(32).optional()
 const registrationAccessCodeField = z.string().trim().max(72).optional()
 
 const orderSchema = z.object({
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   planCode: z.string().trim().min(2).default('plu-annual'),
   idempotencyKey: z
     .string()
@@ -286,7 +287,7 @@ const registrationSchema = z.object({
   division: z.enum(COMPETITION_DIVISIONS),
   category: z.enum(COMPETITION_CATEGORIES),
   bodyweightKg: z.number().min(10).max(250).nullable().optional(),
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   idempotencyKey: z
     .string()
     .uuid()
@@ -336,7 +337,7 @@ const discountPreviewSchema = z.object({
   // que Mercado Pago). Sin este dato el preview calculaba el ahorro sobre el
   // precio de catálogo y le mostraba al atleta un número que no era el que
   // terminaba pagando.
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']).optional(),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']).optional(),
 })
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
@@ -1226,13 +1227,16 @@ export function createAthleteRoutes({
           scope: 'membership',
           code: req.validatedBody.accessCode,
         })
+        const membershipWisePrice =
+          membershipChannel === 'wise_transfer' ? wisePriceFor({ concept: 'membership' }) : null
         const created = await repo().createMembershipOrder(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
           planCode: plan.code,
-          defaultPrice: plan.price,
-          manualPrice: plan.manual_price,
+          defaultPrice: membershipWisePrice ? membershipWisePrice.amount : plan.price,
+          manualPrice: membershipWisePrice ? null : plan.manual_price,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+          currency: membershipWisePrice?.currency ?? null,
         })
         await recordRegistrationAccessUse(accessGate, {
           athleteId: auth.athleteId,
@@ -1271,12 +1275,10 @@ export function createAthleteRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
-        assertPaymentChannelEnabled(
-          toggles,
-          'registration',
-          paymentChannelOf(req.validatedBody.paymentMethod),
-          { override: await manualChannelOverride(req.validatedBody, 'registration') },
-        )
+        const registrationChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        assertPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
+          override: await manualChannelOverride(req.validatedBody, 'registration'),
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
@@ -1287,12 +1289,15 @@ export function createAthleteRoutes({
           eventSlug,
           code: req.validatedBody.accessCode,
         })
+        const registrationWisePrice =
+          registrationChannel === 'wise_transfer' ? wisePriceFor({ concept: 'registration' }) : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: event.price,
-          manualPrice: event.manual_price,
+          defaultPrice: registrationWisePrice ? registrationWisePrice.amount : event.price,
+          manualPrice: registrationWisePrice ? null : event.manual_price,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+          currency: registrationWisePrice?.currency ?? null,
         })
         await recordRegistrationAccessUse(accessGate, {
           athleteId: auth.athleteId,
@@ -1357,12 +1362,14 @@ export function createAthleteRoutes({
           eventSlug,
           code: req.validatedBody.registrationAccessCode,
         })
+        const comboWisePrice = comboChannel === 'wise_transfer' ? wisePriceFor({ concept: 'combo' }) : null
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: comboOffer.price,
-          manualPrice: comboOffer.manualPrice,
+          defaultPrice: comboWisePrice ? comboWisePrice.amount : comboOffer.price,
+          manualPrice: comboWisePrice ? null : comboOffer.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+          currency: comboWisePrice?.currency ?? null,
         })
         await recordRegistrationAccessUse(membershipAccessGate, {
           athleteId: auth.athleteId,

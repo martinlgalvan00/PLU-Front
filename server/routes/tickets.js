@@ -41,6 +41,7 @@ import {
   assertValidationEnabled,
   resolvePublicCheckoutAvailability,
 } from '../services/platformFeatureToggleService.js'
+import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -62,6 +63,7 @@ const createOrderSchema = z.object({
     })
     .optional(),
   provider: z.enum(['mercado_pago', 'manual']).default('mercado_pago'),
+  manualPaymentChannel: z.enum(['bank_transfer', 'wise_transfer']).optional(),
   idempotencyKey: z
     .string()
     .uuid()
@@ -164,13 +166,24 @@ export function createTicketRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertTicketCheckoutEnabled(toggles, env)
-        // Las entradas no tienen efectivo en Pitbull: `manual` es transferencia.
-        assertPaymentChannelEnabled(
-          toggles,
-          'ticket',
-          req.validatedBody.provider === 'manual' ? 'bank_transfer' : 'mercado_pago',
+        // Las entradas no tienen efectivo en Pitbull: `manual` es
+        // transferencia o Wise, según el canal que haya elegido el comprador.
+        const ticketChannel =
+          req.validatedBody.provider === 'manual'
+            ? (req.validatedBody.manualPaymentChannel ?? 'bank_transfer')
+            : 'mercado_pago'
+        assertPaymentChannelEnabled(toggles, 'ticket', ticketChannel)
+        const ticketWisePrice = ticketChannel === 'wise_transfer' ? wisePriceFor({ concept: 'ticket' }) : null
+        res.status(201).json(
+          await repo().createOrder({
+            ...req.validatedBody,
+            // Precio calculado por la API, nunca por el cliente: el monto
+            // por asistente (`wisePriceFor`) se multiplica acá y viaja como
+            // total ya cerrado, igual que el resto de las órdenes manuales.
+            wiseAmount: ticketWisePrice ? ticketWisePrice.amount * req.validatedBody.attendees.length : null,
+            wiseCurrency: ticketWisePrice?.currency ?? null,
+          }),
         )
-        res.status(201).json(await repo().createOrder(req.validatedBody))
       } catch (error) {
         next(error)
       }
