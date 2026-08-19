@@ -62,6 +62,9 @@ function isFakeAthlete(row) {
   if (NAME_PATTERN.test(name.trim())) return 'nombre'
   if (local && EMAIL_LOCAL_PATTERN.test(local)) return 'email'
   if (domain && FAKE_EMAIL_DOMAINS.includes(domain)) return 'dominio de email'
+  // .test es el TLD reservado por RFC 2606 para pruebas (usado por
+  // tests/integration/*.test.js) y nunca corresponde a un atleta real.
+  if (domain && domain.endsWith('.test')) return 'dominio de email'
   if (DUMMY_DOCUMENTS.has(document)) return 'documento dummy'
   return null
 }
