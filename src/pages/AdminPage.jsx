@@ -111,6 +111,8 @@ export default function AdminPage({
   onCreateUser,
   onDeleteUser,
   onDeleteAthlete,
+  onBulkUpdateAthletes,
+  onUpdateAthlete,
   onDeleteMembership,
   onDeleteRegistration,
   onSetRegistrationPublicVisibility,
@@ -302,6 +304,7 @@ export default function AdminPage({
               await onDeleteAthlete?.(athleteId)
               setSelectedAthleteId(null)
             }}
+            onUpdate={onUpdateAthlete}
             onApprovePayment={onApprovePayment}
           />
         )
@@ -314,6 +317,8 @@ export default function AdminPage({
           payments={payments}
           gatePendingIds={gatePendingIds}
           onSelectAthlete={handleSelectAthlete}
+          canEdit={hasPermission(authorization, 'admin.athletes.write')}
+          onBulkUpdate={onBulkUpdateAthletes}
         />
       )
     }

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import AdminAthletesBulkBar from '../../components/admin/AdminAthletesBulkBar.jsx'
 import { AdminIdentityCell, AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAthletesTourSteps } from '../../lib/adminTourSteps.js'
+import { getStatusMeta } from '../../lib/status.js'
 import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
 import {
   createRegistrationPaymentIndex,
@@ -22,11 +24,14 @@ export default function AthletesSection({
   payments = [],
   gatePendingIds = EMPTY_GATE_PENDING_IDS,
   onSelectAthlete,
+  canEdit = false,
+  onBulkUpdate,
 }) {
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [registrationStatus, setRegistrationStatus] = useState('all')
+  const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const { startTour } = useAdminTour()
 
   useEffect(() => {
@@ -48,6 +53,10 @@ export default function AthletesSection({
         value,
         label,
         value === 'all' ? athletes.length : (statusCounts[value] ?? 0),
+        // Mismo tono que ya pinta el status-pill de la fila, para que el
+        // chip activo prediga el color del resultado en vez de un celeste
+        // genérico ("all" queda sin tono, es el chip neutro).
+        value === 'all' ? undefined : getStatusMeta(value).tone,
       ]),
     [athletes.length, statusCounts, t],
   )
@@ -146,6 +155,7 @@ export default function AthletesSection({
 
   return (
     <AdminListSection
+      variant="athletes"
       filteredCount={rows.length}
       placeholder={t('admin.search.athlete')}
       query={query}
@@ -170,13 +180,31 @@ export default function AthletesSection({
           value: registrationStatus,
           onChange: setRegistrationStatus,
           options: registrationStatusOptions,
-          advanced: true,
         },
       ]}
       onQueryChange={setQuery}
     >
+      {canEdit ? (
+        <AdminAthletesBulkBar
+          selectedIds={selectedRowKeys}
+          statusFieldOptions={statusOptions
+            .filter(([value]) => value !== 'all')
+            .map(([value, label]) => [value, label])}
+          onBulkUpdate={onBulkUpdate}
+          onClearSelection={() => setSelectedRowKeys([])}
+        />
+      ) : null}
       <AdminDataTable
         variant="admin"
+        rowSelection={
+          canEdit
+            ? {
+                selectedRowKeys,
+                onChange: setSelectedRowKeys,
+                preserveSelectedRowKeys: true,
+              }
+            : undefined
+        }
         columns={[
           {
             key: 'fullName',

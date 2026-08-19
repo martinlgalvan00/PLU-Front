@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, BadgeCheck, Route, Trash2 } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Check, Pencil, Route, Trash2, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
@@ -11,7 +11,8 @@ import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { PAYMENT_METHODS } from '../../lib/constants.js'
+import { translateFilterOptions } from '../../i18n/adminHelpers.js'
+import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
 
 function formatDateTime(value, locale) {
@@ -41,6 +42,7 @@ export default function AthleteDetailSection({
   canRotateCredential = false,
   canDelete = false,
   onDelete,
+  onUpdate,
   onApprovePayment,
 }) {
   const { locale, t } = useI18n()
@@ -49,7 +51,18 @@ export default function AthleteDetailSection({
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [traceOrderId, setTraceOrderId] = useState(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editStatus, setEditStatus] = useState('')
+  const [editGym, setEditGym] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [editError, setEditError] = useState('')
   const { athlete, memberships = [], registrations = [], payments = [] } = detail ?? {}
+
+  const statusOptions = useMemo(
+    () =>
+      translateFilterOptions(ATHLETE_FILTER_STATUSES, t).filter(([value]) => value !== 'all'),
+    [t],
+  )
   const activeMembership = memberships.find((item) => item.status === 'activa')
   // La credencial vigente es la de la afiliación activa; si no hay ninguna, se
   // muestra la última emitida para poder cotejar un QR viejo.
@@ -145,14 +158,54 @@ export default function AthleteDetailSection({
     }
   }
 
+  function openEdit() {
+    setEditStatus(athlete.status ?? '')
+    setEditGym(athlete.gym ?? '')
+    setEditError('')
+    setIsEditOpen(true)
+  }
+
+  function closeEdit() {
+    if (editBusy) return
+    setIsEditOpen(false)
+    setEditError('')
+  }
+
+  async function handleSaveEdit() {
+    if (!onUpdate || !athlete?.id) return
+    setEditError('')
+    setEditBusy(true)
+    try {
+      await onUpdate(athlete.id, { status: editStatus, gym: editGym.trim() })
+      setIsEditOpen(false)
+    } catch (error) {
+      setEditError(error?.message ?? t('admin.athleteDetail.edit.error'))
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
   return (
     <div className="athlete-detail">
-      <button type="button" className="athlete-detail__back" onClick={onBack}>
-        <span className="athlete-detail__back-icon" aria-hidden="true">
-          <ArrowLeft size={15} strokeWidth={2.25} />
-        </span>
-        <span>{t('admin.athleteDetail.back')}</span>
-      </button>
+      <div className="athlete-detail__toolbar">
+        <button type="button" className="athlete-detail__back" onClick={onBack}>
+          <span className="athlete-detail__back-icon" aria-hidden="true">
+            <ArrowLeft size={15} strokeWidth={2.25} />
+          </span>
+          <span>{t('admin.athleteDetail.back')}</span>
+        </button>
+
+        {canEdit && onUpdate ? (
+          <button
+            type="button"
+            className="athlete-detail__edit-trigger"
+            onClick={() => (isEditOpen ? closeEdit() : openEdit())}
+          >
+            <Pencil size={13} aria-hidden />
+            {t('admin.athleteDetail.edit.action')}
+          </button>
+        ) : null}
+      </div>
 
       <MemberProfileCard
         className="athlete-detail__profile"
@@ -165,6 +218,41 @@ export default function AthleteDetailSection({
         status={athlete.status}
         memberCode={activeMembership?.memberCode}
       />
+
+      {isEditOpen ? (
+        <div className="athlete-detail__edit-panel">
+          <label className="athlete-detail__edit-field">
+            <span>{t('admin.athleteDetail.edit.fieldStatus')}</span>
+            <select value={editStatus} onChange={(event) => setEditStatus(event.target.value)} disabled={editBusy}>
+              {statusOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="athlete-detail__edit-field athlete-detail__edit-field--grow">
+            <span>{t('admin.athleteDetail.edit.fieldGym')}</span>
+            <input
+              type="text"
+              value={editGym}
+              onChange={(event) => setEditGym(event.target.value)}
+              disabled={editBusy}
+            />
+          </label>
+          <div className="athlete-detail__edit-actions">
+            <Button type="button" disabled={editBusy} onClick={handleSaveEdit}>
+              <Check size={14} aria-hidden />
+              {editBusy ? t('admin.athleteDetail.edit.saving') : t('admin.athleteDetail.edit.save')}
+            </Button>
+            <button type="button" className="athlete-detail__edit-cancel" disabled={editBusy} onClick={closeEdit}>
+              <X size={14} aria-hidden />
+              {t('admin.athleteDetail.edit.cancel')}
+            </button>
+          </div>
+          {editError ? <p className="athlete-detail__edit-error">{editError}</p> : null}
+        </div>
+      ) : null}
 
       <DetailTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} variant="editorial" />
 

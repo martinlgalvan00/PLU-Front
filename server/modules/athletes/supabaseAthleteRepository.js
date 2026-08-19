@@ -225,6 +225,23 @@ export function createSupabaseAthleteRepository(
       delete row.password_hash
       return row
     },
+    /**
+     * Edición administrativa (status/gym) — a diferencia de `update`, que es
+     * autoservicio del propio atleta. Usada por el PATCH admin individual y
+     * por el bulk (que la itera una vez por id con Promise.allSettled, no
+     * hay update-many equivalente en Supabase/RPC para esta tabla).
+     */
+    updateAthleteAdmin: (athleteId, { status, gym }, actor) =>
+      rpc(
+        'staff_update_athlete',
+        {
+          p_athlete_id: athleteId,
+          p_status: status ?? null,
+          p_gym: gym ?? null,
+          p_actor: actor,
+        },
+        'No se pudo actualizar el atleta.',
+      ),
     createMembershipOrder: (athleteId, data) =>
       rpc(
         'create_membership_order_checkout',

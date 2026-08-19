@@ -505,6 +505,22 @@ export function createAthleteRoutes({
   const registrationDeleteGuard = requirePermission('admin.registrations.delete', { prisma })
   const accountGuard = requirePermission('admin.athletes.write', { prisma })
   const athleteDeleteGuard = requirePermission('admin.athletes.delete', { prisma })
+  // Deliberadamente sin `division`: vive en event_registrations y queda
+  // bloqueada por trigger una vez que existe la inscripción.
+  const athletePatchFieldsSchema = z
+    .object({
+      status: z
+        .enum(['pre_registrado', 'registrado', 'afiliado_activo', 'afiliado_vencido', 'bloqueado'])
+        .optional(),
+      gym: z.string().trim().min(1).max(160).optional(),
+    })
+    .refine((data) => data.status !== undefined || data.gym !== undefined, {
+      message: 'Ingresá al menos un campo para actualizar.',
+    })
+  const athleteBulkUpdateSchema = z.object({
+    athleteIds: z.array(z.string().uuid()).min(1).max(100),
+    patch: athletePatchFieldsSchema,
+  })
   // Mismo formato que usa el check-in (`server/routes/tickets.js`): el actor
   // queda identificable en `domain_audit_logs` sin depender de que el id de
   // usuario siga existiendo cuando se lea la auditoría.
@@ -2066,6 +2082,62 @@ export function createAthleteRoutes({
           actorLabel(req),
         )
         res.status(204).end()
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Edición en bloque (status/gym) — pensada para la selección múltiple de
+   * `AthletesSection`. Partial success: cada id se actualiza independiente
+   * con Promise.allSettled (no hay update-many equivalente para esta tabla
+   * en Supabase/RPC), así una fila inválida no frena al resto del lote.
+   * Registrada ANTES de `/admin/:athleteId` a propósito: si fuera después,
+   * el segmento literal "bulk" caería en ese param route.
+   */
+  router.patch(
+    '/admin/bulk',
+    ...accountGuard,
+    staffLimiter,
+    validateBody(athleteBulkUpdateSchema),
+    async (req, res, next) => {
+      try {
+        const { athleteIds, patch } = req.validatedBody
+        const actor = actorLabel(req)
+        const settled = await Promise.allSettled(
+          athleteIds.map((athleteId) => repo().updateAthleteAdmin(athleteId, patch, actor)),
+        )
+        const updated = []
+        const failed = []
+        settled.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            updated.push(result.value)
+          } else {
+            failed.push({ athleteId: athleteIds[index], reason: result.reason?.message || 'error' })
+          }
+        })
+        res.json({ updated, failed })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.patch(
+    '/admin/:athleteId',
+    ...accountGuard,
+    staffLimiter,
+    validateBody(athletePatchFieldsSchema),
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        const athlete = await repo().updateAthleteAdmin(
+          athleteId.data,
+          req.validatedBody,
+          actorLabel(req),
+        )
+        res.json({ athlete })
       } catch (error) {
         next(error)
       }

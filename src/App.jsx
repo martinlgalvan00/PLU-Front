@@ -567,6 +567,8 @@ export default function App() {
           onRequestEmailChange={app.requestEmailChangeAction}
           onResetStaffPassword={app.resetStaffPasswordAction}
           onDeleteAthlete={app.deleteAthleteAction}
+          onBulkUpdateAthletes={app.bulkUpdateAthletesAction}
+          onUpdateAthlete={app.updateAthleteAction}
           onDeleteMembership={app.deleteMembershipAction}
           onDeleteRegistration={app.deleteRegistrationAction}
           onSetRegistrationPublicVisibility={app.setRegistrationPublicVisibilityAction}
