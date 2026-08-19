@@ -689,6 +689,7 @@ export default {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Transferencia bancaria',
         cash_pitbull: 'Efectivo en Pitbull',
+        wise_transfer: 'Wise',
       },
       channelsLabel: 'Medios de cobro',
       channelsGroupAria: 'Medios de cobro de {{concept}}',

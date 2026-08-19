@@ -67,7 +67,7 @@ const CONCEPT_BLOCKS = [
       key: 'membershipValidationEnabled',
       i18n: 'membershipValidation',
     },
-    channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull'],
+    channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer'],
   },
   {
     concept: 'registration',
@@ -78,7 +78,7 @@ const CONCEPT_BLOCKS = [
       key: 'registrationValidationEnabled',
       i18n: 'registrationValidation',
     },
-    channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull'],
+    channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer'],
   },
   {
     concept: 'ticket',
@@ -89,7 +89,7 @@ const CONCEPT_BLOCKS = [
       key: 'ticketValidationEnabled',
       i18n: 'ticketValidation',
     },
-    channels: ['mercado_pago', 'bank_transfer'],
+    channels: ['mercado_pago', 'bank_transfer', 'wise_transfer'],
   },
 ]
 

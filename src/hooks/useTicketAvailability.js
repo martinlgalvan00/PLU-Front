@@ -32,7 +32,7 @@ export function useTicketAvailability(eventSlug) {
 const CHECKOUT_CLOSED = {
   ticketEnabled: false,
   ticketManualEnabled: false,
-  channels: { mercado_pago: true, bank_transfer: false, cash_pitbull: false },
+  channels: { mercado_pago: true, bank_transfer: false, cash_pitbull: false, wise_transfer: false },
 }
 const selectCheckout = (data) => data?.checkout ?? CHECKOUT_CLOSED
 
