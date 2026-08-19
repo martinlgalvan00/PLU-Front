@@ -10,12 +10,22 @@ const PRE_SALE_END = new Date('2026-08-29T03:00:00.000Z')
  */
 export function toApiPaymentMethod(paymentMethod) {
   if (paymentMethod === 'transferencia') return 'manual_link'
-  if (paymentMethod === 'mercado_pago' || paymentMethod === 'cash_pitbull') return paymentMethod
+  if (paymentMethod === 'mercado_pago' || paymentMethod === 'cash_pitbull' || paymentMethod === 'wise_transfer') {
+    return paymentMethod
+  }
   if (paymentMethod === 'manual_link') return 'manual_link'
   return null
 }
 
+/**
+ * `null` para Wise: el precio se fija en USD por variable de entorno del
+ * servidor (no expuesta al build del cliente), así que acá no hay nada real
+ * que previsualizar. Mostrar el precio ARS de Mercado Pago sería directamente
+ * incorrecto — la UI que llama debe mostrar un texto en vez de un monto
+ * cuando esto devuelve `null` y el método es `wise_transfer`.
+ */
 export function previewCheckoutPrice({ concept, paymentMethod, fallback, now = new Date() }) {
+  if (paymentMethod === 'wise_transfer') return null
   if (now >= PRE_SALE_END) return fallback
   const bankTransfer = paymentMethod === 'manual_link' || paymentMethod === 'transferencia'
   const cashAtPitbull = paymentMethod === 'cash_pitbull'

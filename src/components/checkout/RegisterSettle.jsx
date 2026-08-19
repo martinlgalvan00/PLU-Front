@@ -16,6 +16,9 @@ export default function RegisterSettle({
   // Mercado Pago es la apertura inicial. Los canales manuales requieren una
   // habilitación explícita desde Administración.
   manualPaymentEnabled = false,
+  // Wise tiene su propio interruptor, independiente del de transferencia
+  // local: puede estar abierto aunque `manualPaymentEnabled` esté en false.
+  wiseEnabled = false,
   membershipPrice = 0,
   onPaymentBlur,
   onPaymentChange,
@@ -32,9 +35,11 @@ export default function RegisterSettle({
   if (!showPackage && !showPayment) return null
 
   const comboSelected = purchaseType === 'combo'
+  const wiseSelected = paymentMethod === 'wise_transfer'
   const displayedMembershipPrice = previewCheckoutPrice({ concept: 'membership', paymentMethod, fallback: membershipPrice })
   const displayedRegistrationPrice = previewCheckoutPrice({ concept: 'registration', paymentMethod, fallback: registrationPrice })
   const displayedComboPrice = previewCheckoutPrice({ concept: 'combo', paymentMethod, fallback: comboOffer?.price ?? 0 })
+  const wisePriceLabel = t('pages.register.paymentWisePriceHint')
   const displayedDeal = resolveComboDeal({
     membership: displayedMembershipPrice,
     registration: displayedRegistrationPrice,
@@ -46,7 +51,7 @@ export default function RegisterSettle({
     offers.push({
       id: 'combo',
       name: t('account.membership.comboTitle'),
-      priceLabel: comboOffer ? money(displayedComboPrice, locale) : '—',
+      priceLabel: !comboOffer ? '—' : wiseSelected ? wisePriceLabel : money(displayedComboPrice, locale),
       featured: true,
       disabled: comboComingSoon,
       // El ahorro se anuncia con los precios que se muestran para el medio
@@ -74,7 +79,7 @@ export default function RegisterSettle({
     offers.push({
       id: 'registration',
       name: t('account.membership.comboSeparate'),
-      priceLabel: money(displayedRegistrationPrice, locale),
+      priceLabel: wiseSelected ? wisePriceLabel : money(displayedRegistrationPrice, locale),
     })
   }
 
@@ -89,6 +94,9 @@ export default function RegisterSettle({
                 { value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') },
               ]
             : []),
+          // Wise depende de su propio interruptor, no del de transferencia
+          // local: puede ofrecerse aunque manualPaymentEnabled esté cerrado.
+          ...(wiseEnabled ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }] : []),
       ]
     : []
 
@@ -102,7 +110,7 @@ export default function RegisterSettle({
       offerName="competition-purchase-type"
       offers={offers}
       paymentError={paymentError}
-      paymentHint={paymentHint || (!manualPaymentEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : '')}
+      paymentHint={paymentHint || (!manualPaymentEnabled && !wiseEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : '')}
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}
       onOfferChange={onPurchaseTypeChange}

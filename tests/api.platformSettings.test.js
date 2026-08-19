@@ -109,6 +109,7 @@ describe('interruptores generales — /api/platform-settings', () => {
         membershipManualEnabled: true,
         registrationManualEnabled: false,
         ticketManualEnabled: true,
+        wiseEnabled: true,
       })
     } finally {
       await target.close()

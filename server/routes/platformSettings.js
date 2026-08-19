@@ -24,6 +24,7 @@ export const PLATFORM_FEATURES = [
   'membership_validation',
   'registration_validation',
   'ticket_validation',
+  'wise',
 ]
 
 export const platformFeatureToggleSchema = z.object({

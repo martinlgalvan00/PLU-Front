@@ -104,10 +104,11 @@ describe('bandeja de Finanzas con la validación congelada', () => {
 })
 
 describe('pantalla de Acceso y habilitación', () => {
-  it('expone los diez interruptores agrupados por eje', async () => {
-    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
-      Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
-    )
+  it('expone los once interruptores agrupados por eje', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
+      ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+      wiseEnabled: true,
+    })
 
     render(
       <I18nProvider>
@@ -123,8 +124,9 @@ describe('pantalla de Acceso y habilitación', () => {
 
     await waitFor(() => expect(fetchPlatformFeatureToggles).toHaveBeenCalled())
 
-    // Un switch por interruptor, ni más ni menos.
-    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(10))
+    // Un switch por interruptor, ni más ni menos. Diez del eje original más
+    // el interruptor propio de Wise.
+    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(11))
 
     for (const heading of [/altas nuevas/i, /transferencia y efectivo/i, /validación y activación/i]) {
       expect(screen.getByRole('heading', { name: heading })).toBeTruthy()
@@ -134,6 +136,7 @@ describe('pantalla de Acceso y habilitación', () => {
       /habilitar venta de entradas/i,
       /habilitar afiliación por transferencia o efectivo/i,
       /habilitar validación de entradas/i,
+      /habilitar pagos por wise/i,
     ]) {
       expect(screen.getByRole('checkbox', { name })).toBeTruthy()
     }

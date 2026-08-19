@@ -97,13 +97,13 @@ function buildCompetitionSchema(t) {
       const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
       return Number.isFinite(weight) && weight >= 10 && weight <= 250
     }, msg('weight') ?? 'IngresÃ¡ un peso entre 10 y 250 kg.'),
-    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   })
 }
 
 function buildMembershipSchema() {
   return z.object({
-    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   })
 }
 

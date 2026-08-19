@@ -51,6 +51,8 @@ export default function MembershipPurchaseSection({
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
+  const [transferChannel, setTransferChannel] = useState('bank_transfer')
+  const [transferAmount, setTransferAmount] = useState(null)
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
@@ -102,6 +104,8 @@ export default function MembershipPurchaseSection({
   const membershipCanPurchase = !membershipActive && !membershipScheduled && !transferUnderReview
   const publicMembershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
   const publicManualChannelEnabled = checkoutAvailability.membershipManualEnabled !== false
+  // Wise depende de su propio interruptor, no del de transferencia local.
+  const wiseEnabled = checkoutAvailability.wiseEnabled === true
   const paidCheckoutOpen =
     isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) &&
     publicMembershipCheckoutEnabled
@@ -140,9 +144,13 @@ export default function MembershipPurchaseSection({
     : t('account.membership.transfer')
   const availablePlans = plans
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
-  const selectedPlanPrice = previewCheckoutPrice({
-    concept: 'membership', paymentMethod, fallback: selectedPlan?.price ?? 0,
-  })
+  // Wise no tiene precio ARS que previsualizar (se cobra en USD, definido por
+  // el servidor): se muestra el precio de lista como referencia aproximada
+  // en vez de `null`, junto con el hint que aclara que el monto real es en
+  // USD y se confirma al iniciar el pago.
+  const selectedPlanPrice = paymentMethod === 'wise_transfer'
+    ? (selectedPlan?.price ?? 0)
+    : previewCheckoutPrice({ concept: 'membership', paymentMethod, fallback: selectedPlan?.price ?? 0 })
   const checkoutLocked = submitting || (Boolean(embeddedOrder) && !changingMethod)
   // Tanda privada abierta por el admin y todavía sin contraseña validada.
   const accessLocked = membershipAccessRequired && !accessUnlocked
@@ -269,6 +277,10 @@ export default function MembershipPurchaseSection({
 
   useEffect(() => {
     if (paymentMethod === 'mercado_pago') return
+    if (paymentMethod === 'wise_transfer') {
+      if (selectedPlan?.collectionMode === 'recurring' || !wiseEnabled) setPaymentMethod('mercado_pago')
+      return
+    }
     // Plan recurrente, canal manual cerrado o medios manuales en
     // "próximamente": el único medio operable es Mercado Pago.
     if (
@@ -279,7 +291,7 @@ export default function MembershipPurchaseSection({
     ) {
       setPaymentMethod('mercado_pago')
     }
-  }, [effectiveManualChannelEnabled, paymentMethod, selectedPlan?.collectionMode])
+  }, [effectiveManualChannelEnabled, paymentMethod, selectedPlan?.collectionMode, wiseEnabled])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -364,7 +376,7 @@ export default function MembershipPurchaseSection({
         setCheckoutIsError(true)
         return
       }
-      if (method === 'transferencia') {
+      if (method === 'transferencia' || method === 'wise_transfer') {
         // Puede venir de cambiar de método con una orden de Mercado Pago
         // todavía pendiente: esa pantalla de settle deja de tener sentido en
         // cuanto se abre el modal de transferencia.
@@ -373,6 +385,8 @@ export default function MembershipPurchaseSection({
         // El id de la orden habilita la subida del comprobante dentro del mismo
         // modal: es el momento en que el atleta tiene el ticket bancario a mano.
         setTransferOrderId(result?.createdOrder?.paymentId ?? null)
+        setTransferChannel(method === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')
+        setTransferAmount(result?.createdOrder?.amount ?? null)
         setTransferOpen(true)
         return
       }
@@ -811,11 +825,20 @@ export default function MembershipPurchaseSection({
                         },
                       ]
                     : []),
+                  ...(wiseEnabled && selectedPlan?.collectionMode !== 'recurring'
+                    ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }]
+                    : []),
                 ]}
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
                 methodsLegend={t('account.membership.paymentLegend')}
-                paymentHint={!manualChannelEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : ''}
+                paymentHint={
+                  paymentMethod === 'wise_transfer'
+                    ? t('pages.register.paymentWisePriceHint')
+                    : !manualChannelEnabled && !wiseEnabled
+                      ? t('pages.register.paymentMercadoPagoOnlyHint')
+                      : ''
+                }
                 offers={
                   selectedPlan
                     ? [
@@ -888,7 +911,9 @@ export default function MembershipPurchaseSection({
       {transferOpen && (
         <TransferPayModal
           athlete={athlete}
-          amount={selectedPlan?.price ?? 0}
+          amount={transferAmount ?? selectedPlan?.price ?? 0}
+          currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
+          channel={transferChannel}
           orderId={transferOrderId}
           onClose={() => setTransferOpen(false)}
         />

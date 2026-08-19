@@ -55,6 +55,7 @@ describe('cotizacion atomica del checkout', () => {
       p_discount_code: null,
       p_order_amount: 75000,
       p_manual_payment_channel: 'bank_transfer',
+      p_order_currency: null,
     })
   })
 })

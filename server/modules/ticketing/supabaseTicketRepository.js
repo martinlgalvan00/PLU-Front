@@ -7,8 +7,8 @@ const hash = (value) => createHash('sha256').update(value).digest('hex')
 const ORDER_ACCESS_SELECT = 'id,provider'
 const PENDING_MANUAL_ORDER_SELECT = `
   id, event_id, buyer_name, buyer_email, buyer_phone, amount, currency,
-  provider, status, reference, payment_proof_path, payment_proof_uploaded_at,
-  created_at, updated_at,
+  provider, manual_payment_channel, status, reference, payment_proof_path,
+  payment_proof_uploaded_at, created_at, updated_at,
   event:events(slug,title),
   tickets(attendee_name,attendee_dni)
 `
@@ -33,7 +33,13 @@ export function createSupabaseTicketRepository(client) {
       const result = await rpc('create_ticket_order_v2', {
         p_event_slug: data.eventSlug,
         p_attendees: data.attendees,
-        p_buyer: { ...data.buyer, provider: data.provider },
+        p_buyer: {
+          ...data.buyer,
+          provider: data.provider,
+          manualPaymentChannel: data.manualPaymentChannel ?? null,
+          wiseAmount: data.wiseAmount ?? null,
+          wiseCurrency: data.wiseCurrency ?? null,
+        },
         p_idempotency_key: data.idempotencyKey,
         p_access_token_hash: hash(accessToken),
       }, 'No se pudo crear la orden de entradas.')

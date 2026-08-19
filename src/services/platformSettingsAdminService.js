@@ -21,6 +21,9 @@ export const PLATFORM_TOGGLE_KEYS = [
 function mapToggles(result) {
   return {
     ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, result?.[key] !== false])),
+    // Wise es la excepción a "default abierto": nace cerrado y sólo un
+    // `true` explícito lo prende (ver 20260825100000_wise_transfer_channel).
+    wiseEnabled: result?.wiseEnabled === true,
     updatedBy: result?.updatedBy ?? null,
     updatedAt: result?.updatedAt ?? null,
   }

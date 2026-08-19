@@ -135,6 +135,20 @@ export function assertValidationEnabled(toggles, scope) {
 }
 
 /**
+ * Wise es un canal manual, pero con interruptor propio: no depende de
+ * `*_manual_enabled` (transferencia/efectivo local) para poder abrirse
+ * mientras esos siguen cerrados. Nace en `false` (ver 20260825100000): sin
+ * datos de cuenta configurados no hay que exponerlo por accidente.
+ */
+export function assertWiseEnabled(toggles) {
+  if (toggles?.wiseEnabled !== true) {
+    throw new HttpError(409, 'El pago vía Wise no está habilitado.', {
+      code: 'WISE_DISABLED',
+    })
+  }
+}
+
+/**
  * Concepto de una orden de atleta -> alcances de validación que la cubren. El
  * combo acredita afiliación e inscripción en la misma transacción, así que
  * alcanza con que uno de los dos esté congelado para no poder aprobarlo.
@@ -166,5 +180,8 @@ export function resolvePublicCheckoutAvailability(toggles, env = process.env) {
     membershipManualEnabled: open('membershipEnabled') && toggles?.membershipManualEnabled === true,
     registrationManualEnabled: open('registrationEnabled') && toggles?.registrationManualEnabled === true,
     ticketManualEnabled: ticketLaunched && open('ticketEnabled') && toggles?.ticketManualEnabled !== false,
+    // Wise no depende de los `*ManualEnabled` locales; sólo del maestro de
+    // cobros y de su propio interruptor.
+    wiseEnabled: checkoutEnabled && toggles?.wiseEnabled === true,
   }
 }

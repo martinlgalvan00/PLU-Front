@@ -90,6 +90,7 @@ export async function createTicketOrder({
   attendees,
   buyer,
   provider,
+  manualPaymentChannel,
   idempotencyKey = crypto.randomUUID(),
   accessToken = `${crypto.randomUUID()}${crypto.randomUUID()}`,
 }) {
@@ -98,6 +99,7 @@ export async function createTicketOrder({
     attendees,
     buyer,
     provider,
+    manualPaymentChannel,
     idempotencyKey,
     accessToken,
   })
@@ -136,8 +138,10 @@ function mapPendingTicketOrderRow(row) {
     orderId: order.id,
     reference: order.reference,
     amount: order.amount,
+    currency: order.currency,
     status: order.status,
     provider: order.provider,
+    manualPaymentChannel: order.manualPaymentChannel,
     paymentProofPath: order.paymentProofPath,
     paymentProofUploadedAt: order.paymentProofUploadedAt,
     createdAt: order.createdAt,

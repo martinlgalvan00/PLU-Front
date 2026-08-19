@@ -491,6 +491,10 @@ export default {
       ticketValidationLead:
         'While frozen, ticket proofs are neither approved nor rejected and their QRs are not issued.',
       ticketValidationAria: 'Enable ticket validation',
+      wiseToggleTitle: 'Wise payments (international)',
+      wiseToggleLead:
+        'Enables Wise for membership, registration, combo and tickets, independent of the local bank transfer. Requires Wise account details to be configured.',
+      wiseToggleAria: 'Enable Wise payments',
       gatesTitle: 'Private batches',
       gatesLead: 'On top of the general cut, each batch can require a code to open gradually.',
       membershipGateTitle: 'Memberships',

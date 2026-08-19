@@ -287,7 +287,7 @@ export default function AthletePaymentOrdersSection({
       subject: row.athlete,
       documentId: row.document,
       detail: `${row.concept} · ${row.reference}`,
-      meta: money(row.amount, locale),
+      meta: money(row.amount, locale, row.currency),
     })
   }
 
@@ -382,7 +382,7 @@ export default function AthletePaymentOrdersSection({
               align: 'end',
               sortable: true,
               render: (row) => (
-                <span className="admin-orders-block__amount-badge">{money(row.amount, locale)}</span>
+                <span className="admin-orders-block__amount-badge">{money(row.amount, locale, row.currency)}</span>
               ),
             },
             {
@@ -391,7 +391,9 @@ export default function AthletePaymentOrdersSection({
               mobile: 'hidden',
               render: (row) => row.manualPaymentChannel === 'cash_pitbull'
                 ? t('formOptions.payment.cashPitbull')
-                : PAYMENT_METHODS[row.method]?.label ?? row.method,
+                : row.manualPaymentChannel === 'wise_transfer'
+                  ? t('formOptions.payment.wiseTransfer')
+                  : PAYMENT_METHODS[row.method]?.label ?? row.method,
             },
             {
               key: 'proof',

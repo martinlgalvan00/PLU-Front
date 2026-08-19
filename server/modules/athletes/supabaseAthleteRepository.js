@@ -208,6 +208,7 @@ export function createSupabaseAthleteRepository(
       p_discount_code: data.discountCode || null,
       p_order_amount: data.orderAmount,
       p_manual_payment_channel: data.manualPaymentChannel,
+      p_order_currency: data.orderCurrency ?? null,
     }, 'No se pudo crear la orden de afiliacion.'),
     async findMembershipPlan(planCode) {
       const readPlan = async (column) => assertSupabaseResult(
@@ -262,6 +263,7 @@ export function createSupabaseAthleteRepository(
       p_discount_code: data.discountCode || null,
       p_order_amount: data.orderAmount,
       p_manual_payment_channel: data.manualPaymentChannel,
+      p_order_currency: data.orderCurrency ?? null,
     }, 'No se pudo crear la inscripcion.'),
     createRegistrationCombo: (athleteId, data) => rpc(
       'create_membership_registration_combo_checkout',
@@ -275,6 +277,7 @@ export function createSupabaseAthleteRepository(
         p_idempotency_key: data.idempotencyKey,
         p_order_amount: data.orderAmount,
         p_manual_payment_channel: data.manualPaymentChannel,
+        p_order_currency: data.orderCurrency ?? null,
       },
       'No se pudo crear el combo de afiliacion e inscripcion.',
     ),

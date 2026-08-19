@@ -767,6 +767,11 @@ export default function RegisterPage({
     accessRequirements.membershipManualEnabled === true &&
     (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
   const manualMethodSelected = ['manual_link', 'cash_pitbull'].includes(form.paymentMethod)
+  // Wise tiene interruptor propio (`wiseEnabled`), independiente de
+  // `*ManualEnabled` y de la tanda de acceso privado: no pasa por
+  // `accessRequirements`.
+  const wiseEnabled = checkoutAvailability.wiseEnabled === true
+  const wiseMethodSelected = form.paymentMethod === 'wise_transfer'
 
   // El canal manual se cerró mientras la pantalla estaba abierta: la selección
   // vuelve a Mercado Pago para que el formulario no envíe un medio que el
@@ -775,6 +780,11 @@ export default function RegisterPage({
     if (manualPaymentEnabled || !manualMethodSelected) return
     onUpdateForm({ target: { name: 'paymentMethod', value: 'mercado_pago' } })
   }, [manualMethodSelected, manualPaymentEnabled, onUpdateForm])
+
+  useEffect(() => {
+    if (wiseEnabled || !wiseMethodSelected) return
+    onUpdateForm({ target: { name: 'paymentMethod', value: 'mercado_pago' } })
+  }, [wiseEnabled, wiseMethodSelected, onUpdateForm])
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -1304,7 +1314,9 @@ export default function RegisterPage({
     flow === 'membership' && !visibleOrder
       ? form.paymentMethod === 'manual_link'
         ? t('pages.register.membershipPaymentHintManual')
-        : t('pages.register.membershipPaymentHintMp')
+        : form.paymentMethod === 'wise_transfer'
+          ? t('pages.register.paymentWisePriceHint')
+          : t('pages.register.membershipPaymentHintMp')
       : ''
 
   // En competencia sin orden el total vive en el aside + footer: el hint vacío
@@ -1868,6 +1880,7 @@ export default function RegisterPage({
                 >
                   <RegisterSettle
                     manualPaymentEnabled={manualPaymentEnabled}
+                    wiseEnabled={wiseEnabled}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
                     paymentError={errors.paymentMethod}
@@ -1977,6 +1990,7 @@ export default function RegisterPage({
                     comboOffer={comboAvailability.offer}
                     comboSavings={comboSavings}
                     manualPaymentEnabled={manualPaymentEnabled}
+                    wiseEnabled={wiseEnabled}
                     membershipPrice={membershipListPrice}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
@@ -2083,6 +2097,7 @@ export default function RegisterPage({
               {flow === 'membership' ? (
                 <RegisterSettle
                   manualPaymentEnabled={manualPaymentEnabled}
+                  wiseEnabled={wiseEnabled}
                   onPaymentBlur={blurField}
                   onPaymentChange={changeField}
                   paymentError={errors.paymentMethod}
@@ -2188,10 +2203,14 @@ export default function RegisterPage({
           )}
         </div>
       </div>
-      {transferOpen && athlete && (visibleOrder?.paymentMethod === 'manual_link' || form.paymentMethod === 'manual_link') ? (
+      {transferOpen &&
+      athlete &&
+      (visibleOrder?.paymentMethod === 'manual_link' || form.paymentMethod === 'manual_link' || form.paymentMethod === 'wise_transfer') ? (
         <TransferPayModal
           athlete={athlete}
           amount={visibleOrder?.amount ?? checkoutTotal}
+          currency={visibleOrder?.currency ?? (form.paymentMethod === 'wise_transfer' ? 'USD' : 'ARS')}
+          channel={visibleOrder?.manualPaymentChannel ?? (form.paymentMethod === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')}
           orderId={transferOrderId ?? visibleOrder?.paymentId ?? visibleOrder?.id ?? null}
           onClose={() => setTransferOpen(false)}
           purpose={flow === 'membership' ? 'membership' : 'competition'}
