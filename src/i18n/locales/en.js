@@ -958,6 +958,9 @@ export default {
       transferNotesLabel: 'Notes (optional)',
       transferNotesPlaceholder: 'Anything Finance should know about this payment',
       transferUnderstood: 'Send for review',
+      transferWiseTitle: 'Wise payment',
+      transferWiseEmail: 'Wise email / account',
+      transferWiseSwiftIban: 'SWIFT / IBAN',
       proofAction: 'Attach receipt',
       proofUploading: 'Uploading receipt...',
       proofUploaded:
@@ -2556,6 +2559,8 @@ export default {
       paymentLinkLabel: 'Payment link',
       paymentTransferLabel: 'Bank transfer',
       paymentCashPitbullLabel: 'Cash at Pitbull',
+      paymentWiseLabel: 'Wise (international payments)',
+      paymentWisePriceHint: 'The USD amount is confirmed once you start the Wise payment.',
       changePaymentMethod: 'Choose another method',
       payByTransfer: 'Pay by transfer',
       backToMercadoPago: 'Back to Mercado Pago',
@@ -2745,6 +2750,8 @@ export default {
     payment: {
       mercadoPago: 'Mercado Pago',
       manualLink: 'Payment link + manual validation',
+      cashPitbull: 'Cash at Pitbull',
+      wiseTransfer: 'Wise (international payments)',
     },
   },
   shareCard: {

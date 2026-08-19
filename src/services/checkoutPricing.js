@@ -6,7 +6,9 @@
  */
 export function toApiPaymentMethod(paymentMethod) {
   if (paymentMethod === 'transferencia') return 'manual_link'
-  if (paymentMethod === 'mercado_pago' || paymentMethod === 'cash_pitbull') return paymentMethod
+  if (paymentMethod === 'mercado_pago' || paymentMethod === 'cash_pitbull' || paymentMethod === 'wise_transfer') {
+    return paymentMethod
+  }
   if (paymentMethod === 'manual_link') return 'manual_link'
   return null
 }

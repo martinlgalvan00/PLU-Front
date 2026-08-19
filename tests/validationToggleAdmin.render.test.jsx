@@ -104,10 +104,11 @@ describe('bandeja de Finanzas con la validación congelada', () => {
 })
 
 describe('pantalla de Acceso y habilitación', () => {
-  it('expone los diez interruptores agrupados por eje', async () => {
-    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
-      Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
-    )
+  it('expone los once interruptores agrupados por eje', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
+      ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+      wiseEnabled: true,
+    })
 
     render(
       <I18nProvider>
@@ -123,8 +124,9 @@ describe('pantalla de Acceso y habilitación', () => {
 
     await waitFor(() => expect(fetchPlatformFeatureToggles).toHaveBeenCalled())
 
-    // Un switch por interruptor, ni más ni menos.
-    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(10))
+    // Un switch por interruptor, ni más ni menos. Diez del eje original más
+    // el interruptor propio de Wise.
+    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(11))
 
     for (const heading of [/altas nuevas/i, /transferencia y efectivo/i, /validación y activación/i]) {
       expect(screen.getByRole('heading', { name: heading })).toBeTruthy()
@@ -134,6 +136,7 @@ describe('pantalla de Acceso y habilitación', () => {
       /habilitar venta de entradas/i,
       /habilitar afiliación por transferencia o efectivo/i,
       /habilitar validación de entradas/i,
+      /habilitar pagos por wise/i,
     ]) {
       expect(screen.getByRole('checkbox', { name })).toBeTruthy()
     }
@@ -142,6 +145,11 @@ describe('pantalla de Acceso y habilitación', () => {
   it('resume cuántos interruptores quedaron abiertos', async () => {
     vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
       ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+      // Este mock reemplaza fetchPlatformFeatureToggles entero (no pasa por
+      // mapToggles), así que un campo ausente queda `undefined` y el
+      // resumen lo cuenta como abierto (`!== false`). Hay que setear Wise
+      // explícito para que el conteo represente el default real cerrado.
+      wiseEnabled: false,
       ticketManualEnabled: false,
       ticketValidationEnabled: false,
     })
@@ -159,13 +167,14 @@ describe('pantalla de Acceso y habilitación', () => {
     )
 
     // El operador tiene que poder responder "¿está todo abierto?" sin leer las
-    // diez filas.
-    expect(await screen.findByText('8 de 10 habilitados')).toBeTruthy()
+    // once filas (diez del eje original + Wise).
+    expect(await screen.findByText('8 de 11 habilitados')).toBeTruthy()
   })
 
   it('sigue diciendo el estado de cada interruptor sin permiso de edición', async () => {
     vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
       ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+      wiseEnabled: true,
       registrationEnabled: false,
     })
 
@@ -181,10 +190,11 @@ describe('pantalla de Acceso y habilitación', () => {
       </I18nProvider>,
     )
 
-    // Sin switch que lo muestre, el estado viaja como texto: nueve habilitados
-    // y el de inscripciones cerrado.
+    // Sin switch que lo muestre, el estado viaja como texto: diez habilitados
+    // (nueve del eje original + Wise, mockeado abierto) y el de
+    // inscripciones cerrado.
     await waitFor(() => expect(screen.queryAllByRole('checkbox')).toHaveLength(0))
-    expect(screen.getAllByText('Habilitadas')).toHaveLength(8)
+    expect(screen.getAllByText('Habilitadas')).toHaveLength(9)
     expect(screen.getByText('Habilitados')).toBeTruthy()
     expect(screen.getByText('Cerradas')).toBeTruthy()
   })

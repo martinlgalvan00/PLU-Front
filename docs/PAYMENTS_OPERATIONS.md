@@ -333,6 +333,53 @@ Complementos: `npm run mercado-pago:doctor` (credenciales),
 `npm run mercado-pago:urls` (webhooks a registrar),
 `npm run db:verify:payments` (maquina de estados transaccional).
 
+## Wise (pagos del exterior)
+
+Canal manual para atletas/compradores que no pueden pagar con Mercado Pago
+(medios locales, ARS). No es una integracion de API: es el mismo circuito de
+transferencia bancaria (comprobante + aprobacion de Finanzas), apuntado a una
+cuenta Wise y cobrado en USD en vez de ARS. Cubre afiliacion, inscripcion,
+combo y entradas Pitbull.
+
+**Como se modela** (migracion `20260825120000_wise_transfer_channel.sql`,
+apoyada sobre el precio configurable por canal de
+`20260824100000_manual_price_per_channel.sql` y el settle con cupones de
+`20260825100000_promo_codes_fixed_price.sql`):
+
+- `manual_payment_channel = 'wise_transfer'` en `athlete_payment_orders` /
+  `ticket_orders` -- mismo `method='manual_link'` / `provider='manual'` que
+  transferencia local y "Efectivo en Pitbull", solo cambia el canal.
+- Interruptor propio `wise_enabled` en Administracion > Acceso y habilitacion,
+  **independiente** de `membership_manual_enabled` / `registration_manual_enabled`
+  / `ticket_manual_enabled` y del override por cupon que sí aplica a esos dos:
+  se puede abrir Wise sin reabrir la transferencia local en ARS.
+- Precio fijo en USD por `WISE_PRICE_MEMBERSHIP_USD` / `WISE_PRICE_REGISTRATION_USD`
+  / `WISE_PRICE_COMBO_USD` / `WISE_PRICE_TICKET_USD` (monto entero, sin
+  centavos -- las columnas `amount` son `int`). Sin configurar, la API
+  responde `503` en vez de adivinar un monto. No pasa por
+  `resolve_channel_price` ni admite cupones: no tiene equivalente ARS.
+- `settle_manual_checkout_pricing` resuelve Wise en un branch de salida
+  temprana (fija monto + moneda, sin tocar la logica de descuento vigente
+  para el resto de los canales). Las tres RPC `_checkout` saltean
+  `configure_atomic_checkout_pricing` solo para el canal Wise -- esa funcion
+  sigue validando unicamente `bank_transfer`/`cash_pitbull`.
+
+**Antes de habilitar el toggle en produccion:**
+
+1. Cargar `VITE_PAYMENT_WISE_EMAIL` / `VITE_PAYMENT_WISE_HOLDER` /
+   `VITE_PAYMENT_WISE_SWIFT_IBAN` (datos reales de la cuenta Wise que ve el
+   pagador) y los cuatro `WISE_PRICE_*_USD`.
+2. Confirmar con `npm run payments:trace -- <orderId>` que una orden de
+   prueba en `wise_transfer` queda con `currency=USD` y el monto esperado.
+3. Recien despues, prender `wise_enabled` desde el panel.
+
+**Aprobacion:** misma cola que transferencia local
+(`AthletePaymentOrdersSection` / `TicketOrdersSection`), comprobante
+obligatorio (a diferencia de "Efectivo en Pitbull", Wise no tiene excepcion).
+`npm run payments:trace -- <orderId | correo>` reconstruye el mismo informe
+que para Mercado Pago: aca no hay webhook ni conciliacion automatica, asi que
+la unica fuente de verdad es el comprobante que sube el pagador.
+
 ## Que verifica el CI del cobro
 
 Automatizado, en cada PR y en cada push a `main`:

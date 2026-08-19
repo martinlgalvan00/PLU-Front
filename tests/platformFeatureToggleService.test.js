@@ -149,7 +149,19 @@ describe('disponibilidad publicada al checkout', () => {
       membershipManualEnabled: false,
       registrationManualEnabled: false,
       ticketManualEnabled: false,
+      wiseEnabled: false,
     })
+  })
+
+  it('wiseEnabled requiere habilitación explícita, independiente de los canales manuales locales', () => {
+    expect(resolvePublicCheckoutAvailability({}).wiseEnabled).toBe(false)
+    expect(
+      resolvePublicCheckoutAvailability({ membershipManualEnabled: false, wiseEnabled: true }).wiseEnabled,
+    ).toBe(true)
+    // El maestro sigue cortando todo, Wise incluido.
+    expect(
+      resolvePublicCheckoutAvailability({ checkoutEnabled: false, wiseEnabled: true }).wiseEnabled,
+    ).toBe(false)
   })
 
   it('un concepto cerrado arrastra su canal manual', () => {

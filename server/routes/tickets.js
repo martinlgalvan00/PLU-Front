@@ -39,8 +39,10 @@ import {
   assertManualChannelEnabled,
   assertTicketCheckoutEnabled,
   assertValidationEnabled,
+  assertWiseEnabled,
   resolvePublicCheckoutAvailability,
 } from '../services/platformFeatureToggleService.js'
+import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 
 const attendeeSchema = z.object({
   fullName: z.string().trim().min(3),
@@ -62,6 +64,7 @@ const createOrderSchema = z.object({
     })
     .optional(),
   provider: z.enum(['mercado_pago', 'manual']).default('mercado_pago'),
+  manualPaymentChannel: z.enum(['bank_transfer', 'wise_transfer']).optional(),
   idempotencyKey: z
     .string()
     .uuid()
@@ -164,10 +167,25 @@ export function createTicketRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertTicketCheckoutEnabled(toggles, env)
+        let wiseUnitPrice = null
         if (req.validatedBody.provider === 'manual') {
-          assertManualChannelEnabled(toggles, 'ticket')
+          if (req.validatedBody.manualPaymentChannel === 'wise_transfer') {
+            assertWiseEnabled(toggles)
+            wiseUnitPrice = wisePriceFor({ concept: 'ticket' })
+          } else {
+            assertManualChannelEnabled(toggles, 'ticket')
+          }
         }
-        res.status(201).json(await repo().createOrder(req.validatedBody))
+        res.status(201).json(
+          await repo().createOrder({
+            ...req.validatedBody,
+            // Precio calculado por la API, nunca por el cliente: el monto
+            // por asistente (`wisePriceFor`) se multiplica acá y viaja como
+            // total ya cerrado, igual que el resto de las órdenes manuales.
+            wiseAmount: wiseUnitPrice ? wiseUnitPrice.amount * req.validatedBody.attendees.length : null,
+            wiseCurrency: wiseUnitPrice?.currency ?? null,
+          }),
+        )
       } catch (error) {
         next(error)
       }
@@ -238,12 +256,12 @@ export function createTicketRoutes({
         repo().availability(req.params.eventSlug),
         platformSettingsRepo().get(),
       ])
-      const { ticketEnabled, ticketManualEnabled } = resolvePublicCheckoutAvailability(toggles, env)
+      const { ticketEnabled, ticketManualEnabled, wiseEnabled } = resolvePublicCheckoutAvailability(toggles, env)
       // Ventana corta: el stock que se muestra acá decide una compra. La
       // reserva real se valida igual al crear la orden, así que 10 s de atraso
       // no habilitan una venta de más -- como mucho un 409 al confirmar.
       res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
-      res.json({ availability, checkout: { ticketEnabled, ticketManualEnabled } })
+      res.json({ availability, checkout: { ticketEnabled, ticketManualEnabled, wiseEnabled } })
     } catch (error) {
       next(error)
     }

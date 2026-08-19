@@ -60,6 +60,12 @@ export const env = {
     transferAlias: import.meta.env.VITE_PAYMENT_TRANSFER_ALIAS ?? '',
     transferCbu: import.meta.env.VITE_PAYMENT_TRANSFER_CBU ?? '',
     transferHolder: import.meta.env.VITE_PAYMENT_TRANSFER_HOLDER ?? '',
+    // Datos de cuenta Wise para pagos del exterior. Ver .env.example: hay
+    // que cargar valores reales antes de habilitar el toggle wiseEnabled.
+    wiseHolder: import.meta.env.VITE_PAYMENT_WISE_HOLDER ?? '',
+    wiseAccount: import.meta.env.VITE_PAYMENT_WISE_ACCOUNT ?? '',
+    wiseSwiftOrIban: import.meta.env.VITE_PAYMENT_WISE_SWIFT_IBAN ?? '',
+    wiseEmail: import.meta.env.VITE_PAYMENT_WISE_EMAIL ?? '',
   },
   analytics: {
     enabled: import.meta.env.VITE_ANALYTICS_ENABLED !== 'false',

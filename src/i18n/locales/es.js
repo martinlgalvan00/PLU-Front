@@ -958,6 +958,9 @@ export default {
       transferNotesLabel: 'Observaciones (opcional)',
       transferNotesPlaceholder: 'Algo que Finanzas debería saber sobre este pago',
       transferUnderstood: 'Enviar a validación',
+      transferWiseTitle: 'Pago vía Wise',
+      transferWiseEmail: 'Email / cuenta Wise',
+      transferWiseSwiftIban: 'SWIFT / IBAN',
       proofAction: 'Adjuntar comprobante',
       proofUploading: 'Subiendo comprobante...',
       proofUploaded:
@@ -2566,6 +2569,8 @@ export default {
       // Faltaba: `RegisterSettle` ya ofrecía la opción, así que el selector
       // mostraba la clave cruda en vez del nombre del medio de pago.
       paymentCashPitbullLabel: 'Efectivo en Pitbull',
+      paymentWiseLabel: 'Wise (pagos del exterior)',
+      paymentWisePriceHint: 'El monto se confirma en USD al iniciar el pago vía Wise.',
       changePaymentMethod: 'Elegir otro medio',
       payByTransfer: 'Pagar por transferencia',
       backToMercadoPago: 'Volver a Mercado Pago',
@@ -2755,6 +2760,8 @@ export default {
     payment: {
       mercadoPago: 'Mercado Pago',
       manualLink: 'Link de pago + validación manual',
+      cashPitbull: 'Efectivo en Pitbull',
+      wiseTransfer: 'Wise (pagos del exterior)',
     },
   },
   shareCard: {

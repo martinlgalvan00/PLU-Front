@@ -19,6 +19,8 @@ export default function RegisterSettle({
   // Mercado Pago es la apertura inicial. Los canales manuales requieren una
   // habilitación explícita desde Administración.
   manualPaymentEnabled = false,
+  // Wise tiene su propio interruptor, independiente de los anteriores.
+  wiseEnabled = false,
   membershipPrice = 0,
   membershipManualPrice = null,
   onPaymentBlur,
@@ -38,6 +40,8 @@ export default function RegisterSettle({
   if (!showPackage && !showPayment) return null
 
   const comboSelected = purchaseType === 'combo'
+  const wiseSelected = paymentMethod === 'wise_transfer'
+  const wisePriceLabel = t('pages.register.paymentWisePriceHint')
   const displayedMembershipPrice = previewCheckoutPrice({
     paymentMethod,
     manualPrice: membershipManualPrice,
@@ -64,7 +68,7 @@ export default function RegisterSettle({
     offers.push({
       id: 'combo',
       name: t('account.membership.comboTitle'),
-      priceLabel: comboOffer ? money(displayedComboPrice, locale) : '—',
+      priceLabel: !comboOffer ? '—' : wiseSelected ? wisePriceLabel : money(displayedComboPrice, locale),
       featured: true,
       disabled: comboComingSoon,
       // El ahorro se anuncia con los precios que se muestran para el medio
@@ -93,7 +97,7 @@ export default function RegisterSettle({
     offers.push({
       id: 'registration',
       name: t('account.membership.comboSeparate'),
-      priceLabel: money(displayedRegistrationPrice, locale),
+      priceLabel: wiseSelected ? wisePriceLabel : money(displayedRegistrationPrice, locale),
     })
   }
 
@@ -111,6 +115,7 @@ export default function RegisterSettle({
         ...(cashOffered
           ? [{ value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') }]
           : []),
+        ...(wiseEnabled ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }] : []),
       ]
     : []
 
@@ -126,7 +131,9 @@ export default function RegisterSettle({
       paymentError={paymentError}
       paymentHint={
         paymentHint ||
-        (!transferOffered && !cashOffered ? t('pages.register.paymentMercadoPagoOnlyHint') : '')
+        (!transferOffered && !cashOffered && !wiseEnabled
+          ? t('pages.register.paymentMercadoPagoOnlyHint')
+          : '')
       }
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}

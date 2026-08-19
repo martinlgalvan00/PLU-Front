@@ -55,18 +55,23 @@ function CopyableValue({ value, copyLabel, copiedLabel, copyAria, meta }) {
 export default function TransferPayModal({
   athlete,
   amount,
+  currency = 'ARS',
   onClose,
   orderId,
   purpose = 'membership',
+  channel = 'bank_transfer',
 }) {
   const { t, locale } = useI18n()
   const panelRef = usePaymentModal(onClose)
   const [notes, setNotes] = useState('')
   const isCompetition = purpose === 'competition'
+  const isWise = channel === 'wise_transfer'
   const askAdmin = t('account.membership.transferAskAdmin')
-  const alias = env.payments.transferAlias || askAdmin
-  const holder = env.payments.transferHolder || askAdmin
-  const cbu = env.payments.transferCbu
+  // Transferencia local: alias/CBU/titular. Wise: titular/cuenta/SWIFT-IBAN,
+  // mismos campos "para copiar" pero con datos de cuenta en el exterior.
+  const alias = (isWise ? env.payments.wiseEmail : env.payments.transferAlias) || askAdmin
+  const holder = (isWise ? env.payments.wiseHolder : env.payments.transferHolder) || askAdmin
+  const cbu = isWise ? env.payments.wiseSwiftOrIban : env.payments.transferCbu
   const reference = `${athlete.documentId} · ${athlete.fullName}`
   const copyLabel = t('account.membership.transferCopy')
   const copiedLabel = t('account.membership.transferCopied')
@@ -89,13 +94,15 @@ export default function TransferPayModal({
         <header className="account-payment-modal__header">
           <div className="account-transfer-receipt__heading">
             <h2 id="transfer-title">
-              {isCompetition
-                ? t('pages.register.transferTitle')
-                : t('account.membership.transferTitle')}
+              {isWise
+                ? t('account.membership.transferWiseTitle')
+                : isCompetition
+                  ? t('pages.register.transferTitle')
+                  : t('account.membership.transferTitle')}
             </h2>
             <p className="account-transfer-receipt__total">
               <span className="visually-hidden">{t('account.membership.transferAmount')}</span>
-              <strong>{money(amount, locale)}</strong>
+              <strong>{money(amount, locale, currency)}</strong>
             </p>
           </div>
           <button
@@ -110,14 +117,14 @@ export default function TransferPayModal({
         <div className="account-transfer-receipt">
           <dl className="account-transfer-data account-transfer-data--receipt">
             <div className="account-transfer-data__row--alias">
-              <dt>{t('account.membership.transferAlias')}</dt>
+              <dt>{t(isWise ? 'account.membership.transferWiseEmail' : 'account.membership.transferAlias')}</dt>
               {alias !== askAdmin ? (
                 <CopyableValue
                   value={alias}
                   copyLabel={copyLabel}
                   copiedLabel={copiedLabel}
-                  copyAria={copyAria('account.membership.transferAlias')}
-                  meta={t('account.membership.transferAccountValue')}
+                  copyAria={copyAria(isWise ? 'account.membership.transferWiseEmail' : 'account.membership.transferAlias')}
+                  meta={isWise ? undefined : t('account.membership.transferAccountValue')}
                 />
               ) : (
                 <dd>{alias}</dd>
@@ -125,12 +132,12 @@ export default function TransferPayModal({
             </div>
             {cbu ? (
               <div>
-                <dt>{t('account.membership.transferCbu')}</dt>
+                <dt>{t(isWise ? 'account.membership.transferWiseSwiftIban' : 'account.membership.transferCbu')}</dt>
                 <CopyableValue
                   value={cbu}
                   copyLabel={copyLabel}
                   copiedLabel={copiedLabel}
-                  copyAria={copyAria('account.membership.transferCbu')}
+                  copyAria={copyAria(isWise ? 'account.membership.transferWiseSwiftIban' : 'account.membership.transferCbu')}
                 />
               </div>
             ) : null}

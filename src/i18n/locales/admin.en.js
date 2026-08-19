@@ -699,6 +699,9 @@ export default {
         validationTitle: 'Validation and activation',
         validationLead:
           'Freezes the finance decision: nobody clears proofs or activates rights for that concept, even with permission.',
+        wiseTitle: 'International payments',
+        wiseLead:
+          'Wise is a separate channel with its own switch: it can be opened without reopening the local bank transfer.',
       },
       membershipManualTitle: 'Membership by transfer',
       membershipManualLead:
@@ -723,6 +726,10 @@ export default {
       ticketValidationLead:
         'While frozen, ticket proofs are neither approved nor rejected and their QRs are not issued.',
       ticketValidationAria: 'Enable ticket validation',
+      wiseToggleTitle: 'Wise payments (international)',
+      wiseToggleLead:
+        'Enables Wise for membership, registration, combo and tickets, independent of the local bank transfer. Requires Wise account details to be configured.',
+      wiseToggleAria: 'Enable Wise payments',
       gatesTitle: 'Private batches',
       gatesLead: 'On top of the general cut, each batch can require a code to open gradually.',
       membershipGateTitle: 'Memberships',

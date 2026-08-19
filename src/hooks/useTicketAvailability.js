@@ -26,7 +26,7 @@ export function useTicketAvailability(eventSlug) {
  * arma completa y el 409 del backend sigue siendo la última palabra. Cerrar por
  * falta de dato dejaría la venta caída por un problema de red.
  */
-const CHECKOUT_CLOSED = { ticketEnabled: false, ticketManualEnabled: false }
+const CHECKOUT_CLOSED = { ticketEnabled: false, ticketManualEnabled: false, wiseEnabled: false }
 const selectCheckout = (data) => data?.checkout ?? CHECKOUT_CLOSED
 
 export function useTicketCheckoutAvailability(eventSlug) {

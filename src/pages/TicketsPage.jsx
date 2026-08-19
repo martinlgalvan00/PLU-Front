@@ -370,6 +370,7 @@ export default function TicketsPage({
                 showPassPreview={false}
                 event={selectedEvent}
                 manualPaymentEnabled={ticketCheckout.ticketManualEnabled}
+                wiseEnabled={ticketCheckout.wiseEnabled}
                 pricing={pricing}
                 tickets={tickets}
                 createdOrder={visibleCreatedOrder}

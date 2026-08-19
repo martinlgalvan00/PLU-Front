@@ -699,6 +699,9 @@ export default {
         validationTitle: 'Validación y activación',
         validationLead:
           'Congela la decisión de Finanzas: nadie acredita comprobantes ni activa derechos de ese concepto, aunque tenga el permiso.',
+        wiseTitle: 'Pagos del exterior',
+        wiseLead:
+          'Wise es un canal aparte, con su propio interruptor: se puede abrir sin reabrir la transferencia local en ARS.',
       },
       membershipManualTitle: 'Afiliación por transferencia',
       membershipManualLead:
@@ -723,6 +726,10 @@ export default {
       ticketValidationLead:
         'Congelada, no se aprueban ni rechazan comprobantes de entradas y no se emiten sus QR.',
       ticketValidationAria: 'Habilitar validación de entradas',
+      wiseToggleTitle: 'Pagos por Wise (exterior)',
+      wiseToggleLead:
+        'Habilita Wise para afiliación, inscripción, combo y entradas, sin depender de la transferencia local. Requiere tener cargados los datos de cuenta Wise.',
+      wiseToggleAria: 'Habilitar pagos por Wise',
       gatesTitle: 'Tandas privadas',
       gatesLead: 'Además del corte general, cada tanda puede pedir un código para abrir de a poco.',
       membershipGateTitle: 'Afiliaciones',

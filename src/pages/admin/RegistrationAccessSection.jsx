@@ -88,6 +88,14 @@ const TOGGLE_GROUPS = [
       { feature: 'ticket_validation', key: 'ticketValidationEnabled', i18n: 'ticketValidation' },
     ],
   },
+  {
+    // Interruptor propio: cubre afiliación, inscripción, combo y entradas a
+    // la vez, independiente de los `*_manual` de arriba (transferencia/
+    // efectivo en ARS). Nace en `false` — hay que cargar los datos de cuenta
+    // Wise antes de abrirlo.
+    id: 'wise',
+    features: [{ feature: 'wise', key: 'wiseEnabled', i18n: 'wiseToggle' }],
+  },
 ]
 
 /**
