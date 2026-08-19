@@ -255,7 +255,7 @@ export default function PersonalDataSection({
           <div className="account-profile-progress__track">
             <div
               className="account-profile-progress__bar"
-              style={{ width: `${progressPercent}%` }}
+              style={{ transform: `scaleX(${progressPercent / 100})` }}
             />
           </div>
           <span className="account-profile-progress__label">

@@ -697,15 +697,6 @@
   position: absolute;
 }
 
-.events-featured__visual::after {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 20px 20px;
-  content: '';
-  inset: 0;
-  opacity: 0.6;
-  position: absolute;
-}
-
 .events-featured__badge {
   background: var(--color-brand-action);
   border-radius: var(--border-radius-pill);
