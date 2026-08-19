@@ -2217,6 +2217,13 @@
   margin: 0;
 }
 
+/* Promo que corre para todos: no la trajo el atleta con un codigo, asi que
+   se lee como informacion del catalogo (celeste) y no como un logro suyo
+   (oro), y no ofrece "quitar" porque no hay nada que quitar. */
+.account-discount__applied--public {
+  color: var(--color-brand-celeste);
+}
+
 .account-discount__applied button {
   background: transparent;
   border: 0;

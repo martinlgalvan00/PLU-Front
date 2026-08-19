@@ -585,6 +585,28 @@ export default {
       fixedPriceInvalid: 'El precio promocional tiene que ser un número entero mayor a 0.',
       fixedPriceScopeInvalid:
         'Un precio promocional necesita un alcance único: afiliación, inscripción o combo.',
+      audienceLabel: 'Quién accede',
+      audienceHint:
+        'Restringida: sólo la aplica quien tipea el código. Pública: se aplica sola a todo el que compre, sin que nadie tipee nada.',
+      audience: {
+        code: 'Restringida — con código',
+        public: 'Pública — para todos',
+      },
+      promoStateLegend: 'Estado de la promoción {{code}}',
+      promoState: {
+        off: 'Deshabilitada',
+        code: 'Con código',
+        public: 'Para todos',
+      },
+      promoAudienceBadge: {
+        public: 'Se aplica sola',
+      },
+      promoExhaustedNote:
+        'Agotó su cupo y se cerró sola. Ampliá el límite de canjes para volver a habilitarla.',
+      publicPromoChannelsInvalid:
+        'Una promoción pública no puede habilitar medios de pago manuales. Abrilos desde Acceso y habilitación.',
+      manualChannelsPublicHint:
+        'Sin uso en una promoción pública: abrir un canal para todo el mundo se hace desde Acceso y habilitación, no desde acá.',
       manualChannelsLegend: 'Medios de pago que habilita',
       manualChannelsHint:
         'Mercado Pago siempre está disponible. Marcá un canal para que este código lo destrabe sólo para quien lo use, aunque esté apagado en general. Sin marcar nada, la compra va únicamente por Mercado Pago.',
@@ -597,15 +619,39 @@ export default {
         cash_pitbull: 'Habilita efectivo',
         'bank_transfer+cash_pitbull': 'Habilita transferencia y efectivo',
       },
+      comboAudienceLabel: 'Quién ve el combo',
+      comboAudience: {
+        public: 'Público — lo ve cualquiera',
+        code: 'Restringido — con código de acceso',
+      },
+      comboAudienceHint:
+        'Restringido: el paquete no se ofrece y sólo lo compra quien tipea el código. No cambia el precio, habilita el acceso.',
+      comboAccessCode: 'Código de acceso al combo',
+      comboAccessCodePlaceholder: 'Ej: COMBO-PITBULL',
+      comboAccessCodeHint:
+        'Mayúsculas, números y guiones. Es el que repartís: pasar el combo a público lo borra.',
+      comboAccessCodeInvalid:
+        'El código de acceso al combo tiene que ser mayúsculas, números y guiones.',
+      deleteCombo: 'Eliminar combo',
+      comboDeleted: 'Oferta combo eliminada.',
+      deleteComboConfirmTitle: 'Eliminar el combo de {{event}}',
+      deleteComboConfirmDescription:
+        'Vas a borrar la oferta combo de {{event}} del catálogo. La afiliación y la inscripción sueltas no se tocan.',
+      deleteComboConfirmWarning:
+        'Solo se puede eliminar si nadie compró el combo de este torneo. Si ya hay órdenes, desactivalo en su lugar.',
+      deleteComboConfirmCancel: 'Conservar combo',
+      deleteComboConfirmConfirm: 'Eliminar combo',
       deleteDiscountCode: 'Eliminar',
       deleteDiscountCodeAria: 'Eliminar código {{code}}',
       deleteCodeConfirmTitle: 'Eliminar {{code}}',
       deleteCodeConfirmDescription: 'Vas a borrar el código de descuento {{code}} del catálogo.',
-      deleteCodeConfirmWarning:
-        'Solo se puede eliminar si no tiene canjes registrados. Si ya se usó, desactivalo en su lugar.',
+      deleteCodeConfirmWarning: 'Nunca se canjeó: se elimina definitivamente del catálogo.',
+      deleteCodeConfirmWarningRedeemed:
+        'Ya tiene {{count}} canje(s), así que se archiva en vez de borrarse: desaparece del panel y deja de funcionar, y el respaldo contable de las órdenes ya cobradas se conserva. El código queda libre para volver a usarse.',
       deleteCodeConfirmCancel: 'Conservar código',
       deleteCodeConfirmConfirm: 'Eliminar código',
       codeDeleted: 'Código de descuento eliminado.',
+      codeArchived: 'Promoción archivada: sale del panel y deja de canjearse.',
       appliesToLabel: 'Aplica a',
       appliesTo: {
         membership: 'Afiliación',

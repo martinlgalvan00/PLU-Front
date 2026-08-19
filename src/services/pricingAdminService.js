@@ -41,6 +41,9 @@ export function mapDiscountCode(row) {
     kind: row.kind ?? (fixedPrice != null ? 'fixed_price' : 'percent'),
     percentOff: Number(row.percent_off ?? row.percentOff) || 0,
     fixedPrice: fixedPrice != null ? Number(fixedPrice) : null,
+    // Quien accede a la promo: 'code' hay que tipearla, 'public' se aplica
+    // sola. Las promos anteriores a la audiencia eran todas por codigo.
+    audience: row.audience === 'public' ? 'public' : 'code',
     appliesTo: row.applies_to ?? row.appliesTo ?? 'membership',
     maxRedemptions: row.max_redemptions ?? row.maxRedemptions ?? null,
     expiresAt: row.expires_at ?? row.expiresAt ?? null,
@@ -80,6 +83,12 @@ export function getDiscountCodeAvailability(code = {}, now = new Date()) {
   else if (expired) status = 'expired'
 
   return {
+    // El estado que edita el operador, en un solo valor. Se deriva de los dos
+    // ejes que guarda la base (`active` × `audience`) porque el interruptor de
+    // encendido lo escribe también el cierre automático por cupo, y perder la
+    // audiencia al agotarse haria que reabrir la promo la volviera restringida
+    // sin que nadie lo pidiera.
+    state: code.active === false ? 'off' : code.audience === 'public' ? 'public' : 'code',
     hasLimit,
     maxRedemptions: hasLimit ? maxRedemptions : null,
     redeemedCount,
@@ -157,29 +166,48 @@ export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
 
 export async function upsertDiscountCodeRequest(code) {
   const kind = code.kind === 'fixed_price' ? 'fixed_price' : 'percent'
+  const audience = code.audience === 'public' ? 'public' : 'code'
   const result = await apiPost('/api/pricing/discount-codes', {
     ...code,
     kind,
+    audience,
+    // Una promo publica no abre canales manuales (lo rechazan el schema y la
+    // RPC): se limpian aca para que cambiar de restringida a publica en el
+    // formulario no mande un payload que el servidor va a rebotar.
+    manualChannels: audience === 'public' ? [] : (code.manualChannels ?? []),
     // Cada modalidad manda sólo su campo: el schema del servidor descarta el
     // otro, y un string vacío haría fallar la coerción numérica.
     percentOff: kind === 'percent' ? code.percentOff : undefined,
     fixedPrice: kind === 'fixed_price' ? code.fixedPrice : undefined,
-    manualChannels: code.manualChannels ?? [],
     expiresAt: dateTimeToIso(code.expiresAt),
   })
   return mapDiscountCode(result.code)
 }
 
-export async function setDiscountCodeActiveRequest(codeId, active) {
-  const result = await apiPatch(
-    `/api/pricing/discount-codes/${encodeURIComponent(codeId)}/status`,
-    { active },
-  )
+/**
+ * Los tres estados en una sola llamada. `audience` ausente conserva la que ya
+ * tenia la promo, asi el toggle de encendido no la convierte en publica.
+ */
+export async function setDiscountCodeStateRequest(codeId, { active, audience } = {}) {
+  const result = await apiPatch(`/api/pricing/discount-codes/${encodeURIComponent(codeId)}/state`, {
+    active,
+    ...(audience ? { audience } : {}),
+  })
   return mapDiscountCode(result.code)
+}
+
+/** Traduce el estado unico del panel a los dos ejes que guarda la base. */
+export function discountCodeStatePayload(state) {
+  if (state === 'off') return { active: false }
+  return { active: true, audience: state === 'public' ? 'public' : 'code' }
 }
 
 export async function deleteDiscountCodeRequest(codeId) {
   return apiDelete(`/api/pricing/discount-codes/${encodeURIComponent(codeId)}`)
+}
+
+export async function deleteEventComboOfferRequest(eventSlug) {
+  return apiDelete(`/api/pricing/events/${encodeURIComponent(eventSlug)}/combo`)
 }
 
 export async function fetchBillingSubscriptionsRequest(filters = {}) {
