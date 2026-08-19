@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/account.css'
 import { UPCOMING_EVENTS } from '../lib/events.js'
@@ -40,6 +40,8 @@ export default function AthleteProfilePage({
   checkoutAvailability = {},
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || DEFAULT_ACCOUNT_TAB)
+  const mainRef = useRef(null)
+  const isFirstTabRef = useRef(true)
 
   const athleteId = athlete?.id ?? null
   const athleteMemberships = athleteId
@@ -83,6 +85,20 @@ export default function AthleteProfilePage({
     if (hasPlayedCredentialMerge(athleteId, membershipId)) return
     setActiveTab('account-qr')
   }, [athleteId, hasAdmittedMeet, membershipId])
+
+  // El panel se remonta por tab (key={activeTab} más abajo) pero la página
+  // no reajusta el scroll: si el atleta venía leyendo un tab largo (p.ej.
+  // Torneos) y tocaba otro más corto, quedaba con el scroll heredado y el
+  // panel nuevo aparecía a mitad o al pie — "de abajo". Saltamos el primer
+  // render (ese ya arranca arriba por el scrollTo(0) de App.jsx en el
+  // cambio de vista) y sólo ajustamos en cambios de tab posteriores.
+  useEffect(() => {
+    if (isFirstTabRef.current) {
+      isFirstTabRef.current = false
+      return
+    }
+    mainRef.current?.scrollIntoView({ block: 'start' })
+  }, [activeTab])
 
   if (!athlete) return null
 
@@ -156,7 +172,7 @@ export default function AthleteProfilePage({
           <AccountNav activeId={activeTab} onChange={setActiveTab} />
         </aside>
 
-        <div className="account-main">
+        <div className="account-main" ref={mainRef}>
           <EmailVerificationBanner athlete={athlete} />
           <GateMembershipBanner
             pendingEvents={gatePendingRegistrations}

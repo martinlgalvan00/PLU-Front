@@ -1,5 +1,15 @@
-import { useRef, useState } from 'react'
-import { CheckCircle2, ChevronDown, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import {
+  Camera,
+  CheckCircle2,
+  ChevronDown,
+  Dumbbell,
+  HeartPulse,
+  IdCard,
+  Loader2,
+  Mail,
+  Trash2,
+} from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { DateField, Field, Select } from '../../components/ui/FormFields.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
@@ -7,6 +17,8 @@ import { isProfileComplete } from '../../lib/athleteProfile.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const RING_RADIUS = 48
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
 export default function PersonalDataSection({
   athlete,
@@ -39,6 +51,8 @@ export default function PersonalDataSection({
   const [saving, setSaving] = useState(false)
   const [photoStatus, setPhotoStatus] = useState('idle') // 'idle' | 'uploading' | 'error'
   const [photoError, setPhotoError] = useState('')
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false)
   const [openGroups, setOpenGroups] = useState(() => {
     const { missing } = isProfileComplete(athlete)
     return {
@@ -49,6 +63,19 @@ export default function PersonalDataSection({
   })
   const fileInputRef = useRef(null)
 
+  // Libera el object URL del preview anterior cada vez que cambia o al desmontar.
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+    }
+  }, [photoPreview])
+
+  // Una vez que la foto real llega por props (subida confirmada o eliminada),
+  // el preview local ya cumplió su función.
+  useEffect(() => {
+    setPhotoPreview(null)
+  }, [athlete.photoUrl])
+
   // Evaluar completitud del perfil mezclando lo que hay en BD + cambios locales del form
   const athleteWithForm = { ...athlete, ...form }
   const profileStatus = isProfileComplete(athleteWithForm)
@@ -56,21 +83,49 @@ export default function PersonalDataSection({
   const missingOfficialFields = ['fullName', 'birthDate', 'country'].filter(
     (field) => !String(athlete[field] ?? '').trim(),
   )
+  const documentLabel =
+    athlete.country === 'Argentina' || !athlete.country
+      ? t('account.personalData.documentId')
+      : t('account.personalData.documentIdPassport')
 
-  async function handlePhotoChange(event) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+  async function processPhotoFile(file) {
     if (!file || !onUpdatePhoto) return
+    if (!file.type.startsWith('image/')) return
 
+    setPhotoPreview(URL.createObjectURL(file))
     setPhotoStatus('uploading')
     setPhotoError('')
     const result = await onUpdatePhoto(athlete.id, file)
     if (result?.error) {
       setPhotoStatus('error')
       setPhotoError(result.error)
+      setPhotoPreview(null)
       return
     }
     setPhotoStatus('idle')
+  }
+
+  async function handlePhotoChange(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    await processPhotoFile(file)
+  }
+
+  function handlePhotoDragOver(event) {
+    event.preventDefault()
+    if (photoStatus !== 'uploading') setIsDraggingPhoto(true)
+  }
+
+  function handlePhotoDragLeave() {
+    setIsDraggingPhoto(false)
+  }
+
+  async function handlePhotoDrop(event) {
+    event.preventDefault()
+    setIsDraggingPhoto(false)
+    if (photoStatus === 'uploading') return
+    const file = event.dataTransfer.files?.[0]
+    await processPhotoFile(file)
   }
 
   async function handlePhotoRemove() {
@@ -156,6 +211,7 @@ export default function PersonalDataSection({
   }
 
   const progressPercent = Math.round((profileStatus.filled / profileStatus.total) * 100)
+  const ringOffset = RING_CIRCUMFERENCE * (1 - progressPercent / 100)
 
   return (
     <section id="account-personal-data" className="account-section account-section--gold">
@@ -216,37 +272,52 @@ export default function PersonalDataSection({
       {/* Identidad: foto + datos oficiales readonly en una sola franja */}
       <div className="account-identity">
         <div className="account-identity__photo">
-          <div className="account-photo__avatar">
-            {athlete.photoUrl ? (
-              <img src={athlete.photoUrl} alt="" />
-            ) : (
-              <span aria-hidden>{initials(athlete.fullName)}</span>
-            )}
+          <div className="account-photo__ring">
+            <svg viewBox="0 0 104 104" aria-hidden="true">
+              <circle className="account-photo__ring-track" cx="52" cy="52" r={RING_RADIUS} />
+              <circle
+                className="account-photo__ring-fill"
+                cx="52"
+                cy="52"
+                r={RING_RADIUS}
+                style={{ strokeDasharray: RING_CIRCUMFERENCE, strokeDashoffset: ringOffset }}
+              />
+            </svg>
+            <button
+              type="button"
+              className={`account-photo__avatar${isDraggingPhoto ? ' account-photo__avatar--dragging' : ''}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={handlePhotoDragOver}
+              onDragLeave={handlePhotoDragLeave}
+              onDrop={handlePhotoDrop}
+              disabled={photoStatus === 'uploading'}
+              aria-busy={photoStatus === 'uploading'}
+              aria-label={
+                athlete.photoUrl
+                  ? t('account.personalData.photoChange')
+                  : t('account.personalData.photoUpload')
+              }
+            >
+              <span className="account-photo__avatar-frame">
+                {photoPreview || athlete.photoUrl ? (
+                  <img src={photoPreview || athlete.photoUrl} alt="" />
+                ) : (
+                  <span aria-hidden>{initials(athlete.fullName)}</span>
+                )}
+                <span className="account-photo__scrim" aria-hidden>
+                  <Camera size={20} strokeWidth={1.75} />
+                </span>
+              </span>
+              <span className="account-photo__badge" aria-hidden>
+                {photoStatus === 'uploading' ? (
+                  <Loader2 size={13} strokeWidth={2.25} />
+                ) : (
+                  <Camera size={13} strokeWidth={2.25} />
+                )}
+              </span>
+            </button>
           </div>
           <div className="account-identity__photo-actions">
-            <div className="account-photo__buttons">
-              <button
-                type="button"
-                className="account-secondary-action"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={photoStatus === 'uploading'}
-              >
-                {photoStatus === 'uploading'
-                  ? t('account.personalData.photoUploading')
-                  : t('account.personalData.photoUpload')}
-              </button>
-              {athlete.photoUrl && (
-                <button
-                  type="button"
-                  className="account-secondary-action account-secondary-action--danger"
-                  onClick={handlePhotoRemove}
-                  disabled={photoStatus === 'uploading'}
-                >
-                  <Trash2 size={14} aria-hidden />
-                  {t('account.personalData.photoRemove')}
-                </button>
-              )}
-            </div>
             <p className="account-photo__hint">{t('account.personalData.photoHint')}</p>
             <input
               ref={fileInputRef}
@@ -255,6 +326,20 @@ export default function PersonalDataSection({
               className="account-photo__input"
               onChange={handlePhotoChange}
             />
+            <span className="visually-hidden" role="status">
+              {photoStatus === 'uploading' ? t('account.personalData.photoUploading') : ''}
+            </span>
+            {athlete.photoUrl && (
+              <button
+                type="button"
+                className="account-secondary-action account-secondary-action--danger"
+                onClick={handlePhotoRemove}
+                disabled={photoStatus === 'uploading'}
+              >
+                <Trash2 size={14} aria-hidden />
+                {t('account.personalData.photoRemove')}
+              </button>
+            )}
             {photoStatus === 'error' && (
               <p className="account-photo__error" role="alert">
                 {photoError}
@@ -265,24 +350,17 @@ export default function PersonalDataSection({
 
         <div className="account-identity__official">
           <p className="account-data-group__label">{t('account.personalData.officialGroup')}</p>
-          <dl className="account-identity__facts">
-            <div>
-              <dt>{t('account.personalData.fullName')}</dt>
-              <dd>{athlete.fullName}</dd>
-            </div>
-            <div>
+          <h3 className="account-identity__name">{athlete.fullName}</h3>
+          <dl className="account-identity__meta">
+            <div className="account-identity__meta-item">
               <dt>{t('pages.register.country')}</dt>
               <dd>{athlete.country || '—'}</dd>
             </div>
-            <div>
-              <dt>
-                {athlete.country === 'Argentina' || !athlete.country
-                  ? t('account.personalData.documentId')
-                  : t('account.personalData.documentIdPassport')}
-              </dt>
+            <div className="account-identity__meta-item">
+              <dt>{documentLabel}</dt>
               <dd>{athlete.documentId}</dd>
             </div>
-            <div>
+            <div className="account-identity__meta-item">
               <dt>{t('account.personalData.birthDate')}</dt>
               <dd>{formatShortDate(athlete.birthDate)}</dd>
             </div>
@@ -295,12 +373,17 @@ export default function PersonalDataSection({
         {missingOfficialFields.length ? (
           <section className="account-data-group account-data-group--official-completion account-data-group--required">
             <div className="account-data-group__meta">
-              <p className="account-data-group__label">
-                {t('account.personalData.officialCompletionTitle')}
-              </p>
-              <p className="account-data-group__note">
-                {t('account.personalData.officialCompletionNote')}
-              </p>
+              <span className="account-data-group__icon" aria-hidden>
+                <IdCard size={16} strokeWidth={1.75} />
+              </span>
+              <div className="account-data-group__summary-text">
+                <p className="account-data-group__title">
+                  {t('account.personalData.officialCompletionTitle')}
+                </p>
+                <p className="account-data-group__note">
+                  {t('account.personalData.officialCompletionNote')}
+                </p>
+              </div>
             </div>
             <div className="form-grid form-grid--account account-data-group__content">
               {missingOfficialFields.includes('fullName') ? (
@@ -345,11 +428,16 @@ export default function PersonalDataSection({
             onClick={() => toggleGroup('contact')}
           >
             <span className="account-data-group__summary-copy">
-              <span className="account-data-group__label">
-                {t('account.personalData.contactGroup')}
+              <span className="account-data-group__icon" aria-hidden>
+                <Mail size={16} strokeWidth={1.75} />
               </span>
-              <span className="account-data-group__summary-note">
-                {t('account.personalData.contactSummary')}
+              <span className="account-data-group__summary-text">
+                <span className="account-data-group__title">
+                  {t('account.personalData.contactGroup')}
+                </span>
+                <span className="account-data-group__summary-note">
+                  {t('account.personalData.contactSummary')}
+                </span>
               </span>
             </span>
             <span className="account-data-group__summary-side">
@@ -405,11 +493,16 @@ export default function PersonalDataSection({
             onClick={() => toggleGroup('sports')}
           >
             <span className="account-data-group__summary-copy">
-              <span className="account-data-group__label">
-                {t('account.personalData.sportsGroup')}
+              <span className="account-data-group__icon" aria-hidden>
+                <Dumbbell size={16} strokeWidth={1.75} />
               </span>
-              <span className="account-data-group__summary-note">
-                {t('account.personalData.sportsSummary')}
+              <span className="account-data-group__summary-text">
+                <span className="account-data-group__title">
+                  {t('account.personalData.sportsGroup')}
+                </span>
+                <span className="account-data-group__summary-note">
+                  {t('account.personalData.sportsSummary')}
+                </span>
               </span>
             </span>
             <span className="account-data-group__summary-side">
@@ -476,11 +569,16 @@ export default function PersonalDataSection({
             onClick={() => toggleGroup('emergency')}
           >
             <span className="account-data-group__summary-copy">
-              <span className="account-data-group__label">
-                {t('account.personalData.emergencyGroup')}
+              <span className="account-data-group__icon" aria-hidden>
+                <HeartPulse size={16} strokeWidth={1.75} />
               </span>
-              <span className="account-data-group__summary-note">
-                {t('account.personalData.emergencyNote')}
+              <span className="account-data-group__summary-text">
+                <span className="account-data-group__title">
+                  {t('account.personalData.emergencyGroup')}
+                </span>
+                <span className="account-data-group__summary-note">
+                  {t('account.personalData.emergencyNote')}
+                </span>
               </span>
             </span>
             <span className="account-data-group__summary-side">

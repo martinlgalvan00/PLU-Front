@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { consumeSignedOutFlag, SIGNED_OUT_EVENT, SIGNED_IN_EVENT } from '../../lib/sessionNotice.js'
+import {
+  consumeSignedInFlag,
+  consumeSignedOutFlag,
+  SIGNED_OUT_EVENT,
+  SIGNED_IN_EVENT,
+} from '../../lib/sessionNotice.js'
 import { initials } from '../../lib/format.js'
 
 const DISMISS_MS = 8000
@@ -19,6 +24,10 @@ const MIN_RESUME_MS = 800
 export default function SessionNotice({ onNavigate }) {
   const { t } = useI18n()
   const [notice, setNotice] = useState(() => {
+    // El login gana si por lo que sea quedaron los dos flags: significa que
+    // el usuario volvió a entrar después del logout que dejó el otro.
+    const inFlag = consumeSignedInFlag()
+    if (inFlag) return { type: 'in', name: inFlag.name }
     const outFlag = consumeSignedOutFlag()
     return outFlag ? { type: 'out', name: outFlag.name } : false
   })
