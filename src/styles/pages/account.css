@@ -1309,16 +1309,37 @@
   margin: 0 auto;
   max-width: 1080px;
   padding: 22px clamp(20px, 5vw, 48px) 72px;
+  min-width: 0;
 }
 
-/* Un solo tab de cuenta a la vez (ver AccountNav.jsx) — el `key={activeTab}`
-   en AthleteProfilePage.jsx remonta este wrapper en cada cambio, así el
-   fade se dispara de nuevo por cada tab en vez de correr una sola vez. */
-.account-tab-panel {
-  animation: account-tab-fade var(--duration-base) var(--ease-out);
+/* Durante el cambio de tab hay dos paneles montados a la vez
+   (MotionContentSwap en modo `sync`) y los dos tienen que ocupar la misma
+   celda. Sin esto la grilla le daría una fila a cada uno y la página se
+   estiraría al doble a mitad de la transición. Misma convención que
+   .auth-mode-swap y .register-wizard-swap. */
+.account-sections > .account-tab-panel {
+  grid-area: 1 / 1;
+  min-width: 0;
 }
 
-@keyframes account-tab-fade {
+/* Un solo tab de cuenta a la vez (ver AccountNav.jsx). La entrada y la salida
+   las maneja MotionContentSwap desde AthleteProfilePage.jsx: entra por el lado
+   de la cinta desde el que se movió el foco, en vez del fade sin dirección que
+   había acá. */
+/* Settle interno: el encabezado y la bajada llegan un instante antes que el
+   cuerpo, así el panel no aparece como un bloque único. Son dos elementos y una
+   sola secuencia one-shot por sección — se replantea en cada cambio de tab
+   porque el panel se remonta con la clave del tab. */
+.account-tab-panel .account-section__heading,
+.account-tab-panel .account-section__lead {
+  animation: account-panel-settle var(--motion-base, 240ms) var(--ease-out, ease) both;
+}
+
+.account-tab-panel .account-section__lead {
+  animation-delay: 70ms;
+}
+
+@keyframes account-panel-settle {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -1330,7 +1351,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .account-tab-panel {
+  .account-tab-panel .account-section__heading,
+  .account-tab-panel .account-section__lead {
     animation: none;
   }
 }
@@ -3056,6 +3078,38 @@
   border-color: var(--color-brand-celeste);
   color: var(--color-brand-celeste);
   transform: none;
+}
+
+/* Inscripción cargada sin pago acreditado: el estado se distingue del "abierta"
+   del calendario y el CTA queda habilitado para cerrar el pago, en vez de
+   bloquearse como si el cupo ya estuviera confirmado. */
+#account-events .account-event-status[data-state='registered'] {
+  color: var(--color-status-success);
+}
+
+#account-events .account-event-status[data-state='pending_payment'] {
+  color: var(--color-warning-text);
+}
+
+#account-events .account-events-list__cta.is-payment-pending {
+  border-color: color-mix(in srgb, var(--color-warning-text) 55%, transparent);
+  color: var(--color-warning-text);
+}
+
+/* `dark.css` declara sus tokens en `:root, [data-theme='dark']`, así que light
+   hereda el ámbar de dark (#f0b45e) y sobre la crema queda en 1.71:1. Acá se
+   toman los tonos de la paleta pensados para fondo claro. */
+[data-theme='light'] #account-events .account-event-status[data-state='registered'] {
+  color: var(--plu-success-600);
+}
+
+[data-theme='light'] #account-events .account-event-status[data-state='pending_payment'] {
+  color: var(--plu-warning-500);
+}
+
+[data-theme='light'] #account-events .account-events-list__cta.is-payment-pending {
+  border-color: color-mix(in srgb, var(--plu-warning-500) 55%, transparent);
+  color: var(--plu-warning-500);
 }
 
 #account-events .account-events-list__cta:not(:disabled):active {

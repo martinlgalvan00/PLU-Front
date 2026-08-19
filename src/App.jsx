@@ -643,6 +643,7 @@ export default function App() {
                 events: publicEvents,
                 session: app.session,
                 memberships: app.memberships,
+                registrations: app.registrations,
                 checkoutAvailability: app.checkoutAvailability,
               }
             : view === 'pitbull'
@@ -652,6 +653,10 @@ export default function App() {
                   events: publicEvents,
                   session: app.session,
                   memberships: app.memberships,
+                  // Sin esto la página del meet no podía saber que quien la
+                  // mira ya está inscripto: ofrecía "Inscribirme" a alguien
+                  // que había pagado, mientras su perfil decía lo contrario.
+                  registrations: app.registrations,
                   checkoutAvailability: app.checkoutAvailability,
                 }
               : view === 'shop'

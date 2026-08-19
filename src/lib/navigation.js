@@ -34,6 +34,22 @@ export const ACCOUNT_MEMBERSHIP_TAB = 'account-membership'
 export const ACCOUNT_EVENTS_TAB = 'account-events'
 
 /**
+ * Orden de las fichas de la cuenta, en un solo lugar. Lo consumen la cinta
+ * (`AccountNav`, que lo recorre para dibujar los tabs) y la página
+ * (`AthleteProfilePage`, que lo usa para saber si el panel entrante viene de la
+ * izquierda o de la derecha). Con el orden duplicado, reordenar la cinta dejaría
+ * el panel entrando por el lado contrario al del tab que lo abrió.
+ */
+export const ACCOUNT_TAB_IDS = [
+  DEFAULT_ACCOUNT_TAB,
+  ACCOUNT_EVENTS_TAB,
+  'account-history',
+  ACCOUNT_MEMBERSHIP_TAB,
+  'account-personal-data',
+  'account-security',
+]
+
+/**
  * El cobro de afiliación vive en la cuenta (`#account-membership`), no en un
  * checkout paralelo. `navigate('membership')` y el pending post-login siguen
  * usando esa vista para no perder la intención; acá se traduce al tab.
