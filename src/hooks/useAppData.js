@@ -55,6 +55,8 @@ import {
   checkInRegistration as checkInRegistrationRequest,
   createCompetitionRegistration as createCompetitionRegistrationRequest,
   createCompetitionRegistrationCombo as createCompetitionRegistrationComboRequest,
+  bulkUpdateAthletesRequest,
+  updateAthleteAdminRequest,
   createMembershipOrder as createMembershipOrderRequest,
   deleteAthleteRequest,
   deleteMembershipRequest,
@@ -1607,6 +1609,61 @@ export function useAppData() {
     [session],
   )
 
+  // Edición en bloque (status/gym) desde la selección múltiple de
+  // AthletesSection. Partial success: `failed` puede traer ids que no se
+  // pudieron actualizar sin que eso frene al resto del lote.
+  const bulkUpdateAthletesAction = useCallback(
+    async (athleteIds, patch) => {
+      if (!hasPermission(session, 'admin.athletes.write')) {
+        throw new Error('Sin permisos para editar atletas.')
+      }
+
+      const applyLocalUpdate = (updatedAthletes) => {
+        const byId = new Map(updatedAthletes.map((item) => [item.id, item]))
+        setAthletes((current) =>
+          current.map((item) => (byId.has(item.id) ? { ...item, ...byId.get(item.id) } : item)),
+        )
+      }
+
+      if (isDemoSession(session)) {
+        const updated = athleteIds.map((id) => ({ id, ...patch }))
+        applyLocalUpdate(updated)
+        return { updated, failed: [] }
+      }
+
+      const { updated, failed } = await bulkUpdateAthletesRequest(athleteIds, patch)
+      applyLocalUpdate(updated)
+      return { updated, failed }
+    },
+    [session],
+  )
+
+  // Edición de un atleta puntual (status/gym) desde su ficha.
+  const updateAthleteAction = useCallback(
+    async (athleteId, patch) => {
+      if (!hasPermission(session, 'admin.athletes.write')) {
+        throw new Error('Sin permisos para editar atletas.')
+      }
+
+      const applyLocalUpdate = (updated) => {
+        setAthletes((current) =>
+          current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+        )
+      }
+
+      if (isDemoSession(session)) {
+        const updated = { id: athleteId, ...patch }
+        applyLocalUpdate(updated)
+        return updated
+      }
+
+      const { athlete } = await updateAthleteAdminRequest(athleteId, patch)
+      applyLocalUpdate(athlete)
+      return athlete
+    },
+    [session],
+  )
+
   const createAccessRoleAction = useCallback(
     async (draft) => {
       let createdRole
@@ -3014,6 +3071,8 @@ export function useAppData() {
     resetStaffPasswordAction,
     deleteUserAction,
     deleteAthleteAction,
+    bulkUpdateAthletesAction,
+    updateAthleteAction,
     deleteMembershipAction,
     deleteRegistrationAction,
     setRegistrationPublicVisibilityAction,

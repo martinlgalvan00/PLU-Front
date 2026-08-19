@@ -11,7 +11,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  * @property {string} [label]
  * @property {string} value
  * @property {(value: string) => void} onChange
- * @property {[string, string, (string|number)?][]} options
+ * @property {[string, string, (string|number)?, ('success'|'danger'|'info')?][]} options
  * @property {'chips' | 'select' | 'toggle'} [variant]
  * @property {string} [defaultValue] Valor sin filtro; por convención, la primera opción.
  * @property {boolean} [showLabel] Forzá label visible (inline suele ocultarlo si hay un solo grupo).
