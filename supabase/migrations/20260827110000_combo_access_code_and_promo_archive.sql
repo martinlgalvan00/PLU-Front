@@ -1,7 +1,7 @@
 -- Combo con código de acceso, y baja de promociones ya canjeadas — PLU ARG
 --
 -- Dos huecos que quedaron abiertos después de darle audiencia a las
--- promociones (20260827100000_promo_audience_public_or_code.sql):
+-- promociones (20260827105000_promo_audience_public_or_code.sql):
 --
 --   1. LA OFERTA COMBO NO TENÍA AUDIENCIA. Sólo sabía estar prendida o apagada
 --      para todo el mundo. No había forma de armar un combo que vieran
