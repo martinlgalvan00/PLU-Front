@@ -22,6 +22,7 @@ const SMOKE = readFileSync(resolve('.github/workflows/deployment-smoke.yml'), 'u
 const RECOVERY_CRON = readFileSync(resolve('.github/workflows/payment-recovery-cron.yml'), 'utf8')
 const PKG = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
 const VITEST = readFileSync(resolve('vitest.config.js'), 'utf8')
+const INTEGRATION_RUNNER = readFileSync(resolve('scripts/run-integration-tests.mjs'), 'utf8')
 
 describe('pipeline de integracion continua', () => {
   it('corre las cuatro compuertas de la aplicacion', () => {
@@ -92,7 +93,14 @@ describe('pipeline de integracion continua', () => {
     expect(PKG.scripts.test).toContain('test:storybook')
     expect(PKG.scripts['test:check']).toContain('lint')
     expect(PKG.scripts['test:check']).toContain('build')
-    expect(PKG.scripts['test:integration']).toContain('--project integration')
+    // test:integration pasa por scripts/run-integration-tests.mjs (corre la
+    // suite y purga las cuentas de TEST que haya creado despues, pase lo que
+    // pase) en vez de invocar vitest directo; el wrapper es el que tiene que
+    // seguir apuntando al proyecto de integracion.
+    expect(PKG.scripts['test:integration']).toContain('run-integration-tests.mjs')
+    expect(INTEGRATION_RUNNER).toContain("'--project', 'integration'")
+    expect(INTEGRATION_RUNNER).toContain('purge-test-athletes.mjs')
+    expect(INTEGRATION_RUNNER).toContain('--confirm')
   })
 
   it('los tres proyectos de vitest siguen declarados y con su patron', () => {
