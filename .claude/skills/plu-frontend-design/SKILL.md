@@ -84,6 +84,9 @@ Evitar:
 
 - Plantillas SaaS genéricas, heroes centrados por defecto y grillas simétricas de tres cards.
 - Fitness amateur, neón, gradientes decorativos, partículas, fondos animados o falso 3D.
+  Única excepción aprobada: la ráfaga de papel de `CelebrationBurst`, y solo en los tres
+  momentos que cierran un trámite (afiliación acreditada, credencial emitida, inscripción
+  confirmada). No es licencia para partículas decorativas en ninguna otra superficie.
 - Glow, glass, blur, bordes gradiente o sombras apilados para compensar mala jerarquía.
 - Numeración, reglas técnicas, chips o iconos que no comuniquen información real.
 - Copy aspiracional genérico, testimonios, precios, fechas o métricas inventadas.

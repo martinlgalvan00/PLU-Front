@@ -3577,6 +3577,23 @@
 }
 
 /* ── "Mi QR" — credencial de afiliado (dos columnas: código + preview) ── */
+/* ── El acuse de credencial emitida ──
+   Aparece una sola vez, la primera vez que la persona entra a su cuenta con el
+   QR ya emitido, y después desaparece: el sello registra el momento, no es un
+   encabezado permanente de la sección. La regla inferior lo separa de la
+   bajada sin sumar otra card — la sección ya es una superficie. */
+.account-qr__issued-seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-top: 18px;
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
+/* Con el sello arriba, la bajada de la sección ya no necesita su margen
+   superior: quedaban dos bloques de aire seguidos entre el acuse y el texto. */
+.account-qr__issued-seal + .account-section__lead {
+  margin-top: 14px;
+}
+
 .account-qr {
   align-items: center;
   display: grid;

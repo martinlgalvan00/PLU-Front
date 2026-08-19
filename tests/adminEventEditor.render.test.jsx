@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import AdminEventEditor from '../src/components/admin/AdminEventEditor.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import { buildAdminEventDraft } from '../src/services/eventAdminService.js'
@@ -34,7 +34,7 @@ afterEach(() => {
   cleanup()
 })
 
-function renderEditor(overrides = {}, { sourceEvent = null } = {}) {
+function renderEditor(overrides = {}, { sourceEvent = null, onChange = () => {} } = {}) {
   const draft = buildAdminEventDraft({
     id: 'evt-1',
     slug: 'pitbull-classic-2026',
@@ -57,7 +57,7 @@ function renderEditor(overrides = {}, { sourceEvent = null } = {}) {
         draft={draft}
         sourceEvent={sourceEvent}
         onCancel={() => {}}
-        onChange={() => {}}
+        onChange={onChange}
         onListSecurityUsers={async () => []}
         onSubmit={() => {}}
       />
@@ -74,18 +74,17 @@ function activateEditorTab(name) {
 }
 
 describe('AdminEventEditor — estructura del formulario', () => {
-  it('muestra las cinco secciones como tabs editoriales', () => {
+  it('muestra solo las secciones que se guardan con el evento', () => {
     renderEditor()
     const items = within(editorTablist()).getAllByRole('tab')
 
-    // "Grilla" y "Operación" solo existen para un evento ya guardado: las
-    // tandas cuelgan de los días, que recién existen después del alta.
+    // Grilla y zonas de seguridad salieron del editor: viven en la consola del
+    // evento, guardan por su cuenta y no pasan por el upsert que reescribe días,
+    // tandas y tipos de entrada. Lo que queda es lo que sí viaja en el draft.
     expect(items.map((item) => item.textContent)).toEqual([
       'Datos',
       'Ventas y cupos',
       'Publicación',
-      'Grilla',
-      'Operación',
     ])
   })
 
@@ -153,5 +152,73 @@ describe('AdminEventEditor — avisos de consistencia', () => {
     activateEditorTab(/publicación/i)
 
     expect(screen.getByText(/la fecha de cierre ya pasó/i)).toBeDefined()
+  })
+})
+
+
+/**
+ * Acceso al meet: el requisito de afiliación decide quién puede inscribirse y
+ * quién pasa la puerta (`src/lib/gateAccess.js`). Antes vivía en un checkbox
+ * cuya etiqueta era una afirmación —"Requiere afiliación activa"—, así que para
+ * saber el estado había que interpretar la casilla, y nada decía qué pasaba en
+ * la puerta.
+ */
+describe('AdminEventEditor — acceso al meet', () => {
+  it('presenta el requisito como dos opciones excluyentes, no como casilla', () => {
+    renderEditor()
+    activateEditorTab(/publicación/i)
+
+    const group = document.querySelector('.admin-event-form__access')
+    expect(group).not.toBeNull()
+
+    const chips = [...group.querySelectorAll('.admin-filter-chip')].map((chip) =>
+      chip.textContent.trim(),
+    )
+    expect(chips).toEqual(['Solo afiliados', 'Abierto'])
+    // El default del negocio: un meet pide afiliación salvo que se diga lo
+    // contrario (eventAdminService normaliza `requiresMembership !== false`).
+    expect(
+      group.querySelector('.admin-filter-chip.is-active, .admin-filter-chip[aria-pressed="true"]')
+        .textContent,
+    ).toContain('Solo afiliados')
+
+    expect(screen.queryByText(/requiere afiliación activa/i)).toBeNull()
+  })
+
+  it('escribe la consecuencia real de cada opción', () => {
+    renderEditor()
+    activateEditorTab(/publicación/i)
+
+    expect(document.querySelector('.admin-event-form__access-note').textContent).toMatch(
+      /en la puerta un inscripto sin afiliación queda bloqueado/i,
+    )
+
+    cleanup()
+    renderEditor({ requiresMembership: false })
+    activateEditorTab(/publicación/i)
+
+    expect(document.querySelector('.admin-event-form__access-note').textContent).toMatch(
+      /alcanza con la inscripción confirmada/i,
+    )
+  })
+
+  it('propaga el cambio al draft sin tocar nada más', () => {
+    const onChange = vi.fn()
+    renderEditor({}, { onChange })
+    activateEditorTab(/publicación/i)
+
+    const group = document.querySelector('.admin-event-form__access')
+    fireEvent.click(
+      [...group.querySelectorAll('.admin-filter-chip')].find((chip) =>
+        /abierto/i.test(chip.textContent),
+      ),
+    )
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0]).toMatchObject({
+      requiresMembership: false,
+      slug: 'pitbull-classic-2026',
+      status: 'inscripcion_abierta',
+    })
   })
 })

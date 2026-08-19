@@ -7,6 +7,7 @@ import '../styles/pages/admin-dashboard-bento.css'
 import '../styles/pages/admin-audit.css'
 import '../styles/pages/admin-analytics.css'
 import '../styles/pages/admin-pricing.css'
+import '../styles/pages/admin-event-console.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
 import AdminActionToasts from '../components/admin/AdminActionToasts.jsx'
@@ -100,6 +101,12 @@ export default function AdminPage({
   onDeactivateAllSecurityUsers,
   onListSecurityUsers,
   onUpdateSecurityUserStatus,
+  onListSecurityZones,
+  onCreateSecurityZone,
+  onUpdateSecurityZone,
+  onDeleteSecurityZone,
+  onPresetSecurityZones,
+  onAssignSecurityZone,
   onCreateUser,
   onDeleteUser,
   onDeleteAthlete,
@@ -238,6 +245,11 @@ export default function AdminPage({
     if (!allowedSections.includes('payments')) return
     setPaymentEventScope(event.title)
     setSection('payments')
+  }
+
+  function handleManageEventCheckin() {
+    if (!allowedSections.includes('checkin')) return
+    setSection('checkin')
   }
 
   function renderSection() {
@@ -383,6 +395,13 @@ export default function AdminPage({
           onManageRegistrations={
             allowedSections.includes('registrations') ? handleManageEventRegistrations : undefined
           }
+          onManageCheckin={allowedSections.includes('checkin') ? handleManageEventCheckin : undefined}
+          onListSecurityZones={onListSecurityZones}
+          onCreateSecurityZone={onCreateSecurityZone}
+          onUpdateSecurityZone={onUpdateSecurityZone}
+          onDeleteSecurityZone={onDeleteSecurityZone}
+          onPresetSecurityZones={onPresetSecurityZones}
+          onAssignSecurityZone={onAssignSecurityZone}
           onRefresh={onRefreshAdminEvents}
           onSaveEvent={onSaveEvent}
           canDeleteEvents={canDeleteEvents}

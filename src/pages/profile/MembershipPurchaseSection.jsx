@@ -34,6 +34,7 @@ import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
+import { channelOpen } from '../../lib/paymentChannels.js'
 
 export default function MembershipPurchaseSection({
   athlete,
@@ -118,6 +119,9 @@ export default function MembershipPurchaseSection({
   const cashSelectable = codeChannels.includes('cash_pitbull')
   const transferOffered = transferSelectable || manualChannelsOpenGlobally
   const cashOffered = cashSelectable || manualChannelsOpenGlobally
+  // La pasarela también se cierra por concepto desde Administración. Un cupón no
+  // la reabre: sólo destraba canales manuales.
+  const mercadoPagoOffered = channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
@@ -291,13 +295,22 @@ export default function MembershipPurchaseSection({
   useEffect(() => {
     if (paymentMethod === 'mercado_pago') return
     // Plan recurrente, o un medio que no quedó operable (canal cerrado, o el
-    // código aplicado no habilita justo ese): el único medio es Mercado Pago.
+    // código aplicado no habilita justo ese): se vuelve a la pasarela, que es el
+    // único medio para un plan recurrente. Si la pasarela está cerrada, la
+    // selección se queda donde está y el escritorio de cobro muestra sólo lo
+    // que sí se puede pagar.
     const methodOperable =
       selectedPlan?.collectionMode !== 'recurring' &&
       ((paymentMethod === 'transferencia' && transferSelectable) ||
         (paymentMethod === 'cash_pitbull' && cashSelectable))
-    if (!methodOperable) setPaymentMethod('mercado_pago')
-  }, [cashSelectable, paymentMethod, selectedPlan?.collectionMode, transferSelectable])
+    if (!methodOperable && mercadoPagoOffered) setPaymentMethod('mercado_pago')
+  }, [
+    cashSelectable,
+    mercadoPagoOffered,
+    paymentMethod,
+    selectedPlan?.collectionMode,
+    transferSelectable,
+  ])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -855,7 +868,9 @@ export default function MembershipPurchaseSection({
                   ) : null
                 }
                 methods={[
-                  { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
+                  ...(mercadoPagoOffered
+                    ? [{ value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') }]
+                    : []),
                   ...(transferOffered
                     ? [
                         {
@@ -883,7 +898,11 @@ export default function MembershipPurchaseSection({
                 methodsLabel={t('account.membership.paymentLegend')}
                 methodsLegend={t('account.membership.paymentLegend')}
                 paymentHint={
-                  !manualChannelEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : ''
+                  !mercadoPagoOffered && !transferOffered && !cashOffered
+                    ? t('pages.register.paymentNoChannelHint')
+                    : mercadoPagoOffered && !manualChannelEnabled
+                      ? t('pages.register.paymentMercadoPagoOnlyHint')
+                      : ''
                 }
                 offers={
                   selectedPlan

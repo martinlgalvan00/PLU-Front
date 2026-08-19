@@ -20,5 +20,14 @@ export function createSupabasePlatformSettingsRepository(client) {
         { p_feature: feature, p_enabled: enabled, p_actor: actor },
         'No se pudo actualizar el interruptor.',
       ),
+
+    // Una celda de la matriz concepto × canal. Devuelve el payload completo,
+    // igual que `setToggle`, así el panel repinta todo con una sola respuesta.
+    setPaymentChannel: (concept, channel, enabled, actor) =>
+      rpc(
+        'staff_set_payment_channel',
+        { p_concept: concept, p_channel: channel, p_enabled: enabled, p_actor: actor },
+        'No se pudo actualizar el medio de pago.',
+      ),
   }
 }

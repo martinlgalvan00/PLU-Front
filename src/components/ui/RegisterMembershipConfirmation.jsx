@@ -86,11 +86,16 @@ export default function RegisterMembershipConfirmation({
           Solo cuando la afiliación quedó acreditada de verdad (`isActive`):
           con la orden pendiente esto sería festejar un pago que todavía puede
           rechazarse. El bloque abre la pantalla porque es la respuesta a lo
-          que la persona vino a hacer; los datos de la orden siguen abajo. */}
+          que la persona vino a hacer; los datos de la orden siguen abajo.
+
+          `celebrate` acá y no en el sello del checkout embebido: cuando Mercado
+          Pago acredita, esta pantalla toma el lugar del brick y las dos ráfagas
+          saldrían una encima de la otra. La federación festeja una vez. */}
       {isActive ? (
         <Block className="register-membership-confirmation__seal" {...riseProps}>
           <ConfirmationSeal
             variant="membership"
+            celebrate
             eyebrow={t('pages.register.sealMembershipEyebrow')}
             seal={memberCode ?? undefined}
             title={t('pages.register.sealMembershipTitle')}

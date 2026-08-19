@@ -344,7 +344,13 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     const response = await fetch(`${target.url}/api/tickets/availability/${EVENT_SLUG}`)
     const body = await response.json()
     expect(response.status, JSON.stringify(body)).toBe(200)
-    expect(body.checkout).toEqual({ ticketEnabled: false, ticketManualEnabled: false })
+    // `channels` viaja junto a los dos booleanos: la pantalla decide medio por
+    // medio, y con la venta cerrada ninguno queda abierto.
+    expect(body.checkout).toEqual({
+      ticketEnabled: false,
+      ticketManualEnabled: false,
+      channels: { mercado_pago: false, bank_transfer: false, cash_pitbull: false },
+    })
     // La pantalla de entradas la repregunta mientras el visitante decide: el
     // borde absorbe el poll, pero con ventana corta porque de acá sale el stock
     // que se muestra antes de comprar.

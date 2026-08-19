@@ -154,3 +154,203 @@ describe('interruptores de plataforma contra Supabase', () => {
       .in('actor_id', [ACTOR, `${ACTOR}:setup`])
   })
 })
+
+/**
+ * Matriz de cobro concepto × canal.
+ *
+ * Vive en este archivo y no en uno propio a propósito: los archivos de la suite
+ * de integración corren en paralelo, y la fila de interruptores de la
+ * organización es única. Con dos archivos escribiéndola, el test de "no se pisan
+ * entre sí" de arriba fallaba de forma intermitente por interferencia ajena, no
+ * por un bug. Un solo archivo dueño del recurso compartido, y los describes de
+ * acá corren en secuencia.
+ */
+const CONCEPTS = ['membership', 'registration', 'ticket']
+const CHANNELS = ['mercado_pago', 'bank_transfer', 'cash_pitbull']
+const MATRIX_ACTOR = 'integration:payment-channel-matrix'
+
+describe('matriz de canales de pago contra Supabase', () => {
+  const admin = createSupabaseTestClient()
+  let original = null
+
+  const toggles = async () => {
+    const result = await admin.rpc('staff_get_platform_feature_toggles')
+    if (result.error) throw new Error(result.error.message)
+    return result.data
+  }
+
+  const setChannel = async (concept, channel, enabled) => {
+    const result = await admin.rpc('staff_set_payment_channel', {
+      p_concept: concept,
+      p_channel: channel,
+      p_enabled: enabled,
+      p_actor: MATRIX_ACTOR,
+    })
+    if (result.error) throw new Error(`${concept}/${channel}: ${result.error.message}`)
+    return result.data
+  }
+
+  beforeAll(async () => {
+    original = await toggles()
+  })
+
+  afterAll(async () => {
+    if (!original?.paymentChannels) return
+    for (const concept of CONCEPTS) {
+      for (const channel of CHANNELS) {
+        await setChannel(concept, channel, original.paymentChannels[concept][channel])
+      }
+    }
+    // El actor de la fila vuelve a ser quien la tocó de verdad, no este test.
+    if (original.updatedBy) {
+      await admin.rpc('staff_set_platform_feature_toggle', {
+        p_feature: 'checkout',
+        p_enabled: original.checkoutEnabled !== false,
+        p_actor: original.updatedBy,
+      })
+    }
+  })
+
+  it('expone las nueve celdas como booleanos', async () => {
+    const current = await toggles()
+    for (const concept of CONCEPTS) {
+      for (const channel of CHANNELS) {
+        expect(typeof current.paymentChannels?.[concept]?.[channel], `${concept}/${channel}`).toBe(
+          'boolean',
+        )
+      }
+    }
+  })
+
+  it('deriva el booleano manual del contrato anterior desde la matriz', async () => {
+    const current = await toggles()
+    for (const concept of CONCEPTS) {
+      const cells = current.paymentChannels[concept]
+      expect(current[`${concept}ManualEnabled`], concept).toBe(
+        cells.bank_transfer || cells.cash_pitbull,
+      )
+    }
+  })
+
+  it('cierra y reabre cada celda sin arrastrar a las demás', async () => {
+    for (const concept of CONCEPTS) {
+      for (const channel of CHANNELS) {
+        const before = await toggles()
+        const others = []
+        for (const otherConcept of CONCEPTS) {
+          for (const otherChannel of CHANNELS) {
+            if (otherConcept === concept && otherChannel === channel) continue
+            others.push([otherConcept, otherChannel])
+          }
+        }
+
+        const off = await setChannel(concept, channel, false)
+        expect(off.paymentChannels[concept][channel], `${concept}/${channel}`).toBe(false)
+        for (const [otherConcept, otherChannel] of others) {
+          expect(
+            off.paymentChannels[otherConcept][otherChannel],
+            `${concept}/${channel} -> ${otherConcept}/${otherChannel}`,
+          ).toBe(before.paymentChannels[otherConcept][otherChannel])
+        }
+
+        const on = await setChannel(concept, channel, true)
+        expect(on.paymentChannels[concept][channel], `${concept}/${channel}`).toBe(true)
+
+        // Se restaura acá y no sólo en el afterAll: la fila es compartida y el
+        // resto de la suite corre en paralelo contra ella.
+        await setChannel(concept, channel, before.paymentChannels[concept][channel])
+      }
+    }
+  })
+
+  it('deja cerrar los tres canales de un concepto', async () => {
+    const before = await toggles()
+    try {
+      let last = null
+      for (const channel of CHANNELS) last = await setChannel('ticket', channel, false)
+      expect(last.paymentChannels.ticket).toEqual({
+        mercado_pago: false,
+        bank_transfer: false,
+        cash_pitbull: false,
+      })
+      expect(last.ticketManualEnabled).toBe(false)
+    } finally {
+      for (const channel of CHANNELS) {
+        await setChannel('ticket', channel, before.paymentChannels.ticket[channel])
+      }
+    }
+  })
+
+  // El contrato anterior sigue vivo: un cliente que sólo conoce `*_manual` tiene
+  // que seguir logrando el mismo efecto observable.
+  it('el alias manual del contrato anterior escribe los dos canales manuales', async () => {
+    const before = await toggles()
+    try {
+      const opened = await admin.rpc('staff_set_platform_feature_toggle', {
+        p_feature: 'membership_manual',
+        p_enabled: true,
+        p_actor: MATRIX_ACTOR,
+      })
+      if (opened.error) throw new Error(opened.error.message)
+      expect(opened.data.paymentChannels.membership.bank_transfer).toBe(true)
+      expect(opened.data.paymentChannels.membership.cash_pitbull).toBe(true)
+      expect(opened.data.membershipManualEnabled).toBe(true)
+      // La pasarela no se toca con el alias.
+      expect(opened.data.paymentChannels.membership.mercado_pago).toBe(
+        before.paymentChannels.membership.mercado_pago,
+      )
+
+      const closed = await admin.rpc('staff_set_platform_feature_toggle', {
+        p_feature: 'membership_manual',
+        p_enabled: false,
+        p_actor: MATRIX_ACTOR,
+      })
+      if (closed.error) throw new Error(closed.error.message)
+      expect(closed.data.paymentChannels.membership.bank_transfer).toBe(false)
+      expect(closed.data.paymentChannels.membership.cash_pitbull).toBe(false)
+    } finally {
+      for (const channel of CHANNELS) {
+        await setChannel('membership', channel, before.paymentChannels.membership[channel])
+      }
+    }
+  })
+
+  it('rechaza un concepto o un canal fuera de la lista blanca', async () => {
+    for (const args of [
+      { p_concept: 'combo', p_channel: 'mercado_pago' },
+      { p_concept: 'membership', p_channel: 'paypal' },
+    ]) {
+      const result = await admin.rpc('staff_set_payment_channel', {
+        ...args,
+        p_enabled: false,
+        p_actor: MATRIX_ACTOR,
+      })
+      expect(result.error, JSON.stringify(args)).toBeTruthy()
+    }
+  })
+
+  it('deja el cambio en la auditoría con el valor anterior', async () => {
+    const before = await toggles()
+    const target = before.paymentChannels.registration.cash_pitbull
+    await setChannel('registration', 'cash_pitbull', !target)
+    try {
+      const audit = await admin
+        .from('domain_audit_logs')
+        .select('action, entity_id, metadata')
+        .eq('action', 'platform_payment_channel.updated')
+        .eq('entity_id', 'registration:cash_pitbull')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (audit.error) throw new Error(audit.error.message)
+      expect(audit.data?.metadata).toMatchObject({
+        concept: 'registration',
+        channel: 'cash_pitbull',
+        enabled: !target,
+        previousEnabled: target,
+      })
+    } finally {
+      await setChannel('registration', 'cash_pitbull', target)
+    }
+  })
+})

@@ -102,6 +102,8 @@ describe('auth api', () => {
       mustChangePassword: false,
       eventId: null,
       eventSlug: null,
+      // Zona de seguridad del evento: nula en cuentas de staff.
+      securityZoneId: null,
       lastLoginAt: expect.any(String),
     })
 

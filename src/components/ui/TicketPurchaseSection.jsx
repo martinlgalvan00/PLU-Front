@@ -347,24 +347,34 @@ function isManualTicketPayment(method) {
   return method === 'transferencia' || method === 'manual' || method === 'manual_link'
 }
 
-function TicketPaymentOptions({ manualEnabled = true, paymentMethod, onChange, t }) {
+function TicketPaymentOptions({
+  manualEnabled = true,
+  mercadoPagoEnabled = true,
+  paymentMethod,
+  onChange,
+  t,
+}) {
   return (
     <fieldset className="ticket-purchase__payment-options">
       <legend>{t('pages.tickets.paymentMethod')}</legend>
-      <label className={paymentMethod === 'mercado_pago' ? 'is-selected' : ''}>
-        <input
-          type="radio"
-          name="ticket-payment"
-          value="mercado_pago"
-          checked={paymentMethod === 'mercado_pago'}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <CreditCard size={18} aria-hidden />
-        <span>
-          <strong>{t('formOptions.payment.mercadoPago')}</strong>
-          <small>{t('pages.tickets.paymentMpHint')}</small>
-        </span>
-      </label>
+      {/* La pasarela dejó de ser incondicional: se cierra por concepto igual que
+          el canal manual. */}
+      {mercadoPagoEnabled ? (
+        <label className={paymentMethod === 'mercado_pago' ? 'is-selected' : ''}>
+          <input
+            type="radio"
+            name="ticket-payment"
+            value="mercado_pago"
+            checked={paymentMethod === 'mercado_pago'}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <CreditCard size={18} aria-hidden />
+          <span>
+            <strong>{t('formOptions.payment.mercadoPago')}</strong>
+            <small>{t('pages.tickets.paymentMpHint')}</small>
+          </span>
+        </label>
+      ) : null}
       {/* Canal manual cerrado desde el panel: la opción no se muestra, en vez de
           aparecer y fallar con 409 al enviar la compra. */}
       {manualEnabled ? (
@@ -394,6 +404,9 @@ export default function TicketPurchaseSection({
   // Interruptor de canal manual del panel. Default abierto: un consumidor que
   // todavía no lo pasa mantiene la compra por transferencia.
   manualPaymentEnabled = true,
+  // Mercado Pago también se cierra por concepto desde Administración. Default
+  // abierto para no dejar la pantalla sin medios ante una lectura incompleta.
+  mercadoPagoEnabled = true,
   pricing = { ticketTypes: [], addons: [] },
   tickets,
   createdOrder,
@@ -419,17 +432,23 @@ export default function TicketPurchaseSection({
   // de transferencia vuelve ahí sola en vez de mandar una compra que va a fallar.
   const manualPaymentOptions = useMemo(
     () =>
-      manualPaymentEnabled
-        ? formOptions.paymentMethod
-        : formOptions.paymentMethod.filter(([value]) => !isManualTicketPayment(value)),
-    [formOptions.paymentMethod, manualPaymentEnabled],
+      formOptions.paymentMethod.filter(([value]) => {
+        if (isManualTicketPayment(value)) return manualPaymentEnabled
+        return value !== 'mercado_pago' || mercadoPagoEnabled
+      }),
+    [formOptions.paymentMethod, manualPaymentEnabled, mercadoPagoEnabled],
   )
 
   useEffect(() => {
-    if (!manualPaymentEnabled && isManualTicketPayment(paymentMethod)) {
+    if (!manualPaymentEnabled && isManualTicketPayment(paymentMethod) && mercadoPagoEnabled) {
       setPaymentMethod('mercado_pago')
     }
-  }, [manualPaymentEnabled, paymentMethod])
+    // Pasarela cerrada con transferencia abierta: la selección se mueve al medio
+    // que sí se puede pagar en vez de quedar en uno que el backend rechaza.
+    if (!mercadoPagoEnabled && paymentMethod === 'mercado_pago' && manualPaymentEnabled) {
+      setPaymentMethod('transferencia')
+    }
+  }, [manualPaymentEnabled, mercadoPagoEnabled, paymentMethod])
 
   const ticketAddons = pricing?.addons ?? []
   const ticketTypeNames = useMemo(
@@ -847,6 +866,7 @@ export default function TicketPurchaseSection({
           <>
             <TicketPaymentOptions
               manualEnabled={manualPaymentEnabled}
+              mercadoPagoEnabled={mercadoPagoEnabled}
               paymentMethod={paymentMethod}
               onChange={(value) => {
                 setPaymentMethod(value)

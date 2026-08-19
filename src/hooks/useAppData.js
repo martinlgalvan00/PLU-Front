@@ -14,6 +14,12 @@ import {
   deactivateAllSecurityUsersRequest,
   listAccessRolesRequest,
   listSecurityUsersRequest,
+  listSecurityZonesRequest,
+  createSecurityZoneRequest,
+  updateSecurityZoneRequest,
+  deleteSecurityZoneRequest,
+  presetSecurityZonesRequest,
+  assignSecurityZoneRequest,
   listStaffUsersRequest,
   loginRequest,
   logoutRequest,
@@ -1854,6 +1860,39 @@ export function useAppData() {
     [],
   )
 
+  // Zonas de seguridad del evento. Todas devuelven la lista completa de zonas
+  // ya recalculada por el backend: el panel no reconstruye el reparto a mano
+  // después de cada cambio, que es donde se desincronizaba.
+  const listSecurityZonesAction = useCallback(async (eventId) => {
+    const { zones } = await listSecurityZonesRequest(eventId)
+    return zones
+  }, [])
+
+  const createSecurityZoneAction = useCallback(async (zone) => {
+    const { zones } = await createSecurityZoneRequest(zone)
+    return zones
+  }, [])
+
+  const updateSecurityZoneAction = useCallback(async (zoneId, zone) => {
+    const { zones } = await updateSecurityZoneRequest(zoneId, zone)
+    return zones
+  }, [])
+
+  const deleteSecurityZoneAction = useCallback(async (zoneId) => {
+    const { zones } = await deleteSecurityZoneRequest(zoneId)
+    return zones
+  }, [])
+
+  const presetSecurityZonesAction = useCallback(async ({ eventId, eventSlug }) => {
+    const { zones } = await presetSecurityZonesRequest({ eventId, eventSlug })
+    return zones
+  }, [])
+
+  const assignSecurityZoneAction = useCallback(async (userId, zoneId) => {
+    const { zones } = await assignSecurityZoneRequest(userId, zoneId)
+    return zones
+  }, [])
+
   // Login passwordless de puerta: la credencial (token firmado) crea una
   // sesión real igual que loginRequest, incluyendo el puente de Supabase Auth.
   const loginWithGateToken = useCallback(
@@ -2391,6 +2430,7 @@ export function useAppData() {
             ...event,
             status: changes.status ?? event.status,
             published: changes.published ?? event.published,
+            requiresMembership: changes.requiresMembership ?? event.requiresMembership,
             updatedAt: new Date().toISOString(),
           }
           // El demo replica la regla de la base: sin esto el cupo lleno se
@@ -2982,6 +3022,12 @@ export function useAppData() {
     updateAccessRoleStatusAction,
     createSecurityUserAction,
     createSecurityUsersBulkAction,
+    listSecurityZonesAction,
+    createSecurityZoneAction,
+    updateSecurityZoneAction,
+    deleteSecurityZoneAction,
+    presetSecurityZonesAction,
+    assignSecurityZoneAction,
     createSecurityAccessLinkAction,
     deactivateAllSecurityUsersAction,
     listSecurityUsersForEventAction,

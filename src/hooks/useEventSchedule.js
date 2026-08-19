@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   assignRegistrationSchedule,
   fetchEventSchedule,
@@ -77,14 +77,23 @@ export function useEventSchedule(eventSlug, { enabled = true } = {}) {
     [eventSlug],
   )
 
+  // `days` y `sessions` van memoizadas porque son dependencias de efectos en
+  // los consumidores. Devolver `?? []` crudo creaba un array nuevo en cada
+  // render, y el editor de tandas -- que sincroniza su borrador con
+  // `[dirty, sessions]` -- entraba en bucle infinito mientras la grilla no
+  // hubiera cargado: setDraft con un array nuevo, re-render, dependencia
+  // nueva, otra vez. Se veía como la pestaña colgada, no como un error.
+  const days = useMemo(() => schedule?.days ?? [], [schedule])
+  const sessions = useMemo(() => schedule?.sessions ?? [], [schedule])
+
   return {
     schedule,
     status,
     assigning,
     assign,
     saveSessions,
-    days: schedule?.days ?? [],
-    sessions: schedule?.sessions ?? [],
+    days,
+    sessions,
     unassignedCount: schedule?.unassignedCount ?? 0,
   }
 }
