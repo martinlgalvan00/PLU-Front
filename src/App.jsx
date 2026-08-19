@@ -540,9 +540,10 @@ export default function App() {
           onDeleteMembershipPlan={app.deleteMembershipPlan}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSaveEventComboOffer={app.saveEventComboOffer}
+          onDeleteEventComboOffer={app.deleteEventComboOffer}
           onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}
           onUpsertDiscountCode={app.upsertDiscountCode}
-          onSetDiscountCodeActive={app.setDiscountCodeActive}
+          onSetDiscountCodeState={app.setDiscountCodeState}
           onDeleteDiscountCode={app.deleteDiscountCode}
           billingSubscriptions={app.billingSubscriptions}
           billingSubscriptionsLoading={app.billingSubscriptionsLoading}

@@ -152,10 +152,12 @@ import {
   createMembershipPlanVersionRequest,
   fetchBillingSubscriptionsRequest,
   deleteDiscountCodeRequest,
+  deleteEventComboOfferRequest,
   deleteMembershipPlanRequest,
+  discountCodeStatePayload,
   fetchPricingConfigurationRequest,
   saveEventComboOfferRequest,
-  setDiscountCodeActiveRequest,
+  setDiscountCodeStateRequest,
   setMembershipPlanActiveRequest,
   setMembershipPlanRetirementRequest,
   upsertDiscountCodeRequest,
@@ -1114,6 +1116,9 @@ export function useAppData() {
               ? {
                   membershipAccessCode: options.membershipAccessCode,
                   registrationAccessCode: options.registrationAccessCode,
+                  // Código que destraba un combo restringido. No es un cupón:
+                  // no toca el precio, habilita el paquete.
+                  comboAccessCode: options.comboAccessCode,
                 }
               : { accessCode: options.registrationAccessCode }),
             discountCode: options.discountCode,
@@ -2646,6 +2651,25 @@ export function useAppData() {
     [refreshPricingConfiguration, session],
   )
 
+  const deleteEventComboOffer = useCallback(
+    async (eventSlug) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const result = await deleteEventComboOfferRequest(eventSlug)
+        await refreshPricingConfiguration()
+        return result
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo eliminar la oferta combo.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
+
   const saveEventComboOffer = useCallback(
     async (eventSlug, offer) => {
       if (
@@ -2807,8 +2831,13 @@ export function useAppData() {
     [session, dismissedQueueItems],
   )
 
-  const setDiscountCodeActive = useCallback(
-    async (codeId, active) => {
+  /**
+   * `state` es 'off' | 'public' | 'code'. La traducción a los dos ejes que
+   * guarda la base vive en el servicio, no acá: el panel razona con un solo
+   * estado y el backend con `active` × `audience`.
+   */
+  const setDiscountCodeState = useCallback(
+    async (codeId, state) => {
       if (
         !hasPermission(session, 'admin.pricing.write') ||
         !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
@@ -2816,11 +2845,11 @@ export function useAppData() {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
-        const saved = await setDiscountCodeActiveRequest(codeId, active)
+        const saved = await setDiscountCodeStateRequest(codeId, discountCodeStatePayload(state))
         await refreshPricingConfiguration()
         return { code: saved }
       } catch (error) {
-        return { error: error?.message ?? 'No se pudo cambiar el estado del código de descuento.' }
+        return { error: error?.message ?? 'No se pudo cambiar el estado de la promoción.' }
       }
     },
     [refreshPricingConfiguration, session],
@@ -2959,7 +2988,8 @@ export function useAppData() {
     saveEventComboOffer,
     setMembershipPlanRetirement,
     upsertDiscountCode,
-    setDiscountCodeActive,
+    setDiscountCodeState,
+    deleteEventComboOffer,
     deleteDiscountCode,
     billingSubscriptions,
     billingSubscriptionsLoading,

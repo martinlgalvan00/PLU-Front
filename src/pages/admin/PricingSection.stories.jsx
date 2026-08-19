@@ -80,6 +80,18 @@ const configuration = {
       createdAt: '2026-08-14T00:00:00.000Z',
     },
     {
+      id: '77777777-7777-4777-8777-777777777777',
+      code: 'AGOSTO',
+      description: 'Promo de agosto: la aplica sola el checkout, sin tipear nada.',
+      kind: 'percent',
+      percentOff: 15,
+      appliesTo: 'membership',
+      redeemedCount: 4,
+      active: true,
+      audience: 'public',
+      createdAt: '2026-08-16T00:00:00.000Z',
+    },
+    {
       id: '55555555-5555-4555-8555-555555555555',
       code: 'EQUIPO-10',
       description: 'Cupo completo.',
@@ -106,7 +118,7 @@ export default {
     onSaveComboOffer: async () => ({}),
     onSetPlanActive: async () => ({}),
     onUpsertDiscountCode: async () => ({}),
-    onSetDiscountCodeActive: async () => ({}),
+    onSetDiscountCodeState: async () => ({}),
   },
 }
 

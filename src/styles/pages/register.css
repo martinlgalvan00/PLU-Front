@@ -5219,6 +5219,13 @@
   gap: 8px;
 }
 
+/* Promo que corre para todos: no la trajo el atleta con un codigo, asi que
+   se lee como informacion del catalogo (celeste) y no como un logro suyo
+   (oro), y no ofrece "quitar" porque no hay nada que quitar. */
+.register-discount__applied--public {
+  color: var(--color-brand-celeste);
+}
+
 .register-discount__applied button {
   background: transparent;
   border: 0;
@@ -5233,6 +5240,95 @@
 
 .register-discount__applied button:hover:not(:disabled) {
   color: var(--color-text-secondary);
+}
+
+/* Combo cerrado: el paquete existe pero pide su codigo. Se lee como la puerta
+   de la tanda (celeste, candado) y no como un cupon (oro): no cambia el precio,
+   habilita el acceso. Reusa la caja del campo de descuento en vez de inventar
+   otro control de "codigo + boton" en la misma pantalla. */
+.register-combo-code {
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 30%, transparent);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.register-combo-code__lead {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+}
+
+.register-combo-code__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.register-combo-code__row label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+.register-combo-code__row input {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  flex: 1;
+  font: inherit;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  min-width: 12ch;
+  padding: 0 14px;
+  text-transform: uppercase;
+}
+
+.register-combo-code__row input:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.register-combo-code__row button {
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 18px;
+  transition:
+    border-color 160ms var(--ease-out, ease),
+    color 160ms var(--ease-out, ease);
+}
+
+.register-combo-code__row button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  color: var(--color-brand-celeste);
+}
+
+.register-combo-code__row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.register-combo-code__error {
+  color: var(--color-brand-red);
+  font-size: 12px;
+  margin: 0;
 }
 
 .register-eligibility-note {

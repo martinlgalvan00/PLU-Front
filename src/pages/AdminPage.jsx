@@ -86,9 +86,10 @@ export default function AdminPage({
   onDeleteMembershipPlan,
   onSetMembershipPlanActive,
   onSaveEventComboOffer,
+  onDeleteEventComboOffer,
   onSetMembershipPlanRetirement,
   onUpsertDiscountCode,
-  onSetDiscountCodeActive,
+  onSetDiscountCodeState,
   onDeleteDiscountCode,
   billingSubscriptions,
   billingSubscriptionsLoading,
@@ -482,10 +483,11 @@ export default function AdminPage({
           onDeletePlan={onDeleteMembershipPlan}
           onRefresh={onRefreshPricing}
           onSaveComboOffer={onSaveEventComboOffer}
+          onDeleteComboOffer={onDeleteEventComboOffer}
           onSetPlanActive={onSetMembershipPlanActive}
           onSetPlanRetirement={onSetMembershipPlanRetirement}
           onUpsertDiscountCode={onUpsertDiscountCode}
-          onSetDiscountCodeActive={onSetDiscountCodeActive}
+          onSetDiscountCodeState={onSetDiscountCodeState}
           onDeleteDiscountCode={onDeleteDiscountCode}
           subscriptions={billingSubscriptions}
           subscriptionsLoading={billingSubscriptionsLoading}

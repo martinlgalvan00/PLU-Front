@@ -74,6 +74,11 @@ export default function MembershipPurchaseSection({
   const [checkoutIsError, setCheckoutIsError] = useState(false)
   const [discountCodeInput, setDiscountCodeInput] = useState('')
   const [discountPreview, setDiscountPreview] = useState(null)
+  // Promoción que corre para todos y se aplica sola dentro de la transacción de
+  // compra. Se guarda aparte del cupón tipeado porque son dos cosas distintas:
+  // el cupón se puede quitar, la promo pública no es del atleta. Si hay cupón,
+  // manda el cupón — la orden lleva un solo descuento.
+  const [publicPromo, setPublicPromo] = useState(null)
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
   const [discountOpen, setDiscountOpen] = useState(false)
@@ -110,6 +115,7 @@ export default function MembershipPurchaseSection({
   // El interruptor general puede seguir apagado: un código de promoción
   // destraba puntualmente los canales que declara, y sólo esos.
   const codeChannels = discountPreview?.manualChannels ?? []
+  const activeDiscount = discountPreview ?? publicPromo
   const manualChannelsOpenGlobally = manualChannelEnabled && publicManualChannelEnabled
   // Transferencia y efectivo siguen anunciados como "próximamente" para el
   // caso general (decisión de producto: la afiliación se cobra por Mercado
@@ -346,6 +352,34 @@ export default function MembershipPurchaseSection({
     void applyDiscountCode()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMethod])
+
+  // La promo pública se aplica sola al crear la orden. Sin este preview el
+  // checkout anunciaría el precio de lista y cobraría otro. Depende del plan y
+  // del canal por el mismo motivo que el cupón.
+  useEffect(() => {
+    if (!selectedPlan) {
+      setPublicPromo(null)
+      return undefined
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const preview = await previewDiscountCode({
+          appliesTo: 'membership',
+          planCode: selectedPlan.code,
+          paymentMethod: toApiPaymentMethod(paymentMethod),
+        })
+        if (!cancelled) setPublicPromo(preview.valid ? preview : null)
+      } catch {
+        // Una promo que no se pudo consultar no bloquea la compra: se cobra el
+        // precio de lista y, si existía, la orden la aplica igual.
+        if (!cancelled) setPublicPromo(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [paymentMethod, selectedPlan])
 
   function clearDiscountCode() {
     setDiscountCodeInput('')
@@ -752,6 +786,15 @@ export default function MembershipPurchaseSection({
 
               {selectedPlan ? (
                 <div className="account-discount">
+                  {!discountPreview && publicPromo ? (
+                    <p className="account-discount__applied account-discount__applied--public">
+                      <Tag size={14} aria-hidden />
+                      {publicPromo.description ||
+                        t('account.membership.publicPromoApplied', {
+                          amount: money(publicPromo.discountAmount, locale),
+                        })}
+                    </p>
+                  ) : null}
                   {discountPreview ? (
                     <p className="account-discount__applied">
                       <Tag size={14} aria-hidden />
@@ -860,7 +903,7 @@ export default function MembershipPurchaseSection({
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
-                      total={discountPreview ? discountPreview.finalAmount : selectedPlanPrice}
+                      total={activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice}
                       totalLabel={t('account.membership.priceLabel')}
                       type="button"
                       onClick={handleCheckoutAction}

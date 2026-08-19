@@ -389,7 +389,29 @@ export async function createCompetitionRegistration({
   }
 }
 
-export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug, paymentMethod }) {
+/**
+ * Sin `code` el servidor responde con la promoción pública que se va a aplicar
+ * sola al crear la orden (`source: 'public_promo'`). Es la única forma de que
+ * el checkout muestre el precio real antes de confirmar: el auto-aplicado pasa
+ * dentro de la transacción de compra, no acá.
+ */
+/**
+ * Chequeo previo del código de un combo restringido. Devuelve true o lanza el
+ * 403 del servidor: no habilita nada por sí solo, el alta de la orden vuelve a
+ * exigir el mismo código.
+ */
+export async function verifyComboAccessCode({ eventSlug, code }) {
+  const result = await apiPost('/api/athletes/me/combo-access/verify', { eventSlug, code })
+  return result?.valid === true
+}
+
+export async function previewDiscountCode({
+  code = '',
+  appliesTo,
+  planCode,
+  eventSlug,
+  paymentMethod,
+} = {}) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
     appliesTo,
@@ -404,6 +426,9 @@ export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug
     valid: preview.valid === true,
     reason: preview.reason ?? null,
     code: preview.code ?? null,
+    // 'code' lo tipeó el atleta; 'public_promo' se aplica sola.
+    source: preview.source === 'public_promo' ? 'public_promo' : 'code',
+    description: preview.description ?? '',
     // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final.
     kind: preview.kind ?? 'percent',
     percentOff: preview.percentOff ?? null,
@@ -429,6 +454,7 @@ export async function createCompetitionRegistrationCombo({
   idempotencyKey = crypto.randomUUID(),
   membershipAccessCode,
   registrationAccessCode,
+  comboAccessCode,
   discountCode,
 }) {
   const result = await apiPost('/api/athletes/me/registration-combos', {
@@ -441,6 +467,7 @@ export async function createCompetitionRegistrationCombo({
     discountCode: discountCode || undefined,
     membershipAccessCode: membershipAccessCode || undefined,
     registrationAccessCode: registrationAccessCode || undefined,
+    comboAccessCode: comboAccessCode || undefined,
   })
   return {
     order: toCamelPaymentOrder(result.order),

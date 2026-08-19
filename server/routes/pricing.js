@@ -72,6 +72,12 @@ export const discountCodeSchema = z
     maxRedemptions: z.coerce.number().int().positive().optional(),
     expiresAt: optionalDateTime,
     active: z.boolean().default(true),
+    // Quien accede a la promo. 'code' es la de siempre: hay que tipear el
+    // codigo. 'public' se aplica sola a todo el mundo, sin que nadie tipee
+    // nada, resuelta en la misma transaccion que crea la orden
+    // (plu_private.resolve_public_promo). Apagada = active false, en cualquiera
+    // de las dos audiencias: cerrarla no borra si era publica o restringida.
+    audience: z.enum(['public', 'code']).default('code'),
     // Opt-in por cupón y por canal: Mercado Pago siempre está disponible, y
     // acá se listan los canales manuales que este código destraba además. No
     // reemplaza el interruptor general de canal manual, lo salta puntualmente
@@ -83,6 +89,17 @@ export const discountCodeSchema = z
       .transform((channels) => [...new Set(channels)]),
   })
   .superRefine((code, context) => {
+    // Una promo que corre para todos y ademas abre transferencia o efectivo es
+    // el interruptor de canal escondido en la pantalla de precios. Los canales
+    // se abren en Acceso y habilitacion. Mismo check en la RPC.
+    if (code.audience === 'public' && code.manualChannels.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['manualChannels'],
+        message:
+          'Una promocion publica no puede habilitar medios de pago manuales. Abrilos desde Acceso y habilitacion.',
+      })
+    }
     if (code.kind === 'percent') {
       if (code.percentOff == null) {
         context.addIssue({
@@ -119,7 +136,15 @@ export const discountCodeSchema = z
       : { ...code, percentOff: undefined },
   )
 
-const discountCodeStatusSchema = z.object({ active: z.boolean() })
+/**
+ * Un solo endpoint para los tres estados de la promo. `audience` ausente
+ * conserva la que ya tenia: asi apagar y volver a prender no la convierte en
+ * publica por omision.
+ */
+const discountCodeStateSchema = z.object({
+  active: z.boolean(),
+  audience: z.enum(['public', 'code']).optional(),
+})
 
 export const comboOfferSchema = z
   .object({
@@ -129,6 +154,20 @@ export const comboOfferSchema = z
     active: z.boolean().default(false),
     startsAt: optionalDateTime,
     endsAt: optionalDateTime,
+    // Mismo eje que las promociones: 'public' lo ve cualquiera, 'code' sólo
+    // quien tipea el código de acceso. Apagado sigue siendo `active: false`.
+    audience: z.enum(['public', 'code']).default('public'),
+    accessCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .max(32)
+      .optional()
+      .default('')
+      .refine(
+        (value) => !value || /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value),
+        'Usá mayúsculas, números y guiones.',
+      ),
   })
   .superRefine((offer, context) => {
     if (offer.startsAt && offer.endsAt && new Date(offer.endsAt) < new Date(offer.startsAt)) {
@@ -138,7 +177,18 @@ export const comboOfferSchema = z
         message: 'El cierre debe ser posterior a la apertura.',
       })
     }
+    // Un combo restringido sin código es un combo que nadie puede comprar.
+    if (offer.audience === 'code' && offer.accessCode.length < 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['accessCode'],
+        message: 'Definí el código de acceso al combo (mínimo 3 caracteres).',
+      })
+    }
   })
+  // Un combo público no conserva el código: volver a restringirlo tiene que
+  // obligar a elegir uno nuevo en vez de revivir el que ya se repartió.
+  .transform((offer) => (offer.audience === 'public' ? { ...offer, accessCode: '' } : offer))
 
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`
@@ -255,6 +305,28 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
     },
   )
 
+  router.delete(
+    '/events/:eventSlug/combo',
+    ...writeGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const eventSlug = parseRouteParam(
+          z
+            .string()
+            .trim()
+            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+          req.params.eventSlug,
+          'El identificador del evento es inválido.',
+        )
+        res.json(await repository().deleteComboOffer(eventSlug, actor(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   router.patch(
     '/membership-plans/:planId/retirement',
     ...writeGuard,
@@ -311,30 +383,36 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
     }
   })
 
-  router.patch(
-    '/discount-codes/:codeId/status',
-    ...writeGuard,
-    staffLimiter,
-    validateBody(discountCodeStatusSchema),
-    async (req, res, next) => {
-      try {
-        assertPricingWritesEnabled(env)
-        const codeId = parseRouteParam(
-          z.string().uuid(),
-          req.params.codeId,
-          'El identificador del código es inválido.',
-        )
-        const code = await repository().setDiscountCodeActive(
-          codeId,
-          req.validatedBody.active,
-          actor(req),
-        )
-        res.json({ code })
-      } catch (error) {
-        next(error)
-      }
-    },
-  )
+  // `/status` se conserva como alias del contrato anterior (sólo `active`):
+  // ambos caminos terminan en la misma RPC, que es la que sabe rechazar una
+  // reactivación sin cupo en vez de escribir un `true` sin efecto.
+  for (const path of ['/discount-codes/:codeId/state', '/discount-codes/:codeId/status']) {
+    router.patch(
+      path,
+      ...writeGuard,
+      staffLimiter,
+      validateBody(discountCodeStateSchema),
+      async (req, res, next) => {
+        try {
+          assertPricingWritesEnabled(env)
+          const codeId = parseRouteParam(
+            z.string().uuid(),
+            req.params.codeId,
+            'El identificador del código es inválido.',
+          )
+          const code = await repository().setDiscountCodeState(
+            codeId,
+            req.validatedBody.active,
+            req.validatedBody.audience ?? null,
+            actor(req),
+          )
+          res.json({ code })
+        } catch (error) {
+          next(error)
+        }
+      },
+    )
+  }
 
   return router
 }
