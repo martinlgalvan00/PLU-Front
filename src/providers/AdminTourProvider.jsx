@@ -65,6 +65,12 @@ export function AdminTourProvider({ children }) {
     if (!TOUR_MODES.includes(mode)) return
     writeTourMode(mode)
     setTourModeState(mode)
+    // Elegir "Nunca" también cancela el recorrido que está en pantalla: el
+    // usuario está pidiendo dejar de verlo ahora, no recién la próxima vez.
+    if (mode === 'off') {
+      setActiveTour(null)
+      setStepIndex(0)
+    }
   }, [])
 
   const startTour = useCallback(

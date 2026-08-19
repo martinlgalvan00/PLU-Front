@@ -27,6 +27,11 @@ const EVENT_SELECT = `
   )
 `
 
+/**
+ * Proyección pública. `access_code` del combo NO entra acá: es material que se
+ * reparte a mano y saldría en el catálogo abierto de eventos. `audience` sí,
+ * para que el checkout sepa que el paquete existe pero pide código.
+ */
 const CATALOG_EVENT_SELECT = `
   id, slug, title, description, venue, location,
   starts_at, ends_at,
@@ -36,7 +41,9 @@ const CATALOG_EVENT_SELECT = `
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventRegistrations:event_registrations(count),
   eventDays:event_days(id, day_index, label, date),
-  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at),
+  comboOffer:event_combo_offers(
+    id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience
+  ),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),

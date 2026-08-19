@@ -87,6 +87,7 @@ import {
 } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 import {
+  assertComboAccessCode,
   assertRegistrationAccessCode,
   resolveRegistrationAccessRequirements,
 } from '../services/registrationAccessService.js'
@@ -300,6 +301,9 @@ const registrationSchema = z.object({
 const comboRegistrationSchema = registrationSchema.extend({
   membershipAccessCode: registrationAccessCodeField,
   registrationAccessCode: registrationAccessCodeField,
+  // Código que destraba un combo restringido (`event_combo_offers.audience =
+  // 'code'`). No es un cupón: no cambia el precio, habilita el paquete.
+  comboAccessCode: z.string().trim().toUpperCase().max(32).optional(),
 })
 
 /**
@@ -314,8 +318,17 @@ const registrationAccessVerifySchema = z.object({
   code: z.string().trim().min(1).max(72),
 })
 
-const discountPreviewSchema = z.object({
+const comboAccessVerifySchema = z.object({
+  eventSlug: z.string().trim().min(1).max(120),
   code: z.string().trim().toUpperCase().min(1).max(32),
+})
+
+const discountPreviewSchema = z.object({
+  // Opcional a proposito: sin codigo el preview responde con la promocion
+  // publica que se va a aplicar sola (`source: 'public_promo'`), que es lo
+  // mismo que hara `apply_discount_code_to_order` al crear la orden. El
+  // checkout necesita poder mostrar ese precio antes de confirmar.
+  code: z.string().trim().toUpperCase().max(32).optional().default(''),
   appliesTo: z.enum(['membership', 'registration', 'combo']),
   planCode: z.string().trim().min(1).optional(),
   eventSlug: z.string().trim().min(1).optional(),
@@ -1123,6 +1136,31 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Chequeo previo del código de un combo restringido, mismo criterio que el de
+   * tanda: el checkout puede decir "código incorrecto" antes de que el atleta
+   * cargue todo el formulario. No habilita nada por sí solo — el alta de la
+   * orden vuelve a exigir el mismo código.
+   */
+  router.post(
+    '/me/combo-access/verify',
+    registrationAccessCodeLimiter,
+    validateBody(comboAccessVerifySchema),
+    async (req, res, next) => {
+      try {
+        await athlete(req)
+        const { eventSlug, code } = req.validatedBody
+        const offer = await repo().findEventComboOffer(eventSlug)
+        if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
+        // Un combo que dejó de ser restringido entre que se pintó la pantalla y
+        // se mandó el código no tiene nada que desbloquear: sigue disponible.
+        assertComboAccessCode(offer, code)
+        res.json({ valid: true, required: offer.audience === 'code' })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.post(
     '/me/registration-access/verify',
     registrationAccessCodeLimiter,
@@ -1293,6 +1331,7 @@ export function createAthleteRoutes({
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
         const comboOffer = await repo().findEventComboOffer(eventSlug)
         if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
+        assertComboAccessCode(comboOffer, req.validatedBody.comboAccessCode)
         const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'membership',
           code: req.validatedBody.membershipAccessCode,

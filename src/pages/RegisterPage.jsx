@@ -46,6 +46,7 @@ import {
   resendAthleteVerification,
   checkAthleteAvailability,
   previewDiscountCode,
+  verifyComboAccessCode,
   verifyAthleteEmailCode,
 } from '../services/athleteApi.js'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
@@ -438,6 +439,16 @@ export default function RegisterPage({
   const [purchaseType, setPurchaseType] = useState('combo')
   const [discountCodeInput, setDiscountCodeInput] = useState('')
   const [discountPreview, setDiscountPreview] = useState(null)
+  // Promoción que corre para todos y se aplica sola dentro de la transacción de
+  // compra. Va aparte del cupón tipeado: el cupón se puede quitar y manda sobre
+  // la promo — la orden lleva un solo descuento.
+  const [publicPromo, setPublicPromo] = useState(null)
+  // Código validado de un combo restringido. Guardarlo (y no un booleano) es lo
+  // que permite reenviarlo al crear la orden: el servidor lo vuelve a exigir.
+  const [comboCode, setComboCode] = useState('')
+  const [comboCodeInput, setComboCodeInput] = useState('')
+  const [comboCodeError, setComboCodeError] = useState('')
+  const [comboCodeChecking, setComboCodeChecking] = useState(false)
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
   const [accessRequirements, setAccessRequirements] = useState({
@@ -558,6 +569,24 @@ export default function RegisterPage({
     })
   }, [committedCompetitionRegistration, onUpdateForm])
 
+  async function unlockComboWithCode() {
+    const code = comboCodeInput.trim().toUpperCase()
+    if (!code || !event?.slug) return
+    setComboCodeChecking(true)
+    setComboCodeError('')
+    try {
+      await verifyComboAccessCode({ eventSlug: event.slug, code })
+      setComboCode(code)
+      // Destrabado el paquete, se lo elige: es lo que el atleta vino a hacer.
+      setPurchaseType('combo')
+    } catch (error) {
+      setComboCode('')
+      setComboCodeError(error?.message ?? t('pages.register.comboCodeError'))
+    } finally {
+      setComboCodeChecking(false)
+    }
+  }
+
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
     if (!code || !event?.slug) return
@@ -649,8 +678,8 @@ export default function RegisterPage({
   const membershipGatePending =
     flow === 'competition' && Boolean(event?.requiresMembership) && !hasActiveMembership
   const comboAvailability = useMemo(
-    () => getEventComboAvailability(event, { hasActiveMembership }),
-    [event, hasActiveMembership],
+    () => getEventComboAvailability(event, { hasActiveMembership, unlocked: Boolean(comboCode) }),
+    [comboCode, event, hasActiveMembership],
   )
   const comboEnabled = flow === 'competition' && comboAvailability.enabled
   const comboComingSoon = flow === 'competition' && comboAvailability.comingSoon
@@ -683,11 +712,40 @@ export default function RegisterPage({
   // descuento porcentual o una promo de precio fijo. Mostrar el de lista dejaba
   // el resumen y la barra de checkout diciendo un número que no era el de la
   // orden. El importe definitivo sigue saliendo de la respuesta del POST.
-  const discountedTotal = Number(discountPreview?.finalAmount)
+  const activeDiscount = discountPreview ?? publicPromo
+  const discountedTotal = Number(activeDiscount?.finalAmount)
   const checkoutTotal =
-    discountPreview?.valid && Number.isFinite(discountedTotal) && discountedTotal > 0
+    activeDiscount?.valid && Number.isFinite(discountedTotal) && discountedTotal > 0
       ? discountedTotal
       : checkoutListTotal
+  // La promo pública se aplica sola al crear la orden. Sin este preview el
+  // checkout anunciaría el precio de lista y cobraría otro. Depende del alcance
+  // (combo o inscripción suelta) y del canal, igual que el cupón.
+  useEffect(() => {
+    if (!event?.slug || flow !== 'competition') {
+      setPublicPromo(null)
+      return undefined
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const preview = await previewDiscountCode({
+          appliesTo: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
+          eventSlug: event.slug,
+          paymentMethod: toApiPaymentMethod(form.paymentMethod),
+        })
+        if (!cancelled) setPublicPromo(preview.valid ? preview : null)
+      } catch {
+        // Una promo que no se pudo consultar no bloquea la compra: se cobra el
+        // precio de lista y, si existía, la orden la aplica igual.
+        if (!cancelled) setPublicPromo(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [effectivePurchaseType, event?.slug, flow, form.paymentMethod])
+
   const comboSavings =
     comboAvailability.offer && membershipListPrice + registrationListPrice > comboListPrice
       ? membershipListPrice + registrationListPrice - comboListPrice
@@ -1239,6 +1297,9 @@ export default function RegisterPage({
           : undefined,
         membershipAccessCode,
         registrationAccessCode,
+        // El servidor vuelve a exigirlo: destrabar el paquete en pantalla no
+        // alcanza para comprarlo.
+        comboAccessCode: effectivePurchaseType === 'combo' ? comboCode || undefined : undefined,
       })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -1280,6 +1341,9 @@ export default function RegisterPage({
           : undefined,
         membershipAccessCode,
         registrationAccessCode,
+        // El servidor vuelve a exigirlo: destrabar el paquete en pantalla no
+        // alcanza para comprarlo.
+        comboAccessCode: effectivePurchaseType === 'combo' ? comboCode || undefined : undefined,
       })
     } catch (error) {
       result = { error: error?.message ?? t('common.errorMessage') }
@@ -2126,6 +2190,51 @@ export default function RegisterPage({
                     </div>
                   </FormSection>
 
+                  {comboAvailability.locked ? (
+                    <div className="register-combo-code">
+                      <p className="register-combo-code__lead">
+                        <LockKeyhole size={15} aria-hidden />
+                        {t('pages.register.comboCodeLead')}
+                      </p>
+                      <div className="register-combo-code__row">
+                        <label htmlFor="register-combo-code">
+                          {t('pages.register.comboCodeLabel')}
+                        </label>
+                        <input
+                          id="register-combo-code"
+                          type="text"
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder={t('pages.register.comboCodePlaceholder')}
+                          value={comboCodeInput}
+                          disabled={comboCodeChecking}
+                          onChange={(codeEvent) =>
+                            setComboCodeInput(codeEvent.target.value.toUpperCase())
+                          }
+                          onKeyDown={(codeEvent) => {
+                            if (codeEvent.key !== 'Enter') return
+                            codeEvent.preventDefault()
+                            void unlockComboWithCode()
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={comboCodeChecking || !comboCodeInput.trim()}
+                          onClick={unlockComboWithCode}
+                        >
+                          {comboCodeChecking
+                            ? t('pages.register.comboCodeChecking')
+                            : t('pages.register.comboCodeApply')}
+                        </button>
+                      </div>
+                      {comboCodeError ? (
+                        <p className="register-combo-code__error" role="alert">
+                          {comboCodeError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   {showComboChoice || (isPaidCheckout && flow === 'competition') ? (
                     <RegisterSettle
                       comboComingSoon={comboComingSoon}
@@ -2151,6 +2260,15 @@ export default function RegisterPage({
 
                   {isPaidCheckout && ['registration', 'combo'].includes(effectivePurchaseType) ? (
                     <div className="register-discount">
+                      {!discountPreview && publicPromo ? (
+                        <p className="register-discount__applied register-discount__applied--public">
+                          <Tag size={14} aria-hidden />
+                          {publicPromo.description ||
+                            t('pages.register.publicPromoApplied', {
+                              amount: money(publicPromo.discountAmount, locale),
+                            })}
+                        </p>
+                      ) : null}
                       {discountPreview ? (
                         <p className="register-discount__applied">
                           <Tag size={14} aria-hidden />

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import PricingSection from '../src/pages/admin/PricingSection.jsx'
@@ -270,9 +270,106 @@ describe('Tarifas — alta de planes y combo', () => {
     })
 
     expect(screen.getByText('0 disponibles')).toBeTruthy()
-    expect(screen.getAllByText('Agotado')).toHaveLength(2)
+    expect(screen.getByText('Agotado')).toBeTruthy()
     expect(screen.getByRole('progressbar', { name: '0 de 10 cupos disponibles' })).toHaveProperty('value', 0)
-    expect(screen.getAllByRole('checkbox').at(-1).disabled).toBe(true)
+    // Agotada queda en "Deshabilitada" y las dos opciones abiertas fuera de
+    // alcance: reabrirla sin ampliar el cupo no habilita nada y la RPC la
+    // rechaza, así que el panel no ofrece el click.
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción PRIMEROS-10' })
+    expect(within(states).getByRole('radio', { name: 'Deshabilitada' }).checked).toBe(true)
+    expect(within(states).getByRole('radio', { name: 'Para todos' }).disabled).toBe(true)
+    expect(within(states).getByRole('radio', { name: 'Con código' }).disabled).toBe(true)
+    expect(
+      screen.getByText(
+        'Agotó su cupo y se cerró sola. Ampliá el límite de canjes para volver a habilitarla.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('cambia la promoción a pública desde la fila', async () => {
+    const onSetDiscountCodeState = vi.fn(async () => ({}))
+    renderPricing({
+      onSetDiscountCodeState,
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-open',
+            code: 'VERANO',
+            percentOff: 15,
+            appliesTo: 'membership',
+            redeemedCount: 0,
+            active: true,
+            audience: 'code',
+          },
+        ],
+      },
+    })
+
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción VERANO' })
+    expect(within(states).getByRole('radio', { name: 'Con código' }).checked).toBe(true)
+
+    fireEvent.click(within(states).getByRole('radio', { name: 'Para todos' }))
+    await screen.findByText('Configuración actualizada.')
+
+    expect(onSetDiscountCodeState).toHaveBeenCalledWith('coupon-open', 'public')
+  })
+
+  it('marca la promoción que se aplica sola', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-public',
+            code: 'TODOS',
+            percentOff: 10,
+            appliesTo: 'both',
+            redeemedCount: 0,
+            active: true,
+            audience: 'public',
+          },
+        ],
+      },
+    })
+
+    expect(screen.getByText('Se aplica sola')).toBeTruthy()
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción TODOS' })
+    expect(within(states).getByRole('radio', { name: 'Para todos' }).checked).toBe(true)
+  })
+
+  // El error de cambiar el estado se mostraba dentro del formulario de edición,
+  // que en este flujo está cerrado: el rechazo quedaba invisible y el control
+  // volvía solo a su lugar sin explicar nada.
+  it('muestra en la propia fila el rechazo al cambiar de estado', async () => {
+    const onSetDiscountCodeState = vi.fn(async () => ({
+      error: 'La promoción agotó su cupo (10 de 10).',
+    }))
+    renderPricing({
+      onSetDiscountCodeState,
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-rejected',
+            code: 'RECHAZO',
+            percentOff: 15,
+            appliesTo: 'membership',
+            redeemedCount: 0,
+            active: true,
+            audience: 'code',
+          },
+        ],
+      },
+    })
+
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción RECHAZO' })
+    fireEvent.click(within(states).getByRole('radio', { name: 'Deshabilitada' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'La promoción agotó su cupo (10 de 10).',
+    )
   })
 
   it('copia el código y confirma la acción en la misma fila', async () => {

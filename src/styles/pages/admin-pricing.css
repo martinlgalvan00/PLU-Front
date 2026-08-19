@@ -685,6 +685,97 @@
   opacity: 0.55;
 }
 
+/* Estado de una promocion: cerrada -> restringida -> abierta.
+   Es un radiogroup y no el switch de arriba porque son tres estados, no dos, y
+   porque el cupo agotado deja fuera de alcance las dos opciones abiertas: un
+   checkbox no sabe expresar "esta opcion existe pero hoy no se puede elegir".
+   Vive en su propia linea de la grilla (columna completa, alineado a la
+   derecha) para no comprimir el titulo ni el importe de la fila. */
+.admin-pricing__promo-state {
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 2px;
+  display: inline-flex;
+  gap: 0;
+  grid-column: 1 / -1;
+  justify-self: end;
+  overflow: hidden;
+}
+
+.admin-pricing__promo-state-option {
+  align-items: center;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  min-height: 32px;
+  padding: 0.35rem 0.75rem;
+  position: relative;
+  text-transform: uppercase;
+  transition:
+    background-color 160ms var(--ease-out, ease),
+    color 160ms var(--ease-out, ease);
+}
+
+.admin-pricing__promo-state-option + .admin-pricing__promo-state-option {
+  border-left: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+}
+
+.admin-pricing__promo-state-option input {
+  height: 100%;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.admin-pricing__promo-state-option:hover:not(.is-selected):not(:has(input:disabled)) {
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  color: var(--color-text-primary);
+}
+
+.admin-pricing__promo-state-option.is-selected {
+  background: color-mix(in srgb, var(--plu-gold-500, var(--color-brand-gold)) 16%, transparent);
+  color: color-mix(
+    in srgb,
+    var(--plu-gold-500, var(--color-brand-gold)) 88%,
+    var(--color-text-primary)
+  );
+}
+
+.admin-pricing__promo-state-option:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: -2px;
+}
+
+.admin-pricing__promo-state-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Consecuencia o rechazo de un cambio de estado, en la fila que lo produjo:
+   antes el error viajaba al formulario de edicion y, con el formulario
+   cerrado, no se veia en ningun lado. */
+.admin-pricing__promo-note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin: 0;
+  max-width: 52ch;
+  text-align: right;
+}
+
+.admin-pricing__promo-note.is-error {
+  color: var(--color-danger-text, var(--color-brand-red));
+}
+
+.admin-pricing__status--public {
+  color: var(--color-brand-celeste);
+}
+
 .admin-pricing__form {
   animation: admin-block-enter 0.28s var(--ease-out, ease) backwards;
   background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
@@ -1163,6 +1254,22 @@
     .admin-pricing__switch {
       width: auto;
     }
+
+    .admin-pricing__promo-state {
+      justify-self: stretch;
+      width: 100%;
+    }
+
+    .admin-pricing__promo-state-option {
+      flex: 1;
+      justify-content: center;
+      min-height: 44px;
+    }
+
+    .admin-pricing__promo-note {
+      justify-self: stretch;
+      text-align: left;
+    }
   }
 
   @container admin-pricing (max-width: 719px) {
@@ -1539,6 +1646,11 @@
 }
 
 [data-theme='light'] .admin-pricing__switch.is-active {
+  color: var(--plu-gold-600, var(--color-brand-gold));
+}
+
+[data-theme='light'] .admin-pricing__promo-state-option.is-selected {
+  background: color-mix(in srgb, var(--plu-gold-600, var(--color-brand-gold)) 18%, #fff);
   color: var(--plu-gold-600, var(--color-brand-gold));
 }
 
