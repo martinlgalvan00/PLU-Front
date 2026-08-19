@@ -983,8 +983,10 @@ export default {
       eyebrow: 'Mi cuenta',
       title: 'Datos personales',
       lead: 'Mantené tus datos al día. Los campos marcados con * son requeridos para inscribirte a torneos.',
-      photoHint: 'JPG, PNG o WEBP, hasta 3 MB. Opcional, para tu card compartible.',
+      photoHint:
+        'Hacé clic o arrastrá una imagen sobre tu foto para cambiarla. JPG, PNG o WEBP, hasta 3 MB.',
       photoUpload: 'Subir foto',
+      photoChange: 'Cambiar foto',
       photoUploading: 'Subiendo…',
       photoRemove: 'Quitar',
       officialGroup: 'Datos oficiales',
