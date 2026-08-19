@@ -2080,17 +2080,40 @@
 }
 
 .admin-finance--ledger {
-  gap: 22px;
+  gap: 24px;
+}
+
+/* Tres superficies (resumen / egreso / movimientos) en vez de una franja
+   continua de secciones separadas por líneas — mismo criterio que el resto
+   del panel: cada bloque funcional es su propia tarjeta con aire y sombra
+   propios. */
+.admin-finance--ledger .admin-finance__summary,
+.admin-finance--ledger .admin-finance__ledger,
+.admin-finance--ledger .admin-finance__expense {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
+  padding: 24px 26px;
+}
+
+.admin-finance--ledger .admin-finance__summary {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-finance--ledger .admin-finance__ledger {
+  display: grid;
+  gap: 18px;
+  padding: 20px 22px;
 }
 
 .admin-finance--ledger .admin-finance__header {
   align-items: flex-end;
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
   flex-wrap: wrap;
   gap: 12px 20px;
   justify-content: space-between;
-  padding-bottom: 14px;
 }
 
 .admin-finance--ledger .admin-finance__intro {
@@ -2136,11 +2159,12 @@
 
 .admin-finance--ledger .admin-finance__overview {
   align-items: center;
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
   display: grid;
   gap: 20px 40px;
   grid-template-columns: auto minmax(0, 1fr);
-  padding-bottom: 18px;
+  padding-top: 18px;
 }
 
 .admin-finance--ledger .admin-finance__balance {
@@ -2301,10 +2325,8 @@
 }
 
 .admin-finance--ledger .admin-finance__expense {
-  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
   gap: 14px;
-  padding-top: 16px;
 }
 
 .admin-finance--ledger .admin-finance__expense h3 {
@@ -7111,6 +7133,40 @@
 [data-theme='light'] .admin-filter-chip.is-active:hover {
   background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
   border-color: rgba(26, 107, 176, 0.4);
+}
+
+/* Tono opcional del chip activo — mapea al mismo color que ya usa el
+   status-pill de la fila (ej. filtro "Bloqueado" en rojo), para que el
+   filtro prediga el color del resultado en vez de un celeste genérico.
+   admin-minimal.css importa DESPUÉS de este archivo y ya pinta el chip
+   activo con `.admin-shell :is(.admin-filters--compact, …) .admin-filter-chip.is-active`
+   (4 clases) — hace falta más especificidad, no solo orden, para ganarle
+   (mismo criterio que el override de `.btn` más abajo en este archivo). */
+.admin-shell
+  :is(.admin-filters--compact, .admin-filter-group--compact)
+  .admin-filter-chip.admin-filter-chip--tone-success.is-active {
+  background: var(--admin-status-success-bg);
+  border-color: var(--admin-status-success-border);
+  box-shadow: none;
+  color: var(--admin-status-success);
+}
+
+.admin-shell
+  :is(.admin-filters--compact, .admin-filter-group--compact)
+  .admin-filter-chip.admin-filter-chip--tone-danger.is-active {
+  background: var(--admin-status-danger-bg);
+  border-color: var(--admin-status-danger-border);
+  box-shadow: none;
+  color: var(--admin-status-danger);
+}
+
+.admin-shell
+  :is(.admin-filters--compact, .admin-filter-group--compact)
+  .admin-filter-chip.admin-filter-chip--tone-info.is-active {
+  background: var(--admin-status-info-bg);
+  border-color: var(--admin-status-info-border);
+  box-shadow: none;
+  color: var(--admin-status-info);
 }
 
 .admin-filters--compact .admin-filters__search {
@@ -14453,7 +14509,125 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail {
   display: grid;
-  gap: 18px;
+  gap: 24px;
+}
+
+.athlete-detail__toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.athlete-detail__edit-trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 999px;
+  color: var(--admin-ink, var(--color-text-primary));
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 14px;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.athlete-detail__edit-trigger:hover {
+  background: var(--admin-surface-muted, var(--color-bg-elevated));
+  border-color: var(--admin-hairline-strong, var(--color-border-light));
+}
+
+.athlete-detail__edit-panel {
+  align-items: flex-end;
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .athlete-detail__edit-panel {
+    animation: admin-bulk-panel-in var(--motion-fast, 160ms) var(--ease-out) both;
+  }
+}
+
+.athlete-detail__edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 160px;
+}
+
+.athlete-detail__edit-field--grow {
+  flex: 1 1 220px;
+}
+
+.athlete-detail__edit-field > span {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.athlete-detail__edit-field select,
+.athlete-detail__edit-field input {
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-md);
+  color: var(--admin-ink, var(--color-text-primary));
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.athlete-detail__edit-field select:focus-visible,
+.athlete-detail__edit-field input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+.athlete-detail__edit-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.athlete-detail__edit-cancel {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 4px;
+}
+
+.athlete-detail__edit-cancel:hover:not(:disabled) {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.athlete-detail__edit-error {
+  color: var(--color-danger-text);
+  flex-basis: 100%;
+  font-size: 12.5px;
+  margin: 0;
 }
 
 .athlete-detail__back {
@@ -14504,8 +14678,10 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail__profile.member-profile-card {
   background: var(--admin-surface, var(--color-bg-surface));
-  box-shadow: none;
-  padding: 18px 20px;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
+  padding: 22px 24px;
 }
 
 .athlete-detail__profile .member-profile-card__avatar {
@@ -14524,18 +14700,19 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail__sheet {
   display: grid;
-  gap: 12px;
+  gap: 20px;
   grid-template-columns: 1fr;
 }
 
 .athlete-detail__group {
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 12px;
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
   display: grid;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  padding: 12px 14px 10px;
+  padding: 20px 22px 16px;
 }
 
 .athlete-detail__group-title {
@@ -14557,11 +14734,11 @@ button.action-queue__proof:focus-visible {
 .athlete-detail__row {
   align-items: start;
   border-bottom: 1px solid
-    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 70%, transparent);
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 45%, transparent);
   display: grid;
   gap: 4px 14px;
   grid-template-columns: minmax(88px, 28%) minmax(0, 1fr);
-  padding: 9px 0;
+  padding: 13px 0;
 }
 
 .athlete-detail__group .athlete-detail__row:last-child {
@@ -18370,6 +18547,384 @@ button.action-queue__proof:focus-visible {
     width: 100%;
     justify-content: space-between;
   }
+}
+
+/* ---- Toolbar de acciones en bloque — AthletesSection ---- */
+
+/* Franja lisa, no una card flotante propia — ya vive adentro de la card
+   de la tabla (misma lógica que el fondo del resumen arriba): apilar una
+   card con radio/sombra propios ahí adentro se leía como card anidada. */
+.admin-athletes-bulk {
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  padding: 14px var(--space-lg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-athletes-bulk {
+    animation: admin-bulk-bar-in var(--motion-base, 240ms) var(--ease-out) both;
+  }
+
+  @keyframes admin-bulk-bar-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+.admin-athletes-bulk__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+}
+
+.admin-athletes-bulk__count {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.admin-athletes-bulk__result {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.admin-athletes-bulk__actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.admin-athletes-bulk__actions .btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.admin-athletes-bulk__dismiss {
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  margin-left: auto;
+  width: 26px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.admin-athletes-bulk__dismiss:hover {
+  background: var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.admin-athletes-bulk__panel {
+  align-items: flex-end;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  padding-top: var(--space-sm);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-athletes-bulk__panel {
+    animation: admin-bulk-panel-in var(--motion-fast, 160ms) var(--ease-out) both;
+  }
+
+  @keyframes admin-bulk-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+.admin-athletes-bulk__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.admin-athletes-bulk__field--grow {
+  flex: 1 1 200px;
+}
+
+.admin-athletes-bulk__field > span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-athletes-bulk__field select,
+.admin-athletes-bulk__field input {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13px;
+  min-height: 36px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.admin-athletes-bulk__field select:focus-visible,
+.admin-athletes-bulk__field input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+.admin-athletes-bulk__text-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  padding: 6px 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.admin-athletes-bulk__text-btn:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.admin-athletes-bulk__text-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Bloquear es reversible, no un hard-delete: tono de advertencia (oro),
+   nunca el rojo que el resto del panel reserva a error/peligro real. */
+.admin-athletes-bulk__panel--confirm {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--color-brand-gold) 30%, var(--color-border-subtle));
+  border-radius: var(--border-radius-md);
+  border-top: 0;
+  margin-top: var(--space-xs);
+  padding: 10px 12px;
+}
+
+.admin-athletes-bulk__panel--confirm p {
+  color: var(--color-text-secondary);
+  flex: 1 1 260px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-shell .btn.admin-athletes-bulk__block-confirm {
+  background: var(--color-brand-gold);
+  border-color: var(--color-brand-gold);
+  color: var(--color-brand-action-text);
+}
+
+.admin-shell .btn.admin-athletes-bulk__block-confirm:hover:not(:disabled) {
+  background: var(--color-brand-gold-light, var(--color-brand-gold));
+}
+
+.admin-athletes-bulk__error {
+  color: var(--color-danger-text);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .admin-athletes-bulk__dismiss {
+    margin-left: 0;
+  }
+
+  .admin-athletes-bulk__actions {
+    width: 100%;
+  }
+}
+
+/* ---- AthletesSection — filtros en píldora + tabla separada del bloque
+   de filtros (dos superficies en vez de una sola card continua). ---- */
+
+/* admin-minimal.css importa después de este archivo y ya trae, con la
+   misma especificidad, un fondo/reset propios para estas dos superficies
+   (`.admin-shell .admin-list-section__chrome` y el reset a transparente
+   de `.admin-shell .admin-list-shell`) — hace falta una clase extra de
+   especificidad para ganarles, no alcanza con el orden. */
+.admin-shell .admin-list-section--athletes > .admin-list-section__chrome {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
+  margin-bottom: var(--space-lg);
+  overflow: hidden;
+}
+
+/* El glifo mayúscula del eyebrow ("PERSONAS") queda pegado al límite
+   superior del padding-box; sin este aire, el overflow:hidden de arriba
+   (necesario para las esquinas redondeadas) le corta la "P". El layout
+   "rails" (admin-minimal.css) ya fija padding-top:2px acá con 4 clases —
+   hace falta una quinta para ganarle. */
+.admin-shell
+  .admin-list-section--athletes.admin-list-section--rails
+  > .admin-list-section__chrome
+  > .admin-list-shell__header {
+  padding-top: 18px;
+}
+
+.admin-shell .admin-list-section--athletes .admin-list-shell--athletes {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
+  overflow: hidden;
+}
+
+/* El resumen (Activos/Vencidos/Bloqueados) quedaba pegado a la tabla con
+   solo una línea fina — un tinte propio lo lee como su propia franja en
+   vez de la primera fila más de la tabla, sin llegar a ser una card
+   anidada adentro de la card de la tabla. */
+.admin-shell
+  .admin-list-section--athletes
+  .admin-list-shell--athletes
+  .admin-list-shell__stats-panel {
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* Divisores más discretos entre stats — la separación ya la da el fondo
+   de la franja de arriba; una línea fuerte adentro suma ruido de más. */
+.admin-shell
+  .admin-list-shell--athletes
+  .admin-list-shell__stats-strip
+  .admin-list-stat {
+  border-right-color: color-mix(in srgb, var(--color-border-subtle) 45%, transparent);
+  padding: 16px 20px;
+}
+
+/* ---- Selección de filas — un único tratamiento para cualquier tabla
+   (AdminDataTable) que reciba rowSelection, no solo la de atletas. ---- */
+
+/* antd pinta la fila seleccionada con su color primario (oro) a bastante
+   opacidad — llamativo para una selección de trabajo. Un tinte celeste
+   suave, igual criterio que el resto de la pantalla, se nota sin gritar.
+   Transición explícita: sin esto el cambio de fondo es instantáneo y la
+   fila "salta" al tildarla. */
+.admin-shell .admin-data-table tr.ant-table-row-selected > td {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, var(--color-bg-surface)) !important;
+  transition: background var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.admin-shell .admin-data-table tr.ant-table-row-selected:hover > td {
+  background: color-mix(in srgb, var(--color-brand-celeste) 16%, var(--color-bg-surface)) !important;
+}
+
+/* Acento vertical que "crece" al tildar una fila — comunica la selección
+   además del tinte de fondo, útil en el primer instante antes de que el
+   usuario note el cambio de color. Vive en la primera celda para no
+   depender de position:relative sobre <tr>, poco fiable entre navegadores. */
+.admin-shell .admin-data-table .ant-table-tbody > tr > td:first-child {
+  position: relative;
+}
+
+.admin-shell .admin-data-table .ant-table-tbody > tr > td:first-child::before {
+  background: var(--color-brand-celeste);
+  bottom: 0;
+  content: '';
+  left: 0;
+  position: absolute;
+  top: 0;
+  transform: scaleY(0);
+  transition: transform var(--motion-fast, 160ms) var(--ease-standard, ease);
+  width: 3px;
+}
+
+.admin-shell .admin-data-table tr.ant-table-row-selected > td:first-child::before {
+  transform: scaleY(1);
+}
+
+/* Checkbox de selección: el celeste es el tono de identidad/selección de
+   PLU (ver palette.css) — el oro queda reservado a la acción primaria, así
+   que no debería filtrarse al check de una fila. antd v6 pinta el cuadrado
+   directamente sobre `.ant-checkbox`/`.ant-checkbox-checked` (ya no existe
+   un `.ant-checkbox-inner` separado). */
+.admin-shell .admin-data-table .ant-checkbox-checked {
+  background-color: var(--color-brand-celeste);
+  border-color: var(--color-brand-celeste);
+}
+
+.admin-shell .admin-data-table .ant-checkbox-checked:not(.ant-checkbox-disabled):hover {
+  background-color: color-mix(in srgb, var(--color-brand-celeste) 85%, black);
+  border-color: transparent;
+}
+
+.admin-shell .admin-data-table .ant-checkbox:not(.ant-checkbox-checked, .ant-checkbox-disabled):hover {
+  border-color: var(--color-brand-celeste);
+}
+
+.admin-shell .admin-data-table .ant-checkbox-input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Modo lote (2+ filas tildadas): la tabla suma un borde celeste sutil que
+   enmarca todo el bloque en selección de trabajo, y cada fila que entra al
+   grupo hace un pop breve del acento — confirma visualmente "ahora estás
+   operando sobre un conjunto", no solo sobre una fila. */
+.admin-shell .admin-data-table.admin-data-table--bulk-active .ant-table-container {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand-celeste) 35%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-shell .admin-data-table tr.data-table__row--bulk-selected > td:first-child::before {
+    animation: admin-row-bulk-pop var(--motion-base, 240ms) var(--ease-spring, ease) both;
+  }
+
+  @keyframes admin-row-bulk-pop {
+    0% {
+      transform: scaleY(0.3);
+    }
+    60% {
+      transform: scaleY(1.15);
+    }
+    100% {
+      transform: scaleY(1);
+    }
+  }
+}
+
+/* admin-minimal.css importa después y pinta estos radios con selectores
+   .admin-shell-prefixed (3 clases) — hace falta esa misma raíz + el
+   variant para ganarles, ver nota más arriba sobre el tono de los chips. */
+.admin-shell .admin-filters--athletes.admin-filters--compact .admin-filters__search {
+  border-radius: var(--border-radius-pill);
+}
+
+.admin-shell .admin-filters--athletes.admin-filters--compact .admin-filter-chip {
+  border-radius: var(--border-radius-pill);
 }
 
 /* Valor ausente en una celda de tabla (ej. inscripción sin grilla asignada):

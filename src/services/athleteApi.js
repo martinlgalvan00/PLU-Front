@@ -1,5 +1,5 @@
 import { callRpc } from '../lib/rpcErrors.js'
-import { apiDelete, apiGet, apiPost, apiRequest } from '../lib/api.js'
+import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
 import { toCamelSchedule } from '../lib/eventSchedule.js'
 
 /**
@@ -703,6 +703,21 @@ export async function rotateAthleteCredentialToken(athleteId) {
 export async function deleteAthleteRequest(athleteId) {
   const result = await apiDelete(`/api/athletes/admin/${encodeURIComponent(athleteId)}`)
   return { deletedAthlete: result.deletedAthlete }
+}
+
+/** Edición admin de un atleta (status/gym). Requiere admin.athletes.write. */
+export async function updateAthleteAdminRequest(athleteId, patch) {
+  const { athlete } = await apiPatch(`/api/athletes/admin/${encodeURIComponent(athleteId)}`, patch)
+  return { athlete: toCamelAthlete(athlete) }
+}
+
+/**
+ * Edición en bloque — partial success: `failed` trae los ids que no se
+ * pudieron actualizar sin frenar al resto del lote.
+ */
+export async function bulkUpdateAthletesRequest(athleteIds, patch) {
+  const { updated, failed } = await apiPatch('/api/athletes/admin/bulk', { athleteIds, patch })
+  return { updated: (updated ?? []).map(toCamelAthlete), failed: failed ?? [] }
 }
 
 export async function registerAthletePhoto(_athleteId, photoPath) {
