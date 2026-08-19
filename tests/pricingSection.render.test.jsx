@@ -146,7 +146,9 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
     // El campo de porcentaje deja lugar al del precio promocional.
     expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
-    fireEvent.change(screen.getByLabelText(/Precio promocional/), { target: { value: '120000' } })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
+      target: { value: '120000' },
+    })
     fireEvent.change(screen.getByLabelText('Aplica a'), { target: { value: 'combo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
@@ -156,6 +158,119 @@ describe('Tarifas — alta de planes y combo', () => {
       fixedPrice: 120000,
       percentOff: undefined,
       appliesTo: 'combo',
+      // Sin precio manual cargado: transferencia y efectivo cobran lo mismo que
+      // Mercado Pago. Es el default y el caso que pidió Administración.
+      fixedPriceManual: undefined,
+    }))
+  })
+
+  it('deja pactar el mismo importe en Mercado Pago y en transferencia', async () => {
+    // El precio del canal manual no tiene por qué ser menor: cargar $120.000 en
+    // los dos campos tiene que guardarse tal cual, sin que nada lo rechace.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'pacto' } })
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
+      target: { value: '120000' },
+    })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por transferencia/), {
+      target: { value: '120000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'PACTO',
+      kind: 'fixed_price',
+      fixedPrice: 120000,
+      fixedPriceManual: 120000,
+    }))
+  })
+
+  it('un precio manual mayor que el de Mercado Pago tambien se guarda', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'caro' } })
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
+      target: { value: '120000' },
+    })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por transferencia/), {
+      target: { value: '135000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      fixedPrice: 120000,
+      fixedPriceManual: 135000,
+    }))
+  })
+
+  it('el precio promocional por canal no existe en una promo de porcentaje', () => {
+    renderPricing()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    expect(screen.queryByLabelText(/Precio promocional por transferencia/)).toBeNull()
+
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    expect(screen.getByLabelText(/Precio promocional por transferencia/)).toBeTruthy()
+  })
+
+  it('programa la apertura y rechaza una ventana invertida', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'preventa' } })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '20' } })
+    fireEvent.change(screen.getByLabelText(/^Apertura/), { target: { value: '2026-09-10T00:00' } })
+    fireEvent.change(screen.getByLabelText(/^Vencimiento/), { target: { value: '2026-09-01T00:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
+    expect(
+      screen.getByText('El cierre de la promoción tiene que ser posterior a su apertura.'),
+    ).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText(/^Vencimiento/), { target: { value: '2026-09-30T00:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'PREVENTA',
+      startsAt: '2026-09-10T00:00',
+      expiresAt: '2026-09-30T00:00',
+    }))
+  })
+
+  it('convierte la lista de invitados en exclusividad y rechaza un email invalido', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'gym' } })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '15' } })
+    fireEvent.change(screen.getByLabelText(/Exclusiva para/), {
+      target: { value: 'ana@plu.ar\nno-es-un-mail' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
+    expect(screen.getByText('no-es-un-mail no es una dirección de correo válida.')).toBeTruthy()
+
+    // Se aceptan los separadores que trae pegar una columna de planilla, y se
+    // normaliza a minúsculas sin repetidos.
+    fireEvent.change(screen.getByLabelText(/Exclusiva para/), {
+      target: { value: 'Ana@PLU.ar, bruno@plu.ar; ana@plu.ar' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'GYM',
+      invitees: ['ana@plu.ar', 'bruno@plu.ar'],
     }))
   })
 

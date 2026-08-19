@@ -1434,6 +1434,11 @@ export function createAthleteRoutes({
           code,
           appliesTo,
           baseAmount,
+          // El mismo `method` con el que se guardaría la orden: la RPC lo usa
+          // para elegir el precio promocional del canal (`fixed_price` vs
+          // `fixed_price_manual`). Sin esto, una promo con precio manual
+          // anunciaba el importe de Mercado Pago y cobraba el otro.
+          paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
         })
         res.json({ preview })
       } catch (error) {

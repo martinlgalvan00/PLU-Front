@@ -40,6 +40,7 @@ import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { formatRelativeTime, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
+import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 import AnimatedNumber from '../motion/AnimatedNumber.tsx'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
@@ -611,6 +612,7 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
 }
 
 function PitbullInscriptionSection({
+  athleteEventStatus = null,
   canRegister,
   capacityStatus,
   checkoutLocked = false,
@@ -634,6 +636,11 @@ function PitbullInscriptionSection({
   const statusLabel = softLaunch ? t('pages.pitbull.badgeComingSoon') : statusMeta.label
   const statusTone = softLaunch ? 'neutral' : statusMeta.tone
   const comboLive = Boolean(comboOffer) && !softLaunch && !hasActiveMembership
+  // Estado propio de quien mira, distinto del estado del meet: el contador
+  // puede decir "inscripción abierta" y esta persona ya tener su cupo.
+  const isRegistered = athleteEventStatus === 'registered'
+  const paymentPending = athleteEventStatus === 'pending_payment'
+  const showAthleteState = isRegistered || paymentPending
   const bodyGroupMotion = {
     hidden: {},
     show: { transition: { staggerChildren: MOTION_STAGGER.step, delayChildren: 0.24 } },
@@ -692,10 +699,22 @@ function PitbullInscriptionSection({
           softLaunch ? 'pitbull-inscription-shell--soon' : '',
           comboLive ? 'pitbull-inscription-shell--combo' : '',
           hasActiveMembership ? 'pitbull-inscription-shell--affiliated' : '',
+          showAthleteState ? 'pitbull-inscription-shell--mine' : '',
         ]
           .filter(Boolean)
           .join(' ')}
       >
+        {showAthleteState ? (
+          <p
+            className="pitbull-inscription-mine"
+            data-state={isRegistered ? 'registered' : 'pending_payment'}
+          >
+            <span className="pitbull-inscription-mine__dot" aria-hidden />
+            <strong>{t(`pages.events.athleteStatus.${athleteEventStatus}`)}</strong>
+            <span>{t(`pages.events.athleteStatusHint.${athleteEventStatus}`)}</span>
+          </p>
+        ) : null}
+
         <PitbullInscriptionCounter
           capacityLive={capacityLive}
           registered={registered}
@@ -752,7 +771,7 @@ function PitbullInscriptionSection({
               .join(' ')}
             {...childProps}
           >
-            {!comboLive ? (
+            {!comboLive && !showAthleteState ? (
               <p className="pitbull-inscription-shell__desc">
                 {hasActiveMembership
                   ? t('pages.pitbull.inscriptionActionOpen')
@@ -765,7 +784,27 @@ function PitbullInscriptionSection({
             ) : null}
 
             <div className="pitbull-inscription-shell__actions">
-              {canRegister ? (
+              {showAthleteState ? (
+                <>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--primary"
+                    onClick={onRegister}
+                  >
+                    {isRegistered
+                      ? t('pages.pitbull.viewMyRegistration')
+                      : t('pages.events.athleteStatusAction.pending_payment')}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                    onClick={() => onNavigate('rulebook')}
+                  >
+                    {t('pages.pitbull.viewRulebook')}
+                  </button>
+                </>
+              ) : canRegister ? (
                 <>
                   <button
                     type="button"
@@ -952,6 +991,7 @@ export default function PitbullPage({
   events = UPCOMING_EVENTS,
   session = null,
   memberships = [],
+  registrations = [],
   checkoutAvailability = {},
 }) {
   const { PITBULL_CLASSIC, PITBULL_VENUE } = useContent()
@@ -980,6 +1020,16 @@ export default function PitbullPage({
   const checkoutLocked = !paidCheckoutOpen
   const hasActiveMembership =
     session?.role === 'athlete_plu' && hasCurrentMembership(memberships, session.athleteId)
+  // Mismo resolver que el calendario público y la cuenta: la página del meet
+  // no puede opinar distinto del perfil sobre si esta persona está inscripta.
+  const athleteEventStatus = resolveAthleteEventStatus({
+    event: pitbullEvent,
+    session,
+    registrations,
+    memberships,
+  })
+  const isRegistered = athleteEventStatus === 'registered'
+  const paymentPending = athleteEventStatus === 'pending_payment'
   const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
@@ -1016,7 +1066,21 @@ export default function PitbullPage({
     onNavigate('tickets', { eventSlug: pitbullEvent?.slug })
   }
 
+  function goToCompetitionCheckout() {
+    if (onSelectEvent) onSelectEvent(pitbullEvent)
+    else onNavigate('competition')
+  }
+
   function handleHeroRegister() {
+    // Quien ya tiene el cupo no vuelve al checkout: va a su inscripción.
+    if (isRegistered) {
+      onNavigate('profile')
+      return
+    }
+    if (paymentPending) {
+      goToCompetitionCheckout()
+      return
+    }
     if (canRegister) {
       if (onSelectEvent) onSelectEvent(pitbullEvent)
       else onNavigate('competition')
@@ -1036,12 +1100,19 @@ export default function PitbullPage({
   }
 
   function handlePitbullRegistration() {
+    if (isRegistered) {
+      onNavigate('profile')
+      return
+    }
+    if (paymentPending) {
+      goToCompetitionCheckout()
+      return
+    }
     if (!canRegister) {
       scrollToSection('inscripcion')
       return
     }
-    if (onSelectEvent) onSelectEvent(pitbullEvent)
-    else onNavigate('competition')
+    goToCompetitionCheckout()
   }
 
   function handleHeroSecondary() {
@@ -1055,6 +1126,7 @@ export default function PitbullPage({
   return (
     <main className="page page--design pitbull-page pitbull-page--premium">
       <PitbullHero
+        athleteStatus={athleteEventStatus}
         canRegister={canRegister}
         checkoutLocked={checkoutLocked}
         eventStatus={eventStatus}
@@ -1071,6 +1143,7 @@ export default function PitbullPage({
       <div className="pitbull-page__body">
         <div className="pitbull-dossier pitbull-dossier--minimal">
           <PitbullInscriptionSection
+            athleteEventStatus={athleteEventStatus}
             canRegister={canRegister}
             capacityStatus={capacityStatus}
             checkoutLocked={checkoutLocked}

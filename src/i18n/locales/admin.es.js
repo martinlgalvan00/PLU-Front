@@ -574,15 +574,22 @@ export default {
       percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
       codeKindLabel: 'Modalidad',
       codeKindHint:
-        'El descuento resta un porcentaje del precio vigente. El precio promocional fija cuánto se paga, sin importar el medio de pago.',
+        'El descuento resta un porcentaje. El precio promocional fija cuánto se paga, y se pacta aparte por medio de pago.',
       codeKind: {
         percent: 'Descuento por porcentaje',
         fixed_price: 'Precio promocional fijo',
       },
-      fixedPrice: 'Precio promocional (ARS)',
+      fixedPrice: 'Precio promocional por Mercado Pago (ARS)',
       fixedPriceHint:
-        'Lo que paga quien use el código. Tiene que ser menor al precio vigente de lo que compra.',
+        'Lo que paga por Mercado Pago quien use el código. Tiene que ser menor al precio vigente de lo que compra.',
       fixedPriceInvalid: 'El precio promocional tiene que ser un número entero mayor a 0.',
+      fixedPriceManual: 'Precio promocional por transferencia/efectivo (ARS)',
+      fixedPriceManualPlaceholder: 'Igual que el precio de Mercado Pago',
+      fixedPriceManualHint:
+        'Vacío = cobran lo mismo que por Mercado Pago. Puede ser igual, menor o mayor.',
+      fixedPriceManualInvalid:
+        'El precio por transferencia o efectivo tiene que ser un número entero mayor a 0.',
+      fixedPriceManualNote: 'Transferencia y efectivo: {{amount}}',
       fixedPriceScopeInvalid:
         'Un precio promocional necesita un alcance único: afiliación, inscripción o combo.',
       audienceLabel: 'Quién accede',
@@ -663,6 +670,18 @@ export default {
       maxRedemptionsHint:
         'Dejalo vacío si no querés limitarlo. Cada canje descuenta un cupo automáticamente.',
       unlimitedUses: 'Sin tope',
+      startsAt: 'Apertura',
+      startsAtHint: 'Vacío = abre en cuanto la habilités. Con fecha, arranca sola.',
+      opensOn: 'Abre el {{date}}',
+      promoWindowInvalid: 'El cierre de la promoción tiene que ser posterior a su apertura.',
+      invitees: 'Exclusiva para (emails)',
+      inviteesPlaceholder: 'un email por línea',
+      inviteesHint:
+        'Vacío = abierta a cualquiera. Con direcciones, sólo esas cuentas pueden usarla.',
+      inviteesCountHint: 'Exclusiva para {{count}} cuenta(s). Vaciá la lista para abrirla.',
+      inviteesInvalid: '{{email}} no es una dirección de correo válida.',
+      inviteesTooMany: 'La lista de invitados no puede tener más de 500 direcciones.',
+      exclusiveBadge: 'Exclusiva · {{count}}',
       expiresAt: 'Vencimiento',
       expiresAtHint: 'Dejalo vacío para que el código nunca expire.',
       noExpiry: 'Sin vencimiento',
@@ -686,6 +705,7 @@ export default {
         exhausted: 'Agotado',
         expired: 'Vencido',
         inactive: 'Desactivado',
+        scheduled: 'Programado',
       },
       exhaustedSwitch: 'Agotado',
       subscriptionsTitle: 'Suscripciones activas',
