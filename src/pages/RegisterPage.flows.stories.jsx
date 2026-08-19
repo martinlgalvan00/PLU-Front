@@ -87,6 +87,52 @@ export const Inscripcion = {
   },
 }
 
+/**
+ * Inscripción confirmada: el único estado del flujo de competencia que cierra
+ * algo y por lo tanto el único que festeja. La credencial del meet se emite
+ * cuando el ingreso ya está habilitado (`isRegistrationAdmitted`), no cuando
+ * existe la orden — con la orden pendiente el sello no aparece y no hay ráfaga.
+ *
+ * La pantalla monta el bloque de estado dos veces (aside de desktop y contexto
+ * mobile, uno apagado por `display: none` según el breakpoint) y la ráfaga solo
+ * sale del sello que está efectivamente en pantalla.
+ */
+export const InscripcionConfirmada = {
+  args: {
+    event,
+    flow: 'competition',
+    form: {
+      division: 'Open',
+      category: 'Raw',
+      estimatedWeight: '83',
+      paymentMethod: 'mercado_pago',
+    },
+    createdOrder: {
+      type: 'competition',
+      athleteName: athlete.fullName,
+      athleteDocument: athlete.documentId,
+      athleteId: athlete.id,
+      paymentId: '4d1c0f2a-2f52-4c48-9d55-6d0c8c9f4a11',
+      paymentMethod: 'mercado_pago',
+      amount: 75000,
+      concept: 'Inscripción Pitbull Classic 2026',
+      reference: 'RORD-story-confirmada',
+      status: 'confirmada',
+    },
+    registrations: [
+      {
+        id: 'reg-story-confirmada',
+        paymentOrderId: '4d1c0f2a-2f52-4c48-9d55-6d0c8c9f4a11',
+        event: 'Pitbull Classic 2026',
+        eventSlug: 'pitbull-classic-2026',
+        status: 'confirmada',
+        requiresMembership: false,
+      },
+    ],
+    total: 75000,
+  },
+}
+
 export const InscripcionTransferencia = {
   args: {
     event,

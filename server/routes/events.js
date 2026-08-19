@@ -234,9 +234,16 @@ const eventStateSchema = z
   .object({
     status: z.enum(EVENT_STATUSES).optional(),
     published: z.boolean().optional(),
+    // Habilitar/deshabilitar el meet como "solo afiliados" sin pasar por el
+    // upsert: era el único flag de la operación diaria que obligaba a
+    // reescribir el evento entero (y con él la grilla ya asignada).
+    requiresMembership: z.boolean().optional(),
   })
   .refine(
-    (body) => body.status !== undefined || body.published !== undefined,
+    (body) =>
+      body.status !== undefined ||
+      body.published !== undefined ||
+      body.requiresMembership !== undefined,
     'No hay ningún cambio para aplicar.',
   )
 
@@ -478,6 +485,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_event_slug: slug,
             p_status: req.validatedBody.status ?? null,
             p_published: req.validatedBody.published ?? null,
+            p_requires_membership: req.validatedBody.requiresMembership ?? null,
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           }),
           'No se pudo cambiar el estado del evento.',

@@ -661,9 +661,21 @@ export default {
       closedSingular: 'Cerrada',
       checkoutOn: 'Habilitados',
       checkoutOff: 'Pausados',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Transferencia bancaria',
+        cash_pitbull: 'Efectivo en Pitbull',
+      },
+      channelsLabel: 'Medios de cobro',
+      channelsGroupAria: 'Medios de cobro de {{concept}}',
+      channelAria: 'Habilitar {{channel}} para {{concept}}',
+      channelOn: 'Activo',
+      channelOff: 'Cerrado',
+      noChannelWarning: 'Sin ningún medio abierto no se puede cobrar este concepto, aunque el alta esté habilitada.',
+      environmentHold: 'Una variable de entorno está frenando los cobros por encima del panel ({{variables}}). Los interruptores no tienen efecto hasta que se quite.',
       togglesTitle: 'Habilitación general',
       togglesLead:
-        'Corte total, con o sin código: apagado acá, nadie puede empezar una afiliación, inscripción, entrada o suscripción nueva.',
+        'Un bloque por concepto: si se puede dar de alta, con qué medios se cobra y si Finanzas acredita. Apagado acá, nadie empieza nada nuevo, tenga o no código.',
       togglesSummary: '{{open}} de {{total}} habilitados',
       togglesLoading: 'Cargando interruptores…',
       togglesLoadError: 'No se pudieron leer los interruptores generales.',
@@ -690,27 +702,6 @@ export default {
       ticketToggleLead:
         'Al cerrarlas, ningún evento vende entradas de público, sin tocar la configuración de cada torneo.',
       ticketToggleAria: 'Habilitar venta de entradas',
-      group: {
-        intakeTitle: 'Altas nuevas',
-        intakeLead: 'Quién puede empezar una operación ahora mismo, con o sin código de tanda.',
-        manualTitle: 'Transferencia y efectivo',
-        manualLead:
-          'Cerrado el canal manual, el checkout ofrece solo Mercado Pago. Lo que ya entró se sigue pudiendo validar.',
-        validationTitle: 'Validación y activación',
-        validationLead:
-          'Congela la decisión de Finanzas: nadie acredita comprobantes ni activa derechos de ese concepto, aunque tenga el permiso.',
-      },
-      membershipManualTitle: 'Afiliación por transferencia',
-      membershipManualLead:
-        'Al cerrarla, la afiliación solo se paga con Mercado Pago: se ocultan transferencia y efectivo en Pitbull.',
-      membershipManualAria: 'Habilitar afiliación por transferencia o efectivo',
-      registrationManualTitle: 'Inscripción por transferencia',
-      registrationManualLead:
-        'Al cerrarla, la inscripción y el combo solo se pagan con Mercado Pago.',
-      registrationManualAria: 'Habilitar inscripción por transferencia o efectivo',
-      ticketManualTitle: 'Entradas por transferencia',
-      ticketManualLead: 'Al cerrarla, las entradas solo se pagan con Mercado Pago.',
-      ticketManualAria: 'Habilitar entradas por transferencia',
       membershipValidationTitle: 'Validar afiliaciones',
       membershipValidationLead:
         'Congelada, no se aprueban ni rechazan comprobantes de afiliación ni se activa una afiliación a mano.',
@@ -954,6 +945,124 @@ export default {
     atCapacityNote:
       'Ya se anotaron todos los atletas del cupo. No entran inscripciones nuevas aunque el estado diga lo contrario.',
     hiddenBadge: 'Sin publicar',
+    accessLabel: 'Acceso',
+    accessMembers: 'Solo afiliados',
+    accessOpen: 'Abierto',
+    accessMembersNote:
+      'Para inscribirse hace falta afiliación vigente, y en la puerta un inscripto sin afiliación queda bloqueado.',
+    accessOpenNote:
+      'Cualquier atleta puede inscribirse sin afiliación. En la puerta alcanza con la inscripción confirmada.',
+    accessMembersRegisteredNote:
+      'Ya hay {{count}} inscriptos: los que no tengan afiliación vigente no van a poder ingresar.',
+    accessMembersSaved: 'El meet quedó solo para afiliados.',
+    accessOpenSaved: 'El meet quedó abierto: no pide afiliación.',
+    openBadge: 'Abierto sin afiliación',
+  },
+
+  // Alta rápida de un meet: lo mínimo para que exista, con el acceso decidido
+  // en el alta porque define quién se inscribe y quién pasa la puerta.
+  eventQuickCreate: {
+    eyebrow: 'Nuevo evento',
+    title: 'Crear meet',
+    lead: 'Seis campos y existe. Entradas, tandas y zonas de seguridad se completan después, desde la consola del evento.',
+    slugLabel: 'Enlace público',
+    slugPending: 'Se arma con el título',
+    pendingLabel: 'Después de crear, en la consola',
+    pendingTickets: 'Tipos de entrada y precios',
+    pendingStructure: 'Días y tandas',
+    pendingZones: 'Zonas y equipo de seguridad',
+    hiddenNote: 'Se crea oculto. Nadie lo ve hasta que lo publiques.',
+    submit: 'Crear y abrir consola',
+    submitting: 'Creando…',
+    close: 'Cerrar',
+    advanced: 'Necesito cargar precios y ventanas: abrir el editor completo',
+  },
+
+  // Consola del evento: estado, acceso y entrada a cada sección, sin modal.
+  eventConsole: {
+    configLabel: 'Configuración del evento',
+    activityLabel: 'Actividad',
+    back: 'Volver a la lista de eventos',
+    tickets: 'Entradas',
+    ticketsValue: '{{count}} tipos activos',
+    structure: 'Estructura',
+    structureValue: '{{count}} días',
+    zones: 'Zonas y seguridad',
+    zonesValue: 'Equipo del meet',
+    registrations: 'Inscripciones',
+    registrationsValue: '{{count}} de {{slots}}',
+    payments: 'Pagos',
+    checkin: 'Check-in',
+  },
+
+  // Zonas físicas del meet y reparto del equipo de seguridad.
+  eventZones: {
+    eyebrow: 'Estructura operativa',
+    title: 'Zonas del meet',
+    lead: 'Cada zona define qué puede escanear su grupo y en qué horario. Las cuentas se crean abajo, en el equipo del evento; acá se asignan.',
+    refresh: 'Actualizar zonas',
+    loading: 'Cargando zonas…',
+    loadError: 'No se pudieron cargar las zonas del evento.',
+    saveError: 'No se pudo guardar el cambio.',
+    addZone: 'Agregar zona',
+    createZone: 'Crear zona',
+    editZone: 'Editar zona',
+    deleteZone: 'Eliminar zona',
+    preset: 'Armar zonas de un meet estándar',
+    presetDone: 'Zonas del meet estándar creadas.',
+    summary: '{{zones}} zonas · {{members}} personas · {{active}} con cuenta activa',
+    empty: 'Todavía no hay zonas. Armá las de un meet estándar o agregá la primera a mano.',
+    created: 'Zona creada.',
+    updated: 'Zona actualizada.',
+    deleted: 'Zona eliminada. Las personas asignadas quedaron sin zona.',
+    assigned: 'Reparto actualizado.',
+    accessSent: 'Accesos enviados. Los links anteriores de esa zona quedaron anulados.',
+    sendAccess: 'Enviar accesos ({{count}})',
+    fieldName: 'Nombre de la zona',
+    fieldNamePlaceholder: 'Puerta principal',
+    fieldScope: 'Qué puede escanear',
+    fieldShiftStart: 'Inicio del turno',
+    fieldShiftEnd: 'Fin del turno',
+    shiftAllDay: 'Todo el evento',
+    shiftFrom: 'Desde {{time}}',
+    shiftUntil: 'Hasta {{time}}',
+    zoneEmpty: 'Sin gente',
+    zoneEmptyDetail: 'Nadie asignado a esta zona todavía.',
+    zoneFull: 'La zona llegó al máximo de {{max}} personas.',
+    accessPending: '{{count}} sin activar',
+    accessActive: '{{count}} activas',
+    assignLabel: 'Sumar a esta zona',
+    assignPlaceholder: 'Elegí una persona sin zona',
+    assignMember: 'Asignar zona a {{name}}',
+    unassignMember: 'Quitar a {{name}} de la zona',
+    unassignedLabel: '{{count}} sin zona asignada',
+    scope: {
+      gate_tickets: 'Entradas y credenciales',
+      athletes_only: 'Solo atletas inscriptos',
+      athletes_coaches: 'Atletas y coaches',
+      staff_only: 'Staff técnico',
+    },
+    scopeHint: {
+      gate_tickets:
+        'Lee entradas de público, inscripciones y credenciales de afiliación. Es el alcance de la puerta.',
+      athletes_only:
+        'Lee solo credenciales de atletas inscriptos al meet. No abre entradas de público.',
+      athletes_coaches:
+        'Lee credenciales de atletas inscriptos y de afiliados. No abre entradas de público.',
+      staff_only: 'No escanea credenciales: la zona es de control interno.',
+    },
+    memberStatus: {
+      invited: 'Sin activar',
+      active: 'Activa',
+      suspended: 'Suspendida',
+      disabled: 'Desactivada',
+    },
+    validation: {
+      nameMin: 'Poné un nombre de al menos 2 caracteres.',
+      nameMax: 'El nombre no puede pasar de 60 caracteres.',
+      scopeInvalid: 'Elegí qué puede escanear la zona.',
+      shiftOrder: 'El fin del turno tiene que ser posterior al inicio.',
+    },
   },
   schedule: {
     assignerLabel: 'Asignación de grilla',
@@ -1772,9 +1881,7 @@ export default {
     featuredTitle: 'Evento destacado',
     featuredHint:
       'Se muestra en home, calendario, tienda y bloques spotlight. Solo puede haber un evento destacado a la vez: al activarlo acá se desactiva en los demás.',
-    requiresMembershipTitle: 'Requiere afiliación activa',
-    requiresMembershipHint:
-      'Si está activo, el atleta necesita una afiliación vigente para inscribirse. Desactivalo solo en meets abiertos sin requisito federativo.',
+    accessLabel: 'Acceso al meet',
     saveChanges: 'Guardar cambios',
     createEvent: 'Crear evento',
     createDraft: 'Crear borrador',

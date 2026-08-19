@@ -17,6 +17,7 @@ import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAccessGatesTourSteps } from '../../lib/adminTourSteps.js'
 import {
   fetchPlatformFeatureToggles,
+  savePaymentChannel,
   savePlatformFeatureToggle,
 } from '../../services/platformSettingsAdminService.js'
 import '../../styles/pages/admin-registration-access.css'
@@ -32,91 +33,116 @@ const EMPTY_GATE = {
 }
 
 /**
- * Interruptores de la plataforma en tres ejes independientes. `checkout` va
- * aparte porque es el maestro: apagado, corta los otros nueve.
- *
- * `master` marca la fila destacada; `i18n` es el prefijo de las claves de
- * traducción (`...Title`, `...Lead`, `...Aria`), y `state` elige el par de
- * etiquetas de estado (singular para el maestro, plural para los conceptos).
+ * El maestro va aparte: apagado, corta todo lo demás.
  */
-const TOGGLE_GROUPS = [
+const CHECKOUT_FEATURE = {
+  feature: 'checkout',
+  key: 'checkoutEnabled',
+  i18n: 'checkout',
+  state: 'checkout',
+  master: true,
+}
+
+/**
+ * Un bloque por concepto, que es la pregunta que se hace quien opera: "¿qué le
+ * pasa a Afiliaciones?". Dentro del bloque, tres ejes independientes: el alta
+ * manda, los canales son los medios con los que se cobra ese concepto, y la
+ * validación cierra el bloque.
+ *
+ * Antes esto eran cuatro grupos por eje, con los medios de pago fusionados en un
+ * solo interruptor "transferencia y efectivo" y Mercado Pago sin control alguno.
+ *
+ * `channels` no incluye `cash_pitbull` para entradas: el checkout de entradas no
+ * ofrece efectivo, y un interruptor sin efecto es justamente lo que esta
+ * pantalla dejó de tener. La celda existe en la matriz por consistencia, pero no
+ * se ofrece hasta que ese medio exista en la compra.
+ */
+const CONCEPT_BLOCKS = [
   {
-    id: 'checkout',
-    features: [
-      {
-        feature: 'checkout',
-        key: 'checkoutEnabled',
-        i18n: 'checkout',
-        state: 'checkout',
-        master: true,
-      },
-    ],
+    concept: 'membership',
+    i18n: 'membershipToggle',
+    intake: { feature: 'membership', key: 'membershipEnabled' },
+    validation: {
+      feature: 'membership_validation',
+      key: 'membershipValidationEnabled',
+      i18n: 'membershipValidation',
+    },
+    channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull'],
   },
   {
-    id: 'intake',
-    features: [
-      { feature: 'membership', key: 'membershipEnabled', i18n: 'membershipToggle' },
-      { feature: 'registration', key: 'registrationEnabled', i18n: 'registrationToggle' },
-      { feature: 'ticket', key: 'ticketEnabled', i18n: 'ticketToggle' },
-    ],
+    concept: 'registration',
+    i18n: 'registrationToggle',
+    intake: { feature: 'registration', key: 'registrationEnabled' },
+    validation: {
+      feature: 'registration_validation',
+      key: 'registrationValidationEnabled',
+      i18n: 'registrationValidation',
+    },
+    channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull'],
   },
   {
-    id: 'manual',
-    features: [
-      { feature: 'membership_manual', key: 'membershipManualEnabled', i18n: 'membershipManual' },
-      {
-        feature: 'registration_manual',
-        key: 'registrationManualEnabled',
-        i18n: 'registrationManual',
-      },
-      { feature: 'ticket_manual', key: 'ticketManualEnabled', i18n: 'ticketManual' },
-    ],
-  },
-  {
-    id: 'validation',
-    features: [
-      {
-        feature: 'membership_validation',
-        key: 'membershipValidationEnabled',
-        i18n: 'membershipValidation',
-      },
-      {
-        feature: 'registration_validation',
-        key: 'registrationValidationEnabled',
-        i18n: 'registrationValidation',
-      },
-      { feature: 'ticket_validation', key: 'ticketValidationEnabled', i18n: 'ticketValidation' },
-    ],
+    concept: 'ticket',
+    i18n: 'ticketToggle',
+    intake: { feature: 'ticket', key: 'ticketEnabled' },
+    validation: {
+      feature: 'ticket_validation',
+      key: 'ticketValidationEnabled',
+      i18n: 'ticketValidation',
+    },
+    channels: ['mercado_pago', 'bank_transfer'],
   },
 ]
+
+const TOGGLE_FEATURES = [
+  CHECKOUT_FEATURE,
+  ...CONCEPT_BLOCKS.flatMap((block) => [block.intake, block.validation]),
+]
+
+const CHANNEL_CELLS = CONCEPT_BLOCKS.flatMap((block) =>
+  block.channels.map((channel) => ({ concept: block.concept, channel })),
+)
 
 /**
  * Fila de interruptor. El estado vive en una sola columna —la derecha, junto al
  * control que lo cambia— y a la izquierda queda un indicador de ancho fijo: así
- * los diez nombres arrancan en la misma X y la columna se lee de un vistazo.
- * Antes el estado se repetía como badge sobre el título, que además empujaba
- * cada nombre a una sangría distinta.
+ * todos los nombres arrancan en la misma X y la columna se lee de un vistazo.
+ *
+ * La usan los tres ejes (alta, canal y validación) porque hacen lo mismo: un
+ * booleano con nombre, estado y consecuencia. Lo que cambia es el encabezado del
+ * bloque, el acento celeste del maestro y el tamaño de la fila del canal.
  */
-const ALL_FEATURES = TOGGLE_GROUPS.flatMap((group) => group.features)
-
-function FeatureToggleRule({ busy, canEdit, enabled, feature, loading, onToggle, t }) {
-  const stateLabelFor = (value) => {
-    if (feature.state === 'checkout') {
-      return value
-        ? t('admin.sections.accessGates.checkoutOn')
-        : t('admin.sections.accessGates.checkoutOff')
-    }
-    return value
-      ? t('admin.sections.accessGates.enabledPlural')
-      : t('admin.sections.accessGates.closedPlural')
-  }
+function ToggleRule({
+  ariaLabel,
+  busy,
+  canEdit,
+  enabled,
+  headingLevel: Heading = 'h3',
+  lead,
+  loading,
+  master = false,
+  muted = false,
+  onToggle,
+  stateLabels,
+  t,
+  title,
+  variant = 'primary',
+}) {
   const tone = enabled ? 'on' : 'off'
+  const stateLabel = enabled ? stateLabels.on : stateLabels.off
 
   return (
     <div
-      className={`admin-registration-access__rule${
-        feature.master ? ' admin-registration-access__rule--master' : ''
-      }${feature.master && !enabled ? ' admin-registration-access__rule--halted' : ''}`}
+      className={[
+        'admin-registration-access__rule',
+        `admin-registration-access__rule--${variant}`,
+        master ? 'admin-registration-access__rule--master' : '',
+        master && !enabled ? 'admin-registration-access__rule--halted' : '',
+        // Celda abierta con el concepto cerrado: sigue siendo configuración
+        // válida (queda lista para la reapertura), pero no está cobrando.
+        muted && enabled ? 'admin-registration-access__rule--muted' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       {/* El maestro es el único que gana icono: ahí el símbolo de encendido
           informa el rol de la fila en vez de decorar. */}
@@ -124,11 +150,11 @@ function FeatureToggleRule({ busy, canEdit, enabled, feature, loading, onToggle,
         className={`admin-registration-access__dot admin-registration-access__dot--${tone}`}
         aria-hidden
       >
-        {feature.master ? <Power size={15} /> : null}
+        {master ? <Power size={15} /> : null}
       </span>
       <div className="admin-registration-access__rule-copy">
-        <h3>{t(`admin.sections.accessGates.${feature.i18n}Title`)}</h3>
-        <p>{t(`admin.sections.accessGates.${feature.i18n}Lead`)}</p>
+        <Heading>{title}</Heading>
+        {lead ? <p>{lead}</p> : null}
       </div>
       {canEdit ? (
         <label className="admin-registration-access__switch">
@@ -136,16 +162,16 @@ function FeatureToggleRule({ busy, canEdit, enabled, feature, loading, onToggle,
             type="checkbox"
             checked={enabled}
             disabled={loading || busy}
-            onChange={(event) => onToggle(feature.feature, event.target.checked)}
-            aria-label={t(`admin.sections.accessGates.${feature.i18n}Aria`)}
+            onChange={(event) => onToggle(event.target.checked)}
+            aria-label={ariaLabel}
           />
-          <span>{busy ? t('admin.sections.accessGates.saving') : stateLabelFor(enabled)}</span>
+          <span>{busy ? t('admin.sections.accessGates.saving') : stateLabel}</span>
         </label>
       ) : (
         <span
           className={`admin-registration-access__state admin-registration-access__state--${tone}`}
         >
-          {stateLabelFor(enabled)}
+          {stateLabel}
         </span>
       )}
     </div>
@@ -225,11 +251,31 @@ export default function RegistrationAccessSection({
   )
 
   // Lo primero que pregunta el operador es "¿está todo abierto?". Contarlo acá
-  // evita tener que leer los diez interruptores para responderlo.
+  // evita tener que leer interruptor por interruptor para responderlo. Entran los
+  // dos tipos: los booleanos por concepto y las celdas de la matriz de canales.
   const togglesSummary = useMemo(() => {
-    const open = ALL_FEATURES.filter((feature) => toggles[feature.key] !== false).length
-    return { open, total: ALL_FEATURES.length, allOpen: open === ALL_FEATURES.length }
+    const openToggles = TOGGLE_FEATURES.filter((feature) => toggles[feature.key] !== false).length
+    const openChannels = CHANNEL_CELLS.filter(
+      ({ concept, channel }) => toggles.paymentChannels?.[concept]?.[channel] !== false,
+    ).length
+    const open = openToggles + openChannels
+    const total = TOGGLE_FEATURES.length + CHANNEL_CELLS.length
+    return { open, total, allOpen: open === total }
   }, [toggles])
+
+  // Un concepto sin ningún medio abierto no cobra, aunque su alta esté en ON. Es
+  // un estado configurable a propósito, así que se avisa en vez de impedirse.
+  const conceptsWithoutChannel = useMemo(
+    () =>
+      CONCEPT_BLOCKS.filter(
+        (block) =>
+          toggles.paymentChannels &&
+          block.channels.every(
+            (channel) => toggles.paymentChannels[block.concept]?.[channel] === false,
+          ),
+      ).map((block) => block.concept),
+    [toggles],
+  )
 
   const operationalMessages = useMemo(
     () => ({
@@ -278,12 +324,15 @@ export default function RegistrationAccessSection({
     return undefined
   }, [draft])
 
-  async function handleToggleFeature(feature, enabled) {
-    setSavingFeature(feature)
+  /**
+   * Un solo camino de guardado para los dos tipos de interruptor: `save` es la
+   * llamada concreta y `id` la clave con la que la fila muestra "Guardando…".
+   */
+  async function persistToggle(id, save) {
+    setSavingFeature(id)
     setTogglesError('')
     try {
-      const nextToggles = await savePlatformFeatureToggle(feature, enabled)
-      setToggles(nextToggles)
+      setToggles(await save())
       await onToggleSaved?.()
     } catch (toggleError) {
       setTogglesError(
@@ -296,6 +345,12 @@ export default function RegistrationAccessSection({
       setSavingFeature(null)
     }
   }
+
+  const handleToggleFeature = (feature, enabled) =>
+    persistToggle(feature, () => savePlatformFeatureToggle(feature, enabled))
+
+  const handleToggleChannel = (concept, channel, enabled) =>
+    persistToggle(`${concept}:${channel}`, () => savePaymentChannel(concept, channel, enabled))
 
   function openEditor(gate = null, scope = 'membership', trigger = null) {
     triggerRef.current = trigger
@@ -503,33 +558,133 @@ export default function RegistrationAccessSection({
           )}
         </header>
 
-        {TOGGLE_GROUPS.map((group) => (
-          <div key={group.id} className="admin-registration-access__toggle-group">
-            {group.id === 'checkout' ? null : (
-              <div className="admin-registration-access__toggle-group-head">
-                <h3>{t(`admin.sections.accessGates.group.${group.id}Title`)}</h3>
-                <p>{t(`admin.sections.accessGates.group.${group.id}Lead`)}</p>
-              </div>
-            )}
-            {/* Todos los grupos comparten la misma caja: los diez interruptores
-                hacen lo mismo, así que tienen que verse igual. Lo que cambia es
-                el encabezado del eje, y el acento celeste del maestro. */}
-            <div className="admin-registration-access__rules admin-registration-access__rules--primary">
-              {group.features.map((feature) => (
-                <FeatureToggleRule
-                  key={feature.feature}
-                  busy={savingFeature === feature.feature}
-                  canEdit={canEdit}
-                  enabled={toggles[feature.key] !== false}
-                  feature={feature}
-                  loading={togglesLoading}
-                  onToggle={handleToggleFeature}
-                  t={t}
-                />
-              ))}
-            </div>
+        {/* Frenos que vienen del entorno, no del panel: sin esto un interruptor
+            podía estar en ON y no tener ningún efecto, sin explicación. */}
+        {(toggles.environmentHolds ?? []).length > 0 ? (
+          <div
+            className="admin-registration-access__message admin-registration-access__message--warning"
+            role="status"
+          >
+            <LockKeyhole size={15} aria-hidden />
+            <span>
+              {t('admin.sections.accessGates.environmentHold', {
+                variables: (toggles.environmentHolds ?? [])
+                  .map((hold) => hold.variable)
+                  .join(', '),
+              })}
+            </span>
           </div>
-        ))}
+        ) : null}
+
+        <div className="admin-registration-access__rules admin-registration-access__rules--primary">
+          <ToggleRule
+            ariaLabel={t('admin.sections.accessGates.checkoutAria')}
+            busy={savingFeature === CHECKOUT_FEATURE.feature}
+            canEdit={canEdit}
+            enabled={toggles[CHECKOUT_FEATURE.key] !== false}
+            lead={t('admin.sections.accessGates.checkoutLead')}
+            loading={togglesLoading}
+            master
+            onToggle={(enabled) => handleToggleFeature(CHECKOUT_FEATURE.feature, enabled)}
+            stateLabels={{
+              on: t('admin.sections.accessGates.checkoutOn'),
+              off: t('admin.sections.accessGates.checkoutOff'),
+            }}
+            t={t}
+            title={t('admin.sections.accessGates.checkoutTitle')}
+          />
+        </div>
+
+        {/* Un bloque por concepto: alta, medios de cobro y validación juntos,
+            que es cómo se decide en la operación. */}
+        {CONCEPT_BLOCKS.map((block) => {
+          const intakeOpen = toggles[block.intake.key] !== false
+          const withoutChannel = conceptsWithoutChannel.includes(block.concept)
+          return (
+            <article
+              key={block.concept}
+              className={`admin-registration-access__concept${
+                intakeOpen ? '' : ' admin-registration-access__concept--closed'
+              }`}
+            >
+              <ToggleRule
+                ariaLabel={t(`admin.sections.accessGates.${block.i18n}Aria`)}
+                busy={savingFeature === block.intake.feature}
+                canEdit={canEdit}
+                enabled={intakeOpen}
+                lead={t(`admin.sections.accessGates.${block.i18n}Lead`)}
+                loading={togglesLoading}
+                onToggle={(enabled) => handleToggleFeature(block.intake.feature, enabled)}
+                stateLabels={{
+                  on: t('admin.sections.accessGates.enabledPlural'),
+                  off: t('admin.sections.accessGates.closedPlural'),
+                }}
+                t={t}
+                title={t(`admin.sections.accessGates.${block.i18n}Title`)}
+                variant="intake"
+              />
+
+              <div
+                className="admin-registration-access__channels"
+                role="group"
+                aria-label={t('admin.sections.accessGates.channelsGroupAria', {
+                  concept: t(`admin.sections.accessGates.${block.i18n}Title`),
+                })}
+              >
+                <p className="admin-registration-access__channels-label">
+                  {t('admin.sections.accessGates.channelsLabel')}
+                </p>
+                {block.channels.map((channel) => (
+                  <ToggleRule
+                    ariaLabel={t('admin.sections.accessGates.channelAria', {
+                      channel: t(`admin.sections.accessGates.channel.${channel}`),
+                      concept: t(`admin.sections.accessGates.${block.i18n}Title`),
+                    })}
+                    busy={savingFeature === `${block.concept}:${channel}`}
+                    canEdit={canEdit}
+                    enabled={toggles.paymentChannels?.[block.concept]?.[channel] !== false}
+                    headingLevel="h4"
+                    key={channel}
+                    loading={togglesLoading}
+                    muted={!intakeOpen}
+                    onToggle={(enabled) => handleToggleChannel(block.concept, channel, enabled)}
+                    stateLabels={{
+                      on: t('admin.sections.accessGates.channelOn'),
+                      off: t('admin.sections.accessGates.channelOff'),
+                    }}
+                    t={t}
+                    title={t(`admin.sections.accessGates.channel.${channel}`)}
+                    variant="channel"
+                  />
+                ))}
+                {withoutChannel ? (
+                  <p className="admin-registration-access__channels-warning" role="status">
+                    <XCircle size={14} aria-hidden />
+                    {t('admin.sections.accessGates.noChannelWarning')}
+                  </p>
+                ) : null}
+              </div>
+
+              <ToggleRule
+                ariaLabel={t(`admin.sections.accessGates.${block.validation.i18n}Aria`)}
+                busy={savingFeature === block.validation.feature}
+                canEdit={canEdit}
+                enabled={toggles[block.validation.key] !== false}
+                headingLevel="h4"
+                lead={t(`admin.sections.accessGates.${block.validation.i18n}Lead`)}
+                loading={togglesLoading}
+                onToggle={(enabled) => handleToggleFeature(block.validation.feature, enabled)}
+                stateLabels={{
+                  on: t('admin.sections.accessGates.enabledSingular'),
+                  off: t('admin.sections.accessGates.closedSingular'),
+                }}
+                t={t}
+                title={t(`admin.sections.accessGates.${block.validation.i18n}Title`)}
+                variant="validation"
+              />
+            </article>
+          )
+        })}
 
         {togglesLoading ? (
           <p className="admin-registration-access__loading">

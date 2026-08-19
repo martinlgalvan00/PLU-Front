@@ -770,6 +770,9 @@ export default {
       cardFlipToBack: 'Ver QR',
       cardFlipToFront: 'Volver',
       cardFlipAria: 'Dar vuelta tu credencial para ver el código QR',
+      sealIssuedEyebrow: 'Credencial emitida',
+      sealIssuedTitle: 'Ya tenés tu credencial PLU',
+      sealIssuedDetail: 'Mostrá este QR en la puerta para acreditarte.',
     },
     gateBanner: {
       title: 'Completá tu afiliación',
@@ -2561,6 +2564,8 @@ export default {
       paymentMpHint: 'Acreditación automática',
       paymentMercadoPagoOnlyHint:
         'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
+      paymentNoChannelHint:
+        'No hay medios de pago disponibles en este momento. Volvé a intentar más tarde o escribinos.',
       paymentLinkLabel: 'Link de pago',
       paymentTransferLabel: 'Transferencia bancaria',
       // Faltaba: `RegisterSettle` ya ofrecía la opción, así que el selector

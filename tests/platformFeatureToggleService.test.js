@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   assertCheckoutEnabled,
   assertConceptValidationEnabled,
-  assertManualChannelEnabled,
   assertMembershipCheckoutEnabled,
+  assertPaymentChannelEnabled,
   assertRegistrationCheckoutEnabled,
   assertTicketCheckoutEnabled,
   assertValidationEnabled,
@@ -51,17 +51,24 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
     expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true })).not.toThrow()
   })
 
-  it('exige habilitación explícita de lanzamiento para vender entradas al público', () => {
+  // `TICKET_SALES_ENABLED` pasó a ser freno de emergencia: el panel es la vía
+  // operativa. Antes, sin variable, el interruptor del panel se podía prender
+  // sin efecto alguno.
+  it('deja que el panel abra la venta de entradas sin variable de entorno', () => {
     const production = { NODE_ENV: 'production' }
-    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, production)).toThrowError(
-      thrown('TICKET_SALES_COMING_SOON'),
-    )
+    expect(() => assertTicketCheckoutEnabled({ ticketEnabled: true }, production)).not.toThrow()
     expect(() =>
       assertTicketCheckoutEnabled(
         { ticketEnabled: true },
         { ...production, TICKET_SALES_ENABLED: 'true' },
       ),
     ).not.toThrow()
+  })
+
+  it('respeta el freno de entorno cuando está explícitamente apagado', () => {
+    expect(() =>
+      assertTicketCheckoutEnabled({ ticketEnabled: true }, { TICKET_SALES_ENABLED: 'false' }),
+    ).toThrowError(thrown('TICKET_SALES_COMING_SOON'))
   })
 
   // Las altas siguen abiertas, pero afiliaciones e inscripciones no ofrecen
@@ -76,34 +83,87 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
       expect(() => assert({})).not.toThrow()
       expect(() => assert(undefined)).not.toThrow()
     }
-    expect(() => assertManualChannelEnabled({}, 'ticket')).not.toThrow()
-    expect(() => assertManualChannelEnabled({}, 'membership')).toThrowError(
+    expect(() => assertPaymentChannelEnabled({}, 'ticket', 'bank_transfer')).not.toThrow()
+    expect(() => assertPaymentChannelEnabled({}, 'membership', 'bank_transfer')).toThrowError(
       thrown('MEMBERSHIP_MANUAL_DISABLED'),
     )
+    expect(() => assertPaymentChannelEnabled({}, 'membership', 'mercado_pago')).not.toThrow()
     expect(() => assertValidationEnabled(undefined, 'membership')).not.toThrow()
   })
 })
 
-describe('canal manual por concepto', () => {
-  it('cierra transferencia y efectivo del concepto indicado solamente', () => {
-    const toggles = {
-      membershipManualEnabled: false,
-      registrationManualEnabled: true,
-      ticketManualEnabled: true,
-    }
-    expect(() => assertManualChannelEnabled(toggles, 'membership')).toThrowError(
-      thrown('MEMBERSHIP_MANUAL_DISABLED'),
-    )
-    expect(() => assertManualChannelEnabled(toggles, 'registration')).not.toThrow()
-    expect(() => assertManualChannelEnabled(toggles, 'ticket')).not.toThrow()
+describe('canales de pago por concepto', () => {
+  const matrix = (overrides = {}) => ({
+    paymentChannels: {
+      membership: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
+      registration: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
+      ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
+      ...overrides,
+    },
   })
 
-  it('no confunde el canal manual con el alta del concepto', () => {
+  it('cierra un solo canal sin tocar los otros dos', () => {
+    const toggles = matrix({
+      membership: { mercado_pago: true, bank_transfer: false, cash_pitbull: true },
+    })
+    expect(() => assertPaymentChannelEnabled(toggles, 'membership', 'bank_transfer')).toThrowError(
+      thrown('MEMBERSHIP_BANK_TRANSFER_DISABLED'),
+    )
+    expect(() => assertPaymentChannelEnabled(toggles, 'membership', 'cash_pitbull')).not.toThrow()
+    expect(() => assertPaymentChannelEnabled(toggles, 'membership', 'mercado_pago')).not.toThrow()
+  })
+
+  // Lo que antes era imposible: la pasarela ya no es incondicional.
+  it('cierra Mercado Pago dejando abierto el cobro manual', () => {
+    const toggles = matrix({
+      registration: { mercado_pago: false, bank_transfer: true, cash_pitbull: false },
+    })
+    expect(() =>
+      assertPaymentChannelEnabled(toggles, 'registration', 'mercado_pago'),
+    ).toThrowError(thrown('REGISTRATION_MERCADO_PAGO_DISABLED'))
+    expect(() => assertPaymentChannelEnabled(toggles, 'registration', 'bank_transfer')).not.toThrow()
+  })
+
+  it('avisa distinto cuando el concepto no tiene ningún medio abierto', () => {
+    const toggles = matrix({
+      ticket: { mercado_pago: false, bank_transfer: false, cash_pitbull: false },
+    })
+    for (const channel of ['mercado_pago', 'bank_transfer', 'cash_pitbull']) {
+      expect(() => assertPaymentChannelEnabled(toggles, 'ticket', channel)).toThrowError(
+        thrown('TICKET_NO_PAYMENT_CHANNEL'),
+      )
+    }
+  })
+
+  it('conserva el código del contrato anterior con los dos canales manuales cerrados', () => {
+    const toggles = matrix({
+      membership: { mercado_pago: true, bank_transfer: false, cash_pitbull: false },
+    })
+    for (const channel of ['bank_transfer', 'cash_pitbull']) {
+      expect(() => assertPaymentChannelEnabled(toggles, 'membership', channel)).toThrowError(
+        thrown('MEMBERSHIP_MANUAL_DISABLED'),
+      )
+    }
+  })
+
+  it('un cupón destraba el canal manual pero nunca la pasarela cerrada', () => {
+    const toggles = matrix({
+      membership: { mercado_pago: false, bank_transfer: false, cash_pitbull: false },
+    })
+    expect(() =>
+      assertPaymentChannelEnabled(toggles, 'membership', 'bank_transfer', { override: true }),
+    ).not.toThrow()
+    expect(() =>
+      assertPaymentChannelEnabled(toggles, 'membership', 'mercado_pago', { override: true }),
+    ).toThrowError(thrown('MEMBERSHIP_NO_PAYMENT_CHANNEL'))
+  })
+
+  it('no confunde el canal con el alta del concepto', () => {
     // Alta abierta + canal manual cerrado: la afiliación sigue disponible por
     // Mercado Pago, que es justamente el caso de uso del interruptor.
     const toggles = { membershipEnabled: true, membershipManualEnabled: false }
     expect(() => assertMembershipCheckoutEnabled(toggles)).not.toThrow()
-    expect(() => assertManualChannelEnabled(toggles, 'membership')).toThrow()
+    expect(() => assertPaymentChannelEnabled(toggles, 'membership', 'bank_transfer')).toThrow()
   })
 })
 
@@ -142,6 +202,7 @@ describe('validación y activación por concepto', () => {
 
 describe('disponibilidad publicada al checkout', () => {
   it('el interruptor maestro cierra los tres conceptos y sus canales', () => {
+    const closed = { mercado_pago: false, bank_transfer: false, cash_pitbull: false }
     expect(resolvePublicCheckoutAvailability({ checkoutEnabled: false })).toEqual({
       membershipEnabled: false,
       registrationEnabled: false,
@@ -149,6 +210,7 @@ describe('disponibilidad publicada al checkout', () => {
       membershipManualEnabled: false,
       registrationManualEnabled: false,
       ticketManualEnabled: false,
+      paymentChannels: { membership: closed, registration: closed, ticket: closed },
     })
   })
 
@@ -161,13 +223,47 @@ describe('disponibilidad publicada al checkout', () => {
     expect(availability.ticketManualEnabled).toBe(false)
   })
 
-  it('no publica venta de entradas antes del lanzamiento explícito', () => {
+  it('publica la venta de entradas que abrió el panel, sin variable de entorno', () => {
     const availability = resolvePublicCheckoutAvailability(
       { ticketEnabled: true, ticketManualEnabled: true },
       { NODE_ENV: 'production' },
     )
+    expect(availability.ticketEnabled).toBe(true)
+    expect(availability.ticketManualEnabled).toBe(true)
+  })
+
+  it('no publica entradas con el freno de entorno apagado explícitamente', () => {
+    const availability = resolvePublicCheckoutAvailability(
+      { ticketEnabled: true, ticketManualEnabled: true },
+      { NODE_ENV: 'production', TICKET_SALES_ENABLED: 'false' },
+    )
     expect(availability.ticketEnabled).toBe(false)
     expect(availability.ticketManualEnabled).toBe(false)
+    expect(availability.paymentChannels.ticket.mercado_pago).toBe(false)
+  })
+
+  it('publica la matriz celda por celda, cruzada con el alta', () => {
+    const availability = resolvePublicCheckoutAvailability({
+      membershipEnabled: true,
+      registrationEnabled: false,
+      paymentChannels: {
+        membership: { mercado_pago: false, bank_transfer: true, cash_pitbull: false },
+        registration: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
+        ticket: { mercado_pago: true, bank_transfer: false, cash_pitbull: false },
+      },
+    })
+    expect(availability.paymentChannels.membership).toEqual({
+      mercado_pago: false,
+      bank_transfer: true,
+      cash_pitbull: false,
+    })
+    expect(availability.membershipManualEnabled).toBe(true)
+    // Alta cerrada: ninguna celda del concepto se publica abierta.
+    expect(availability.paymentChannels.registration).toEqual({
+      mercado_pago: false,
+      bank_transfer: false,
+      cash_pitbull: false,
+    })
   })
 
   it('deja el concepto abierto con el canal manual cerrado', () => {

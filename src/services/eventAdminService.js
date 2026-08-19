@@ -747,16 +747,23 @@ export async function fetchAdminEvents() {
  * `saveAdminEventRequest` recrea días y tipos de entrada en cada guardado, así
  * que para tocar una columna se usa este camino.
  *
+ * `requiresMembership` viaja por acá desde 20260826100000: habilitar o
+ * deshabilitar un meet como "solo afiliados" era lo único de la operación
+ * diaria que obligaba a abrir el editor completo y guardar el evento entero,
+ * con el riesgo de recrear la grilla de un evento que ya tiene atletas
+ * asignados a tandas.
+ *
  * `statusOverridden` viene en true cuando la base corrigió el estado pedido
  * (reabrir un evento que sigue lleno lo devuelve a `agotado`). El panel lo
  * necesita para explicar por qué el badge no dice lo que el operador eligió.
  */
-export async function setEventStateRequest(slug, { status, published } = {}) {
+export async function setEventStateRequest(slug, { status, published, requiresMembership } = {}) {
   if (!slug) throw new Error('Falta el slug del evento.')
 
   const payload = {}
   if (status !== undefined) payload.status = status
   if (published !== undefined) payload.published = published
+  if (requiresMembership !== undefined) payload.requiresMembership = requiresMembership
 
   const response = await apiPost(`/api/events/${encodeURIComponent(slug)}/state`, payload)
 

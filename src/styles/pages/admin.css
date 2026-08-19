@@ -3000,6 +3000,42 @@
   margin: 0;
 }
 
+/* Acceso al meet: dos opciones excluyentes y la consecuencia escrita entera.
+   El bloque se separa con una regla porque no es un campo más de la pestaña de
+   publicación: decide quién puede inscribirse y quién pasa la puerta. */
+.admin-event-form__access {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+}
+
+.admin-event-form__access-note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.admin-event-form__access-note svg {
+  margin-right: 5px;
+  vertical-align: -2px;
+}
+
+/* Mínimo táctil de los chips del editor.
+   `.admin-filter-chip` no declara `min-height`: la altura sale del padding y
+   queda en 26px, así que los dos grupos de esta pestaña —estado público y
+   acceso al meet— quedaban por debajo del target táctil. La consola de
+   operación ya lo tenía resuelto (admin-minimal.css, `@media pointer: coarse`)
+   pero el editor es un modal que también se usa en tablet. Solo con puntero
+   grueso: en mouse la densidad del panel se conserva. */
+@media (pointer: coarse) {
+  .admin-event-form .admin-filter-chip {
+    min-height: 44px;
+  }
+}
+
 .admin-event-form__consistency ul {
   color: var(--color-text-muted);
   display: grid;

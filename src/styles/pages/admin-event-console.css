@@ -1,0 +1,1137 @@
+/* =============================================
+   CONSOLA DEL EVENTO — PLU ARG
+
+   Tres superficies nuevas del flujo de eventos:
+
+   1. Alta rápida (.admin-event-quick): panel lateral con lo mínimo para que un
+      meet exista. No es el editor: es el alta.
+   2. Filas de sección (.admin-event-console__*): configuración y actividad del
+      evento como lista densa, en lugar del bento de cards.
+   3. Vista de detalle (.admin-event-drill) y zonas (.admin-event-zones): la
+      configuración que se guarda sola, a ancho completo y sin modal.
+
+   Todo usa los tokens --admin-* de themes/dark.css y themes/light.css. No hay
+   colores sueltos ni una segunda capa de overrides premium.
+   ============================================= */
+
+/* ── 1. Alta rápida ─────────────────────────── */
+
+.admin-event-quick {
+  inset: 0;
+  position: fixed;
+  /* Mismo plano que el editor (admin.css: 280 = --z-drawer-backdrop). */
+  z-index: var(--z-drawer-backdrop, 280);
+}
+
+.admin-event-quick__backdrop {
+  -webkit-appearance: none;
+  appearance: none;
+  background: color-mix(in srgb, var(--admin-canvas) 62%, transparent);
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  padding: 0;
+  position: absolute;
+}
+
+.admin-event-quick__panel {
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+  background: var(--admin-glass-bg-strong);
+  border-left: 1px solid var(--admin-glass-border);
+  bottom: 0;
+  box-shadow: var(--admin-shadow-panel);
+  display: flex;
+  max-width: 100vw;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 528px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-event-quick__panel {
+    animation: admin-event-quick-in var(--motion-base, 240ms) var(--ease-standard, ease) backwards;
+  }
+
+  @keyframes admin-event-quick-in {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+  }
+}
+
+.admin-event-quick__form {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-event-quick__head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 16px;
+  padding: 22px 24px 18px;
+}
+
+.admin-event-quick__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-event-quick__eyebrow {
+  color: var(--admin-brand);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-event-quick__head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.admin-event-quick__lead {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.admin-event-quick__close {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 auto;
+  height: 32px;
+  justify-content: center;
+  margin-left: auto;
+  width: 32px;
+}
+
+.admin-event-quick__close:hover {
+  border-color: var(--admin-brand-border);
+  color: var(--admin-brand);
+}
+
+.admin-event-quick__close:focus-visible,
+.admin-event-quick__cancel:focus-visible,
+.admin-event-quick__advanced:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-event-quick__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 18px 24px;
+}
+
+.admin-event-quick__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-event-quick__field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-event-quick__field--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-event-quick__field > span {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-event-quick__field input {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 13px;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0 11px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
+    background var(--motion-fast, 160ms) var(--ease-out, ease);
+  width: 100%;
+}
+
+.admin-event-quick__field input:hover:not(:disabled) {
+  border-color: var(--admin-hairline-strong);
+}
+
+.admin-event-quick__field input:focus-visible {
+  border-color: var(--admin-focus);
+  outline: 2px solid var(--admin-focus-soft);
+  outline-offset: 1px;
+}
+
+.admin-event-quick__field.is-invalid input {
+  border-color: color-mix(in srgb, var(--admin-status-danger) 55%, var(--admin-hairline));
+}
+
+.admin-event-quick__field small {
+  color: var(--admin-status-danger);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* El slug es dato derivado, no un campo: se muestra para que el alta no sea a
+   ciegas de la dirección pública, pero no se edita al crear. */
+.admin-event-quick__field--readonly code {
+  align-items: center;
+  background: var(--admin-surface-muted);
+  border: 1px dashed var(--admin-hairline);
+  border-radius: 8px;
+  color: var(--admin-muted);
+  display: flex;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  min-height: 38px;
+  overflow: hidden;
+  padding: 0 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-event-quick__access {
+  border: 1px solid var(--admin-brand-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+/* Mismo trato que la etiqueta de acceso en la consola de operación: son el
+   mismo control y no pueden verse como dos cosas distintas. */
+.admin-event-quick__access .admin-filter-group__label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-event-quick__access-note {
+  align-items: flex-start;
+  color: var(--admin-text-secondary);
+  display: flex;
+  font-size: 12px;
+  gap: 7px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-event-quick__access-note svg {
+  color: var(--admin-brand);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.admin-event-quick__pending {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-event-quick__pending-label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-event-quick__pending ul {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-quick__pending li {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  color: var(--admin-text-secondary);
+  display: flex;
+  font-size: 12.5px;
+  gap: 10px;
+  padding: 9px 2px;
+}
+
+.admin-event-quick__pending li:last-child {
+  border-bottom: 0;
+}
+
+.admin-event-quick__pending svg {
+  color: var(--admin-muted);
+  flex: 0 0 auto;
+}
+
+.admin-event-quick__alert {
+  background: color-mix(in srgb, var(--admin-status-danger) 10%, transparent);
+  border: 1px solid var(--admin-status-danger-border);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.admin-event-quick__foot {
+  align-items: center;
+  border-top: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+}
+
+.admin-event-quick__foot-note {
+  align-items: flex-start;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 11.5px;
+  gap: 6px;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 26ch;
+}
+
+.admin-event-quick__foot-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.admin-event-quick__cancel {
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+.admin-event-quick__cancel:hover:not(:disabled) {
+  border-color: var(--admin-hairline-strong);
+  color: var(--admin-ink);
+}
+
+.admin-event-quick__advanced {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--admin-hairline);
+  color: var(--admin-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  min-height: 44px;
+  padding: 0 24px;
+  text-align: left;
+  width: 100%;
+}
+
+.admin-event-quick__advanced:hover:not(:disabled) {
+  color: var(--admin-brand);
+}
+
+@media (max-width: 600px) {
+  .admin-event-quick__panel {
+    border-left: 0;
+    width: 100%;
+  }
+
+  .admin-event-quick__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-quick__field input {
+    min-height: 44px;
+  }
+
+  .admin-event-quick__foot {
+    flex-wrap: wrap;
+  }
+
+  .admin-event-quick__foot-note {
+    max-width: none;
+    order: 3;
+    width: 100%;
+  }
+}
+
+/* ── 2. Filas de sección de la consola ──────── */
+
+.admin-shell .admin-event-console__sections {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0 0;
+}
+
+.admin-shell .admin-event-console__group-label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 8px 16px 6px;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-event-console__group-label:not(:first-child) {
+  padding-top: 14px;
+}
+
+.admin-shell .admin-event-console__row {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 12px;
+  grid-template-columns: 20px minmax(0, 1fr) auto 14px;
+  min-height: 48px;
+  padding: 0 16px;
+  text-align: left;
+  transition: background var(--motion-fast, 160ms) var(--ease-standard, ease);
+  width: 100%;
+}
+
+.admin-shell .admin-event-console__row:last-child {
+  border-bottom-color: transparent;
+}
+
+.admin-shell .admin-event-console__row:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-shell .admin-event-console__row:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-shell .admin-event-console__row svg {
+  color: var(--admin-muted);
+  transition: color var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.admin-shell .admin-event-console__row:hover svg {
+  color: var(--admin-brand);
+}
+
+.admin-shell .admin-event-console__row strong {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-event-console__row em {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (hover: none) {
+  .admin-shell .admin-event-console__row {
+    min-height: 52px;
+  }
+}
+
+/* ── 3. Vista de detalle a ancho completo ───── */
+
+.admin-shell .admin-event-drill {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.admin-shell .admin-event-drill__crumbs {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  color: var(--admin-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 8px;
+  padding-bottom: 14px;
+}
+
+.admin-shell .admin-event-drill__crumbs strong {
+  color: var(--admin-text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.admin-shell .admin-event-drill__back {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.admin-shell .admin-event-drill__back:hover {
+  border-color: var(--admin-brand-border);
+  color: var(--admin-brand);
+}
+
+.admin-shell .admin-event-drill__back:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .admin-shell .admin-event-drill__back {
+    height: 44px;
+    width: 44px;
+  }
+}
+
+/* ── 4. Zonas del meet ──────────────────────── */
+
+.admin-shell .admin-event-zones {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.admin-shell .admin-event-zones__loading {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  padding: 48px 0;
+}
+
+.admin-shell .admin-event-zones__head {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+}
+
+.admin-shell .admin-event-zones__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-shell .admin-event-zones__head > button {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.admin-shell .admin-event-zones__eyebrow {
+  color: var(--admin-brand);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-event-zones__head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.admin-shell .admin-event-zones__head p {
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 68ch;
+}
+
+.admin-shell .admin-event-zones__tools {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell .admin-event-zones__tools > button,
+.admin-shell .admin-event-zones__zone-actions > button,
+.admin-shell .admin-event-zones__form-actions > button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.admin-shell .admin-event-zones__tools > button:hover:not(:disabled),
+.admin-shell .admin-event-zones__zone-actions > button:hover:not(:disabled),
+.admin-shell .admin-event-zones__form-actions > button:hover:not(:disabled) {
+  border-color: var(--admin-brand-border);
+  color: var(--admin-brand);
+}
+
+.admin-shell .admin-event-zones__tools > button:disabled,
+.admin-shell .admin-event-zones__zone-actions > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-shell .admin-event-zones__zone-delete:hover:not(:disabled) {
+  border-color: var(--admin-status-danger-border) !important;
+  color: var(--admin-status-danger) !important;
+}
+
+.admin-shell .admin-event-zones__summary {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.admin-shell .admin-event-zones__form {
+  align-items: end;
+  background: var(--admin-surface-muted);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 14px;
+}
+
+.admin-shell .admin-event-zones__form label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-shell .admin-event-zones__form label > span {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-event-zones__form input,
+.admin-shell .admin-event-zones__form select,
+.admin-shell .admin-event-zones__zone-detail select,
+.admin-shell .admin-event-zones__unassigned select {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 13px;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0 11px;
+  width: 100%;
+}
+
+.admin-shell .admin-event-zones__form input:focus-visible,
+.admin-shell .admin-event-zones__form select:focus-visible,
+.admin-shell .admin-event-zones__zone-detail select:focus-visible,
+.admin-shell .admin-event-zones__unassigned select:focus-visible {
+  border-color: var(--admin-focus);
+  outline: 2px solid var(--admin-focus-soft);
+  outline-offset: 1px;
+}
+
+.admin-shell .admin-event-zones__form small {
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.admin-shell .admin-event-zones__form small[role='alert'] {
+  color: var(--admin-status-danger);
+}
+
+.admin-shell .admin-event-zones__form-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.admin-shell .admin-event-zones__empty {
+  border: 1px dashed var(--admin-hairline);
+  border-radius: 12px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+}
+
+.admin-shell .admin-event-zones__list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-event-zones__zone {
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+}
+
+.admin-shell .admin-event-zones__zone.is-expanded {
+  background: var(--admin-brand-soft);
+}
+
+.admin-shell .admin-event-zones__zone-row {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 6px 20px;
+  grid-template-columns: minmax(0, 1.1fr) 150px minmax(0, 1fr) 130px 16px;
+  min-height: 64px;
+  padding: 12px 14px;
+  text-align: left;
+  transition: background var(--motion-fast, 160ms) var(--ease-standard, ease);
+  width: 100%;
+}
+
+.admin-shell .admin-event-zones__zone:not(.is-expanded) .admin-event-zones__zone-row:hover {
+  background: var(--admin-row-hover);
+}
+
+.admin-shell .admin-event-zones__zone-row:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: -2px;
+}
+
+.admin-shell .admin-event-zones__zone-row > svg {
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-event-zones__zone-identity {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-shell .admin-event-zones__zone-identity strong {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-event-zones__zone-identity small {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.admin-shell .admin-event-zones__zone-shift {
+  color: var(--admin-text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-shell .admin-event-zones__zone-members {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-shell .admin-event-zones__zone-empty {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.admin-shell .admin-event-zones__avatar {
+  align-items: center;
+  background: var(--admin-surface-muted);
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-text-secondary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 650;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.admin-shell .admin-event-zones__avatar--more {
+  background: transparent;
+  border-style: dashed;
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-event-zones__tag {
+  align-items: center;
+  border: 1px solid var(--admin-hairline-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 10.5px;
+  font-weight: 650;
+  gap: 5px;
+  justify-self: start;
+  letter-spacing: 0.03em;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-event-zones__tag--ok {
+  border-color: color-mix(in srgb, var(--admin-status-success) 42%, var(--admin-hairline));
+  color: var(--admin-status-success);
+}
+
+.admin-shell .admin-event-zones__tag--wait {
+  border-color: color-mix(in srgb, var(--admin-status-warning) 45%, var(--admin-hairline));
+  color: var(--admin-status-warning);
+}
+
+.admin-shell .admin-event-zones__zone-detail {
+  border-left: 2px solid var(--admin-brand-border);
+  display: grid;
+  gap: 12px;
+  margin: 0 14px 16px 32px;
+  padding-left: 16px;
+}
+
+.admin-shell .admin-event-zones__scope-hint {
+  color: var(--admin-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 72ch;
+}
+
+.admin-shell .admin-event-zones__zone-detail-empty {
+  color: var(--admin-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.admin-shell .admin-event-zones__members,
+.admin-shell .admin-event-zones__unassigned ul {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-event-zones__members li,
+.admin-shell .admin-event-zones__unassigned li {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1.2fr) auto auto;
+  min-height: 48px;
+  padding: 8px 0;
+}
+
+.admin-shell .admin-event-zones__members li:last-child,
+.admin-shell .admin-event-zones__unassigned li:last-child {
+  border-bottom: 0;
+}
+
+.admin-shell .admin-event-zones__members strong,
+.admin-shell .admin-event-zones__unassigned strong {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-event-zones__members code,
+.admin-shell .admin-event-zones__unassigned code {
+  color: var(--admin-muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-event-zones__member-remove {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 6px;
+}
+
+.admin-shell .admin-event-zones__member-remove:hover:not(:disabled) {
+  color: var(--admin-status-danger);
+}
+
+.admin-shell .admin-event-zones__member-remove:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-event-zones__zone-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell .admin-event-zones__assign {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.admin-shell .admin-event-zones__assign > span {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-event-zones__assign select {
+  max-width: 280px;
+}
+
+.admin-shell .admin-event-zones__unassigned {
+  border: 1px dashed var(--admin-hairline-strong);
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.admin-shell .admin-event-zones__unassigned-label {
+  align-items: center;
+  color: var(--admin-status-warning);
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-event-zones__unassigned select {
+  max-width: 220px;
+}
+
+.admin-shell .admin-event-zones__notice {
+  align-items: flex-start;
+  border-radius: 8px;
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.admin-shell .admin-event-zones__notice svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.admin-shell .admin-event-zones__notice--success {
+  background: var(--admin-status-success-bg);
+  border: 1px solid var(--admin-status-success-border);
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-event-zones__notice--error {
+  background: var(--admin-status-danger-bg);
+  border: 1px solid var(--admin-status-danger-border);
+  color: var(--admin-ink);
+}
+
+/* Mobile: la fila de zona se apila y deja de ser tabla. El turno y el estado
+   viajan con el nombre, que es lo que se busca en la puerta. */
+@media (max-width: 900px) {
+  .admin-shell .admin-event-zones__zone-row {
+    grid-template-columns: minmax(0, 1fr) auto 16px;
+    grid-template-rows: auto auto auto;
+  }
+
+  .admin-shell .admin-event-zones__zone-identity {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .admin-shell .admin-event-zones__tag {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .admin-shell .admin-event-zones__zone-row > svg {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .admin-shell .admin-event-zones__zone-shift {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .admin-shell .admin-event-zones__zone-members {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .admin-shell .admin-event-zones__form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell .admin-event-zones__members li,
+  .admin-shell .admin-event-zones__unassigned li {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+  }
+
+  .admin-shell .admin-event-zones__members code,
+  .admin-shell .admin-event-zones__unassigned code {
+    grid-column: 2 / -1;
+  }
+
+  /* El select de zona no puede compartir línea: en 390px quedaba en 40px de
+     ancho, sin texto visible y sin poder elegir nada. */
+  .admin-shell .admin-event-zones__unassigned li select,
+  .admin-shell .admin-event-zones__assign select {
+    grid-column: 1 / -1;
+    max-width: none;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-event-zones__assign {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .admin-shell .admin-event-zones__zone-detail {
+    margin-left: 14px;
+    padding-left: 12px;
+  }
+
+  .admin-shell .admin-event-zones__summary {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ── 5. El panel tiene que poder recorrerse ─────
+   La ficha del evento pasó de ser lectura a llevar los accesos a cada sección.
+   Con `overflow: hidden` (admin-minimal.css) el panel recortaba ~500px de
+   contenido: Pagos y Check-in quedaban abajo del borde, sin scroll y sin nada
+   que avisara que estaban ahí. */
+
+/* Solo donde el panel tiene alto fijo: es el mismo `@container` que arma el
+   split de dos columnas y le pone `height` al workspace (admin-minimal.css).
+   Fuera de ahí el panel se apila debajo de la lista con alto propio, y darle
+   scroll ahí crearía un scroll anidado -- el dedo llega al panel, el panel se
+   come el gesto y la página deja de moverse. */
+@container admin-panel (min-width: 900px) {
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* La cabecera no se va con el scroll: es la que dice de qué evento son las
+     decisiones de abajo, y equivocarse de evento acá se paga en la puerta. */
+  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
+    backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+    -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
+    background: var(--admin-glass-bg-strong);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+
+/* Dentro de una sección del evento, la cromática de la lista miente: el buscador
+   y los filtros de estado apuntan a una lista que no está en pantalla, y los KPI
+   son del calendario entero. La miga de pan del detalle dice dónde se está. */
+.admin-shell .admin-list-section--events:has(.admin-event-drill) > .admin-list-section__chrome,
+.admin-shell .admin-list-section--events:has(.admin-event-drill) > .admin-events-kpis {
+  display: none;
+}

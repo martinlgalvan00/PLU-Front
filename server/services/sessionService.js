@@ -88,6 +88,9 @@ export function serializeUser(user) {
     mustChangePassword: Boolean(user.mustChangePassword),
     eventId: user.eventId ?? null,
     eventSlug: user.eventSlug ?? null,
+    // Zona del meet a la que está asignada la cuenta de seguridad. El panel la
+    // usa para agrupar el equipo por zona; nulo mientras nadie la asignó.
+    securityZoneId: user.securityZoneId ?? null,
     lastLoginAt: user.lastLoginAt ?? null,
   }
 }

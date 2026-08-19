@@ -6261,6 +6261,13 @@
   }
 }
 
+/* Acceso + sus dos notas como un solo bloque: la consecuencia tiene que leerse
+   como parte de la decisión, no como un pie de la banda entera. */
+.admin-shell .admin-list-shell--events .admin-event-state__access {
+  display: grid;
+  gap: 4px;
+}
+
 .admin-shell .admin-list-shell--events .admin-event-state__note {
   font-size: 11.5px;
   line-height: 1.45;
@@ -6271,6 +6278,13 @@
 .admin-shell .admin-list-shell--events .admin-event-state__note--full,
 .admin-shell .admin-list-shell--events .admin-event-state__note--info {
   color: var(--admin-status-warning);
+}
+
+/* La consecuencia del acceso elegido no es una advertencia: es la descripción
+   del estado actual. Va en tono apagado para que el amarillo quede reservado a
+   lo que de verdad pide una decisión. */
+.admin-shell .admin-list-shell--events .admin-event-state__note--muted {
+  color: var(--admin-muted);
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__note--success {
@@ -6288,7 +6302,8 @@
 
 /* Marca de evento sin publicar en la fila: mismo peso visual que la estrella
    de destacado, tono apagado porque comunica ausencia, no distinción. */
-.admin-shell .admin-list-shell--events .admin-event-row__hidden-mark {
+.admin-shell .admin-list-shell--events .admin-event-row__hidden-mark,
+.admin-shell .admin-list-shell--events .admin-event-row__open-mark {
   align-items: center;
   color: var(--admin-muted);
   display: inline-flex;

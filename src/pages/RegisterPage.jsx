@@ -41,6 +41,7 @@ import { hasCurrentMembership, isMembershipCurrent } from '../services/membershi
 import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
+import { channelOpen } from '../lib/paymentChannels.js'
 import {
   resendAthleteVerification,
   checkAthleteAvailability,
@@ -834,20 +835,42 @@ export default function RegisterPage({
   const transferEnabled = manualChannelsOpenGlobally || codeChannels.includes('bank_transfer')
   const cashEnabled = manualChannelsOpenGlobally || codeChannels.includes('cash_pitbull')
   const manualPaymentEnabled = transferEnabled || cashEnabled
+  /**
+   * Mercado Pago dejó de ser incondicional: se cierra por concepto desde
+   * Administración igual que los canales manuales. El combo necesita la
+   * pasarela abierta en los dos conceptos. Un cupón no la reabre —sólo destraba
+   * canales manuales—, así que acá no interviene `codeChannels`.
+   *
+   * Default abierto (`!== false`) a propósito: mientras la disponibilidad no
+   * resolvió, cerrar la pasarela dejaría la pantalla sin ningún medio, y el 409
+   * del backend sigue siendo la última palabra.
+   */
+  const mercadoPagoEnabled =
+    channelOpen(checkoutAvailability, 'membership', 'mercado_pago') &&
+    (flow !== 'competition' || channelOpen(checkoutAvailability, 'registration', 'mercado_pago'))
   const selectedMethodEnabled =
     form.paymentMethod === 'manual_link'
       ? transferEnabled
       : form.paymentMethod === 'cash_pitbull'
         ? cashEnabled
-        : true
+        : mercadoPagoEnabled
 
-  // El canal manual se cerró mientras la pantalla estaba abierta —o el código
-  // aplicado no habilita el que estaba elegido—: la selección vuelve a Mercado
-  // Pago para que el formulario no envíe un medio que el backend va a rechazar.
+  // El medio elegido dejó de estar disponible mientras la pantalla estaba
+  // abierta —canal cerrado desde el panel, o un código que no habilita ese
+  // canal—: la selección cae al primero que quede abierto, para que el
+  // formulario no envíe un medio que el backend va a rechazar. Ya no se asume
+  // Mercado Pago: la pasarela también se puede cerrar.
+  const firstOpenMethod = mercadoPagoEnabled
+    ? 'mercado_pago'
+    : transferEnabled
+      ? 'manual_link'
+      : cashEnabled
+        ? 'cash_pitbull'
+        : null
   useEffect(() => {
-    if (selectedMethodEnabled) return
-    onUpdateForm({ target: { name: 'paymentMethod', value: 'mercado_pago' } })
-  }, [selectedMethodEnabled, onUpdateForm])
+    if (selectedMethodEnabled || !firstOpenMethod) return
+    onUpdateForm({ target: { name: 'paymentMethod', value: firstOpenMethod } })
+  }, [firstOpenMethod, selectedMethodEnabled, onUpdateForm])
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -1329,7 +1352,23 @@ export default function RegisterPage({
     membershipOrderConfirmed && getStatusMeta(visibleOrder.status, t).tone === 'success'
   const profileOrderConfirmed = flow === 'profile' && Boolean(visibleOrder)
   const competitionSettling = flow === 'competition' && Boolean(visibleOrder) && !changingMethod
-  const mpSettling = competitionSettling && visibleOrder.paymentMethod === 'mercado_pago'
+  /**
+   * "Settling" es el rato en que la orden todavía se está cobrando. Con la
+   * inscripción ya admitida eso terminó: el brick embebido mostraba
+   * "Confirmar pago" sobre una orden paga, debajo del acuse que decía que el
+   * lugar estaba confirmado, y arrastraba consigo la barra de total sin borde
+   * (`--settling-mp` la deja transparente porque el brick aporta su propio
+   * marco). Al cerrarse acá, la barra vuelve a su estado normal de orden
+   * liquidada y el contexto mobile deja de ocultarse solo.
+   *
+   * El corte va por `registrationAdmitted` y no por `cardData`: la card
+   * necesita además el token de credencial, y sin él la pantalla seguiría
+   * pidiendo pagar algo que ya está pago.
+   */
+  const mpSettling =
+    competitionSettling &&
+    visibleOrder.paymentMethod === 'mercado_pago' &&
+    !registrationAdmitted
 
   const registerIntro = profileOrderConfirmed ? (
     <header className="register-intro register-intro--profile register-intro--confirmed">
@@ -1441,6 +1480,7 @@ export default function RegisterPage({
                 <div className="register-status__celebration">
                   <ConfirmationSeal
                     variant="registration"
+                    celebrate
                     eyebrow={t('pages.register.sealRegistrationEyebrow')}
                     title={t('pages.register.competitionCardEyebrow')}
                     detail={t('pages.register.competitionCardDesc')}
@@ -1623,7 +1663,12 @@ export default function RegisterPage({
             </div>
           ) : competitionSettling ? (
             <div className="register-settle">
-              {mpSettling ? (
+              {/* Las acciones de medio de pago existen mientras la orden se está
+                  cobrando. Con la inscripción ya admitida, "elegir otro medio" y
+                  "ver datos de transferencia" invitaban a re-pagar algo que ya
+                  estaba pago, justo al lado del acuse que decía que el lugar
+                  estaba confirmado. Liquidada la orden queda solo el total. */}
+              {registrationAdmitted ? null : mpSettling ? (
                 <div className="register-settle__toolbar">
                   <div className="register-settle__nav">
                     {manualPaymentEnabled ? (
@@ -1975,6 +2020,7 @@ export default function RegisterPage({
                   >
                     <RegisterSettle
                       cashEnabled={cashEnabled}
+                      mercadoPagoEnabled={mercadoPagoEnabled}
                       transferEnabled={transferEnabled}
                       onPaymentBlur={blurField}
                       onPaymentChange={changeField}
@@ -2087,6 +2133,7 @@ export default function RegisterPage({
                       comboOffer={comboAvailability.offer}
                       comboSavings={comboSavings}
                       cashEnabled={cashEnabled}
+                      mercadoPagoEnabled={mercadoPagoEnabled}
                       transferEnabled={transferEnabled}
                       membershipPrice={membershipListPrice}
                       onPaymentBlur={blurField}
@@ -2209,6 +2256,7 @@ export default function RegisterPage({
                 {flow === 'membership' ? (
                   <RegisterSettle
                     cashEnabled={cashEnabled}
+                    mercadoPagoEnabled={mercadoPagoEnabled}
                     transferEnabled={transferEnabled}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}

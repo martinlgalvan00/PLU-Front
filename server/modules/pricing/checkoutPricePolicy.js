@@ -10,9 +10,20 @@ export function manualPaymentChannel(paymentMethod) {
 
 /**
  * Transferencia y efectivo comparten `method = 'manual_link'` y se distinguen
- * por canal: los dos dependen de que alguien valide el cobro a mano, así que el
- * interruptor de canal manual los cubre juntos.
+ * por canal: los dos dependen de que alguien valide el cobro a mano. El
+ * interruptor de plataforma, en cambio, ya los controla por separado
+ * (`platform_payment_channels`), así que esto sólo dice si el cobro necesita
+ * validación humana — no si está habilitado.
  */
 export function isManualPaymentMethod(paymentMethod) {
   return manualPaymentChannel(paymentMethod) !== null
+}
+
+/**
+ * Medio de pago elegido -> celda de la matriz de canales. Mercado Pago es el
+ * caso restante: ya no por ser incondicional, sino porque es el único canal no
+ * manual del checkout.
+ */
+export function paymentChannelOf(paymentMethod) {
+  return manualPaymentChannel(paymentMethod) ?? 'mercado_pago'
 }

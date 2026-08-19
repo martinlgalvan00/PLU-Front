@@ -16,8 +16,12 @@ export default function RegisterSettle({
   comboEnabled = false,
   comboOffer = null,
   comboSavings = 0,
-  // Mercado Pago es la apertura inicial. Los canales manuales requieren una
-  // habilitación explícita desde Administración.
+  // Mercado Pago también se abre y cierra por concepto desde Administración:
+  // ya no es un medio incondicional. Default abierto para no dejar una pantalla
+  // sin ningún medio ante una lectura incompleta.
+  mercadoPagoEnabled = true,
+  // Compatible histórico: abre los dos canales manuales salvo que se pase cada
+  // uno por separado.
   manualPaymentEnabled = false,
   membershipPrice = 0,
   membershipManualPrice = null,
@@ -104,7 +108,9 @@ export default function RegisterSettle({
   const cashOffered = cashEnabled || manualPaymentEnabled
   const methods = showPayment
     ? [
-        { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
+        ...(mercadoPagoEnabled
+          ? [{ value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') }]
+          : []),
         ...(transferOffered
           ? [{ value: 'manual_link', label: t('pages.register.paymentTransferLabel') }]
           : []),
@@ -126,7 +132,13 @@ export default function RegisterSettle({
       paymentError={paymentError}
       paymentHint={
         paymentHint ||
-        (!transferOffered && !cashOffered ? t('pages.register.paymentMercadoPagoOnlyHint') : '')
+        // Sin ningún medio abierto hay que decirlo: un escritorio de cobro
+        // vacío no se explica solo.
+        (methods.length === 0 && showPayment
+          ? t('pages.register.paymentNoChannelHint')
+          : mercadoPagoEnabled && !transferOffered && !cashOffered
+            ? t('pages.register.paymentMercadoPagoOnlyHint')
+            : '')
       }
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}

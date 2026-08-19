@@ -12,10 +12,10 @@ import {
   ShieldCheck,
   Star,
   Ticket,
+  Unlock,
   Users,
   X,
 } from 'lucide-react'
-import AdminEventSessionsEditor from './AdminEventSessionsEditor.jsx'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import DetailTabs from './DetailTabs.jsx'
 import Button from '../ui/Button.jsx'
@@ -34,7 +34,6 @@ import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from './AdminTicketTypesEditor.jsx'
-import AdminEventSecuritySection from './AdminEventSecuritySection.jsx'
 
 function updatePricingField(draft, field, value) {
   return {
@@ -219,18 +218,11 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
 
 export default function AdminEventEditor({
   canEdit,
-  canManageUsers,
   draft,
   initialFocus = 'details',
   onCancel,
   onChange,
-  onCreateSecurityUser,
-  onCreateSecurityUsersBulk,
-  onCreateSecurityAccessLink,
-  onDeactivateAllSecurityUsers,
-  onListSecurityUsers,
   onSubmit,
-  onUpdateSecurityUserStatus,
   sourceEvent = null,
 }) {
   const { t } = useI18n()
@@ -268,26 +260,39 @@ export default function AdminEventEditor({
     [t, draft.status],
   )
 
+  // Mismo par de opciones y mismo copy que la consola de operación del panel:
+  // el requisito de afiliación se decide en los dos lugares y no puede leerse
+  // distinto según por dónde se entre.
+  const accessOptions = useMemo(
+    () => [
+      ['members', t('admin.eventState.accessMembers')],
+      ['open', t('admin.eventState.accessOpen')],
+    ],
+    [t],
+  )
+
   const tabsWithErrors = useMemo(() => {
     const set = new Set()
     for (const key of Object.keys(fieldErrors)) set.add(resolveTabForField(key))
     return set
   }, [fieldErrors])
 
+  /**
+   * Grilla y zonas de seguridad ya no son pestañas de acá: viven en la consola
+   * del evento, a ancho completo y guardando por su cuenta. Tenerlas en el
+   * editor obligaba a pasar por un guardado que reescribe el evento entero --
+   * días, tandas y tipos de entrada -- para agregar una tanda o mover a alguien
+   * de zona. Lo que queda son las tres secciones que sí se guardan con el
+   * evento.
+   */
   const tabs = useMemo(
     () =>
       [
         { id: 'basics', label: t('admin.eventEditor.navBasics') },
         { id: 'sales', label: t('admin.eventEditor.navSales') },
         { id: 'visibility', label: t('admin.eventEditor.navVisibility') },
-        // Las tandas cuelgan de los días del evento, que recién existen una vez
-        // que está guardado -- igual que la pestaña de seguridad.
-        draft.id ? { id: 'grid', label: t('admin.eventEditor.navGrid') } : null,
-        draft.id ? { id: 'security', label: t('admin.eventEditor.navSecurity') } : null,
-      ]
-        .filter(Boolean)
-        .map((tab) => ({ ...tab, hasError: tabsWithErrors.has(tab.id) })),
-    [draft.id, t, tabsWithErrors],
+      ].map((tab) => ({ ...tab, hasError: tabsWithErrors.has(tab.id) })),
+    [t, tabsWithErrors],
   )
 
   const consistencyWarnings = useMemo(
@@ -353,11 +358,6 @@ export default function AdminEventEditor({
     window.addEventListener('beforeunload', preventAccidentalExit)
     return () => window.removeEventListener('beforeunload', preventAccidentalExit)
   }, [dirty])
-
-  useEffect(() => {
-    if (initialFocus !== 'security' || !draft.id) return
-    setActiveTab('security')
-  }, [draft.id, initialFocus])
 
   useEffect(() => {
     if (initialFocus !== 'tickets') return
@@ -1037,25 +1037,37 @@ export default function AdminEventEditor({
                     </span>
                   </label>
 
-                  <label className="admin-event-form__toggle">
-                    <input
-                      checked={draft.requiresMembership !== false}
-                      className="admin-event-form__toggle-input"
-                      type="checkbox"
-                      onChange={(event) =>
-                        patchDraft({ ...draft, requiresMembership: event.target.checked })
-                      }
+                  {/* Acceso al meet. Antes era un checkbox cuya etiqueta era
+                      una afirmación ("Requiere afiliación activa"): había que
+                      leer el estado de la casilla para saber si el meet pedía
+                      afiliación o no, y nada decía qué pasaba en la puerta. Con
+                      dos opciones excluyentes el estado se lee sin interpretar,
+                      y la consecuencia queda escrita entera. Es el mismo
+                      control que la consola de operación del panel, con el
+                      mismo copy, para que no digan dos cosas distintas. */}
+                  <div className="admin-event-form__access">
+                    <AdminFilterChipGroup
+                      compact
                       disabled={!canEdit}
+                      id="event-access"
+                      label={t('admin.eventEditor.accessLabel')}
+                      value={draft.requiresMembership === false ? 'open' : 'members'}
+                      onChange={(value) =>
+                        patchDraft({ ...draft, requiresMembership: value === 'members' })
+                      }
+                      options={accessOptions}
                     />
-                    <span className="admin-event-form__toggle-ui" aria-hidden />
-                    <span className="admin-event-form__toggle-copy">
-                      <strong>
+                    <p className="admin-event-form__access-note">
+                      {draft.requiresMembership === false ? (
+                        <Unlock size={13} aria-hidden />
+                      ) : (
                         <ShieldCheck size={13} aria-hidden />
-                        {t('admin.eventEditor.requiresMembershipTitle')}
-                      </strong>
-                      <small>{t('admin.eventEditor.requiresMembershipHint')}</small>
-                    </span>
-                  </label>
+                      )}
+                      {draft.requiresMembership === false
+                        ? t('admin.eventState.accessOpenNote')
+                        : t('admin.eventState.accessMembersNote')}
+                    </p>
+                  </div>
 
                   {/* Antes vivía detrás de un <details> ("Avanzado"): con tabs
                     reales esta pantalla ya está acotada a Publicación, así
@@ -1135,39 +1147,6 @@ export default function AdminEventEditor({
                 </section>
               )}
 
-              {activeTab === 'grid' && draft.id && (
-                <section
-                  ref={activePanelRef}
-                  className="admin-event-form__section"
-                  role="tabpanel"
-                  aria-label={t('admin.eventEditor.navGrid')}
-                  tabIndex={-1}
-                >
-                  <AdminEventSessionsEditor canEdit={canEdit} eventSlug={sourceEvent?.slug} />
-                </section>
-              )}
-
-              {activeTab === 'security' && draft.id && (
-                <div
-                  ref={activePanelRef}
-                  role="tabpanel"
-                  aria-label={t('admin.eventEditor.navSecurity')}
-                  tabIndex={-1}
-                >
-                  <AdminEventSecuritySection
-                    canManageUsers={canManageUsers}
-                    eventId={draft.id}
-                    eventSlug={sourceEvent?.slug}
-                    eventEndsAt={draft.endsAt}
-                    onCreateSecurityUser={onCreateSecurityUser}
-                    onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
-                    onCreateSecurityAccessLink={onCreateSecurityAccessLink}
-                    onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
-                    onListSecurityUsers={onListSecurityUsers}
-                    onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
-                  />
-                </div>
-              )}
 
               {syncError && (
                 <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">

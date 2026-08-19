@@ -28,6 +28,7 @@
     "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
     "visual-check": "node scripts/visual-check.mjs",
+    "visual-check:celebration": "node scripts/visual-check-celebration.mjs",
     "db:studio": "node scripts/prisma-supabase.mjs studio",
     "db:generate": "node scripts/prisma-supabase.mjs generate",
     "db:migrate": "npm run setup:all",

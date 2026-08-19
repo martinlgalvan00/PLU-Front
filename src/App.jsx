@@ -555,6 +555,12 @@ export default function App() {
           onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
+          onListSecurityZones={app.listSecurityZonesAction}
+          onCreateSecurityZone={app.createSecurityZoneAction}
+          onUpdateSecurityZone={app.updateSecurityZoneAction}
+          onDeleteSecurityZone={app.deleteSecurityZoneAction}
+          onPresetSecurityZones={app.presetSecurityZonesAction}
+          onAssignSecurityZone={app.assignSecurityZoneAction}
           onCreateUser={app.createUserAction}
           onDeleteUser={app.deleteUserAction}
           onRequestEmailChange={app.requestEmailChangeAction}

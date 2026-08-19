@@ -5681,6 +5681,12 @@
     display: none;
   }
 
+  /* Cuando la inscripción queda admitida, `mpSettling` se cierra en
+     RegisterPage y esta regla deja de aplicar sola: el contexto mobile vuelve a
+     mostrarse con el acuse, la ráfaga y el botón de la card. Ocultarlo ahí
+     dejaba al atleta en teléfono mirando el brick de pago de una orden ya paga.
+     En desktop nunca se notó porque ese bloque vive en el aside. */
+
   .register-page--settling-mp .register-settle {
     padding-bottom: 0;
   }

@@ -58,6 +58,26 @@ export const Payment = {
   },
 }
 
+/**
+ * Con la ráfaga de papel laminado (`celebrate`): el sello se estampa y a los
+ * ~560 ms sale el confeti PLU desde el anillo. La capa se monta por portal en
+ * `body`, es fija del tamaño del viewport y se desmonta sola al terminar — no
+ * deja nada girando ni puede generar scroll horizontal.
+ *
+ * Bajo `prefers-reduced-motion` no se monta un solo nodo de la ráfaga: queda
+ * el sello completo, sin trazo. Recargá la story para volver a verla.
+ */
+export const MembershipCelebrada = {
+  args: {
+    variant: 'membership',
+    celebrate: true,
+    eyebrow: 'Afiliación acreditada',
+    seal: 'PLU-ARG-2026-001',
+    title: 'Ya sos parte de PLU Argentina',
+    detail: 'Vigente hasta 31 ene 2027',
+  },
+}
+
 /** Sin bajada ni sello: el mínimo que sigue leyéndose como confirmación. */
 export const TitleOnly = {
   args: {

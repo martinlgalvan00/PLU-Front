@@ -36,7 +36,7 @@ import { logger } from '../lib/logger.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
   assertCheckoutEnabled,
-  assertManualChannelEnabled,
+  assertPaymentChannelEnabled,
   assertTicketCheckoutEnabled,
   assertValidationEnabled,
   resolvePublicCheckoutAvailability,
@@ -164,9 +164,12 @@ export function createTicketRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertTicketCheckoutEnabled(toggles, env)
-        if (req.validatedBody.provider === 'manual') {
-          assertManualChannelEnabled(toggles, 'ticket')
-        }
+        // Las entradas no tienen efectivo en Pitbull: `manual` es transferencia.
+        assertPaymentChannelEnabled(
+          toggles,
+          'ticket',
+          req.validatedBody.provider === 'manual' ? 'bank_transfer' : 'mercado_pago',
+        )
         res.status(201).json(await repo().createOrder(req.validatedBody))
       } catch (error) {
         next(error)
@@ -238,12 +241,16 @@ export function createTicketRoutes({
         repo().availability(req.params.eventSlug),
         platformSettingsRepo().get(),
       ])
-      const { ticketEnabled, ticketManualEnabled } = resolvePublicCheckoutAvailability(toggles, env)
+      const { ticketEnabled, ticketManualEnabled, paymentChannels } =
+        resolvePublicCheckoutAvailability(toggles, env)
       // Ventana corta: el stock que se muestra acá decide una compra. La
       // reserva real se valida igual al crear la orden, así que 10 s de atraso
       // no habilitan una venta de más -- como mucho un 409 al confirmar.
       res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
-      res.json({ availability, checkout: { ticketEnabled, ticketManualEnabled } })
+      res.json({
+        availability,
+        checkout: { ticketEnabled, ticketManualEnabled, channels: paymentChannels.ticket },
+      })
     } catch (error) {
       next(error)
     }

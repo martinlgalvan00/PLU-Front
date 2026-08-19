@@ -150,6 +150,32 @@ export function updateSecurityUserStatusRequest(userId, status) {
   return apiPatch(`/api/auth/security-users/${encodeURIComponent(userId)}/status`, { status })
 }
 
+// Zonas de seguridad del evento (puerta, pesaje, calentamiento, plataforma).
+// Agrupan las cuentas de seguridad y les fijan alcance de escaneo y turno.
+export function listSecurityZonesRequest(eventId) {
+  return apiGet(`/api/security-zones?eventId=${encodeURIComponent(eventId)}`)
+}
+
+export function createSecurityZoneRequest(zone) {
+  return apiPost('/api/security-zones', zone)
+}
+
+export function updateSecurityZoneRequest(zoneId, zone) {
+  return apiPatch(`/api/security-zones/${encodeURIComponent(zoneId)}`, zone)
+}
+
+export function deleteSecurityZoneRequest(zoneId) {
+  return apiDelete(`/api/security-zones/${encodeURIComponent(zoneId)}`)
+}
+
+export function presetSecurityZonesRequest({ eventId, eventSlug }) {
+  return apiPost('/api/security-zones/preset', { eventId, eventSlug })
+}
+
+export function assignSecurityZoneRequest(userId, zoneId) {
+  return apiPatch(`/api/security-zones/members/${encodeURIComponent(userId)}`, { zoneId })
+}
+
 // Cuentas de staff del panel (admin/operador/viewer). El alta manda un enlace
 // firmado y de un solo uso para que la persona elija su contraseña.
 export function listStaffUsersRequest() {

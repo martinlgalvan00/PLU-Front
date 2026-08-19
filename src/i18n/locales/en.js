@@ -771,6 +771,9 @@ export default {
       cardFlipToBack: 'View QR',
       cardFlipToFront: 'Back',
       cardFlipAria: 'Flip your credential to see the QR code',
+      sealIssuedEyebrow: 'Credential issued',
+      sealIssuedTitle: 'Your PLU credential is ready',
+      sealIssuedDetail: 'Show this QR at the gate to check in.',
     },
     gateBanner: {
       title: 'Complete your membership',
@@ -2553,6 +2556,8 @@ export default {
       paymentMpHint: 'Automatic confirmation',
       paymentMercadoPagoOnlyHint:
         'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash at Pitbull will be available soon.',
+      paymentNoChannelHint:
+        'No payment methods are available right now. Try again later or get in touch.',
       paymentLinkLabel: 'Payment link',
       paymentTransferLabel: 'Bank transfer',
       paymentCashPitbullLabel: 'Cash at Pitbull',

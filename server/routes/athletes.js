@@ -41,6 +41,7 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import {
   isManualPaymentMethod,
   manualPaymentChannel,
+  paymentChannelOf,
   storagePaymentMethod,
 } from '../modules/pricing/checkoutPricePolicy.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
@@ -93,8 +94,8 @@ import { createSupabasePlatformSettingsRepository } from '../modules/settings/su
 import {
   assertCheckoutEnabled,
   assertConceptValidationEnabled,
-  assertManualChannelEnabled,
   assertMembershipCheckoutEnabled,
+  assertPaymentChannelEnabled,
   assertRegistrationCheckoutEnabled,
   assertValidationEnabled,
   resolvePublicCheckoutAvailability,
@@ -452,6 +453,23 @@ export function createAthleteRoutes({
       return { get: async () => ({}) }
     }
     return platformSettingsRepository ?? createSupabasePlatformSettingsRepository(client())
+  }
+  /**
+   * ¿El cupón de esta compra destraba el canal manual pedido? Sólo aplica a
+   * transferencia y efectivo: un cupón no reabre Mercado Pago si Administración
+   * lo cerró (ver `assertPaymentChannelEnabled`). Para Mercado Pago ni se
+   * consulta la tabla de cupones.
+   *
+   * `scope` es el alcance con el que se busca el código: 'membership',
+   * 'registration' o 'combo' — el combo no matchea los dos primeros sueltos.
+   */
+  const manualChannelOverride = async (body, scope) => {
+    if (!isManualPaymentMethod(body?.paymentMethod)) return false
+    return repo().discountCodeManualEligibility(
+      body.discountCode,
+      scope,
+      manualPaymentChannel(body.paymentMethod),
+    )
   }
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
@@ -1095,6 +1113,10 @@ export function createAthleteRoutes({
           // enviar el formulario aparecía el 409.
           membershipManualEnabled: availability.membershipManualEnabled,
           registrationManualEnabled: availability.registrationManualEnabled,
+          // Celda por celda: la pantalla ofrece exactamente los medios abiertos
+          // para cada concepto, incluida la pasarela, que ahora también se
+          // puede cerrar desde el panel.
+          paymentChannels: availability.paymentChannels,
         })
       } catch (error) {
         next(error)
@@ -1137,14 +1159,10 @@ export function createAthleteRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertMembershipCheckoutEnabled(toggles)
-        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          const override = await repo().discountCodeManualEligibility(
-            req.validatedBody.discountCode,
-            'membership',
-            manualPaymentChannel(req.validatedBody.paymentMethod),
-          )
-          assertManualChannelEnabled(toggles, 'membership', { override })
-        }
+        const membershipChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        assertPaymentChannelEnabled(toggles, 'membership', membershipChannel, {
+          override: await manualChannelOverride(req.validatedBody, 'membership'),
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -1199,14 +1217,12 @@ export function createAthleteRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
-        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          const override = await repo().discountCodeManualEligibility(
-            req.validatedBody.discountCode,
-            'registration',
-            manualPaymentChannel(req.validatedBody.paymentMethod),
-          )
-          assertManualChannelEnabled(toggles, 'registration', { override })
-        }
+        assertPaymentChannelEnabled(
+          toggles,
+          'registration',
+          paymentChannelOf(req.validatedBody.paymentMethod),
+          { override: await manualChannelOverride(req.validatedBody, 'registration') },
+        )
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
@@ -1260,19 +1276,18 @@ export function createAthleteRoutes({
         assertCheckoutEnabled(toggles)
         assertMembershipCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
-        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          // El combo destraba con un código de alcance 'combo' o 'both': pasar
-          // scope 'combo' hace que discountCodeManualEligibility no matchee
-          // 'membership' ni 'registration' solos. El canal pedido también tiene
-          // que estar entre los que el código habilita.
-          const override = await repo().discountCodeManualEligibility(
-            req.validatedBody.discountCode,
-            'combo',
-            manualPaymentChannel(req.validatedBody.paymentMethod),
-          )
-          assertManualChannelEnabled(toggles, 'membership', { override })
-          assertManualChannelEnabled(toggles, 'registration', { override })
-        }
+        // El combo destraba con un código de alcance 'combo' o 'both': pasar
+        // scope 'combo' hace que discountCodeManualEligibility no matchee
+        // 'membership' ni 'registration' solos. El canal pedido también tiene
+        // que estar entre los que el código habilita.
+        const comboOverride = await manualChannelOverride(req.validatedBody, 'combo')
+        const comboChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        assertPaymentChannelEnabled(toggles, 'membership', comboChannel, {
+          override: comboOverride,
+        })
+        assertPaymentChannelEnabled(toggles, 'registration', comboChannel, {
+          override: comboOverride,
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))

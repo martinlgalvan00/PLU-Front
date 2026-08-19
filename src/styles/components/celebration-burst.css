@@ -1,0 +1,126 @@
+/* ────────────────────────────────────────────────────────────────────
+   CelebrationBurst — la ráfaga de los tres momentos
+
+   Papel laminado en oro PLU, con celeste de acompañamiento y un plata que toma
+   el color del texto para leerse en los dos temas. Un solo disparo: cada pieza
+   sube en abanico hasta su apex y de ahí cae girando. Sin glow, sin blur, sin
+   sombra, sin loop — cuando termina no queda nada animándose.
+
+   La capa se monta por portal en <body> y es fija del tamaño del viewport con
+   overflow oculto: no participa del layout, no la captura ningún ancestro con
+   transform o backdrop-filter, y no puede generar scroll horizontal en ninguna
+   resolución. Los custom props llevan prefijo `--burst-` a propósito:
+   register.css ya usa `--piece-width` para el ancho de la card compartible.
+
+   Alcance y tamaño de papel salen de dos clamp(): a 360px la ráfaga es chica y
+   corta, a 1920 es amplia y el papel se ve como papel. Con tamaños fijos —la
+   primera versión— en desktop se leía como polvo.
+   ──────────────────────────────────────────────────────────────────── */
+
+.celebration-burst {
+  /* Sin ancla medida, la ráfaga sale del tercio superior del viewport. */
+  --celebration-origin-x: 50vw;
+  --celebration-origin-y: 32vh;
+  /* 24vw y no un mínimo fijo: en 360px el sello vive a ~88px del borde
+     izquierdo, así que un alcance mayor manda un tercio del papel fuera de
+     pantalla antes de que se vea. El vw ata el alcance al ancho real y el
+     máximo evita que en 1920 la ráfaga cruce media pantalla. */
+  --celebration-reach: clamp(86px, 24vw, 300px);
+  /* Unidad de papel: el ancho y el alto de cada pieza son múltiplos de esto. */
+  --celebration-unit: clamp(3.4px, 0.5vw, 6.6px);
+
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* Por debajo del header (--z-header: 200): papel volando sobre la
+     navegación se lee como banner publicitario, no como acuse. */
+  position: fixed;
+  z-index: 190;
+}
+
+.celebration-burst__origin {
+  height: 0;
+  left: var(--celebration-origin-x);
+  position: absolute;
+  top: var(--celebration-origin-y);
+  width: 0;
+}
+
+.celebration-burst__piece {
+  /* `ease-out` frenaría el papel al final, justo cuando la gravedad tiene que
+     acelerarlo: la curva del sistema que sirve acá es la estándar. */
+  animation: celebration-piece var(--burst-duration, 1100ms) var(--ease-standard, ease)
+    var(--burst-delay, 0ms) both;
+  border-radius: 1px;
+  display: block;
+  height: calc(var(--burst-height, 2.6) * var(--celebration-unit));
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: calc(var(--burst-width, 1.2) * var(--celebration-unit));
+}
+
+.celebration-burst__piece--gold {
+  background: var(--color-brand-gold);
+}
+
+.celebration-burst__piece--celeste {
+  background: var(--color-brand-celeste);
+}
+
+/* La tercera parte del reparto no es un acento: es el grafito de la marca
+   dando peso al papel. Sin él la ráfaga se lee como dos colores de fiesta. */
+/* El tercio que no es marca: papel plata. Toma el color del texto —casi blanco
+   en dark, grafito en light— porque `--color-text-muted` sobre grafito era
+   literalmente invisible y ese tercio de la ráfaga no existía. */
+.celebration-burst__piece--silver {
+  background: color-mix(in oklab, var(--color-text-primary) 62%, transparent);
+}
+
+@keyframes celebration-piece {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.5);
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  /* Apex: la pieza llegó a lo más alto de su arco y todavía no cae. */
+  46% {
+    opacity: 1;
+    transform: translate3d(
+        calc(var(--burst-px) * var(--burst-reach) * var(--celebration-reach) * 0.68),
+        calc(var(--burst-py) * var(--burst-reach) * var(--celebration-reach)),
+        0
+      )
+      rotate(calc(var(--burst-spin, 240deg) * 0.42)) scale(1);
+  }
+
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(
+        calc(var(--burst-px) * var(--burst-reach) * var(--celebration-reach)),
+        calc(
+          var(--burst-py) * var(--burst-reach) * var(--celebration-reach) + var(--burst-fall) *
+            var(--celebration-reach)
+        ),
+        0
+      )
+      rotate(var(--burst-spin, 240deg)) scale(0.94);
+  }
+}
+
+/* El componente ya no monta nada bajo prefers-reduced-motion (la puerta es
+   shouldCelebrate, no este media query). Queda como red: si la preferencia
+   cambia mientras la ráfaga está en vuelo, se apaga en el acto. */
+@media (prefers-reduced-motion: reduce) {
+  .celebration-burst {
+    display: none;
+  }
+}

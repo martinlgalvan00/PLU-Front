@@ -477,3 +477,80 @@ describe('RegisterPage — link de pago de inscripción', () => {
     expect(onSubmit.mock.calls[0][2]).toMatchObject({ paymentMethod: 'mercado_pago' })
   })
 })
+
+/**
+ * Inscripción ya admitida: la orden está liquidada.
+ *
+ * "Settling" es el rato en que la orden todavía se está cobrando. Con la
+ * inscripción admitida eso terminó, pero la pantalla seguía montando el brick
+ * embebido de Mercado Pago —con su botón de pagar— y las dos acciones de medio
+ * de pago, justo al lado del acuse que anunciaba que el lugar estaba
+ * confirmado. Además `--settling-mp` oculta el contexto mobile para dejarle la
+ * pantalla al brick, así que en teléfono el atleta no veía ni el festejo ni el
+ * botón de su card.
+ */
+describe('RegisterPage — inscripción admitida', () => {
+  const settledOrder = {
+    ...pendingOrder,
+    paymentMethod: 'mercado_pago',
+    reference: 'RORD-confirmada',
+    status: 'confirmada',
+  }
+
+  const admittedRegistration = {
+    id: 'reg-1',
+    paymentOrderId: settledOrder.paymentId,
+    event: 'Pitbull Classic 2026',
+    eventSlug: 'pitbull-classic-2026',
+    status: 'confirmada',
+    requiresMembership: false,
+  }
+
+  function renderSettled() {
+    return renderCompetition({
+      createdOrder: settledOrder,
+      registrations: [admittedRegistration],
+    })
+  }
+
+  it('muestra el acuse de inscripción confirmada y la acción de la card', () => {
+    renderSettled()
+
+    expect(screen.getAllByText(/tu lugar está confirmado/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole('button', { name: /descargar y compartir mi card/i }).length,
+    ).toBeGreaterThan(0)
+  })
+
+  // La regresión concreta: `--settling-mp` apagaba el contexto mobile, que es el
+  // único lugar donde el acuse vive en teléfono.
+  it('no marca la pantalla como settling de Mercado Pago', () => {
+    renderSettled()
+
+    const page = document.querySelector('.register-page')
+    expect(page.classList.contains('register-page--settling-mp')).toBe(false)
+  })
+
+  it('no ofrece pagar ni cambiar de medio sobre una orden ya paga', () => {
+    renderSettled()
+
+    expect(document.querySelector('.mp-embedded-checkout')).toBeNull()
+    expect(document.querySelector('.register-settle__toolbar')).toBeNull()
+    expect(screen.queryByRole('button', { name: /elegir otro medio/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /ver datos de transferencia/i })).toBeNull()
+  })
+
+  // El contraejemplo: con la orden todavía pendiente el brick y las acciones de
+  // medio de pago tienen que seguir ahí. Sin esta prueba el arreglo podría
+  // apagar el checkout entero.
+  it('conserva el brick y las acciones mientras la orden sigue pendiente', () => {
+    renderCompetition({
+      createdOrder: { ...settledOrder, status: 'pendiente_pago' },
+      registrations: [{ ...admittedRegistration, status: 'pendiente_pago' }],
+    })
+
+    const page = document.querySelector('.register-page')
+    expect(page.classList.contains('register-page--settling-mp')).toBe(true)
+    expect(document.querySelector('.register-settle__toolbar')).not.toBeNull()
+  })
+})
