@@ -6774,6 +6774,75 @@
   display: none;
 }
 
+/* Estado propio del atleta sobre el meet. Vive arriba del contador porque es
+   la respuesta a "¿yo estoy inscripto?", que antes esta página no daba: el
+   contador informa el cupo del torneo, no el derecho de quien mira. */
+.pitbull-inscription-mine {
+  align-items: baseline;
+  border-left: 2px solid var(--color-status-success);
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: var(--space-xs) var(--space-sm);
+  line-height: 1.45;
+  margin: 0 0 var(--space-md);
+  padding-left: var(--space-md);
+}
+
+.pitbull-inscription-mine[data-state='pending_payment'] {
+  border-left-color: var(--color-warning-text);
+}
+
+.pitbull-inscription-mine strong {
+  color: var(--color-status-success);
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.pitbull-inscription-mine[data-state='pending_payment'] strong {
+  color: var(--color-warning-text);
+}
+
+.pitbull-inscription-mine__dot {
+  background: var(--color-status-success);
+  border-radius: var(--border-radius-pill);
+  flex: none;
+  height: 6px;
+  transform: translateY(-2px);
+  width: 6px;
+}
+
+.pitbull-inscription-mine[data-state='pending_payment'] .pitbull-inscription-mine__dot {
+  background: var(--color-warning-text);
+}
+
+/* Mismo motivo que en account.css: en light el ámbar de dark no contrasta. */
+[data-theme='light'] .pitbull-inscription-mine {
+  border-left-color: var(--plu-success-600);
+}
+
+[data-theme='light'] .pitbull-inscription-mine strong {
+  color: var(--plu-success-600);
+}
+
+[data-theme='light'] .pitbull-inscription-mine__dot {
+  background: var(--plu-success-600);
+}
+
+[data-theme='light'] .pitbull-inscription-mine[data-state='pending_payment'] {
+  border-left-color: var(--plu-warning-500);
+}
+
+[data-theme='light'] .pitbull-inscription-mine[data-state='pending_payment'] strong {
+  color: var(--plu-warning-500);
+}
+
+[data-theme='light'] .pitbull-inscription-mine[data-state='pending_payment'] .pitbull-inscription-mine__dot {
+  background: var(--plu-warning-500);
+}
+
 .pitbull-inscription-shell--compact .pitbull-inscription-shell__footer {
   align-items: start;
   display: grid;

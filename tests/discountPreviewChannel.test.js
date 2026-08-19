@@ -134,6 +134,9 @@ describe('POST /api/athletes/me/discount-preview', () => {
         code: 'PLU10',
         appliesTo: 'membership',
         baseAmount: MANUAL_PRICE,
+        // El canal viaja a la RPC con el mismo `method` con el que se guardaría
+        // la orden: es lo que decide entre `fixed_price` y `fixed_price_manual`.
+        paymentMethod: 'manual_link',
       })
     } finally {
       await target.close()
@@ -154,6 +157,7 @@ describe('POST /api/athletes/me/discount-preview', () => {
         code: 'PLU10',
         appliesTo: 'membership',
         baseAmount: CATALOG_PRICE,
+        paymentMethod: 'mercado_pago',
       })
     } finally {
       await target.close()
@@ -174,6 +178,9 @@ describe('POST /api/athletes/me/discount-preview', () => {
         code: 'PLU10',
         appliesTo: 'registration',
         baseAmount: MANUAL_PRICE,
+        // Efectivo se guarda como `manual_link` igual que la transferencia
+        // (storagePaymentMethod): el canal queda en manual_payment_channel.
+        paymentMethod: 'manual_link',
       })
     } finally {
       await target.close()
@@ -195,6 +202,8 @@ describe('POST /api/athletes/me/discount-preview', () => {
         code: 'PLU10',
         appliesTo: 'membership',
         baseAmount: CATALOG_PRICE,
+        // Sin canal la RPC resuelve `fixed_price`, que es el de Mercado Pago.
+        paymentMethod: null,
       })
     } finally {
       await target.close()

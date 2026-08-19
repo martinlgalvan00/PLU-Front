@@ -432,7 +432,14 @@ export async function previewDiscountCode({
     // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final.
     kind: preview.kind ?? 'percent',
     percentOff: preview.percentOff ?? null,
+    // Ya viene resuelto para el canal que se mandó en `paymentMethod`: una
+    // promo puede tener un importe pactado para Mercado Pago y otro para
+    // transferencia o efectivo, y el servidor elige antes de responder.
     fixedPrice: preview.fixedPrice ?? null,
+    // Ventana de la promo. `startsAt` también viaja con `reason: 'not_started'`,
+    // para poder decir desde cuándo sirve un código que todavía no abrió.
+    startsAt: preview.startsAt ?? null,
+    expiresAt: preview.expiresAt ?? null,
     discountAmount: preview.discountAmount ?? null,
     finalAmount: preview.finalAmount ?? null,
     // Canales manuales que este código destraba (Mercado Pago siempre está

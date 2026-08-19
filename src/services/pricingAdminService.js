@@ -32,6 +32,7 @@ export function mapMembershipPlan(row) {
 
 export function mapDiscountCode(row) {
   const fixedPrice = row.fixed_price ?? row.fixedPrice ?? null
+  const fixedPriceManual = row.fixed_price_manual ?? row.fixedPriceManual ?? null
   return {
     id: row.id,
     code: row.code,
@@ -41,13 +42,20 @@ export function mapDiscountCode(row) {
     kind: row.kind ?? (fixedPrice != null ? 'fixed_price' : 'percent'),
     percentOff: Number(row.percent_off ?? row.percentOff) || 0,
     fixedPrice: fixedPrice != null ? Number(fixedPrice) : null,
+    // Importe final para transferencia y efectivo. `null` = cobra lo mismo que
+    // `fixedPrice` en cualquier canal.
+    fixedPriceManual: fixedPriceManual != null ? Number(fixedPriceManual) : null,
     // Quien accede a la promo: 'code' hay que tipearla, 'public' se aplica
     // sola. Las promos anteriores a la audiencia eran todas por codigo.
     audience: row.audience === 'public' ? 'public' : 'code',
     appliesTo: row.applies_to ?? row.appliesTo ?? 'membership',
     maxRedemptions: row.max_redemptions ?? row.maxRedemptions ?? null,
+    // Ventana de la promo. `startsAt` null = vigente desde que está encendida.
+    startsAt: row.starts_at ?? row.startsAt ?? null,
     expiresAt: row.expires_at ?? row.expiresAt ?? null,
     active: row.active !== false,
+    // Emails con acceso exclusivo. Lista vacía = promo abierta.
+    invitees: Array.isArray(row.invitees) ? row.invitees : [],
     // Canales manuales que el código destraba. Los códigos anteriores a la
     // lista sólo traen el booleano: `true` significaba los dos canales.
     manualChannels:
@@ -74,6 +82,10 @@ export function getDiscountCodeAvailability(code = {}, now = new Date()) {
   const remaining = hasLimit ? Math.max(0, maxRedemptions - redeemedCount) : null
   const exhausted = hasLimit && remaining === 0
   const expired = Boolean(code.expiresAt) && new Date(code.expiresAt) < now
+  // Programada: encendida pero todavía no abrió. No es lo mismo que apagada —
+  // el operador ya la dejó lista y no tiene que volver a tocarla.
+  const scheduled = Boolean(code.startsAt) && new Date(code.startsAt) > now
+  const inviteeCount = Array.isArray(code.invitees) ? code.invitees.length : 0
 
   let status = 'active'
   // El cupón se desactiva automáticamente al llegar al límite. Se prioriza
@@ -81,8 +93,14 @@ export function getDiscountCodeAvailability(code = {}, now = new Date()) {
   if (exhausted) status = 'exhausted'
   else if (code.active === false) status = 'inactive'
   else if (expired) status = 'expired'
+  else if (scheduled) status = 'scheduled'
 
   return {
+    scheduled,
+    // La exclusividad se deriva de la lista: no hay un flag aparte que pueda
+    // quedar encendido sobre una lista vacía.
+    exclusive: inviteeCount > 0,
+    inviteeCount,
     // El estado que edita el operador, en un solo valor. Se deriva de los dos
     // ejes que guarda la base (`active` × `audience`) porque el interruptor de
     // encendido lo escribe también el cierre automático por cupo, y perder la
@@ -179,7 +197,17 @@ export async function upsertDiscountCodeRequest(code) {
     // otro, y un string vacío haría fallar la coerción numérica.
     percentOff: kind === 'percent' ? code.percentOff : undefined,
     fixedPrice: kind === 'fixed_price' ? code.fixedPrice : undefined,
+    // Vacío = los canales manuales cobran lo mismo que Mercado Pago. Se manda
+    // `undefined` y no 0 para que el schema lo lea como "sin precio manual".
+    fixedPriceManual:
+      kind === 'fixed_price' && code.fixedPriceManual !== '' && code.fixedPriceManual != null
+        ? Number(code.fixedPriceManual)
+        : undefined,
+    startsAt: dateTimeToIso(code.startsAt),
     expiresAt: dateTimeToIso(code.expiresAt),
+    // Siempre se manda la lista completa: el array presente reemplaza la
+    // exclusividad entera, y vacío significa "abierta a todos".
+    invitees: code.invitees ?? [],
   })
   return mapDiscountCode(result.code)
 }

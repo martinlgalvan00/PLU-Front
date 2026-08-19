@@ -6,6 +6,8 @@
  * responde PLU08 (migración no aplicada) y el snapshot ya trae la orden.
  */
 
+import { isRegistrationForEvent } from '../lib/athleteEventStatus.js'
+
 const OPEN_PAYMENT_STATUSES = new Set(['pendiente', 'validacion_manual', 'creado'])
 
 export function findPendingEventRegistration(registrations = [], { athleteId, event } = {}) {
@@ -14,7 +16,7 @@ export function findPendingEventRegistration(registrations = [], { athleteId, ev
     registrations.find(
       (item) =>
         item.athleteId === athleteId &&
-        (item.eventSlug === event.slug || item.event === event.title) &&
+        isRegistrationForEvent(item, event) &&
         item.status === 'pendiente_pago',
     ) ?? null
   )

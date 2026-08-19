@@ -65,13 +65,31 @@ export const discountCodeSchema = z
     // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
     // gratuita. Ver apply_discount_code_to_order (rechaza descuento == importe).
     percentOff: z.coerce.number().int().min(1).max(99).optional(),
-    // Mismo importe en todos los canales de pago: el precio promocional pisa
-    // la diferencia Mercado Pago / transferencia del catálogo.
+    // Importe final por Mercado Pago. El precio promocional pisa la diferencia
+    // Mercado Pago / transferencia del catálogo.
     fixedPrice: money.optional(),
+    // Importe final para transferencia y efectivo. Vacío = cobra lo mismo que
+    // `fixedPrice` en cualquier canal. No se exige que sea menor: pactar el
+    // mismo precio en los dos canales es un acuerdo válido, y cobrar más por
+    // el canal manual también, si ese fue el acuerdo. Wise no participa: cotiza
+    // en USD y su canal no admite cupones.
+    fixedPriceManual: money.optional(),
     appliesTo: z.enum(['membership', 'registration', 'combo', 'both']),
     maxRedemptions: z.coerce.number().int().positive().optional(),
+    // Ventana de la promo. `startsAt` vacío = vigente desde que se enciende,
+    // que es como se comportaban todas las promos antes de tener apertura.
+    startsAt: optionalDateTime,
     expiresAt: optionalDateTime,
     active: z.boolean().default(true),
+    // Exclusividad nominal: los emails habilitados a usar la promo. Lista vacía
+    // = abierta (a quien tenga el código, o a todos si es pública). Con lista,
+    // sólo esas direcciones. Es ortogonal a `audience`: una promo pública con
+    // lista se aplica sola, pero únicamente a las personas invitadas.
+    invitees: z
+      .array(z.string().trim().toLowerCase().email().max(200))
+      .max(500)
+      .default([])
+      .transform((emails) => [...new Set(emails)]),
     // Quien accede a la promo. 'code' es la de siempre: hay que tipear el
     // codigo. 'public' se aplica sola a todo el mundo, sin que nadie tipee
     // nada, resuelta en la misma transaccion que crea la orden
@@ -100,12 +118,31 @@ export const discountCodeSchema = z
           'Una promocion publica no puede habilitar medios de pago manuales. Abrilos desde Acceso y habilitacion.',
       })
     }
+    // Mismo check que la RPC: una ventana que cierra antes de abrir es una
+    // promo que nadie puede usar.
+    if (code.startsAt && code.expiresAt && Date.parse(code.expiresAt) <= Date.parse(code.startsAt)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['expiresAt'],
+        message: 'El cierre de la promoción debe ser posterior a su apertura.',
+      })
+    }
     if (code.kind === 'percent') {
       if (code.percentOff == null) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['percentOff'],
           message: 'Indicá el porcentaje de descuento.',
+        })
+      }
+      // 'percent' descuenta un porcentaje sobre el precio de cada canal, que ya
+      // sale distinto del catálogo: un precio manual acá no significa nada.
+      if (code.fixedPriceManual != null) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fixedPriceManual'],
+          message:
+            'El precio por transferencia o efectivo sólo aplica a una promoción de precio promocional.',
         })
       }
       return
@@ -128,11 +165,11 @@ export const discountCodeSchema = z
     }
   })
   .transform((code) =>
-    // El campo de la modalidad que no corresponde se descarta acá: así editar
-    // un cupón de porcentaje a precio fijo (o al revés) no deja el valor viejo
-    // colgado en la fila.
+    // Los campos de la modalidad que no corresponde se descartan acá: así
+    // editar un cupón de porcentaje a precio fijo (o al revés) no deja el valor
+    // viejo colgado en la fila.
     code.kind === 'percent'
-      ? { ...code, fixedPrice: undefined }
+      ? { ...code, fixedPrice: undefined, fixedPriceManual: undefined }
       : { ...code, percentOff: undefined },
   )
 

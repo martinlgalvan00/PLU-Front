@@ -2,16 +2,25 @@ import { useEffect, useRef, useState } from 'react'
 import { History, KeyRound, QrCode, ShieldCheck, Trophy, UserRound } from 'lucide-react'
 import { LayoutGroup, m } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { ACCOUNT_TAB_IDS } from '../../lib/navigation.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
-const ITEMS = [
-  { id: 'account-qr', icon: QrCode, labelKey: 'qr' },
-  { id: 'account-events', icon: Trophy, labelKey: 'events' },
-  { id: 'account-history', icon: History, labelKey: 'history' },
-  { id: 'account-membership', icon: ShieldCheck, labelKey: 'membership' },
-  { id: 'account-personal-data', icon: UserRound, labelKey: 'personalData' },
-  { id: 'account-security', icon: KeyRound, labelKey: 'security' },
-]
+/**
+ * Presentación de cada ficha. El ORDEN no vive acá: sale de `ACCOUNT_TAB_IDS`
+ * (src/lib/navigation.js), que es el mismo que usa AthleteProfilePage para
+ * decidir de qué lado entra el panel. Duplicarlo dejaría la cinta y el
+ * movimiento del contenido contradiciéndose.
+ */
+const ITEM_CHROME = {
+  'account-qr': { icon: QrCode, labelKey: 'qr' },
+  'account-events': { icon: Trophy, labelKey: 'events' },
+  'account-history': { icon: History, labelKey: 'history' },
+  'account-membership': { icon: ShieldCheck, labelKey: 'membership' },
+  'account-personal-data': { icon: UserRound, labelKey: 'personalData' },
+  'account-security': { icon: KeyRound, labelKey: 'security' },
+}
+
+const ITEMS = ACCOUNT_TAB_IDS.map((id) => ({ id, ...ITEM_CHROME[id] }))
 
 const OVERFLOW_EDGE = 4
 
