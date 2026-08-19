@@ -52,11 +52,13 @@ export function createSupabasePricingRepository(client) {
         'No se pudo guardar el código de descuento.',
       ),
 
-    setDiscountCodeActive: (codeId, active, actor) =>
+    // Los tres estados de la promoción en una sola RPC. `audience` nulo
+    // conserva la actual: apagar y volver a prender no la vuelve pública.
+    setDiscountCodeState: (codeId, active, audience, actor) =>
       rpc(
-        'staff_set_discount_code_active',
-        { p_code_id: codeId, p_active: active, p_actor: actor },
-        'No se pudo cambiar el estado del código de descuento.',
+        'staff_set_discount_code_state',
+        { p_code_id: codeId, p_active: active, p_audience: audience ?? null, p_actor: actor },
+        'No se pudo cambiar el estado de la promoción.',
       ),
 
     deleteDiscountCode: (codeId, actor) =>
@@ -64,6 +66,13 @@ export function createSupabasePricingRepository(client) {
         'staff_delete_discount_code',
         { p_code_id: codeId, p_actor: actor },
         'No se pudo eliminar el código de descuento.',
+      ),
+
+    deleteComboOffer: (eventSlug, actor) =>
+      rpc(
+        'staff_delete_event_combo_offer',
+        { p_event_slug: eventSlug, p_actor: actor },
+        'No se pudo eliminar la oferta combo.',
       ),
   }
 }

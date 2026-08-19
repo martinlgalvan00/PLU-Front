@@ -301,7 +301,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at)',
+            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at, audience, access_code)',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
@@ -313,7 +313,15 @@ export function createSupabaseAthleteRepository(
       const now = new Date()
       if (offer.starts_at && new Date(offer.starts_at) > now) return null
       if (offer.ends_at && new Date(offer.ends_at) < now) return null
-      return { price: offer.price, manualPrice: offer.manual_price, currency: offer.currency }
+      return {
+        price: offer.price,
+        manualPrice: offer.manual_price,
+        currency: offer.currency,
+        // `accessCode` no sale de acá hacia ninguna respuesta: sólo lo compara
+        // la ruta de checkout antes de crear la orden.
+        audience: offer.audience === 'code' ? 'code' : 'public',
+        accessCode: offer.access_code ?? null,
+      }
     },
     previewDiscountCode: (athleteId, { code, appliesTo, baseAmount }) =>
       rpc(

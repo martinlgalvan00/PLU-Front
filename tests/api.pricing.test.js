@@ -213,4 +213,96 @@ describe('configuración económica administrativa', () => {
     expect(parsed.data.kind).toBe('percent')
     expect(parsed.data.fixedPrice).toBeUndefined()
   })
+
+  // Una promoción sin audiencia declarada es una promoción por código: es lo
+  // que significaba cada cupón antes de que la audiencia existiera, y un
+  // payload viejo no puede volverse público por omisión.
+  it('deja las promociones en restringida por código salvo que se pida lo contrario', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.audience).toBe('code')
+  })
+
+  it('acepta una promoción pública', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload({ audience: 'public' }))
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.audience).toBe('public')
+  })
+
+  it('no deja que una promoción pública abra medios de pago manuales', () => {
+    // Abrir un canal para todo el mundo es el interruptor de Acceso y
+    // habilitación. Permitirlo acá sería el mismo control en dos pantallas.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ audience: 'public', manualChannels: ['bank_transfer'] }),
+      ).success,
+    ).toBe(false)
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ audience: 'code', manualChannels: ['bank_transfer'] }),
+      ).success,
+    ).toBe(true)
+  })
+
+  it('cambia estado y audiencia de una promoción en una sola llamada', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/discount-codes/${PLAN_ID}/state`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ active: true, audience: 'public' }),
+      })
+
+      expect(response.status).toBe(200)
+      expect(rpc).toHaveBeenCalledWith('staff_set_discount_code_state', {
+        p_code_id: PLAN_ID,
+        p_active: true,
+        p_audience: 'public',
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('conserva /status y ahí la audiencia no se toca', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/discount-codes/${PLAN_ID}/status`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ active: false }),
+      })
+
+      expect(response.status).toBe(200)
+      // `p_audience` nulo: apagar una promo no puede convertirla en pública
+      // cuando se la vuelva a prender.
+      expect(rpc).toHaveBeenCalledWith('staff_set_discount_code_state', {
+        p_code_id: PLAN_ID,
+        p_active: false,
+        p_audience: null,
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('permite dar de baja la oferta combo de un torneo', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/events/pitbull-classic-2026/combo`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+
+      expect(response.status).toBe(200)
+      expect(rpc).toHaveBeenCalledWith('staff_delete_event_combo_offer', {
+        p_event_slug: 'pitbull-classic-2026',
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
 })

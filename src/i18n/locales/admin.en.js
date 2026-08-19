@@ -584,6 +584,28 @@ export default {
       fixedPriceInvalid: 'The promo price must be a whole number greater than 0.',
       fixedPriceScopeInvalid:
         'A promo price needs a single scope: membership, registration or combo.',
+      audienceLabel: 'Who can access it',
+      audienceHint:
+        'Restricted: only applies to whoever types the code. Public: applies on its own to everyone who buys, with nothing to type.',
+      audience: {
+        code: 'Restricted — with code',
+        public: 'Public — for everyone',
+      },
+      promoStateLegend: 'Status of promotion {{code}}',
+      promoState: {
+        off: 'Disabled',
+        code: 'With code',
+        public: 'For everyone',
+      },
+      promoAudienceBadge: {
+        public: 'Applies on its own',
+      },
+      promoExhaustedNote:
+        'It ran out of redemptions and closed itself. Raise the redemption limit to enable it again.',
+      publicPromoChannelsInvalid:
+        'A public promotion cannot unlock manual payment methods. Open them from Access and availability.',
+      manualChannelsPublicHint:
+        'Not used on a public promotion: opening a channel for everyone is done from Access and availability, not here.',
       manualChannelsLegend: 'Payment methods it unlocks',
       manualChannelsHint:
         'Mercado Pago is always available. Check a channel so this code unlocks it only for whoever uses it, even if it is off globally. With nothing checked, the purchase goes through Mercado Pago only.',
@@ -596,16 +618,39 @@ export default {
         cash_pitbull: 'Unlocks cash',
         'bank_transfer+cash_pitbull': 'Unlocks transfer and cash',
       },
+      comboAudienceLabel: 'Who sees the combo',
+      comboAudience: {
+        public: 'Public — anyone sees it',
+        code: 'Restricted — with access code',
+      },
+      comboAudienceHint:
+        'Restricted: the package is not offered and only whoever types the code can buy it. It gates access, not price.',
+      comboAccessCode: 'Combo access code',
+      comboAccessCodePlaceholder: 'e.g. COMBO-PITBULL',
+      comboAccessCodeHint:
+        'Uppercase, numbers and hyphens. This is what you hand out: switching the combo to public clears it.',
+      comboAccessCodeInvalid: 'The combo access code must be uppercase, numbers and hyphens.',
+      deleteCombo: 'Delete combo',
+      comboDeleted: 'Combo offer deleted.',
+      deleteComboConfirmTitle: 'Delete the {{event}} combo',
+      deleteComboConfirmDescription:
+        'You are about to remove the {{event}} combo offer from the catalog. Standalone membership and registration are untouched.',
+      deleteComboConfirmWarning:
+        'It can only be deleted if nobody bought this event combo. If there are orders already, deactivate it instead.',
+      deleteComboConfirmCancel: 'Keep combo',
+      deleteComboConfirmConfirm: 'Delete combo',
       deleteDiscountCode: 'Delete',
       deleteDiscountCodeAria: 'Delete code {{code}}',
       deleteCodeConfirmTitle: 'Delete {{code}}',
       deleteCodeConfirmDescription:
         'You are about to delete the discount code {{code}} from the catalog.',
-      deleteCodeConfirmWarning:
-        'Only possible without recorded redemptions. If it was already used, deactivate it instead.',
+      deleteCodeConfirmWarning: 'It was never redeemed: it is deleted from the catalog for good.',
+      deleteCodeConfirmWarningRedeemed:
+        'It already has {{count}} redemption(s), so it is archived instead of deleted: it leaves the panel and stops working, while the accounting record of orders already charged is kept. The code text becomes free to reuse.',
       deleteCodeConfirmCancel: 'Keep code',
       deleteCodeConfirmConfirm: 'Delete code',
       codeDeleted: 'Discount code deleted.',
+      codeArchived: 'Promotion archived: it leaves the panel and can no longer be redeemed.',
       appliesToLabel: 'Applies to',
       appliesTo: {
         membership: 'Membership',
