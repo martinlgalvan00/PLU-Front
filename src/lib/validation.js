@@ -125,13 +125,13 @@ function buildCompetitionSchema(t) {
       },
       msg('weight') ?? 'IngresÃ¡ un peso entre 10 y 250 kg.',
     ),
-    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   })
 }
 
 function buildMembershipSchema() {
   return z.object({
-    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+    paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   })
 }
 

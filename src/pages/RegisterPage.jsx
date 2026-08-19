@@ -848,12 +848,19 @@ export default function RegisterPage({
   const mercadoPagoEnabled =
     channelOpen(checkoutAvailability, 'membership', 'mercado_pago') &&
     (flow !== 'competition' || channelOpen(checkoutAvailability, 'registration', 'mercado_pago'))
+  // Wise tiene interruptor propio, independiente de los canales manuales
+  // locales y de los cupones que los destraban.
+  const wiseEnabled =
+    channelOpen(checkoutAvailability, 'membership', 'wise_transfer') &&
+    (flow !== 'competition' || channelOpen(checkoutAvailability, 'registration', 'wise_transfer'))
   const selectedMethodEnabled =
     form.paymentMethod === 'manual_link'
       ? transferEnabled
       : form.paymentMethod === 'cash_pitbull'
         ? cashEnabled
-        : mercadoPagoEnabled
+        : form.paymentMethod === 'wise_transfer'
+          ? wiseEnabled
+          : mercadoPagoEnabled
 
   // El medio elegido dejó de estar disponible mientras la pantalla estaba
   // abierta —canal cerrado desde el panel, o un código que no habilita ese
@@ -866,7 +873,9 @@ export default function RegisterPage({
       ? 'manual_link'
       : cashEnabled
         ? 'cash_pitbull'
-        : null
+        : wiseEnabled
+          ? 'wise_transfer'
+          : null
   useEffect(() => {
     if (selectedMethodEnabled || !firstOpenMethod) return
     onUpdateForm({ target: { name: 'paymentMethod', value: firstOpenMethod } })
@@ -1431,7 +1440,9 @@ export default function RegisterPage({
     flow === 'membership' && !visibleOrder
       ? form.paymentMethod === 'manual_link'
         ? t('pages.register.membershipPaymentHintManual')
-        : t('pages.register.membershipPaymentHintMp')
+        : form.paymentMethod === 'wise_transfer'
+          ? t('pages.register.paymentWisePriceHint')
+          : t('pages.register.membershipPaymentHintMp')
       : ''
 
   // En competencia sin orden el total vive en el aside + footer: el hint vacío
@@ -2021,6 +2032,7 @@ export default function RegisterPage({
                     <RegisterSettle
                       cashEnabled={cashEnabled}
                       mercadoPagoEnabled={mercadoPagoEnabled}
+                      wiseEnabled={wiseEnabled}
                       transferEnabled={transferEnabled}
                       onPaymentBlur={blurField}
                       onPaymentChange={changeField}
@@ -2134,6 +2146,7 @@ export default function RegisterPage({
                       comboSavings={comboSavings}
                       cashEnabled={cashEnabled}
                       mercadoPagoEnabled={mercadoPagoEnabled}
+                      wiseEnabled={wiseEnabled}
                       transferEnabled={transferEnabled}
                       membershipPrice={membershipListPrice}
                       onPaymentBlur={blurField}
@@ -2258,6 +2271,7 @@ export default function RegisterPage({
                     cashEnabled={cashEnabled}
                     mercadoPagoEnabled={mercadoPagoEnabled}
                     transferEnabled={transferEnabled}
+                    wiseEnabled={wiseEnabled}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
                     paymentError={errors.paymentMethod}
@@ -2379,10 +2393,12 @@ export default function RegisterPage({
       </div>
       {transferOpen &&
       athlete &&
-      (visibleOrder?.paymentMethod === 'manual_link' || form.paymentMethod === 'manual_link') ? (
+      (visibleOrder?.paymentMethod === 'manual_link' || form.paymentMethod === 'manual_link' || form.paymentMethod === 'wise_transfer') ? (
         <TransferPayModal
           athlete={athlete}
           amount={visibleOrder?.amount ?? checkoutTotal}
+          currency={visibleOrder?.currency ?? (form.paymentMethod === 'wise_transfer' ? 'USD' : 'ARS')}
+          channel={visibleOrder?.manualPaymentChannel ?? (form.paymentMethod === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')}
           orderId={transferOrderId ?? visibleOrder?.paymentId ?? visibleOrder?.id ?? null}
           onClose={() => setTransferOpen(false)}
           purpose={flow === 'membership' ? 'membership' : 'competition'}

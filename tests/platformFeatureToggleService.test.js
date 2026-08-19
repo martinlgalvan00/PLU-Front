@@ -7,6 +7,7 @@ import {
   assertRegistrationCheckoutEnabled,
   assertTicketCheckoutEnabled,
   assertValidationEnabled,
+  resolveChannelState,
   resolvePublicCheckoutAvailability,
 } from '../server/services/platformFeatureToggleService.js'
 
@@ -95,9 +96,9 @@ describe('interruptores generales de cobro, afiliación e inscripción', () => {
 describe('canales de pago por concepto', () => {
   const matrix = (overrides = {}) => ({
     paymentChannels: {
-      membership: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
-      registration: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
-      ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
+      membership: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
+      registration: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
+      ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
       ...overrides,
     },
   })
@@ -165,6 +166,35 @@ describe('canales de pago por concepto', () => {
     expect(() => assertMembershipCheckoutEnabled(toggles)).not.toThrow()
     expect(() => assertPaymentChannelEnabled(toggles, 'membership', 'bank_transfer')).toThrow()
   })
+
+  // Wise nace cerrado y no comparte código de error ni override con
+  // transferencia/efectivo: es una celda más de la matriz, sin herencia de
+  // ningún interruptor previo.
+  it('Wise nace cerrado por defecto, sin depender de ningún otro interruptor', () => {
+    expect(() => assertPaymentChannelEnabled({}, 'membership', 'wise_transfer')).toThrowError(
+      thrown('MEMBERSHIP_WISE_TRANSFER_DISABLED'),
+    )
+    expect(resolveChannelState({}, 'ticket', 'wise_transfer')).toBe(false)
+  })
+
+  it('abrir Wise no reabre ni cierra transferencia/efectivo, y viceversa', () => {
+    const toggles = matrix({
+      membership: { mercado_pago: true, bank_transfer: false, cash_pitbull: false, wise_transfer: true },
+    })
+    expect(() => assertPaymentChannelEnabled(toggles, 'membership', 'wise_transfer')).not.toThrow()
+    expect(() => assertPaymentChannelEnabled(toggles, 'membership', 'bank_transfer')).toThrowError(
+      thrown('MEMBERSHIP_MANUAL_DISABLED'),
+    )
+  })
+
+  it('un cupón no destraba Wise: el override sólo aplica a los canales manuales tradicionales', () => {
+    const toggles = matrix({
+      membership: { mercado_pago: true, bank_transfer: false, cash_pitbull: false, wise_transfer: false },
+    })
+    expect(() =>
+      assertPaymentChannelEnabled(toggles, 'membership', 'wise_transfer', { override: true }),
+    ).toThrowError(thrown('MEMBERSHIP_WISE_TRANSFER_DISABLED'))
+  })
 })
 
 describe('validación y activación por concepto', () => {
@@ -202,7 +232,7 @@ describe('validación y activación por concepto', () => {
 
 describe('disponibilidad publicada al checkout', () => {
   it('el interruptor maestro cierra los tres conceptos y sus canales', () => {
-    const closed = { mercado_pago: false, bank_transfer: false, cash_pitbull: false }
+    const closed = { mercado_pago: false, bank_transfer: false, cash_pitbull: false, wise_transfer: false }
     expect(resolvePublicCheckoutAvailability({ checkoutEnabled: false })).toEqual({
       membershipEnabled: false,
       registrationEnabled: false,
@@ -256,6 +286,7 @@ describe('disponibilidad publicada al checkout', () => {
       mercado_pago: false,
       bank_transfer: true,
       cash_pitbull: false,
+      wise_transfer: false,
     })
     expect(availability.membershipManualEnabled).toBe(true)
     // Alta cerrada: ninguna celda del concepto se publica abierta.
@@ -263,6 +294,7 @@ describe('disponibilidad publicada al checkout', () => {
       mercado_pago: false,
       bank_transfer: false,
       cash_pitbull: false,
+      wise_transfer: false,
     })
   })
 

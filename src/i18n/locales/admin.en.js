@@ -688,6 +688,7 @@ export default {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
         cash_pitbull: 'Cash at Pitbull',
+        wise_transfer: 'Wise',
       },
       channelsLabel: 'Payment methods',
       channelsGroupAria: 'Payment methods for {{concept}}',

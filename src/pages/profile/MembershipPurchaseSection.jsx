@@ -52,6 +52,8 @@ export default function MembershipPurchaseSection({
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
+  const [transferChannel, setTransferChannel] = useState('bank_transfer')
+  const [transferAmount, setTransferAmount] = useState(null)
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
@@ -122,6 +124,9 @@ export default function MembershipPurchaseSection({
   // La pasarela también se cierra por concepto desde Administración. Un cupón no
   // la reabre: sólo destraba canales manuales.
   const mercadoPagoOffered = channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
+  // Wise tiene interruptor propio, independiente del canal manual local y de
+  // los cupones que lo destraban.
+  const wiseOffered = channelOpen(checkoutAvailability, 'membership', 'wise_transfer')
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
@@ -302,7 +307,8 @@ export default function MembershipPurchaseSection({
     const methodOperable =
       selectedPlan?.collectionMode !== 'recurring' &&
       ((paymentMethod === 'transferencia' && transferSelectable) ||
-        (paymentMethod === 'cash_pitbull' && cashSelectable))
+        (paymentMethod === 'cash_pitbull' && cashSelectable) ||
+        (paymentMethod === 'wise_transfer' && wiseOffered))
     if (!methodOperable && mercadoPagoOffered) setPaymentMethod('mercado_pago')
   }, [
     cashSelectable,
@@ -310,6 +316,7 @@ export default function MembershipPurchaseSection({
     paymentMethod,
     selectedPlan?.collectionMode,
     transferSelectable,
+    wiseOffered,
   ])
 
   async function applyDiscountCode() {
@@ -395,7 +402,7 @@ export default function MembershipPurchaseSection({
         setCheckoutIsError(true)
         return
       }
-      if (method === 'transferencia') {
+      if (method === 'transferencia' || method === 'wise_transfer') {
         // Puede venir de cambiar de método con una orden de Mercado Pago
         // todavía pendiente: esa pantalla de settle deja de tener sentido en
         // cuanto se abre el modal de transferencia.
@@ -404,6 +411,8 @@ export default function MembershipPurchaseSection({
         // El id de la orden habilita la subida del comprobante dentro del mismo
         // modal: es el momento en que el atleta tiene el ticket bancario a mano.
         setTransferOrderId(result?.createdOrder?.paymentId ?? null)
+        setTransferChannel(method === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')
+        setTransferAmount(result?.createdOrder?.amount ?? null)
         setTransferOpen(true)
         return
       }
@@ -893,16 +902,21 @@ export default function MembershipPurchaseSection({
                         },
                       ]
                     : []),
+                  ...(wiseOffered && selectedPlan?.collectionMode !== 'recurring'
+                    ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }]
+                    : []),
                 ]}
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
                 methodsLegend={t('account.membership.paymentLegend')}
                 paymentHint={
-                  !mercadoPagoOffered && !transferOffered && !cashOffered
-                    ? t('pages.register.paymentNoChannelHint')
-                    : mercadoPagoOffered && !manualChannelEnabled
-                      ? t('pages.register.paymentMercadoPagoOnlyHint')
-                      : ''
+                  paymentMethod === 'wise_transfer'
+                    ? t('pages.register.paymentWisePriceHint')
+                    : !mercadoPagoOffered && !transferOffered && !cashOffered && !wiseOffered
+                      ? t('pages.register.paymentNoChannelHint')
+                      : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
+                        ? t('pages.register.paymentMercadoPagoOnlyHint')
+                        : ''
                 }
                 offers={
                   selectedPlan
@@ -911,7 +925,10 @@ export default function MembershipPurchaseSection({
                           featured: true,
                           id: selectedPlan.code,
                           name: selectedPlan.name,
-                          priceLabel: money(selectedPlanPrice, locale),
+                          priceLabel:
+                            paymentMethod === 'wise_transfer'
+                              ? t('pages.register.paymentWisePriceHint')
+                              : money(selectedPlanPrice, locale),
                         },
                       ]
                     : []
@@ -978,7 +995,9 @@ export default function MembershipPurchaseSection({
       {transferOpen && (
         <TransferPayModal
           athlete={athlete}
-          amount={selectedPlan?.price ?? 0}
+          amount={transferAmount ?? selectedPlan?.price ?? 0}
+          currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
+          channel={transferChannel}
           orderId={transferOrderId}
           onClose={() => setTransferOpen(false)}
         />
