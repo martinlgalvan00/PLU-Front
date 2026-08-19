@@ -950,6 +950,9 @@ export default {
       transferAccount: 'Account',
       transferAccountValue: 'Mercado Pago',
       transferHolder: 'Account holder',
+      transferWiseTitle: 'Wise',
+      transferWiseEmail: 'Wise email',
+      transferWiseSwiftIban: 'SWIFT/IBAN',
       transferAmount: 'Amount',
       transferReference: 'Reference',
       transferHint: 'Attach the receipt. Administration reviews it within up to 48 hours.',
@@ -2569,6 +2572,8 @@ export default {
       paymentLinkLabel: 'Payment link',
       paymentTransferLabel: 'Bank transfer',
       paymentCashPitbullLabel: 'Cash at Pitbull',
+      paymentWiseLabel: 'Wise (international payments)',
+      paymentWisePriceHint: 'Fixed USD amount, details shown at checkout',
       changePaymentMethod: 'Choose another method',
       payByTransfer: 'Pay by transfer',
       backToMercadoPago: 'Back to Mercado Pago',
@@ -2758,6 +2763,8 @@ export default {
     payment: {
       mercadoPago: 'Mercado Pago',
       manualLink: 'Payment link + manual validation',
+      cashPitbull: 'Cash at Pitbull',
+      wiseTransfer: 'Wise',
     },
   },
   shareCard: {

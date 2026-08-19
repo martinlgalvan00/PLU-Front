@@ -1,8 +1,10 @@
-export function money(value, locale = 'es') {
+export function money(value, locale = 'es', currency = 'ARS') {
+  const normalized = String(currency ?? 'ARS').toUpperCase()
   return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR', {
     style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
+    currency: normalized,
+    // ARS no usa centavos en la práctica; USD/otras monedas sí.
+    maximumFractionDigits: normalized === 'ARS' ? 0 : 2,
   }).format(value)
 }
 

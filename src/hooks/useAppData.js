@@ -1239,11 +1239,12 @@ export function useAppData() {
     async (event, purchaseEvent, attendees, paymentMethod) => {
       event.preventDefault()
       const provider =
-        paymentMethod === 'transferencia' || paymentMethod === 'manual_link'
+        paymentMethod === 'transferencia' || paymentMethod === 'manual_link' || paymentMethod === 'wise_transfer'
           ? 'manual'
           : paymentMethod
+      const manualPaymentChannel = paymentMethod === 'wise_transfer' ? 'wise_transfer' : undefined
       try {
-        const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider])
+        const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider, manualPaymentChannel])
         if (ticketAttemptRef.current?.fingerprint !== attemptFingerprint) {
           ticketAttemptRef.current = {
             fingerprint: attemptFingerprint,
@@ -1264,6 +1265,7 @@ export function useAppData() {
             addonIds: attendee.addonIds ?? [],
           })),
           provider,
+          manualPaymentChannel,
           idempotencyKey: ticketAttemptRef.current.idempotencyKey,
           accessToken: ticketAttemptRef.current.accessToken,
         })

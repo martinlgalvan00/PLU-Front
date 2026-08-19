@@ -17,7 +17,7 @@ function toggleKey(feature) {
   return `${feature.replace(/_(.)/g, (_match, char) => char.toUpperCase())}Enabled`
 }
 
-const OPEN_CHANNELS = { mercado_pago: true, bank_transfer: true, cash_pitbull: true }
+const OPEN_CHANNELS = { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true }
 
 async function setup(repositoryOverrides = {}, envOverrides = {}) {
   const staff = await buildStaffUser({ email: 'access-admin@plu.test' })
@@ -133,9 +133,14 @@ describe('interruptores generales — /api/platform-settings', () => {
         // La matriz viaja ya cruzada con el maestro y el alta del concepto, así
         // que la pantalla lee la celda sin repetir la lógica.
         paymentChannels: {
-          membership: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
-          registration: { mercado_pago: false, bank_transfer: false, cash_pitbull: false },
-          ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: true },
+          membership: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
+          registration: {
+            mercado_pago: false,
+            bank_transfer: false,
+            cash_pitbull: false,
+            wise_transfer: false,
+          },
+          ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
         },
       })
     } finally {
@@ -239,8 +244,33 @@ describe('matriz de canales — /api/platform-settings/channels', () => {
         mercado_pago: false,
         bank_transfer: true,
         cash_pitbull: true,
+        wise_transfer: true,
       })
       expect(toggles.paymentChannels.registration.mercado_pago).toBe(true)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('admite wise_transfer como canal de la matriz', async () => {
+    const { cookie, target, toggles } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/channels`, {
+        method: 'PUT',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({
+          concept: 'membership',
+          channel: 'wise_transfer',
+          enabled: false,
+        }),
+      })
+      expect(response.status).toBe(200)
+      expect(toggles.paymentChannels.membership).toEqual({
+        mercado_pago: true,
+        bank_transfer: true,
+        cash_pitbull: true,
+        wise_transfer: false,
+      })
     } finally {
       await target.close()
     }

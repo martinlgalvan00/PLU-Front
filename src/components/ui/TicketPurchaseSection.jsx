@@ -350,6 +350,7 @@ function isManualTicketPayment(method) {
 function TicketPaymentOptions({
   manualEnabled = true,
   mercadoPagoEnabled = true,
+  wiseEnabled = false,
   paymentMethod,
   onChange,
   t,
@@ -393,6 +394,24 @@ function TicketPaymentOptions({
           </span>
         </label>
       ) : null}
+      {/* Wise depende de su propio interruptor, independiente del de
+          transferencia local. */}
+      {wiseEnabled ? (
+        <label className={paymentMethod === 'wise_transfer' ? 'is-selected' : ''}>
+          <input
+            type="radio"
+            name="ticket-payment"
+            value="wise_transfer"
+            checked={paymentMethod === 'wise_transfer'}
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <Landmark size={18} aria-hidden />
+          <span>
+            <strong>{t('pages.register.paymentWiseLabel')}</strong>
+            <small>{t('pages.register.paymentWisePriceHint')}</small>
+          </span>
+        </label>
+      ) : null}
     </fieldset>
   )
 }
@@ -407,6 +426,9 @@ export default function TicketPurchaseSection({
   // Mercado Pago también se cierra por concepto desde Administración. Default
   // abierto para no dejar la pantalla sin medios ante una lectura incompleta.
   mercadoPagoEnabled = true,
+  // Wise depende de su propio interruptor, independiente del anterior.
+  // Default cerrado: sin dato, no se ofrece un medio que puede rechazar 409.
+  wiseEnabled = false,
   pricing = { ticketTypes: [], addons: [] },
   tickets,
   createdOrder,
@@ -433,13 +455,18 @@ export default function TicketPurchaseSection({
   const manualPaymentOptions = useMemo(
     () =>
       formOptions.paymentMethod.filter(([value]) => {
+        if (value === 'wise_transfer') return wiseEnabled
         if (isManualTicketPayment(value)) return manualPaymentEnabled
         return value !== 'mercado_pago' || mercadoPagoEnabled
       }),
-    [formOptions.paymentMethod, manualPaymentEnabled, mercadoPagoEnabled],
+    [formOptions.paymentMethod, manualPaymentEnabled, mercadoPagoEnabled, wiseEnabled],
   )
 
   useEffect(() => {
+    if (!wiseEnabled && paymentMethod === 'wise_transfer' && mercadoPagoEnabled) {
+      setPaymentMethod('mercado_pago')
+      return
+    }
     if (!manualPaymentEnabled && isManualTicketPayment(paymentMethod) && mercadoPagoEnabled) {
       setPaymentMethod('mercado_pago')
     }
@@ -448,7 +475,7 @@ export default function TicketPurchaseSection({
     if (!mercadoPagoEnabled && paymentMethod === 'mercado_pago' && manualPaymentEnabled) {
       setPaymentMethod('transferencia')
     }
-  }, [manualPaymentEnabled, mercadoPagoEnabled, paymentMethod])
+  }, [manualPaymentEnabled, mercadoPagoEnabled, paymentMethod, wiseEnabled])
 
   const ticketAddons = pricing?.addons ?? []
   const ticketTypeNames = useMemo(
@@ -550,7 +577,7 @@ export default function TicketPurchaseSection({
           <div>
             <h3>{t('pages.tickets.confirmationTitle', { event: visibleOrder.eventTitle })}</h3>
             <p>
-              {countLabel} · {money(visibleOrder.amount, locale)}
+              {countLabel} · {money(visibleOrder.amount, locale, visibleOrder.currency)}
             </p>
           </div>
           <StatusPill value={visibleOrder.status} />
@@ -573,31 +600,52 @@ export default function TicketPurchaseSection({
             <p className="ticket-purchase__manual-note">{t('pages.tickets.manualNote')}</p>
             <p className="ticket-purchase__payment-note">{t('pages.tickets.transferQrDelay')}</p>
             <dl className="ticket-purchase__transfer-data">
-              <div>
-                <dt>{t('account.membership.transferAlias')}</dt>
-                <dd>{env.payments.transferAlias || t('account.membership.transferAskAdmin')}</dd>
-              </div>
-              <div>
-                <dt>{t('account.membership.transferAccount')}</dt>
-                <dd>{t('account.membership.transferAccountValue')}</dd>
-              </div>
-              {env.payments.transferCbu ? (
-                <div>
-                  <dt>{t('account.membership.transferCbu')}</dt>
-                  <dd>{env.payments.transferCbu}</dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>{t('account.membership.transferHolder')}</dt>
-                <dd>{env.payments.transferHolder || t('account.membership.transferAskAdmin')}</dd>
-              </div>
+              {visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
+                <>
+                  <div>
+                    <dt>{t('account.membership.transferWiseEmail')}</dt>
+                    <dd>{env.payments.wiseEmail || t('account.membership.transferAskAdmin')}</dd>
+                  </div>
+                  {env.payments.wiseSwiftOrIban ? (
+                    <div>
+                      <dt>{t('account.membership.transferWiseSwiftIban')}</dt>
+                      <dd>{env.payments.wiseSwiftOrIban}</dd>
+                    </div>
+                  ) : null}
+                  <div>
+                    <dt>{t('account.membership.transferHolder')}</dt>
+                    <dd>{env.payments.wiseHolder || t('account.membership.transferAskAdmin')}</dd>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <dt>{t('account.membership.transferAlias')}</dt>
+                    <dd>{env.payments.transferAlias || t('account.membership.transferAskAdmin')}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('account.membership.transferAccount')}</dt>
+                    <dd>{t('account.membership.transferAccountValue')}</dd>
+                  </div>
+                  {env.payments.transferCbu ? (
+                    <div>
+                      <dt>{t('account.membership.transferCbu')}</dt>
+                      <dd>{env.payments.transferCbu}</dd>
+                    </div>
+                  ) : null}
+                  <div>
+                    <dt>{t('account.membership.transferHolder')}</dt>
+                    <dd>{env.payments.transferHolder || t('account.membership.transferAskAdmin')}</dd>
+                  </div>
+                </>
+              )}
               <div>
                 <dt>{t('account.membership.transferReference')}</dt>
                 <dd>{visibleOrder.reference}</dd>
               </div>
               <div>
                 <dt>{t('account.membership.transferAmount')}</dt>
-                <dd>{money(visibleOrder.amount, locale)}</dd>
+                <dd>{money(visibleOrder.amount, locale, visibleOrder.currency)}</dd>
               </div>
             </dl>
             <p className="ticket-purchase__transfer-warning" role="note">
@@ -867,6 +915,7 @@ export default function TicketPurchaseSection({
             <TicketPaymentOptions
               manualEnabled={manualPaymentEnabled}
               mercadoPagoEnabled={mercadoPagoEnabled}
+              wiseEnabled={wiseEnabled}
               paymentMethod={paymentMethod}
               onChange={(value) => {
                 setPaymentMethod(value)

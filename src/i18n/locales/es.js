@@ -950,6 +950,12 @@ export default {
       transferAccount: 'Cuenta',
       transferAccountValue: 'Mercado Pago',
       transferHolder: 'Titular',
+      // Wise reusa el mismo modal de transferencia (comprobante + aprobación
+      // manual), pero con datos de cuenta distintos: email en vez de alias,
+      // SWIFT/IBAN en vez de CBU.
+      transferWiseTitle: 'Wise',
+      transferWiseEmail: 'Email de Wise',
+      transferWiseSwiftIban: 'SWIFT/IBAN',
       transferAmount: 'Importe',
       transferReference: 'Referencia',
       transferHint: 'Adjuntá el comprobante. Administración valida en hasta 48 horas.',
@@ -2579,6 +2585,10 @@ export default {
       // Faltaba: `RegisterSettle` ya ofrecía la opción, así que el selector
       // mostraba la clave cruda en vez del nombre del medio de pago.
       paymentCashPitbullLabel: 'Efectivo en Pitbull',
+      // Wise es para pagos del exterior: precio fijo en USD, sin el desglose
+      // ARS del resto de los medios.
+      paymentWiseLabel: 'Wise (pagos del exterior)',
+      paymentWisePriceHint: 'Monto fijo en USD, ver detalle al confirmar',
       changePaymentMethod: 'Elegir otro medio',
       payByTransfer: 'Pagar por transferencia',
       backToMercadoPago: 'Volver a Mercado Pago',
@@ -2768,6 +2778,8 @@ export default {
     payment: {
       mercadoPago: 'Mercado Pago',
       manualLink: 'Link de pago + validación manual',
+      cashPitbull: 'Efectivo en Pitbull',
+      wiseTransfer: 'Wise',
     },
   },
   shareCard: {

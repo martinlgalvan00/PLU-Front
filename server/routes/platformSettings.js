@@ -43,7 +43,7 @@ export const platformFeatureToggleSchema = z.object({
 
 export const paymentChannelToggleSchema = z.object({
   concept: z.enum(['membership', 'registration', 'ticket']),
-  channel: z.enum(['mercado_pago', 'bank_transfer', 'cash_pitbull']),
+  channel: z.enum(['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']),
   enabled: z.boolean(),
 })
 

@@ -371,6 +371,7 @@ export default function TicketsPage({
                 event={selectedEvent}
                 manualPaymentEnabled={ticketCheckout.ticketManualEnabled}
                 mercadoPagoEnabled={ticketCheckout.channels?.mercado_pago !== false}
+                wiseEnabled={ticketCheckout.channels?.wise_transfer === true}
                 pricing={pricing}
                 tickets={tickets}
                 createdOrder={visibleCreatedOrder}
