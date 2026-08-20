@@ -30,6 +30,12 @@ export default {
     next: 'Siguiente',
     finish: 'Entendido',
     stepOf: 'Paso {{current}} de {{total}}',
+    coach: {
+      exit: 'Salir del tutorial',
+      filled: 'Ya completaste este campo',
+      pending: 'Completalo y seguí con Siguiente',
+      waiting: 'Cuando este paso aparezca en pantalla te lo señalo.',
+    },
     menuReplay: 'Ver este recorrido',
     menuModeLabel: 'Mostrar automáticamente',
     mode: {
@@ -782,8 +788,10 @@ export default {
       channelAria: 'Habilitar {{channel}} para {{concept}}',
       channelOn: 'Activo',
       channelOff: 'Cerrado',
-      noChannelWarning: 'Sin ningún medio abierto no se puede cobrar este concepto, aunque el alta esté habilitada.',
-      environmentHold: 'Una variable de entorno está frenando los cobros por encima del panel ({{variables}}). Los interruptores no tienen efecto hasta que se quite.',
+      noChannelWarning:
+        'Sin ningún medio abierto no se puede cobrar este concepto, aunque el alta esté habilitada.',
+      environmentHold:
+        'Una variable de entorno está frenando los cobros por encima del panel ({{variables}}). Los interruptores no tienen efecto hasta que se quite.',
       togglesTitle: 'Habilitación general',
       togglesLead:
         'Un bloque por concepto: si se puede dar de alta, con qué medios se cobra y si Finanzas acredita. Apagado acá, nadie empieza nada nuevo, tenga o no código.',

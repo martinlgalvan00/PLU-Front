@@ -30,6 +30,12 @@ export default {
     next: 'Next',
     finish: 'Got it',
     stepOf: 'Step {{current}} of {{total}}',
+    coach: {
+      exit: 'Leave the tutorial',
+      filled: 'You already filled this in',
+      pending: 'Fill it in, then tap Next',
+      waiting: 'I will point at this step as soon as it shows up on screen.',
+    },
     menuReplay: 'View this tour',
     menuModeLabel: 'Auto-show',
     mode: {
@@ -606,8 +612,7 @@ export default {
       fixedPriceManualPlaceholder: 'Same as the Mercado Pago price',
       fixedPriceManualHint:
         'Empty = they pay the same as through Mercado Pago. Can be equal, lower or higher.',
-      fixedPriceManualInvalid:
-        'The transfer or cash price must be a whole number greater than 0.',
+      fixedPriceManualInvalid: 'The transfer or cash price must be a whole number greater than 0.',
       fixedPriceManualNote: 'Transfer and cash: {{amount}}',
       fixedPriceScopeInvalid:
         'A promo price needs a single scope: membership, registration or combo.',
@@ -694,8 +699,7 @@ export default {
       promoWindowInvalid: 'The promotion must close after it opens.',
       invitees: 'Exclusive to (emails)',
       inviteesPlaceholder: 'one email per line',
-      inviteesHint:
-        'Empty = open to anyone. With addresses, only those accounts can use it.',
+      inviteesHint: 'Empty = open to anyone. With addresses, only those accounts can use it.',
       inviteesCountHint: 'Exclusive to {{count}} account(s). Clear the list to open it.',
       inviteesInvalid: '{{email}} is not a valid email address.',
       inviteesTooMany: 'The invite list cannot hold more than 500 addresses.',
@@ -780,8 +784,10 @@ export default {
       channelAria: 'Enable {{channel}} for {{concept}}',
       channelOn: 'Active',
       channelOff: 'Closed',
-      noChannelWarning: 'With no method open this concept cannot be charged, even if intake is enabled.',
-      environmentHold: 'An environment variable is holding payments above the panel ({{variables}}). The switches have no effect until it is removed.',
+      noChannelWarning:
+        'With no method open this concept cannot be charged, even if intake is enabled.',
+      environmentHold:
+        'An environment variable is holding payments above the panel ({{variables}}). The switches have no effect until it is removed.',
       togglesTitle: 'General enablement',
       togglesLead:
         'One block per concept: whether intake is open, which methods it is charged with, and whether Finance settles it. Off here, nobody starts anything new, code or no code.',

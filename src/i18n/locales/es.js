@@ -334,19 +334,217 @@ export default {
     statDigital: '100%',
     statDigitalLabel: 'Gestión digital',
   },
-  homeGuide: {
-    trigger: 'Cómo funciona',
-    title: 'Cómo funciona',
-    lead: 'Tres pasos para competir en un meet oficial.',
-    step1Title: 'Afiliate',
-    step1Body: 'Creá tu perfil de atleta y pagá la temporada. Ahí queda tu credencial digital.',
-    step2Title: 'Inscribite',
-    step2Body: 'Elegí el meet, definí división y peso, y generá la orden de inscripción.',
-    step3Title: 'Llegá con tu QR',
-    step3Body: 'En puerta te acreditan con la credencial. No hace falta llevar papel.',
-    cta: 'Afiliarme',
+  help: {
+    trigger: 'Ayuda',
+    triggerAria: 'Abrir la ayuda paso a paso',
+    triggerPendingAria: 'Abrir la ayuda paso a paso. Tenés un paso pendiente.',
+    eyebrow: 'Ayuda',
+    title: '¿Qué tengo que hacer?',
+    lead: 'Son tres pasos y siempre en el mismo orden. Te marcamos en cuál estás.',
+    titleComplete: 'Ya tenés todo listo',
+    leadComplete:
+      'Cuenta, afiliación e inscripción están al día. Guardá tu credencial para la puerta.',
     close: 'Cerrar',
-    closeAria: 'Cerrar cómo funciona',
+    closeAria: 'Cerrar la ayuda',
+    stepsAria: 'Pasos del trámite',
+    stateDone: 'Hecho',
+    stateNow: 'Te toca ahora',
+    statePending: 'Esperando el pago',
+    stateBlocked: 'Todavía no',
+    stateClosed: 'Cerrado',
+    stateUnavailable: 'Sin fecha abierta',
+    steps: {
+      account: {
+        title: 'Crear tu cuenta',
+        done: 'Ya tenés cuenta.',
+        todo: 'Cargás tus datos una sola vez: nombre, documento, fecha de nacimiento y una contraseña.',
+      },
+      membership: {
+        title: 'Afiliarte a PLU',
+        done: 'Afiliación vigente hasta el {{date}}.',
+        doneNoDate: 'Tu afiliación está vigente.',
+        todo: 'Pagás la temporada y te queda la credencial digital en tu perfil.',
+        blocked: 'Antes necesitás la cuenta del paso 1.',
+      },
+      registration: {
+        title: 'Inscribirte al torneo',
+        titleWithEvent: 'Inscribirte a {{event}}',
+        done: 'Ya estás inscripto.',
+        pending: 'Tu inscripción está cargada. Falta que se acredite el pago.',
+        todo: 'Elegís división y categoría de peso, y pagás la inscripción.',
+        blockedAccount: 'Antes necesitás los pasos 1 y 2.',
+        blockedMembership: 'Antes necesitás la afiliación del paso 2.',
+        closed: 'Las inscripciones de este torneo ya cerraron.',
+        unavailable: 'Todavía no hay un torneo con inscripciones abiertas.',
+      },
+    },
+    nextEyebrow: 'Tu próximo paso',
+    hereEyebrow: 'Estás en el paso que te toca',
+    actionAccount: 'Crear mi cuenta',
+    actionMembership: 'Afiliarme',
+    actionRegistration: 'Inscribirme al torneo',
+    actionRegistrationPending: 'Ver mi inscripción',
+    actionCredential: 'Ver mi credencial',
+    actionEvents: 'Ver mis competencias',
+    guideMe: 'Guiame en esta pantalla',
+    guideMeHint: 'Te señalo dónde tocar, uno por uno.',
+    guideMeFields: 'Guiame campo por campo',
+    guideMeFieldsHint: 'Te explico qué poner en cada dato, de uno en uno.',
+    contact: 'Prefiero que me ayude una persona',
+    assist: {
+      title: 'Modo asistido',
+      hint: 'Letras y botones más grandes, y una barra abajo con lo justo: inicio, tu próximo paso, tu cuenta y esta ayuda.',
+      activeHint: 'Está activado. Podés apagarlo desde acá cuando quieras.',
+    },
+    assistNav: {
+      aria: 'Navegación asistida',
+      home: 'Inicio',
+      account: 'Mi cuenta',
+      login: 'Acceder',
+      help: 'Ayuda',
+      actionAccount: 'Crear cuenta',
+      actionMembership: 'Afiliarme',
+      actionRegistration: 'Inscribirme',
+      actionRegistrationPending: 'Mi inscripción',
+      actionCredential: 'Credencial',
+      actionEvents: 'Competencias',
+    },
+    tour: {
+      home: {
+        affiliate: {
+          title: 'Se empieza acá',
+          body: 'Este botón te lleva a la afiliación, que es el primer paso para poder competir.',
+        },
+        meet: {
+          title: 'El próximo torneo',
+          body: 'Acá ves la fecha, la sede y si las inscripciones están abiertas.',
+        },
+        help: {
+          title: 'Si te perdés, volvé acá',
+          body: 'Este botón está en todas las pantallas y siempre te dice cuál es tu próximo paso.',
+        },
+      },
+      members: {
+        start: {
+          title: 'Empezar la afiliación',
+          body: 'Tocá acá para arrancar. Si todavía no tenés cuenta, te la vamos a pedir primero.',
+        },
+        requirements: {
+          title: 'Qué necesitás tener a mano',
+          body: 'Tu documento, tu fecha de nacimiento y un correo al que entres. Nada más.',
+        },
+        plans: {
+          title: 'Cuánto sale',
+          body: 'El precio de la temporada y qué incluye. Elegís y pagás online.',
+        },
+        faq: {
+          title: 'Dudas frecuentes',
+          body: 'Si algo no te cierra, la respuesta suele estar en esta lista.',
+        },
+      },
+      registerCoach: {
+        fullName: {
+          title: 'Tu nombre y apellido',
+          body: 'Escribilo como figura en tu documento. Por ejemplo: María Rivas.',
+        },
+        country: {
+          title: 'Tu nacionalidad',
+          body: 'Abrí la lista y elegí tu país. Si sos argentino elegí Argentina: eso define qué documento te pedimos después.',
+        },
+        documentId: {
+          title: 'Tu número de documento',
+          body: 'Sólo los números, sin puntos ni guiones. Por ejemplo: 28456789.',
+        },
+        birthDate: {
+          title: 'Tu fecha de nacimiento',
+          body: 'Escribí día, mes y año, o tocá el calendario del costado y elegila ahí.',
+        },
+        email: {
+          title: 'Tu correo electrónico',
+          body: 'Tiene que ser un correo al que puedas entrar: te vamos a mandar un mail para confirmar la cuenta.',
+        },
+        phone: {
+          title: 'Tu teléfono',
+          body: 'Tu celular con el código de área. Por ejemplo: +54 9 11 1234 5678.',
+        },
+        password: {
+          title: 'Tu contraseña',
+          body: 'Inventá una de 12 letras o números como mínimo. Anotala en un papel si te ayuda: la vas a necesitar para entrar.',
+        },
+        continue: {
+          title: 'Ahora tocá Continuar',
+          body: 'Guarda lo que escribiste y pasa a la segunda parte. Si algo quedó incompleto te lo marca y no te deja avanzar.',
+        },
+        province: {
+          title: 'Tu provincia',
+          body: 'Abrí la lista y elegí la provincia donde vivís.',
+        },
+        city: {
+          title: 'Tu ciudad',
+          body: 'La ciudad o localidad donde vivís.',
+        },
+        gym: {
+          title: 'Tu gimnasio o club',
+          body: 'Dónde entrenás. Si entrenás solo, escribí Independiente.',
+        },
+        sex: {
+          title: 'Categoría con la que competís',
+          body: 'Elegí una de las dos opciones. Define en qué categoría se cargan tus marcas.',
+        },
+        finish: {
+          title: 'Listo: creá tu cuenta',
+          body: 'Con esto queda tu ficha cargada. Después te llega un correo para confirmarla y ya podés afiliarte.',
+        },
+      },
+      competitionCoach: {
+        division: {
+          title: 'Tu división',
+          body: 'Elegí la división en la que vas a competir. Si no estás seguro, mirá el reglamento o pedí ayuda antes de seguir.',
+        },
+        category: {
+          title: 'Tu categoría de peso',
+          body: 'La categoría que corresponde a tu peso. En el pesaje oficial del día se confirma.',
+        },
+        estimatedWeight: {
+          title: 'Tu peso estimado',
+          body: 'Tu peso de hoy, en kilos. Es una estimación para armar los grupos: no te compromete.',
+        },
+        method: {
+          title: 'Cómo vas a pagar',
+          body: 'Elegí una forma de pago. Si eligís transferencia o efectivo, en el paso siguiente te mostramos cómo continuar.',
+        },
+        finish: {
+          title: 'Confirmá tu inscripción',
+          body: 'Arriba del botón está el total. Al confirmar queda tu inscripción cargada a tu nombre.',
+        },
+      },
+      events: {
+        actions: {
+          title: 'Desde acá te inscribís',
+          body: 'Cada torneo tiene sus botones: ver el detalle completo o inscribirte.',
+        },
+        help: {
+          title: 'La ayuda te sigue',
+          body: 'Este botón está en todas las pantallas y siempre te dice cuál es tu próximo paso.',
+        },
+      },
+      pitbull: {
+        register: {
+          title: 'Inscribirme al meet',
+          body: 'Te pide cuenta y afiliación vigentes. Si te falta alguna, la ayuda te lleva a resolverla.',
+        },
+      },
+      profile: {
+        tabs: {
+          title: 'Tu cuenta por partes',
+          body: 'Credencial, competencias, afiliación y datos personales. Deslizá la cinta para ver todas.',
+        },
+        help: {
+          title: 'La ayuda te sigue',
+          body: 'Este botón está en todas las pantallas y siempre te dice cuál es tu próximo paso.',
+        },
+      },
+    },
   },
   launchTeaser: {
     badge: 'Apertura oficial',

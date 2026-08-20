@@ -50,11 +50,21 @@ function writeTourMode(mode) {
 }
 
 /**
- * Motor de recorridos guiados del panel admin: un solo tour activo a la
- * vez, con pasos `{ target, placement, title, body }` (`target` es un
- * selector CSS resuelto por `AdminTourOverlay`). No depende de una sección
- * en particular -- cada pantalla arma sus propios pasos y los pasa a
+ * Motor de recorridos guiados de toda la app: un solo tour activo a la vez,
+ * con pasos `{ target, placement, title, body, frame? }` (`target` es un
+ * selector CSS resuelto por `AdminTourOverlay`). No depende de una sección en
+ * particular -- cada pantalla arma sus propios pasos y los pasa a
  * `startTour`/`replayTour`.
+ *
+ * Dos modos, elegidos por el que arranca el tour:
+ *
+ * - `modal` (default): el resto de la pantalla no responde. Sirve para
+ *   presentar una sección, que es lo que hace el panel admin.
+ * - `coach`: el fondo se atenúa pero nada se bloquea, y no hay focus-trap ni
+ *   scroll-lock. Es el tutorial campo por campo de los formularios públicos:
+ *   la persona escribe en el campo señalado mientras la tarjeta le explica
+ *   qué poner, y el paso espera a que su campo aparezca en pantalla en vez de
+ *   saltearse (los campos de la segunda sección no existen hasta que avanza).
  */
 export function AdminTourProvider({ children }) {
   const [activeTour, setActiveTour] = useState(null)
@@ -74,7 +84,7 @@ export function AdminTourProvider({ children }) {
   }, [])
 
   const startTour = useCallback(
-    (tourId, steps) => {
+    (tourId, steps, { mode = 'modal' } = {}) => {
       if (!steps?.length || tourMode === 'off') return false
       if (tourMode === 'once' && hasSeenTour(tourId)) return false
       // Se marca "visto" apenas arranca, no solo al cerrarlo: si la sección
@@ -83,16 +93,16 @@ export function AdminTourProvider({ children }) {
       // persistía y el tour volvía a arrancar de cero en la próxima visita
       // -- de ahí la sensación de que se repite todo el tiempo.
       markTourSeen(tourId)
-      setActiveTour({ id: tourId, steps })
+      setActiveTour({ id: tourId, steps, mode })
       setStepIndex(0)
       return true
     },
     [tourMode],
   )
 
-  const replayTour = useCallback((tourId, steps) => {
+  const replayTour = useCallback((tourId, steps, { mode = 'modal' } = {}) => {
     if (!steps?.length) return false
-    setActiveTour({ id: tourId, steps })
+    setActiveTour({ id: tourId, steps, mode })
     setStepIndex(0)
     return true
   }, [])
