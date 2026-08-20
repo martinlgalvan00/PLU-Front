@@ -616,7 +616,7 @@ begin
   insert into public.discount_codes (
     organization_id, code, kind, applies_to, active
   ) values (
-    v_org, '__VERIFY_ACCESS_KIND__', 'access', 'combo', false
+    v_org, 'VERIFY-ACCESS-KIND', 'access', 'combo', false
   ) returning id into v_test_id;
 
   if plu_private.resolve_discount_amount(85000, 'access', null, null) <> 0 then
@@ -630,7 +630,7 @@ begin
     insert into public.discount_codes (
       organization_id, code, kind, percent_off, applies_to, active
     ) values (
-      v_org, '__VERIFY_ACCESS_KIND_BAD__', 'access', 10, 'combo', false
+      v_org, 'VERIFY-ACCESS-KIND-BAD', 'access', 10, 'combo', false
     );
     raise exception 'La constraint no rechazó un código access con percent_off.'
       using errcode = 'PLU01';

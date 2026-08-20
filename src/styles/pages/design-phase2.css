@@ -4582,9 +4582,11 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
 /* Recordarme: checkbox real y accesible (no un div disfrazado) — la caja
    custom vive detrás del input nativo, que queda transparente pero enfocable
-   y con :checked funcional. */
+   y con :checked funcional. Una sola fila: la garantía de seguridad se lee
+   en el `title` del label y queda disponible para lectores de pantalla vía
+   `.login-remember__hint` (visualmente oculto), no como segunda línea fija. */
 .auth-immersive-glass .login-remember {
-  align-items: flex-start;
+  align-items: center;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -4653,32 +4655,23 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   outline-offset: var(--institution-focus-offset);
 }
 
-.auth-immersive-glass .login-remember__copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 1px;
-}
-
 .auth-immersive-glass .login-remember__label {
   color: var(--color-text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
 
+/* Texto de apoyo disponible para lectores de pantalla (el `title` del label
+   ya lo ofrece a mouse/touch en hover); oculto visualmente para que la fila
+   no crezca a una segunda línea. */
 .auth-immersive-glass .login-remember__hint {
-  align-items: center;
-  color: var(--color-text-muted);
-  display: flex;
-  font-size: 11px;
-  gap: 5px;
-  line-height: 1.5;
-  max-width: 30ch;
-}
-
-.auth-immersive-glass .login-remember__hint svg {
-  color: color-mix(in oklab, var(--plu-gold-500) 70%, var(--color-text-muted));
-  flex: none;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 @media (prefers-reduced-motion: no-preference) {
