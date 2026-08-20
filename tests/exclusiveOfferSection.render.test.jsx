@@ -103,6 +103,19 @@ describe('ficha de oferta exclusiva', () => {
     expect(onSelectEvent).toHaveBeenCalledWith(CATALOG_EVENT)
   })
 
+  it('si el catálogo local no trae el evento, igual manda al checkout de ESE evento y no a uno random', () => {
+    // Regresión: cuando `catalogEvent` no matcheaba, el botón navegaba a
+    // 'competition' sin evento y el atleta terminaba en el torneo que hubiera
+    // seleccionado antes (u otro por defecto), a su precio de lista en vez del
+    // de la oferta.
+    const onSelectEvent = vi.fn()
+    const onNavigate = vi.fn()
+    renderSection({ onSelectEvent, onNavigate, events: [] })
+    fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
+    expect(onSelectEvent).toHaveBeenCalledWith(OFFER.event)
+    expect(onNavigate).not.toHaveBeenCalled()
+  })
+
   it('un perfil incompleto pide completarlo en vez de mandar al checkout', () => {
     const onSelectEvent = vi.fn()
     const onNavigateSection = vi.fn()
