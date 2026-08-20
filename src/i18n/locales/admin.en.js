@@ -30,6 +30,12 @@ export default {
     next: 'Next',
     finish: 'Got it',
     stepOf: 'Step {{current}} of {{total}}',
+    coach: {
+      exit: 'Leave the tutorial',
+      filled: 'You already filled this in',
+      pending: 'Fill it in, then tap Next',
+      waiting: 'I will point at this step as soon as it shows up on screen.',
+    },
     menuReplay: 'View this tour',
     menuModeLabel: 'Auto-show',
     mode: {

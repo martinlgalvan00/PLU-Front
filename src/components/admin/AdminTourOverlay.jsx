@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, m } from 'motion/react'
-import { ArrowLeft, ArrowRight, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { modalTransition, drawerBackdropTransition } from '../../motion/variants.ts'
@@ -13,8 +13,54 @@ const TARGET_GAP = 14
 const SPOTLIGHT_PAD = 6
 const MISSING_TARGET_RETRY_MS = 350
 const MISSING_TARGET_TIMEOUT_MS = 1400
+/** En modo coach el blanco puede tardar: aparece cuando la persona pasa de
+ *  sección del formulario. Se sigue buscando sin límite y se repone el rect
+ *  periódicamente porque escribir en un campo cambia su alto (mensaje de
+ *  error, ayuda inline) y el recuadro quedaba desalineado. */
+const COACH_REFLOW_MS = 400
 
-function useTargetRect(selector, stepKey, onMissing) {
+/**
+ * ¿El campo señalado ya está completo? Sólo para campos reales: `null`
+ * significa "esto no es un campo" y la tarjeta no muestra el pie de estado.
+ */
+function readFieldFilled(el) {
+  if (!el) return null
+  if (el instanceof HTMLInputElement && (el.type === 'radio' || el.type === 'checkbox')) {
+    if (!el.name) return el.checked
+    return Boolean(document.querySelector(`input[name="${CSS.escape(el.name)}"]:checked`))
+  }
+  const isField =
+    el instanceof HTMLInputElement ||
+    el instanceof HTMLSelectElement ||
+    el instanceof HTMLTextAreaElement
+  if (!isField) return null
+  return el.value.trim().length > 0
+}
+
+/**
+ * `frame` permite señalar el bloque completo del campo (`.field`, que envuelve
+ * label + control + error) apuntando al control, que es lo único con un
+ * selector estable — los campos de este proyecto no llevan `id`.
+ */
+function resolveFramed(el, frame) {
+  if (!frame || !el) return el
+  return el.closest(frame) ?? el
+}
+
+function measureRect(el, frame) {
+  const framed = resolveFramed(el, frame)
+  const r = framed.getBoundingClientRect()
+  return {
+    top: r.top,
+    left: r.left,
+    width: r.width,
+    height: r.height,
+    radius: getComputedStyle(framed).borderRadius,
+    filled: readFieldFilled(el),
+  }
+}
+
+function useTargetRect(selector, stepKey, onMissing, { frame = null, coach = false } = {}) {
   const [rect, setRect] = useState(null)
 
   useLayoutEffect(() => {
@@ -22,30 +68,27 @@ function useTargetRect(selector, stepKey, onMissing) {
     let cancelled = false
     let firstSeenAt = null
     let raf = 0
+    let reflowTimer = 0
 
     function measure() {
       if (cancelled) return
       const el = document.querySelector(selector)
       if (!el) {
-        firstSeenAt ??= Date.now()
-        if (Date.now() - firstSeenAt > MISSING_TARGET_TIMEOUT_MS) {
-          onMissing()
-          return
+        // En coach no se abandona el paso: el campo puede estar en la sección
+        // siguiente del formulario y aparecer cuando la persona avanza.
+        if (!coach) {
+          firstSeenAt ??= Date.now()
+          if (Date.now() - firstSeenAt > MISSING_TARGET_TIMEOUT_MS) {
+            onMissing()
+            return
+          }
         }
+        setRect(null)
         raf = window.setTimeout(measure, MISSING_TARGET_RETRY_MS)
         return
       }
-      el.scrollIntoView({ block: 'center', behavior: 'auto' })
-      const r = el.getBoundingClientRect()
-      if (!cancelled) {
-        setRect({
-          top: r.top,
-          left: r.left,
-          width: r.width,
-          height: r.height,
-          radius: getComputedStyle(el).borderRadius,
-        })
-      }
+      resolveFramed(el, frame).scrollIntoView({ block: 'center', behavior: 'auto' })
+      if (!cancelled) setRect(measureRect(el, frame))
     }
 
     setRect(null)
@@ -54,26 +97,21 @@ function useTargetRect(selector, stepKey, onMissing) {
     function handleReflow() {
       const el = document.querySelector(selector)
       if (!el) return
-      const r = el.getBoundingClientRect()
-      setRect({
-        top: r.top,
-        left: r.left,
-        width: r.width,
-        height: r.height,
-        radius: getComputedStyle(el).borderRadius,
-      })
+      setRect(measureRect(el, frame))
     }
 
+    if (coach) reflowTimer = window.setInterval(handleReflow, COACH_REFLOW_MS)
     window.addEventListener('resize', handleReflow)
     window.addEventListener('scroll', handleReflow, true)
     return () => {
       cancelled = true
       window.clearTimeout(raf)
+      window.clearInterval(reflowTimer)
       window.removeEventListener('resize', handleReflow)
       window.removeEventListener('scroll', handleReflow, true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- stepKey fuerza remedir en cada paso nuevo
-  }, [selector, stepKey])
+  }, [selector, stepKey, frame, coach])
 
   return rect
 }
@@ -86,9 +124,15 @@ function useTargetRect(selector, stepKey, onMissing) {
  * no se podía tocar. Con el hueco abierto el recorrido sigue siendo modal
  * (el resto del panel no responde) pero el blanco señalado queda usable, y
  * un click en la zona oscurecida cancela el recorrido.
+ *
+ * En modo coach los mismos paneles se dibujan sin `pointer-events`: atenúan
+ * el resto de la pantalla pero no bloquean nada, porque el tutorial acompaña
+ * mientras la persona escribe y tiene que poder corregir un campo anterior.
  */
-function TourBlockers({ rect, onCancel }) {
-  const shared = { className: 'admin-tour-blocker', onClick: onCancel, 'aria-hidden': true }
+function TourBlockers({ rect, onCancel, coach }) {
+  const shared = coach
+    ? { className: 'admin-tour-blocker admin-tour-blocker--coach', 'aria-hidden': true }
+    : { className: 'admin-tour-blocker', onClick: onCancel, 'aria-hidden': true }
   if (!rect) return <div {...shared} style={{ inset: 0 }} />
 
   const holeTop = Math.max(0, Math.floor(rect.top - SPOTLIGHT_PAD))
@@ -114,13 +158,16 @@ function TourCard({
   index,
   total,
   isLastStep,
+  coach,
   onNext,
   onPrev,
   onClose,
   reducedMotion,
 }) {
   const { t } = useI18n()
-  const cardRef = useAdminModal(onClose)
+  // Coach no atrapa el foco ni bloquea el scroll: la persona tiene que poder
+  // tabular al campo señalado y escribir. El Escape lo cubre el overlay.
+  const cardRef = useAdminModal(onClose, { active: !coach })
   const [pos, setPos] = useState(null)
 
   useLayoutEffect(() => {
@@ -158,9 +205,9 @@ function TourCard({
   return (
     <m.div
       ref={cardRef}
-      className="admin-tour-card"
+      className={`admin-tour-card${coach ? ' admin-tour-card--coach' : ''}`}
       role="dialog"
-      aria-modal="true"
+      aria-modal={coach ? undefined : 'true'}
       aria-labelledby="admin-tour-card-title"
       aria-describedby="admin-tour-card-body"
       style={
@@ -192,9 +239,24 @@ function TourCard({
         {step.body}
       </p>
 
+      {coach ? (
+        <p className="admin-tour-card__field-state" role="status">
+          {rect == null ? (
+            t('admin.tour.coach.waiting')
+          ) : rect.filled ? (
+            <>
+              <Check size={13} strokeWidth={3} aria-hidden />
+              {t('admin.tour.coach.filled')}
+            </>
+          ) : (
+            t('admin.tour.coach.pending')
+          )}
+        </p>
+      ) : null}
+
       <div className="admin-tour-card__footer">
         <button type="button" className="admin-tour-card__skip" onClick={onClose}>
-          {t('admin.tour.skip')}
+          {coach ? t('admin.tour.coach.exit') : t('admin.tour.skip')}
         </button>
         <div className="admin-tour-card__nav">
           {index > 0 ? (
@@ -218,10 +280,12 @@ export default function AdminTourOverlay() {
     useAdminTour()
   const { reducedMotion } = useMotionConfig()
   const step = activeTour?.steps[stepIndex] ?? null
+  const coach = activeTour?.mode === 'coach'
   const rect = useTargetRect(
     step?.target ?? null,
     activeTour ? `${activeTour.id}:${stepIndex}` : null,
     skipStep,
+    { frame: step?.frame ?? null, coach },
   )
 
   // Escape a nivel del recorrido y no solo de la tarjeta: mientras un paso
@@ -239,17 +303,21 @@ export default function AdminTourOverlay() {
 
   if (!activeTour || !step) return null
 
+  // Modal: sin blanco no hay tarjeta (el paso se saltea solo). Coach: la
+  // tarjeta se muestra igual, centrada, esperando que el campo aparezca.
+  const showCard = Boolean(rect) || coach
+
   return createPortal(
     <AnimatePresence>
       <m.div
         key="admin-tour-backdrop"
-        className="admin-tour-backdrop"
+        className={`admin-tour-backdrop${coach ? ' admin-tour-backdrop--coach' : ''}`}
         initial={reducedMotion ? false : 'hidden'}
         animate="visible"
         exit="exit"
         variants={drawerBackdropTransition}
       >
-        <TourBlockers rect={rect} onCancel={closeTour} />
+        <TourBlockers rect={rect} onCancel={closeTour} coach={coach} />
         {rect ? (
           <div
             className="admin-tour-spotlight"
@@ -263,7 +331,7 @@ export default function AdminTourOverlay() {
           />
         ) : null}
       </m.div>
-      {rect ? (
+      {showCard ? (
         <TourCard
           key={`admin-tour-card-${stepIndex}`}
           rect={rect}
@@ -272,6 +340,7 @@ export default function AdminTourOverlay() {
           index={stepIndex}
           total={activeTour.steps.length}
           isLastStep={isLastStep}
+          coach={coach}
           onNext={nextStep}
           onPrev={prevStep}
           onClose={closeTour}

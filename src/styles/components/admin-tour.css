@@ -201,3 +201,82 @@
     padding: 16px 18px 14px;
   }
 }
+
+/* =============================================
+   MODO COACH — tutorial campo por campo (flujos públicos)
+
+   Misma pieza que el recorrido del panel, con tres diferencias que salen de
+   su uso real: acompaña mientras la persona escribe, así que no bloquea; el
+   fondo se atenúa menos porque el formulario tiene que seguir legible; y la
+   tarjeta crece, porque el público al que apunta es el que no llegaba a leer
+   la versión compacta.
+   ============================================= */
+
+.admin-tour-blocker--coach {
+  pointer-events: none;
+}
+
+.admin-tour-backdrop--coach .admin-tour-spotlight {
+  box-shadow:
+    0 0 0 9999px rgba(5, 6, 10, 0.42),
+    0 0 0 3px color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+}
+
+[data-theme='light'] .admin-tour-backdrop--coach .admin-tour-spotlight {
+  box-shadow:
+    0 0 0 9999px rgba(15, 17, 23, 0.34),
+    0 0 0 3px color-mix(in srgb, var(--plu-celeste-600) 55%, transparent);
+}
+
+.admin-tour-card--coach {
+  gap: 12px;
+  max-width: min(380px, calc(100vw - 32px));
+  padding: 20px 22px 18px;
+}
+
+.admin-tour-card--coach .admin-tour-card__title {
+  font-size: 18.5px;
+}
+
+.admin-tour-card--coach .admin-tour-card__body {
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+/* Estado del campo señalado: contesta "¿ya lo hice?" sin que la persona
+   tenga que volver a mirar el formulario. */
+.admin-tour-card__field-state {
+  align-items: center;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 7px;
+  margin: 0;
+  padding-top: 10px;
+}
+
+.admin-tour-card__field-state svg {
+  color: var(--color-status-success);
+  flex: none;
+}
+
+.admin-tour-card--coach .admin-tour-card__prev,
+.admin-tour-card--coach .admin-tour-card__next {
+  font-size: 13.5px;
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.admin-tour-card--coach .admin-tour-card__skip {
+  font-size: 13px;
+  min-height: 44px;
+}
+
+.admin-tour-card--coach .admin-tour-card__close {
+  height: 40px;
+  right: 6px;
+  top: 6px;
+  width: 40px;
+}
