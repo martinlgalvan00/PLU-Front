@@ -89,6 +89,7 @@ import {
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 import {
   assertComboAccessCode,
+  assertComboAccessCodeOrDiscountCode,
   assertRegistrationAccessCode,
   resolveRegistrationAccessRequirements,
 } from '../services/registrationAccessService.js'
@@ -1352,7 +1353,16 @@ export function createAthleteRoutes({
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
         const comboOffer = await repo().findEventComboOffer(eventSlug)
         if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
-        assertComboAccessCode(comboOffer, req.validatedBody.comboAccessCode)
+        // Acepta el access_code del evento o un discount_code kind='access':
+        // el atleta puede haber pegado el código secreto en cualquiera de los
+        // dos campos del formulario (ver registrationAccessService.js).
+        await assertComboAccessCodeOrDiscountCode(comboOffer, {
+          comboAccessCode: req.validatedBody.comboAccessCode,
+          discountCode: req.validatedBody.discountCode,
+          previewDiscountCode: repo().previewDiscountCode,
+          athleteId: auth.athleteId,
+          baseAmount: comboOffer.price,
+        })
         const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'membership',
           code: req.validatedBody.membershipAccessCode,

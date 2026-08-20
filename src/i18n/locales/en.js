@@ -885,6 +885,7 @@ export default {
       publicPromoApplied: 'Promotion in effect · you save {{amount}}',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
       discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
+      discountAppliedAccess: 'Code {{code}} applied · combo unlocked',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -2558,6 +2559,7 @@ export default {
       publicPromoApplied: 'Promotion in effect · you save {{amount}}',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
       discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
+      discountAppliedAccess: 'Code {{code}} applied · combo unlocked',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',

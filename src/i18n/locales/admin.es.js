@@ -574,10 +574,11 @@ export default {
       percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
       codeKindLabel: 'Modalidad',
       codeKindHint:
-        'El descuento resta un porcentaje. El precio promocional fija cuánto se paga, y se pacta aparte por medio de pago.',
+        'El descuento resta un porcentaje. El precio promocional fija cuánto se paga, y se pacta aparte por medio de pago. El acceso no descuenta nada: sólo desbloquea el combo.',
       codeKind: {
         percent: 'Descuento por porcentaje',
         fixed_price: 'Precio promocional fijo',
+        access: 'Acceso al combo (sin descuento)',
       },
       fixedPrice: 'Precio promocional por Mercado Pago (ARS)',
       fixedPriceHint:

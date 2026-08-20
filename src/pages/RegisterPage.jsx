@@ -605,6 +605,15 @@ export default function RegisterPage({
         return
       }
       setDiscountPreview(preview)
+      // Un código kind='access' no descuenta nada: es el mismo desbloqueo que
+      // unlockComboWithCode(), pero canjeado por el campo de descuento (ver
+      // registrationAccessService.js en el backend). setComboCode además de
+      // purchaseType('combo') porque comboAvailability.enabled depende de
+      // `unlocked = Boolean(comboCode)`, no sólo del purchaseType elegido.
+      if (preview.kind === 'access') {
+        setComboCode(code)
+        setPurchaseType('combo')
+      }
     } catch (error) {
       setDiscountError(error?.message ?? t('pages.register.discountError.not_found'))
     } finally {
@@ -622,6 +631,15 @@ export default function RegisterPage({
   }, [form.paymentMethod])
 
   function clearDiscountCode() {
+    // Si el código quitado era el que desbloqueó el combo, hay que re-trabar
+    // el paquete: si no, el submit manda comboAccessCode (desde `comboCode`,
+    // que sigue seteado) pero no discountCode (el preview ya es null), y el
+    // código nunca se redime aunque el acceso siga "andando" a ojos del
+    // atleta. Sólo el reset de `comboCode` hace falta: el efecto que sincroniza
+    // `purchaseType` con `comboEnabled` (línea ~794) reacciona solo.
+    if (discountPreview?.kind === 'access') {
+      setComboCode('')
+    }
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
@@ -2285,15 +2303,19 @@ export default function RegisterPage({
                       {discountPreview ? (
                         <p className="register-discount__applied">
                           <Tag size={14} aria-hidden />
-                          {discountPreview.kind === 'fixed_price'
-                            ? t('pages.register.discountAppliedFixed', {
+                          {discountPreview.kind === 'access'
+                            ? t('pages.register.discountAppliedAccess', {
                                 code: discountPreview.code,
-                                amount: money(discountPreview.finalAmount, locale),
                               })
-                            : t('pages.register.discountApplied', {
-                                code: discountPreview.code,
-                                amount: money(discountPreview.discountAmount, locale),
-                              })}
+                            : discountPreview.kind === 'fixed_price'
+                              ? t('pages.register.discountAppliedFixed', {
+                                  code: discountPreview.code,
+                                  amount: money(discountPreview.finalAmount, locale),
+                                })
+                              : t('pages.register.discountApplied', {
+                                  code: discountPreview.code,
+                                  amount: money(discountPreview.discountAmount, locale),
+                                })}
                           <button type="button" onClick={clearDiscountCode} disabled={submitting}>
                             {t('pages.register.discountRemove')}
                           </button>

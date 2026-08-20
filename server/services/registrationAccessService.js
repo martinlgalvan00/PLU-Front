@@ -47,6 +47,65 @@ export function assertComboAccessCode(offer, code) {
   return offer
 }
 
+/**
+ * Un `discount_codes.kind = 'access'` no cambia el precio, pero es una prueba
+ * de acceso tan válida como el `access_code` del evento (ver
+ * `20260901100000_discount_code_access_kind.sql`). Se resuelve con un
+ * preview (no redime): la redención real la hace `apply_discount_code_to_order`
+ * al confirmarse el checkout, dentro de la misma transacción que crea la
+ * orden — acá sólo se decide si destraba el paquete.
+ */
+async function discountCodeGrantsComboAccess(previewDiscountCode, athleteId, code, baseAmount) {
+  const candidate = normalizeRegistrationAccessCode(code)
+  if (!candidate || typeof previewDiscountCode !== 'function') return false
+  try {
+    const preview = await previewDiscountCode(athleteId, {
+      code: candidate.toUpperCase(),
+      appliesTo: 'combo',
+      baseAmount,
+    })
+    return Boolean(preview?.valid) && preview?.kind === 'access'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Acepta el `access_code` del evento o un código de descuento `kind='access'`
+ * (`applies_to = 'combo'`) como prueba de acceso al combo — cualquiera de
+ * los dos campos que llegue del checkout (`comboAccessCode`/`discountCode`)
+ * puede traer cualquiera de los dos tipos, porque el atleta puede pegar el
+ * código en el campo que le resulte familiar. Si ninguno resuelve, relanza el
+ * mismo error que tira `assertComboAccessCode` para no duplicar los mensajes.
+ */
+export async function assertComboAccessCodeOrDiscountCode(
+  offer,
+  { comboAccessCode, discountCode, previewDiscountCode, athleteId, baseAmount },
+) {
+  if (offer?.audience !== 'code') return null
+
+  const expected = normalizeRegistrationAccessCode(offer.accessCode).toUpperCase()
+  const candidates = [comboAccessCode, discountCode]
+    .map((value) => normalizeRegistrationAccessCode(value))
+    .filter(Boolean)
+
+  if (expected && candidates.some((candidate) => candidate.toUpperCase() === expected)) {
+    return offer
+  }
+
+  for (const candidate of candidates) {
+    if (await discountCodeGrantsComboAccess(previewDiscountCode, athleteId, candidate, baseAmount)) {
+      return offer
+    }
+  }
+
+  // Ningún candidato sirvió: relanza vía assertComboAccessCode para no
+  // duplicar los mensajes, con el primer campo que haya traído algo — así
+  // "no es válido" sale cuando lo que falló fue un discountCode, en vez de
+  // "hace falta un código" sólo porque comboAccessCode vino vacío.
+  return assertComboAccessCode(offer, comboAccessCode || discountCode)
+}
+
 export async function assertRegistrationAccessCode(repository, { scope, eventSlug = null, code }) {
   const gate = await repository.findActiveGate({ scope, eventSlug })
   if (!gate) return null
