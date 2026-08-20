@@ -573,10 +573,11 @@ export default {
       percentOffInvalid: 'The discount must be a whole number between 1 and 99.',
       codeKindLabel: 'Type',
       codeKindHint:
-        'A discount takes a percentage off. A promo price sets what is paid, agreed separately per payment method.',
+        'A discount takes a percentage off. A promo price sets what is paid, agreed separately per payment method. Access does not discount anything: it only unlocks the combo.',
       codeKind: {
         percent: 'Percentage discount',
         fixed_price: 'Fixed promo price',
+        access: 'Combo access (no discount)',
       },
       fixedPrice: 'Promo price via Mercado Pago (ARS)',
       fixedPriceHint:

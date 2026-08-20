@@ -429,7 +429,8 @@ export async function previewDiscountCode({
     // 'code' lo tipeó el atleta; 'public_promo' se aplica sola.
     source: preview.source === 'public_promo' ? 'public_promo' : 'code',
     description: preview.description ?? '',
-    // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final.
+    // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final;
+    // 'access' no descuenta nada, sólo desbloquea el combo.
     kind: preview.kind ?? 'percent',
     percentOff: preview.percentOff ?? null,
     // Ya viene resuelto para el canal que se mandó en `paymentMethod`: una

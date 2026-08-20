@@ -5,7 +5,6 @@ import SeasonComboOffer from './SeasonComboOffer.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
-import { PRICING } from '../../lib/constants.js'
 import {
   resolveComboDeal,
   resolveEventPricing,
@@ -45,12 +44,6 @@ const copyItemSubtle = {
   },
 }
 
-const SEASON_COMBO_FALLBACK = {
-  active: true,
-  price: PRICING.combo,
-  endsAt: '2026-08-28T23:59:59-03:00',
-}
-
 export default function HomeMembershipBand({
   onNavigate,
   onSelectEvent,
@@ -71,10 +64,15 @@ export default function HomeMembershipBand({
     membershipCheckoutEnabled &&
     registrationCheckoutEnabled &&
     isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'combo' })
-  const liveComboOffer = hasActiveMembership
-    ? null
-    : (resolveLiveComboOffer(gateEvent) ??
-      (gateEvent?.comboOffer ? null : resolveLiveComboOffer({ comboOffer: SEASON_COMBO_FALLBACK })))
+  // Un combo con audience 'code' es secreto: sólo se ofrece a quien ya
+  // canjeó el código en el checkout (RegisterPage), nunca como promo
+  // pública en la home. Antes había además un fallback hardcodeado que
+  // inventaba un combo "siempre activo" cuando el evento no traía uno
+  // propio — eso hacía aparecer la tarjeta con precios y fecha fija sin
+  // que ningún admin la hubiera configurado.
+  const isPublicComboOffer = gateEvent?.comboOffer && gateEvent.comboOffer.audience !== 'code'
+  const liveComboOffer =
+    hasActiveMembership || !isPublicComboOffer ? null : resolveLiveComboOffer(gateEvent)
   const eventPricing = resolveEventPricing(gateEvent)
   const comboDeal = liveComboOffer
     ? resolveComboDeal({

@@ -274,6 +274,38 @@ describe('Tarifas — alta de planes y combo', () => {
     }))
   })
 
+  it('crea un código de acceso al combo, sin descuento', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'combo-secreto' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'access' } })
+
+    // Ni porcentaje ni precio promocional: un acceso no descuenta nada.
+    expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
+    expect(screen.queryByLabelText(/Precio promocional por Mercado Pago/)).toBeNull()
+    // El alcance se cae solo a combo, el único donde un acceso tiene sentido.
+    expect(screen.getByLabelText('Aplica a').value).toBe('combo')
+    expect(screen.queryByRole('option', { name: 'Afiliación' })).toBeNull()
+    expect(screen.queryByRole('option', { name: 'Inscripción' })).toBeNull()
+    expect(screen.queryByRole('option', { name: 'Afiliación e inscripción' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'COMBO-SECRETO',
+        kind: 'access',
+        percentOff: undefined,
+        fixedPrice: undefined,
+        appliesTo: 'combo',
+      }),
+    )
+  })
+
   it('no ofrece el alcance combinado para una promo de precio fijo', () => {
     renderPricing()
 

@@ -58,7 +58,9 @@ const EMPTY_DISCOUNT_CODE = {
   // Quién accede: 'code' hay que tipearla, 'public' se aplica sola a todos.
   audience: 'code',
   // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final de
-  // la compra (promo tipo "afiliación + inscripción a $120.000").
+  // la compra (promo tipo "afiliación + inscripción a $120.000"); 'access' no
+  // descuenta nada — es un código secreto que sólo desbloquea el combo, sólo
+  // válido con appliesTo 'combo'/'both'.
   kind: 'percent',
   percentOff: '',
   fixedPrice: '',
@@ -507,7 +509,7 @@ export default function PricingSection({
             description: source.description,
             kind: source.kind ?? 'percent',
             audience: source.audience === 'public' ? 'public' : 'code',
-            percentOff: source.kind === 'fixed_price' ? '' : source.percentOff,
+            percentOff: source.kind === 'percent' ? source.percentOff : '',
             fixedPrice: source.fixedPrice ?? '',
             fixedPriceManual: source.fixedPriceManual ?? '',
             appliesTo: source.appliesTo,
@@ -526,13 +528,14 @@ export default function PricingSection({
     event.preventDefault()
     setCodeError('')
     const isFixedPrice = codeDraft.kind === 'fixed_price'
+    const isAccess = codeDraft.kind === 'access'
     const percentOff = Number(codeDraft.percentOff)
     const fixedPrice = Number(codeDraft.fixedPrice)
     if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(codeDraft.code.toUpperCase())) {
       setCodeError(t('admin.sections.pricing.codeFormatHint'))
       return
     }
-    if (!isFixedPrice && (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99)) {
+    if (!isFixedPrice && !isAccess && (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99)) {
       setCodeError(t('admin.sections.pricing.percentOffInvalid'))
       return
     }
@@ -587,7 +590,7 @@ export default function PricingSection({
     const result = await onUpsertDiscountCode?.({
       ...codeDraft,
       code: codeDraft.code.toUpperCase(),
-      percentOff: isFixedPrice ? undefined : percentOff,
+      percentOff: isFixedPrice || isAccess ? undefined : percentOff,
       fixedPrice: isFixedPrice ? fixedPrice : undefined,
       fixedPriceManual: isFixedPrice ? fixedPriceManual : undefined,
       maxRedemptions:
@@ -1744,12 +1747,17 @@ export default function PricingSection({
                     setCodeDraft({
                       ...codeDraft,
                       kind,
-                      // Un precio promocional necesita alcance único: si venía
-                      // en "afiliación e inscripción", se cae a afiliación.
                       appliesTo:
+                        // Un precio promocional necesita alcance único: si venía
+                        // en "afiliación e inscripción", se cae a afiliación.
                         kind === 'fixed_price' && codeDraft.appliesTo === 'both'
                           ? 'membership'
-                          : codeDraft.appliesTo,
+                          : // Un código de acceso sólo existe para el combo
+                            // (nunca 'both': no hay nada que desbloquear en una
+                            // afiliación o inscripción sueltas).
+                            kind === 'access' && codeDraft.appliesTo !== 'combo'
+                            ? 'combo'
+                            : codeDraft.appliesTo,
                     })
                   }}
                 >
@@ -1757,6 +1765,7 @@ export default function PricingSection({
                   <option value="fixed_price">
                     {t('admin.sections.pricing.codeKind.fixed_price')}
                   </option>
+                  <option value="access">{t('admin.sections.pricing.codeKind.access')}</option>
                 </select>
                 <small>{t('admin.sections.pricing.codeKindHint')}</small>
               </label>
@@ -1792,7 +1801,7 @@ export default function PricingSection({
                   <small>{t('admin.sections.pricing.fixedPriceManualHint')}</small>
                 </label>
               ) : null}
-              {codeDraft.kind === 'fixed_price' ? null : (
+              {codeDraft.kind === 'fixed_price' || codeDraft.kind === 'access' ? null : (
                 <label>
                   <span>{t('admin.sections.pricing.percentOff')}</span>
                   <input
@@ -1816,14 +1825,18 @@ export default function PricingSection({
                     setCodeDraft({ ...codeDraft, appliesTo: event.target.value })
                   }
                 >
-                  <option value="membership">
-                    {t('admin.sections.pricing.appliesTo.membership')}
-                  </option>
-                  <option value="registration">
-                    {t('admin.sections.pricing.appliesTo.registration')}
-                  </option>
+                  {codeDraft.kind === 'access' ? null : (
+                    <option value="membership">
+                      {t('admin.sections.pricing.appliesTo.membership')}
+                    </option>
+                  )}
+                  {codeDraft.kind === 'access' ? null : (
+                    <option value="registration">
+                      {t('admin.sections.pricing.appliesTo.registration')}
+                    </option>
+                  )}
                   <option value="combo">{t('admin.sections.pricing.appliesTo.combo')}</option>
-                  {codeDraft.kind === 'fixed_price' ? null : (
+                  {codeDraft.kind === 'fixed_price' || codeDraft.kind === 'access' ? null : (
                     <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
                   )}
                 </select>

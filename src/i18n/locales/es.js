@@ -885,6 +885,7 @@ export default {
       publicPromoApplied: 'Promoción vigente · ahorrás {{amount}}',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
+      discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -2570,6 +2571,7 @@ export default {
       publicPromoApplied: 'Promoción vigente · ahorrás {{amount}}',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
+      discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',

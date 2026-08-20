@@ -128,7 +128,7 @@ describe('POST /me/combo-access/verify', () => {
 // orden vuelve a exigir el mismo código. Sin esto, cualquiera que supiera que
 // el combo existe podría postear el checkout y llevarse el precio cerrado.
 describe('POST /me/registration-combos con combo restringido', () => {
-  function buildCheckoutApp(comboOffer) {
+  function buildCheckoutApp(comboOffer, { previewDiscountCode } = {}) {
     const createRegistrationCombo = vi.fn().mockResolvedValue({ order: { id: 'order-combo' } })
     const target = listen(
       createApp({
@@ -152,6 +152,8 @@ describe('POST /me/registration-combos con combo restringido', () => {
           }),
           findEventComboOffer: vi.fn().mockResolvedValue(comboOffer),
           discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+          previewDiscountCode:
+            previewDiscountCode ?? vi.fn().mockResolvedValue({ valid: false, reason: 'not_found' }),
           createRegistrationCombo,
         },
       }),
@@ -235,6 +237,72 @@ describe('POST /me/registration-combos con combo restringido', () => {
 
       expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
       expect(createRegistrationCombo).toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  // Un discount_code kind='access' es una prueba de acceso tan válida como el
+  // access_code del evento (20260901100000_discount_code_access_kind.sql):
+  // el atleta puede pegarlo en el campo de descuento en vez del de acceso.
+  it('desbloquea el combo con un discount code kind=access, sin comboAccessCode', async () => {
+    const previewDiscountCode = vi.fn().mockResolvedValue({ valid: true, kind: 'access' })
+    const { target, createRegistrationCombo } = buildCheckoutApp(RESTRICTED, {
+      previewDiscountCode,
+    })
+    try {
+      const response = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify(comboBody({ discountCode: 'COMBO-SECRETO' })),
+      })
+
+      expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
+      expect(createRegistrationCombo).toHaveBeenCalled()
+      expect(previewDiscountCode).toHaveBeenCalledWith(
+        '11111111-1111-4111-8111-111111111111',
+        expect.objectContaining({ code: 'COMBO-SECRETO', appliesTo: 'combo' }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('también acepta el discount code kind=access pegado en comboAccessCode', async () => {
+    const previewDiscountCode = vi.fn().mockResolvedValue({ valid: true, kind: 'access' })
+    const { target, createRegistrationCombo } = buildCheckoutApp(RESTRICTED, {
+      previewDiscountCode,
+    })
+    try {
+      const response = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify(comboBody({ comboAccessCode: 'COMBO-SECRETO' })),
+      })
+
+      expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
+      expect(createRegistrationCombo).toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  // Un cupón de descuento normal (kind='percent'/'fixed_price') no es una
+  // prueba de acceso: no debe destrabar el combo sólo porque sea válido.
+  it('no desbloquea el combo con un discount code que no es kind=access', async () => {
+    const previewDiscountCode = vi.fn().mockResolvedValue({ valid: true, kind: 'percent' })
+    const { target, createRegistrationCombo } = buildCheckoutApp(RESTRICTED, {
+      previewDiscountCode,
+    })
+    try {
+      const response = await fetch(`${target.url}/api/athletes/me/registration-combos`, {
+        method: 'POST',
+        headers: athleteHeaders,
+        body: JSON.stringify(comboBody({ discountCode: 'DESCUENTO10' })),
+      })
+
+      expect(response.status).toBe(403)
+      expect(createRegistrationCombo).not.toHaveBeenCalled()
     } finally {
       await target.close()
     }
