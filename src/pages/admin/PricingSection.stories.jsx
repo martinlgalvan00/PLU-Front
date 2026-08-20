@@ -48,22 +48,40 @@ const configuration = {
       currency: 'ARS',
       status: 'inscripcion_abierta',
       published: true,
-      comboOffer: null,
+      comboOffer: {
+        membershipPlanId: '11111111-1111-4111-8111-111111111111',
+        price: 80000,
+        manualPrice: 80000,
+        active: true,
+        audience: 'code',
+        accessCode: 'ONLY-PITBULL',
+      },
     },
   ],
   discountCodes: [
     {
       id: '66666666-6666-4666-8666-666666666666',
-      code: 'PITBULL',
+      code: 'ONLY-PITBULL',
       description: 'Afiliación + inscripción al Pitbull Classic.',
-      kind: 'fixed_price',
-      fixedPrice: 120000,
+      kind: 'offer',
+      fixedPrice: 75000,
       // Mismo importe por transferencia y efectivo: el caso pactado. Se carga
       // explícito para que el panel muestre la nota del canal manual.
-      fixedPriceManual: 120000,
+      fixedPriceManual: 75000,
       appliesTo: 'combo',
+      eventId: '33333333-3333-4333-8333-333333333333',
+      eventTitle: 'Pitbull Classic 2026',
+      audience: 'code',
       maxRedemptions: 40,
       redeemedCount: 12,
+      unlockedCount: 21,
+      campaignMetrics: {
+        resolvedCount: 28,
+        unlockedCount: 21,
+        checkoutCount: 15,
+        paidCount: 12,
+        revenue: 900000,
+      },
       expiresAt: '2026-10-30T23:59:00.000Z',
       active: true,
       manualChannels: ['bank_transfer', 'cash_pitbull'],
@@ -141,6 +159,19 @@ export default {
     onSetPlanActive: async () => ({}),
     onUpsertDiscountCode: async () => ({}),
     onSetDiscountCodeState: async () => ({}),
+    onSimulatePromotionCode: async () => ({
+      simulation: {
+        status: 'ready',
+        destination: { kind: 'account_offer' },
+        checks: {
+          active: true,
+          withinWindow: true,
+          restrictedCombo: true,
+          hasEvent: true,
+          hasPrice: true,
+        },
+      },
+    }),
   },
 }
 

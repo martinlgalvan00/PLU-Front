@@ -1939,7 +1939,7 @@
   color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 84%, var(--color-text-primary));
   font-size: 13px;
   line-height: 1.5;
-  margin-top: 16px;
+  margin-top: 28px;
   padding: 12px 16px;
   display: flex;
   align-items: flex-start;

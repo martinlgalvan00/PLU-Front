@@ -545,7 +545,30 @@ export default {
       comboOverLimit: 'Supera el máximo',
       comboMax: 'Máximo {{amount}}',
       comboOfferOn: 'Habilitada',
+      comboOfferStatus: 'Habilitada · {{visibility}}',
       comboOfferOff: 'Apagada',
+      comboVisibilityLabel: 'Visibilidad comercial',
+      comboVisibilityShort: {
+        public: 'Pública',
+        code: 'Restringida',
+        private: 'Privada',
+      },
+      comboVisibility: {
+        public: {
+          title: 'Pública',
+          description: 'Se muestra en el catálogo y cualquiera puede comprarla.',
+        },
+        code: {
+          title: 'Restringida',
+          description: 'No se anuncia. Un código válido desbloquea la página secreta.',
+        },
+        private: {
+          title: 'Privada',
+          description: 'Queda configurada, pero nadie puede verla, canjearla ni comprarla.',
+        },
+      },
+      comboPrivateNote:
+        'Al guardar como privada se pausan los códigos secretos activos de este combo. Las compras anteriores conservan su historial.',
       editCombo: 'Editar oferta',
       closeComboEditor: 'Cerrar edición',
       comboNotConfigured: 'Sin configurar',
@@ -562,7 +585,7 @@ export default {
       scheduleRetirement: 'Programar vigencia',
       discountCodesTitle: 'Códigos de descuento y promoción',
       discountCodesLead:
-        'Descuentos por porcentaje o promos con precio fijo, con cupos, vencimiento y seguimiento en vivo.',
+        'Creá descuentos, accesos o una Oferta exclusiva con afiliación + inscripción, precio único y página privada de pago.',
       discountCodesEmpty: 'Todavía no hay códigos cargados.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
@@ -572,14 +595,14 @@ export default {
       codeFormatHint: 'Mayúsculas, números y guiones.',
       percentOff: 'Descuento (%)',
       percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
-      codeKindLabel: 'Modalidad',
+      codeKindLabel: 'Tipo de código',
       codeKindHint:
-        'El descuento resta un porcentaje. El precio promocional fija cuánto se paga, y se pacta aparte por medio de pago. El acceso no descuenta nada: sólo desbloquea el combo. La oferta exclusiva hace las dos cosas — desbloquea el combo de una inscripción y le fija su propio precio.',
+        'Elegí Oferta exclusiva para dar afiliación + inscripción a un torneo por un único precio secreto.',
       codeKind: {
         percent: 'Descuento por porcentaje',
         fixed_price: 'Precio promocional fijo',
         access: 'Acceso al combo (sin descuento)',
-        offer: 'Oferta exclusiva (afiliación + inscripción)',
+        offer: 'Oferta exclusiva · afiliación + inscripción',
       },
       offerBadge: 'Oferta exclusiva',
       offerPrice: 'Precio de la oferta por Mercado Pago (ARS)',
@@ -587,12 +610,24 @@ export default {
       offerEventPlaceholder: 'Elegí la inscripción',
       offerEventComboPrice: 'combo {{price}}',
       offerEventHint:
-        'La oferta reemplaza el precio del combo de esa inscripción sólo para quien canjea el código. Se listan únicamente las inscripciones que ya tienen combo configurado.',
+        'La oferta reemplaza el precio del combo sólo para quien canjea el código. Se listan únicamente torneos con combo habilitado y Restringido.',
       offerEventRequired: 'Elegí a qué inscripción aplica la oferta exclusiva.',
       offerComboMissing:
         'Esa inscripción todavía no tiene combo de afiliación e inscripción configurado. Cargalo arriba antes de crear la oferta.',
+      offerComboVisibilityRequired:
+        'La oferta exclusiva necesita que ese combo esté habilitado y en estado Restringido.',
       offerPriceTooHigh:
         'El precio de la oferta tiene que ser menor al del combo de esa inscripción ({{price}}).',
+      exclusiveFlowEyebrow: 'Flujo secreto',
+      exclusiveFlowTitle: 'Página privada de la oferta',
+      exclusiveFlowLead:
+        'Se puede canjear desde Afiliación o Inscripción: revela el paquete y lleva a su página privada de pago sin publicarlo.',
+      exclusiveFlowCode: 'Llave',
+      exclusiveFlowBenefit: 'Beneficio',
+      exclusiveFlowDestination: 'Destino',
+      exclusiveFlowCodePending: 'Definí el código',
+      exclusiveFlowBenefitPending: 'Elegí evento y precio',
+      exclusiveFlowDestinationValue: 'Mi cuenta · Oferta exclusiva · Procesar pago',
       codeEventLabel: 'Limitar a una inscripción',
       codeEventAny: 'Cualquier inscripción',
       codeEventHint:
@@ -699,6 +734,8 @@ export default {
       inviteesHint:
         'Vacío = abierta a cualquiera. Con direcciones, sólo esas cuentas pueden usarla.',
       inviteesCountHint: 'Exclusiva para {{count}} cuenta(s). Vaciá la lista para abrirla.',
+      personalCodeHint:
+        'Código personal: solamente la cuenta asociada a este email puede canjearlo.',
       inviteesInvalid: '{{email}} no es una dirección de correo válida.',
       inviteesTooMany: 'La lista de invitados no puede tener más de 500 direcciones.',
       exclusiveBadge: 'Exclusiva · {{count}}',
@@ -720,6 +757,28 @@ export default {
       copyDiscountCode: 'Copiar código {{code}}',
       discountCodeCopied: 'Copiado',
       copyDiscountCodeError: 'No pudimos copiar el código. Seleccionalo y copialo manualmente.',
+      copyPromotionLink: 'Copiar enlace',
+      promotionLinkCopied: 'Enlace copiado',
+      copyPromotionLinkError: 'No pudimos copiar el enlace directo de canje.',
+      downloadPromotionQr: 'Descargar QR',
+      downloadPromotionQrError: 'No pudimos generar el QR de canje.',
+      simulatePromotion: 'Probar flujo',
+      simulatingPromotion: 'Probando…',
+      simulationTitle: 'Recorrido verificado',
+      simulationDestination: 'Destino: {{destination}}',
+      simulationCheck: {
+        active: 'El código está activo',
+        withinWindow: 'Está dentro de su vigencia',
+        restrictedCombo: 'El combo está restringido por código',
+        hasEvent: 'Tiene una inscripción asociada',
+        hasPrice: 'Tiene un precio final configurado',
+      },
+      campaignMetric: {
+        resolvedCount: 'Validaron',
+        unlockedCount: 'Desbloquearon',
+        checkoutCount: 'Iniciaron pago',
+        paidCount: 'Pagaron',
+      },
       discountStatus: {
         active: 'Activo',
         exhausted: 'Agotado',
@@ -782,8 +841,10 @@ export default {
       channelAria: 'Habilitar {{channel}} para {{concept}}',
       channelOn: 'Activo',
       channelOff: 'Cerrado',
-      noChannelWarning: 'Sin ningún medio abierto no se puede cobrar este concepto, aunque el alta esté habilitada.',
-      environmentHold: 'Una variable de entorno está frenando los cobros por encima del panel ({{variables}}). Los interruptores no tienen efecto hasta que se quite.',
+      noChannelWarning:
+        'Sin ningún medio abierto no se puede cobrar este concepto, aunque el alta esté habilitada.',
+      environmentHold:
+        'Una variable de entorno está frenando los cobros por encima del panel ({{variables}}). Los interruptores no tienen efecto hasta que se quite.',
       togglesTitle: 'Habilitación general',
       togglesLead:
         'Un bloque por concepto: si se puede dar de alta, con qué medios se cobra y si Finanzas acredita. Apagado acá, nadie empieza nada nuevo, tenga o no código.',

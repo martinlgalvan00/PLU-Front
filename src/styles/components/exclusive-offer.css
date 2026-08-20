@@ -163,7 +163,7 @@
 }
 
 /* El código es el título de la ficha: es lo que el atleta vino a confirmar. */
-.account-offer__code {
+.account-offer__title {
   font-family: var(--font-display);
   font-size: clamp(1.4rem, 3.4vw, 2rem);
   font-weight: 700;
@@ -172,12 +172,46 @@
   margin: 0;
 }
 
+.account-offer__key {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  margin: 0;
+}
+
+.account-offer__key span {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-offer__key code {
+  color: var(--offer-gold);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .account-offer__lead {
   color: var(--color-text-secondary);
   font-size: 0.875rem;
   line-height: 1.6;
   margin: 0;
   max-width: 46ch;
+}
+
+.account-offer__checkout-note {
+  border-left: 2px solid var(--offer-gold);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+  padding-left: 0.8rem;
 }
 
 /* El paquete y el desglose comparten ancho: son la misma liquidación leída en

@@ -7,6 +7,7 @@ import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
+import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
@@ -28,9 +29,9 @@ const EVENT_SELECT = `
 `
 
 /**
- * Proyección pública. `access_code` del combo NO entra acá: es material que se
- * reparte a mano y saldría en el catálogo abierto de eventos. `audience` sí,
- * para que el checkout sepa que el paquete existe pero pide código.
+ * Lectura base del catálogo. `access_code` nunca entra; `audience` y
+ * `archived_at` sólo viajan hasta sanitizePublicCatalogEvent, que elimina la
+ * oferta completa si no corresponde anunciarla.
  */
 const CATALOG_EVENT_SELECT = `
   id, slug, title, description, venue, location,
@@ -42,7 +43,7 @@ const CATALOG_EVENT_SELECT = `
   eventRegistrations:event_registrations(count),
   eventDays:event_days(id, day_index, label, date),
   comboOffer:event_combo_offers(
-    id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience
+    id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, archived_at
   ),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
@@ -414,8 +415,12 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           .order('starts_at'),
         'No se pudieron leer los eventos públicos.',
       )
-      res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.CATALOG))
-      res.json({ events: Array.isArray(events) ? events : [] })
+      // Cambiar una oferta es una accion deliberada del staff: no puede quedar
+      // visible por stale-while-revalidate despues de apagarla o borrarla.
+      res.set('Cache-Control', 'no-store')
+      res.json({
+        events: Array.isArray(events) ? events.map((row) => sanitizePublicCatalogEvent(row)) : [],
+      })
     } catch (error) {
       next(error)
     }

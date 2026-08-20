@@ -342,7 +342,9 @@ const discountPreviewSchema = z.object({
   // que Mercado Pago). Sin este dato el preview calculaba el ahorro sobre el
   // precio de catálogo y le mostraba al atleta un número que no era el que
   // terminaba pagando.
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']).optional(),
+  paymentMethod: z
+    .enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer'])
+    .optional(),
 })
 /**
  * Canje de un código secreto de oferta exclusiva. A diferencia del preview, no
@@ -352,6 +354,18 @@ const discountPreviewSchema = z.object({
  */
 const offerUnlockSchema = z.object({
   code: z.string().trim().toUpperCase().min(3).max(32),
+})
+const promotionCodeRedeemSchema = z.object({
+  code: z.string().trim().toUpperCase().min(3).max(32),
+  context: z
+    .object({
+      surface: z
+        .enum(['global', 'direct', 'membership', 'registration', 'event', 'tickets'])
+        .optional(),
+      eventSlug: z.string().trim().min(1).max(120).optional(),
+    })
+    .optional()
+    .default({}),
 })
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
@@ -1407,7 +1421,8 @@ export function createAthleteRoutes({
           eventSlug,
           code: req.validatedBody.registrationAccessCode,
         })
-        const comboWisePrice = comboChannel === 'wise_transfer' ? wisePriceFor({ concept: 'combo' }) : null
+        const comboWisePrice =
+          comboChannel === 'wise_transfer' ? wisePriceFor({ concept: 'combo' }) : null
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
@@ -1486,6 +1501,25 @@ export function createAthleteRoutes({
           paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
         })
         res.json({ preview: assertPreviewEventScope(preview, eventSlug) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Canje universal. Clasifica cualquier código sin obligar al navegador a
+   * conocer su alcance. Las ofertas secretas quedan desbloqueadas; descuentos
+   * y precios promocionales vuelven con el checkout al que pertenecen.
+   */
+  router.post(
+    '/me/codes/redeem',
+    publicWriteLimiter,
+    validateBody(promotionCodeRedeemSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const result = await repo().redeemPromotionCode(auth.athleteId, req.validatedBody)
+        res.json(result ?? { status: 'rejected', reason: 'not_found' })
       } catch (error) {
         next(error)
       }

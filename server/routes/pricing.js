@@ -130,7 +130,11 @@ export const discountCodeSchema = z
     }
     // Mismo check que la RPC: una ventana que cierra antes de abrir es una
     // promo que nadie puede usar.
-    if (code.startsAt && code.expiresAt && Date.parse(code.expiresAt) <= Date.parse(code.startsAt)) {
+    if (
+      code.startsAt &&
+      code.expiresAt &&
+      Date.parse(code.expiresAt) <= Date.parse(code.startsAt)
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['expiresAt'],
@@ -152,7 +156,8 @@ export const discountCodeSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['eventId'],
-        message: 'Una promoción pública no puede limitarse a una inscripción. Repartila como código.',
+        message:
+          'Una promoción pública no puede limitarse a una inscripción. Repartila como código.',
       })
     }
     // 'percent' y 'access' no llevan importe: el precio manual sólo significa
@@ -226,7 +231,8 @@ export const discountCodeSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['appliesTo'],
-        message: 'Un precio promocional necesita un alcance único: afiliación, inscripción o combo.',
+        message:
+          'Un precio promocional necesita un alcance único: afiliación, inscripción o combo.',
       })
     }
   })
@@ -263,7 +269,7 @@ export const comboOfferSchema = z
     endsAt: optionalDateTime,
     // Mismo eje que las promociones: 'public' lo ve cualquiera, 'code' sólo
     // quien tipea el código de acceso. Apagado sigue siendo `active: false`.
-    audience: z.enum(['public', 'code']).default('public'),
+    audience: z.enum(['public', 'code', 'private']).default('public'),
     accessCode: z
       .string()
       .trim()
@@ -295,7 +301,7 @@ export const comboOfferSchema = z
   })
   // Un combo público no conserva el código: volver a restringirlo tiene que
   // obligar a elegir uno nuevo en vez de revivir el que ya se repartió.
-  .transform((offer) => (offer.audience === 'public' ? { ...offer, accessCode: '' } : offer))
+  .transform((offer) => (offer.audience === 'code' ? offer : { ...offer, accessCode: '' }))
 
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`
@@ -317,10 +323,14 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
 
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {
-      const configuration = await repository().getConfiguration()
+      const [configuration, campaignAnalytics] = await Promise.all([
+        repository().getConfiguration(),
+        repository().getCampaignAnalytics(),
+      ])
       const pricingAvailability = getFeatureAvailability(FEATURE_KEYS.pricingWrites, env)
       res.json({
         ...configuration,
+        campaignAnalytics,
         availability: {
           editable: pricingAvailability.enabled,
           reason: pricingAvailability.reason,
@@ -330,6 +340,26 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
       next(error)
     }
   })
+
+  router.get(
+    '/discount-codes/:codeId/simulation',
+    ...readGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const codeId = parseRouteParam(
+          z.string().uuid(),
+          req.params.codeId,
+          'El identificador del código es inválido.',
+        )
+        const simulation = await repository().simulatePromotionCode(codeId)
+        if (!simulation) throw new HttpError(404, 'Código no encontrado.')
+        res.json({ simulation })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.post(
     '/membership-plans/versions',
@@ -412,27 +442,22 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
     },
   )
 
-  router.delete(
-    '/events/:eventSlug/combo',
-    ...writeGuard,
-    staffLimiter,
-    async (req, res, next) => {
-      try {
-        assertPricingWritesEnabled(env)
-        const eventSlug = parseRouteParam(
-          z
-            .string()
-            .trim()
-            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-          req.params.eventSlug,
-          'El identificador del evento es inválido.',
-        )
-        res.json(await repository().deleteComboOffer(eventSlug, actor(req)))
-      } catch (error) {
-        next(error)
-      }
-    },
-  )
+  router.delete('/events/:eventSlug/combo', ...writeGuard, staffLimiter, async (req, res, next) => {
+    try {
+      assertPricingWritesEnabled(env)
+      const eventSlug = parseRouteParam(
+        z
+          .string()
+          .trim()
+          .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+        req.params.eventSlug,
+        'El identificador del evento es inválido.',
+      )
+      res.json(await repository().deleteComboOffer(eventSlug, actor(req)))
+    } catch (error) {
+      next(error)
+    }
+  })
 
   router.patch(
     '/membership-plans/:planId/retirement',

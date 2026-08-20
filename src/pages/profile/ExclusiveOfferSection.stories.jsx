@@ -36,6 +36,11 @@ const ATHLETE = {
 
 const OFFER = {
   code: 'ONLY-PITBULL',
+  campaign: {
+    name: 'Pitbull Classic · Pase total',
+    description: 'Afiliación anual e inscripción en una sola operación privada.',
+    visibility: 'secret',
+  },
   kind: 'offer',
   appliesTo: 'combo',
   description: '',
@@ -45,6 +50,7 @@ const OFFER = {
   startsAt: null,
   expiresAt: null,
   active: true,
+  remaining: 57,
   event: {
     slug: 'pitbull-classic-2026',
     title: 'Pitbull Classic',

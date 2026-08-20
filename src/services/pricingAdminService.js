@@ -126,6 +126,12 @@ export function getDiscountCodeAvailability(code = {}, now = new Date()) {
 }
 
 export function mapPricingConfiguration(payload = {}) {
+  const campaignAnalytics = Array.isArray(payload.campaignAnalytics)
+    ? payload.campaignAnalytics
+    : []
+  const campaignMetricsByCode = new Map(
+    campaignAnalytics.map((metrics) => [metrics.codeId ?? metrics.code_id, metrics]),
+  )
   return {
     plans: (payload.plans ?? []).map(mapMembershipPlan),
     events: (payload.events ?? []).map((event) => ({
@@ -142,13 +148,37 @@ export function mapPricingConfiguration(payload = {}) {
           }
         : null,
     })),
-    discountCodes: (payload.discountCodes ?? []).map(mapDiscountCode),
+    discountCodes: (payload.discountCodes ?? []).map((row) => {
+      const code = mapDiscountCode(row)
+      const metrics = campaignMetricsByCode.get(code.id)
+      return {
+        ...code,
+        campaignMetrics: metrics
+          ? {
+              resolvedCount: Number(metrics.resolvedCount ?? metrics.resolved_count) || 0,
+              rejectedCount: Number(metrics.rejectedCount ?? metrics.rejected_count) || 0,
+              unlockedCount: Number(metrics.unlockedCount ?? metrics.unlocked_count) || 0,
+              checkoutCount: Number(metrics.checkoutCount ?? metrics.checkout_count) || 0,
+              paidCount: Number(metrics.paidCount ?? metrics.paid_count) || 0,
+              revenue: Number(metrics.revenue) || 0,
+            }
+          : null,
+      }
+    }),
+    campaignAnalytics,
     availability: payload.availability ?? { editable: true, reason: null },
   }
 }
 
 export async function fetchPricingConfigurationRequest() {
   return mapPricingConfiguration(await apiGet('/api/pricing'))
+}
+
+export async function simulatePromotionCodeRequest(codeId) {
+  const result = await apiGet(
+    `/api/pricing/discount-codes/${encodeURIComponent(codeId)}/simulation`,
+  )
+  return result.simulation ?? null
 }
 
 export async function createMembershipPlanVersionRequest(plan) {

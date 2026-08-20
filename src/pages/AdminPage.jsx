@@ -91,6 +91,7 @@ export default function AdminPage({
   onUpsertDiscountCode,
   onSetDiscountCodeState,
   onDeleteDiscountCode,
+  onSimulatePromotionCode,
   billingSubscriptions,
   billingSubscriptionsLoading,
   billingSubscriptionsError,
@@ -401,7 +402,9 @@ export default function AdminPage({
           onManageRegistrations={
             allowedSections.includes('registrations') ? handleManageEventRegistrations : undefined
           }
-          onManageCheckin={allowedSections.includes('checkin') ? handleManageEventCheckin : undefined}
+          onManageCheckin={
+            allowedSections.includes('checkin') ? handleManageEventCheckin : undefined
+          }
           onListSecurityZones={onListSecurityZones}
           onCreateSecurityZone={onCreateSecurityZone}
           onUpdateSecurityZone={onUpdateSecurityZone}
@@ -494,6 +497,7 @@ export default function AdminPage({
           onUpsertDiscountCode={onUpsertDiscountCode}
           onSetDiscountCodeState={onSetDiscountCodeState}
           onDeleteDiscountCode={onDeleteDiscountCode}
+          onSimulatePromotionCode={onSimulatePromotionCode}
           subscriptions={billingSubscriptions}
           subscriptionsLoading={billingSubscriptionsLoading}
           subscriptionsError={billingSubscriptionsError}
