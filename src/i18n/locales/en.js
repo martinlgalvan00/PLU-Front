@@ -1310,8 +1310,9 @@ export default {
       rulebookTitle: 'Rulebook',
       rulebookDesc: 'Current standards, classes and divisions.',
       venueEyebrow: 'Confirmed meeting point',
+      venueTitle: 'Pitbull Classic',
       venueDesc:
-        'Announced venue for Pitbull Classic 2026. Open the event page for published operational information.',
+        'Hosted by Maximal Strength Club. Open the event page for venue, date, and published operational information.',
       venueCta: 'View Pitbull Classic',
       directoryEyebrow: 'Venue directory',
       directoryTitle: 'The public register is being prepared',

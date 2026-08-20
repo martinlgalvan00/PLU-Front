@@ -1315,8 +1315,9 @@ export default {
       rulebookTitle: 'Reglamento',
       rulebookDesc: 'Estándares, categorías y divisiones vigentes.',
       venueEyebrow: 'Punto de encuentro confirmado',
+      venueTitle: 'Pitbull Classic',
       venueDesc:
-        'Sede anunciada para Pitbull Classic 2026. Consultá la ficha del evento para ver la información operativa publicada.',
+        'Organiza Maximal Strength Club. Consultá la ficha del evento para ver sede, fecha y toda la información operativa publicada.',
       venueCta: 'Ver Pitbull Classic',
       directoryEyebrow: 'Directorio de sedes',
       directoryTitle: 'El padrón público está en preparación',
