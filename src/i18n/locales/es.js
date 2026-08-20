@@ -128,6 +128,18 @@ export default {
       service_unavailable: 'No pudimos validar el código. Intentá nuevamente.',
     },
   },
+  codeScan: {
+    toggle: 'Escanear código',
+    title: 'Escanear código',
+    close: 'Cerrar',
+    starting: 'Iniciando la cámara…',
+    ready: 'Apuntá al QR del código.',
+    invalid: 'Ese QR no es un código de PLU.',
+    error: {
+      permission: 'No pudimos acceder a la cámara. Revisá los permisos del navegador.',
+      unsupported: 'Este navegador no puede usar la cámara acá. Pegá o tipeá el código.',
+    },
+  },
   payments: {
     embeddedTitle: 'Pagá con Mercado Pago',
     embeddedLead: 'Completá el pago sin salir del sitio.',

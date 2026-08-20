@@ -27,6 +27,27 @@ export function matchPromotionCodeRoute(pathname = globalThis.location?.pathname
   }
 }
 
+/**
+ * El QR que se descarga desde Precios codifica la URL `/canjear/:code`
+ * (`buildPromotionCodeUrl`), no el código pelado — así también sirve para
+ * cualquier lector de QR ajeno a la app. Un escaneo dentro de la app puede
+ * traer esa URL completa o, si alguien pega el texto de otro QR, el código
+ * suelto: se soportan las dos formas.
+ */
+export function extractPromotionCodeFromScan(rawValue) {
+  const value = String(rawValue ?? '').trim()
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    const matched = matchPromotionCodeRoute(url.pathname)
+    if (matched) return matched.code
+  } catch {
+    // No es una URL absoluta — puede ser el código pelado.
+  }
+  const normalized = normalizePromotionCode(value)
+  return CODE_PATTERN.test(normalized) ? normalized : null
+}
+
 export function savePendingPromotionCode(code, context = {}) {
   const normalized = normalizePromotionCode(code)
   if (!CODE_PATTERN.test(normalized) || typeof sessionStorage === 'undefined') return false

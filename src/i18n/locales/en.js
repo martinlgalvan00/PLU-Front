@@ -127,6 +127,18 @@ export default {
       service_unavailable: 'We could not validate the code. Please try again.',
     },
   },
+  codeScan: {
+    toggle: 'Scan code',
+    title: 'Scan code',
+    close: 'Close',
+    starting: 'Starting the camera…',
+    ready: 'Point at the code QR.',
+    invalid: 'That QR is not a PLU code.',
+    error: {
+      permission: 'We could not access the camera. Check your browser permissions.',
+      unsupported: 'This browser cannot use the camera here. Paste or type the code instead.',
+    },
+  },
   payments: {
     embeddedTitle: 'Pay with Mercado Pago',
     embeddedLead: 'Complete your payment without leaving the site.',

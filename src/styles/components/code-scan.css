@@ -1,0 +1,145 @@
+.code-scan {
+  position: relative;
+}
+
+/* Selector doblemente calificado (`.code-scan .code-scan__toggle`, no
+   `.code-scan__toggle` solo): este botón se monta dentro de filas que ya
+   tienen su propia regla `button` genérica (`.account-discount__row button`,
+   `.register-discount__row button`, `.secret-code-redeemer__controls
+   button`) con más especificidad que una sola clase. Sin este refuerzo, esa
+   regla del host gana y el botón de escaneo pierde su propio estilo según
+   en qué pantalla esté montado. */
+.code-scan .code-scan__toggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--institution-radius-control);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 13px/1 var(--font-family);
+  gap: 7px;
+  justify-content: center;
+  min-height: 44px;
+  padding-inline: 14px;
+  white-space: nowrap;
+}
+
+.code-scan .code-scan__toggle:hover:not(:disabled) {
+  border-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+}
+
+.code-scan .code-scan__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.code-scan .code-scan__toggle:focus-visible,
+.code-scan .code-scan__close:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-scan__panel {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  position: absolute;
+  top: 100%;
+  width: min(320px, 88vw);
+  z-index: 30;
+}
+
+.code-scan__panel-head {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: flex;
+  font: 650 13px/1.2 var(--font-family);
+  justify-content: space-between;
+}
+
+.code-scan .code-scan__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.code-scan .code-scan__close:hover {
+  color: var(--color-text-primary);
+}
+
+.code-scan__viewport {
+  aspect-ratio: 4 / 3;
+  background: #090a0d;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.code-scan__video {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.code-scan__reticle {
+  display: grid;
+  inset: 0;
+  place-items: center;
+  pointer-events: none;
+  position: absolute;
+}
+
+.code-scan__reticle span {
+  aspect-ratio: 1;
+  border: 1.5px solid color-mix(in srgb, var(--color-brand-celeste) 75%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.32);
+  width: 62%;
+}
+
+.code-scan__error {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: 12.5px;
+  gap: 8px;
+  justify-items: center;
+  line-height: 1.45;
+  padding: 12px;
+  text-align: center;
+}
+
+.code-scan__status {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+  min-height: 16px;
+}
+
+.code-scan__invalid {
+  color: var(--color-danger-text);
+  font-size: 12px;
+  margin: 0;
+}
+
+@media (max-width: 430px) {
+  .code-scan__panel {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

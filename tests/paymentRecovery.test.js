@@ -100,4 +100,74 @@ describe('payment recovery workflow', () => {
     expect(persisted.message).toContain('[MP_TIMEOUT]')
     expect(persisted.cause).toBeInstanceOf(Error)
   })
+
+  it('recupera por external_reference cuando el id creado despues responde 404', async () => {
+    const notFound = Object.assign(new Error('Payment not found'), {
+      provider: { apiResponseStatus: 404, code: 2000 },
+    })
+    const repository = {
+      claimDueWebhookEvents: vi.fn(async () => []),
+      claimEmbeddedReconciliations: vi.fn(async () => [
+        {
+          id: 'attempt-missing-id',
+          order_id: order.id,
+          order_kind: 'athlete',
+          external_payment_id: 'missing-payment',
+        },
+      ]),
+      getOrder: vi.fn(async () => order),
+      applyPayment: vi.fn(async () => ({ order: { ...order, status: 'aprobado' } })),
+      completeEmbeddedReconciliation: vi.fn(),
+    }
+    const mercadoPago = {
+      getPayment: vi.fn(async () => {
+        throw notFound
+      }),
+      searchPaymentsForOrder: vi.fn(async () => [payment]),
+    }
+
+    const result = await recoverPaymentOperations({ repository, mercadoPago })
+
+    expect(mercadoPago.searchPaymentsForOrder).toHaveBeenCalledWith(order)
+    expect(result.reconciliations).toMatchObject({ claimed: 1, processed: 1, failed: 0 })
+    expect(repository.completeEmbeddedReconciliation).toHaveBeenCalledWith('attempt-missing-id', {
+      succeeded: true,
+      terminal: true,
+    })
+  })
+
+  it('no acredita ni descarta el intento si el id y la referencia no existen', async () => {
+    const notFound = Object.assign(new Error('Payment not found'), {
+      provider: { apiResponseStatus: 404, code: 2000 },
+    })
+    const repository = {
+      claimDueWebhookEvents: vi.fn(async () => []),
+      claimEmbeddedReconciliations: vi.fn(async () => [
+        {
+          id: 'attempt-unresolved',
+          order_id: order.id,
+          order_kind: 'athlete',
+          external_payment_id: 'missing-payment',
+        },
+      ]),
+      getOrder: vi.fn(async () => order),
+      applyPayment: vi.fn(),
+      completeEmbeddedReconciliation: vi.fn(),
+    }
+    const mercadoPago = {
+      getPayment: vi.fn(async () => {
+        throw notFound
+      }),
+      searchPaymentsForOrder: vi.fn(async () => []),
+    }
+
+    const result = await recoverPaymentOperations({ repository, mercadoPago })
+
+    expect(repository.applyPayment).not.toHaveBeenCalled()
+    expect(repository.completeEmbeddedReconciliation).toHaveBeenCalledWith(
+      'attempt-unresolved',
+      expect.objectContaining({ succeeded: false }),
+    )
+    expect(result.reconciliations).toMatchObject({ claimed: 1, processed: 0, failed: 1 })
+  })
 })
