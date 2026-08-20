@@ -15,6 +15,7 @@ import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import GateMembershipBanner from '../components/ui/GateMembershipBanner.jsx'
+import SecretOfferCodeRedeemer from '../components/ui/SecretOfferCodeRedeemer.jsx'
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
@@ -247,6 +248,19 @@ export default function AthleteProfilePage({
             pendingEvents={gatePendingRegistrations}
             onCompleteMembership={() => setActiveTab('account-membership')}
           />
+          {/* Canje universal, fuera de `tabContent`: no importa qué ficha esté
+              abierta, el atleta siempre tiene dónde tipear un código, sea de
+              descuento, promoción u oferta exclusiva (mismo resolvedor). Se
+              oculta en Afiliación porque esa ficha ya tiene su propio campo
+              — el que calcula el precio del checkout — y mostrar los dos a
+              la vez es el mismo canje dos veces en la misma pantalla. */}
+          {resolvedTab !== 'account-membership' ? (
+            <SecretOfferCodeRedeemer
+              className="account-code-redeemer"
+              session={session}
+              onNavigate={onNavigate}
+            />
+          ) : null}
           {/* `sync` y no `wait`: el panel saliente sigue montado mientras entra
               el nuevo, así el contenedor no colapsa un frame y la página no da
               un salto de scroll en los tabs altos. Los dos paneles comparten la

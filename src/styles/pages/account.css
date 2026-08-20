@@ -1303,6 +1303,18 @@
   }
 }
 
+/* Canje universal de código: vive fuera de `tabContent` en
+   AthleteProfilePage.jsx para que quede disponible sin importar la ficha
+   activa (descuento, promoción u oferta exclusiva son el mismo resolvedor
+   del lado del servidor). Mismo ancho y padding que `.account-sections` para
+   que quede alineado con el contenido de abajo. */
+.secret-code-redeemer.account-code-redeemer {
+  margin-block: 14px 0;
+  margin-inline: auto;
+  max-width: 1080px;
+  padding-inline: clamp(20px, 5vw, 48px);
+}
+
 .account-sections {
   display: grid;
   gap: 22px;
@@ -2162,6 +2174,7 @@
 
 .account-discount__row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -4269,6 +4282,10 @@
     padding: 22px 12px 48px;
   }
 
+  .secret-code-redeemer.account-code-redeemer {
+    padding-inline: 12px;
+  }
+
   .account-section {
     border-radius: 12px;
     padding: 20px 16px;
@@ -5558,5 +5575,11 @@
     margin: 0;
     max-width: none;
     padding: 0;
+  }
+
+  .secret-code-redeemer.account-code-redeemer {
+    margin-inline: 0;
+    max-width: none;
+    padding-inline: 0;
   }
 }

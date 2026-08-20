@@ -16,9 +16,9 @@ import {
   resolvePaymentsProvider,
 } from '../modules/payments/createPaymentProviderAdapter.js'
 import {
-  PAYMENT_RECOVERY_JOB_ENABLED,
   PAYMENT_RECOVERY_JOB_INTERVAL_MS,
   PAYMENT_WEBHOOK_DEFER_PROCESSING,
+  isPaymentRecoveryJobEnabled,
 } from '../modules/payments/paymentRuntimeDefaults.js'
 import {
   applyCanonicalPayment,
@@ -511,7 +511,7 @@ export function createPaymentRoutes(deps = {}) {
         ],
         configuration: {
           ...runtime,
-          recoveryEnabled: PAYMENT_RECOVERY_JOB_ENABLED,
+          recoveryEnabled: isPaymentRecoveryJobEnabled(env),
           recoveryIntervalMs: PAYMENT_RECOVERY_JOB_INTERVAL_MS,
         },
       })

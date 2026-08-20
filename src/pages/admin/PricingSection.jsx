@@ -176,9 +176,14 @@ const PRICING_LIVE_SYNC_MS = 30_000
 const COPY_FEEDBACK_MS = 2_000
 
 async function copyText(value) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value)
-    return
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value)
+      return
+    }
+  } catch {
+    // En contextos sin permiso de clipboard (iframes, HTTP o Safari), se usa
+    // el fallback sincronico que todavia soportan los navegadores modernos.
   }
 
   const textarea = document.createElement('textarea')
@@ -191,6 +196,18 @@ async function copyText(value) {
   const copied = document.execCommand('copy')
   textarea.remove()
   if (!copied) throw new Error('Clipboard copy failed')
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const anchor = document.createElement('a')
+  anchor.href = dataUrl
+  anchor.download = filename
+  anchor.rel = 'noopener'
+  // Safari y algunos webviews ignoran clicks sobre anchors que nunca se
+  // montaron. Se monta un instante y se limpia en el mismo tick.
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
 }
 
 export default function PricingSection({
@@ -260,6 +277,7 @@ export default function PricingSection({
   const [codeStateError, setCodeStateError] = useState({ id: null, message: '' })
   const [copiedCodeId, setCopiedCodeId] = useState(null)
   const [copiedLinkCodeId, setCopiedLinkCodeId] = useState(null)
+  const [downloadedQrCodeId, setDownloadedQrCodeId] = useState(null)
   const [simulationState, setSimulationState] = useState({ id: null, loading: false, data: null })
   const [codeToDelete, setCodeToDelete] = useState(null)
   const [codeDeleteError, setCodeDeleteError] = useState('')
@@ -331,10 +349,12 @@ export default function PricingSection({
   async function downloadPromotionQr(code) {
     try {
       const qr = await generateCredentialQr(buildPromotionCodeUrl(code.code))
-      const anchor = document.createElement('a')
-      anchor.href = qr
-      anchor.download = `${code.code}-canje.png`
-      anchor.click()
+      downloadDataUrl(qr, `${code.code}-canje.png`)
+      setDownloadedQrCodeId(code.id)
+      window.clearTimeout(copyFeedbackTimeoutRef.current)
+      copyFeedbackTimeoutRef.current = window.setTimeout(() => {
+        setDownloadedQrCodeId(null)
+      }, COPY_FEEDBACK_MS)
     } catch {
       setNotice(t('admin.sections.pricing.downloadPromotionQrError'))
     }
@@ -343,12 +363,22 @@ export default function PricingSection({
   async function simulatePromotion(code) {
     if (!onSimulatePromotionCode || simulationState.loading) return
     setSimulationState({ id: code.id, loading: true, data: null })
-    const result = await onSimulatePromotionCode(code.id)
-    setSimulationState({
-      id: code.id,
-      loading: false,
-      data: result.error ? { error: result.error } : result.simulation,
-    })
+    try {
+      const result = await onSimulatePromotionCode(code.id)
+      setSimulationState({
+        id: code.id,
+        loading: false,
+        data: result?.error
+          ? { error: result.error }
+          : (result?.simulation ?? { error: t('admin.sections.pricing.simulationEmpty') }),
+      })
+    } catch (error) {
+      setSimulationState({
+        id: code.id,
+        loading: false,
+        data: { error: error?.message ?? t('admin.sections.pricing.simulationError') },
+      })
+    }
   }
 
   const pricingWritesEnabled = isFeatureEnabled(FEATURE_KEYS.pricingWrites)
@@ -1805,7 +1835,9 @@ export default function PricingSection({
                     onClick={() => downloadPromotionQr(code)}
                   >
                     <QrCode size={14} aria-hidden />
-                    {t('admin.sections.pricing.downloadPromotionQr')}
+                    {downloadedQrCodeId === code.id
+                      ? t('admin.sections.pricing.promotionQrDownloaded')
+                      : t('admin.sections.pricing.downloadPromotionQr')}
                   </button>
                   {onSimulatePromotionCode ? (
                     <button
@@ -1903,6 +1935,15 @@ export default function PricingSection({
                             destination: simulationState.data.destination?.kind ?? 'stay',
                           })}
                         </span>
+                        <a
+                          className="admin-pricing__simulation-link"
+                          href={buildPromotionCodeUrl(code.code)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Link2 size={13} aria-hidden />
+                          {t('admin.sections.pricing.openPromotionLink')}
+                        </a>
                         <ul>
                           {Object.entries(simulationState.data.checks ?? {}).map(
                             ([check, passed]) => (
