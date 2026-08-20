@@ -717,6 +717,7 @@ export default {
       registrationLine: 'Inscripción {{event}}',
       yourPrice: 'Tu precio',
       savings: 'Ahorrás {{amount}} sobre la suma de las dos compras.',
+      savingsRedeemed: 'Ahorraste {{amount}} sobre la suma de las dos compras.',
       cta: 'Completar mi inscripción',
       expires: 'La oferta se cierra el {{date}}.',
       more: 'Tenés {{count}} oferta más desbloqueada.',

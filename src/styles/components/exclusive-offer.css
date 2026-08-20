@@ -13,12 +13,32 @@
    una tarjeta (cero cards anidadas: una regla al costado hace el trabajo) y el
    desglose de precios como filas con reglas, no como sub-tarjetas. */
 
+/* Oro legible sobre la superficie de cada tema.
+
+   `--color-brand-gold` es gold-500 (#f2b705): sobre el blanco de light da
+   1.82:1, así que el número más importante de la ficha —el precio de la
+   oferta— quedaba por debajo del mínimo AA de 3:1 para texto grande. En light
+   se usa gold-600, que es el mismo oro que este repo ya elige para este
+   problema en `--institution-gold` y `--admin-premium`.
+
+   Token local y no global: el rol es "importe/código destacado de la oferta",
+   no un color de marca nuevo. */
+.account-offer,
+.offer-unlocked {
+  --offer-gold: var(--color-brand-gold);
+}
+
+[data-theme='light'] .account-offer,
+[data-theme='light'] .offer-unlocked {
+  --offer-gold: var(--color-brand-gold-dark);
+}
+
 /* ---------------------------------------------------------------------------
    Anuncio del canje
    --------------------------------------------------------------------------- */
 
 .offer-unlocked {
-  border-left: 2px solid var(--color-brand-gold);
+  border-left: 2px solid var(--offer-gold);
   display: grid;
   gap: 0.35rem;
   justify-items: start;
@@ -36,7 +56,7 @@
 }
 
 .offer-unlocked__code {
-  color: var(--color-brand-gold);
+  color: var(--offer-gold);
   font-family: var(--font-display);
   font-size: clamp(1.25rem, 3vw, 1.65rem);
   font-weight: 700;
@@ -72,7 +92,7 @@
 }
 
 .offer-unlocked__link:hover {
-  color: var(--color-brand-gold);
+  color: var(--color-text-primary);
 }
 
 .offer-unlocked__link:focus-visible {
@@ -119,11 +139,27 @@
    Ficha "Oferta exclusiva" de Mi cuenta
    --------------------------------------------------------------------------- */
 
+/* `.account-section__icon--gold` está declarado en account.css ANTES de la base
+   `.account-section__icon`, así que el celeste de la base lo pisa (misma
+   especificidad, gana la última). No se reordena la hoja compartida acá: eso
+   cambiaría también el icono de Historial, que está fuera de este alcance. Se
+   resuelve con el id de la ficha, el mismo recurso que ya usa `#account-events`.
+   Sin esto la ficha tenía DOS acentos compitiendo: el celeste del icono y el
+   oro del precio. */
+#account-offer .account-section__icon {
+  background: color-mix(in srgb, var(--offer-gold) 16%, transparent);
+  border-color: color-mix(in srgb, var(--offer-gold) 32%, transparent);
+  color: var(--offer-gold);
+}
+
+/* Sin cap propio: lo que se limita es la prosa (medida de lectura), no el
+   desglose. Un ancho único dejaba el contenido apretado en el tercio izquierdo
+   de una tarjeta bastante más ancha, con el total lejos del borde y la fila
+   sin leerse como una liquidación. */
 .account-offer {
   display: grid;
   gap: clamp(1.1rem, 2.4vw, 1.6rem);
   margin-top: clamp(1.25rem, 3vw, 1.75rem);
-  max-width: 34rem;
 }
 
 /* El código es el título de la ficha: es lo que el atleta vino a confirmar. */
@@ -141,7 +177,15 @@
   font-size: 0.875rem;
   line-height: 1.6;
   margin: 0;
-  max-width: 48ch;
+  max-width: 46ch;
+}
+
+/* El paquete y el desglose comparten ancho: son la misma liquidación leída en
+   dos tiempos (qué se compra, cuánto sale). El tope evita que en una pantalla
+   muy ancha el concepto y el importe queden a media cuadra uno del otro. */
+.account-offer__package,
+.account-offer__ledger {
+  max-width: 40rem;
 }
 
 .account-offer__package {
@@ -216,7 +260,7 @@
 }
 
 .account-offer__ledger-row--total dd {
-  color: var(--color-brand-gold);
+  color: var(--offer-gold);
   font-family: var(--font-display);
   font-size: clamp(1.35rem, 3vw, 1.75rem);
   font-weight: 700;
@@ -228,6 +272,7 @@
   font-size: 0.8125rem;
   line-height: 1.5;
   margin: 0;
+  max-width: 46ch;
 }
 
 .account-offer__actions {
@@ -273,6 +318,7 @@
   display: grid;
   gap: 0.55rem;
   justify-items: start;
+  max-width: 40rem;
   padding-left: 0.9rem;
 }
 
@@ -299,7 +345,7 @@
 }
 
 .account-offer__notice-action:hover {
-  color: var(--color-brand-gold);
+  color: var(--color-text-primary);
 }
 
 .account-offer__notice-action:focus-visible {
@@ -312,6 +358,7 @@
   font-size: 0.75rem;
   line-height: 1.5;
   margin: 0;
+  max-width: 46ch;
 }
 
 @media (max-width: 560px) {

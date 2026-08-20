@@ -84,13 +84,18 @@ export default {
     onNavigateSection: () => {},
   },
   decorators: [
-    // Misma cadena de ancestros que AthleteProfilePage.
+    // Misma cadena de ancestros que AthleteProfilePage, con la columna del
+    // sidebar incluida: sin ella `.account-main` toma el ancho completo y la
+    // ficha se audita a ~1370px en vez de a los ~780px reales.
     (Story) => (
       <main className="page page--design account-page--design">
-        <div className="account-main">
-          <div className="account-sections">
-            <div className="account-tab-panel">
-              <Story />
+        <div className="account-dashboard">
+          <aside className="account-sidebar" />
+          <div className="account-main">
+            <div className="account-sections">
+              <div className="account-tab-panel">
+                <Story />
+              </div>
             </div>
           </div>
         </div>
