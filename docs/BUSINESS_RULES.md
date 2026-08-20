@@ -53,6 +53,27 @@ una con su propio interruptor. La fecha **Abre la inscripción** del panel
 administración del catálogo económico conserva su política de escritura
 separada.
 
+Una **oferta exclusiva** es un `discount_codes` con `kind='offer'`: un código
+secreto que no descuenta sino que desbloquea el combo de una inscripción y le
+fija su propio precio. Exige `applies_to='combo'`, `audience='code'`,
+`event_id` (a qué inscripción aplica) y un `fixed_price` menor al precio del
+combo de ese evento; el alta lo rechaza si la inscripción todavía no tiene combo
+configurado. `kind='access'` sigue siendo el desbloqueo sin precio.
+
+El alcance por inscripción (`discount_codes.event_id`, opcional para el resto de
+las modalidades) se verifica en el canje contra el evento **real** de la orden
+—vía `event_registrations.payment_order_id`—, no contra el slug que envía el
+browser. Una promoción pública no puede tener alcance de evento: el resolver de
+promo pública no recibe el evento y podría impedir que se aplique cualquier otra.
+
+Canjear el código y comprar con él son dos hechos distintos.
+`discount_code_unlocks` registra que un atleta tiene la llave: no consume cupo,
+no lleva importe y no entra en los reportes de Finanzas. `discount_code_redemptions`
+sigue siendo el registro contable y es lo que consume `max_redemptions`, escrito
+recién dentro de la transacción que crea la orden. El unlock es lo que sostiene la
+ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos; el código
+se puede canjear tanto desde Afiliación como desde el checkout de inscripción.
+
 Cada atleta tiene un único `credential_token` estable. Pagar un combo no crea
 otro QR ni modifica el anterior: la consulta de credencial resuelve en tiempo
 real la afiliación activa y todas las inscripciones visibles. Con contexto de

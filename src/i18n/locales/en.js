@@ -720,6 +720,7 @@ export default {
       registrationLine: '{{event}} registration',
       yourPrice: 'Your price',
       savings: 'You save {{amount}} against buying both separately.',
+      savingsRedeemed: 'You saved {{amount}} against buying both separately.',
       cta: 'Complete my registration',
       expires: 'The offer closes on {{date}}.',
       more: 'You have {{count}} more unlocked offer.',

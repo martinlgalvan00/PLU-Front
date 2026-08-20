@@ -660,6 +660,15 @@ begin
     return jsonb_build_object('unlocked', false, 'reason', 'not_applicable');
   end if;
 
+  -- Un 'access' sin alcance de inscripción es el código legado que destraba
+  -- CUALQUIER combo restringido: sirve en el checkout, pero no se puede
+  -- convertir en una ficha —no hay evento del que sacar el paquete ni el
+  -- precio—. Registrar el unlock dejaría en Mi cuenta una oferta que no se
+  -- puede describir ni comprar.
+  if v_code.event_id is null then
+    return jsonb_build_object('unlocked', false, 'reason', 'not_applicable');
+  end if;
+
   if v_code.starts_at is not null and v_code.starts_at > now() then
     return jsonb_build_object(
       'unlocked', false, 'reason', 'not_started', 'startsAt', v_code.starts_at
@@ -778,6 +787,9 @@ as $$
   where u.athlete_id = p_athlete_id
     and u.organization_id = p_organization_id
     and c.archived_at is null
+    -- Sin inscripción no hay ficha que dibujar: ver el guard equivalente en
+    -- athlete_unlock_offer_code.
+    and c.event_id is not null
     and (
       (
         c.active
@@ -986,7 +998,7 @@ begin
     -- Una "oferta" que cobra igual o más que el combo no es una oferta, y el
     -- canje la rechazaría con PLU24 recién en el checkout.
     if v_fixed_price >= v_combo.price then
-      raise exception 'El precio de la oferta (% ) tiene que ser menor al del combo (%).',
+      raise exception 'El precio de la oferta (%) tiene que ser menor al del combo (%).',
         v_fixed_price, v_combo.price using errcode = 'PLU01';
     end if;
   end if;

@@ -111,7 +111,11 @@ export default function ExclusiveOfferSection({
 
         {pricing.savings > 0 ? (
           <p className="account-offer__savings">
-            {t('account.offer.savings', { amount: money(pricing.savings, locale, pricing.currency) })}
+            {/* Ya comprada, el desglose es un recibo: "ahorrás" en presente
+                sonaría a una oferta todavía abierta. */}
+            {t(offer.redeemed ? 'account.offer.savingsRedeemed' : 'account.offer.savings', {
+              amount: money(pricing.savings, locale, pricing.currency),
+            })}
           </p>
         ) : null}
 

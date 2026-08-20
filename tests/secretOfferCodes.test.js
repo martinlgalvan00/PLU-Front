@@ -90,6 +90,20 @@ describe('kind=offer y alcance por inscripción (migración)', () => {
     expect(migration).toContain("if v_code.kind not in ('offer', 'access') then")
   })
 
+  // Un 'access' legado sin evento sirve en el checkout pero no se puede
+  // convertir en ficha: no hay paquete ni precio que mostrar.
+  it('el canje rechaza un código sin inscripción, y el listado tampoco lo muestra', () => {
+    const unlock = migration.slice(
+      migration.indexOf('create or replace function public.athlete_unlock_offer_code'),
+      migration.indexOf('create or replace function public.athlete_list_offer_unlocks'),
+    )
+    expect(unlock).toContain('if v_code.event_id is null then')
+    const list = migration.slice(
+      migration.indexOf('create or replace function public.athlete_list_offer_unlocks'),
+    )
+    expect(list).toContain('and c.event_id is not null')
+  })
+
   it('una oferta ya comprada sigue listada aunque el código quede inactivo', () => {
     const fn = migration.slice(
       migration.indexOf('create or replace function public.athlete_list_offer_unlocks'),
