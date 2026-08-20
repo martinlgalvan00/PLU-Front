@@ -166,7 +166,7 @@ describe('interruptores de plataforma contra Supabase', () => {
  * acá corren en secuencia.
  */
 const CONCEPTS = ['membership', 'registration', 'ticket']
-const CHANNELS = ['mercado_pago', 'bank_transfer', 'cash_pitbull']
+const CHANNELS = ['mercado_pago', 'bank_transfer', 'cash_pitbull', 'wise_transfer']
 const MATRIX_ACTOR = 'integration:payment-channel-matrix'
 
 describe('matriz de canales de pago contra Supabase', () => {
@@ -211,7 +211,7 @@ describe('matriz de canales de pago contra Supabase', () => {
     }
   })
 
-  it('expone las nueve celdas como booleanos', async () => {
+  it('expone las doce celdas como booleanos', async () => {
     const current = await toggles()
     for (const concept of CONCEPTS) {
       for (const channel of CHANNELS) {
@@ -263,7 +263,7 @@ describe('matriz de canales de pago contra Supabase', () => {
     }
   })
 
-  it('deja cerrar los tres canales de un concepto', async () => {
+  it('deja cerrar los cuatro canales de un concepto', async () => {
     const before = await toggles()
     try {
       let last = null
@@ -272,6 +272,7 @@ describe('matriz de canales de pago contra Supabase', () => {
         mercado_pago: false,
         bank_transfer: false,
         cash_pitbull: false,
+        wise_transfer: false,
       })
       expect(last.ticketManualEnabled).toBe(false)
     } finally {
@@ -298,6 +299,13 @@ describe('matriz de canales de pago contra Supabase', () => {
       // La pasarela no se toca con el alias.
       expect(opened.data.paymentChannels.membership.mercado_pago).toBe(
         before.paymentChannels.membership.mercado_pago,
+      )
+      // Wise tampoco: cobra en USD y el contrato anterior no lo conocía, así
+      // que abrir "los dos canales manuales" no puede reabrir el cobro del
+      // exterior de arrastre. El setter escribe sólo bank_transfer y
+      // cash_pitbull (`staff_set_platform_feature_toggle`).
+      expect(opened.data.paymentChannels.membership.wise_transfer).toBe(
+        before.paymentChannels.membership.wise_transfer,
       )
 
       const closed = await admin.rpc('staff_set_platform_feature_toggle', {

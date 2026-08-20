@@ -349,7 +349,12 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     expect(body.checkout).toEqual({
       ticketEnabled: false,
       ticketManualEnabled: false,
-      channels: { mercado_pago: false, bank_transfer: false, cash_pitbull: false },
+      channels: {
+        mercado_pago: false,
+        bank_transfer: false,
+        cash_pitbull: false,
+        wise_transfer: false,
+      },
     })
     // La pantalla de entradas la repregunta mientras el visitante decide: el
     // borde absorbe el poll, pero con ventana corta porque de acá sale el stock
