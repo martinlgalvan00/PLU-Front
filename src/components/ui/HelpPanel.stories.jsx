@@ -29,8 +29,10 @@ export default {
     onClose: () => {},
     onNavigate: () => {},
     onRunNext: () => {},
+    onLogin: () => {},
     onStartTour: () => {},
-    tourMode: 'modal',
+    tourKind: 'orientation',
+    view: 'members',
   },
 }
 
@@ -74,16 +76,31 @@ export const NoOpenMeet = {
 
 /** Pantalla con formulario: el recorrido se ofrece como tutorial campo por campo. */
 export const FieldCoach = {
-  args: { journey: journey({ session: null }), tourMode: 'coach' },
+  args: { journey: journey({ session: null }), tourKind: 'coach', view: 'register' },
+}
+
+/** Un tutorial que quedó a medias se retoma en el paso donde se cortó. */
+export const ResumeTour = {
+  args: {
+    journey: journey({ session: null }),
+    tourKind: 'coach',
+    view: 'register',
+    resume: { step: 4, total: 13 },
+  },
 }
 
 /** Ya estamos en la pantalla del próximo paso: el recorrido pasa a ser la acción
  *  principal, porque volver a navegar acá no cambiaría nada. */
 export const AtDestination = {
-  args: { journey: journey({ session: null }), tourMode: 'coach', atDestination: true },
+  args: {
+    journey: journey({ session: null }),
+    tourKind: 'coach',
+    view: 'register',
+    atDestination: true,
+  },
 }
 
 /** Pantalla sin recorrido guiado: quedan el interruptor asistido y el contacto. */
 export const WithoutTour = {
-  args: { journey: journey({ session: null }), onStartTour: null, tourMode: null },
+  args: { journey: journey({ session: null }), onStartTour: null, tourKind: null, view: null },
 }
