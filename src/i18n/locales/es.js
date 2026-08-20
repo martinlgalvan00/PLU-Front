@@ -593,6 +593,8 @@ export default {
     errorPasswordResetShort: 'Usá al menos 12 caracteres.',
     errorPasswordConfirmRequired: 'Confirmá la contraseña.',
     errorPasswordMismatch: 'Las contraseñas no coinciden.',
+    remember: 'Recordarme en este dispositivo',
+    rememberHint: 'Sesión segura — nunca guardamos tu contraseña.',
     submit: 'Ingresar',
     submitting: 'Ingresando…',
     errorInvalid: 'No pudimos iniciar sesion. Revisá el email y la contraseña.',

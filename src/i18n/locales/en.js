@@ -595,6 +595,8 @@ export default {
     errorPasswordResetShort: 'Use at least 12 characters.',
     errorPasswordConfirmRequired: 'Confirm your password.',
     errorPasswordMismatch: 'Passwords do not match.',
+    remember: 'Remember me on this device',
+    rememberHint: 'Secure session — we never store your password.',
     submit: 'Sign in',
     submitting: 'Signing in…',
     errorInvalid: 'We could not sign you in. Check your email and password.',
