@@ -573,12 +573,31 @@ export default {
       percentOffInvalid: 'The discount must be a whole number between 1 and 99.',
       codeKindLabel: 'Type',
       codeKindHint:
-        'A discount takes a percentage off. A promo price sets what is paid, agreed separately per payment method. Access does not discount anything: it only unlocks the combo.',
+        'A discount takes a percentage off. A promo price sets what is paid, agreed separately per payment method. Access does not discount anything: it only unlocks the combo. An exclusive offer does both — it unlocks one registration’s combo and sets its own price.',
       codeKind: {
         percent: 'Percentage discount',
         fixed_price: 'Fixed promo price',
         access: 'Combo access (no discount)',
+        offer: 'Exclusive offer (membership + registration)',
       },
+      offerBadge: 'Exclusive offer',
+      offerPrice: 'Offer price via Mercado Pago (ARS)',
+      offerEventLabel: 'Offer registration',
+      offerEventPlaceholder: 'Choose the registration',
+      offerEventComboPrice: 'combo {{price}}',
+      offerEventHint:
+        'The offer replaces that registration’s combo price only for whoever redeems the code. Only registrations that already have a combo configured are listed.',
+      offerEventRequired: 'Choose which registration the exclusive offer applies to.',
+      offerComboMissing:
+        'That registration does not have a membership + registration combo configured yet. Set it up above before creating the offer.',
+      offerPriceTooHigh:
+        'The offer price must be lower than that registration’s combo price ({{price}}).',
+      codeEventLabel: 'Limit to one registration',
+      codeEventAny: 'Any registration',
+      codeEventHint:
+        'Empty = the code works for any registration. With one chosen, it can only be redeemed there.',
+      accessAmount: 'No discount',
+      unlockedCount: '{{count}} redeemed the code',
       fixedPrice: 'Promo price via Mercado Pago (ARS)',
       fixedPriceHint:
         'What whoever uses the code pays through Mercado Pago. It must be lower than the current price of what they buy.',

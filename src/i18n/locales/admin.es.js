@@ -574,12 +574,31 @@ export default {
       percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
       codeKindLabel: 'Modalidad',
       codeKindHint:
-        'El descuento resta un porcentaje. El precio promocional fija cuánto se paga, y se pacta aparte por medio de pago. El acceso no descuenta nada: sólo desbloquea el combo.',
+        'El descuento resta un porcentaje. El precio promocional fija cuánto se paga, y se pacta aparte por medio de pago. El acceso no descuenta nada: sólo desbloquea el combo. La oferta exclusiva hace las dos cosas — desbloquea el combo de una inscripción y le fija su propio precio.',
       codeKind: {
         percent: 'Descuento por porcentaje',
         fixed_price: 'Precio promocional fijo',
         access: 'Acceso al combo (sin descuento)',
+        offer: 'Oferta exclusiva (afiliación + inscripción)',
       },
+      offerBadge: 'Oferta exclusiva',
+      offerPrice: 'Precio de la oferta por Mercado Pago (ARS)',
+      offerEventLabel: 'Inscripción de la oferta',
+      offerEventPlaceholder: 'Elegí la inscripción',
+      offerEventComboPrice: 'combo {{price}}',
+      offerEventHint:
+        'La oferta reemplaza el precio del combo de esa inscripción sólo para quien canjea el código. Se listan únicamente las inscripciones que ya tienen combo configurado.',
+      offerEventRequired: 'Elegí a qué inscripción aplica la oferta exclusiva.',
+      offerComboMissing:
+        'Esa inscripción todavía no tiene combo de afiliación e inscripción configurado. Cargalo arriba antes de crear la oferta.',
+      offerPriceTooHigh:
+        'El precio de la oferta tiene que ser menor al del combo de esa inscripción ({{price}}).',
+      codeEventLabel: 'Limitar a una inscripción',
+      codeEventAny: 'Cualquier inscripción',
+      codeEventHint:
+        'Vacío = el código sirve para cualquier inscripción. Con una elegida, sólo se puede canjear en esa.',
+      accessAmount: 'Sin descuento',
+      unlockedCount: '{{count}} canjearon el código',
       fixedPrice: 'Precio promocional por Mercado Pago (ARS)',
       fixedPriceHint:
         'Lo que paga por Mercado Pago quien use el código. Tiene que ser menor al precio vigente de lo que compra.',

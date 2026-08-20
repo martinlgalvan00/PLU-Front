@@ -1,5 +1,6 @@
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/register.css'
+import '../styles/components/exclusive-offer.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
@@ -39,13 +40,17 @@ import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
+import { isOfferUnlockKind } from '../services/exclusiveOfferService.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
+import { ACCOUNT_OFFER_TAB } from '../lib/navigation.js'
 import { channelOpen } from '../lib/paymentChannels.js'
 import {
   resendAthleteVerification,
   checkAthleteAvailability,
+  fetchOfferUnlocks,
   previewDiscountCode,
+  unlockOfferCode,
   verifyComboAccessCode,
   verifyAthleteEmailCode,
 } from '../services/athleteApi.js'
@@ -451,6 +456,10 @@ export default function RegisterPage({
   const [comboCodeChecking, setComboCodeChecking] = useState(false)
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
+  // Código secreto recién canjeado. No es lo mismo que `discountPreview`: el
+  // preview dice cuánto se cobra, esto dice QUÉ se desbloqueó, y es lo único que
+  // el atleta vino a confirmar cuando tipeó un código que no era un descuento.
+  const [unlockedOffer, setUnlockedOffer] = useState(null)
   const [accessRequirements, setAccessRequirements] = useState({
     membership: false,
     registration: false,
@@ -587,39 +596,120 @@ export default function RegisterPage({
     }
   }
 
-  async function applyDiscountCode() {
-    const code = discountCodeInput.trim().toUpperCase()
+  /**
+   * Un código de desbloqueo ('access' u 'offer') queda aplicado y además elige
+   * el paquete: `comboAvailability.enabled` depende de
+   * `unlocked = Boolean(comboCode)`, no sólo del `purchaseType` elegido.
+   *
+   * El canje se registra del lado del servidor para que la ficha "Oferta
+   * exclusiva" de Mi cuenta exista después de un refresh. Si esa llamada falla,
+   * el checkout sigue funcionando: el desbloqueo de esta compra ya está resuelto
+   * en memoria y el servidor lo revalida al crear la orden.
+   */
+  async function commitUnlockedCode(code, preview) {
+    setDiscountPreview(preview)
+    setComboCode(code)
+    setPurchaseType('combo')
+    try {
+      const unlock = await unlockOfferCode({ code })
+      setUnlockedOffer(unlock.unlocked ? (unlock.offer ?? { code }) : { code })
+    } catch {
+      setUnlockedOffer({ code })
+    }
+  }
+
+  function describeDiscountError(preview) {
+    return preview.reason === 'other_event' && preview.eventTitle
+      ? t('pages.register.discountError.other_event_named', { event: preview.eventTitle })
+      : t(`pages.register.discountError.${preview.reason ?? 'not_found'}`)
+  }
+
+  /**
+   * `codeOverride` existe para el auto-canje: la oferta que el atleta ya
+   * desbloqueó se aplica sola al abrir el checkout de ese torneo, y ahí todavía
+   * no pasó por el estado del input.
+   *
+   * Se valida que sea un string: esta función también está cableada directo como
+   * `onClick`, así que el primer argumento puede ser el evento del click.
+   */
+  async function applyDiscountCode(codeOverride) {
+    const override = typeof codeOverride === 'string' ? codeOverride : null
+    const code = (override ?? discountCodeInput).trim().toUpperCase()
     if (!code || !event?.slug) return
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
     try {
+      const scope = effectivePurchaseType === 'combo' ? 'combo' : 'registration'
       const preview = await previewDiscountCode({
         code,
-        appliesTo: effectivePurchaseType === 'combo' ? 'combo' : 'registration',
+        appliesTo: scope,
         eventSlug: event.slug,
         paymentMethod: toApiPaymentMethod(form.paymentMethod),
       })
       if (!preview.valid) {
-        setDiscountError(t(`pages.register.discountError.${preview.reason ?? 'not_found'}`))
+        // Un código de desbloqueo es de alcance 'combo'. Con el combo
+        // restringido y todavía sin destrabar, `effectivePurchaseType` es
+        // 'registration', así que el preview lo rechaza por alcance — justo el
+        // código que venía a destrabarlo. Se reintenta contra el combo antes de
+        // dar el error por bueno.
+        if (
+          preview.reason === 'not_applicable' &&
+          isOfferUnlockKind(preview.kind) &&
+          scope !== 'combo' &&
+          comboAvailability.offer
+        ) {
+          const comboPreview = await previewDiscountCode({
+            code,
+            appliesTo: 'combo',
+            eventSlug: event.slug,
+            paymentMethod: toApiPaymentMethod(form.paymentMethod),
+          })
+          if (comboPreview.valid) {
+            await commitUnlockedCode(code, comboPreview)
+            return
+          }
+          setDiscountError(describeDiscountError(comboPreview))
+          return
+        }
+        setDiscountError(describeDiscountError(preview))
+        return
+      }
+      if (isOfferUnlockKind(preview.kind)) {
+        await commitUnlockedCode(code, preview)
         return
       }
       setDiscountPreview(preview)
-      // Un código kind='access' no descuenta nada: es el mismo desbloqueo que
-      // unlockComboWithCode(), pero canjeado por el campo de descuento (ver
-      // registrationAccessService.js en el backend). setComboCode además de
-      // purchaseType('combo') porque comboAvailability.enabled depende de
-      // `unlocked = Boolean(comboCode)`, no sólo del purchaseType elegido.
-      if (preview.kind === 'access') {
-        setComboCode(code)
-        setPurchaseType('combo')
-      }
     } catch (error) {
       setDiscountError(error?.message ?? t('pages.register.discountError.not_found'))
     } finally {
       setDiscountChecking(false)
     }
   }
+
+  // Auto-canje: si el atleta ya desbloqueó una oferta para ESTE torneo, el
+  // checkout la aplica solo. Sin esto, entrar desde la ficha "Oferta exclusiva"
+  // obligaría a volver a tipear el código que ya canjeó.
+  useEffect(() => {
+    if (flow !== 'competition' || !event?.slug) return undefined
+    let cancelled = false
+    void (async () => {
+      try {
+        const offers = await fetchOfferUnlocks()
+        const match = offers.find((item) => item.event?.slug === event.slug && !item.redeemed)
+        if (!match || cancelled) return
+        setDiscountCodeInput(match.code)
+        setUnlockedOffer(match)
+        await applyDiscountCode(match.code)
+      } catch {
+        // Sin ofertas desbloqueadas el checkout es el de siempre.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.slug, flow])
 
   // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
   // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
@@ -637,19 +727,27 @@ export default function RegisterPage({
     // código nunca se redime aunque el acceso siga "andando" a ojos del
     // atleta. Sólo el reset de `comboCode` hace falta: el efecto que sincroniza
     // `purchaseType` con `comboEnabled` (línea ~794) reacciona solo.
-    if (discountPreview?.kind === 'access') {
+    if (isOfferUnlockKind(discountPreview?.kind)) {
       setComboCode('')
     }
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
+    setUnlockedOffer(null)
   }
 
   // Un cupón aplicado sobre 'registration' no necesariamente vale sobre
   // 'combo' (sólo applies_to = 'both' cubre el combo) y viceversa: cambiar de
   // paquete invalida el preview en pantalla en vez de dejarlo aplicado a un
   // alcance que ya no corresponde.
+  //
+  // Excepción: un código de desbloqueo es el que CAUSÓ el cambio a 'combo'
+  // (commitUnlockedCode setea preview y purchaseType en el mismo lote), así que
+  // limpiarlo acá desharía el canje que se acaba de hacer. `discountPreview` se
+  // lee del render en curso —ya trae el valor nuevo— y no entra en las deps
+  // para no limpiar en cada cambio de preview.
   useEffect(() => {
+    if (isOfferUnlockKind(discountPreview?.kind)) return
     clearDiscountCode()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purchaseType])
@@ -2289,6 +2387,32 @@ export default function RegisterPage({
                     />
                   ) : null}
 
+                  {unlockedOffer && isOfferUnlockKind(discountPreview?.kind) ? (
+                    <div className="offer-unlocked" role="status">
+                      <span className="offer-unlocked__eyebrow">
+                        {t('pages.register.offerUnlocked.eyebrow')}
+                      </span>
+                      <strong className="offer-unlocked__code">
+                        {discountPreview.code}
+                      </strong>
+                      <p className="offer-unlocked__lead">
+                        {unlockedOffer.description ||
+                          t('pages.register.offerUnlocked.lead', {
+                            event: unlockedOffer.event?.title ?? event?.title ?? '',
+                          })}
+                      </p>
+                      {onNavigate ? (
+                        <button
+                          type="button"
+                          className="offer-unlocked__link"
+                          onClick={() => onNavigate('profile', { tab: ACCOUNT_OFFER_TAB })}
+                        >
+                          {t('pages.register.offerUnlocked.viewInAccount')}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   {isPaidCheckout && ['registration', 'combo'].includes(effectivePurchaseType) ? (
                     <div className="register-discount">
                       {!discountPreview && publicPromo ? (
@@ -2307,7 +2431,7 @@ export default function RegisterPage({
                             ? t('pages.register.discountAppliedAccess', {
                                 code: discountPreview.code,
                               })
-                            : discountPreview.kind === 'fixed_price'
+                            : ['fixed_price', 'offer'].includes(discountPreview.kind)
                               ? t('pages.register.discountAppliedFixed', {
                                   code: discountPreview.code,
                                   amount: money(discountPreview.finalAmount, locale),

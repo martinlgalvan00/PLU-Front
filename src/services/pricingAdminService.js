@@ -49,6 +49,11 @@ export function mapDiscountCode(row) {
     // sola. Las promos anteriores a la audiencia eran todas por codigo.
     audience: row.audience === 'public' ? 'public' : 'code',
     appliesTo: row.applies_to ?? row.appliesTo ?? 'membership',
+    // Inscripción a la que está atado el código. Null = cualquiera, que es como
+    // se comportaban todos los códigos antes de 20260902100000.
+    eventId: row.event_id ?? row.eventId ?? null,
+    eventSlug: row.event_slug ?? row.eventSlug ?? null,
+    eventTitle: row.event_title ?? row.eventTitle ?? null,
     maxRedemptions: row.max_redemptions ?? row.maxRedemptions ?? null,
     // Ventana de la promo. `startsAt` null = vigente desde que está encendida.
     startsAt: row.starts_at ?? row.startsAt ?? null,
@@ -65,6 +70,9 @@ export function mapDiscountCode(row) {
         ? ['bank_transfer', 'cash_pitbull']
         : []),
     redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
+    // Cuánta gente canjeó la llave, contra `redeemedCount`, que es cuánta la
+    // usó para comprar. Son dos números distintos en una oferta secreta.
+    unlockedCount: Number(row.unlocked_count ?? row.unlockedCount) || 0,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: row.updated_at ?? row.updatedAt ?? null,
   }
@@ -182,9 +190,17 @@ export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
   return mapMembershipPlan(result.plan)
 }
 
+const DISCOUNT_CODE_KINDS = ['percent', 'fixed_price', 'access', 'offer']
+
 export async function upsertDiscountCodeRequest(code) {
-  const kind = code.kind === 'fixed_price' ? 'fixed_price' : 'percent'
-  const audience = code.audience === 'public' ? 'public' : 'code'
+  // Lista blanca y no un ternario: colapsar a 'percent'/'fixed_price' convertía
+  // en silencio un código de acceso en uno de porcentaje (y el servidor lo
+  // rebotaba después por falta de `percentOff`). Con la lista, cada modalidad
+  // nueva viaja tal cual y una desconocida cae en el default de siempre.
+  const kind = DISCOUNT_CODE_KINDS.includes(code.kind) ? code.kind : 'percent'
+  // Una oferta exclusiva no puede ser pública: si se aplicara sola, no sería un
+  // secreto. Mismo criterio que la RPC y el schema.
+  const audience = code.audience === 'public' && kind !== 'offer' ? 'public' : 'code'
   const result = await apiPost('/api/pricing/discount-codes', {
     ...code,
     kind,
@@ -196,12 +212,22 @@ export async function upsertDiscountCodeRequest(code) {
     // Cada modalidad manda sólo su campo: el schema del servidor descarta el
     // otro, y un string vacío haría fallar la coerción numérica.
     percentOff: kind === 'percent' ? code.percentOff : undefined,
-    fixedPrice: kind === 'fixed_price' ? code.fixedPrice : undefined,
+    // 'offer' comparte el importe con 'fixed_price': es un precio promocional
+    // que además desbloquea el combo.
+    fixedPrice: ['fixed_price', 'offer'].includes(kind) ? code.fixedPrice : undefined,
     // Vacío = los canales manuales cobran lo mismo que Mercado Pago. Se manda
     // `undefined` y no 0 para que el schema lo lea como "sin precio manual".
     fixedPriceManual:
-      kind === 'fixed_price' && code.fixedPriceManual !== '' && code.fixedPriceManual != null
+      ['fixed_price', 'offer'].includes(kind) &&
+      code.fixedPriceManual !== '' &&
+      code.fixedPriceManual != null
         ? Number(code.fixedPriceManual)
+        : undefined,
+    // Sólo una inscripción o un combo pueden limitarse a un evento, y una promo
+    // pública nunca (el resolver de promo pública no recibe el evento).
+    eventId:
+      code.eventId && audience === 'code' && ['registration', 'combo'].includes(code.appliesTo)
+        ? code.eventId
         : undefined,
     startsAt: dateTimeToIso(code.startsAt),
     expiresAt: dateTimeToIso(code.expiresAt),
