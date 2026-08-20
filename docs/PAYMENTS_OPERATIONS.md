@@ -126,6 +126,64 @@ npm run mercado-pago:urls
 Las env de Vercel viven en el team del proyecto (`martinlgalvan00s-projects`), no
 en cuentas personales sin acceso al deployment.
 
+## Wise (pagos del exterior)
+
+Canal manual para quien no puede pagar con Mercado Pago (medios locales, ARS).
+No es una integración con la API de Wise: es el mismo circuito de transferencia
+bancaria —comprobante del pagador + aprobación de Finanzas— apuntado a una
+cuenta Wise y cobrado en USD en vez de ARS. Cubre afiliación, inscripción,
+combo y entradas Pitbull.
+
+**Cómo se modela** (`supabase/migrations/20260827120000_wise_transfer_channel.sql`):
+
+- `manual_payment_channel = 'wise_transfer'` en `athlete_payment_orders` /
+  `ticket_orders`, con el mismo `method='manual_link'` (lado atleta) y
+  `provider='manual'` (lado entradas) que la transferencia local y "Efectivo en
+  Pitbull". Lo único que cambia es el canal.
+- **No tiene un interruptor propio**: es la cuarta celda de la matriz concepto ×
+  canal (`platform_payment_channels`), así que hereda interruptor por concepto,
+  getter, setter (`staff_set_payment_channel`) y disponibilidad pública. Se abre
+  Wise para afiliación sin reabrir la transferencia local en ARS, y viceversa.
+- Nace **cerrado en los tres conceptos** y no hereda el estado de ningún toggle
+  anterior (`defaultChannelState` en `server/services/platformFeatureToggleService.js`).
+  Es la única excepción al "default abierto": si la lectura de la matriz llega
+  incompleta, el resto de los canales se asumen abiertos y Wise cerrado (ver
+  `channelOpen` en `src/lib/paymentChannels.js`).
+- Precio fijo en USD por `WISE_PRICE_MEMBERSHIP_USD` / `WISE_PRICE_REGISTRATION_USD`
+  / `WISE_PRICE_COMBO_USD` / `WISE_PRICE_TICKET_USD`. Monto **entero, sin
+  centavos**: las columnas `amount` son `int` y un decimal rompe el cast en la
+  RPC de entradas. Sin configurar —o con un placeholder tipo `replace`/`changeme`—
+  la API responde `503` en vez de adivinar un monto (`wisePriceFor` en
+  `server/modules/pricing/checkoutPricePolicy.js`).
+- Entradas cobra un monto plano **multiplicado por cantidad**: no hay catálogo en
+  USD por tipo de entrada ni por addon.
+- No admite cupones ni la promo ARS de preventa. El precio se resuelve con un
+  branch de salida temprana en `plu_private.settle_manual_checkout_pricing`,
+  antes de tocar `resolve_channel_price`/cupones;
+  `plu_private.configure_atomic_checkout_pricing` no se modifica. La moneda viaja
+  como `p_currency` en las tres RPC `_checkout` y sólo se aplica cuando el canal
+  es `wise_transfer`.
+- En el frontend, `money()` formatea con la moneda real de la orden: ARS sin
+  centavos, USD con dos decimales.
+
+**Antes de abrir la celda en producción:**
+
+1. Cargar los cuatro `VITE_PAYMENT_WISE_*` (datos de la cuenta que ve el pagador)
+   y los cuatro `WISE_PRICE_*_USD`. Sin los primeros el modal de pago muestra
+   "Solicitar a administración"; sin los segundos el checkout corta con 503.
+2. Confirmar con `npm run payments:trace -- <orderId>` que una orden de prueba en
+   `wise_transfer` queda con `currency=USD` y el monto esperado.
+3. Recién entonces abrir la celda de Wise, por concepto, en Administración >
+   Acceso y habilitación. Entradas no ofrece "Efectivo en Pitbull" pero sí Wise.
+
+**Aprobación:** misma cola que la transferencia local
+(`AthletePaymentOrdersSection` / `TicketOrdersSection`) y **comprobante
+obligatorio** — `approve_athlete_payment_order` sólo hace excepción para
+`cash_pitbull`, así que Wise cae del lado que lo exige. Acá no hay webhook ni
+conciliación automática: el comprobante que sube el pagador es la única fuente de
+verdad. `npm run payments:trace -- <orderId | correo>` reconstruye el mismo
+informe que para Mercado Pago.
+
 ## Readiness y workers
 
 - `GET /api/health`: confirma que la Function responde.
