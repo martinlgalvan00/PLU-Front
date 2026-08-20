@@ -784,6 +784,18 @@
   color: var(--color-brand-gold);
 }
 
+/* Una oferta exclusiva es la distinción más fuerte de la fila, así que se queda
+   con el oro. Cuando además tiene lista de invitados, "exclusiva" cede el
+   acento y vuelve al color de texto: dos dorados en la misma fila serían dos
+   acentos compitiendo. */
+.admin-pricing__status--offer {
+  color: var(--color-brand-gold);
+}
+
+.admin-pricing__status--exclusive:has(~ .admin-pricing__status--offer) {
+  color: var(--color-text-secondary);
+}
+
 /* Una promo de precio fijo puede cotizar distinto por canal: el importe de
    Mercado Pago manda y el manual se anota abajo, sin robarle jerarquía. */
 .admin-pricing__plan-amount-stack {

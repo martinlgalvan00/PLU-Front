@@ -93,6 +93,10 @@ import {
   assertRegistrationAccessCode,
   resolveRegistrationAccessRequirements,
 } from '../services/registrationAccessService.js'
+import {
+  assertDiscountCodeEventScope,
+  assertPreviewEventScope,
+} from '../services/offerCodeService.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
   assertCheckoutEnabled,
@@ -339,6 +343,15 @@ const discountPreviewSchema = z.object({
   // precio de catálogo y le mostraba al atleta un número que no era el que
   // terminaba pagando.
   paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']).optional(),
+})
+/**
+ * Canje de un código secreto de oferta exclusiva. A diferencia del preview, no
+ * necesita saber contra qué se está comprando: la oferta trae su propia
+ * inscripción y su propio precio. Es el único endpoint que el atleta puede
+ * llamar desde la pantalla de afiliación, donde todavía no eligió ningún evento.
+ */
+const offerUnlockSchema = z.object({
+  code: z.string().trim().toUpperCase().min(3).max(32),
 })
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
@@ -1290,6 +1303,16 @@ export function createAthleteRoutes({
           eventSlug,
           code: req.validatedBody.accessCode,
         })
+        // Mismo motivo que en el combo: un código atado a otra inscripción
+        // tiene que explicarse acá, no salir como un error genérico de alta.
+        await assertDiscountCodeEventScope({
+          previewDiscountCode: repo().previewDiscountCode,
+          athleteId: auth.athleteId,
+          code: req.validatedBody.discountCode,
+          appliesTo: 'registration',
+          baseAmount: event.price,
+          eventSlug,
+        })
         const registrationWisePrice =
           registrationChannel === 'wise_transfer' ? wisePriceFor({ concept: 'registration' }) : null
         const created = await repo().createRegistration(auth.athleteId, {
@@ -1362,6 +1385,18 @@ export function createAthleteRoutes({
           previewDiscountCode: repo().previewDiscountCode,
           athleteId: auth.athleteId,
           baseAmount: comboOffer.price,
+          eventSlug,
+        })
+        // Un código con alcance de inscripción no se puede canjear contra otra:
+        // corta acá para que el atleta reciba el motivo real en vez del PLU27
+        // de la RPC envuelto en "no se pudo crear el combo".
+        await assertDiscountCodeEventScope({
+          previewDiscountCode: repo().previewDiscountCode,
+          athleteId: auth.athleteId,
+          code: req.validatedBody.discountCode,
+          appliesTo: 'combo',
+          baseAmount: comboOffer.price,
+          eventSlug,
         })
         const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'membership',
@@ -1450,12 +1485,47 @@ export function createAthleteRoutes({
           // anunciaba el importe de Mercado Pago y cobraba el otro.
           paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
         })
-        res.json({ preview })
+        res.json({ preview: assertPreviewEventScope(preview, eventSlug) })
       } catch (error) {
         next(error)
       }
     },
   )
+  /**
+   * Canje del código secreto de una oferta exclusiva.
+   *
+   * Es deliberadamente independiente del preview: la pantalla de afiliación no
+   * sabe contra qué evento cotizar (todavía no eligió ninguno) y la oferta trae
+   * su propia inscripción. Devuelve 200 con `unlocked: false` y un motivo
+   * cuando el código no sirve — no es un error de la petición, es una respuesta
+   * que la pantalla tiene que poder explicar.
+   *
+   * No habilita el cobro por sí solo: el checkout del combo vuelve a validar el
+   * código (`assertComboAccessCodeOrDiscountCode`) y la redención con su cupo
+   * ocurre dentro de la transacción que crea la orden.
+   */
+  router.post(
+    '/me/offer-unlocks',
+    publicWriteLimiter,
+    validateBody(offerUnlockSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const result = await repo().unlockOfferCode(auth.athleteId, req.validatedBody.code)
+        res.json(result ?? { unlocked: false, reason: 'not_found' })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get('/me/offer-unlocks', publicReadLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      res.json({ offers: (await repo().listOfferUnlocks(auth.athleteId)) ?? [] })
+    } catch (error) {
+      next(error)
+    }
+  })
   /**
    * Comprobante de transferencia. Las órdenes de entrada ya tenían el ciclo
    * completo (subida firmada + revisión); las de afiliación tenían las

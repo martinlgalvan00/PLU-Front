@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   CalendarClock,
   Check,
   ImageDown,
@@ -16,9 +17,10 @@ import { formatShortDate, money } from '../../lib/format.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
-import { previewDiscountCode } from '../../services/athleteApi.js'
+import { previewDiscountCode, unlockOfferCode } from '../../services/athleteApi.js'
 import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
+import { isOfferUnlockKind } from '../../services/exclusiveOfferService.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
@@ -47,6 +49,8 @@ export default function MembershipPurchaseSection({
   events = [],
   onSelectEvent,
   checkoutAvailability = {},
+  onNavigateSection,
+  onOfferUnlocked,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -76,6 +80,10 @@ export default function MembershipPurchaseSection({
   const [checkoutIsError, setCheckoutIsError] = useState(false)
   const [discountCodeInput, setDiscountCodeInput] = useState('')
   const [discountPreview, setDiscountPreview] = useState(null)
+  // Oferta exclusiva recién canjeada desde esta pantalla. No entra al cálculo
+  // del precio de la afiliación: la oferta se compra en el checkout del torneo.
+  // Acá sólo se confirma el canje y se ofrece la ficha donde vive.
+  const [unlockedOffer, setUnlockedOffer] = useState(null)
   // Promoción que corre para todos y se aplica sola dentro de la transacción de
   // compra. Se guarda aparte del cupón tipeado porque son dos cosas distintas:
   // el cupón se puede quitar, la promo pública no es del atleta. Si hay cupón,
@@ -331,6 +339,7 @@ export default function MembershipPurchaseSection({
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
+    setUnlockedOffer(null)
     try {
       const preview = await previewDiscountCode({
         code,
@@ -339,6 +348,14 @@ export default function MembershipPurchaseSection({
         paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
+        // Un código de oferta exclusiva NO aplica a una afiliación suelta, y por
+        // eso el preview lo rechaza. Pero es exactamente el código que se
+        // reparte para canjear acá: en vez de un "no aplica" seco, se intenta el
+        // canje y se lo manda a su ficha. Ese es el punto de un código secreto —
+        // se tipea donde uno lo tiene a mano.
+        if (preview.reason === 'not_applicable' && isOfferUnlockKind(preview.kind)) {
+          if (await redeemSecretOffer(code)) return
+        }
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
         return
       }
@@ -347,6 +364,28 @@ export default function MembershipPurchaseSection({
       setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
     } finally {
       setDiscountChecking(false)
+    }
+  }
+
+  /**
+   * Canje del código secreto desde la pantalla de afiliación.
+   *
+   * Devuelve true si desbloqueó algo: el llamador corta ahí y no muestra el
+   * error del preview. Acá no se cobra nada — el combo se compra desde el
+   * checkout del torneo, así que la pantalla anuncia el canje y ofrece la ficha.
+   */
+  async function redeemSecretOffer(code) {
+    try {
+      const unlock = await unlockOfferCode({ code })
+      if (!unlock.unlocked) {
+        setDiscountError(t(`account.membership.offerUnlockError.${unlock.reason ?? 'not_found'}`))
+        return true
+      }
+      setUnlockedOffer(unlock.offer ?? { code })
+      onOfferUnlocked?.()
+      return true
+    } catch {
+      return false
     }
   }
 
@@ -393,6 +432,7 @@ export default function MembershipPurchaseSection({
     setDiscountPreview(null)
     setDiscountError('')
     setDiscountOpen(false)
+    setUnlockedOffer(null)
   }
 
   function openDiscountField() {
@@ -790,6 +830,31 @@ export default function MembershipPurchaseSection({
                     onChange={changeBillingMode}
                     options={billingOptions}
                   />
+                </div>
+              ) : null}
+
+              {unlockedOffer ? (
+                <div className="offer-unlocked" role="status">
+                  <span className="offer-unlocked__eyebrow">
+                    {t('account.membership.offerUnlocked.eyebrow')}
+                  </span>
+                  <strong className="offer-unlocked__code">{unlockedOffer.code}</strong>
+                  <p className="offer-unlocked__lead">
+                    {unlockedOffer.description ||
+                      t('account.membership.offerUnlocked.lead', {
+                        event: unlockedOffer.event?.title ?? '',
+                      })}
+                  </p>
+                  {onNavigateSection ? (
+                    <button
+                      type="button"
+                      className="offer-unlocked__cta"
+                      onClick={() => onNavigateSection('account-offer')}
+                    >
+                      {t('account.membership.offerUnlocked.cta')}
+                      <ArrowRight size={16} aria-hidden />
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
 

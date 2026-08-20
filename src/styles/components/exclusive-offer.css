@@ -1,0 +1,333 @@
+/* Oferta exclusiva — PLU ARG
+   ---------------------------------------------------------------------------
+   Dos piezas, una hoja: el anuncio del canje (`.offer-unlocked`), que aparece
+   dentro de la tarjeta de compra de Afiliación y de Inscripción, y la ficha
+   "Oferta exclusiva" de Mi cuenta (`.account-offer`).
+
+   El anuncio está acá y no en `account.css` ni en `register.css` porque lo usan
+   las dos rutas: duplicar la regla dejaría los dos anuncios divergiendo en
+   cuanto alguien tocara uno.
+
+   Presupuesto: un solo acento por bloque (oro, que en PLU es distinción y
+   membresía — no celeste, que es navegación), sin superficie propia dentro de
+   una tarjeta (cero cards anidadas: una regla al costado hace el trabajo) y el
+   desglose de precios como filas con reglas, no como sub-tarjetas. */
+
+/* ---------------------------------------------------------------------------
+   Anuncio del canje
+   --------------------------------------------------------------------------- */
+
+.offer-unlocked {
+  border-left: 2px solid var(--color-brand-gold);
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  margin: 0;
+  min-width: 0;
+  padding: 0.15rem 0 0.15rem 0.9rem;
+}
+
+.offer-unlocked__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.offer-unlocked__code {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+}
+
+.offer-unlocked__lead {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+/* Acción secundaria: la principal de esta pantalla sigue siendo pagar. */
+.offer-unlocked__link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.offer-unlocked__link:hover {
+  color: var(--color-brand-gold);
+}
+
+.offer-unlocked__link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 3px;
+}
+
+/* En Afiliación el canje SÍ es la conclusión de la pantalla —la afiliación
+   suelta deja de ser lo que conviene comprar—, así que la acción es plena. */
+.offer-unlocked__cta {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-top: 0.35rem;
+  padding: 0 1.1rem;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.offer-unlocked__cta:hover {
+  background: var(--color-brand-action-hover);
+}
+
+.offer-unlocked__cta:active {
+  transform: translateY(1px);
+}
+
+.offer-unlocked__cta:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 60%, transparent);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Ficha "Oferta exclusiva" de Mi cuenta
+   --------------------------------------------------------------------------- */
+
+.account-offer {
+  display: grid;
+  gap: clamp(1.1rem, 2.4vw, 1.6rem);
+  margin-top: clamp(1.25rem, 3vw, 1.75rem);
+  max-width: 34rem;
+}
+
+/* El código es el título de la ficha: es lo que el atleta vino a confirmar. */
+.account-offer__code {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.account-offer__lead {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.account-offer__package {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 0.25rem;
+  padding-top: clamp(0.9rem, 2vw, 1.15rem);
+}
+
+.account-offer__package-label {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-offer__package-event {
+  color: var(--color-text-primary);
+  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.account-offer__package-meta {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.account-offer__ledger {
+  display: grid;
+  margin: 0;
+}
+
+.account-offer__ledger-row {
+  align-items: baseline;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.7rem 0;
+}
+
+.account-offer__ledger-row dt {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+.account-offer__ledger-row dd {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Único acento del bloque: el precio que el código desbloqueó. La regla
+   superior más fuerte es lo que separa el total de las partes — no un fondo. */
+.account-offer__ledger-row--total {
+  border-bottom: 0;
+  border-top: 1px solid var(--color-border-strong);
+  margin-top: 0.25rem;
+  padding-top: 0.9rem;
+}
+
+.account-offer__ledger-row--total dt {
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.account-offer__ledger-row--total dd {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.account-offer__savings {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.account-offer__actions {
+  display: flex;
+}
+
+.account-offer__cta {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  gap: 0.625rem;
+  min-height: 48px;
+  padding: 0 1.4rem;
+  transition:
+    background-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.account-offer__cta:hover {
+  background: var(--color-brand-action-hover);
+}
+
+.account-offer__cta:active {
+  transform: translateY(1px);
+}
+
+.account-offer__cta:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 60%, transparent);
+  outline-offset: 3px;
+}
+
+/* Estado no comprable (ya canjeada, cerrada, sin combo vigente). Sin fondo ni
+   borde completo: dentro de la tarjeta de la ficha sería una card anidada. */
+.account-offer__notice {
+  border-left: 2px solid var(--color-border-strong);
+  display: grid;
+  gap: 0.55rem;
+  justify-items: start;
+  padding-left: 0.9rem;
+}
+
+.account-offer__notice p {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.account-offer__notice-action {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.account-offer__notice-action:hover {
+  color: var(--color-brand-gold);
+}
+
+.account-offer__notice-action:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.account-offer__fine {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .account-offer__ledger-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .account-offer__ledger-row dd {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .account-offer__cta,
+  .offer-unlocked__cta {
+    justify-content: center;
+    width: 100%;
+  }
+}
