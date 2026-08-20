@@ -339,9 +339,9 @@
   > .admin-filters--external.admin-filters--inline.admin-filters--compact {
   align-items: stretch;
   border-bottom: 0;
-  gap: 8px;
-  margin-bottom: 4px;
-  padding: 2px 2px 6px;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 4px 4px 18px;
   position: relative;
 }
 
@@ -682,22 +682,51 @@
 /* ---- Tablas compactas, sin perder lectura ---- */
 
 .admin-shell .data-table--admin th {
-  height: 34px;
-  padding-inline: 14px;
+  height: 32px;
+  padding-inline: 12px;
 }
 
 .admin-shell .data-table--admin td {
   font-size: 11px;
-  height: 48px;
+  height: 44px;
   line-height: 1.35;
   overflow-wrap: anywhere;
-  padding: 7px 14px;
+  padding: 6px 12px;
 }
 
 .admin-shell .data-table--admin td:has(.status-pill),
 .admin-shell .data-table--admin td:has(.admin-table-actions) {
   white-space: nowrap;
   width: 1%;
+}
+
+/* Roles semánticos de columna (ver columnClassName en DataTable.jsx):
+   sin esto las columnas numéricas/acción quedaban alineadas a la izquierda
+   por default del <table>, y el motivo real del scroll horizontal (min-width
+   fijo) no dejaba ver que faltaba este tratamiento. */
+.admin-shell .data-table__column--end,
+.admin-shell .data-table__column--numeric,
+.admin-shell .data-table__column--action {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.admin-shell .data-table__column--status {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.admin-shell .data-table__column--end .data-table__cell-content,
+.admin-shell .data-table__column--numeric .data-table__cell-content,
+.admin-shell .data-table__column--action .data-table__cell-content {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-shell .data-table__column--mono {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .admin-shell .data-table-card__meta-value {
@@ -2151,18 +2180,18 @@
 
 .admin-shell .admin-filters--inline.admin-filters--compact {
   align-items: stretch;
-  background: transparent;
-  border-bottom: 0;
+  background: color-mix(in srgb, var(--admin-surface-raised) 45%, transparent);
+  border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 4px 16px 8px;
+  gap: 12px;
+  padding: 16px 20px 18px;
 }
 
 .admin-shell .admin-filters__primary {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
   width: 100%;
 }
@@ -2171,7 +2200,7 @@
   align-items: center;
   display: inline-flex;
   flex: 0 0 auto;
-  gap: 8px;
+  gap: 10px;
   margin-left: auto;
 }
 
@@ -2180,7 +2209,7 @@
   display: inline-flex;
   gap: 6px;
   justify-content: center;
-  min-height: 36px;
+  min-height: 42px;
   white-space: nowrap;
 }
 
@@ -2188,16 +2217,16 @@
   align-items: center;
   background: color-mix(in srgb, var(--admin-control-bg) 92%, var(--admin-surface-raised));
   border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
-  border-radius: 9px;
+  border-radius: 11px;
   color: var(--admin-muted);
   display: flex;
   flex: 1 1 auto;
-  gap: 9px;
-  height: 36px;
+  gap: 10px;
+  height: 42px;
   margin: 0;
-  min-height: 36px;
+  min-height: 42px;
   min-width: 0;
-  padding: 0 10px 0 12px;
+  padding: 0 12px 0 14px;
   transition:
     border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
     background var(--motion-fast, 160ms) var(--ease-standard, ease),
@@ -2210,15 +2239,15 @@
   background: var(--admin-surface-raised);
   border-color: var(--admin-brand-border, var(--color-brand-celeste));
   box-shadow:
-    0 4px 12px color-mix(in srgb, var(--admin-ink) 6%, transparent),
+    0 6px 16px color-mix(in srgb, var(--admin-ink) 7%, transparent),
     0 0 0 3px var(--admin-focus-soft);
   transform: translateY(-1px);
 }
 
 .admin-shell .admin-filters__search input {
   color: var(--admin-ink);
-  font-size: 12.5px;
-  min-height: 34px;
+  font-size: 13px;
+  min-height: 40px;
 }
 
 .admin-shell .admin-filters__search input::placeholder {
@@ -2238,9 +2267,9 @@
 
 .admin-shell .admin-filters__search-clear {
   border-color: transparent;
-  border-radius: 6px;
-  height: 26px;
-  width: 26px;
+  border-radius: 7px;
+  height: 28px;
+  width: 28px;
 }
 
 .admin-shell .admin-filters__search-clear:hover {
@@ -2250,13 +2279,13 @@
 
 .admin-shell .admin-filters__toggle {
   background: var(--admin-control-bg);
-  border-radius: 8px;
+  border-radius: 9px;
   display: none;
   font-size: 11px;
   font-weight: 650;
   gap: 6px;
-  height: 36px;
-  padding: 0 10px;
+  height: 42px;
+  padding: 0 12px;
 }
 
 .admin-shell .admin-filters__active-count {
@@ -2285,9 +2314,9 @@
 .admin-shell .admin-filters__primary .admin-filters__clear {
   background: transparent;
   border-color: transparent;
-  height: 34px;
-  min-height: 34px;
-  padding: 0 7px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 9px;
 }
 
 .admin-shell .admin-filters__primary .admin-filters__clear:hover {
@@ -2330,7 +2359,7 @@
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
   overflow: visible;
 }
@@ -2341,7 +2370,7 @@
   display: flex !important;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 8px 10px;
+  gap: 10px 14px;
 }
 
 .admin-shell
@@ -2387,19 +2416,19 @@
   align-self: center;
   background: transparent;
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 2px;
+  border-radius: 9px;
   color: var(--admin-muted, var(--color-text-muted));
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   gap: 6px;
   justify-content: center;
   letter-spacing: -0.01em;
-  min-height: 36px;
+  min-height: 42px;
   min-width: max-content;
-  padding: 0 10px;
+  padding: 0 14px;
   white-space: nowrap;
 }
 
@@ -2468,15 +2497,15 @@
   align-items: stretch;
   background: color-mix(in srgb, var(--admin-control-bg) 82%, transparent);
   border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   flex-wrap: nowrap;
-  gap: 3px;
+  gap: 4px;
   max-width: 100%;
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 3px;
+  padding: 4px;
   scroll-padding-inline: 4px;
   scrollbar-width: none;
   width: fit-content;
@@ -2500,18 +2529,18 @@
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
   background: transparent;
   border: 0;
-  border-radius: 7px;
+  border-radius: 9px;
   box-shadow: none;
   color: var(--admin-muted);
   flex: none;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 550;
-  gap: 6px;
+  gap: 7px;
   justify-content: center;
   letter-spacing: -0.01em;
-  min-height: 32px;
+  min-height: 36px;
   min-width: max-content;
-  padding: 5px 11px;
+  padding: 7px 14px;
   position: relative;
   transform: none;
   transition:
@@ -2545,8 +2574,8 @@
   background: color-mix(in srgb, var(--admin-surface-raised) 88%, var(--admin-brand) 12%);
   border: 0;
   box-shadow:
-    0 2px 4px color-mix(in srgb, var(--admin-ink) 12%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--admin-brand) 28%, transparent);
+    0 3px 8px color-mix(in srgb, var(--admin-ink) 14%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--admin-brand) 30%, transparent);
   color: var(--admin-ink);
   font-weight: 650;
   transform: translateY(-1px);
@@ -2637,12 +2666,12 @@
   box-shadow: none;
   color: var(--admin-muted);
   flex: none;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 550;
-  gap: 6px;
+  gap: 7px;
   justify-content: center;
-  min-height: 34px;
-  padding: 5px 13px;
+  min-height: 38px;
+  padding: 7px 16px;
   width: fit-content;
 }
 
@@ -2710,12 +2739,12 @@
   align-items: center;
   background: color-mix(in srgb, var(--admin-control-bg) 78%, transparent);
   border: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
-  border-radius: 10px;
+  border-radius: 11px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 40px;
+  min-height: 42px;
   overflow: hidden;
-  padding: 0 10px 0 12px;
+  padding: 0 12px 0 14px;
   transition:
     border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
     background var(--motion-fast, 160ms) var(--ease-standard, ease),
@@ -2765,12 +2794,12 @@
   border: 0;
   color: var(--admin-ink);
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 550;
   grid-column: 1;
   height: auto;
   line-height: 1.3;
-  min-height: 38px;
+  min-height: 40px;
   min-width: 0;
   padding: 0 6px 0 0;
   width: 100%;
@@ -3161,13 +3190,8 @@
   width: 12.5rem;
 }
 
-.admin-shell .admin-filters--users.admin-filters--inline.admin-filters--compact {
-  gap: 6px;
-  padding-bottom: 8px;
-}
-
 .admin-shell .admin-filters--users .admin-filters__actions .btn {
-  min-height: 36px;
+  min-height: 42px;
 }
 
 .admin-shell .admin-users__role-select select {
@@ -6251,6 +6275,18 @@
   .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
   .admin-shell .admin-list-shell--events .admin-event-state__visibility,
   .admin-shell .admin-list-shell--events .admin-event-state__registration-action {
+    min-height: 44px;
+  }
+
+  /* Toolbar de filtros: con mouse se mantiene compacto (36-42px); en touch
+     los controles suben a 44px. */
+  .admin-shell .admin-filters__primary .admin-filters__search,
+  .admin-shell .admin-filters__toggle,
+  .admin-shell .admin-filters__primary .admin-filters__clear,
+  .admin-shell .admin-filters__advanced-toggle,
+  .admin-shell .admin-filters__select-control,
+  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip,
+  .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
     min-height: 44px;
   }
 }

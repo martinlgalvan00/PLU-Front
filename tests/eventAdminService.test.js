@@ -7,6 +7,7 @@ import {
   getInitialAdminEvents,
   getEventConsistencyWarnings,
   mapDraftToPreviewEvent,
+  mapPublishedEventRow,
   mapSupabaseEventRow,
   removeAdminEvent,
   withEventStart,
@@ -156,6 +157,53 @@ describe('eventAdminService', () => {
     })
 
     expect(event.registered).toBe(48)
+  })
+
+  it('conserva la audiencia restringida en la lectura administrativa', () => {
+    const event = mapSupabaseEventRow({
+      slug: 'pitbull-classic-2026',
+      rules: {},
+      eventDays: [],
+      ticketTypes: [],
+      comboOffer: {
+        price: 120000,
+        active: true,
+        audience: 'code',
+      },
+    })
+
+    expect(event.comboOffer).toMatchObject({ price: 120000, audience: 'code' })
+  })
+
+  it('conserva privado en administración pero lo omite de la proyección pública', () => {
+    const row = {
+      slug: 'pitbull-classic-2026',
+      price: 75000,
+      rules: { comboPrice: 120000 },
+      eventDays: [],
+      ticketTypes: [],
+      comboOffer: { price: 120000, active: true, audience: 'private' },
+    }
+
+    expect(mapSupabaseEventRow(row).comboOffer).toMatchObject({ audience: 'private' })
+    expect(mapPublishedEventRow(row)).toMatchObject({ comboOffer: null, pricing: { combo: 0 } })
+  })
+
+  it('separa la lectura administrativa de la proyeccion publica del combo', () => {
+    const row = {
+      slug: 'pitbull-classic-2026',
+      price: 75000,
+      rules: { comboPrice: 120000 },
+      eventDays: [],
+      ticketTypes: [],
+      comboOffer: { price: 120000, active: true, audience: 'code' },
+    }
+
+    expect(mapSupabaseEventRow(row).comboOffer).not.toBeNull()
+    expect(mapPublishedEventRow(row)).toMatchObject({
+      comboOffer: null,
+      pricing: { combo: 0 },
+    })
   })
 
   it('filtra sin romperse ante datos parciales del backend', () => {

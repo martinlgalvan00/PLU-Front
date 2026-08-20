@@ -1218,7 +1218,7 @@ begin
     insert into public.discount_codes (
       organization_id, code, kind, applies_to, audience, fixed_price, event_id, active
     ) values (
-      v_org, '__VERIFY_OFFER_KIND__', 'offer', 'combo', 'code', 120000, v_event_id, false
+      v_org, 'VERIFY-OFFER-KIND', 'offer', 'combo', 'code', 120000, v_event_id, false
     ) returning id into v_code_id;
 
     if plu_private.resolve_discount_amount(150000, 'offer', null, 120000) <> 30000 then
@@ -1242,7 +1242,7 @@ begin
       insert into public.discount_codes (
         organization_id, code, kind, applies_to, audience, fixed_price, active
       ) values (
-        v_org, '__VERIFY_OFFER_NO_EVENT__', 'offer', 'combo', 'code', 120000, false
+        v_org, 'VERIFY-OFFER-NO-EVENT', 'offer', 'combo', 'code', 120000, false
       );
       raise exception 'La constraint no rechazó un offer sin inscripción.' using errcode = 'PLU01';
     exception when check_violation then
@@ -1254,7 +1254,7 @@ begin
       insert into public.discount_codes (
         organization_id, code, kind, applies_to, audience, fixed_price, event_id, active
       ) values (
-        v_org, '__VERIFY_OFFER_PUBLIC__', 'offer', 'combo', 'public', 120000, v_event_id, false
+        v_org, 'VERIFY-OFFER-PUBLIC', 'offer', 'combo', 'public', 120000, v_event_id, false
       );
       raise exception 'La constraint no rechazó un offer público.' using errcode = 'PLU01';
     exception when check_violation then
@@ -1266,7 +1266,7 @@ begin
       insert into public.discount_codes (
         organization_id, code, kind, applies_to, percent_off, event_id, active
       ) values (
-        v_org, '__VERIFY_EVENT_ON_MEMBERSHIP__', 'percent', 'membership', 10, v_event_id, false
+        v_org, 'VERIFY-EVENT-ON-MEMBERSHIP', 'percent', 'membership', 10, v_event_id, false
       );
       raise exception 'La constraint no rechazó alcance de evento en una afiliación.'
         using errcode = 'PLU01';

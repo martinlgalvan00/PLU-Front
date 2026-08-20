@@ -62,10 +62,10 @@ function renderSection(props = {}) {
 }
 
 describe('ficha de oferta exclusiva', () => {
-  it('el código canjeado es el título de la ficha', () => {
+  it('el beneficio lidera la ficha y el código queda como llave verificable', () => {
     renderSection()
-    // Lo primero que el atleta vino a confirmar: qué canjeó.
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('ONLY-PITBULL')
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Tu oferta exclusiva')
+    expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
     expect(screen.getByText('Código secreto canjeado')).toBeTruthy()
   })
 
@@ -99,7 +99,7 @@ describe('ficha de oferta exclusiva', () => {
     const onSelectEvent = vi.fn()
     const { container } = renderSection({ onSelectEvent })
     expect(container.querySelectorAll('.account-offer__cta')).toHaveLength(1)
-    fireEvent.click(screen.getByRole('button', { name: /Completar mi inscripción/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
     expect(onSelectEvent).toHaveBeenCalledWith(CATALOG_EVENT)
   })
 
@@ -111,7 +111,7 @@ describe('ficha de oferta exclusiva', () => {
       onNavigateSection,
       athlete: { id: 'athlete-2', fullName: 'Sin datos' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /Completar mi inscripción/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
     expect(onSelectEvent).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Completar mis datos/ }))
@@ -120,13 +120,13 @@ describe('ficha de oferta exclusiva', () => {
 
   it('una oferta ya comprada deja de ofrecer el checkout y explica por qué', () => {
     renderSection({ offer: { ...OFFER, redeemed: true }, offers: [{ ...OFFER, redeemed: true }] })
-    expect(screen.queryByRole('button', { name: /Completar mi inscripción/ })).toBe(null)
+    expect(screen.queryByRole('button', { name: /Procesar el pago de la oferta/ })).toBe(null)
     expect(screen.getByRole('status').textContent).toContain('Ya compraste esta oferta')
   })
 
   it('sin combo vigente no ofrece un checkout que va a fallar', () => {
     renderSection({ offer: { ...OFFER, comboOffer: { ...OFFER.comboOffer, active: false } } })
-    expect(screen.queryByRole('button', { name: /Completar mi inscripción/ })).toBe(null)
+    expect(screen.queryByRole('button', { name: /Procesar el pago de la oferta/ })).toBe(null)
     expect(screen.getByRole('status')).toBeTruthy()
   })
 

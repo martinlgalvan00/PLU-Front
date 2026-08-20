@@ -432,7 +432,10 @@ export async function previewDiscountCode({
     // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final;
     // 'access' no descuenta nada, sólo desbloquea el combo; 'offer' desbloquea
     // y además fija el importe — es la oferta exclusiva de un código secreto.
-    kind: preview.kind ?? 'percent',
+    // Un rechazo de una RPC anterior puede no incluir modalidad. No se lo
+    // inventa como porcentaje: las pantallas deben consultar el alcance combo
+    // o el endpoint de canje antes de concluir que no aplica.
+    kind: preview.kind ?? null,
     // Alcance del código: viaja también con `reason: 'not_applicable'` y con
     // `reason: 'other_event'`, para poder decir de qué inscripción es en vez de
     // un "no aplica" seco.
@@ -478,6 +481,25 @@ export async function unlockOfferCode({ code }) {
     reason: result?.reason ?? null,
     startsAt: result?.startsAt ?? null,
     offer: result?.offer ?? null,
+  }
+}
+
+/** Resolvedor universal: el servidor decide beneficio, alcance y destino. */
+export async function redeemPromotionCodeRequest({ code, context = {} }) {
+  const result = await apiPost('/api/athletes/me/codes/redeem', { code, context })
+  return {
+    status: result?.status === 'accepted' ? 'accepted' : 'rejected',
+    accepted: result?.status === 'accepted',
+    reason: result?.reason ?? null,
+    action: result?.action ?? null,
+    code: result?.code ?? code,
+    kind: result?.kind ?? null,
+    appliesTo: result?.appliesTo ?? null,
+    destination: result?.destination ?? null,
+    campaign: result?.campaign ?? null,
+    benefit: result?.benefit ?? null,
+    offer: result?.offer ?? null,
+    startsAt: result?.startsAt ?? null,
   }
 }
 

@@ -12,6 +12,14 @@ const migration = readFileSync(
   ),
   'utf8',
 )
+const comboArchiveMigration = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20260903100000_combo_offer_archive_visibility.sql'),
+  'utf8',
+)
+const comboVisibilityMigration = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20260904100000_combo_offer_visibility_states.sql'),
+  'utf8',
+)
 
 const PLAN_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -74,7 +82,9 @@ describe('combo restringido por código', () => {
     }
     const locked = getEventComboAvailability(event, { hasActiveMembership: false })
     expect(locked.requiresCode).toBe(true)
+    expect(locked.offer).toBeNull()
     expect(locked.enabled).toBe(false)
+    expect(locked.locked).toBe(true)
 
     const unlocked = getEventComboAvailability(event, {
       hasActiveMembership: false,
@@ -101,6 +111,60 @@ describe('combo restringido por código', () => {
     // Un combo público no pide nada.
     expect(assertComboAccessCode({ audience: 'public' }, '')).toBeNull()
   })
+
+  it('trata privado como un tercer estado y no como restringido', () => {
+    const parsed = comboOfferSchema.safeParse(
+      comboPayload({ audience: 'private', accessCode: 'NO-DEBE-PERSISTIR' }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.accessCode).toBe('')
+
+    const availability = getEventComboAvailability(
+      {
+        comboOffer: { price: 120000, active: true, audience: 'private' },
+        status: 'inscripcion_abierta',
+      },
+      { unlocked: true },
+    )
+    expect(availability).toMatchObject({
+      visibility: 'private',
+      hidden: true,
+      locked: false,
+      offer: null,
+      enabled: false,
+    })
+    expect(() => assertComboAccessCode({ audience: 'private' }, 'ONLY-PITBULL')).toThrowError(
+      /no está disponible/,
+    )
+  })
+
+  it('protege los tres estados y pausa llaves al volver privado el combo', () => {
+    expect(comboVisibilityMigration).toContain("audience in ('public', 'code', 'private')")
+    expect(comboVisibilityMigration).toContain('discount_codes_secret_combo_visibility')
+    expect(comboVisibilityMigration).toContain('event_combo_offers_pause_private_codes')
+    expect(comboVisibilityMigration).toContain("'discount_code.paused_private_combo'")
+    expect(comboVisibilityMigration).toContain("v_audience not in ('public', 'code', 'private')")
+  })
+})
+
+describe('baja de una oferta combo', () => {
+  it('borra si no hay ordenes y archiva si debe preservar historial', () => {
+    expect(comboArchiveMigration).toContain('delete from public.event_combo_offers')
+    expect(comboArchiveMigration).toContain("'event_combo_offer.archived'")
+    expect(comboArchiveMigration).toContain("'deleted', true, 'archived', true")
+  })
+
+  it('la excluye del panel y de las ofertas privadas del atleta', () => {
+    expect(comboArchiveMigration).toContain('o.event_id = e.id and o.archived_at is null')
+    expect(comboArchiveMigration).toContain('join public.event_combo_offers o')
+    expect(comboArchiveMigration).toContain('and o.archived_at is null')
+  })
+
+  it('hace que la politica publica solo entregue combos publicos vigentes', () => {
+    expect(comboArchiveMigration).toContain("and audience = 'public'")
+    expect(comboArchiveMigration).toContain('and active = true')
+    expect(comboArchiveMigration).toContain('archived_at is null')
+  })
 })
 
 describe('baja de una promoción ya canjeada', () => {
@@ -120,7 +184,9 @@ describe('baja de una promoción ya canjeada', () => {
   it('libera el texto del código al archivar', () => {
     // Con el único parcial, "eliminar" no deja un fantasma bloqueando el alta
     // de una promo nueva con el mismo nombre.
-    expect(migration).toContain('create unique index if not exists discount_codes_org_code_live_uidx')
+    expect(migration).toContain(
+      'create unique index if not exists discount_codes_org_code_live_uidx',
+    )
     expect(migration).toContain('where archived_at is null')
   })
 
@@ -128,11 +194,11 @@ describe('baja de una promoción ya canjeada', () => {
     // Sin esto, archivar la esconde del panel pero la deja viva para cualquiera
     // que todavía tenga el código anotado.
     expect(migration).toContain('and archived_at is null\n    for update')
-    expect(migration).toContain("and c.archived_at is null")
+    expect(migration).toContain('and c.archived_at is null')
   })
 
   it('no la lista en el panel', () => {
-    expect(migration).toContain('and c.archived_at is null\n    ), \'[]\'::jsonb)')
+    expect(migration).toContain("and c.archived_at is null\n    ), '[]'::jsonb)")
   })
 
   it('no deja cambiarle el estado a una promo archivada', () => {

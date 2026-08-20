@@ -53,12 +53,22 @@ una con su propio interruptor. La fecha **Abre la inscripción** del panel
 administración del catálogo económico conserva su política de escritura
 separada.
 
+La visibilidad del combo es un eje separado de su activación y tiene tres
+estados. **Público** aparece en el catálogo y puede comprarse sin llave.
+**Restringido** (`audience='code'`) no aparece en ninguna landing o dashboard
+del atleta hasta que canjea un código válido; el canje abre la ficha privada y
+el checkout vuelve a validar precio y alcance en el servidor. **Privado**
+(`audience='private'`) queda disponible sólo para administración: no se publica,
+no se desbloquea y no admite compra directa. Al pasar un combo a Privado se
+pausan sus códigos secretos activos sin borrar compras ni redenciones históricas.
+
 Una **oferta exclusiva** es un `discount_codes` con `kind='offer'`: un código
 secreto que no descuenta sino que desbloquea el combo de una inscripción y le
 fija su propio precio. Exige `applies_to='combo'`, `audience='code'`,
 `event_id` (a qué inscripción aplica) y un `fixed_price` menor al precio del
-combo de ese evento; el alta lo rechaza si la inscripción todavía no tiene combo
-configurado. `kind='access'` sigue siendo el desbloqueo sin precio.
+combo de ese evento; el alta lo rechaza si la inscripción todavía no tiene un
+combo habilitado y Restringido. `kind='access'` sigue siendo el desbloqueo sin
+precio.
 
 El alcance por inscripción (`discount_codes.event_id`, opcional para el resto de
 las modalidades) se verifica en el canje contra el evento **real** de la orden
@@ -71,8 +81,23 @@ Canjear el código y comprar con él son dos hechos distintos.
 no lleva importe y no entra en los reportes de Finanzas. `discount_code_redemptions`
 sigue siendo el registro contable y es lo que consume `max_redemptions`, escrito
 recién dentro de la transacción que crea la orden. El unlock es lo que sostiene la
-ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos; el código
-se puede canjear tanto desde Afiliación como desde el checkout de inscripción.
+ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos. La misma
+llave se puede canjear desde cualquier superficie habilitada para códigos:
+Afiliación, calendario o ficha del evento, checkout de inscripción y Entradas.
+Luego de confirmarla, la interfaz anuncia la redirección y abre la pestaña
+privada; conocer el código no vuelve pública la oferta en ningún catálogo.
+
+La experiencia promocional se modela como campaña: `promotion_campaigns`
+define nombre, visibilidad y destino; `promotion_campaign_benefits` describe el
+beneficio; y `discount_codes` conserva la llave y el contrato económico que se
+valida al crear la orden. `athlete_redeem_promotion_code` es el resolvedor
+universal para Afiliación, Inscripción, Evento, Entradas y enlaces `/canjear`.
+Puede desbloquear una ficha o preparar un código para el checkout, pero nunca
+confirma pagos ni consume cupo. El cupo se consume sólo al crear la orden.
+
+Un código con exactamente un email invitado se considera **personal**. El
+enlace y el QR no contienen privilegios adicionales: sólo transportan el código
+y el backend vuelve a validar atleta, vigencia, cupo, evento y audiencia.
 
 Cada atleta tiene un único `credential_token` estable. Pagar un combo no crea
 otro QR ni modifica el anterior: la consulta de credencial resuelve en tiempo

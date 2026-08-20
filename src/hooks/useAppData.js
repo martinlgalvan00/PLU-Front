@@ -159,6 +159,7 @@ import {
   discountCodeStatePayload,
   fetchPricingConfigurationRequest,
   saveEventComboOfferRequest,
+  simulatePromotionCodeRequest,
   setDiscountCodeStateRequest,
   setMembershipPlanActiveRequest,
   setMembershipPlanRetirementRequest,
@@ -1239,12 +1240,19 @@ export function useAppData() {
     async (event, purchaseEvent, attendees, paymentMethod) => {
       event.preventDefault()
       const provider =
-        paymentMethod === 'transferencia' || paymentMethod === 'manual_link' || paymentMethod === 'wise_transfer'
+        paymentMethod === 'transferencia' ||
+        paymentMethod === 'manual_link' ||
+        paymentMethod === 'wise_transfer'
           ? 'manual'
           : paymentMethod
       const manualPaymentChannel = paymentMethod === 'wise_transfer' ? 'wise_transfer' : undefined
       try {
-        const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider, manualPaymentChannel])
+        const attemptFingerprint = JSON.stringify([
+          purchaseEvent.slug,
+          attendees,
+          provider,
+          manualPaymentChannel,
+        ])
         if (ticketAttemptRef.current?.fingerprint !== attemptFingerprint) {
           ticketAttemptRef.current = {
             fingerprint: attemptFingerprint,
@@ -2720,6 +2728,17 @@ export function useAppData() {
       }
       try {
         const result = await deleteEventComboOfferRequest(eventSlug)
+        setAdminEvents((current) =>
+          current.map((event) =>
+            event.slug === eventSlug
+              ? {
+                  ...event,
+                  comboOffer: null,
+                  pricing: { ...event.pricing, combo: 0 },
+                }
+              : event,
+          ),
+        )
         await refreshPricingConfiguration()
         return result
       } catch (error) {
@@ -2739,6 +2758,21 @@ export function useAppData() {
       }
       try {
         const result = await saveEventComboOfferRequest(eventSlug, offer)
+        // La coleccion tambien alimenta las superficies publicas de esta misma
+        // pestaña. Un combo apagado/restringido desaparece de ellas en el acto.
+        if (offer.active !== true || offer.audience === 'code') {
+          setAdminEvents((current) =>
+            current.map((event) =>
+              event.slug === eventSlug
+                ? {
+                    ...event,
+                    comboOffer: null,
+                    pricing: { ...event.pricing, combo: 0 },
+                  }
+                : event,
+            ),
+          )
+        }
         await refreshPricingConfiguration()
         return result
       } catch (error) {
@@ -2933,6 +2967,20 @@ export function useAppData() {
     [refreshPricingConfiguration, session],
   )
 
+  const simulatePromotionCode = useCallback(
+    async (codeId) => {
+      if (!hasPermission(session, 'admin.pricing.read')) {
+        return { error: 'Sin permisos para probar este código.' }
+      }
+      try {
+        return { simulation: await simulatePromotionCodeRequest(codeId) }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo probar el recorrido del código.' }
+      }
+    },
+    [session],
+  )
+
   const refreshBillingSubscriptions = useCallback(async (filters = {}) => {
     const currentSession = sessionRef.current
     if (!currentSession || !hasPermission(currentSession, 'admin.payments.read')) return null
@@ -3050,6 +3098,7 @@ export function useAppData() {
     setDiscountCodeState,
     deleteEventComboOffer,
     deleteDiscountCode,
+    simulatePromotionCode,
     billingSubscriptions,
     billingSubscriptionsLoading,
     billingSubscriptionsError,

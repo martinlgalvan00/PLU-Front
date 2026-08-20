@@ -46,6 +46,14 @@ import {
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
+  clearPendingPromotionCode,
+  matchPromotionCodeRoute,
+  promotionDestination,
+  readPendingPromotionCode,
+  redeemPromotionCode,
+  savePendingPromotionCode,
+} from './services/promotionCodeService.js'
+import {
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
   DEFAULT_ACCOUNT_TAB,
@@ -121,6 +129,7 @@ const PUBLIC_VIEWS = {
 export default function App() {
   const [view, setView] = useState(() => {
     if (readPasswordResetToken()) return 'login'
+    if (matchPromotionCodeRoute()) return 'home'
     return resolvePathnamePublicView()
   })
   const [transitionDirection, setTransitionDirection] = useState('forward')
@@ -135,6 +144,8 @@ export default function App() {
     matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
   )
   const paymentReturnInFlightRef = useRef(null)
+  const directPromotionCapturedRef = useRef(false)
+  const promotionResolutionRef = useRef(null)
   const app = useAppData()
   const getSession = app.getSession
   const publicEvents = getPublicCatalogEvents(
@@ -223,6 +234,13 @@ export default function App() {
 
   useEffect(() => {
     function onPopState() {
+      const promotionRoute = matchPromotionCodeRoute()
+      if (promotionRoute) {
+        savePendingPromotionCode(promotionRoute.code, { surface: 'direct' })
+        promotionResolutionRef.current = null
+        setView(getSession()?.role === 'athlete_plu' ? 'home' : 'login')
+        return
+      }
       if (matchTicketsRoute()) {
         setTicketEventSlug(getTicketsRouteEventSlug())
         setView('tickets')
@@ -254,7 +272,7 @@ export default function App() {
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [])
+  }, [getSession])
 
   const navigate = useCallback(
     (nextView, options = {}) => {
@@ -333,12 +351,72 @@ export default function App() {
         setProfileTab(resolvedOptions.tab || DEFAULT_ACCOUNT_TAB)
         setProfileTabNonce((current) => current + 1)
       }
+      if (resolvedView === 'competition' && resolvedOptions.eventSlug) {
+        const promotionEvent = app.adminEvents.find(
+          (event) => event.slug === resolvedOptions.eventSlug,
+        )
+        if (promotionEvent) setSelectedEvent(promotionEvent)
+      }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [getSession, pendingAthleteDestination, view],
+    [app.adminEvents, getSession, pendingAthleteDestination, view],
   )
+
+  useEffect(() => {
+    const directPromotion = matchPromotionCodeRoute()
+    if (directPromotion && !directPromotionCapturedRef.current) {
+      directPromotionCapturedRef.current = true
+      savePendingPromotionCode(directPromotion.code, { surface: 'direct' })
+    }
+
+    if (app.sessionPending) return
+
+    const pending = readPendingPromotionCode()
+    if (!pending) return
+
+    if (app.session?.role !== 'athlete_plu') {
+      if (directPromotion) {
+        window.history.replaceState({ view: 'login' }, '', '/login')
+        navigate('login')
+      }
+      return
+    }
+
+    const resolutionKey = `${app.session.id ?? app.session.email ?? 'athlete'}:${pending.code}`
+    if (promotionResolutionRef.current === resolutionKey) return
+    promotionResolutionRef.current = resolutionKey
+
+    void redeemPromotionCode(pending.code, {
+      ...pending.context,
+      surface: pending.context?.surface ?? 'direct',
+    })
+      .then((result) => {
+        if (!result.accepted) {
+          clearPendingPromotionCode()
+          if (directPromotion) navigate('home')
+          return
+        }
+
+        const destination = promotionDestination(result)
+        if (result.action === 'open_exclusive_offer') clearPendingPromotionCode()
+        else {
+          savePendingPromotionCode(result.code, {
+            ...pending.context,
+            destination: result.destination ?? null,
+            resolved: true,
+          })
+        }
+
+        if (destination) navigate(destination.view, destination.options)
+        else if (directPromotion) navigate('home')
+      })
+      .catch(() => {
+        promotionResolutionRef.current = null
+        if (directPromotion) navigate('login')
+      })
+  }, [app.session, app.sessionPending, navigate])
 
   function selectEvent(event) {
     setSelectedEvent(event)
@@ -546,6 +624,7 @@ export default function App() {
           onUpsertDiscountCode={app.upsertDiscountCode}
           onSetDiscountCodeState={app.setDiscountCodeState}
           onDeleteDiscountCode={app.deleteDiscountCode}
+          onSimulatePromotionCode={app.simulatePromotionCode}
           billingSubscriptions={app.billingSubscriptions}
           billingSubscriptionsLoading={app.billingSubscriptionsLoading}
           billingSubscriptionsError={app.billingSubscriptionsError}
@@ -670,6 +749,7 @@ export default function App() {
                       initialEventSlug: ticketEventSlug,
                       tickets: app.tickets,
                       createdOrder: app.createdOrder,
+                      session: app.session,
                       onSubmitTicketPurchase: app.submitTicketPurchase,
                       onUploadPaymentProof: app.uploadTicketPaymentProofAction,
                     }
