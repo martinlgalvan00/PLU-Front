@@ -65,11 +65,19 @@ export default function ExclusiveOfferSection({
     // El código NO se pasa por acá: el checkout lee las ofertas desbloqueadas
     // del atleta y aplica la que corresponde a este evento. Así también funciona
     // si el atleta entra por un link directo o recarga la página.
-    if (catalogEvent && onSelectEvent) {
-      onSelectEvent(catalogEvent)
+    //
+    // `catalogEvent` puede no estar (el catálogo local todavía no cargó, o el
+    // slug no matchea): antes eso mandaba a `onNavigate('competition')` sin
+    // evento, que dejaba el evento seleccionado como estuviera antes —otro
+    // torneo, o el de arranque— y el atleta terminaba inscribiéndose a ciegas
+    // ahí, a SU precio de lista. `offer.event` siempre trae slug y título
+    // (`getOfferState` ya lo exige para que la oferta esté disponible), así
+    // que alcanza como evento mínimo para no perder el rumbo.
+    if (onSelectEvent) {
+      onSelectEvent(catalogEvent ?? offer.event)
       return
     }
-    onNavigate?.('competition')
+    onNavigate?.('competition', { eventSlug: offer.event.slug })
   }
 
   return (

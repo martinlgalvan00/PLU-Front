@@ -352,7 +352,14 @@ export default function App() {
         setProfileTabNonce((current) => current + 1)
       }
       if (resolvedView === 'competition' && resolvedOptions.eventSlug) {
-        const promotionEvent = app.adminEvents.find(
+        // `app.adminEvents` requiere el permiso `admin.events.read` — para
+        // cualquier atleta normal queda vacío y este lookup nunca encontraba
+        // nada, así que `selectedEvent` se quedaba con lo que hubiera antes
+        // (otro torneo, o el de arranque) y la navegación por código secreto
+        // terminaba en el checkout equivocado. `publicEvents` es el catálogo
+        // público, sin permiso de por medio, y ya es lo que usa el resto de
+        // la app para mostrar/elegir eventos.
+        const promotionEvent = publicEvents.find(
           (event) => event.slug === resolvedOptions.eventSlug,
         )
         if (promotionEvent) setSelectedEvent(promotionEvent)
@@ -361,7 +368,7 @@ export default function App() {
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [app.adminEvents, getSession, pendingAthleteDestination, view],
+    [publicEvents, getSession, pendingAthleteDestination, view],
   )
 
   useEffect(() => {
