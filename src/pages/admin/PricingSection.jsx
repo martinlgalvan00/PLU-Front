@@ -7,7 +7,10 @@ import {
   ChevronDown,
   CirclePlus,
   Copy,
+  FlaskConical,
+  Link2,
   Pencil,
+  QrCode,
   RefreshCw,
   Repeat,
   Save,
@@ -21,7 +24,10 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getPricingTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
+import { generateCredentialQr } from '../../lib/credentialQr.js'
 import { getDiscountCodeAvailability } from '../../services/pricingAdminService.js'
+import { buildPromotionCodeUrl } from '../../services/promotionCodeService.js'
+import { COMBO_VISIBILITY_STATES } from '../../services/comboOfferService.js'
 
 const EMPTY_PLAN = {
   sourcePlanId: undefined,
@@ -203,6 +209,7 @@ export default function PricingSection({
   onUpsertDiscountCode,
   onSetDiscountCodeState,
   onDeleteDiscountCode,
+  onSimulatePromotionCode,
   subscriptions = [],
   subscriptionsLoading = false,
   subscriptionsError,
@@ -237,8 +244,8 @@ export default function PricingSection({
     startsAt: '',
     endsAt: '',
     active: false,
-    // Quién ve el paquete: 'public' cualquiera, 'code' sólo quien tipea el
-    // código de acceso. Es visibilidad, no precio.
+    // Quién ve el paquete: público, restringido por llave o privado para
+    // prepararlo/pausarlo. Es visibilidad, no precio ni estado operativo.
     audience: 'public',
     accessCode: '',
   })
@@ -252,6 +259,8 @@ export default function PricingSection({
   // quedaba invisible y el control volvía solo a su lugar sin explicar nada.
   const [codeStateError, setCodeStateError] = useState({ id: null, message: '' })
   const [copiedCodeId, setCopiedCodeId] = useState(null)
+  const [copiedLinkCodeId, setCopiedLinkCodeId] = useState(null)
+  const [simulationState, setSimulationState] = useState({ id: null, loading: false, data: null })
   const [codeToDelete, setCodeToDelete] = useState(null)
   const [codeDeleteError, setCodeDeleteError] = useState('')
   const [cancelTarget, setCancelTarget] = useState(null)
@@ -306,6 +315,42 @@ export default function PricingSection({
     }
   }
 
+  async function copyPromotionLink(code) {
+    try {
+      await copyText(buildPromotionCodeUrl(code.code))
+      setCopiedLinkCodeId(code.id)
+      window.clearTimeout(copyFeedbackTimeoutRef.current)
+      copyFeedbackTimeoutRef.current = window.setTimeout(() => {
+        setCopiedLinkCodeId(null)
+      }, COPY_FEEDBACK_MS)
+    } catch {
+      setNotice(t('admin.sections.pricing.copyPromotionLinkError'))
+    }
+  }
+
+  async function downloadPromotionQr(code) {
+    try {
+      const qr = await generateCredentialQr(buildPromotionCodeUrl(code.code))
+      const anchor = document.createElement('a')
+      anchor.href = qr
+      anchor.download = `${code.code}-canje.png`
+      anchor.click()
+    } catch {
+      setNotice(t('admin.sections.pricing.downloadPromotionQrError'))
+    }
+  }
+
+  async function simulatePromotion(code) {
+    if (!onSimulatePromotionCode || simulationState.loading) return
+    setSimulationState({ id: code.id, loading: true, data: null })
+    const result = await onSimulatePromotionCode(code.id)
+    setSimulationState({
+      id: code.id,
+      loading: false,
+      data: result.error ? { error: result.error } : result.simulation,
+    })
+  }
+
   const pricingWritesEnabled = isFeatureEnabled(FEATURE_KEYS.pricingWrites)
   const locked = !pricingWritesEnabled || configuration.availability?.editable === false || !canEdit
   const showProductionLock =
@@ -348,6 +393,9 @@ export default function PricingSection({
   )
   const selectedEvent =
     events.find((event) => event.slug === selectedEventSlug) ?? events[0] ?? null
+  const selectedOfferEvent = codeDraft?.eventId
+    ? (events.find((event) => event.id === codeDraft.eventId) ?? null)
+    : null
   const selectedPlan = oneTimePlans.find((plan) => plan.id === comboDraft.membershipPlanId) ?? null
   const separatePrice =
     Number(selectedPlan?.price ?? 0) + Number(selectedEvent?.registrationPrice ?? 0)
@@ -382,7 +430,7 @@ export default function PricingSection({
       startsAt: toLocalDateTime(offer?.startsAt),
       endsAt: toLocalDateTime(offer?.endsAt),
       active: offer?.active === true,
-      audience: offer?.audience === 'code' ? 'code' : 'public',
+      audience: COMBO_VISIBILITY_STATES.includes(offer?.audience) ? offer.audience : 'public',
       accessCode: offer?.accessCode ?? '',
     })
     setComboError('')
@@ -543,7 +591,11 @@ export default function PricingSection({
       setCodeError(t('admin.sections.pricing.codeFormatHint'))
       return
     }
-    if (!isFixedPrice && !isAccess && (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99)) {
+    if (
+      !isFixedPrice &&
+      !isAccess &&
+      (!Number.isInteger(percentOff) || percentOff < 1 || percentOff > 99)
+    ) {
       setCodeError(t('admin.sections.pricing.percentOffInvalid'))
       return
     }
@@ -603,6 +655,10 @@ export default function PricingSection({
       // afiliación se empaqueta y contra qué precio se compara la oferta.
       if (!offerEvent?.comboOffer) {
         setCodeError(t('admin.sections.pricing.offerComboMissing'))
+        return
+      }
+      if (!offerEvent.comboOffer.active || offerEvent.comboOffer.audience !== 'code') {
+        setCodeError(t('admin.sections.pricing.offerComboVisibilityRequired'))
         return
       }
       if (fixedPrice >= Number(offerEvent.comboOffer.price)) {
@@ -671,7 +727,11 @@ export default function PricingSection({
     // Con canjes la promo no se borra: se archiva. Decir "eliminada" a secas
     // escondería que la fila sigue respaldando órdenes ya cobradas.
     setNotice(
-      t(result?.archived ? 'admin.sections.pricing.codeArchived' : 'admin.sections.pricing.codeDeleted'),
+      t(
+        result?.archived
+          ? 'admin.sections.pricing.codeArchived'
+          : 'admin.sections.pricing.codeDeleted',
+      ),
     )
   }
 
@@ -1197,7 +1257,11 @@ export default function PricingSection({
                 className={`admin-pricing__offer-pill${comboDraft.active ? ' is-on' : ''}`.trim()}
               >
                 {comboDraft.active
-                  ? t('admin.sections.pricing.comboOfferOn')
+                  ? t('admin.sections.pricing.comboOfferStatus', {
+                      visibility: t(
+                        `admin.sections.pricing.comboVisibilityShort.${comboDraft.audience}`,
+                      ),
+                    })
                   : t('admin.sections.pricing.comboOfferOff')}
               </span>
               <button
@@ -1247,6 +1311,12 @@ export default function PricingSection({
                   <dt>{t('admin.sections.pricing.comboSavings')}</dt>
                   <dd>
                     {comboSavings != null && comboSavings >= 0 ? money(comboSavings, locale) : '—'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('admin.sections.pricing.comboVisibilityLabel')}</dt>
+                  <dd>
+                    {t(`admin.sections.pricing.comboVisibility.${comboDraft.audience}.title`)}
                   </dd>
                 </div>
               </dl>
@@ -1414,29 +1484,46 @@ export default function PricingSection({
                     />
                     <span>{t('admin.sections.pricing.comboActive')}</span>
                   </label>
-                  <label>
-                    <span>{t('admin.sections.pricing.comboAudienceLabel')}</span>
-                    <select
-                      value={comboDraft.audience}
-                      onChange={(event) => {
-                        const audience = event.target.value
-                        setComboDraft({
-                          ...comboDraft,
-                          audience,
-                          // Volver a público borra el código: restringirlo de
-                          // nuevo tiene que obligar a elegir uno nuevo en vez de
-                          // revivir el que ya se repartió.
-                          accessCode: audience === 'public' ? '' : comboDraft.accessCode,
-                        })
-                      }}
-                    >
-                      <option value="public">
-                        {t('admin.sections.pricing.comboAudience.public')}
-                      </option>
-                      <option value="code">{t('admin.sections.pricing.comboAudience.code')}</option>
-                    </select>
-                    <small>{t('admin.sections.pricing.comboAudienceHint')}</small>
-                  </label>
+                  <fieldset className="admin-pricing__combo-visibility">
+                    <legend>{t('admin.sections.pricing.comboVisibilityLabel')}</legend>
+                    <div className="admin-pricing__combo-visibility-options">
+                      {COMBO_VISIBILITY_STATES.map((visibility) => (
+                        <label
+                          className={comboDraft.audience === visibility ? 'is-selected' : ''}
+                          key={visibility}
+                        >
+                          <input
+                            type="radio"
+                            name="combo-visibility"
+                            value={visibility}
+                            checked={comboDraft.audience === visibility}
+                            onChange={() =>
+                              setComboDraft({
+                                ...comboDraft,
+                                audience: visibility,
+                                accessCode: visibility === 'code' ? comboDraft.accessCode : '',
+                              })
+                            }
+                          />
+                          <span>
+                            <strong>
+                              {t(`admin.sections.pricing.comboVisibility.${visibility}.title`)}
+                            </strong>
+                            <small>
+                              {t(
+                                `admin.sections.pricing.comboVisibility.${visibility}.description`,
+                              )}
+                            </small>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {comboDraft.audience === 'private' ? (
+                      <p className="admin-pricing__combo-private-note" role="status">
+                        {t('admin.sections.pricing.comboPrivateNote')}
+                      </p>
+                    ) : null}
+                  </fieldset>
                   {comboDraft.audience === 'code' ? (
                     <label>
                       <span>{t('admin.sections.pricing.comboAccessCode')}</span>
@@ -1577,9 +1664,7 @@ export default function PricingSection({
                         token celeste que ya existe para los planes; los estados
                         sin variante propia (agotado, vencido, desactivado) caen
                         en el estilo base, como antes. */}
-                    <span
-                      className={`admin-pricing__status admin-pricing__status--${status}`}
-                    >
+                    <span className={`admin-pricing__status admin-pricing__status--${status}`}>
                       {t(`admin.sections.pricing.discountStatus.${status}`)}
                     </span>
                     {status === 'active' && code.audience === 'public' ? (
@@ -1662,6 +1747,18 @@ export default function PricingSection({
                   {code.description ? (
                     <p className="admin-pricing__plan-meta">{code.description}</p>
                   ) : null}
+                  {code.campaignMetrics ? (
+                    <dl className="admin-pricing__campaign-funnel">
+                      {['resolvedCount', 'unlockedCount', 'checkoutCount', 'paidCount'].map(
+                        (metric) => (
+                          <div key={metric}>
+                            <dt>{t(`admin.sections.pricing.campaignMetric.${metric}`)}</dt>
+                            <dd>{code.campaignMetrics[metric]}</dd>
+                          </div>
+                        ),
+                      )}
+                    </dl>
+                  ) : null}
                 </div>
 
                 {['fixed_price', 'offer'].includes(code.kind) ? (
@@ -1671,8 +1768,7 @@ export default function PricingSection({
                     </strong>
                     {/* Sólo cuando difiere: si el canal manual cobra lo mismo,
                         repetir el importe no informa nada. */}
-                    {code.fixedPriceManual != null &&
-                    code.fixedPriceManual !== code.fixedPrice ? (
+                    {code.fixedPriceManual != null && code.fixedPriceManual !== code.fixedPrice ? (
                       <span className="admin-pricing__plan-amount-note">
                         {t('admin.sections.pricing.fixedPriceManualNote', {
                           amount: money(code.fixedPriceManual, locale),
@@ -1693,6 +1789,37 @@ export default function PricingSection({
                 )}
 
                 <div className="admin-pricing__plan-actions">
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    onClick={() => copyPromotionLink(code)}
+                  >
+                    <Link2 size={14} aria-hidden />
+                    {copiedLinkCodeId === code.id
+                      ? t('admin.sections.pricing.promotionLinkCopied')
+                      : t('admin.sections.pricing.copyPromotionLink')}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    onClick={() => downloadPromotionQr(code)}
+                  >
+                    <QrCode size={14} aria-hidden />
+                    {t('admin.sections.pricing.downloadPromotionQr')}
+                  </button>
+                  {onSimulatePromotionCode ? (
+                    <button
+                      type="button"
+                      className="admin-pricing__btn admin-pricing__btn--quiet"
+                      onClick={() => simulatePromotion(code)}
+                      disabled={simulationState.loading && simulationState.id === code.id}
+                    >
+                      <FlaskConical size={14} aria-hidden />
+                      {simulationState.loading && simulationState.id === code.id
+                        ? t('admin.sections.pricing.simulatingPromotion')
+                        : t('admin.sections.pricing.simulatePromotion')}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="admin-pricing__btn admin-pricing__btn--quiet"
@@ -1761,6 +1888,34 @@ export default function PricingSection({
                   <p className="admin-pricing__promo-note is-error" role="alert">
                     {codeStateError.message}
                   </p>
+                ) : null}
+                {simulationState.id === code.id && simulationState.data ? (
+                  <div className="admin-pricing__simulation" role="status">
+                    {simulationState.data.error ? (
+                      <p className="admin-pricing__promo-note is-error">
+                        {simulationState.data.error}
+                      </p>
+                    ) : (
+                      <>
+                        <strong>{t('admin.sections.pricing.simulationTitle')}</strong>
+                        <span>
+                          {t('admin.sections.pricing.simulationDestination', {
+                            destination: simulationState.data.destination?.kind ?? 'stay',
+                          })}
+                        </span>
+                        <ul>
+                          {Object.entries(simulationState.data.checks ?? {}).map(
+                            ([check, passed]) => (
+                              <li className={passed ? 'is-passed' : 'is-failed'} key={check}>
+                                {passed ? '✓' : '×'}{' '}
+                                {t(`admin.sections.pricing.simulationCheck.${check}`)}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </>
+                    )}
+                  </div>
                 ) : null}
               </article>
             )
@@ -1929,7 +2084,11 @@ export default function PricingSection({
                       <option value="">{t('admin.sections.pricing.codeEventAny')}</option>
                     )}
                     {(configuration.events ?? [])
-                      .filter((item) => codeDraft.kind !== 'offer' || item.comboOffer)
+                      .filter(
+                        (item) =>
+                          codeDraft.kind !== 'offer' ||
+                          (item.comboOffer?.active && item.comboOffer?.audience === 'code'),
+                      )
                       .map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.title}
@@ -1947,6 +2106,43 @@ export default function PricingSection({
                       : t('admin.sections.pricing.codeEventHint')}
                   </small>
                 </label>
+              ) : null}
+              {codeDraft.kind === 'offer' ? (
+                <aside
+                  className="admin-pricing__exclusive-flow admin-pricing__wide"
+                  aria-labelledby="pricing-exclusive-flow-title"
+                >
+                  <div className="admin-pricing__exclusive-flow-intro">
+                    <span>{t('admin.sections.pricing.exclusiveFlowEyebrow')}</span>
+                    <h4 id="pricing-exclusive-flow-title">
+                      {t('admin.sections.pricing.exclusiveFlowTitle')}
+                    </h4>
+                    <p>{t('admin.sections.pricing.exclusiveFlowLead')}</p>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>{t('admin.sections.pricing.exclusiveFlowCode')}</dt>
+                      <dd>
+                        {codeDraft.code || t('admin.sections.pricing.exclusiveFlowCodePending')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('admin.sections.pricing.exclusiveFlowBenefit')}</dt>
+                      <dd>
+                        {selectedOfferEvent && Number(codeDraft.fixedPrice) > 0
+                          ? `${selectedOfferEvent.title} · ${money(
+                              Number(codeDraft.fixedPrice),
+                              locale,
+                            )}`
+                          : t('admin.sections.pricing.exclusiveFlowBenefitPending')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('admin.sections.pricing.exclusiveFlowDestination')}</dt>
+                      <dd>{t('admin.sections.pricing.exclusiveFlowDestinationValue')}</dd>
+                    </div>
+                  </dl>
+                </aside>
               ) : null}
               <label>
                 <span>{t('admin.sections.pricing.maxRedemptions')}</span>
@@ -2054,7 +2250,9 @@ export default function PricingSection({
                 />
                 <small>
                   {draftInviteeCount > 0
-                    ? t('admin.sections.pricing.inviteesCountHint', { count: draftInviteeCount })
+                    ? draftInviteeCount === 1
+                      ? t('admin.sections.pricing.personalCodeHint')
+                      : t('admin.sections.pricing.inviteesCountHint', { count: draftInviteeCount })
                     : t('admin.sections.pricing.inviteesHint')}
                 </small>
               </label>

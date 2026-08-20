@@ -51,6 +51,20 @@ async function setup() {
     if (name === 'staff_get_pricing_configuration') {
       return { data: { plans: [], events: [] }, error: null }
     }
+    if (name === 'staff_get_promotion_campaign_analytics') {
+      return { data: [], error: null }
+    }
+    if (name === 'staff_simulate_promotion_code') {
+      return {
+        data: {
+          status: 'ready',
+          code: 'ONLY-PITBULL',
+          destination: { kind: 'account_offer' },
+          checks: { active: true },
+        },
+        error: null,
+      }
+    }
     return { data: { id: PLAN_ID }, error: null }
   })
   const target = listen(
@@ -78,9 +92,33 @@ describe('configuración económica administrativa', () => {
       expect(await response.json()).toEqual({
         plans: [],
         events: [],
+        campaignAnalytics: [],
         availability: { editable: true, reason: null },
       })
       expect(rpc).toHaveBeenCalledWith('staff_get_pricing_configuration', {})
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('simula el recorrido de un código sin canjearlo ni consumir cupo', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(
+        `${target.url}/api/pricing/discount-codes/${PLAN_ID}/simulation`,
+        { headers: { Cookie: cookie } },
+      )
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        simulation: expect.objectContaining({
+          status: 'ready',
+          code: 'ONLY-PITBULL',
+        }),
+      })
+      expect(rpc).toHaveBeenCalledWith('staff_simulate_promotion_code', {
+        p_code_id: PLAN_ID,
+      })
     } finally {
       await target.close()
     }

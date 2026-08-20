@@ -136,7 +136,7 @@ export default function CommunityPage({ onNavigate }) {
                 </span>
                 <p className="institutional-kicker">{t('pages.community.venueEyebrow')}</p>
               </div>
-              <h3>Maximal Strength Club</h3>
+              <h3>{t('pages.community.venueTitle')}</h3>
               <p>{t('pages.community.venueDesc')}</p>
               <button type="button" onClick={() => onNavigate?.('pitbull')}>
                 {t('pages.community.venueCta')}

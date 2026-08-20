@@ -210,6 +210,7 @@ export default function AthleteProfilePage({
         onSelectEvent={onSelectEvent}
         checkoutAvailability={checkoutAvailability}
         onNavigateSection={setActiveTab}
+        onNavigate={onNavigate}
         onOfferUnlocked={loadUnlockedOffers}
       />
     ),

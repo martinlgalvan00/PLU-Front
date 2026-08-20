@@ -11409,7 +11409,7 @@
 }
 
 .admin-list-shell--registrations .data-table--admin table {
-  min-width: 640px;
+  min-width: 0;
 }
 
 /* PLU USA — vista de socio: toolbar en filtros, nota corta, stats limpios. */
@@ -12119,7 +12119,8 @@
 }
 
 .data-table--admin table {
-  min-width: 680px;
+  min-width: 0;
+  table-layout: auto;
 }
 
 .data-table--admin th,

@@ -12,7 +12,6 @@
 .contact-page--premium .contact-hero {
   background:
     radial-gradient(ellipse 54% 95% at 8% 20%, var(--plu-celeste-alpha-18), transparent 68%),
-    radial-gradient(ellipse 45% 85% at 92% 8%, var(--plu-gold-alpha-12), transparent 72%),
     var(--color-page-canvas);
   border-bottom: 1px solid var(--contact-divider);
   column-gap: clamp(32px, 8vw, 128px);
@@ -34,19 +33,6 @@
   position: absolute;
   top: calc(var(--header-height) + clamp(48px, 8vw, 104px));
   width: 2px;
-}
-
-.contact-page--premium .contact-hero::after {
-  background-image: radial-gradient(var(--contact-grid-dot) 0.8px, transparent 0.8px);
-  background-size: 18px 18px;
-  content: '';
-  height: 150px;
-  opacity: 0.45;
-  pointer-events: none;
-  position: absolute;
-  right: clamp(20px, 7vw, 112px);
-  top: calc(var(--header-height) + clamp(40px, 6vw, 76px));
-  width: min(240px, 24vw);
 }
 
 .contact-page--premium .contact-hero .plu-page-hero__breadcrumb,
@@ -100,33 +86,11 @@
 }
 
 .contact-hero__signal {
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--color-bg-elevated) 92%, transparent),
-      transparent
-    ),
-    var(--color-bg-elevated);
-  border: 1px solid var(--contact-card-border);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--elevation-lg);
   display: grid;
-  gap: 30px;
-  min-height: 260px;
-  padding: 22px;
+  gap: 22px;
+  padding-top: 4px;
   position: relative;
   width: 100%;
-}
-
-.contact-hero__signal::before {
-  background: var(--plu-gradient-stripe);
-  border-radius: var(--border-radius-pill);
-  content: '';
-  height: 2px;
-  left: 22px;
-  position: absolute;
-  right: 22px;
-  top: -1px;
 }
 
 .contact-hero__signal-topline {
@@ -190,7 +154,6 @@
 }
 
 .contact-hero__signal-note {
-  align-self: end;
   border-top: 1px solid var(--contact-divider);
   color: var(--color-text-muted);
   font-size: 11px;
@@ -395,7 +358,6 @@
 .contact-form__motive.is-active {
   background: var(--plu-celeste-alpha-18);
   border-color: var(--color-brand-celeste);
-  box-shadow: 0 0 20px rgba(116, 172, 223, 0.15);
   color: var(--color-text-primary);
   transform: translateY(-2px);
 }
@@ -543,18 +505,12 @@
   transform: scale(0.99);
 }
 
-/* Lateral institucional — ledger abierto */
+/* Lateral institucional — ledger abierto, sin vidrio ni sombra */
 .contact-sidebar {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background: rgba(8, 10, 14, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--elevation-md);
   display: grid;
   gap: 0;
   overflow: visible;
-  padding: clamp(24px, 3vw, 32px);
+  padding: 0;
   position: sticky;
   top: calc(var(--header-height) + 22px);
 }
@@ -734,7 +690,6 @@
 
 /* Tokens locales por tema: superficies abiertas sobre el canvas */
 [data-theme='dark'] .contact-page--premium {
-  --contact-card-border: transparent;
   --contact-control-active-bg: transparent;
   --contact-control-bg: transparent;
   --contact-control-border: rgba(255, 255, 255, 0.12);
@@ -742,7 +697,6 @@
   --contact-divider-strong: rgba(255, 255, 255, 0.16);
   --contact-form-bg: transparent;
   --contact-form-shadow: none;
-  --contact-grid-dot: rgba(255, 255, 255, 0.14);
   --contact-icon-bg: transparent;
   --contact-icon-border: transparent;
   --contact-input-bg: transparent;
@@ -751,7 +705,6 @@
 }
 
 [data-theme='light'] .contact-page--premium {
-  --contact-card-border: transparent;
   --contact-control-active-bg: transparent;
   --contact-control-bg: transparent;
   --contact-control-border: rgba(15, 17, 23, 0.12);
@@ -759,7 +712,6 @@
   --contact-divider-strong: rgba(15, 17, 23, 0.18);
   --contact-form-bg: transparent;
   --contact-form-shadow: none;
-  --contact-grid-dot: rgba(15, 17, 23, 0.16);
   --contact-icon-bg: transparent;
   --contact-icon-border: transparent;
   --contact-input-bg: transparent;

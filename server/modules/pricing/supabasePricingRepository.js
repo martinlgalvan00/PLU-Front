@@ -10,6 +10,16 @@ export function createSupabasePricingRepository(client) {
     getConfiguration: () =>
       rpc('staff_get_pricing_configuration', {}, 'No se pudo leer la configuración económica.'),
 
+    getCampaignAnalytics: () =>
+      rpc(
+        'staff_get_promotion_campaign_analytics',
+        {},
+        'No se pudo leer el rendimiento de las campañas.',
+      ),
+
+    simulatePromotionCode: (codeId) =>
+      rpc('staff_simulate_promotion_code', { p_code_id: codeId }, 'No se pudo simular el código.'),
+
     createPlanVersion: (plan, actor) =>
       rpc(
         'staff_create_membership_plan_version',

@@ -32,6 +32,11 @@ export async function resolveRegistrationAccessRequirements(repository, { eventS
  * copia y pega de un mensaje y llega con espacios o en minúscula.
  */
 export function assertComboAccessCode(offer, code) {
+  if (offer?.audience === 'private') {
+    throw new HttpError(404, 'El combo no está disponible.', {
+      code: 'COMBO_PRIVATE',
+    })
+  }
   if (offer?.audience !== 'code') return null
   const expected = normalizeRegistrationAccessCode(offer.accessCode)
   const candidate = normalizeRegistrationAccessCode(code)
@@ -99,6 +104,11 @@ export async function assertComboAccessCodeOrDiscountCode(
   offer,
   { comboAccessCode, discountCode, previewDiscountCode, athleteId, baseAmount, eventSlug = null },
 ) {
+  if (offer?.audience === 'private') {
+    throw new HttpError(404, 'El combo no está disponible.', {
+      code: 'COMBO_PRIVATE',
+    })
+  }
   if (offer?.audience !== 'code') return null
 
   const expected = normalizeRegistrationAccessCode(offer.accessCode).toUpperCase()

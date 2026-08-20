@@ -10,7 +10,6 @@ import {
   AlertCircle,
   Mail,
   Lock,
-  ShieldCheck,
 } from 'lucide-react'
 import '../styles/pages/design-phase2.css'
 import authVisualPhoto from '../assets/DSC00286-display.jpg'
@@ -486,7 +485,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       ) : null}
                     </div>
 
-                    <label className="login-remember">
+                    <label className="login-remember" title={t('login.rememberHint')}>
                       <span className="login-remember__control">
                         <input
                           type="checkbox"
@@ -498,13 +497,8 @@ export default function LoginPage({ onLogin, onNavigate }) {
                           <Check size={12} strokeWidth={3} />
                         </span>
                       </span>
-                      <span className="login-remember__copy">
-                        <span className="login-remember__label">{t('login.remember')}</span>
-                        <span className="login-remember__hint">
-                          <ShieldCheck size={12} aria-hidden="true" />
-                          <span>{t('login.rememberHint')}</span>
-                        </span>
-                      </span>
+                      <span className="login-remember__label">{t('login.remember')}</span>
+                      <span className="login-remember__hint">{t('login.rememberHint')}</span>
                     </label>
 
                     <AuthSubmit

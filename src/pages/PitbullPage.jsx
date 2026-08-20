@@ -28,6 +28,7 @@ import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.
 import Reveal from '../components/ui/Reveal.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
+import SecretOfferCodeRedeemer from '../components/ui/SecretOfferCodeRedeemer.jsx'
 import { useContent } from '../hooks/useContent.js'
 import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapacity.js'
 import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
@@ -626,6 +627,7 @@ function PitbullInscriptionSection({
   pricing,
   recent,
   registered,
+  session,
   slots,
   t,
 }) {
@@ -871,6 +873,12 @@ function PitbullInscriptionSection({
         </Body>
       </div>
 
+      <SecretOfferCodeRedeemer
+        className="pitbull-page__secret-code"
+        session={session}
+        onNavigate={onNavigate}
+      />
+
       {!softLaunch && capacityLive ? (
         <PitbullRecentRegistrants
           capacityStatus={capacityStatus}
@@ -1033,7 +1041,13 @@ export default function PitbullPage({
   const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
-  const liveComboOffer = hasActiveMembership ? null : resolveLiveComboOffer(pitbullEvent)
+  // Un combo `audience=code` es un easter egg: la página pública del torneo no
+  // puede anticipar que existe ni revelar su precio. Recién aparece en la
+  // cuenta del atleta después de canjear la llave.
+  const liveComboOffer =
+    hasActiveMembership || pitbullEvent?.comboOffer?.audience === 'code'
+      ? null
+      : resolveLiveComboOffer(pitbullEvent)
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
   const ticketCheckout = useTicketCheckoutAvailability(eventSlug)
   const ticketsOpen =
@@ -1157,6 +1171,7 @@ export default function PitbullPage({
             pricing={eventPricing}
             recent={recentRegistrants}
             registered={liveRegistered}
+            session={session}
             slots={liveSlots}
             t={t}
           />

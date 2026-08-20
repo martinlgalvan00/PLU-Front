@@ -90,7 +90,9 @@ describe('Tarifas — alta de planes y combo', () => {
   it('publica una versión nueva en vez de editar el monto cobrado', () => {
     renderPricing()
     fireEvent.click(screen.getAllByRole('button', { name: 'Nueva versión' })[0])
-    expect(screen.getByRole('heading', { name: 'Nueva versión de Afiliacion PLU anual' })).toBeTruthy()
+    expect(
+      screen.getByRole('heading', { name: 'Nueva versión de Afiliacion PLU anual' }),
+    ).toBeTruthy()
     expect(screen.getByLabelText(/Familia del plan/).disabled).toBe(true)
   })
 
@@ -113,6 +115,90 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByRole('button', { name: 'Guardar oferta' })).toBeTruthy()
   })
 
+  it('separa habilitación de los tres estados de visibilidad del combo', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        events: [
+          {
+            ...configuration.events[0],
+            comboOffer: {
+              membershipPlanId: 'plan-active',
+              price: 1,
+              active: true,
+              audience: 'code',
+              accessCode: 'ONLY-PITBULL',
+            },
+          },
+        ],
+      },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Editar oferta/ }))
+    const visibility = screen.getByRole('group', { name: 'Visibilidad comercial' })
+    expect(within(visibility).getByRole('radio', { name: /Pública/ })).toBeTruthy()
+    expect(within(visibility).getByRole('radio', { name: /Restringida/ }).checked).toBe(true)
+    expect(within(visibility).getByRole('radio', { name: /Privada/ })).toBeTruthy()
+
+    fireEvent.click(within(visibility).getByRole('radio', { name: /Privada/ }))
+    expect(screen.queryByLabelText('Código de acceso')).toBeNull()
+    expect(screen.getByText(/Al guardar como privada/)).toBeTruthy()
+  })
+
+  it('explica el recorrido secreto y sólo lista combos restringidos', async () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        plans: [{ ...configuration.plans[0], price: 75000 }, configuration.plans[1]],
+        events: [
+          {
+            ...configuration.events[0],
+            registrationPrice: 75000,
+            comboOffer: {
+              membershipPlanId: 'plan-active',
+              price: 140000,
+              active: true,
+              audience: 'code',
+              accessCode: 'ONLY-PITBULL',
+            },
+          },
+          {
+            id: 'event-private',
+            slug: 'evento-privado',
+            title: 'Evento privado',
+            registrationPrice: 75000,
+            comboOffer: { price: 130000, active: true, audience: 'private' },
+          },
+        ],
+      },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), { target: { value: 'offer' } })
+    expect(screen.getByLabelText(/^Tipo de código/).value).toBe('offer')
+    expect(
+      screen.getByRole('option', { name: 'Oferta exclusiva · afiliación + inscripción' }),
+    ).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Página privada de la oferta' })).toBeTruthy()
+    expect(screen.getByLabelText('Aplica a').value).toBe('combo')
+    expect(screen.getByLabelText(/Quién accede/).value).toBe('code')
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'only-pitbull' },
+    })
+    fireEvent.change(screen.getByLabelText(/Precio de la oferta por Mercado Pago/), {
+      target: { value: '120000' },
+    })
+    fireEvent.change(await screen.findByLabelText(/Inscripción de la oferta/), {
+      target: { value: 'event-1' },
+    })
+
+    expect(screen.getByRole('heading', { name: 'Página privada de la oferta' })).toBeTruthy()
+    expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
+    expect(screen.getAllByText(/Pitbull Classic ·/).length).toBeGreaterThan(0)
+    expect(screen.getByText('Mi cuenta · Oferta exclusiva · Procesar pago')).toBeTruthy()
+    expect(screen.queryByRole('option', { name: /Evento privado/ })).toBeNull()
+  })
+
   it('permite crear un código que aplique a afiliaciones e inscripciones', async () => {
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })
@@ -121,20 +207,26 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByRole('heading', { name: 'Nuevo código' })).toBeTruthy()
     expect(screen.queryByText('Todavía no hay códigos cargados.')).toBeNull()
 
-    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'club-25' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'club-25' },
+    })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '25' } })
     fireEvent.change(screen.getByLabelText('Aplica a'), { target: { value: 'both' } })
-    fireEvent.change(screen.getByRole('spinbutton', { name: /Límite de canjes/ }), { target: { value: '12' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: /Límite de canjes/ }), {
+      target: { value: '12' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
-    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'CLUB-25',
-      kind: 'percent',
-      percentOff: 25,
-      fixedPrice: undefined,
-      appliesTo: 'both',
-      maxRedemptions: 12,
-    }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'CLUB-25',
+        kind: 'percent',
+        percentOff: 25,
+        fixedPrice: undefined,
+        appliesTo: 'both',
+        maxRedemptions: 12,
+      }),
+    )
   })
 
   it('crea una promo de precio fijo para el combo y no manda el porcentaje', async () => {
@@ -142,8 +234,12 @@ describe('Tarifas — alta de planes y combo', () => {
     renderPricing({ onUpsertDiscountCode })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
-    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'pitbull' } })
-    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'pitbull' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'fixed_price' },
+    })
     // El campo de porcentaje deja lugar al del precio promocional.
     expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
     fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
@@ -152,16 +248,18 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.change(screen.getByLabelText('Aplica a'), { target: { value: 'combo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
-    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'PITBULL',
-      kind: 'fixed_price',
-      fixedPrice: 120000,
-      percentOff: undefined,
-      appliesTo: 'combo',
-      // Sin precio manual cargado: transferencia y efectivo cobran lo mismo que
-      // Mercado Pago. Es el default y el caso que pidió Administración.
-      fixedPriceManual: undefined,
-    }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'PITBULL',
+        kind: 'fixed_price',
+        fixedPrice: 120000,
+        percentOff: undefined,
+        appliesTo: 'combo',
+        // Sin precio manual cargado: transferencia y efectivo cobran lo mismo que
+        // Mercado Pago. Es el default y el caso que pidió Administración.
+        fixedPriceManual: undefined,
+      }),
+    )
   })
 
   it('deja pactar el mismo importe en Mercado Pago y en transferencia', async () => {
@@ -171,8 +269,12 @@ describe('Tarifas — alta de planes y combo', () => {
     renderPricing({ onUpsertDiscountCode })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
-    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'pacto' } })
-    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'pacto' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'fixed_price' },
+    })
     fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
       target: { value: '120000' },
     })
@@ -181,12 +283,14 @@ describe('Tarifas — alta de planes y combo', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
-    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'PACTO',
-      kind: 'fixed_price',
-      fixedPrice: 120000,
-      fixedPriceManual: 120000,
-    }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'PACTO',
+        kind: 'fixed_price',
+        fixedPrice: 120000,
+        fixedPriceManual: 120000,
+      }),
+    )
   })
 
   it('un precio manual mayor que el de Mercado Pago tambien se guarda', async () => {
@@ -194,8 +298,12 @@ describe('Tarifas — alta de planes y combo', () => {
     renderPricing({ onUpsertDiscountCode })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
-    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'caro' } })
-    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'caro' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'fixed_price' },
+    })
     fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
       target: { value: '120000' },
     })
@@ -204,10 +312,12 @@ describe('Tarifas — alta de planes y combo', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
-    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
-      fixedPrice: 120000,
-      fixedPriceManual: 135000,
-    }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fixedPrice: 120000,
+        fixedPriceManual: 135000,
+      }),
+    )
   })
 
   it('el precio promocional por canal no existe en una promo de porcentaje', () => {
@@ -216,7 +326,9 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
     expect(screen.queryByLabelText(/Precio promocional por transferencia/)).toBeNull()
 
-    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'fixed_price' },
+    })
     expect(screen.getByLabelText(/Precio promocional por transferencia/)).toBeTruthy()
   })
 
@@ -225,10 +337,14 @@ describe('Tarifas — alta de planes y combo', () => {
     renderPricing({ onUpsertDiscountCode })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
-    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'preventa' } })
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'preventa' },
+    })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '20' } })
     fireEvent.change(screen.getByLabelText(/^Apertura/), { target: { value: '2026-09-10T00:00' } })
-    fireEvent.change(screen.getByLabelText(/^Vencimiento/), { target: { value: '2026-09-01T00:00' } })
+    fireEvent.change(screen.getByLabelText(/^Vencimiento/), {
+      target: { value: '2026-09-01T00:00' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).not.toHaveBeenCalled()
@@ -236,14 +352,18 @@ describe('Tarifas — alta de planes y combo', () => {
       screen.getByText('El cierre de la promoción tiene que ser posterior a su apertura.'),
     ).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText(/^Vencimiento/), { target: { value: '2026-09-30T00:00' } })
+    fireEvent.change(screen.getByLabelText(/^Vencimiento/), {
+      target: { value: '2026-09-30T00:00' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
-    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'PREVENTA',
-      startsAt: '2026-09-10T00:00',
-      expiresAt: '2026-09-30T00:00',
-    }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'PREVENTA',
+        startsAt: '2026-09-10T00:00',
+        expiresAt: '2026-09-30T00:00',
+      }),
+    )
   })
 
   it('convierte la lista de invitados en exclusividad y rechaza un email invalido', async () => {
@@ -268,10 +388,12 @@ describe('Tarifas — alta de planes y combo', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
-    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
-      code: 'GYM',
-      invitees: ['ana@plu.ar', 'bruno@plu.ar'],
-    }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'GYM',
+        invitees: ['ana@plu.ar', 'bruno@plu.ar'],
+      }),
+    )
   })
 
   it('crea un código de acceso al combo, sin descuento', async () => {
@@ -282,7 +404,7 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
       target: { value: 'combo-secreto' },
     })
-    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'access' } })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), { target: { value: 'access' } })
 
     // Ni porcentaje ni precio promocional: un acceso no descuenta nada.
     expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
@@ -312,7 +434,9 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
     expect(screen.getByRole('option', { name: 'Afiliación e inscripción' })).toBeTruthy()
 
-    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'fixed_price' },
+    })
     expect(screen.queryByRole('option', { name: 'Afiliación e inscripción' })).toBeNull()
     expect(screen.getByRole('option', { name: 'Combo (afiliación + inscripción)' })).toBeTruthy()
   })
@@ -418,7 +542,10 @@ describe('Tarifas — alta de planes y combo', () => {
 
     expect(screen.getByText('0 disponibles')).toBeTruthy()
     expect(screen.getByText('Agotado')).toBeTruthy()
-    expect(screen.getByRole('progressbar', { name: '0 de 10 cupos disponibles' })).toHaveProperty('value', 0)
+    expect(screen.getByRole('progressbar', { name: '0 de 10 cupos disponibles' })).toHaveProperty(
+      'value',
+      0,
+    )
     // Agotada queda en "Deshabilitada" y las dos opciones abiertas fuera de
     // alcance: reabrirla sin ampliar el cupo no habilita nada y la RPC la
     // rechaza, así que el panel no ofrece el click.

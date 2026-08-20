@@ -23,8 +23,16 @@ export function isComboOfferLive(offer, now = new Date()) {
   return true
 }
 
-export function resolveLiveComboOffer(event, now = new Date()) {
+/**
+ * Oferta que puede anunciarse en una superficie publica.
+ *
+ * Un combo con audiencia `code` puede estar vigente para el checkout despues
+ * del canje, pero antes de eso no es parte del catalogo comercial visible.
+ */
+export function resolveLiveComboOffer(event, now = new Date(), { includeRestricted = false } = {}) {
   const offer = event?.comboOffer ?? null
+  if (offer?.audience === 'private') return null
+  if (!includeRestricted && offer?.audience === 'code') return null
   return isComboOfferLive(offer, now) ? offer : null
 }
 
