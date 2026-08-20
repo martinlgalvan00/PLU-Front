@@ -508,6 +508,102 @@ describe('migración de guardado seguro de eventos', () => {
   })
 })
 
+describe('control de estado: requisito de afiliación', () => {
+  /**
+   * Habilitar o deshabilitar un meet como "solo afiliados" era lo único de la
+   * operación diaria que obligaba a pasar por `/upsert`, que recrea días,
+   * tandas y tipos de entrada en cada guardado. Este test fija que el camino
+   * quirúrgico existe y que llega a la RPC como un campo propio.
+   */
+  it('propaga requiresMembership a staff_set_event_state sin tocar el resto', async () => {
+    const { target, cookie, supabase } = await setup('admin_maximal', {
+      rpcResult: { data: { event: { id: EVENT_ID }, statusOverridden: false }, error: null },
+    })
+
+    try {
+      const response = await fetch(`${target.url}/api/events/pitbull-classic-2026/state`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ requiresMembership: false }),
+      })
+
+      expect(response.status).toBe(200)
+      expect(supabase.rpc).toHaveBeenCalledWith(
+        'staff_set_event_state',
+        expect.objectContaining({
+          p_event_slug: 'pitbull-classic-2026',
+          p_requires_membership: false,
+          // Lo que el operador no tocó viaja en null: la RPC hace coalesce y
+          // no puede pisar el estado ni la publicación por efecto colateral.
+          p_status: null,
+          p_published: null,
+        }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un cambio de estado vacío antes de llegar a la RPC', async () => {
+    const { target, cookie, supabase } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/events/pitbull-classic-2026/state`, {
+        method: 'POST',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({}),
+      })
+
+      expect(response.status).toBe(400)
+      expect(supabase.rpc).not.toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('migración 20260826100000 (requisito de afiliación en el estado)', () => {
+  const migration = readFileSync(
+    resolve('supabase/migrations/20260826100000_event_state_requires_membership.sql'),
+    'utf8',
+  )
+
+  it('borra la firma de cuatro argumentos antes de recrear la función', () => {
+    const dropAt = migration.indexOf(
+      'drop function if exists public.staff_set_event_state(text, text, boolean, text);',
+    )
+    const createAt = migration.indexOf('create or replace function public.staff_set_event_state')
+    expect(dropAt).toBeGreaterThan(-1)
+    expect(createAt).toBeGreaterThan(dropAt)
+  })
+
+  it('aplica requires_membership con coalesce y lo suma al guard de cambio vacío', () => {
+    expect(migration).toContain(
+      'requires_membership = coalesce(p_requires_membership, requires_membership)',
+    )
+    expect(migration).toContain(
+      'if p_status is null and p_published is null and p_requires_membership is null then',
+    )
+  })
+
+  // Cambiar el requisito decide quién pasa la puerta el día del meet: el cambio
+  // tiene que poder reconstruirse desde el log de dominio.
+  it('audita el valor anterior y el nuevo', () => {
+    expect(migration).toContain("'requiresMembershipFrom', v_before.requires_membership")
+    expect(migration).toContain("'requiresMembershipTo', v_event.requires_membership")
+  })
+
+  it('deja los permisos solo en service_role para la firma nueva', () => {
+    expect(migration).toContain(
+      'revoke all on function public.staff_set_event_state(text, text, boolean, boolean, text)',
+    )
+    expect(migration).toContain(
+      'grant execute on function public.staff_set_event_state(text, text, boolean, boolean, text)',
+    )
+    expect(migration).toContain('to service_role')
+  })
+})
+
 describe('migración requiresMembership configurable', () => {
   // La regresión de 20260806230000 pasó porque este test leía la migración que
   // introdujo el fix, no la definición vigente: cualquier migración posterior

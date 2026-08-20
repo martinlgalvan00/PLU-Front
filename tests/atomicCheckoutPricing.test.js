@@ -67,6 +67,7 @@ describe('cotizacion atomica del checkout', () => {
       p_default_price: 85000,
       p_manual_price: 75000,
       p_manual_payment_channel: 'bank_transfer',
+      p_currency: null,
     })
   })
 })

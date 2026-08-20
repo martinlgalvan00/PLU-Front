@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   CalendarClock,
   Check,
   ImageDown,
@@ -16,9 +17,10 @@ import { formatShortDate, money } from '../../lib/format.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
-import { previewDiscountCode } from '../../services/athleteApi.js'
+import { previewDiscountCode, unlockOfferCode } from '../../services/athleteApi.js'
 import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
+import { isOfferUnlockKind } from '../../services/exclusiveOfferService.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
@@ -34,6 +36,7 @@ import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
+import { channelOpen } from '../../lib/paymentChannels.js'
 
 export default function MembershipPurchaseSection({
   athlete,
@@ -46,11 +49,15 @@ export default function MembershipPurchaseSection({
   events = [],
   onSelectEvent,
   checkoutAvailability = {},
+  onNavigateSection,
+  onOfferUnlocked,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
+  const [transferChannel, setTransferChannel] = useState('bank_transfer')
+  const [transferAmount, setTransferAmount] = useState(null)
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
@@ -73,6 +80,15 @@ export default function MembershipPurchaseSection({
   const [checkoutIsError, setCheckoutIsError] = useState(false)
   const [discountCodeInput, setDiscountCodeInput] = useState('')
   const [discountPreview, setDiscountPreview] = useState(null)
+  // Oferta exclusiva recién canjeada desde esta pantalla. No entra al cálculo
+  // del precio de la afiliación: la oferta se compra en el checkout del torneo.
+  // Acá sólo se confirma el canje y se ofrece la ficha donde vive.
+  const [unlockedOffer, setUnlockedOffer] = useState(null)
+  // Promoción que corre para todos y se aplica sola dentro de la transacción de
+  // compra. Se guarda aparte del cupón tipeado porque son dos cosas distintas:
+  // el cupón se puede quitar, la promo pública no es del atleta. Si hay cupón,
+  // manda el cupón — la orden lleva un solo descuento.
+  const [publicPromo, setPublicPromo] = useState(null)
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountError, setDiscountError] = useState('')
   const [discountOpen, setDiscountOpen] = useState(false)
@@ -109,6 +125,7 @@ export default function MembershipPurchaseSection({
   // El interruptor general puede seguir apagado: un código de promoción
   // destraba puntualmente los canales que declara, y sólo esos.
   const codeChannels = discountPreview?.manualChannels ?? []
+  const activeDiscount = discountPreview ?? publicPromo
   const manualChannelsOpenGlobally = manualChannelEnabled && publicManualChannelEnabled
   // Transferencia y efectivo siguen anunciados como "próximamente" para el
   // caso general (decisión de producto: la afiliación se cobra por Mercado
@@ -118,6 +135,12 @@ export default function MembershipPurchaseSection({
   const cashSelectable = codeChannels.includes('cash_pitbull')
   const transferOffered = transferSelectable || manualChannelsOpenGlobally
   const cashOffered = cashSelectable || manualChannelsOpenGlobally
+  // La pasarela también se cierra por concepto desde Administración. Un cupón no
+  // la reabre: sólo destraba canales manuales.
+  const mercadoPagoOffered = channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
+  // Wise tiene interruptor propio, independiente del canal manual local y de
+  // los cupones que lo destraban.
+  const wiseOffered = channelOpen(checkoutAvailability, 'membership', 'wise_transfer')
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento
@@ -291,13 +314,24 @@ export default function MembershipPurchaseSection({
   useEffect(() => {
     if (paymentMethod === 'mercado_pago') return
     // Plan recurrente, o un medio que no quedó operable (canal cerrado, o el
-    // código aplicado no habilita justo ese): el único medio es Mercado Pago.
+    // código aplicado no habilita justo ese): se vuelve a la pasarela, que es el
+    // único medio para un plan recurrente. Si la pasarela está cerrada, la
+    // selección se queda donde está y el escritorio de cobro muestra sólo lo
+    // que sí se puede pagar.
     const methodOperable =
       selectedPlan?.collectionMode !== 'recurring' &&
       ((paymentMethod === 'transferencia' && transferSelectable) ||
-        (paymentMethod === 'cash_pitbull' && cashSelectable))
-    if (!methodOperable) setPaymentMethod('mercado_pago')
-  }, [cashSelectable, paymentMethod, selectedPlan?.collectionMode, transferSelectable])
+        (paymentMethod === 'cash_pitbull' && cashSelectable) ||
+        (paymentMethod === 'wise_transfer' && wiseOffered))
+    if (!methodOperable && mercadoPagoOffered) setPaymentMethod('mercado_pago')
+  }, [
+    cashSelectable,
+    mercadoPagoOffered,
+    paymentMethod,
+    selectedPlan?.collectionMode,
+    transferSelectable,
+    wiseOffered,
+  ])
 
   async function applyDiscountCode() {
     const code = discountCodeInput.trim().toUpperCase()
@@ -305,6 +339,7 @@ export default function MembershipPurchaseSection({
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
+    setUnlockedOffer(null)
     try {
       const preview = await previewDiscountCode({
         code,
@@ -313,6 +348,14 @@ export default function MembershipPurchaseSection({
         paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
+        // Un código de oferta exclusiva NO aplica a una afiliación suelta, y por
+        // eso el preview lo rechaza. Pero es exactamente el código que se
+        // reparte para canjear acá: en vez de un "no aplica" seco, se intenta el
+        // canje y se lo manda a su ficha. Ese es el punto de un código secreto —
+        // se tipea donde uno lo tiene a mano.
+        if (preview.reason === 'not_applicable' && isOfferUnlockKind(preview.kind)) {
+          if (await redeemSecretOffer(code)) return
+        }
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
         return
       }
@@ -321,6 +364,28 @@ export default function MembershipPurchaseSection({
       setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
     } finally {
       setDiscountChecking(false)
+    }
+  }
+
+  /**
+   * Canje del código secreto desde la pantalla de afiliación.
+   *
+   * Devuelve true si desbloqueó algo: el llamador corta ahí y no muestra el
+   * error del preview. Acá no se cobra nada — el combo se compra desde el
+   * checkout del torneo, así que la pantalla anuncia el canje y ofrece la ficha.
+   */
+  async function redeemSecretOffer(code) {
+    try {
+      const unlock = await unlockOfferCode({ code })
+      if (!unlock.unlocked) {
+        setDiscountError(t(`account.membership.offerUnlockError.${unlock.reason ?? 'not_found'}`))
+        return true
+      }
+      setUnlockedOffer(unlock.offer ?? { code })
+      onOfferUnlocked?.()
+      return true
+    } catch {
+      return false
     }
   }
 
@@ -334,11 +399,40 @@ export default function MembershipPurchaseSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMethod])
 
+  // La promo pública se aplica sola al crear la orden. Sin este preview el
+  // checkout anunciaría el precio de lista y cobraría otro. Depende del plan y
+  // del canal por el mismo motivo que el cupón.
+  useEffect(() => {
+    if (!selectedPlan) {
+      setPublicPromo(null)
+      return undefined
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const preview = await previewDiscountCode({
+          appliesTo: 'membership',
+          planCode: selectedPlan.code,
+          paymentMethod: toApiPaymentMethod(paymentMethod),
+        })
+        if (!cancelled) setPublicPromo(preview.valid ? preview : null)
+      } catch {
+        // Una promo que no se pudo consultar no bloquea la compra: se cobra el
+        // precio de lista y, si existía, la orden la aplica igual.
+        if (!cancelled) setPublicPromo(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [paymentMethod, selectedPlan])
+
   function clearDiscountCode() {
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
     setDiscountOpen(false)
+    setUnlockedOffer(null)
   }
 
   function openDiscountField() {
@@ -382,7 +476,7 @@ export default function MembershipPurchaseSection({
         setCheckoutIsError(true)
         return
       }
-      if (method === 'transferencia') {
+      if (method === 'transferencia' || method === 'wise_transfer') {
         // Puede venir de cambiar de método con una orden de Mercado Pago
         // todavía pendiente: esa pantalla de settle deja de tener sentido en
         // cuanto se abre el modal de transferencia.
@@ -391,6 +485,8 @@ export default function MembershipPurchaseSection({
         // El id de la orden habilita la subida del comprobante dentro del mismo
         // modal: es el momento en que el atleta tiene el ticket bancario a mano.
         setTransferOrderId(result?.createdOrder?.paymentId ?? null)
+        setTransferChannel(method === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')
+        setTransferAmount(result?.createdOrder?.amount ?? null)
         setTransferOpen(true)
         return
       }
@@ -737,8 +833,42 @@ export default function MembershipPurchaseSection({
                 </div>
               ) : null}
 
+              {unlockedOffer ? (
+                <div className="offer-unlocked" role="status">
+                  <span className="offer-unlocked__eyebrow">
+                    {t('account.membership.offerUnlocked.eyebrow')}
+                  </span>
+                  <strong className="offer-unlocked__code">{unlockedOffer.code}</strong>
+                  <p className="offer-unlocked__lead">
+                    {unlockedOffer.description ||
+                      t('account.membership.offerUnlocked.lead', {
+                        event: unlockedOffer.event?.title ?? '',
+                      })}
+                  </p>
+                  {onNavigateSection ? (
+                    <button
+                      type="button"
+                      className="offer-unlocked__cta"
+                      onClick={() => onNavigateSection('account-offer')}
+                    >
+                      {t('account.membership.offerUnlocked.cta')}
+                      <ArrowRight size={16} aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
               {selectedPlan ? (
                 <div className="account-discount">
+                  {!discountPreview && publicPromo ? (
+                    <p className="account-discount__applied account-discount__applied--public">
+                      <Tag size={14} aria-hidden />
+                      {publicPromo.description ||
+                        t('account.membership.publicPromoApplied', {
+                          amount: money(publicPromo.discountAmount, locale),
+                        })}
+                    </p>
+                  ) : null}
                   {discountPreview ? (
                     <p className="account-discount__applied">
                       <Tag size={14} aria-hidden />
@@ -847,7 +977,7 @@ export default function MembershipPurchaseSection({
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
-                      total={discountPreview ? discountPreview.finalAmount : selectedPlanPrice}
+                      total={activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice}
                       totalLabel={t('account.membership.priceLabel')}
                       type="button"
                       onClick={handleCheckoutAction}
@@ -855,7 +985,9 @@ export default function MembershipPurchaseSection({
                   ) : null
                 }
                 methods={[
-                  { value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') },
+                  ...(mercadoPagoOffered
+                    ? [{ value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') }]
+                    : []),
                   ...(transferOffered
                     ? [
                         {
@@ -878,12 +1010,21 @@ export default function MembershipPurchaseSection({
                         },
                       ]
                     : []),
+                  ...(wiseOffered && selectedPlan?.collectionMode !== 'recurring'
+                    ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }]
+                    : []),
                 ]}
                 methodsDisabled={checkoutLocked || !selectedPlan}
                 methodsLabel={t('account.membership.paymentLegend')}
                 methodsLegend={t('account.membership.paymentLegend')}
                 paymentHint={
-                  !manualChannelEnabled ? t('pages.register.paymentMercadoPagoOnlyHint') : ''
+                  paymentMethod === 'wise_transfer'
+                    ? t('pages.register.paymentWisePriceHint')
+                    : !mercadoPagoOffered && !transferOffered && !cashOffered && !wiseOffered
+                      ? t('pages.register.paymentNoChannelHint')
+                      : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
+                        ? t('pages.register.paymentMercadoPagoOnlyHint')
+                        : ''
                 }
                 offers={
                   selectedPlan
@@ -892,7 +1033,10 @@ export default function MembershipPurchaseSection({
                           featured: true,
                           id: selectedPlan.code,
                           name: selectedPlan.name,
-                          priceLabel: money(selectedPlanPrice, locale),
+                          priceLabel:
+                            paymentMethod === 'wise_transfer'
+                              ? t('pages.register.paymentWisePriceHint')
+                              : money(selectedPlanPrice, locale),
                         },
                       ]
                     : []
@@ -959,7 +1103,9 @@ export default function MembershipPurchaseSection({
       {transferOpen && (
         <TransferPayModal
           athlete={athlete}
-          amount={selectedPlan?.price ?? 0}
+          amount={transferAmount ?? selectedPlan?.price ?? 0}
+          currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
+          channel={transferChannel}
           orderId={transferOrderId}
           onClose={() => setTransferOpen(false)}
         />

@@ -49,3 +49,41 @@ describe('Eventos en teléfono', () => {
     )
   })
 })
+
+/**
+ * Mínimo táctil de los controles de acceso al meet.
+ *
+ * `.admin-filter-chip` no declara `min-height`: la altura sale del padding y
+ * queda en 26px. En la consola de operación eso ya estaba resuelto; en el
+ * editor —un modal que también se usa en tablet— los chips de estado público y
+ * de acceso quedaban por debajo del target táctil. El bump va solo bajo
+ * `pointer: coarse` para no engordar la densidad del panel con mouse.
+ */
+describe('Target táctil de los chips de acceso', () => {
+  const adminCss = fs.readFileSync(path.resolve('src/styles/pages/admin.css'), 'utf8')
+
+  function coarseBlock(source) {
+    const start = source.indexOf('@media (pointer: coarse)')
+    expect(start).toBeGreaterThan(-1)
+    return source.slice(start, source.indexOf('}\n}', start) + 3)
+  }
+
+  it('la consola de operación lleva chips, publicación y acciones a 44px en touch', () => {
+    const coarse = coarseBlock(css)
+    expect(coarse).toContain('.admin-event-state .admin-filter-chip')
+    expect(coarse).toContain('.admin-event-state__visibility')
+    expect(coarse).toContain('.admin-event-state__registration-action')
+    expect(coarse).toMatch(/min-height:\s*44px/)
+  })
+
+  it('el editor lleva sus chips a 44px en touch', () => {
+    const coarse = coarseBlock(adminCss)
+    expect(coarse).toMatch(/\.admin-event-form \.admin-filter-chip\s*\{[^}]*min-height:\s*44px/)
+  })
+
+  // Con mouse la densidad del panel se conserva: el bump no puede estar en la
+  // regla base o el editor entero crecería 18px por fila de chips.
+  it('no toca la altura con puntero fino', () => {
+    expect(adminCss).not.toMatch(/^\.admin-filter-chip \{[^}]*min-height/m)
+  })
+})

@@ -128,6 +128,20 @@ describe('setEventStateRequest', () => {
     expect(result.statusOverridden).toBe(false)
   })
 
+  // El requisito de afiliación viaja por el camino quirúrgico desde
+  // 20260826100000: por `/upsert` el guardado recrea días, tandas y tipos de
+  // entrada, y para apagar un flag eso es un efecto colateral inaceptable en un
+  // evento que ya tiene la grilla asignada.
+  it('manda requiresMembership sin arrastrar estado ni publicación', async () => {
+    apiPost.mockResolvedValue({ event: SUPABASE_EVENT_ROW, events: [SUPABASE_EVENT_ROW] })
+
+    await setEventStateRequest('pitbull-classic-2026', { requiresMembership: false })
+
+    expect(apiPost).toHaveBeenCalledWith('/api/events/pitbull-classic-2026/state', {
+      requiresMembership: false,
+    })
+  })
+
   it('rechaza sin slug antes de salir a la red', async () => {
     await expect(setEventStateRequest('', { published: true })).rejects.toThrow(/slug/i)
     expect(apiPost).not.toHaveBeenCalled()

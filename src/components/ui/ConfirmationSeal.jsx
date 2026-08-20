@@ -1,5 +1,6 @@
 import '../../styles/components/confirmation-seal.css'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import CelebrationBurst from './CelebrationBurst.jsx'
 import { celebrateHaptic } from '../../lib/haptics.js'
 
 /**
@@ -14,9 +15,15 @@ import { celebrateHaptic } from '../../lib/haptics.js'
  *
  * El festejo es un sello que se estampa: el anillo se traza, el check se
  * dibuja, el texto entra atrás. Es una sola secuencia one-shot de ~900 ms que
- * no se repite ni deja nada girando. Sin confeti, sin partículas, sin loops
- * — la marca es una federación deportiva, y la emoción acá viene de que el
- * trámite está cerrado y el nombre propio aparece confirmado.
+ * no se repite ni deja nada girando. La emoción viene de que el trámite está
+ * cerrado y el nombre propio aparece confirmado.
+ *
+ * Con `celebrate` el sello agrega la ráfaga de papel laminado
+ * (`CelebrationBurst`), que sale del anillo y dura otro segundo. Es confeti,
+ * pero de esta marca: oro PLU con celeste de acompañamiento, un solo disparo,
+ * sin glow ni loops. Se pide solo en los momentos que cierran algo de verdad
+ * —afiliación acreditada, credencial emitida, inscripción confirmada— y nunca
+ * con una orden pendiente. Bajo `prefers-reduced-motion` no se monta.
  *
  * Accesibilidad: el bloque es `role="status"` con `aria-live="polite"`, así
  * que un lector de pantalla anuncia el resultado sin que nada dependa del
@@ -33,7 +40,14 @@ import { celebrateHaptic } from '../../lib/haptics.js'
  * @param {string} [props.seal]     Chip corto del sello ("Temporada 2026").
  * @param {boolean} [props.haptic]  Vibración de acuse en mobile. Solo para
  *   confirmaciones definitivas: nunca para un estado pendiente.
+ * @param {boolean} [props.celebrate] Dispara la ráfaga desde el anillo.
+ * @param {string} [props.celebrateKey] Clave de "una sola vez" para la ráfaga,
+ *   en superficies que la persona vuelve a visitar (la credencial en su
+ *   cuenta). Sin clave se dispara en cada montaje.
  */
+/** Cuándo el sello queda estampado: trazo del anillo (60 + 560 ms) y check. */
+const SEAL_STAMPED_MS = 560
+
 export default function ConfirmationSeal({
   variant = 'membership',
   eyebrow,
@@ -41,8 +55,12 @@ export default function ConfirmationSeal({
   detail,
   seal,
   haptic = true,
+  celebrate = false,
+  celebrateKey,
   className = '',
 }) {
+  const markRef = useRef(null)
+
   useEffect(() => {
     if (!haptic) return
     celebrateHaptic()
@@ -54,7 +72,7 @@ export default function ConfirmationSeal({
       role="status"
       aria-live="polite"
     >
-      <span className="confirmation-seal__mark" aria-hidden="true">
+      <span className="confirmation-seal__mark" ref={markRef} aria-hidden="true">
         <svg className="confirmation-seal__glyph" viewBox="0 0 48 48" focusable="false">
           <circle className="confirmation-seal__ring" cx="24" cy="24" r="21" />
           <path className="confirmation-seal__check" d="M14.5 24.6 L21 31 L33.5 17.8" />
@@ -71,6 +89,18 @@ export default function ConfirmationSeal({
         <p className="confirmation-seal__title">{title}</p>
         {detail ? <p className="confirmation-seal__detail">{detail}</p> : null}
       </div>
+
+      {/* El papel sale cuando el sello ya está estampado (anillo 560 ms +
+          check), no junto con el montaje: si salen al mismo tiempo, ninguno de
+          los dos gestos se lee. */}
+      {celebrate ? (
+        <CelebrationBurst
+          active
+          anchorRef={markRef}
+          playKey={celebrateKey}
+          delayMs={SEAL_STAMPED_MS}
+        />
+      ) : null}
     </div>
   )
 }

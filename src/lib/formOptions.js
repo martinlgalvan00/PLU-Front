@@ -43,6 +43,7 @@ export function getFormOptions(t) {
       ['mercado_pago', t('formOptions.payment.mercadoPago')],
       ['manual_link', t('formOptions.payment.manualLink')],
       ['cash_pitbull', t('formOptions.payment.cashPitbull')],
+      ['wise_transfer', t('formOptions.payment.wiseTransfer')],
     ],
   }
 }

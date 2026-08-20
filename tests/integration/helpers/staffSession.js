@@ -12,11 +12,83 @@ import { hashPassword } from '../../../server/services/passwordService.js'
  * pasado como `deps.prisma` a `createApp()` mientras `deps.supabaseAdmin`
  * es el cliente real de Supabase local.
  */
-export function createPrismaDouble(users, { events = [] } = {}) {
+export function createPrismaDouble(users, { events = [], zones = [] } = {}) {
   const sessions = []
   let userSeq = users.length
+  let zoneSeq = zones.length
 
   return {
+    // Zonas de seguridad del evento (Prisma: EventSecurityZone). Se modelan acá
+    // y no contra Postgres por el mismo motivo que `user`: la sesión de staff se
+    // valida contra Prisma y estos tests no levantan la base.
+    eventSecurityZone: {
+      findMany: async ({ where, include } = {}) =>
+        zones
+          .filter((zone) => !where?.eventId || zone.eventId === where.eventId)
+          .sort((left, right) => left.sortOrder - right.sortOrder)
+          .map((zone) =>
+            include?._count
+              ? {
+                  ...zone,
+                  _count: {
+                    members: users.filter((user) => user.securityZoneId === zone.id).length,
+                  },
+                }
+              : zone,
+          ),
+      findUnique: async ({ where }) => zones.find((zone) => zone.id === where.id) ?? null,
+      count: async ({ where } = {}) =>
+        zones.filter((zone) => !where?.eventId || zone.eventId === where.eventId).length,
+      create: async ({ data }) => {
+        if (zones.some((zone) => zone.eventId === data.eventId && zone.name === data.name)) {
+          const error = new Error('Unique constraint failed')
+          error.code = 'P2002'
+          throw error
+        }
+        zoneSeq += 1
+        const created = {
+          id: `zone-${zoneSeq}`,
+          shiftStart: null,
+          shiftEnd: null,
+          sortOrder: 0,
+          ...data,
+        }
+        zones.push(created)
+        return { ...created, _count: { members: 0 } }
+      },
+      createMany: async ({ data }) => {
+        for (const row of data) {
+          zoneSeq += 1
+          zones.push({ id: `zone-${zoneSeq}`, shiftStart: null, shiftEnd: null, ...row })
+        }
+        return { count: data.length }
+      },
+      update: async ({ where, data }) => {
+        const zone = zones.find((item) => item.id === where.id)
+        if (
+          data.name &&
+          zones.some(
+            (item) =>
+              item.id !== zone.id && item.eventId === zone.eventId && item.name === data.name,
+          )
+        ) {
+          const error = new Error('Unique constraint failed')
+          error.code = 'P2002'
+          throw error
+        }
+        Object.assign(zone, data)
+        return zone
+      },
+      delete: async ({ where }) => {
+        const zone = zones.find((item) => item.id === where.id)
+        zones.splice(zones.indexOf(zone), 1)
+        // ON DELETE SET NULL: las cuentas quedan sin zona, no se borran.
+        for (const user of users) {
+          if (user.securityZoneId === zone.id) user.securityZoneId = null
+        }
+        return zone
+      },
+    },
     accessRole: {
       findUnique: async ({ where }) =>
         where.key === 'seguridad_plu_arg' ? { key: 'seguridad_plu_arg', active: true } : null,

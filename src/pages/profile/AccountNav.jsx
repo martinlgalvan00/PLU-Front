@@ -1,17 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
-import { History, KeyRound, QrCode, ShieldCheck, Trophy, UserRound } from 'lucide-react'
+import { History, KeyRound, QrCode, ShieldCheck, Sparkles, Trophy, UserRound } from 'lucide-react'
 import { LayoutGroup, m } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { ACCOUNT_TAB_IDS } from '../../lib/navigation.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
-const ITEMS = [
-  { id: 'account-qr', icon: QrCode, labelKey: 'qr' },
-  { id: 'account-events', icon: Trophy, labelKey: 'events' },
-  { id: 'account-history', icon: History, labelKey: 'history' },
-  { id: 'account-membership', icon: ShieldCheck, labelKey: 'membership' },
-  { id: 'account-personal-data', icon: UserRound, labelKey: 'personalData' },
-  { id: 'account-security', icon: KeyRound, labelKey: 'security' },
-]
+/**
+ * Presentación de cada ficha. El ORDEN no vive acá: sale de `ACCOUNT_TAB_IDS`
+ * (src/lib/navigation.js), que es el mismo que usa AthleteProfilePage para
+ * decidir de qué lado entra el panel. Duplicarlo dejaría la cinta y el
+ * movimiento del contenido contradiciéndose.
+ */
+const ITEM_CHROME = {
+  'account-qr': { icon: QrCode, labelKey: 'qr' },
+  'account-offer': { icon: Sparkles, labelKey: 'offer' },
+  'account-events': { icon: Trophy, labelKey: 'events' },
+  'account-history': { icon: History, labelKey: 'history' },
+  'account-membership': { icon: ShieldCheck, labelKey: 'membership' },
+  'account-personal-data': { icon: UserRound, labelKey: 'personalData' },
+  'account-security': { icon: KeyRound, labelKey: 'security' },
+}
+
+const ITEMS = ACCOUNT_TAB_IDS.map((id) => ({ id, ...ITEM_CHROME[id] }))
 
 const OVERFLOW_EDGE = 4
 
@@ -41,9 +51,14 @@ function scrollTabIntoRail(rail, tab, instant) {
 /**
  * Índice de la ficha: un panel a la vez (AthleteProfilePage).
  * En mobile es una cinta horizontal — el tab activo queda a la vista.
+ *
+ * `visibleIds` deja fuera las fichas condicionales (hoy sólo la oferta
+ * exclusiva). Se filtra sobre ITEMS y no se reordena: el orden y la dirección
+ * de la transición siguen saliendo de `ACCOUNT_TAB_IDS`.
  */
-export default function AccountNav({ activeId, onChange }) {
+export default function AccountNav({ activeId, onChange, visibleIds = null }) {
   const { t } = useI18n()
+  const items = visibleIds ? ITEMS.filter((item) => visibleIds.includes(item.id)) : ITEMS
   const { reducedMotion } = useMotionConfig()
   const railRef = useRef(null)
   const itemRefs = useRef(new Map())
@@ -97,7 +112,7 @@ export default function AccountNav({ activeId, onChange }) {
       >
         <LayoutGroup id="account-nav-tabs">
           <div className="account-nav__inner" role="tablist" ref={railRef}>
-            {ITEMS.map(({ id, icon: Icon, labelKey }) => {
+            {items.map(({ id, icon: Icon, labelKey }) => {
               const isActive = activeId === id
 
               return (

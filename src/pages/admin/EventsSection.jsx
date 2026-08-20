@@ -1,20 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowUp,
   CalendarDays,
   ChevronDown,
+  ChevronRight,
   ClipboardList,
   CreditCard,
   EyeOff,
+  Layers,
   MapPin,
   Pencil,
   Plus,
   RefreshCw,
+  ScanLine,
   ShieldCheck,
   Star,
   Ticket,
   Trash2,
+  Unlock,
   Users,
 } from 'lucide-react'
 import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
@@ -22,7 +27,11 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import AdminEventEditor, {
   AdminEventLivePreview,
 } from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
+import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
+import AdminEventSessionsEditor from '../../components/admin/AdminEventSessionsEditor.jsx'
 import AdminEventStateControl from '../../components/admin/AdminEventStateControl.jsx'
+import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
 import AdminEventTicketAddonReport from '../../components/admin/AdminEventTicketAddonReport.jsx'
 import AdminEventTicketInsights from '../../components/admin/AdminEventTicketInsights.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -145,6 +154,19 @@ function EventListRow({ row, selected, canEdit, links, locale, onSelect, onEdit,
               <EyeOff size={12} aria-hidden />
             </span>
           ) : null}
+          {/* Se marca la excepción, no la regla: casi todos los meets piden
+              afiliación, así que un sello en la mayoría sería ruido. El que
+              está abierto es el que cambia cómo se lo controla en la puerta, y
+              hasta acá eso solo se veía entrando al editor. */}
+          {row.requiresMembership === false ? (
+            <span
+              className="admin-event-row__open-mark"
+              title={t('admin.eventState.openBadge')}
+              aria-label={t('admin.eventState.openBadge')}
+            >
+              <Unlock size={12} aria-hidden />
+            </span>
+          ) : null}
         </div>
 
         {venueLine ? (
@@ -189,19 +211,26 @@ export default function EventsSection({
   canManageUsers,
   isLoading = false,
   loadError = null,
+  onAssignSecurityZone,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
   onCreateSecurityAccessLink,
+  onCreateSecurityZone,
   onDeactivateAllSecurityUsers,
   onDeleteEvent,
+  onDeleteSecurityZone,
   onFetchDeleteImpact,
   onListSecurityUsers,
+  onListSecurityZones,
+  onManageCheckin,
   onManagePayments,
   onManageRegistrations,
+  onPresetSecurityZones,
   onRefresh,
   onSaveEvent,
   onSetEventState,
   onUpdateSecurityUserStatus,
+  onUpdateSecurityZone,
   tickets = [],
 }) {
   const { locale, t } = useI18n()
@@ -215,6 +244,17 @@ export default function EventsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, [])
   const [formOpen, setFormOpen] = useState(false)
+  // Alta rápida y editor completo son dos superficies distintas: crear no pide
+  // las mismas decisiones que editar (ver AdminEventQuickCreate).
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  /**
+   * Vista de la consola del evento. La configuración que se guarda sola --
+   * grilla y zonas -- se abre acá, a ancho completo y sin modal: el editor
+   * reescribe el evento entero al guardar, y usarlo para agregar una tanda o
+   * mover a alguien de zona costaba ese precio.
+   */
+  const [consoleView, setConsoleView] = useState('list')
+  const [zonesReloadToken, setZonesReloadToken] = useState(0)
   const [draft, setDraft] = useState(createAdminEventDraft)
   const [editorFocus, setEditorFocus] = useState('details')
   const [previewExpanded, setPreviewExpanded] = useState(false)
@@ -237,6 +277,9 @@ export default function EventsSection({
 
   useEffect(() => {
     setPreviewExpanded(false)
+    // Cambiar de evento vuelve a la lista: quedarse en "Zonas" mostrando otro
+    // meet es la forma más rápida de asignar gente al operativo equivocado.
+    setConsoleView('list')
   }, [selectedId])
 
   function handleBackToList() {
@@ -361,9 +404,15 @@ export default function EventsSection({
   }, [adminEvents])
 
   function openCreateForm() {
-    setDraft(createAdminEventDraft())
-    setEditorFocus('details')
     setMessage(null)
+    setQuickCreateOpen(true)
+  }
+
+  /** Salida del alta rápida hacia el formulario largo, sin perder lo tipeado. */
+  function openFullEditorFromQuickCreate(quickDraft) {
+    setQuickCreateOpen(false)
+    setDraft({ ...createAdminEventDraft(), ...quickDraft })
+    setEditorFocus('details')
     setFormOpen(true)
   }
 
@@ -379,6 +428,21 @@ export default function EventsSection({
   function closeForm() {
     setFormOpen(false)
     setDraft(createAdminEventDraft())
+  }
+
+  /**
+   * Alta rápida: mismo endpoint que el editor, pero al terminar deja el evento
+   * seleccionado y la consola abierta -- que es donde queda el trabajo que el
+   * alta deliberadamente no pidió (entradas, grilla, zonas).
+   */
+  async function handleQuickCreate(submittedDraft) {
+    const saved = await onSaveEvent?.(submittedDraft)
+    if (saved?.error) throw new Error(saved.error)
+    setQuickCreateOpen(false)
+    if (saved?.event?.id) setSelectedId(saved.event.id)
+    setConsoleView('list')
+    setMessage({ tone: 'success', text: t('admin.sections.events.created') })
+    return saved
   }
 
   async function handleSubmit(submittedDraft) {
@@ -616,6 +680,64 @@ export default function EventsSection({
         </p>
       ) : null}
 
+      {/* Grilla y zonas se abren a ancho completo en lugar de la lista: son
+          tablas de operación, no un panel de 340px. La lista no se destruye por
+          gusto -- el evento seleccionado es el mismo cuando se vuelve. */}
+      {consoleView !== 'list' && selectedEvent ? (
+        <div className="admin-event-drill">
+          <div className="admin-event-drill__crumbs">
+            <button
+              type="button"
+              className="admin-event-drill__back"
+              onClick={() => setConsoleView('list')}
+              aria-label={t('admin.eventConsole.back')}
+            >
+              <ArrowLeft size={14} aria-hidden />
+            </button>
+            <strong>{selectedEvent.title}</strong>
+            <span aria-hidden>·</span>
+            <span>
+              {[selectedDateLabel, selectedVenueLine].filter(Boolean).join(' · ')}
+            </span>
+          </div>
+
+          {consoleView === 'structure' ? (
+            <AdminEventSessionsEditor canEdit={canEdit} eventSlug={selectedEvent.slug} />
+          ) : null}
+
+          {consoleView === 'zones' ? (
+            <>
+              <AdminEventZonesSection
+                canManageUsers={canManageUsers}
+                eventId={selectedEvent.id}
+                eventSlug={selectedEvent.slug}
+                onAssignMember={onAssignSecurityZone}
+                onCreateAccessLink={onCreateSecurityAccessLink}
+                onCreateZone={onCreateSecurityZone}
+                onDeleteZone={onDeleteSecurityZone}
+                onListSecurityUsers={onListSecurityUsers}
+                onListZones={onListSecurityZones}
+                onPresetZones={onPresetSecurityZones}
+                onUpdateZone={onUpdateSecurityZone}
+                reloadToken={zonesReloadToken}
+              />
+              <AdminEventSecuritySection
+                canManageUsers={canManageUsers}
+                eventId={selectedEvent.id}
+                eventSlug={selectedEvent.slug}
+                eventEndsAt={selectedEvent.endsAt}
+                onCreateSecurityUser={onCreateSecurityUser}
+                onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+                onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+                onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
+                onListSecurityUsers={onListSecurityUsers}
+                onTeamChange={() => setZonesReloadToken((current) => current + 1)}
+                onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+              />
+            </>
+          ) : null}
+        </div>
+      ) : (
       <div className="admin-events-workspace">
         <div className="admin-events-workspace__main">
           {isLoading && adminEvents.length === 0 ? (
@@ -692,12 +814,6 @@ export default function EventsSection({
                 <AdminCopyLinkMenu links={buildEventLinks(selectedEvent)} />
                 {canEdit ? (
                   <>
-                    <AdminIconButton
-                      icon={ShieldCheck}
-                      label={t('admin.eventEditor.security.title')}
-                      onClick={() => openEditForm(selectedEvent, 'security')}
-                      variant="ghost"
-                    />
                     <Button
                       type="button"
                       variant="outline"
@@ -731,49 +847,108 @@ export default function EventsSection({
               />
             ) : null}
 
-            <div
-              className="admin-event-preview__command-bar admin-event-preview__command-bar--bento"
-              aria-label={t('admin.eventEditor.managementAria')}
-            >
+            {/* Configuración y actividad del evento como filas, no como bento de
+                cards: cada una abre su sección: la que se guarda sola (grilla,
+                zonas) acá mismo a ancho completo, y la que vive en otra parte
+                del panel (inscripciones, pagos, check-in) en su sección.
+
+                Antes las tres primeras eran pestañas del editor, que reescribe
+                el evento entero al guardar: agregar una tanda o mover a alguien
+                de zona costaba recrear días, tandas y tipos de entrada de un
+                evento que podía tener atletas ya asignados. */}
+            <div className="admin-event-console__sections">
+              <span className="admin-event-console__group-label">
+                {t('admin.eventConsole.configLabel')}
+              </span>
+
               {canEdit ? (
                 <button
                   type="button"
-                  className="admin-bento-action"
-                  aria-label={t('admin.eventEditor.manageTicketsLabel', {
-                    count: activeTicketTypeCount,
-                  })}
+                  className="admin-event-console__row"
                   onClick={() => openEditForm(selectedEvent, 'tickets')}
                 >
-                  <span className="admin-bento-action__icon">
-                    <Ticket size={18} aria-hidden />
-                  </span>
-                  <span className="admin-bento-action__label">{t('admin.eventEditor.manageTickets')}</span>
-                  <strong className="admin-bento-action__count">{activeTicketTypeCount}</strong>
+                  <Ticket size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.tickets')}</strong>
+                  <em>
+                    {t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount })}
+                  </em>
+                  <ChevronRight size={14} aria-hidden />
                 </button>
               ) : null}
+
+              <button
+                type="button"
+                className="admin-event-console__row"
+                onClick={() => setConsoleView('structure')}
+              >
+                <Layers size={17} aria-hidden />
+                <strong>{t('admin.eventConsole.structure')}</strong>
+                <em>
+                  {t('admin.eventConsole.structureValue', {
+                    count: selectedEvent.eventDays?.length ?? 0,
+                  })}
+                </em>
+                <ChevronRight size={14} aria-hidden />
+              </button>
+
+              {canManageUsers ? (
+                <button
+                  type="button"
+                  className="admin-event-console__row"
+                  onClick={() => setConsoleView('zones')}
+                >
+                  <ShieldCheck size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.zones')}</strong>
+                  <em>{t('admin.eventConsole.zonesValue')}</em>
+                  <ChevronRight size={14} aria-hidden />
+                </button>
+              ) : null}
+
+              {onManageRegistrations || onManagePayments || onManageCheckin ? (
+                <span className="admin-event-console__group-label">
+                  {t('admin.eventConsole.activityLabel')}
+                </span>
+              ) : null}
+
               {onManageRegistrations ? (
-                <button 
-                  type="button" 
-                  className="admin-bento-action"
+                <button
+                  type="button"
+                  className="admin-event-console__row"
                   onClick={() => onManageRegistrations(selectedEvent)}
                 >
-                  <span className="admin-bento-action__icon">
-                    <ClipboardList size={18} aria-hidden />
-                  </span>
-                  <span className="admin-bento-action__label">{t('admin.eventEditor.manageRegistrations')}</span>
-                  <strong className="admin-bento-action__count">{selectedEvent.registered ?? 0}</strong>
+                  <ClipboardList size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.registrations')}</strong>
+                  <em>
+                    {t('admin.eventConsole.registrationsValue', {
+                      count: selectedEvent.registered ?? 0,
+                      slots: selectedEvent.slots ?? 0,
+                    })}
+                  </em>
+                  <ChevronRight size={14} aria-hidden />
                 </button>
               ) : null}
+
               {onManagePayments ? (
-                <button 
-                  type="button" 
-                  className="admin-bento-action"
+                <button
+                  type="button"
+                  className="admin-event-console__row"
                   onClick={() => onManagePayments(selectedEvent)}
                 >
-                  <span className="admin-bento-action__icon">
-                    <CreditCard size={18} aria-hidden />
-                  </span>
-                  <span className="admin-bento-action__label">{t('admin.eventEditor.managePayments')}</span>
+                  <CreditCard size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.payments')}</strong>
+                  <ChevronRight size={14} aria-hidden />
+                </button>
+              ) : null}
+
+              {onManageCheckin ? (
+                <button
+                  type="button"
+                  className="admin-event-console__row"
+                  onClick={() => onManageCheckin(selectedEvent)}
+                >
+                  <ScanLine size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.checkin')}</strong>
+                  <ChevronRight size={14} aria-hidden />
                 </button>
               ) : null}
             </div>
@@ -803,19 +978,22 @@ export default function EventsSection({
           </aside>
         )}
       </div>
+      )}
+
+      {quickCreateOpen ? (
+        <AdminEventQuickCreate
+          canEdit={canEdit}
+          onCancel={() => setQuickCreateOpen(false)}
+          onOpenFullEditor={openFullEditorFromQuickCreate}
+          onSubmit={handleQuickCreate}
+        />
+      ) : null}
 
       {formOpen ? (
         <AdminEventEditor
           canEdit={canEdit}
-          canManageUsers={canManageUsers}
           draft={draft}
           initialFocus={editorFocus}
-          onCreateSecurityUser={onCreateSecurityUser}
-          onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
-          onCreateSecurityAccessLink={onCreateSecurityAccessLink}
-          onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
-          onListSecurityUsers={onListSecurityUsers}
-          onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
           sourceEvent={editingSource}
           onCancel={closeForm}
           onChange={setDraft}

@@ -148,9 +148,10 @@ begin
 
   -- Un overload viejo del combo checkout (p_order_amount) deja a plpgsql_check
   -- apuntando a configure_atomic_checkout_pricing de 4 argumentos, que ya no
-  -- existe. Tiene que quedar una sola firma, la de 11 argumentos.
-  select count(*)
-  into v_count
+  -- existe. Tiene que quedar una sola firma, la de 12 argumentos: la que suma
+  -- p_currency para el canal wise_transfer (20260827120000).
+  select string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text), count(*)
+  into v_offenders, v_count
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public'
@@ -158,11 +159,11 @@ begin
 
   if v_count <> 1
     or to_regprocedure(
-      'public.create_membership_registration_combo_checkout(uuid,text,text,text,numeric,text,text,numeric,numeric,text,text)'
+      'public.create_membership_registration_combo_checkout(uuid,text,text,text,numeric,text,text,numeric,numeric,text,text,text)'
     ) is null then
     raise exception
-      'create_membership_registration_combo_checkout debe tener una sola firma vigente (11 argumentos). Hay %.',
-      v_count
+      'create_membership_registration_combo_checkout debe tener una sola firma vigente (12 argumentos). Hay %: %.',
+      v_count, coalesce(v_offenders, '(ninguna)')
       using errcode = 'PLU01';
   end if;
 

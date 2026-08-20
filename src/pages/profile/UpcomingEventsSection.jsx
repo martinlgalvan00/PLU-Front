@@ -8,6 +8,11 @@ import { resolveComboDeal, resolveEventPricing } from '../../lib/eventPricing.js
 import { money } from '../../lib/format.js'
 import { isMembershipCurrent } from '../../services/membershipService.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
+import {
+  findAthleteEventRegistration,
+  isPendingRegistration,
+} from '../../lib/athleteEventStatus.js'
+import { isRegistrationAdmitted } from '../../lib/status.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
 
 function eventRequiresMembership(event) {
@@ -111,7 +116,21 @@ export default function UpcomingEventsSection({
       {availableEvents.length ? (
         <div className="account-events-list">
           {availableEvents.map((event) => {
-            const registered = athleteRegistrations.some((item) => item.event === event.title)
+            // Slug primero y sin contar canceladas: ver
+            // `findAthleteEventRegistration`. La comparación por título que
+            // había acá dejaba de reconocer la inscripción en cuanto el staff
+            // renombraba el meet, y contaba como vigente una cancelada.
+            const registration = findAthleteEventRegistration(athleteRegistrations, {
+              athleteId: athlete?.id,
+              event,
+            })
+            const registered = isRegistrationAdmitted(registration?.status)
+            const paymentPending = isPendingRegistration(registration)
+            const registrationState = registered
+              ? 'registered'
+              : paymentPending
+                ? 'pending_payment'
+                : 'open'
             const needsMembership = eventRequiresMembership(event)
             const membershipPending = needsMembership && !hasActiveMembership
             const isPitbull = isPitbullClassicEvent(event)
@@ -158,16 +177,18 @@ export default function UpcomingEventsSection({
                     </p>
                   ) : null}
                 </div>
-                <span className="account-event-status">
+                <span className="account-event-status" data-state={registrationState}>
                   {registered
                     ? membershipPending
                       ? t('account.qr.gateReserved')
                       : t('account.events.registered')
-                    : EVENT_STATUS[event.status]?.label}
+                    : paymentPending
+                      ? t('account.events.paymentPending')
+                      : EVENT_STATUS[event.status]?.label}
                 </span>
                 <button
                   type="button"
-                  className={`account-events-list__cta${registered ? ' is-registered' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
+                  className={`account-events-list__cta${registered ? ' is-registered' : ''}${paymentPending ? ' is-payment-pending' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
                   onClick={() => !registered && handleRegisterClick(event)}
                   disabled={registered || !registrationCheckoutEnabled}
                   aria-describedby={
@@ -176,9 +197,11 @@ export default function UpcomingEventsSection({
                 >
                   {registered
                     ? t('account.events.alreadyRegistered')
-                    : registrationCheckoutEnabled
-                      ? t('account.events.register')
-                      : t('pages.members.ctaCheckoutSoon')}
+                    : !registrationCheckoutEnabled
+                      ? t('pages.members.ctaCheckoutSoon')
+                      : paymentPending
+                        ? t('account.events.resumePayment')
+                        : t('account.events.register')}
                 </button>
               </article>
             )

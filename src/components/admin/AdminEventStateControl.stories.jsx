@@ -63,6 +63,32 @@ export const Abierto = {
   args: { canEdit: true, event: BASE_EVENT, onSetState: acceptState },
 }
 
+/**
+ * Meet abierto: no pide afiliación. Es la excepción en el calendario, así que
+ * el control lo dice con la consecuencia entera —en la puerta alcanza la
+ * inscripción confirmada— y no con un checkbox apagado.
+ */
+export const AccesoAbierto = {
+  args: {
+    canEdit: true,
+    event: { ...BASE_EVENT, requiresMembership: false },
+    onSetState: acceptState,
+  },
+}
+
+/**
+ * Solo afiliados con gente ya inscripta: la advertencia de que un inscripto sin
+ * afiliación vigente queda bloqueado en la puerta. Es la consecuencia que antes
+ * no se veía en ninguna parte del panel.
+ */
+export const AccesoSoloAfiliadosConInscriptos = {
+  args: {
+    canEdit: true,
+    event: { ...BASE_EVENT, requiresMembership: true, registered: 46 },
+    onSetState: acceptState,
+  },
+}
+
 /** Despublicado: el evento existe en el panel pero no se ve en el sitio. */
 export const SinPublicar = {
   args: {

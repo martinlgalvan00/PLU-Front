@@ -41,7 +41,9 @@ import { createBrevoAdapter } from '../modules/notifications/brevoAdapter.js'
 import {
   isManualPaymentMethod,
   manualPaymentChannel,
+  paymentChannelOf,
   storagePaymentMethod,
+  wisePriceFor,
 } from '../modules/pricing/checkoutPricePolicy.js'
 import { createEmailDispatcher } from '../modules/notifications/emailDispatcher.js'
 import {
@@ -86,15 +88,21 @@ import {
 } from '../modules/athletes/supabaseAthleteRepository.js'
 import { createSupabaseRegistrationAccessRepository } from '../modules/registrationAccess/supabaseRegistrationAccessRepository.js'
 import {
+  assertComboAccessCode,
+  assertComboAccessCodeOrDiscountCode,
   assertRegistrationAccessCode,
   resolveRegistrationAccessRequirements,
 } from '../services/registrationAccessService.js'
+import {
+  assertDiscountCodeEventScope,
+  assertPreviewEventScope,
+} from '../services/offerCodeService.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
   assertCheckoutEnabled,
   assertConceptValidationEnabled,
-  assertManualChannelEnabled,
   assertMembershipCheckoutEnabled,
+  assertPaymentChannelEnabled,
   assertRegistrationCheckoutEnabled,
   assertValidationEnabled,
   resolvePublicCheckoutAvailability,
@@ -270,7 +278,7 @@ const discountCodeField = z.string().trim().toUpperCase().max(32).optional()
 const registrationAccessCodeField = z.string().trim().max(72).optional()
 
 const orderSchema = z.object({
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   planCode: z.string().trim().min(2).default('plu-annual'),
   idempotencyKey: z
     .string()
@@ -284,7 +292,7 @@ const registrationSchema = z.object({
   division: z.enum(COMPETITION_DIVISIONS),
   category: z.enum(COMPETITION_CATEGORIES),
   bodyweightKg: z.number().min(10).max(250).nullable().optional(),
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   idempotencyKey: z
     .string()
     .uuid()
@@ -299,6 +307,9 @@ const registrationSchema = z.object({
 const comboRegistrationSchema = registrationSchema.extend({
   membershipAccessCode: registrationAccessCodeField,
   registrationAccessCode: registrationAccessCodeField,
+  // Código que destraba un combo restringido (`event_combo_offers.audience =
+  // 'code'`). No es un cupón: no cambia el precio, habilita el paquete.
+  comboAccessCode: z.string().trim().toUpperCase().max(32).optional(),
 })
 
 /**
@@ -313,8 +324,17 @@ const registrationAccessVerifySchema = z.object({
   code: z.string().trim().min(1).max(72),
 })
 
-const discountPreviewSchema = z.object({
+const comboAccessVerifySchema = z.object({
+  eventSlug: z.string().trim().min(1).max(120),
   code: z.string().trim().toUpperCase().min(1).max(32),
+})
+
+const discountPreviewSchema = z.object({
+  // Opcional a proposito: sin codigo el preview responde con la promocion
+  // publica que se va a aplicar sola (`source: 'public_promo'`), que es lo
+  // mismo que hara `apply_discount_code_to_order` al crear la orden. El
+  // checkout necesita poder mostrar ese precio antes de confirmar.
+  code: z.string().trim().toUpperCase().max(32).optional().default(''),
   appliesTo: z.enum(['membership', 'registration', 'combo']),
   planCode: z.string().trim().min(1).optional(),
   eventSlug: z.string().trim().min(1).optional(),
@@ -322,7 +342,16 @@ const discountPreviewSchema = z.object({
   // que Mercado Pago). Sin este dato el preview calculaba el ahorro sobre el
   // precio de catálogo y le mostraba al atleta un número que no era el que
   // terminaba pagando.
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull']).optional(),
+  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']).optional(),
+})
+/**
+ * Canje de un código secreto de oferta exclusiva. A diferencia del preview, no
+ * necesita saber contra qué se está comprando: la oferta trae su propia
+ * inscripción y su propio precio. Es el único endpoint que el atleta puede
+ * llamar desde la pantalla de afiliación, donde todavía no eligió ningún evento.
+ */
+const offerUnlockSchema = z.object({
+  code: z.string().trim().toUpperCase().min(3).max(32),
 })
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
@@ -453,6 +482,23 @@ export function createAthleteRoutes({
     }
     return platformSettingsRepository ?? createSupabasePlatformSettingsRepository(client())
   }
+  /**
+   * ¿El cupón de esta compra destraba el canal manual pedido? Sólo aplica a
+   * transferencia y efectivo: un cupón no reabre Mercado Pago si Administración
+   * lo cerró (ver `assertPaymentChannelEnabled`). Para Mercado Pago ni se
+   * consulta la tabla de cupones.
+   *
+   * `scope` es el alcance con el que se busca el código: 'membership',
+   * 'registration' o 'combo' — el combo no matchea los dos primeros sueltos.
+   */
+  const manualChannelOverride = async (body, scope) => {
+    if (!isManualPaymentMethod(body?.paymentMethod)) return false
+    return repo().discountCodeManualEligibility(
+      body.discountCode,
+      scope,
+      manualPaymentChannel(body.paymentMethod),
+    )
+  }
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
   const adminGuard = requirePermission(
@@ -474,6 +520,22 @@ export function createAthleteRoutes({
   const registrationDeleteGuard = requirePermission('admin.registrations.delete', { prisma })
   const accountGuard = requirePermission('admin.athletes.write', { prisma })
   const athleteDeleteGuard = requirePermission('admin.athletes.delete', { prisma })
+  // Deliberadamente sin `division`: vive en event_registrations y queda
+  // bloqueada por trigger una vez que existe la inscripción.
+  const athletePatchFieldsSchema = z
+    .object({
+      status: z
+        .enum(['pre_registrado', 'registrado', 'afiliado_activo', 'afiliado_vencido', 'bloqueado'])
+        .optional(),
+      gym: z.string().trim().min(1).max(160).optional(),
+    })
+    .refine((data) => data.status !== undefined || data.gym !== undefined, {
+      message: 'Ingresá al menos un campo para actualizar.',
+    })
+  const athleteBulkUpdateSchema = z.object({
+    athleteIds: z.array(z.string().uuid()).min(1).max(100),
+    patch: athletePatchFieldsSchema,
+  })
   // Mismo formato que usa el check-in (`server/routes/tickets.js`): el actor
   // queda identificable en `domain_audit_logs` sin depender de que el id de
   // usuario siga existiendo cuando se lea la auditoría.
@@ -1095,7 +1157,36 @@ export function createAthleteRoutes({
           // enviar el formulario aparecía el 409.
           membershipManualEnabled: availability.membershipManualEnabled,
           registrationManualEnabled: availability.registrationManualEnabled,
+          // Celda por celda: la pantalla ofrece exactamente los medios abiertos
+          // para cada concepto, incluida la pasarela, que ahora también se
+          // puede cerrar desde el panel.
+          paymentChannels: availability.paymentChannels,
         })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Chequeo previo del código de un combo restringido, mismo criterio que el de
+   * tanda: el checkout puede decir "código incorrecto" antes de que el atleta
+   * cargue todo el formulario. No habilita nada por sí solo — el alta de la
+   * orden vuelve a exigir el mismo código.
+   */
+  router.post(
+    '/me/combo-access/verify',
+    registrationAccessCodeLimiter,
+    validateBody(comboAccessVerifySchema),
+    async (req, res, next) => {
+      try {
+        await athlete(req)
+        const { eventSlug, code } = req.validatedBody
+        const offer = await repo().findEventComboOffer(eventSlug)
+        if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
+        // Un combo que dejó de ser restringido entre que se pintó la pantalla y
+        // se mandó el código no tiene nada que desbloquear: sigue disponible.
+        assertComboAccessCode(offer, code)
+        res.json({ valid: true, required: offer.audience === 'code' })
       } catch (error) {
         next(error)
       }
@@ -1137,14 +1228,10 @@ export function createAthleteRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertMembershipCheckoutEnabled(toggles)
-        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          const override = await repo().discountCodeManualEligibility(
-            req.validatedBody.discountCode,
-            'membership',
-            manualPaymentChannel(req.validatedBody.paymentMethod),
-          )
-          assertManualChannelEnabled(toggles, 'membership', { override })
-        }
+        const membershipChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        assertPaymentChannelEnabled(toggles, 'membership', membershipChannel, {
+          override: await manualChannelOverride(req.validatedBody, 'membership'),
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -1154,13 +1241,16 @@ export function createAthleteRoutes({
           scope: 'membership',
           code: req.validatedBody.accessCode,
         })
+        const membershipWisePrice =
+          membershipChannel === 'wise_transfer' ? wisePriceFor({ concept: 'membership' }) : null
         const created = await repo().createMembershipOrder(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
           planCode: plan.code,
-          defaultPrice: plan.price,
-          manualPrice: plan.manual_price,
+          defaultPrice: membershipWisePrice ? membershipWisePrice.amount : plan.price,
+          manualPrice: membershipWisePrice ? null : plan.manual_price,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+          currency: membershipWisePrice?.currency ?? null,
         })
         await recordRegistrationAccessUse(accessGate, {
           athleteId: auth.athleteId,
@@ -1199,14 +1289,10 @@ export function createAthleteRoutes({
         const toggles = await platformSettingsRepo().get()
         assertCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
-        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          const override = await repo().discountCodeManualEligibility(
-            req.validatedBody.discountCode,
-            'registration',
-            manualPaymentChannel(req.validatedBody.paymentMethod),
-          )
-          assertManualChannelEnabled(toggles, 'registration', { override })
-        }
+        const registrationChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        assertPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
+          override: await manualChannelOverride(req.validatedBody, 'registration'),
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
@@ -1217,12 +1303,25 @@ export function createAthleteRoutes({
           eventSlug,
           code: req.validatedBody.accessCode,
         })
+        // Mismo motivo que en el combo: un código atado a otra inscripción
+        // tiene que explicarse acá, no salir como un error genérico de alta.
+        await assertDiscountCodeEventScope({
+          previewDiscountCode: repo().previewDiscountCode,
+          athleteId: auth.athleteId,
+          code: req.validatedBody.discountCode,
+          appliesTo: 'registration',
+          baseAmount: event.price,
+          eventSlug,
+        })
+        const registrationWisePrice =
+          registrationChannel === 'wise_transfer' ? wisePriceFor({ concept: 'registration' }) : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: event.price,
-          manualPrice: event.manual_price,
+          defaultPrice: registrationWisePrice ? registrationWisePrice.amount : event.price,
+          manualPrice: registrationWisePrice ? null : event.manual_price,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+          currency: registrationWisePrice?.currency ?? null,
         })
         await recordRegistrationAccessUse(accessGate, {
           athleteId: auth.athleteId,
@@ -1260,24 +1359,45 @@ export function createAthleteRoutes({
         assertCheckoutEnabled(toggles)
         assertMembershipCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
-        if (isManualPaymentMethod(req.validatedBody.paymentMethod)) {
-          // El combo destraba con un código de alcance 'combo' o 'both': pasar
-          // scope 'combo' hace que discountCodeManualEligibility no matchee
-          // 'membership' ni 'registration' solos. El canal pedido también tiene
-          // que estar entre los que el código habilita.
-          const override = await repo().discountCodeManualEligibility(
-            req.validatedBody.discountCode,
-            'combo',
-            manualPaymentChannel(req.validatedBody.paymentMethod),
-          )
-          assertManualChannelEnabled(toggles, 'membership', { override })
-          assertManualChannelEnabled(toggles, 'registration', { override })
-        }
+        // El combo destraba con un código de alcance 'combo' o 'both': pasar
+        // scope 'combo' hace que discountCodeManualEligibility no matchee
+        // 'membership' ni 'registration' solos. El canal pedido también tiene
+        // que estar entre los que el código habilita.
+        const comboOverride = await manualChannelOverride(req.validatedBody, 'combo')
+        const comboChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        assertPaymentChannelEnabled(toggles, 'membership', comboChannel, {
+          override: comboOverride,
+        })
+        assertPaymentChannelEnabled(toggles, 'registration', comboChannel, {
+          override: comboOverride,
+        })
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
         const comboOffer = await repo().findEventComboOffer(eventSlug)
         if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
+        // Acepta el access_code del evento o un discount_code kind='access':
+        // el atleta puede haber pegado el código secreto en cualquiera de los
+        // dos campos del formulario (ver registrationAccessService.js).
+        await assertComboAccessCodeOrDiscountCode(comboOffer, {
+          comboAccessCode: req.validatedBody.comboAccessCode,
+          discountCode: req.validatedBody.discountCode,
+          previewDiscountCode: repo().previewDiscountCode,
+          athleteId: auth.athleteId,
+          baseAmount: comboOffer.price,
+          eventSlug,
+        })
+        // Un código con alcance de inscripción no se puede canjear contra otra:
+        // corta acá para que el atleta reciba el motivo real en vez del PLU27
+        // de la RPC envuelto en "no se pudo crear el combo".
+        await assertDiscountCodeEventScope({
+          previewDiscountCode: repo().previewDiscountCode,
+          athleteId: auth.athleteId,
+          code: req.validatedBody.discountCode,
+          appliesTo: 'combo',
+          baseAmount: comboOffer.price,
+          eventSlug,
+        })
         const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'membership',
           code: req.validatedBody.membershipAccessCode,
@@ -1287,12 +1407,14 @@ export function createAthleteRoutes({
           eventSlug,
           code: req.validatedBody.registrationAccessCode,
         })
+        const comboWisePrice = comboChannel === 'wise_transfer' ? wisePriceFor({ concept: 'combo' }) : null
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
-          defaultPrice: comboOffer.price,
-          manualPrice: comboOffer.manualPrice,
+          defaultPrice: comboWisePrice ? comboWisePrice.amount : comboOffer.price,
+          manualPrice: comboWisePrice ? null : comboOffer.manualPrice,
           manualPaymentChannel: manualPaymentChannel(req.validatedBody.paymentMethod),
+          currency: comboWisePrice?.currency ?? null,
         })
         await recordRegistrationAccessUse(membershipAccessGate, {
           athleteId: auth.athleteId,
@@ -1357,13 +1479,53 @@ export function createAthleteRoutes({
           code,
           appliesTo,
           baseAmount,
+          // El mismo `method` con el que se guardaría la orden: la RPC lo usa
+          // para elegir el precio promocional del canal (`fixed_price` vs
+          // `fixed_price_manual`). Sin esto, una promo con precio manual
+          // anunciaba el importe de Mercado Pago y cobraba el otro.
+          paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
         })
-        res.json({ preview })
+        res.json({ preview: assertPreviewEventScope(preview, eventSlug) })
       } catch (error) {
         next(error)
       }
     },
   )
+  /**
+   * Canje del código secreto de una oferta exclusiva.
+   *
+   * Es deliberadamente independiente del preview: la pantalla de afiliación no
+   * sabe contra qué evento cotizar (todavía no eligió ninguno) y la oferta trae
+   * su propia inscripción. Devuelve 200 con `unlocked: false` y un motivo
+   * cuando el código no sirve — no es un error de la petición, es una respuesta
+   * que la pantalla tiene que poder explicar.
+   *
+   * No habilita el cobro por sí solo: el checkout del combo vuelve a validar el
+   * código (`assertComboAccessCodeOrDiscountCode`) y la redención con su cupo
+   * ocurre dentro de la transacción que crea la orden.
+   */
+  router.post(
+    '/me/offer-unlocks',
+    publicWriteLimiter,
+    validateBody(offerUnlockSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const result = await repo().unlockOfferCode(auth.athleteId, req.validatedBody.code)
+        res.json(result ?? { unlocked: false, reason: 'not_found' })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get('/me/offer-unlocks', publicReadLimiter, async (req, res, next) => {
+    try {
+      const auth = await athlete(req)
+      res.json({ offers: (await repo().listOfferUnlocks(auth.athleteId)) ?? [] })
+    } catch (error) {
+      next(error)
+    }
+  })
   /**
    * Comprobante de transferencia. Las órdenes de entrada ya tenían el ciclo
    * completo (subida firmada + revisión); las de afiliación tenían las
@@ -2012,6 +2174,62 @@ export function createAthleteRoutes({
           actorLabel(req),
         )
         res.status(204).end()
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Edición en bloque (status/gym) — pensada para la selección múltiple de
+   * `AthletesSection`. Partial success: cada id se actualiza independiente
+   * con Promise.allSettled (no hay update-many equivalente para esta tabla
+   * en Supabase/RPC), así una fila inválida no frena al resto del lote.
+   * Registrada ANTES de `/admin/:athleteId` a propósito: si fuera después,
+   * el segmento literal "bulk" caería en ese param route.
+   */
+  router.patch(
+    '/admin/bulk',
+    ...accountGuard,
+    staffLimiter,
+    validateBody(athleteBulkUpdateSchema),
+    async (req, res, next) => {
+      try {
+        const { athleteIds, patch } = req.validatedBody
+        const actor = actorLabel(req)
+        const settled = await Promise.allSettled(
+          athleteIds.map((athleteId) => repo().updateAthleteAdmin(athleteId, patch, actor)),
+        )
+        const updated = []
+        const failed = []
+        settled.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            updated.push(result.value)
+          } else {
+            failed.push({ athleteId: athleteIds[index], reason: result.reason?.message || 'error' })
+          }
+        })
+        res.json({ updated, failed })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.patch(
+    '/admin/:athleteId',
+    ...accountGuard,
+    staffLimiter,
+    validateBody(athletePatchFieldsSchema),
+    async (req, res, next) => {
+      try {
+        const athleteId = z.string().uuid().safeParse(req.params.athleteId)
+        if (!athleteId.success) throw new HttpError(400, 'Atleta inválido.')
+        const athlete = await repo().updateAthleteAdmin(
+          athleteId.data,
+          req.validatedBody,
+          actorLabel(req),
+        )
+        res.json({ athlete })
       } catch (error) {
         next(error)
       }

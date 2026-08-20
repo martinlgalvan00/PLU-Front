@@ -32,6 +32,33 @@ const ATHLETE_DESTINATIONS = new Set(['membership', 'competition'])
 export const DEFAULT_ACCOUNT_TAB = 'account-qr'
 export const ACCOUNT_MEMBERSHIP_TAB = 'account-membership'
 export const ACCOUNT_EVENTS_TAB = 'account-events'
+/**
+ * Ficha condicional: existe sólo para quien canjeó un código secreto de oferta
+ * exclusiva. Está en `ACCOUNT_TAB_IDS` porque el orden de la cinta y la
+ * dirección de la transición se leen de ahí, pero `AccountNav` recibe aparte
+ * qué fichas mostrar — una ficha vacía anunciando una oferta que no existe
+ * sería peor que no tenerla.
+ */
+export const ACCOUNT_OFFER_TAB = 'account-offer'
+
+/**
+ * Orden de las fichas de la cuenta, en un solo lugar. Lo consumen la cinta
+ * (`AccountNav`, que lo recorre para dibujar los tabs) y la página
+ * (`AthleteProfilePage`, que lo usa para saber si el panel entrante viene de la
+ * izquierda o de la derecha). Con el orden duplicado, reordenar la cinta dejaría
+ * el panel entrando por el lado contrario al del tab que lo abrió.
+ */
+export const ACCOUNT_TAB_IDS = [
+  DEFAULT_ACCOUNT_TAB,
+  // Segunda posición y no al final: una oferta exclusiva con cupo y ventana no
+  // puede quedar escondida detrás de Seguridad.
+  ACCOUNT_OFFER_TAB,
+  ACCOUNT_EVENTS_TAB,
+  'account-history',
+  ACCOUNT_MEMBERSHIP_TAB,
+  'account-personal-data',
+  'account-security',
+]
 
 /**
  * El cobro de afiliación vive en la cuenta (`#account-membership`), no en un

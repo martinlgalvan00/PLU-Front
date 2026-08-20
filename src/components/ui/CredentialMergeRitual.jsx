@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { m } from 'motion/react'
+import CelebrationBurst from './CelebrationBurst.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import { MOTION_DURATION, MOTION_EASE } from '../../motion/tokens'
@@ -28,7 +29,14 @@ function MergePlate({ label, qrSrc, alt = '', featured = false }) {
 /**
  * Ritual one-shot: dos pases visuales se acercan y quedan en una sola credencial.
  * Solo transform/opacity; reduced-motion salta al estado final.
+ *
+ * La ráfaga sale de la credencial ya unificada, no del arranque: lo que se
+ * festeja es que los dos pases quedaron en uno, y eso recién es un hecho
+ * cuando la placa final aterrizó.
  */
+/** Cuándo la placa final ya aterrizó: delay + buena parte de su entrada. */
+const MERGE_LANDED_MS = Math.round(MOTION_DURATION.slow * 1000 + 220)
+
 export default function CredentialMergeRitual({
   athleteId,
   membershipId,
@@ -39,6 +47,7 @@ export default function CredentialMergeRitual({
 }) {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
+  const finalPlateRef = useRef(null)
 
   useEffect(() => {
     if (!athleteId || !membershipId) return undefined
@@ -96,6 +105,7 @@ export default function CredentialMergeRitual({
         </m.div>
 
         <m.div
+          ref={finalPlateRef}
           className="credential-merge__final"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -107,6 +117,8 @@ export default function CredentialMergeRitual({
         >
           <MergePlate qrSrc={qrSrc} alt={t('account.qr.imageAlt')} featured />
         </m.div>
+
+        <CelebrationBurst active anchorRef={finalPlateRef} delayMs={MERGE_LANDED_MS} />
       </div>
     </div>
   )

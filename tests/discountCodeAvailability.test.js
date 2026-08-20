@@ -27,6 +27,46 @@ describe('cupos de cupones en administración', () => {
       getDiscountCodeAvailability({ active: false, maxRedemptions: 3, redeemedCount: 1 }).status,
     ).toBe('inactive')
   })
+
+  it('una promo encendida con apertura futura queda programada, no activa', () => {
+    const now = new Date('2026-09-01T12:00:00.000Z')
+
+    expect(
+      getDiscountCodeAvailability({ startsAt: '2026-09-10T00:00:00.000Z' }, now),
+    ).toMatchObject({ status: 'scheduled', scheduled: true })
+
+    // Ya abrió: vuelve a ser una promo activa cualquiera.
+    expect(
+      getDiscountCodeAvailability({ startsAt: '2026-08-20T00:00:00.000Z' }, now),
+    ).toMatchObject({ status: 'active', scheduled: false })
+
+    // Apagada a mano manda por encima de la programación: el operador la cerró.
+    expect(
+      getDiscountCodeAvailability({ active: false, startsAt: '2026-09-10T00:00:00.000Z' }, now)
+        .status,
+    ).toBe('inactive')
+  })
+
+  it('el estado y la audiencia no se pierden por estar programada', () => {
+    const now = new Date('2026-09-01T12:00:00.000Z')
+    expect(
+      getDiscountCodeAvailability(
+        { audience: 'public', startsAt: '2026-09-10T00:00:00.000Z' },
+        now,
+      ).state,
+    ).toBe('public')
+  })
+
+  it('deriva la exclusividad de la lista de invitados, sin flag aparte', () => {
+    expect(getDiscountCodeAvailability({})).toMatchObject({ exclusive: false, inviteeCount: 0 })
+    expect(getDiscountCodeAvailability({ invitees: [] })).toMatchObject({
+      exclusive: false,
+      inviteeCount: 0,
+    })
+    expect(
+      getDiscountCodeAvailability({ invitees: ['ana@plu.ar', 'bruno@plu.ar'] }),
+    ).toMatchObject({ exclusive: true, inviteeCount: 2 })
+  })
 })
 
 describe('migración de cierre automático de cupos', () => {

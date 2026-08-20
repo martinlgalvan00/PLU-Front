@@ -17,11 +17,18 @@ function toggleKey(feature) {
   return `${feature.replace(/_(.)/g, (_match, char) => char.toUpperCase())}Enabled`
 }
 
-async function setup(repositoryOverrides = {}) {
+const OPEN_CHANNELS = { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true }
+
+async function setup(repositoryOverrides = {}, envOverrides = {}) {
   const staff = await buildStaffUser({ email: 'access-admin@plu.test' })
   const prisma = createPrismaDouble([staff])
   const toggles = {
     ...Object.fromEntries(PLATFORM_FEATURES.map((feature) => [toggleKey(feature), true])),
+    paymentChannels: {
+      membership: { ...OPEN_CHANNELS },
+      registration: { ...OPEN_CHANNELS },
+      ticket: { ...OPEN_CHANNELS },
+    },
     updatedBy: null,
     updatedAt: null,
   }
@@ -29,6 +36,12 @@ async function setup(repositoryOverrides = {}) {
     get: async () => ({ ...toggles }),
     setToggle: async (feature, enabled, actor) => {
       toggles[toggleKey(feature)] = enabled
+      toggles.updatedBy = actor
+      toggles.updatedAt = '2026-08-14T12:00:00.000Z'
+      return { ...toggles }
+    },
+    setPaymentChannel: async (concept, channel, enabled, actor) => {
+      toggles.paymentChannels[concept][channel] = enabled
       toggles.updatedBy = actor
       toggles.updatedAt = '2026-08-14T12:00:00.000Z'
       return { ...toggles }
@@ -42,6 +55,7 @@ async function setup(repositoryOverrides = {}) {
       env: {
         AUTH_SECRET: 'platform-settings-test-secret',
         APP_URL: 'http://localhost:5173',
+        ...envOverrides,
       },
     }),
   )
@@ -116,6 +130,18 @@ describe('interruptores generales — /api/platform-settings', () => {
         membershipManualEnabled: true,
         registrationManualEnabled: false,
         ticketManualEnabled: true,
+        // La matriz viaja ya cruzada con el maestro y el alta del concepto, así
+        // que la pantalla lee la celda sin repetir la lógica.
+        paymentChannels: {
+          membership: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
+          registration: {
+            mercado_pago: false,
+            bank_transfer: false,
+            cash_pitbull: false,
+            wise_transfer: false,
+          },
+          ticket: { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true },
+        },
       })
     } finally {
       await target.close()
@@ -197,5 +223,119 @@ describe('interruptores generales — /api/platform-settings', () => {
     expect(
       platformFeatureToggleSchema.safeParse({ feature: 'checkout', enabled: 'yes' }).success,
     ).toBe(false)
+  })
+})
+
+describe('matriz de canales — /api/platform-settings/channels', () => {
+  it('cierra una celda sin arrastrar las otras del concepto', async () => {
+    const { cookie, target, toggles } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/channels`, {
+        method: 'PUT',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({
+          concept: 'membership',
+          channel: 'mercado_pago',
+          enabled: false,
+        }),
+      })
+      expect(response.status).toBe(200)
+      expect(toggles.paymentChannels.membership).toEqual({
+        mercado_pago: false,
+        bank_transfer: true,
+        cash_pitbull: true,
+        wise_transfer: true,
+      })
+      expect(toggles.paymentChannels.registration.mercado_pago).toBe(true)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('admite wise_transfer como canal de la matriz', async () => {
+    const { cookie, target, toggles } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/channels`, {
+        method: 'PUT',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({
+          concept: 'membership',
+          channel: 'wise_transfer',
+          enabled: false,
+        }),
+      })
+      expect(response.status).toBe(200)
+      expect(toggles.paymentChannels.membership).toEqual({
+        mercado_pago: true,
+        bank_transfer: true,
+        cash_pitbull: true,
+        wise_transfer: false,
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un concepto o un canal fuera de la lista blanca', async () => {
+    const { cookie, target } = await setup()
+    try {
+      for (const body of [
+        { concept: 'combo', channel: 'mercado_pago', enabled: false },
+        { concept: 'membership', channel: 'paypal', enabled: false },
+        { concept: 'membership', channel: 'mercado_pago', enabled: 'no' },
+      ]) {
+        const response = await fetch(`${target.url}/api/platform-settings/channels`, {
+          method: 'PUT',
+          headers: authHeaders(cookie),
+          body: JSON.stringify(body),
+        })
+        expect(response.status, JSON.stringify(body)).toBe(400)
+      }
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza requests anónimos', async () => {
+    const { target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings/channels`, {
+        method: 'PUT',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ concept: 'membership', channel: 'mercado_pago', enabled: false }),
+      })
+      expect(response.status).toBe(401)
+    } finally {
+      await target.close()
+    }
+  })
+
+  // Un interruptor en ON que no tiene efecto porque una variable de entorno lo
+  // frena es soporte fantasma: el panel tiene que poder decirlo.
+  it('publica los frenos de entorno junto a los interruptores', async () => {
+    const { cookie, target } = await setup({}, { PAID_CHECKOUT_ENABLED: 'false' })
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings`, {
+        headers: authHeaders(cookie),
+      })
+      expect(response.status).toBe(200)
+      expect((await response.json()).environmentHolds).toEqual([
+        { variable: 'PAID_CHECKOUT_ENABLED', scope: 'checkout' },
+      ])
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('no inventa frenos cuando el entorno no opina', async () => {
+    const { cookie, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/platform-settings`, {
+        headers: authHeaders(cookie),
+      })
+      expect((await response.json()).environmentHolds).toEqual([])
+    } finally {
+      await target.close()
+    }
   })
 })

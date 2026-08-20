@@ -609,46 +609,48 @@
   padding: var(--space-md) 0 var(--space-xs);
 }
 
+/* El patrón "rails" (admin-minimal.css) fija todo el shell a 100dvh con
+   overflow:hidden y espera que solo `.admin-list-shell__body` scrollee: le
+   funciona a Atletas/Afiliaciones porque su chrome (buscador + filtros) es
+   corto y predecible. En Auditoría el chrome incluye el health card, que es
+   alto y de altura variable (crece con la fila de incidentes y su desglose):
+   en viewports bajos -- laptop chico, ventana no maximizada, no solo mobile
+   -- se comía la altura disponible y no dejaba scrollear ni ver el resto de
+   la tabla (ni la página ni el body interno respondían al gesto). Auditoría
+   vuelve al scroll de documento normal en todos los tamaños: salud, filtros
+   y tabla fluyen en una sola columna scrolleable, sin depender de que el
+   chrome quepa en un alto fijo. */
+.admin-shell:has(.admin-page > .admin-list-section--audit) {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.admin-shell:has(.admin-page > .admin-list-section--audit) .admin-shell__main {
+  overflow: visible;
+}
+
+.admin-shell .admin-page:has(> .admin-list-section--audit) {
+  overflow: visible;
+}
+
+.admin-shell .admin-page > .admin-list-section--audit {
+  overflow: visible;
+}
+
+.admin-shell .admin-page > .admin-list-section--audit > .admin-list-shell {
+  overflow: visible;
+}
+
+.admin-shell .admin-page > .admin-list-section--audit .admin-list-shell__body {
+  flex: none;
+  overflow: visible;
+}
+
 /* Mobile: cards operativas a ancho completo.
    La card compacta genérica aplasta entidad/actor/detalle en una sola línea
    con separadores; acá cada bloque recupera su filas y el espacio horizontal. */
 @media (max-width: 720px) {
-  /* El patrón "rails" (admin-minimal.css) fija todo el shell a 100dvh con
-     overflow:hidden y espera que solo `.admin-list-shell__body` scrollee: le
-     funciona a Atletas/Afiliaciones porque su chrome (buscador + filtros) es
-     corto. En Auditoría el chrome incluye el health card, que es alto y
-     variable -- en mobile podía comerse toda la altura disponible y no
-     dejaba ni ver la tabla ni scrollear la página para llegar a ella (ni la
-     página ni el body interno respondían al gesto). Auditoría vuelve al
-     scroll de documento normal en mobile: salud, filtros y tabla fluyen en
-     una sola columna scrolleable. */
-  .admin-shell:has(.admin-page > .admin-list-section--audit) {
-    height: auto;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .admin-shell:has(.admin-page > .admin-list-section--audit) .admin-shell__main {
-    overflow: visible;
-  }
-
-  .admin-shell .admin-page:has(> .admin-list-section--audit) {
-    overflow: visible;
-  }
-
-  .admin-shell .admin-page > .admin-list-section--audit {
-    overflow: visible;
-  }
-
-  .admin-shell .admin-page > .admin-list-section--audit > .admin-list-shell {
-    overflow: visible;
-  }
-
-  .admin-shell .admin-page > .admin-list-section--audit .admin-list-shell__body {
-    flex: none;
-    overflow: visible;
-  }
-
   .audit-health {
     padding: var(--space-md);
   }
