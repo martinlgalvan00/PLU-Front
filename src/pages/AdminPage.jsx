@@ -7,6 +7,7 @@ import '../styles/pages/admin-dashboard-bento.css'
 import '../styles/pages/admin-audit.css'
 import '../styles/pages/admin-analytics.css'
 import '../styles/pages/admin-pricing.css'
+import '../styles/pages/admin-event-console.css'
 import AdminShell from '../components/layout/AdminShell.jsx'
 import AccountDialog from '../components/admin/AccountDialog.jsx'
 import AdminActionToasts from '../components/admin/AdminActionToasts.jsx'
@@ -85,9 +86,10 @@ export default function AdminPage({
   onDeleteMembershipPlan,
   onSetMembershipPlanActive,
   onSaveEventComboOffer,
+  onDeleteEventComboOffer,
   onSetMembershipPlanRetirement,
   onUpsertDiscountCode,
-  onSetDiscountCodeActive,
+  onSetDiscountCodeState,
   onDeleteDiscountCode,
   billingSubscriptions,
   billingSubscriptionsLoading,
@@ -100,9 +102,17 @@ export default function AdminPage({
   onDeactivateAllSecurityUsers,
   onListSecurityUsers,
   onUpdateSecurityUserStatus,
+  onListSecurityZones,
+  onCreateSecurityZone,
+  onUpdateSecurityZone,
+  onDeleteSecurityZone,
+  onPresetSecurityZones,
+  onAssignSecurityZone,
   onCreateUser,
   onDeleteUser,
   onDeleteAthlete,
+  onBulkUpdateAthletes,
+  onUpdateAthlete,
   onDeleteMembership,
   onDeleteRegistration,
   onSetRegistrationPublicVisibility,
@@ -240,6 +250,11 @@ export default function AdminPage({
     setSection('payments')
   }
 
+  function handleManageEventCheckin() {
+    if (!allowedSections.includes('checkin')) return
+    setSection('checkin')
+  }
+
   function renderSection() {
     const athleteDataSections = ['dashboard', 'athletes', 'memberships', 'registrations', 'plu-usa']
     if (athleteDataSections.includes(section)) {
@@ -289,6 +304,7 @@ export default function AdminPage({
               await onDeleteAthlete?.(athleteId)
               setSelectedAthleteId(null)
             }}
+            onUpdate={onUpdateAthlete}
             onApprovePayment={onApprovePayment}
           />
         )
@@ -301,6 +317,8 @@ export default function AdminPage({
           payments={payments}
           gatePendingIds={gatePendingIds}
           onSelectAthlete={handleSelectAthlete}
+          canEdit={hasPermission(authorization, 'admin.athletes.write')}
+          onBulkUpdate={onBulkUpdateAthletes}
         />
       )
     }
@@ -383,6 +401,13 @@ export default function AdminPage({
           onManageRegistrations={
             allowedSections.includes('registrations') ? handleManageEventRegistrations : undefined
           }
+          onManageCheckin={allowedSections.includes('checkin') ? handleManageEventCheckin : undefined}
+          onListSecurityZones={onListSecurityZones}
+          onCreateSecurityZone={onCreateSecurityZone}
+          onUpdateSecurityZone={onUpdateSecurityZone}
+          onDeleteSecurityZone={onDeleteSecurityZone}
+          onPresetSecurityZones={onPresetSecurityZones}
+          onAssignSecurityZone={onAssignSecurityZone}
           onRefresh={onRefreshAdminEvents}
           onSaveEvent={onSaveEvent}
           canDeleteEvents={canDeleteEvents}
@@ -463,10 +488,11 @@ export default function AdminPage({
           onDeletePlan={onDeleteMembershipPlan}
           onRefresh={onRefreshPricing}
           onSaveComboOffer={onSaveEventComboOffer}
+          onDeleteComboOffer={onDeleteEventComboOffer}
           onSetPlanActive={onSetMembershipPlanActive}
           onSetPlanRetirement={onSetMembershipPlanRetirement}
           onUpsertDiscountCode={onUpsertDiscountCode}
-          onSetDiscountCodeActive={onSetDiscountCodeActive}
+          onSetDiscountCodeState={onSetDiscountCodeState}
           onDeleteDiscountCode={onDeleteDiscountCode}
           subscriptions={billingSubscriptions}
           subscriptionsLoading={billingSubscriptionsLoading}

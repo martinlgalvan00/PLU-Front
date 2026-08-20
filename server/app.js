@@ -9,6 +9,7 @@ import { createEmailRoutes } from './routes/emails.js'
 import { createAuthRoutes } from './routes/auth.js'
 import { createUserRoutes } from './routes/users.js'
 import { createAccessControlRoutes } from './routes/accessControl.js'
+import { createSecurityZoneRoutes } from './routes/securityZones.js'
 import { createTicketRoutes } from './routes/tickets.js'
 import { createAthleteRoutes } from './routes/athletes.js'
 import { createAnalyticsRoutes } from './routes/analytics.js'
@@ -119,6 +120,12 @@ export function createApp(deps = {}) {
     }),
   )
   app.use(
+    '/api/security-zones',
+    createSecurityZoneRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+    }),
+  )
+  app.use(
     '/api/payments',
     createPaymentRoutes({
       supabaseAdmin: resolveSupabaseAdmin(),
@@ -176,6 +183,7 @@ export function createApp(deps = {}) {
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
       repository: deps.platformSettingsRepository,
+      env: deps.env ?? process.env,
     }),
   )
   app.use(

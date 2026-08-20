@@ -86,17 +86,20 @@
   background: linear-gradient(155deg, var(--plu-gold-400), var(--plu-gold-600));
   border: 1px solid rgba(242, 183, 5, 0.35);
   border-radius: 50%;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 16%, transparent),
+    0 10px 24px rgba(0, 0, 0, 0.22);
   color: #141518;
   display: flex;
   flex: none;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 23px;
   font-weight: 600;
-  height: 72px;
+  height: 84px;
   justify-content: center;
   letter-spacing: 0.04em;
   overflow: hidden;
-  width: 72px;
+  width: 84px;
 }
 
 .account-hero__avatar img {
@@ -1013,9 +1016,9 @@
   }
 
   .account-hero__avatar {
-    font-size: 17px;
-    height: 56px;
-    width: 56px;
+    font-size: 18px;
+    height: 64px;
+    width: 64px;
   }
 
   .account-hero__name,
@@ -1306,16 +1309,37 @@
   margin: 0 auto;
   max-width: 1080px;
   padding: 22px clamp(20px, 5vw, 48px) 72px;
+  min-width: 0;
 }
 
-/* Un solo tab de cuenta a la vez (ver AccountNav.jsx) — el `key={activeTab}`
-   en AthleteProfilePage.jsx remonta este wrapper en cada cambio, así el
-   fade se dispara de nuevo por cada tab en vez de correr una sola vez. */
-.account-tab-panel {
-  animation: account-tab-fade var(--duration-base) var(--ease-out);
+/* Durante el cambio de tab hay dos paneles montados a la vez
+   (MotionContentSwap en modo `sync`) y los dos tienen que ocupar la misma
+   celda. Sin esto la grilla le daría una fila a cada uno y la página se
+   estiraría al doble a mitad de la transición. Misma convención que
+   .auth-mode-swap y .register-wizard-swap. */
+.account-sections > .account-tab-panel {
+  grid-area: 1 / 1;
+  min-width: 0;
 }
 
-@keyframes account-tab-fade {
+/* Un solo tab de cuenta a la vez (ver AccountNav.jsx). La entrada y la salida
+   las maneja MotionContentSwap desde AthleteProfilePage.jsx: entra por el lado
+   de la cinta desde el que se movió el foco, en vez del fade sin dirección que
+   había acá. */
+/* Settle interno: el encabezado y la bajada llegan un instante antes que el
+   cuerpo, así el panel no aparece como un bloque único. Son dos elementos y una
+   sola secuencia one-shot por sección — se replantea en cada cambio de tab
+   porque el panel se remonta con la clave del tab. */
+.account-tab-panel .account-section__heading,
+.account-tab-panel .account-section__lead {
+  animation: account-panel-settle var(--motion-base, 240ms) var(--ease-out, ease) both;
+}
+
+.account-tab-panel .account-section__lead {
+  animation-delay: 70ms;
+}
+
+@keyframes account-panel-settle {
   from {
     opacity: 0;
     transform: translateY(6px);
@@ -1327,7 +1351,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .account-tab-panel {
+  .account-tab-panel .account-section__heading,
+  .account-tab-panel .account-section__lead {
     animation: none;
   }
 }
@@ -1336,7 +1361,6 @@
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
-  border-top: 3px solid var(--color-brand-celeste);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
   padding: clamp(24px, 4vw, 36px);
   transition:
@@ -1348,21 +1372,12 @@
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
 }
 
-.account-section--celeste {
-  border-top-color: var(--color-brand-celeste);
-}
-
 .account-section--gold {
-  border-top-color: var(--color-brand-gold);
-  box-shadow: none;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.14);
 }
 
 .account-section--gold:hover {
-  box-shadow: none;
-}
-
-.account-section--neutral {
-  border-top-color: color-mix(in srgb, var(--color-text-muted) 45%, transparent);
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.18);
 }
 
 .account-section__icon--gold {
@@ -2217,6 +2232,13 @@
   margin: 0;
 }
 
+/* Promo que corre para todos: no la trajo el atleta con un codigo, asi que
+   se lee como informacion del catalogo (celeste) y no como un logro suyo
+   (oro), y no ofrece "quitar" porque no hay nada que quitar. */
+.account-discount__applied--public {
+  color: var(--color-brand-celeste);
+}
+
 .account-discount__applied button {
   background: transparent;
   border: 0;
@@ -2337,6 +2359,7 @@
   display: inline-flex;
   font-size: 12.5px;
   font-weight: 400;
+  gap: 8px;
   justify-content: center;
   min-height: 42px;
   padding: 0 16px;
@@ -2390,28 +2413,128 @@
   padding-bottom: 28px;
 }
 
-.account-photo__avatar {
+.account-photo__ring {
   align-items: center;
+  display: flex;
+  flex: none;
+  height: 104px;
+  justify-content: center;
+  position: relative;
+  width: 104px;
+}
+
+.account-photo__ring > svg {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: rotate(-90deg);
+}
+
+.account-photo__ring-track {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 3;
+}
+
+.account-photo__ring-fill {
+  fill: none;
+  stroke: var(--color-brand-gold);
+  stroke-linecap: round;
+  stroke-width: 3;
+  transition: stroke-dashoffset var(--motion-slow) var(--ease-out);
+}
+
+.account-photo__avatar {
   background: linear-gradient(155deg, var(--plu-gold-400), var(--plu-gold-600));
   border: 1px solid rgba(242, 183, 5, 0.35);
   border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
   color: #141518;
-  display: flex;
+  cursor: pointer;
   flex: none;
   font-family: var(--font-display);
   font-size: 26px;
   font-weight: 600;
   height: 88px;
-  justify-content: center;
   letter-spacing: 0.04em;
-  overflow: hidden;
+  padding: 0;
+  position: relative;
+  transition:
+    box-shadow var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
   width: 88px;
+}
+
+.account-photo__avatar-frame {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow: hidden;
+  position: absolute;
+}
+
+.account-photo__avatar:hover {
+  transform: translateY(-1px);
+}
+
+.account-photo__avatar:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.account-photo__avatar:disabled {
+  cursor: default;
+}
+
+.account-photo__avatar--dragging {
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+  transform: scale(1.03);
 }
 
 .account-photo__avatar img {
   height: 100%;
   object-fit: cover;
   width: 100%;
+}
+
+.account-photo__scrim {
+  align-items: center;
+  background: rgba(10, 11, 16, 0.55);
+  color: #fff;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  opacity: 0;
+  position: absolute;
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+.account-photo__avatar:hover .account-photo__scrim,
+.account-photo__avatar:focus-visible .account-photo__scrim,
+.account-photo__avatar--dragging .account-photo__scrim {
+  opacity: 1;
+}
+
+.account-photo__badge {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 2px solid var(--color-bg-surface);
+  border-radius: 50%;
+  bottom: -2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  color: var(--color-brand-action-text, #141518);
+  display: flex;
+  height: 26px;
+  justify-content: center;
+  position: absolute;
+  right: -2px;
+  width: 26px;
+}
+
+.account-photo__avatar[aria-busy='true'] .account-photo__badge svg {
+  animation: spin 0.9s linear infinite;
 }
 
 .account-photo__actions {
@@ -2430,12 +2553,6 @@
   max-width: 46ch;
 }
 
-.account-photo__buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 .account-photo__input {
   display: none;
 }
@@ -2446,42 +2563,8 @@
   margin: 0;
 }
 
-.account-data-group {
-  display: grid;
-  gap: 14px;
-  margin-top: 8px;
-}
-
-.account-data-group + .account-data-group {
-  border-top: 1px solid var(--color-border-subtle);
-  margin-top: 28px;
-  padding-top: 28px;
-}
-
-.account-data-group__label {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.account-data-group__note {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 56ch;
-}
-
 .account-data-group .form-grid {
   margin: 0;
-}
-
-.account-data-group .account-security-actions {
-  margin-top: 10px;
-  padding-top: 6px;
 }
 
 .account-membership-status {
@@ -2985,6 +3068,38 @@
   border-color: var(--color-brand-celeste);
   color: var(--color-brand-celeste);
   transform: none;
+}
+
+/* Inscripción cargada sin pago acreditado: el estado se distingue del "abierta"
+   del calendario y el CTA queda habilitado para cerrar el pago, en vez de
+   bloquearse como si el cupo ya estuviera confirmado. */
+#account-events .account-event-status[data-state='registered'] {
+  color: var(--color-status-success);
+}
+
+#account-events .account-event-status[data-state='pending_payment'] {
+  color: var(--color-warning-text);
+}
+
+#account-events .account-events-list__cta.is-payment-pending {
+  border-color: color-mix(in srgb, var(--color-warning-text) 55%, transparent);
+  color: var(--color-warning-text);
+}
+
+/* `dark.css` declara sus tokens en `:root, [data-theme='dark']`, así que light
+   hereda el ámbar de dark (#f0b45e) y sobre la crema queda en 1.71:1. Acá se
+   toman los tonos de la paleta pensados para fondo claro. */
+[data-theme='light'] #account-events .account-event-status[data-state='registered'] {
+  color: var(--plu-success-600);
+}
+
+[data-theme='light'] #account-events .account-event-status[data-state='pending_payment'] {
+  color: var(--plu-warning-500);
+}
+
+[data-theme='light'] #account-events .account-events-list__cta.is-payment-pending {
+  border-color: color-mix(in srgb, var(--plu-warning-500) 55%, transparent);
+  color: var(--plu-warning-500);
 }
 
 #account-events .account-events-list__cta:not(:disabled):active {
@@ -3577,6 +3692,23 @@
 }
 
 /* ── "Mi QR" — credencial de afiliado (dos columnas: código + preview) ── */
+/* ── El acuse de credencial emitida ──
+   Aparece una sola vez, la primera vez que la persona entra a su cuenta con el
+   QR ya emitido, y después desaparece: el sello registra el momento, no es un
+   encabezado permanente de la sección. La regla inferior lo separa de la
+   bajada sin sumar otra card — la sección ya es una superficie. */
+.account-qr__issued-seal {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-top: 18px;
+  padding-bottom: clamp(14px, 2vw, 20px);
+}
+
+/* Con el sello arriba, la bajada de la sección ya no necesita su margen
+   superior: quedaban dos bloques de aire seguidos entre el acuse y el texto. */
+.account-qr__issued-seal + .account-section__lead {
+  margin-top: 14px;
+}
+
 .account-qr {
   align-items: center;
   display: grid;
@@ -4141,13 +4273,8 @@
     flex-direction: column;
   }
 
-  .account-photo__actions,
-  .account-photo__buttons {
+  .account-photo__actions {
     width: 100%;
-  }
-
-  .account-photo__buttons {
-    flex-direction: column;
   }
 }
 
@@ -4511,7 +4638,9 @@
   );
   border-radius: 999px;
   height: 100%;
-  transition: width 500ms var(--ease-out);
+  width: 100%;
+  transform-origin: left;
+  transition: transform 500ms var(--ease-out);
 }
 
 .account-profile-progress__label {
@@ -4693,13 +4822,6 @@
   color: var(--color-brand-red, #e05a5a);
 }
 
-/* Buttons row in photo section */
-.account-photo__buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
 /* BotÃ³n de foto con Ã­cono */
 .account-secondary-action svg {
   flex: none;
@@ -4771,9 +4893,9 @@
 }
 
 .account-data-group__meta {
+  align-items: center;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 14px;
 }
 
 .account-data-group__label {
@@ -4785,12 +4907,37 @@
   text-transform: uppercase;
 }
 
+.account-data-group__title {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
 .account-data-group__note {
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.45;
   margin: 0;
   max-width: 56ch;
+}
+
+/* Chip circular que antecede cada título de grupo (foto de identidad
+   exceptuada): mismo lenguaje visual en el bloque de completar datos
+   oficiales y en las tres divulgaciones. */
+.account-data-group__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex: none;
+  height: 34px;
+  justify-content: center;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  width: 34px;
 }
 
 #account-personal-data .account-section__lead--compact,
@@ -4808,22 +4955,42 @@
   align-items: center;
   background: transparent;
   border: 0;
+  border-radius: 10px;
   color: inherit;
   cursor: pointer;
   display: flex;
   font: inherit;
   gap: 14px;
   justify-content: space-between;
+  margin: 0 -12px;
   min-height: 56px;
-  padding: 4px 0;
+  padding: 4px 12px;
   text-align: left;
-  width: 100%;
+  transition: background var(--transition-fast);
+  width: calc(100% + 24px);
+}
+
+#account-personal-data .account-data-group__summary:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
 }
 
 #account-personal-data .account-data-group__summary-copy {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+#account-personal-data .account-data-group__summary-text {
   display: grid;
   gap: 3px;
   min-width: 0;
+}
+
+#account-personal-data .account-data-group--disclosure.is-open .account-data-group__icon,
+#account-personal-data .account-data-group__summary:hover .account-data-group__icon {
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  color: var(--color-brand-gold);
 }
 
 #account-personal-data .account-data-group__summary-note {
@@ -4921,38 +5088,53 @@
 
 .account-identity__official {
   display: grid;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
 }
 
-.account-identity__facts {
-  display: grid;
-  gap: 10px 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.account-identity__name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(19px, 2.6vw, 23px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.account-identity__facts > div:first-child {
-  grid-column: 1 / -1;
+.account-identity__meta {
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  margin: 4px 0 0;
+  row-gap: 6px;
 }
 
-.account-identity__facts > div {
-  display: grid;
-  gap: 2px;
+.account-identity__meta-item {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 5px;
   min-width: 0;
 }
 
-.account-identity__facts dt {
+.account-identity__meta-item + .account-identity__meta-item::before {
+  color: var(--color-text-muted);
+  content: '·';
+  margin: 0 12px;
+}
+
+.account-identity__meta-item dt {
   color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.account-identity__facts dd {
+.account-identity__meta-item dd {
   color: var(--color-text-primary);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   margin: 0;
   overflow-wrap: anywhere;
@@ -4972,14 +5154,6 @@
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     gap: 28px;
   }
-
-  .account-identity__facts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .account-identity__facts > div:first-child {
-    grid-column: auto;
-  }
 }
 
 @media (max-width: 560px) {
@@ -4987,14 +5161,19 @@
     align-items: center;
   }
 
+  #account-personal-data .account-photo__ring {
+    height: 80px;
+    width: 80px;
+  }
+
   #account-personal-data .account-photo__avatar {
     height: 68px;
     width: 68px;
   }
 
-  .account-identity__photo-actions .account-photo__buttons {
-    flex-direction: row;
-    width: auto;
+  #account-personal-data .account-photo__badge {
+    height: 22px;
+    width: 22px;
   }
 
   #account-personal-data .account-data-group__required-note {
@@ -5309,8 +5488,19 @@
     padding: 24px;
   }
 
+  /* La credencial se arma con un track de 340-400px (ver regla base más
+     arriba): dentro del sidebar de 280px eso la manda fuera del recorte
+     de .account-hero (overflow: hidden) y queda invisible. En este ancho
+     el sidebar ya es angosto, así que apilamos igual que en mobile
+     (<=820px) — la credencial ya sabe achicarse vía sus @container. */
   .account-hero__inner {
     gap: 24px;
+    grid-template-columns: 1fr;
+  }
+
+  .account-hero .account-credential {
+    justify-self: stretch;
+    max-width: none;
   }
 
   .account-nav {

@@ -49,7 +49,13 @@ export default function TicketOrdersSection({
           order.attendees?.map((item) => `${item.name} (${item.dni})`).join(' · ') ??
           t('admin.ticketOrders.unknownBuyer'),
         ticketCount: order.ticketCount,
-        amount: money(order.amount, locale),
+        amount: money(order.amount, locale, order.currency),
+        channel:
+          order.manualPaymentChannel === 'wise_transfer'
+            ? t('formOptions.payment.wiseTransfer')
+            : order.provider === 'manual'
+              ? t('formOptions.payment.manualLink')
+              : null,
         proofStatus: order.paymentProofPath
           ? t('admin.ticketOrders.proofReceived')
           : t('admin.ticketOrders.proofMissing'),
@@ -168,6 +174,13 @@ export default function TicketOrdersSection({
               sortable: true,
             },
             { key: 'event', label: t('admin.columns.event'), mobile: 'default', sortable: true },
+            {
+              key: 'channel',
+              label: t('admin.columns.method'),
+              mobile: 'hidden',
+              sortable: true,
+              render: (row) => (row.channel ? row.channel : '—'),
+            },
             {
               key: 'ticketCount',
               label: t('admin.ticketOrders.tickets'),

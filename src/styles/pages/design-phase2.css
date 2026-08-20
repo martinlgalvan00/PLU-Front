@@ -697,15 +697,6 @@
   position: absolute;
 }
 
-.events-featured__visual::after {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 20px 20px;
-  content: '';
-  inset: 0;
-  opacity: 0.6;
-  position: absolute;
-}
-
 .events-featured__badge {
   background: var(--color-brand-action);
   border-radius: var(--border-radius-pill);
@@ -3521,7 +3512,9 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
   .auth-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* Retrato protagonista: la foto lleva más peso que el formulario en vez
+       de partir la pantalla al medio. */
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     height: 100%;
     /* Dentro del app-shell equivale a `100%`; fuera (staff / cambio de email)
@@ -4585,6 +4578,114 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
 .auth-immersive-glass .login-field__hint svg {
   flex: none;
+}
+
+/* Recordarme: checkbox real y accesible (no un div disfrazado) — la caja
+   custom vive detrás del input nativo, que queda transparente pero enfocable
+   y con :checked funcional. Una sola fila: la garantía de seguridad se lee
+   en el `title` del label y queda disponible para lectores de pantalla vía
+   `.login-remember__hint` (visualmente oculto), no como segunda línea fija. */
+.auth-immersive-glass .login-remember {
+  align-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  margin: -6px -8px;
+  padding: 6px 8px;
+  transition: background-color 180ms var(--ease-out);
+}
+
+.auth-immersive-glass .login-remember:hover {
+  background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
+}
+
+.auth-immersive-glass .login-remember__control {
+  flex: none;
+  height: 17px;
+  position: relative;
+  width: 17px;
+}
+
+.auth-immersive-glass .login-remember__input {
+  cursor: pointer;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+  z-index: 1;
+}
+
+.auth-immersive-glass .login-remember__box {
+  align-items: center;
+  background: transparent;
+  border: 1.5px solid color-mix(in oklab, var(--color-text-primary) 26%, transparent);
+  border-radius: 4px;
+  color: var(--color-brand-action-text, #14181f);
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  transition:
+    background-color 180ms var(--ease-out),
+    border-color 180ms var(--ease-out);
+  width: 100%;
+}
+
+.auth-immersive-glass .login-remember__box svg {
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.auth-immersive-glass .login-remember__input:hover ~ .login-remember__box {
+  border-color: color-mix(in oklab, var(--plu-gold-500) 60%, var(--color-text-primary) 26%);
+}
+
+.auth-immersive-glass .login-remember__input:checked ~ .login-remember__box {
+  background: var(--plu-gold-500);
+  border-color: var(--plu-gold-500);
+}
+
+.auth-immersive-glass .login-remember__input:checked ~ .login-remember__box svg {
+  opacity: 1;
+}
+
+.auth-immersive-glass .login-remember__input:focus-visible ~ .login-remember__box {
+  outline: var(--institution-focus-width) solid var(--institution-focus);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.auth-immersive-glass .login-remember__label {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Texto de apoyo disponible para lectores de pantalla (el `title` del label
+   ya lo ofrece a mouse/touch en hover); oculto visualmente para que la fila
+   no crezca a una segunda línea. */
+.auth-immersive-glass .login-remember__hint {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Pop sutil del check al marcar — una sola micro-interacción, no un loop. */
+  .auth-immersive-glass .login-remember__box svg {
+    transform: scale(0.4);
+    transition:
+      opacity 120ms var(--ease-out),
+      transform 200ms var(--ease-spring, var(--ease-out));
+  }
+
+  .auth-immersive-glass .login-remember__input:checked ~ .login-remember__box svg {
+    transform: scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

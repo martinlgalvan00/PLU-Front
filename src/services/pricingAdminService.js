@@ -32,6 +32,7 @@ export function mapMembershipPlan(row) {
 
 export function mapDiscountCode(row) {
   const fixedPrice = row.fixed_price ?? row.fixedPrice ?? null
+  const fixedPriceManual = row.fixed_price_manual ?? row.fixedPriceManual ?? null
   return {
     id: row.id,
     code: row.code,
@@ -41,10 +42,25 @@ export function mapDiscountCode(row) {
     kind: row.kind ?? (fixedPrice != null ? 'fixed_price' : 'percent'),
     percentOff: Number(row.percent_off ?? row.percentOff) || 0,
     fixedPrice: fixedPrice != null ? Number(fixedPrice) : null,
+    // Importe final para transferencia y efectivo. `null` = cobra lo mismo que
+    // `fixedPrice` en cualquier canal.
+    fixedPriceManual: fixedPriceManual != null ? Number(fixedPriceManual) : null,
+    // Quien accede a la promo: 'code' hay que tipearla, 'public' se aplica
+    // sola. Las promos anteriores a la audiencia eran todas por codigo.
+    audience: row.audience === 'public' ? 'public' : 'code',
     appliesTo: row.applies_to ?? row.appliesTo ?? 'membership',
+    // Inscripción a la que está atado el código. Null = cualquiera, que es como
+    // se comportaban todos los códigos antes de 20260902100000.
+    eventId: row.event_id ?? row.eventId ?? null,
+    eventSlug: row.event_slug ?? row.eventSlug ?? null,
+    eventTitle: row.event_title ?? row.eventTitle ?? null,
     maxRedemptions: row.max_redemptions ?? row.maxRedemptions ?? null,
+    // Ventana de la promo. `startsAt` null = vigente desde que está encendida.
+    startsAt: row.starts_at ?? row.startsAt ?? null,
     expiresAt: row.expires_at ?? row.expiresAt ?? null,
     active: row.active !== false,
+    // Emails con acceso exclusivo. Lista vacía = promo abierta.
+    invitees: Array.isArray(row.invitees) ? row.invitees : [],
     // Canales manuales que el código destraba. Los códigos anteriores a la
     // lista sólo traen el booleano: `true` significaba los dos canales.
     manualChannels:
@@ -54,6 +70,9 @@ export function mapDiscountCode(row) {
         ? ['bank_transfer', 'cash_pitbull']
         : []),
     redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
+    // Cuánta gente canjeó la llave, contra `redeemedCount`, que es cuánta la
+    // usó para comprar. Son dos números distintos en una oferta secreta.
+    unlockedCount: Number(row.unlocked_count ?? row.unlockedCount) || 0,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: row.updated_at ?? row.updatedAt ?? null,
   }
@@ -71,6 +90,10 @@ export function getDiscountCodeAvailability(code = {}, now = new Date()) {
   const remaining = hasLimit ? Math.max(0, maxRedemptions - redeemedCount) : null
   const exhausted = hasLimit && remaining === 0
   const expired = Boolean(code.expiresAt) && new Date(code.expiresAt) < now
+  // Programada: encendida pero todavía no abrió. No es lo mismo que apagada —
+  // el operador ya la dejó lista y no tiene que volver a tocarla.
+  const scheduled = Boolean(code.startsAt) && new Date(code.startsAt) > now
+  const inviteeCount = Array.isArray(code.invitees) ? code.invitees.length : 0
 
   let status = 'active'
   // El cupón se desactiva automáticamente al llegar al límite. Se prioriza
@@ -78,8 +101,20 @@ export function getDiscountCodeAvailability(code = {}, now = new Date()) {
   if (exhausted) status = 'exhausted'
   else if (code.active === false) status = 'inactive'
   else if (expired) status = 'expired'
+  else if (scheduled) status = 'scheduled'
 
   return {
+    scheduled,
+    // La exclusividad se deriva de la lista: no hay un flag aparte que pueda
+    // quedar encendido sobre una lista vacía.
+    exclusive: inviteeCount > 0,
+    inviteeCount,
+    // El estado que edita el operador, en un solo valor. Se deriva de los dos
+    // ejes que guarda la base (`active` × `audience`) porque el interruptor de
+    // encendido lo escribe también el cierre automático por cupo, y perder la
+    // audiencia al agotarse haria que reabrir la promo la volviera restringida
+    // sin que nadie lo pidiera.
+    state: code.active === false ? 'off' : code.audience === 'public' ? 'public' : 'code',
     hasLimit,
     maxRedemptions: hasLimit ? maxRedemptions : null,
     redeemedCount,
@@ -155,31 +190,78 @@ export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
   return mapMembershipPlan(result.plan)
 }
 
+const DISCOUNT_CODE_KINDS = ['percent', 'fixed_price', 'access', 'offer']
+
 export async function upsertDiscountCodeRequest(code) {
-  const kind = code.kind === 'fixed_price' ? 'fixed_price' : 'percent'
+  // Lista blanca y no un ternario: colapsar a 'percent'/'fixed_price' convertía
+  // en silencio un código de acceso en uno de porcentaje (y el servidor lo
+  // rebotaba después por falta de `percentOff`). Con la lista, cada modalidad
+  // nueva viaja tal cual y una desconocida cae en el default de siempre.
+  const kind = DISCOUNT_CODE_KINDS.includes(code.kind) ? code.kind : 'percent'
+  // Una oferta exclusiva no puede ser pública: si se aplicara sola, no sería un
+  // secreto. Mismo criterio que la RPC y el schema.
+  const audience = code.audience === 'public' && kind !== 'offer' ? 'public' : 'code'
   const result = await apiPost('/api/pricing/discount-codes', {
     ...code,
     kind,
+    audience,
+    // Una promo publica no abre canales manuales (lo rechazan el schema y la
+    // RPC): se limpian aca para que cambiar de restringida a publica en el
+    // formulario no mande un payload que el servidor va a rebotar.
+    manualChannels: audience === 'public' ? [] : (code.manualChannels ?? []),
     // Cada modalidad manda sólo su campo: el schema del servidor descarta el
     // otro, y un string vacío haría fallar la coerción numérica.
     percentOff: kind === 'percent' ? code.percentOff : undefined,
-    fixedPrice: kind === 'fixed_price' ? code.fixedPrice : undefined,
-    manualChannels: code.manualChannels ?? [],
+    // 'offer' comparte el importe con 'fixed_price': es un precio promocional
+    // que además desbloquea el combo.
+    fixedPrice: ['fixed_price', 'offer'].includes(kind) ? code.fixedPrice : undefined,
+    // Vacío = los canales manuales cobran lo mismo que Mercado Pago. Se manda
+    // `undefined` y no 0 para que el schema lo lea como "sin precio manual".
+    fixedPriceManual:
+      ['fixed_price', 'offer'].includes(kind) &&
+      code.fixedPriceManual !== '' &&
+      code.fixedPriceManual != null
+        ? Number(code.fixedPriceManual)
+        : undefined,
+    // Sólo una inscripción o un combo pueden limitarse a un evento, y una promo
+    // pública nunca (el resolver de promo pública no recibe el evento).
+    eventId:
+      code.eventId && audience === 'code' && ['registration', 'combo'].includes(code.appliesTo)
+        ? code.eventId
+        : undefined,
+    startsAt: dateTimeToIso(code.startsAt),
     expiresAt: dateTimeToIso(code.expiresAt),
+    // Siempre se manda la lista completa: el array presente reemplaza la
+    // exclusividad entera, y vacío significa "abierta a todos".
+    invitees: code.invitees ?? [],
   })
   return mapDiscountCode(result.code)
 }
 
-export async function setDiscountCodeActiveRequest(codeId, active) {
-  const result = await apiPatch(
-    `/api/pricing/discount-codes/${encodeURIComponent(codeId)}/status`,
-    { active },
-  )
+/**
+ * Los tres estados en una sola llamada. `audience` ausente conserva la que ya
+ * tenia la promo, asi el toggle de encendido no la convierte en publica.
+ */
+export async function setDiscountCodeStateRequest(codeId, { active, audience } = {}) {
+  const result = await apiPatch(`/api/pricing/discount-codes/${encodeURIComponent(codeId)}/state`, {
+    active,
+    ...(audience ? { audience } : {}),
+  })
   return mapDiscountCode(result.code)
+}
+
+/** Traduce el estado unico del panel a los dos ejes que guarda la base. */
+export function discountCodeStatePayload(state) {
+  if (state === 'off') return { active: false }
+  return { active: true, audience: state === 'public' ? 'public' : 'code' }
 }
 
 export async function deleteDiscountCodeRequest(codeId) {
   return apiDelete(`/api/pricing/discount-codes/${encodeURIComponent(codeId)}`)
+}
+
+export async function deleteEventComboOfferRequest(eventSlug) {
+  return apiDelete(`/api/pricing/events/${encodeURIComponent(eventSlug)}/combo`)
 }
 
 export async function fetchBillingSubscriptionsRequest(filters = {}) {

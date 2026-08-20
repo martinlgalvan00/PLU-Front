@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Lock, Share2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
+import ConfirmationSeal from '../../components/ui/ConfirmationSeal.jsx'
 import CredentialCard from '../../components/ui/CredentialCard.jsx'
 import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
 import { buildAthleteCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import { hasCelebrated, markCelebrated } from '../../lib/celebration.js'
 import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
 import { formatShortDate } from '../../lib/format.js'
 import {
@@ -40,6 +42,11 @@ export default function QrCredentialSection({
   const [qrSrc, setQrSrc] = useState(null)
   const [qrFailed, setQrFailed] = useState(false)
   const [mergeDone, setMergeDone] = useState(false)
+  // La decisión de mostrar el acuse de emisión se toma una sola vez, cuando el
+  // código existe: la ráfaga marca la clave al dispararse, así que releer
+  // `hasCelebrated` en cada render haría desaparecer el sello a mitad del
+  // gesto que acaba de encender.
+  const issueSealRef = useRef(null)
 
   const memberCode = membership?.memberCode ?? latestMembership?.memberCode
   const credentialCode =
@@ -76,6 +83,22 @@ export default function QrCredentialSection({
     !mergeDone
   const qrBusy = hasCredential && !qrSrc && !qrFailed
 
+  /* ── El momento en que la credencial existe ──
+     Antes la persona pagaba la afiliación, volvía a su cuenta y encontraba el
+     QR ya puesto, como si siempre hubiera estado ahí: el trámite más
+     importante de la temporada no tenía acuse en la pantalla donde queda el
+     objeto. Acá la emisión se sella una vez —clave por atleta y por código,
+     así que una renovación con código nuevo vuelve a sellarse— y el papel sale
+     recién cuando el QR está dibujado de verdad, no mientras se genera. */
+  const credentialIssueKey =
+    athlete?.id && credentialCode ? `credential.${athlete.id}.${credentialCode}` : null
+
+  if (issueSealRef.current === null && credentialIssueKey) {
+    issueSealRef.current = !hasCelebrated(credentialIssueKey)
+  }
+
+  const showIssueSeal = hasCredential && Boolean(qrSrc) && issueSealRef.current === true
+
   const validUntil = membership?.expirationDate
     ? formatShortDate(membership.expirationDate, locale)
     : null
@@ -110,6 +133,15 @@ export default function QrCredentialSection({
       cancelled = true
     }
   }, [credentialCode, hasCredential])
+
+  /* El ritual de unificación ya es el festejo de esta credencial: sin esto, al
+     terminar la fusión el componente volvía a la vista normal y el sello de
+     emisión disparaba una segunda ráfaga a los dos segundos de la primera. */
+  useEffect(() => {
+    if (!shouldPlayMerge || !credentialIssueKey) return
+    issueSealRef.current = false
+    markCelebrated(credentialIssueKey)
+  }, [credentialIssueKey, shouldPlayMerge])
 
   const cardData = hasCredential
     ? {
@@ -174,6 +206,28 @@ export default function QrCredentialSection({
 
       {hasCredential ? (
         <>
+          {showIssueSeal ? (
+            <ConfirmationSeal
+              className="account-qr__issued-seal"
+              variant="membership"
+              celebrate
+              celebrateKey={credentialIssueKey ?? undefined}
+              /* Sin vibración: acá nadie acaba de cerrar un trámite, la persona
+                 entró a ver su credencial. El acuse registra la emisión; el
+                 teléfono vibra en la pantalla de confirmación del pago, que es
+                 donde la acción existió. */
+              haptic={false}
+              eyebrow={t('account.qr.sealIssuedEyebrow')}
+              seal={memberCode ?? undefined}
+              title={t('account.qr.sealIssuedTitle')}
+              detail={
+                validUntil
+                  ? t('account.qr.validUntil', { date: validUntil })
+                  : t('account.qr.sealIssuedDetail')
+              }
+            />
+          ) : null}
+
           <p className="account-section__lead">
             {showDual
               ? t('account.qr.leadDual')

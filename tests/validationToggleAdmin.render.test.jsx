@@ -15,13 +15,52 @@ vi.mock('../src/services/athleteApi.js', () => ({
 
 vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
   const actual = await importOriginal()
-  return { ...actual, fetchPlatformFeatureToggles: vi.fn(), savePlatformFeatureToggle: vi.fn() }
+  return {
+    ...actual,
+    fetchPlatformFeatureToggles: vi.fn(),
+    savePlatformFeatureToggle: vi.fn(),
+    savePaymentChannel: vi.fn(),
+  }
 })
 
 const { listAthletePaymentOrders } = await import('../src/services/athleteApi.js')
-const { fetchPlatformFeatureToggles, PLATFORM_TOGGLE_KEYS } = await import(
+const { fetchPlatformFeatureToggles, savePaymentChannel, PLATFORM_TOGGLE_KEYS } = await import(
   '../src/services/platformSettingsAdminService.js'
 )
+
+const ALL_OPEN = { mercado_pago: true, bank_transfer: true, cash_pitbull: true, wise_transfer: true }
+
+/**
+ * Estado que devuelve el servicio: los booleanos por concepto más la matriz de
+ * canales. `paymentChannels` viene siempre completa desde `mapToggles`.
+ */
+function togglesState({ channels = {}, ...overrides } = {}) {
+  return {
+    ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
+    paymentChannels: {
+      membership: { ...ALL_OPEN },
+      registration: { ...ALL_OPEN },
+      ticket: { ...ALL_OPEN },
+      ...channels,
+    },
+    environmentHolds: [],
+    ...overrides,
+  }
+}
+
+function renderAccessSection({ canEdit = true } = {}) {
+  return render(
+    <I18nProvider>
+      <RegistrationAccessSection
+        canEdit={canEdit}
+        configuration={{ membershipGate: null, eventGates: [] }}
+        adminEvents={[]}
+        onRefresh={() => {}}
+        onSave={async () => ({})}
+      />
+    </I18nProvider>,
+  )
+}
 const AthletePaymentOrdersSection = (
   await import('../src/pages/admin/AthletePaymentOrdersSection.jsx')
 ).default
@@ -104,96 +143,136 @@ describe('bandeja de Finanzas con la validación congelada', () => {
 })
 
 describe('pantalla de Acceso y habilitación', () => {
-  it('expone los diez interruptores agrupados por eje', async () => {
-    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
-      Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
-    )
+  it('expone un interruptor por alta, por medio de cobro y por validación', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(togglesState())
 
-    render(
-      <I18nProvider>
-        <RegistrationAccessSection
-          canEdit
-          configuration={{ membershipGate: null, eventGates: [] }}
-          adminEvents={[]}
-          onRefresh={() => {}}
-          onSave={async () => ({})}
-        />
-      </I18nProvider>,
-    )
-
+    renderAccessSection()
     await waitFor(() => expect(fetchPlatformFeatureToggles).toHaveBeenCalled())
 
-    // Un switch por interruptor, ni más ni menos.
-    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(10))
+    // 1 maestro + 3 altas + 3 validaciones + 11 celdas de canal (entradas no
+    // ofrece efectivo, que no existe en su checkout; Wise sí se ofrece en los
+    // tres conceptos).
+    await waitFor(() => expect(screen.getAllByRole('checkbox')).toHaveLength(18))
 
-    for (const heading of [/altas nuevas/i, /transferencia y efectivo/i, /validación y activación/i]) {
-      expect(screen.getByRole('heading', { name: heading })).toBeTruthy()
+    // Un bloque por concepto, no cuatro grupos por eje. Se busca dentro de la
+    // sección de interruptores: la de tandas privadas también nombra los
+    // conceptos.
+    const toggles = within(screen.getByRole('region', { name: /habilitación general/i }))
+    for (const heading of [/^afiliaciones$/i, /^inscripciones$/i, /^entradas$/i]) {
+      expect(toggles.getByRole('heading', { name: heading })).toBeTruthy()
     }
-    // Los tres ejes por concepto, con nombre accesible propio.
+    // Cada medio de cobro tiene control propio y nombre accesible propio.
     for (const name of [
+      /habilitar mercado pago para afiliaciones/i,
+      /habilitar transferencia bancaria para afiliaciones/i,
+      /habilitar efectivo en pitbull para afiliaciones/i,
+      /habilitar wise para afiliaciones/i,
+      /habilitar mercado pago para inscripciones/i,
+      /habilitar wise para inscripciones/i,
+      /habilitar transferencia bancaria para entradas/i,
+      /habilitar wise para entradas/i,
       /habilitar venta de entradas/i,
-      /habilitar afiliación por transferencia o efectivo/i,
       /habilitar validación de entradas/i,
     ]) {
       expect(screen.getByRole('checkbox', { name })).toBeTruthy()
     }
+    // Efectivo para entradas no se ofrece: sería un interruptor sin efecto.
+    expect(
+      screen.queryByRole('checkbox', { name: /habilitar efectivo en pitbull para entradas/i }),
+    ).toBeNull()
   })
 
-  it('resume cuántos interruptores quedaron abiertos', async () => {
-    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
-      ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
-      ticketManualEnabled: false,
-      ticketValidationEnabled: false,
-    })
-
-    render(
-      <I18nProvider>
-        <RegistrationAccessSection
-          canEdit
-          configuration={{ membershipGate: null, eventGates: [] }}
-          adminEvents={[]}
-          onRefresh={() => {}}
-          onSave={async () => ({})}
-        />
-      </I18nProvider>,
+  it('resume cuántos interruptores quedaron abiertos, canales incluidos', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
+      togglesState({
+        ticketValidationEnabled: false,
+        channels: { membership: { ...ALL_OPEN, cash_pitbull: false } },
+      }),
     )
 
+    renderAccessSection()
+
     // El operador tiene que poder responder "¿está todo abierto?" sin leer las
-    // diez filas.
-    expect(await screen.findByText('8 de 10 habilitados')).toBeTruthy()
+    // dieciocho filas.
+    expect(await screen.findByText('16 de 18 habilitados')).toBeTruthy()
+  })
+
+  // Lo que antes era imposible desde el panel: la pasarela no era cerrable.
+  it('cierra Mercado Pago de un concepto sin tocar los otros medios', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(togglesState())
+    vi.mocked(savePaymentChannel).mockResolvedValue(
+      togglesState({ channels: { membership: { ...ALL_OPEN, mercado_pago: false } } }),
+    )
+
+    renderAccessSection()
+    const mercadoPago = await waitFor(() =>
+      screen.getByRole('checkbox', { name: /habilitar mercado pago para afiliaciones/i }),
+    )
+    fireEvent.click(mercadoPago)
+
+    await waitFor(() =>
+      expect(savePaymentChannel).toHaveBeenCalledWith('membership', 'mercado_pago', false),
+    )
+    await waitFor(() => expect(mercadoPago.checked).toBe(false))
+    expect(
+      screen.getByRole('checkbox', { name: /habilitar transferencia bancaria para afiliaciones/i })
+        .checked,
+    ).toBe(true)
+  })
+
+  it('avisa cuando un concepto queda sin ningún medio de cobro', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
+      togglesState({
+        channels: {
+          registration: {
+            mercado_pago: false,
+            bank_transfer: false,
+            cash_pitbull: false,
+            wise_transfer: false,
+          },
+        },
+      }),
+    )
+
+    renderAccessSection()
+
+    // Un solo aviso: el del concepto que quedó sin medios, no uno por fila.
+    const warnings = await screen.findAllByText(/sin ningún medio abierto/i)
+    expect(warnings).toHaveLength(1)
+  })
+
+  it('avisa cuando una variable de entorno frena los cobros por encima del panel', async () => {
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
+      togglesState({
+        environmentHolds: [{ variable: 'PAID_CHECKOUT_ENABLED', scope: 'checkout' }],
+      }),
+    )
+
+    renderAccessSection()
+
+    expect(await screen.findByText(/PAID_CHECKOUT_ENABLED/)).toBeTruthy()
   })
 
   it('sigue diciendo el estado de cada interruptor sin permiso de edición', async () => {
-    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
-      ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
-      registrationEnabled: false,
-    })
-
-    render(
-      <I18nProvider>
-        <RegistrationAccessSection
-          canEdit={false}
-          configuration={{ membershipGate: null, eventGates: [] }}
-          adminEvents={[]}
-          onRefresh={() => {}}
-          onSave={async () => ({})}
-        />
-      </I18nProvider>,
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
+      togglesState({ registrationEnabled: false }),
     )
 
-    // Sin switch que lo muestre, el estado viaja como texto: nueve habilitados
-    // y el de inscripciones cerrado.
+    renderAccessSection({ canEdit: false })
+
+    // Sin switch que lo muestre, el estado viaja como texto.
     await waitFor(() => expect(screen.queryAllByRole('checkbox')).toHaveLength(0))
-    expect(screen.getAllByText('Habilitadas')).toHaveLength(8)
-    expect(screen.getByText('Habilitados')).toBeTruthy()
+    expect(screen.getAllByText('Habilitadas')).toHaveLength(2)
     expect(screen.getByText('Cerradas')).toBeTruthy()
+    expect(screen.getByText('Habilitados')).toBeTruthy()
+    expect(screen.getAllByText('Habilitada')).toHaveLength(3)
+    expect(screen.getAllByText('Activo')).toHaveLength(11)
   })
 
   it('muestra cerrado el interruptor apagado', async () => {
-    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue({
-      ...Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
-      ticketValidationEnabled: false,
-    })
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
+      togglesState({ ticketValidationEnabled: false }),
+    )
 
     render(
       <I18nProvider>
@@ -217,9 +296,7 @@ describe('pantalla de Acceso y habilitación', () => {
   })
 
   it('reabre una tanda cerrada sin arrastrar su fecha de cierre vencida', async () => {
-    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(
-      Object.fromEntries(PLATFORM_TOGGLE_KEYS.map((key) => [key, true])),
-    )
+    vi.mocked(fetchPlatformFeatureToggles).mockResolvedValue(togglesState())
     const onSave = vi.fn().mockResolvedValue({})
 
     render(

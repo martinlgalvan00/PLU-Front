@@ -353,7 +353,7 @@ function AthleteJourney({ athletes, days, locale, t }) {
                 <ul className="admin-analytics__journey-list">
                   {(journey.pages ?? []).map((page) => (
                     <li key={page.path}>
-                      <code>{page.path}</code>
+                      <code title={page.path}>{page.path}</code>
                       <strong>{count(page.pageviews, locale)}</strong>
                     </li>
                   ))}
@@ -981,7 +981,10 @@ export default function AnalyticsSection({
                 <ul className="admin-analytics__elements">
                   {heatmap.elements.slice(0, 8).map((element) => (
                     <li key={element.element_selector}>
-                      <span className="admin-analytics__element-label">
+                      <span
+                        className="admin-analytics__element-label"
+                        title={element.label || element.element_selector}
+                      >
                         {element.label || element.element_selector}
                       </span>
                       <strong>{count(element.clicks, locale)}</strong>
@@ -1010,9 +1013,9 @@ export default function AnalyticsSection({
                   <ul className="admin-analytics__flows">
                     {flows.map((flow) => (
                       <li key={`${flow.from_path}->${flow.to_path}`}>
-                        <code>{flow.from_path}</code>
+                        <code title={flow.from_path}>{flow.from_path}</code>
                         <ArrowRight size={13} aria-hidden />
-                        <code>{flow.to_path}</code>
+                        <code title={flow.to_path}>{flow.to_path}</code>
                         <strong>{count(flow.transitions, locale)}</strong>
                       </li>
                     ))}
@@ -1030,10 +1033,16 @@ export default function AnalyticsSection({
                   <ol className="admin-analytics__ranking">
                     {elements.map((element) => (
                       <li key={element.element_selector}>
-                        <span className="admin-analytics__ranking-label">
+                        <span
+                          className="admin-analytics__ranking-label"
+                          title={element.label || element.element_selector}
+                        >
                           {element.label || element.element_selector}
                         </span>
-                        <code className="admin-analytics__ranking-path">
+                        <code
+                          className="admin-analytics__ranking-path"
+                          title={Number(element.paths) > 1 ? undefined : element.sample_path}
+                        >
                           {Number(element.paths) > 1
                             ? t('admin.analytics.elementsPaths', {
                                 count: count(element.paths, locale),

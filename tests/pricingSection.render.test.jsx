@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import PricingSection from '../src/pages/admin/PricingSection.jsx'
@@ -146,7 +146,9 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
     // El campo de porcentaje deja lugar al del precio promocional.
     expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
-    fireEvent.change(screen.getByLabelText(/Precio promocional/), { target: { value: '120000' } })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
+      target: { value: '120000' },
+    })
     fireEvent.change(screen.getByLabelText('Aplica a'), { target: { value: 'combo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
@@ -156,7 +158,152 @@ describe('Tarifas — alta de planes y combo', () => {
       fixedPrice: 120000,
       percentOff: undefined,
       appliesTo: 'combo',
+      // Sin precio manual cargado: transferencia y efectivo cobran lo mismo que
+      // Mercado Pago. Es el default y el caso que pidió Administración.
+      fixedPriceManual: undefined,
     }))
+  })
+
+  it('deja pactar el mismo importe en Mercado Pago y en transferencia', async () => {
+    // El precio del canal manual no tiene por qué ser menor: cargar $120.000 en
+    // los dos campos tiene que guardarse tal cual, sin que nada lo rechace.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'pacto' } })
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
+      target: { value: '120000' },
+    })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por transferencia/), {
+      target: { value: '120000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'PACTO',
+      kind: 'fixed_price',
+      fixedPrice: 120000,
+      fixedPriceManual: 120000,
+    }))
+  })
+
+  it('un precio manual mayor que el de Mercado Pago tambien se guarda', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'caro' } })
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
+      target: { value: '120000' },
+    })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por transferencia/), {
+      target: { value: '135000' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      fixedPrice: 120000,
+      fixedPriceManual: 135000,
+    }))
+  })
+
+  it('el precio promocional por canal no existe en una promo de porcentaje', () => {
+    renderPricing()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    expect(screen.queryByLabelText(/Precio promocional por transferencia/)).toBeNull()
+
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'fixed_price' } })
+    expect(screen.getByLabelText(/Precio promocional por transferencia/)).toBeTruthy()
+  })
+
+  it('programa la apertura y rechaza una ventana invertida', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'preventa' } })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '20' } })
+    fireEvent.change(screen.getByLabelText(/^Apertura/), { target: { value: '2026-09-10T00:00' } })
+    fireEvent.change(screen.getByLabelText(/^Vencimiento/), { target: { value: '2026-09-01T00:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
+    expect(
+      screen.getByText('El cierre de la promoción tiene que ser posterior a su apertura.'),
+    ).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText(/^Vencimiento/), { target: { value: '2026-09-30T00:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'PREVENTA',
+      startsAt: '2026-09-10T00:00',
+      expiresAt: '2026-09-30T00:00',
+    }))
+  })
+
+  it('convierte la lista de invitados en exclusividad y rechaza un email invalido', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), { target: { value: 'gym' } })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '15' } })
+    fireEvent.change(screen.getByLabelText(/Exclusiva para/), {
+      target: { value: 'ana@plu.ar\nno-es-un-mail' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
+    expect(screen.getByText('no-es-un-mail no es una dirección de correo válida.')).toBeTruthy()
+
+    // Se aceptan los separadores que trae pegar una columna de planilla, y se
+    // normaliza a minúsculas sin repetidos.
+    fireEvent.change(screen.getByLabelText(/Exclusiva para/), {
+      target: { value: 'Ana@PLU.ar, bruno@plu.ar; ana@plu.ar' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'GYM',
+      invitees: ['ana@plu.ar', 'bruno@plu.ar'],
+    }))
+  })
+
+  it('crea un código de acceso al combo, sin descuento', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'combo-secreto' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Modalidad/), { target: { value: 'access' } })
+
+    // Ni porcentaje ni precio promocional: un acceso no descuenta nada.
+    expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
+    expect(screen.queryByLabelText(/Precio promocional por Mercado Pago/)).toBeNull()
+    // El alcance se cae solo a combo, el único donde un acceso tiene sentido.
+    expect(screen.getByLabelText('Aplica a').value).toBe('combo')
+    expect(screen.queryByRole('option', { name: 'Afiliación' })).toBeNull()
+    expect(screen.queryByRole('option', { name: 'Inscripción' })).toBeNull()
+    expect(screen.queryByRole('option', { name: 'Afiliación e inscripción' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'COMBO-SECRETO',
+        kind: 'access',
+        percentOff: undefined,
+        fixedPrice: undefined,
+        appliesTo: 'combo',
+      }),
+    )
   })
 
   it('no ofrece el alcance combinado para una promo de precio fijo', () => {
@@ -270,9 +417,106 @@ describe('Tarifas — alta de planes y combo', () => {
     })
 
     expect(screen.getByText('0 disponibles')).toBeTruthy()
-    expect(screen.getAllByText('Agotado')).toHaveLength(2)
+    expect(screen.getByText('Agotado')).toBeTruthy()
     expect(screen.getByRole('progressbar', { name: '0 de 10 cupos disponibles' })).toHaveProperty('value', 0)
-    expect(screen.getAllByRole('checkbox').at(-1).disabled).toBe(true)
+    // Agotada queda en "Deshabilitada" y las dos opciones abiertas fuera de
+    // alcance: reabrirla sin ampliar el cupo no habilita nada y la RPC la
+    // rechaza, así que el panel no ofrece el click.
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción PRIMEROS-10' })
+    expect(within(states).getByRole('radio', { name: 'Deshabilitada' }).checked).toBe(true)
+    expect(within(states).getByRole('radio', { name: 'Para todos' }).disabled).toBe(true)
+    expect(within(states).getByRole('radio', { name: 'Con código' }).disabled).toBe(true)
+    expect(
+      screen.getByText(
+        'Agotó su cupo y se cerró sola. Ampliá el límite de canjes para volver a habilitarla.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('cambia la promoción a pública desde la fila', async () => {
+    const onSetDiscountCodeState = vi.fn(async () => ({}))
+    renderPricing({
+      onSetDiscountCodeState,
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-open',
+            code: 'VERANO',
+            percentOff: 15,
+            appliesTo: 'membership',
+            redeemedCount: 0,
+            active: true,
+            audience: 'code',
+          },
+        ],
+      },
+    })
+
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción VERANO' })
+    expect(within(states).getByRole('radio', { name: 'Con código' }).checked).toBe(true)
+
+    fireEvent.click(within(states).getByRole('radio', { name: 'Para todos' }))
+    await screen.findByText('Configuración actualizada.')
+
+    expect(onSetDiscountCodeState).toHaveBeenCalledWith('coupon-open', 'public')
+  })
+
+  it('marca la promoción que se aplica sola', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-public',
+            code: 'TODOS',
+            percentOff: 10,
+            appliesTo: 'both',
+            redeemedCount: 0,
+            active: true,
+            audience: 'public',
+          },
+        ],
+      },
+    })
+
+    expect(screen.getByText('Se aplica sola')).toBeTruthy()
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción TODOS' })
+    expect(within(states).getByRole('radio', { name: 'Para todos' }).checked).toBe(true)
+  })
+
+  // El error de cambiar el estado se mostraba dentro del formulario de edición,
+  // que en este flujo está cerrado: el rechazo quedaba invisible y el control
+  // volvía solo a su lugar sin explicar nada.
+  it('muestra en la propia fila el rechazo al cambiar de estado', async () => {
+    const onSetDiscountCodeState = vi.fn(async () => ({
+      error: 'La promoción agotó su cupo (10 de 10).',
+    }))
+    renderPricing({
+      onSetDiscountCodeState,
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-rejected',
+            code: 'RECHAZO',
+            percentOff: 15,
+            appliesTo: 'membership',
+            redeemedCount: 0,
+            active: true,
+            audience: 'code',
+          },
+        ],
+      },
+    })
+
+    const states = screen.getByRole('radiogroup', { name: 'Estado de la promoción RECHAZO' })
+    fireEvent.click(within(states).getByRole('radio', { name: 'Deshabilitada' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'La promoción agotó su cupo (10 de 10).',
+    )
   })
 
   it('copia el código y confirma la acción en la misma fila', async () => {

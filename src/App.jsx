@@ -540,9 +540,10 @@ export default function App() {
           onDeleteMembershipPlan={app.deleteMembershipPlan}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSaveEventComboOffer={app.saveEventComboOffer}
+          onDeleteEventComboOffer={app.deleteEventComboOffer}
           onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}
           onUpsertDiscountCode={app.upsertDiscountCode}
-          onSetDiscountCodeActive={app.setDiscountCodeActive}
+          onSetDiscountCodeState={app.setDiscountCodeState}
           onDeleteDiscountCode={app.deleteDiscountCode}
           billingSubscriptions={app.billingSubscriptions}
           billingSubscriptionsLoading={app.billingSubscriptionsLoading}
@@ -555,11 +556,19 @@ export default function App() {
           onDeactivateAllSecurityUsers={app.deactivateAllSecurityUsersAction}
           onListSecurityUsers={app.listSecurityUsersForEventAction}
           onUpdateSecurityUserStatus={app.updateSecurityUserStatusAction}
+          onListSecurityZones={app.listSecurityZonesAction}
+          onCreateSecurityZone={app.createSecurityZoneAction}
+          onUpdateSecurityZone={app.updateSecurityZoneAction}
+          onDeleteSecurityZone={app.deleteSecurityZoneAction}
+          onPresetSecurityZones={app.presetSecurityZonesAction}
+          onAssignSecurityZone={app.assignSecurityZoneAction}
           onCreateUser={app.createUserAction}
           onDeleteUser={app.deleteUserAction}
           onRequestEmailChange={app.requestEmailChangeAction}
           onResetStaffPassword={app.resetStaffPasswordAction}
           onDeleteAthlete={app.deleteAthleteAction}
+          onBulkUpdateAthletes={app.bulkUpdateAthletesAction}
+          onUpdateAthlete={app.updateAthleteAction}
           onDeleteMembership={app.deleteMembershipAction}
           onDeleteRegistration={app.deleteRegistrationAction}
           onSetRegistrationPublicVisibility={app.setRegistrationPublicVisibilityAction}
@@ -634,6 +643,7 @@ export default function App() {
                 events: publicEvents,
                 session: app.session,
                 memberships: app.memberships,
+                registrations: app.registrations,
                 checkoutAvailability: app.checkoutAvailability,
               }
             : view === 'pitbull'
@@ -643,6 +653,10 @@ export default function App() {
                   events: publicEvents,
                   session: app.session,
                   memberships: app.memberships,
+                  // Sin esto la página del meet no podía saber que quien la
+                  // mira ya está inscripto: ofrecía "Inscribirme" a alguien
+                  // que había pagado, mientras su perfil decía lo contrario.
+                  registrations: app.registrations,
                   checkoutAvailability: app.checkoutAvailability,
                 }
               : view === 'shop'

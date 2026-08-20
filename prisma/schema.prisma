@@ -44,6 +44,16 @@ enum UserStatus {
   disabled
 }
 
+// Alcance de escaneo de una zona del evento. Define qué credencial puede leer
+// el grupo asignado a esa zona: la puerta lee entradas de público, el pesaje
+// solo atletas inscriptos, y la plataforma nada de eso.
+enum EventSecurityZoneScope {
+  gate_tickets
+  athletes_only
+  athletes_coaches
+  staff_only
+}
+
 enum AthleteStatus {
   pre_registrado
   registrado
@@ -417,6 +427,9 @@ model User {
   // login de seguridad y la generacion de credenciales de puerta.
   eventId      String?
   eventSlug    String?
+  // Zona del evento a la que está asignada esta cuenta de seguridad. Nulo en
+  // cuentas de staff y en cuentas de seguridad todavía sin asignar.
+  securityZoneId String?
 
   profile                 UserProfile?
   accessRole              AccessRole?                   @relation(fields: [accessRoleId], references: [id], onDelete: Restrict)
@@ -433,10 +446,36 @@ model User {
   checkIns                CheckIn[]
   outboxEvents            OutboxEvent[]
   person                  Person?                      @relation(fields: [personId], references: [id], onDelete: SetNull)
+  securityZone            EventSecurityZone?           @relation(fields: [securityZoneId], references: [id], onDelete: SetNull)
 
   @@index([role, status])
   @@index([accessRoleId, status])
   @@index([eventId])
+  @@index([securityZoneId])
+}
+
+/// Zona física del meet (puerta, pesaje, calentamiento, plataforma). Agrupa a
+/// las cuentas de seguridad del evento y le da a cada grupo un alcance de
+/// escaneo y un turno, en vez de una lista plana donde todos pueden todo.
+///
+/// eventId/eventSlug referencian public.events de Supabase igual que User: no
+/// hay FK porque la tabla Prisma Event es legacy y no se puebla.
+model EventSecurityZone {
+  id         String                 @id @default(cuid())
+  eventId    String
+  eventSlug  String
+  name       String
+  scope      EventSecurityZoneScope @default(gate_tickets)
+  shiftStart DateTime?
+  shiftEnd   DateTime?
+  sortOrder  Int                    @default(0)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  members User[]
+
+  @@unique([eventId, name])
+  @@index([eventId, sortOrder])
 }
 
 model UserIdentity {

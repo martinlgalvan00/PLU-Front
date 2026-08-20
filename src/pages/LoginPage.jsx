@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   ChevronDown,
   Eye,
   EyeOff,
@@ -142,6 +143,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [capsLock, setCapsLock] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -232,7 +234,7 @@ export default function LoginPage({ onLogin, onNavigate }) {
 
     setIsSubmitting(true)
     try {
-      await enter({ email: normalizeEmail(email), password })
+      await enter({ email: normalizeEmail(email), password, remember: rememberMe })
     } catch (error) {
       // Un 429 no es una credencial mal puesta: mostrarlo como tal hacía que
       // el atleta cambiara una contraseña que estaba bien. 502/503 (API caída
@@ -482,6 +484,22 @@ export default function LoginPage({ onLogin, onNavigate }) {
                         </span>
                       ) : null}
                     </div>
+
+                    <label className="login-remember" title={t('login.rememberHint')}>
+                      <span className="login-remember__control">
+                        <input
+                          type="checkbox"
+                          className="login-remember__input"
+                          checked={rememberMe}
+                          onChange={(event) => setRememberMe(event.target.checked)}
+                        />
+                        <span className="login-remember__box" aria-hidden="true">
+                          <Check size={12} strokeWidth={3} />
+                        </span>
+                      </span>
+                      <span className="login-remember__label">{t('login.remember')}</span>
+                      <span className="login-remember__hint">{t('login.rememberHint')}</span>
+                    </label>
 
                     <AuthSubmit
                       busy={isSubmitting}

@@ -1,5 +1,6 @@
 import { UPCOMING_EVENTS } from './events.js'
 import { isGateAccessReady, isRegistrationAdmitted } from './status.js'
+import { isRegistrationForEvent } from './athleteEventStatus.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 
 /**
@@ -11,9 +12,7 @@ export function resolveRequiresMembership(registration, events = UPCOMING_EVENTS
     return registration.requiresMembership
   }
   const catalog = events?.length ? events : UPCOMING_EVENTS
-  const match = catalog.find(
-    (event) => event.slug === registration?.eventSlug || event.title === registration?.event,
-  )
+  const match = catalog.find((event) => isRegistrationForEvent(registration, event))
   return Boolean(match?.requiresMembership)
 }
 

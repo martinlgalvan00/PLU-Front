@@ -38,6 +38,10 @@ export default function AdminEventSecuritySection({
   onCreateSecurityAccessLink,
   onDeactivateAllSecurityUsers,
   onListSecurityUsers,
+  // Avisa hacia arriba que el equipo cambió. Las zonas viven en otro componente
+  // y leen las mismas cuentas: sin esto, una cuenta recién creada no aparecía
+  // como pendiente de asignar hasta recargar la sección.
+  onTeamChange,
   onUpdateSecurityUserStatus,
 }) {
   const { t } = useI18n()
@@ -215,6 +219,7 @@ export default function AdminEventSecuritySection({
       setTeamResult({ created: createdWithAccess, skipped: result.skipped })
       setMembers([nextMember()])
       setMemberErrors({})
+      onTeamChange?.()
     } catch (error) {
       setTeamSubmitError(error)
     } finally {
@@ -229,6 +234,7 @@ export default function AdminEventSecuritySection({
     try {
       const updated = await onUpdateSecurityUserStatus(user.id, nextStatus)
       setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      onTeamChange?.()
     } catch {
       setOperationError(t('admin.eventEditor.security.errorStatus'))
     } finally {
@@ -243,6 +249,7 @@ export default function AdminEventSecuritySection({
       await onDeactivateAllSecurityUsers(eventId)
       setUsers((current) => current.map((user) => ({ ...user, status: 'disabled' })))
       setConfirmingDeactivateAll(false)
+      onTeamChange?.()
     } catch {
       setOperationError(t('admin.eventEditor.security.errorStatus'))
     } finally {

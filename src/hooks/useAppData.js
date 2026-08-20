@@ -14,6 +14,12 @@ import {
   deactivateAllSecurityUsersRequest,
   listAccessRolesRequest,
   listSecurityUsersRequest,
+  listSecurityZonesRequest,
+  createSecurityZoneRequest,
+  updateSecurityZoneRequest,
+  deleteSecurityZoneRequest,
+  presetSecurityZonesRequest,
+  assignSecurityZoneRequest,
   listStaffUsersRequest,
   loginRequest,
   logoutRequest,
@@ -49,6 +55,8 @@ import {
   checkInRegistration as checkInRegistrationRequest,
   createCompetitionRegistration as createCompetitionRegistrationRequest,
   createCompetitionRegistrationCombo as createCompetitionRegistrationComboRequest,
+  bulkUpdateAthletesRequest,
+  updateAthleteAdminRequest,
   createMembershipOrder as createMembershipOrderRequest,
   deleteAthleteRequest,
   deleteMembershipRequest,
@@ -146,10 +154,12 @@ import {
   createMembershipPlanVersionRequest,
   fetchBillingSubscriptionsRequest,
   deleteDiscountCodeRequest,
+  deleteEventComboOfferRequest,
   deleteMembershipPlanRequest,
+  discountCodeStatePayload,
   fetchPricingConfigurationRequest,
   saveEventComboOfferRequest,
-  setDiscountCodeActiveRequest,
+  setDiscountCodeStateRequest,
   setMembershipPlanActiveRequest,
   setMembershipPlanRetirementRequest,
   upsertDiscountCodeRequest,
@@ -1108,6 +1118,9 @@ export function useAppData() {
               ? {
                   membershipAccessCode: options.membershipAccessCode,
                   registrationAccessCode: options.registrationAccessCode,
+                  // Código que destraba un combo restringido. No es un cupón:
+                  // no toca el precio, habilita el paquete.
+                  comboAccessCode: options.comboAccessCode,
                 }
               : { accessCode: options.registrationAccessCode }),
             discountCode: options.discountCode,
@@ -1226,11 +1239,12 @@ export function useAppData() {
     async (event, purchaseEvent, attendees, paymentMethod) => {
       event.preventDefault()
       const provider =
-        paymentMethod === 'transferencia' || paymentMethod === 'manual_link'
+        paymentMethod === 'transferencia' || paymentMethod === 'manual_link' || paymentMethod === 'wise_transfer'
           ? 'manual'
           : paymentMethod
+      const manualPaymentChannel = paymentMethod === 'wise_transfer' ? 'wise_transfer' : undefined
       try {
-        const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider])
+        const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider, manualPaymentChannel])
         if (ticketAttemptRef.current?.fingerprint !== attemptFingerprint) {
           ticketAttemptRef.current = {
             fingerprint: attemptFingerprint,
@@ -1251,6 +1265,7 @@ export function useAppData() {
             addonIds: attendee.addonIds ?? [],
           })),
           provider,
+          manualPaymentChannel,
           idempotencyKey: ticketAttemptRef.current.idempotencyKey,
           accessToken: ticketAttemptRef.current.accessToken,
         })
@@ -1601,6 +1616,61 @@ export function useAppData() {
     [session],
   )
 
+  // Edición en bloque (status/gym) desde la selección múltiple de
+  // AthletesSection. Partial success: `failed` puede traer ids que no se
+  // pudieron actualizar sin que eso frene al resto del lote.
+  const bulkUpdateAthletesAction = useCallback(
+    async (athleteIds, patch) => {
+      if (!hasPermission(session, 'admin.athletes.write')) {
+        throw new Error('Sin permisos para editar atletas.')
+      }
+
+      const applyLocalUpdate = (updatedAthletes) => {
+        const byId = new Map(updatedAthletes.map((item) => [item.id, item]))
+        setAthletes((current) =>
+          current.map((item) => (byId.has(item.id) ? { ...item, ...byId.get(item.id) } : item)),
+        )
+      }
+
+      if (isDemoSession(session)) {
+        const updated = athleteIds.map((id) => ({ id, ...patch }))
+        applyLocalUpdate(updated)
+        return { updated, failed: [] }
+      }
+
+      const { updated, failed } = await bulkUpdateAthletesRequest(athleteIds, patch)
+      applyLocalUpdate(updated)
+      return { updated, failed }
+    },
+    [session],
+  )
+
+  // Edición de un atleta puntual (status/gym) desde su ficha.
+  const updateAthleteAction = useCallback(
+    async (athleteId, patch) => {
+      if (!hasPermission(session, 'admin.athletes.write')) {
+        throw new Error('Sin permisos para editar atletas.')
+      }
+
+      const applyLocalUpdate = (updated) => {
+        setAthletes((current) =>
+          current.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+        )
+      }
+
+      if (isDemoSession(session)) {
+        const updated = { id: athleteId, ...patch }
+        applyLocalUpdate(updated)
+        return updated
+      }
+
+      const { athlete } = await updateAthleteAdminRequest(athleteId, patch)
+      applyLocalUpdate(athlete)
+      return athlete
+    },
+    [session],
+  )
+
   const createAccessRoleAction = useCallback(
     async (draft) => {
       let createdRole
@@ -1853,6 +1923,39 @@ export function useAppData() {
     (userId, sendEmail = false) => createSecurityAccessLinkRequest(userId, sendEmail),
     [],
   )
+
+  // Zonas de seguridad del evento. Todas devuelven la lista completa de zonas
+  // ya recalculada por el backend: el panel no reconstruye el reparto a mano
+  // después de cada cambio, que es donde se desincronizaba.
+  const listSecurityZonesAction = useCallback(async (eventId) => {
+    const { zones } = await listSecurityZonesRequest(eventId)
+    return zones
+  }, [])
+
+  const createSecurityZoneAction = useCallback(async (zone) => {
+    const { zones } = await createSecurityZoneRequest(zone)
+    return zones
+  }, [])
+
+  const updateSecurityZoneAction = useCallback(async (zoneId, zone) => {
+    const { zones } = await updateSecurityZoneRequest(zoneId, zone)
+    return zones
+  }, [])
+
+  const deleteSecurityZoneAction = useCallback(async (zoneId) => {
+    const { zones } = await deleteSecurityZoneRequest(zoneId)
+    return zones
+  }, [])
+
+  const presetSecurityZonesAction = useCallback(async ({ eventId, eventSlug }) => {
+    const { zones } = await presetSecurityZonesRequest({ eventId, eventSlug })
+    return zones
+  }, [])
+
+  const assignSecurityZoneAction = useCallback(async (userId, zoneId) => {
+    const { zones } = await assignSecurityZoneRequest(userId, zoneId)
+    return zones
+  }, [])
 
   // Login passwordless de puerta: la credencial (token firmado) crea una
   // sesión real igual que loginRequest, incluyendo el puente de Supabase Auth.
@@ -2391,6 +2494,7 @@ export function useAppData() {
             ...event,
             status: changes.status ?? event.status,
             published: changes.published ?? event.published,
+            requiresMembership: changes.requiresMembership ?? event.requiresMembership,
             updatedAt: new Date().toISOString(),
           }
           // El demo replica la regla de la base: sin esto el cupo lleno se
@@ -2606,6 +2710,25 @@ export function useAppData() {
     [refreshPricingConfiguration, session],
   )
 
+  const deleteEventComboOffer = useCallback(
+    async (eventSlug) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const result = await deleteEventComboOfferRequest(eventSlug)
+        await refreshPricingConfiguration()
+        return result
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo eliminar la oferta combo.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
+
   const saveEventComboOffer = useCallback(
     async (eventSlug, offer) => {
       if (
@@ -2767,8 +2890,13 @@ export function useAppData() {
     [session, dismissedQueueItems],
   )
 
-  const setDiscountCodeActive = useCallback(
-    async (codeId, active) => {
+  /**
+   * `state` es 'off' | 'public' | 'code'. La traducción a los dos ejes que
+   * guarda la base vive en el servicio, no acá: el panel razona con un solo
+   * estado y el backend con `active` × `audience`.
+   */
+  const setDiscountCodeState = useCallback(
+    async (codeId, state) => {
       if (
         !hasPermission(session, 'admin.pricing.write') ||
         !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
@@ -2776,11 +2904,11 @@ export function useAppData() {
         return { error: 'La configuración económica está disponible próximamente.' }
       }
       try {
-        const saved = await setDiscountCodeActiveRequest(codeId, active)
+        const saved = await setDiscountCodeStateRequest(codeId, discountCodeStatePayload(state))
         await refreshPricingConfiguration()
         return { code: saved }
       } catch (error) {
-        return { error: error?.message ?? 'No se pudo cambiar el estado del código de descuento.' }
+        return { error: error?.message ?? 'No se pudo cambiar el estado de la promoción.' }
       }
     },
     [refreshPricingConfiguration, session],
@@ -2919,7 +3047,8 @@ export function useAppData() {
     saveEventComboOffer,
     setMembershipPlanRetirement,
     upsertDiscountCode,
-    setDiscountCodeActive,
+    setDiscountCodeState,
+    deleteEventComboOffer,
     deleteDiscountCode,
     billingSubscriptions,
     billingSubscriptionsLoading,
@@ -2974,6 +3103,8 @@ export function useAppData() {
     resetStaffPasswordAction,
     deleteUserAction,
     deleteAthleteAction,
+    bulkUpdateAthletesAction,
+    updateAthleteAction,
     deleteMembershipAction,
     deleteRegistrationAction,
     setRegistrationPublicVisibilityAction,
@@ -2982,6 +3113,12 @@ export function useAppData() {
     updateAccessRoleStatusAction,
     createSecurityUserAction,
     createSecurityUsersBulkAction,
+    listSecurityZonesAction,
+    createSecurityZoneAction,
+    updateSecurityZoneAction,
+    deleteSecurityZoneAction,
+    presetSecurityZonesAction,
+    assignSecurityZoneAction,
     createSecurityAccessLinkAction,
     deactivateAllSecurityUsersAction,
     listSecurityUsersForEventAction,

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, m } from 'motion/react'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
@@ -10,6 +10,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 
 const EDGE_MARGIN = 16
 const TARGET_GAP = 14
+const SPOTLIGHT_PAD = 6
 const MISSING_TARGET_RETRY_MS = 350
 const MISSING_TARGET_TIMEOUT_MS = 1400
 
@@ -75,6 +76,35 @@ function useTargetRect(selector, stepKey, onMissing) {
   }, [selector, stepKey])
 
   return rect
+}
+
+/**
+ * El fondo del recorrido se dibuja como cuatro paneles alrededor del hueco
+ * del spotlight en vez de una sola capa completa. Antes la capa tapaba todo
+ * el panel -- incluido el elemento que el paso está señalando -- así que el
+ * último paso del recorrido de inicio apuntaba al botón de ayuda y ese botón
+ * no se podía tocar. Con el hueco abierto el recorrido sigue siendo modal
+ * (el resto del panel no responde) pero el blanco señalado queda usable, y
+ * un click en la zona oscurecida cancela el recorrido.
+ */
+function TourBlockers({ rect, onCancel }) {
+  const shared = { className: 'admin-tour-blocker', onClick: onCancel, 'aria-hidden': true }
+  if (!rect) return <div {...shared} style={{ inset: 0 }} />
+
+  const holeTop = Math.max(0, Math.floor(rect.top - SPOTLIGHT_PAD))
+  const holeLeft = Math.max(0, Math.floor(rect.left - SPOTLIGHT_PAD))
+  const holeRight = Math.ceil(rect.left + rect.width + SPOTLIGHT_PAD)
+  const holeBottom = Math.ceil(rect.top + rect.height + SPOTLIGHT_PAD)
+  const holeHeight = holeBottom - holeTop
+
+  return (
+    <>
+      <div {...shared} style={{ top: 0, left: 0, right: 0, height: holeTop }} />
+      <div {...shared} style={{ top: holeBottom, left: 0, right: 0, bottom: 0 }} />
+      <div {...shared} style={{ top: holeTop, left: 0, width: holeLeft, height: holeHeight }} />
+      <div {...shared} style={{ top: holeTop, left: holeRight, right: 0, height: holeHeight }} />
+    </>
+  )
 }
 
 function TourCard({
@@ -194,6 +224,19 @@ export default function AdminTourOverlay() {
     skipStep,
   )
 
+  // Escape a nivel del recorrido y no solo de la tarjeta: mientras un paso
+  // busca su blanco la tarjeta todavía no está montada y el fondo oscurecido
+  // quedaba sin salida por teclado.
+  useEffect(() => {
+    if (!activeTour) return undefined
+    function handleKeyDown(event) {
+      if (event.key !== 'Escape') return
+      closeTour()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [activeTour, closeTour])
+
   if (!activeTour || !step) return null
 
   return createPortal(
@@ -206,14 +249,15 @@ export default function AdminTourOverlay() {
         exit="exit"
         variants={drawerBackdropTransition}
       >
+        <TourBlockers rect={rect} onCancel={closeTour} />
         {rect ? (
           <div
             className="admin-tour-spotlight"
             style={{
-              top: rect.top - 6,
-              left: rect.left - 6,
-              width: rect.width + 12,
-              height: rect.height + 12,
+              top: rect.top - SPOTLIGHT_PAD,
+              left: rect.left - SPOTLIGHT_PAD,
+              width: rect.width + SPOTLIGHT_PAD * 2,
+              height: rect.height + SPOTLIGHT_PAD * 2,
               borderRadius: rect.radius && rect.radius !== '0px' ? rect.radius : '10px',
             }}
           />

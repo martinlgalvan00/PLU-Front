@@ -225,6 +225,23 @@ export function createSupabaseAthleteRepository(
       delete row.password_hash
       return row
     },
+    /**
+     * Edición administrativa (status/gym) — a diferencia de `update`, que es
+     * autoservicio del propio atleta. Usada por el PATCH admin individual y
+     * por el bulk (que la itera una vez por id con Promise.allSettled, no
+     * hay update-many equivalente en Supabase/RPC para esta tabla).
+     */
+    updateAthleteAdmin: (athleteId, { status, gym }, actor) =>
+      rpc(
+        'staff_update_athlete',
+        {
+          p_athlete_id: athleteId,
+          p_status: status ?? null,
+          p_gym: gym ?? null,
+          p_actor: actor,
+        },
+        'No se pudo actualizar el atleta.',
+      ),
     createMembershipOrder: (athleteId, data) =>
       rpc(
         'create_membership_order_checkout',
@@ -237,6 +254,7 @@ export function createSupabaseAthleteRepository(
           p_default_price: data.defaultPrice,
           p_manual_price: data.manualPrice ?? null,
           p_manual_payment_channel: data.manualPaymentChannel,
+          p_currency: data.currency ?? null,
         },
         'No se pudo crear la orden de afiliacion.',
       ),
@@ -283,7 +301,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at)',
+            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at, audience, access_code)',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
@@ -295,9 +313,21 @@ export function createSupabaseAthleteRepository(
       const now = new Date()
       if (offer.starts_at && new Date(offer.starts_at) > now) return null
       if (offer.ends_at && new Date(offer.ends_at) < now) return null
-      return { price: offer.price, manualPrice: offer.manual_price, currency: offer.currency }
+      return {
+        price: offer.price,
+        manualPrice: offer.manual_price,
+        currency: offer.currency,
+        // `accessCode` no sale de acá hacia ninguna respuesta: sólo lo compara
+        // la ruta de checkout antes de crear la orden.
+        audience: offer.audience === 'code' ? 'code' : 'public',
+        accessCode: offer.access_code ?? null,
+      }
     },
-    previewDiscountCode: (athleteId, { code, appliesTo, baseAmount }) =>
+    // `paymentMethod` es el `method` con el que se guardaría la orden
+    // (`storagePaymentMethod`), no el medio que eligió el atleta: la RPC lo usa
+    // para elegir entre `fixed_price` y `fixed_price_manual`, con el mismo
+    // criterio que `resolve_channel_price` usa para el precio de catálogo.
+    previewDiscountCode: (athleteId, { code, appliesTo, baseAmount, paymentMethod = null }) =>
       rpc(
         'athlete_preview_discount_code',
         {
@@ -306,8 +336,37 @@ export function createSupabaseAthleteRepository(
           p_code: code,
           p_applies_to: appliesTo,
           p_base_amount: baseAmount,
+          p_payment_method: paymentMethod,
         },
         'No se pudo validar el código de descuento.',
+      ),
+    /**
+     * Canje de la llave de una oferta exclusiva. NO es una redención: no
+     * consume cupo ni escribe importe, sólo registra que este atleta tiene el
+     * código (ver la cabecera de 20260902100000). Lo que habilita es la ficha
+     * "Oferta exclusiva" de Mi cuenta; el cobro sigue saliendo del checkout.
+     *
+     * Devuelve `{ unlocked: false, reason }` en vez de fallar: la pantalla
+     * necesita distinguir "no existe" de "venció" de "sin cupo".
+     */
+    unlockOfferCode: (athleteId, code) =>
+      rpc(
+        'athlete_unlock_offer_code',
+        {
+          p_organization_id: organizationId,
+          p_athlete_id: athleteId,
+          p_code: code,
+        },
+        'No se pudo canjear el código.',
+      ),
+    listOfferUnlocks: (athleteId) =>
+      rpc(
+        'athlete_list_offer_unlocks',
+        {
+          p_organization_id: organizationId,
+          p_athlete_id: athleteId,
+        },
+        'No se pudieron leer tus ofertas desbloqueadas.',
       ),
     // Lectura simple (no RPC): sólo decide si el canal manual se destraba
     // para esta compra puntual. La redención real, con todas sus validaciones
@@ -321,7 +380,7 @@ export function createSupabaseAthleteRepository(
       const row = assertSupabaseResult(
         await client
           .from('discount_codes')
-          .select('active, applies_to, expires_at, manual_channels')
+          .select('active, applies_to, starts_at, expires_at, manual_channels')
           .eq('organization_id', organizationId)
           .eq('code', String(code).trim().toUpperCase())
           .maybeSingle(),
@@ -331,7 +390,15 @@ export function createSupabaseAthleteRepository(
       // Un código que sólo destraba transferencia no habilita efectivo: el
       // canal pedido tiene que estar en su lista.
       if (!(row.manual_channels ?? []).includes(channel)) return false
-      if (row.expires_at && new Date(row.expires_at) < new Date()) return false
+      const now = new Date()
+      // Una promo programada todavía no abre nada: sin este chequeo el canal se
+      // ofrecía desde que la promo existía, no desde que empezaba.
+      if (row.starts_at && new Date(row.starts_at) > now) return false
+      if (row.expires_at && new Date(row.expires_at) < now) return false
+      // La lista de invitados NO se chequea acá: esta lectura no conoce al
+      // atleta. Quien no esté invitado ve el canal ofrecido y la orden se cae
+      // con PLU26 al enviarla — el preview (`/me/discount-preview`) sí devuelve
+      // `not_invited` antes, así que el caso queda explicado en pantalla.
       return row.applies_to === scope || row.applies_to === 'both'
     },
     createRegistration: (athleteId, data) =>
@@ -349,6 +416,7 @@ export function createSupabaseAthleteRepository(
           p_default_price: data.defaultPrice,
           p_manual_price: data.manualPrice ?? null,
           p_manual_payment_channel: data.manualPaymentChannel,
+          p_currency: data.currency ?? null,
         },
         'No se pudo crear la inscripcion.',
       ),
@@ -367,6 +435,7 @@ export function createSupabaseAthleteRepository(
           p_manual_price: data.manualPrice ?? null,
           p_manual_payment_channel: data.manualPaymentChannel,
           p_discount_code: data.discountCode || null,
+          p_currency: data.currency ?? null,
         },
         'No se pudo crear el combo de afiliacion e inscripcion.',
       ),

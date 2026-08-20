@@ -23,12 +23,6 @@ import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.
 import { listMembershipPlans } from '../services/paymentService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 
-const SEASON_COMBO_FALLBACK = {
-  active: true,
-  price: PRICING.combo,
-  endsAt: '2026-08-28T23:59:59-03:00',
-}
-
 function mapLivePlan(plan, featureTemplate, t) {
   const isRecurring = plan.collectionMode === 'recurring'
   const isMonthly = plan.billingFrequency === 'monthly'
@@ -78,20 +72,21 @@ export default function MembersPage({
     () => getPitbullClassicEvent(events) ?? getFeaturedEvent(events),
     [events],
   )
-  const pendingComboEndsAt = useMemo(() => {
-    if (featuredEvent?.comboOffer) return featuredEvent.comboOffer.endsAt ?? null
-    return SEASON_COMBO_FALLBACK.endsAt
-  }, [featuredEvent])
+  // Un combo con audience 'code' es secreto: sólo se ofrece a quien ya
+  // canjeó el código en el checkout (RegisterPage), nunca como promo
+  // pública en esta página. Antes había además un fallback hardcodeado que
+  // inventaba un combo "siempre activo" cuando el evento destacado no traía
+  // uno propio — eso hacía aparecer la tarjeta con precios y fecha fija sin
+  // que ningún admin la hubiera configurado.
+  const isPublicComboOffer = Boolean(
+    featuredEvent?.comboOffer && featuredEvent.comboOffer.audience !== 'code',
+  )
+  const pendingComboEndsAt = isPublicComboOffer ? (featuredEvent.comboOffer.endsAt ?? null) : null
 
-  const liveComboOffer = useMemo(() => {
-    const fromEvent = resolveLiveComboOffer(featuredEvent, now)
-    if (fromEvent) return fromEvent
-    // Sin oferta live del evento todavía: usamos la promo de temporada.
-    if (!featuredEvent?.comboOffer) {
-      return resolveLiveComboOffer({ comboOffer: SEASON_COMBO_FALLBACK }, now)
-    }
-    return null
-  }, [featuredEvent, now])
+  const liveComboOffer = useMemo(
+    () => (isPublicComboOffer ? resolveLiveComboOffer(featuredEvent, now) : null),
+    [featuredEvent, now, isPublicComboOffer],
+  )
 
   const eventPricing = useMemo(() => resolveEventPricing(featuredEvent), [featuredEvent])
 

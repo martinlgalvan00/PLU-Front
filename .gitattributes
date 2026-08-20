@@ -10,3 +10,7 @@
 *.sh text eol=lf
 *.js text eol=lf
 *.jsx text eol=lf
+# CSS por el mismo motivo: adminEventsPhone.css.test.js recorta el bloque
+# `@media (pointer: coarse)` buscando el literal "}\n}", así que con CRLF no
+# encuentra el cierre y el bloque sale vacío. Fallaba sólo en Windows.
+*.css text eol=lf

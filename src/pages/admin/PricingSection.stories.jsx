@@ -58,6 +58,9 @@ const configuration = {
       description: 'Afiliación + inscripción al Pitbull Classic.',
       kind: 'fixed_price',
       fixedPrice: 120000,
+      // Mismo importe por transferencia y efectivo: el caso pactado. Se carga
+      // explícito para que el panel muestre la nota del canal manual.
+      fixedPriceManual: 120000,
       appliesTo: 'combo',
       maxRedemptions: 40,
       redeemedCount: 12,
@@ -65,6 +68,25 @@ const configuration = {
       active: true,
       manualChannels: ['bank_transfer', 'cash_pitbull'],
       createdAt: '2026-08-15T00:00:00.000Z',
+    },
+    {
+      id: '88888888-8888-4888-8888-888888888888',
+      code: 'PREVENTA-CLUBES',
+      description: 'Acuerdo con clubes: abre sola el 10/09 y sólo para los invitados.',
+      kind: 'fixed_price',
+      fixedPrice: 98000,
+      // Por transferencia sale más barato que por Mercado Pago.
+      fixedPriceManual: 92000,
+      appliesTo: 'membership',
+      redeemedCount: 0,
+      // Programada: todavía no abrió, y el panel lo dice sin que nadie
+      // tenga que acordarse de prenderla ese día.
+      startsAt: '2099-09-10T03:00:00.000Z',
+      expiresAt: '2099-09-30T23:59:00.000Z',
+      active: true,
+      audience: 'code',
+      invitees: ['ana@plu.ar', 'bruno@plu.ar', 'clara@plu.ar'],
+      createdAt: '2026-08-17T00:00:00.000Z',
     },
     {
       id: '44444444-4444-4444-8444-444444444444',
@@ -78,6 +100,18 @@ const configuration = {
       expiresAt: '2026-11-15T23:59:00.000Z',
       active: true,
       createdAt: '2026-08-14T00:00:00.000Z',
+    },
+    {
+      id: '77777777-7777-4777-8777-777777777777',
+      code: 'AGOSTO',
+      description: 'Promo de agosto: la aplica sola el checkout, sin tipear nada.',
+      kind: 'percent',
+      percentOff: 15,
+      appliesTo: 'membership',
+      redeemedCount: 4,
+      active: true,
+      audience: 'public',
+      createdAt: '2026-08-16T00:00:00.000Z',
     },
     {
       id: '55555555-5555-4555-8555-555555555555',
@@ -106,7 +140,7 @@ export default {
     onSaveComboOffer: async () => ({}),
     onSetPlanActive: async () => ({}),
     onUpsertDiscountCode: async () => ({}),
-    onSetDiscountCodeActive: async () => ({}),
+    onSetDiscountCodeState: async () => ({}),
   },
 }
 

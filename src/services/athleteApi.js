@@ -1,5 +1,5 @@
 import { callRpc } from '../lib/rpcErrors.js'
-import { apiDelete, apiGet, apiPost, apiRequest } from '../lib/api.js'
+import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
 import { toCamelSchedule } from '../lib/eventSchedule.js'
 
 /**
@@ -389,7 +389,29 @@ export async function createCompetitionRegistration({
   }
 }
 
-export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug, paymentMethod }) {
+/**
+ * Sin `code` el servidor responde con la promoción pública que se va a aplicar
+ * sola al crear la orden (`source: 'public_promo'`). Es la única forma de que
+ * el checkout muestre el precio real antes de confirmar: el auto-aplicado pasa
+ * dentro de la transacción de compra, no acá.
+ */
+/**
+ * Chequeo previo del código de un combo restringido. Devuelve true o lanza el
+ * 403 del servidor: no habilita nada por sí solo, el alta de la orden vuelve a
+ * exigir el mismo código.
+ */
+export async function verifyComboAccessCode({ eventSlug, code }) {
+  const result = await apiPost('/api/athletes/me/combo-access/verify', { eventSlug, code })
+  return result?.valid === true
+}
+
+export async function previewDiscountCode({
+  code = '',
+  appliesTo,
+  planCode,
+  eventSlug,
+  paymentMethod,
+} = {}) {
   const result = await apiPost('/api/athletes/me/discount-preview', {
     code,
     appliesTo,
@@ -404,10 +426,28 @@ export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug
     valid: preview.valid === true,
     reason: preview.reason ?? null,
     code: preview.code ?? null,
-    // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final.
+    // 'code' lo tipeó el atleta; 'public_promo' se aplica sola.
+    source: preview.source === 'public_promo' ? 'public_promo' : 'code',
+    description: preview.description ?? '',
+    // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final;
+    // 'access' no descuenta nada, sólo desbloquea el combo; 'offer' desbloquea
+    // y además fija el importe — es la oferta exclusiva de un código secreto.
     kind: preview.kind ?? 'percent',
+    // Alcance del código: viaja también con `reason: 'not_applicable'` y con
+    // `reason: 'other_event'`, para poder decir de qué inscripción es en vez de
+    // un "no aplica" seco.
+    appliesTo: preview.appliesTo ?? null,
+    eventSlug: preview.eventSlug ?? null,
+    eventTitle: preview.eventTitle ?? null,
     percentOff: preview.percentOff ?? null,
+    // Ya viene resuelto para el canal que se mandó en `paymentMethod`: una
+    // promo puede tener un importe pactado para Mercado Pago y otro para
+    // transferencia o efectivo, y el servidor elige antes de responder.
     fixedPrice: preview.fixedPrice ?? null,
+    // Ventana de la promo. `startsAt` también viaja con `reason: 'not_started'`,
+    // para poder decir desde cuándo sirve un código que todavía no abrió.
+    startsAt: preview.startsAt ?? null,
+    expiresAt: preview.expiresAt ?? null,
     discountAmount: preview.discountAmount ?? null,
     finalAmount: preview.finalAmount ?? null,
     // Canales manuales que este código destraba (Mercado Pago siempre está
@@ -420,6 +460,33 @@ export async function previewDiscountCode({ code, appliesTo, planCode, eventSlug
   }
 }
 
+/**
+ * Canje de un código secreto de oferta exclusiva.
+ *
+ * A diferencia del preview, no necesita saber contra qué se está comprando: la
+ * oferta trae su propia inscripción y su propio precio. Es lo que permite
+ * canjear el código desde Afiliación, donde el atleta todavía no eligió evento.
+ *
+ * Devuelve `{ unlocked: false, reason }` cuando el código no sirve: no es un
+ * error de red, es una respuesta que la pantalla tiene que explicar.
+ */
+export async function unlockOfferCode({ code }) {
+  const result = await apiPost('/api/athletes/me/offer-unlocks', { code })
+  return {
+    unlocked: result?.unlocked === true,
+    alreadyUnlocked: result?.alreadyUnlocked === true,
+    reason: result?.reason ?? null,
+    startsAt: result?.startsAt ?? null,
+    offer: result?.offer ?? null,
+  }
+}
+
+/** Ofertas exclusivas que este atleta ya canjeó. Sostiene la ficha de Mi cuenta. */
+export async function fetchOfferUnlocks() {
+  const result = await apiGet('/api/athletes/me/offer-unlocks')
+  return Array.isArray(result?.offers) ? result.offers : []
+}
+
 export async function createCompetitionRegistrationCombo({
   eventSlug,
   division,
@@ -429,6 +496,7 @@ export async function createCompetitionRegistrationCombo({
   idempotencyKey = crypto.randomUUID(),
   membershipAccessCode,
   registrationAccessCode,
+  comboAccessCode,
   discountCode,
 }) {
   const result = await apiPost('/api/athletes/me/registration-combos', {
@@ -441,6 +509,7 @@ export async function createCompetitionRegistrationCombo({
     discountCode: discountCode || undefined,
     membershipAccessCode: membershipAccessCode || undefined,
     registrationAccessCode: registrationAccessCode || undefined,
+    comboAccessCode: comboAccessCode || undefined,
   })
   return {
     order: toCamelPaymentOrder(result.order),
@@ -703,6 +772,21 @@ export async function rotateAthleteCredentialToken(athleteId) {
 export async function deleteAthleteRequest(athleteId) {
   const result = await apiDelete(`/api/athletes/admin/${encodeURIComponent(athleteId)}`)
   return { deletedAthlete: result.deletedAthlete }
+}
+
+/** Edición admin de un atleta (status/gym). Requiere admin.athletes.write. */
+export async function updateAthleteAdminRequest(athleteId, patch) {
+  const { athlete } = await apiPatch(`/api/athletes/admin/${encodeURIComponent(athleteId)}`, patch)
+  return { athlete: toCamelAthlete(athlete) }
+}
+
+/**
+ * Edición en bloque — partial success: `failed` trae los ids que no se
+ * pudieron actualizar sin frenar al resto del lote.
+ */
+export async function bulkUpdateAthletesRequest(athleteIds, patch) {
+  const { updated, failed } = await apiPatch('/api/athletes/admin/bulk', { athleteIds, patch })
+  return { updated: (updated ?? []).map(toCamelAthlete), failed: failed ?? [] }
 }
 
 export async function registerAthletePhoto(_athleteId, photoPath) {

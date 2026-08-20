@@ -225,7 +225,7 @@ export default function AdminFilterChipGroup({
           ) : null}
 
           {visibleOptions.map((option) => {
-            const [optionValue, optionLabel, optionCount] = option
+            const [optionValue, optionLabel, optionCount, optionTone] = option
             const active = value === optionValue
             const showCount =
               optionCount !== undefined && optionCount !== null && optionCount !== ''
@@ -235,6 +235,7 @@ export default function AdminFilterChipGroup({
               active ? 'is-active' : '',
               showCount ? 'admin-filter-chip--counted' : '',
               zeroCount ? 'admin-filter-chip--zero' : '',
+              active && optionTone ? `admin-filter-chip--tone-${optionTone}` : '',
             ]
               .filter(Boolean)
               .join(' ')

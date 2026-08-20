@@ -102,3 +102,41 @@ describe('EventsSection — ficha operativa', () => {
     style.mockRestore()
   })
 })
+
+/**
+ * El listado marca la excepción, no la regla: casi todos los meets piden
+ * afiliación, así que un sello en la mayoría de las filas sería ruido. El que
+ * está abierto es el que cambia cómo se lo controla en la puerta, y hasta ahora
+ * eso solo se veía abriendo el editor.
+ */
+describe('EventsSection — meets abiertos en el listado', () => {
+  it('marca la fila del meet que no pide afiliación', () => {
+    renderEvents({ adminEvents: [{ ...EVENT, requiresMembership: false }] })
+
+    const mark = document.querySelector('.admin-event-row__open-mark')
+    expect(mark).not.toBeNull()
+    expect(mark.getAttribute('aria-label')).toBe('Abierto sin afiliación')
+  })
+
+  it('no marca las filas que sí piden afiliación', () => {
+    renderEvents({ adminEvents: [{ ...EVENT, requiresMembership: true }] })
+    expect(document.querySelector('.admin-event-row__open-mark')).toBeNull()
+
+    cleanup()
+    // Sin el campo, el default del negocio es que el meet pide afiliación:
+    // marcar la fila acá diría lo contrario de lo que hace el checkout.
+    renderEvents({ adminEvents: [EVENT] })
+    expect(document.querySelector('.admin-event-row__open-mark')).toBeNull()
+  })
+
+  it('deja el requisito operable desde la ficha, sin abrir el editor', () => {
+    renderEvents({ adminEvents: [{ ...EVENT, requiresMembership: false }] })
+    const panel = screen.getByRole('complementary', { name: 'Evento seleccionado' })
+
+    const access = panel.querySelector('.admin-event-state__access')
+    expect(access).not.toBeNull()
+    expect(
+      access.querySelector('.admin-filter-chip[aria-pressed="true"]').textContent,
+    ).toContain('Abierto')
+  })
+})

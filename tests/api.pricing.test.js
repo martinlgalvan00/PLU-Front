@@ -213,4 +213,192 @@ describe('configuración económica administrativa', () => {
     expect(parsed.data.kind).toBe('percent')
     expect(parsed.data.fixedPrice).toBeUndefined()
   })
+
+  // Una promoción sin audiencia declarada es una promoción por código: es lo
+  // que significaba cada cupón antes de que la audiencia existiera, y un
+  // payload viejo no puede volverse público por omisión.
+  it('deja las promociones en restringida por código salvo que se pida lo contrario', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.audience).toBe('code')
+  })
+
+  it('acepta una promoción pública', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload({ audience: 'public' }))
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.audience).toBe('public')
+  })
+
+  it('acepta el mismo precio promocional en Mercado Pago y en el canal manual', () => {
+    // El pedido explícito: si el precio pactado por Mercado Pago es $120.000,
+    // el de transferencia o efectivo puede ser el mismo. No tiene que ser menor.
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        kind: 'fixed_price',
+        percentOff: undefined,
+        fixedPrice: 120000,
+        fixedPriceManual: 120000,
+        appliesTo: 'membership',
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.fixedPrice).toBe(120000)
+    expect(parsed.data.fixedPriceManual).toBe(120000)
+  })
+
+  it('acepta también un precio manual mayor que el de Mercado Pago', () => {
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        kind: 'fixed_price',
+        percentOff: undefined,
+        fixedPrice: 120000,
+        fixedPriceManual: 135000,
+        appliesTo: 'registration',
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.fixedPriceManual).toBe(135000)
+  })
+
+  it('descarta el precio manual en una promoción por porcentaje', () => {
+    // Un porcentaje ya se aplica sobre el precio de cada canal: un importe fijo
+    // manual acá no significa nada, así que se rechaza en vez de guardarse
+    // silenciosamente contra una modalidad que no lo usa.
+    expect(
+      discountCodeSchema.safeParse(discountCodePayload({ fixedPriceManual: 90000 })).success,
+    ).toBe(false)
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.fixedPriceManual).toBeUndefined()
+  })
+
+  it('rechaza una ventana que cierra antes de abrir', () => {
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({
+          startsAt: '2026-09-10T00:00:00.000Z',
+          expiresAt: '2026-09-01T00:00:00.000Z',
+        }),
+      ).success,
+    ).toBe(false)
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        startsAt: '2026-09-01T00:00:00.000Z',
+        expiresAt: '2026-09-30T00:00:00.000Z',
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.startsAt).toBe('2026-09-01T00:00:00.000Z')
+  })
+
+  it('una promoción sin apertura queda vigente desde que se enciende', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.startsAt).toBe('')
+  })
+
+  it('normaliza la lista de invitados y rechaza direcciones inválidas', () => {
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({ invitees: ['Ana@PLU.ar', 'bruno@plu.ar', 'ana@plu.ar'] }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.invitees).toEqual(['ana@plu.ar', 'bruno@plu.ar'])
+
+    expect(
+      discountCodeSchema.safeParse(discountCodePayload({ invitees: ['no-es-un-mail'] })).success,
+    ).toBe(false)
+  })
+
+  it('sin invitados la promoción queda abierta', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.invitees).toEqual([])
+  })
+
+  it('una promoción pública también puede ser exclusiva de una lista', () => {
+    // Los dos ejes son ortogonales: se aplica sola, pero sólo a los invitados.
+    // No es lo mismo que abrir un canal manual, que sí está prohibido en pública.
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({ audience: 'public', invitees: ['ana@plu.ar'] }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.invitees).toEqual(['ana@plu.ar'])
+  })
+
+  it('no deja que una promoción pública abra medios de pago manuales', () => {
+    // Abrir un canal para todo el mundo es el interruptor de Acceso y
+    // habilitación. Permitirlo acá sería el mismo control en dos pantallas.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ audience: 'public', manualChannels: ['bank_transfer'] }),
+      ).success,
+    ).toBe(false)
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ audience: 'code', manualChannels: ['bank_transfer'] }),
+      ).success,
+    ).toBe(true)
+  })
+
+  it('cambia estado y audiencia de una promoción en una sola llamada', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/discount-codes/${PLAN_ID}/state`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ active: true, audience: 'public' }),
+      })
+
+      expect(response.status).toBe(200)
+      expect(rpc).toHaveBeenCalledWith('staff_set_discount_code_state', {
+        p_code_id: PLAN_ID,
+        p_active: true,
+        p_audience: 'public',
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('conserva /status y ahí la audiencia no se toca', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/discount-codes/${PLAN_ID}/status`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ active: false }),
+      })
+
+      expect(response.status).toBe(200)
+      // `p_audience` nulo: apagar una promo no puede convertirla en pública
+      // cuando se la vuelva a prender.
+      expect(rpc).toHaveBeenCalledWith('staff_set_discount_code_state', {
+        p_code_id: PLAN_ID,
+        p_active: false,
+        p_audience: null,
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('permite dar de baja la oferta combo de un torneo', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(`${target.url}/api/pricing/events/pitbull-classic-2026/combo`, {
+        method: 'DELETE',
+        headers: authHeaders(cookie),
+      })
+
+      expect(response.status).toBe(200)
+      expect(rpc).toHaveBeenCalledWith('staff_delete_event_combo_offer', {
+        p_event_slug: 'pitbull-classic-2026',
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
 })
