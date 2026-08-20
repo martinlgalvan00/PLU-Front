@@ -106,7 +106,7 @@ export default {
     ariaLabel: 'Canje de código',
     toggle: 'Tengo un código',
     label: 'Código',
-    hint: 'Canjeá tu código.',
+    hint: 'Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.',
     placeholder: 'INGRESÁ TU CÓDIGO',
     apply: 'Canjear',
     checking: 'Validando…',
@@ -378,7 +378,7 @@ export default {
     triggerPendingAria: 'Abrir la ayuda paso a paso. Tenés un paso pendiente.',
     eyebrow: 'Ayuda',
     title: '¿Qué tengo que hacer?',
-    lead: 'Son tres pasos y siempre en el mismo orden. Te marcamos en cuál estás.',
+    lead: 'Son tres pasos, siempre en el mismo orden.',
     titleComplete: 'Ya tenés todo listo',
     leadComplete:
       'Cuenta, afiliación e inscripción están al día. Guardá tu credencial para la puerta.',
@@ -424,18 +424,33 @@ export default {
     actionRegistrationPending: 'Ver mi inscripción',
     actionCredential: 'Ver mi credencial',
     actionEvents: 'Ver mis competencias',
-    guideMe: 'Guiame en esta pantalla',
-    guideMeHint: 'Te señalo dónde tocar, uno por uno.',
+    guideMe: 'Enseñame a moverme por el sitio',
+    guideMeHint: 'Dónde está cada cosa y cómo volver, en un recorrido corto.',
     guideMeFields: 'Guiame campo por campo',
     guideMeFieldsHint: 'Te explico qué poner en cada dato, de uno en uno.',
+    resume: 'Seguir donde lo dejaste',
+    resumeHint: 'Ibas por el paso {{step}} de {{total}}.',
+    locationLabel: 'Estás en',
+    views: {
+      home: 'la portada',
+      members: 'Afiliación',
+      register: 'Crear tu cuenta',
+      login: 'Entrar a tu cuenta',
+      competition: 'Inscripción al torneo',
+      profile: 'Mi cuenta',
+      events: 'el calendario',
+      pitbull: 'Pitbull Classic',
+    },
+    haveAccountLabel: '¿Ya tenés cuenta?',
+    haveAccountAction: 'Entrar con mi correo',
     contact: 'Prefiero que me ayude una persona',
     assist: {
-      title: 'Modo asistido',
+      title: 'Modo simple',
       hint: 'Letras y botones más grandes, y una barra abajo con lo justo: inicio, tu próximo paso, tu cuenta y esta ayuda.',
       activeHint: 'Está activado. Podés apagarlo desde acá cuando quieras.',
     },
     assistNav: {
-      aria: 'Navegación asistida',
+      aria: 'Navegación simple',
       home: 'Inicio',
       account: 'Mi cuenta',
       login: 'Acceder',
@@ -448,36 +463,88 @@ export default {
       actionEvents: 'Competencias',
     },
     tour: {
-      home: {
-        affiliate: {
-          title: 'Se empieza acá',
-          body: 'Este botón te lleva a la afiliación, que es el primer paso para poder competir.',
+      orientation: {
+        brand: {
+          title: 'El escudo te vuelve al inicio',
+          body: 'Estés donde estés, tocá el escudo de arriba a la izquierda y volvés a la portada. Es la forma de no quedar perdido.',
         },
-        meet: {
-          title: 'El próximo torneo',
-          body: 'Acá ves la fecha, la sede y si las inscripciones están abiertas.',
+        affiliate: {
+          title: 'Afiliación',
+          body: 'Acá está todo sobre afiliarte: qué incluye, cuánto sale y cómo pagarlo.',
+        },
+        menu: {
+          title: 'El resto del sitio',
+          body: 'Desde acá se abre lo demás: calendario de torneos, entradas, reglamento y récords.',
+        },
+        account: {
+          title: 'Tu cuenta',
+          body: 'Acá entrás con tu correo y contraseña. Si ya estás dentro, es donde ves tu credencial.',
         },
         help: {
-          title: 'Si te perdés, volvé acá',
-          body: 'Este botón está en todas las pantallas y siempre te dice cuál es tu próximo paso.',
+          title: 'La ayuda está siempre acá',
+          body: 'Este botón aparece en todas las pantallas. Siempre te dice en qué paso estás y cuál es el que sigue.',
+        },
+        footer: {
+          title: 'Abajo está el índice completo',
+          body: 'Si no encontrás algo, al final de cada página está la lista de todas las secciones.',
+        },
+        assistHome: {
+          title: 'Inicio',
+          body: 'Este botón te devuelve a la portada desde cualquier pantalla.',
+        },
+        assistAction: {
+          title: 'Tu próximo paso',
+          body: 'El botón del medio siempre te lleva a lo que te falta hacer. Va cambiando solo según cómo vas: crear la cuenta, afiliarte, inscribirte.',
+        },
+        assistAccount: {
+          title: 'Tu cuenta',
+          body: 'Acá entrás con tu correo y contraseña. Si ya estás dentro, es donde ves tu credencial.',
+        },
+        assistHelp: {
+          title: 'La ayuda',
+          body: 'Este botón abre la ayuda. Ahí ves en qué paso estás y podés apagar el modo simple cuando quieras.',
+        },
+        action_home: {
+          title: 'Desde acá arranca todo',
+          body: 'Este botón te lleva a la afiliación, que es lo primero para poder competir.',
+        },
+        action_members: {
+          title: 'Acá empieza la afiliación',
+          body: 'Tocá para arrancar. Si todavía no tenés cuenta, te la vamos a pedir primero.',
+        },
+        action_events: {
+          title: 'Desde acá te inscribís',
+          body: 'Cada torneo tiene sus botones: ver el detalle completo o inscribirte.',
+        },
+        action_pitbull: {
+          title: 'El botón para inscribirte',
+          body: 'Te pide cuenta y afiliación vigentes. Si te falta alguna, la ayuda te lleva a resolverla.',
+        },
+        action_profile: {
+          title: 'Tu cuenta por partes',
+          body: 'Credencial, competencias, afiliación y datos personales. Deslizá la cinta para ver todas.',
         },
       },
-      members: {
-        start: {
-          title: 'Empezar la afiliación',
-          body: 'Tocá acá para arrancar. Si todavía no tenés cuenta, te la vamos a pedir primero.',
+      loginCoach: {
+        email: {
+          title: 'Tu correo electrónico',
+          body: 'El mismo correo con el que creaste la cuenta. Si no te acordás, probá con el que usás siempre.',
         },
-        requirements: {
-          title: 'Qué necesitás tener a mano',
-          body: 'Tu documento, tu fecha de nacimiento y un correo al que entres. Nada más.',
+        password: {
+          title: 'Tu contraseña',
+          body: 'La que elegiste al crear la cuenta. Tocá el ojito de la derecha si querés ver lo que escribís.',
         },
-        plans: {
-          title: 'Cuánto sale',
-          body: 'El precio de la temporada y qué incluye. Elegís y pagás online.',
+        forgot: {
+          title: 'Si no te acordás la contraseña',
+          body: 'Tocá acá y te mandamos un correo para poner una nueva. No perdés nada de lo que ya hiciste.',
         },
-        faq: {
-          title: 'Dudas frecuentes',
-          body: 'Si algo no te cierra, la respuesta suele estar en esta lista.',
+        submit: {
+          title: 'Y listo: Ingresar',
+          body: 'Si el correo o la contraseña no coinciden, te lo avisamos debajo del campo y podés volver a intentar.',
+        },
+        join: {
+          title: 'Si nunca te registraste',
+          body: 'Este enlace te lleva a crear la cuenta desde cero. Es el paso 1 de todo el trámite.',
         },
       },
       registerCoach: {
@@ -554,32 +621,6 @@ export default {
         finish: {
           title: 'Confirmá tu inscripción',
           body: 'Arriba del botón está el total. Al confirmar queda tu inscripción cargada a tu nombre.',
-        },
-      },
-      events: {
-        actions: {
-          title: 'Desde acá te inscribís',
-          body: 'Cada torneo tiene sus botones: ver el detalle completo o inscribirte.',
-        },
-        help: {
-          title: 'La ayuda te sigue',
-          body: 'Este botón está en todas las pantallas y siempre te dice cuál es tu próximo paso.',
-        },
-      },
-      pitbull: {
-        register: {
-          title: 'Inscribirme al meet',
-          body: 'Te pide cuenta y afiliación vigentes. Si te falta alguna, la ayuda te lleva a resolverla.',
-        },
-      },
-      profile: {
-        tabs: {
-          title: 'Tu cuenta por partes',
-          body: 'Credencial, competencias, afiliación y datos personales. Deslizá la cinta para ver todas.',
-        },
-        help: {
-          title: 'La ayuda te sigue',
-          body: 'Este botón está en todas las pantallas y siempre te dice cuál es tu próximo paso.',
         },
       },
     },

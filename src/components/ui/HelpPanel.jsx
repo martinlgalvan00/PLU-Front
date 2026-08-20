@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Compass, MessageCircle, Type, X } from 'lucide-react'
+import { ArrowRight, Check, Compass, MapPin, MessageCircle, Type, X } from 'lucide-react'
 import { usePaymentModal } from '../checkout/usePaymentModal.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAssist } from '../../providers/AssistProvider.jsx'
@@ -80,8 +80,8 @@ function stepDetail(step, journey, t, locale) {
 }
 
 /**
- * Ayuda guiada de los trámites públicos: un mapa de tres pasos con el estado
- * real de esta persona y **una sola** acción, la que le corresponde ahora.
+ * Ayuda guiada de los trámites públicos: dónde estás, un mapa de tres pasos con
+ * tu estado real, y **una sola** acción, la que te corresponde ahora.
  *
  * No decide reglas ni navega: `resolveAthleteJourney` compone el estado y
  * `HelpLayer` ejecuta la acción con las mismas funciones que usan los CTA de
@@ -89,26 +89,45 @@ function stepDetail(step, journey, t, locale) {
  */
 export default function HelpPanel({
   journey,
+  view = null,
   atDestination = false,
-  tourMode = null,
+  tourKind = null,
+  resume = null,
   onClose,
   onNavigate,
   onRunNext,
+  onLogin,
   onStartTour = null,
 }) {
   const { locale, t } = useI18n()
   const { assist, toggleAssist } = useAssist()
   const panelRef = usePaymentModal(onClose)
   const { next } = journey
+
   // Ya estamos en la pantalla del próximo paso: navegar de nuevo no cambiaría
   // nada, así que la acción principal pasa a ser el recorrido guiado, que sí
   // hace algo acá. Si esta pantalla no tiene recorrido, se deja la navegación.
   const guideIsPrimary = atDestination && Boolean(onStartTour)
-  // El tutorial campo por campo y la presentación de una pantalla no se
-  // ofrecen juntos: hay uno por pantalla y se nombra por lo que hace.
-  const isFieldCoach = tourMode === 'coach'
-  const guideLabel = t(isFieldCoach ? 'help.guideMeFields' : 'help.guideMe')
-  const guideHint = t(isFieldCoach ? 'help.guideMeFieldsHint' : 'help.guideMeHint')
+
+  // Un recorrido por pantalla, nombrado por lo que hace: tutorial de los campos
+  // en las pantallas con formulario, orientación de la navegación en el resto.
+  const isFieldCoach = tourKind === 'coach'
+  const guideLabel = resume
+    ? t('help.resume')
+    : t(isFieldCoach ? 'help.guideMeFields' : 'help.guideMe')
+  const guideHint = resume
+    ? t('help.resumeHint', { step: resume.step + 1, total: resume.total })
+    : t(isFieldCoach ? 'help.guideMeFieldsHint' : 'help.guideMeHint')
+
+  // Sólo se anuncia la ubicación de las pantallas que sabemos nombrar; para el
+  // resto es mejor no decir nada que decir una clave de traducción.
+  const viewNameKey = view ? `help.views.${view}` : null
+  const viewName = viewNameKey ? t(viewNameKey) : null
+  const showLocation = Boolean(viewName) && viewName !== viewNameKey
+
+  // Quien ya se registró y no logra volver a entrar era el caso sin salida: el
+  // panel le ofrecía "Crear mi cuenta" y nada más.
+  const showLoginDoor = next.actionKey === 'account' && Boolean(onLogin)
 
   function runNextAction() {
     onClose()
@@ -118,6 +137,11 @@ export default function HelpPanel({
   function runTour() {
     onClose()
     onStartTour?.()
+  }
+
+  function goToLogin() {
+    onClose()
+    onLogin?.()
   }
 
   function goToContact() {
@@ -154,6 +178,36 @@ export default function HelpPanel({
           </button>
         </header>
 
+        {/* Ubicación e interruptor comparten la primera fila a propósito. El
+            modo simple es la palanca más importante para el público al que
+            apunta esta ayuda y antes quedaba al final de una lista con scroll:
+            justo la gente que lo necesita no iba a llegar hasta ahí. */}
+        <div className="help-panel__bar">
+          {showLocation ? (
+            <p className="help-panel__location">
+              <MapPin size={14} strokeWidth={2} aria-hidden />
+              <span>
+                {t('help.locationLabel')} <strong>{viewName}</strong>
+              </span>
+            </p>
+          ) : (
+            <span />
+          )}
+          <button
+            type="button"
+            className="help-panel__assist"
+            role="switch"
+            aria-checked={assist}
+            onClick={toggleAssist}
+          >
+            <Type size={14} strokeWidth={2} aria-hidden />
+            <span className="help-panel__assist-label">{t('help.assist.title')}</span>
+            <span className={`help-panel__switch${assist ? ' is-on' : ''}`} aria-hidden>
+              <span className="help-panel__switch-knob" />
+            </span>
+          </button>
+        </div>
+
         <ol className="help-panel__steps" aria-label={t('help.stepsAria')}>
           {journey.steps.map((step) => (
             <li key={step.id} className={`help-panel__step is-${step.state}`}>
@@ -184,6 +238,16 @@ export default function HelpPanel({
             <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
           </button>
           {guideIsPrimary ? <p className="help-panel__action-hint">{guideHint}</p> : null}
+
+          {showLoginDoor ? (
+            <p className="help-panel__door">
+              <span>{t('help.haveAccountLabel')}</span>
+              <button type="button" className="help-panel__door-link" onClick={goToLogin}>
+                {t('help.haveAccountAction')}
+                <ArrowRight size={13} strokeWidth={2.25} aria-hidden />
+              </button>
+            </p>
+          ) : null}
         </div>
 
         <footer className="help-panel__foot">
@@ -196,28 +260,6 @@ export default function HelpPanel({
               </span>
             </button>
           ) : null}
-
-          {/* Interruptor y no un enlace a ajustes: quien necesita el modo
-              asistido no va a ir a buscarlo a otra pantalla, y desde acá
-              también lo puede apagar cuando quiera. */}
-          <button
-            type="button"
-            className="help-panel__link help-panel__link--switch"
-            role="switch"
-            aria-checked={assist}
-            onClick={toggleAssist}
-          >
-            <Type size={15} aria-hidden />
-            <span className="help-panel__link-copy">
-              <span className="help-panel__link-label">{t('help.assist.title')}</span>
-              <span className="help-panel__link-hint">
-                {t(assist ? 'help.assist.activeHint' : 'help.assist.hint')}
-              </span>
-            </span>
-            <span className={`help-panel__switch${assist ? ' is-on' : ''}`} aria-hidden>
-              <span className="help-panel__switch-knob" />
-            </span>
-          </button>
 
           <button
             type="button"

@@ -236,6 +236,21 @@
   font-size: 13.5px;
 }
 
+[data-assist='on'] .help-panel__location,
+[data-assist='on'] .help-panel__door,
+[data-assist='on'] .help-panel__door-link,
+[data-assist='on'] .help-panel__assist-label {
+  font-size: 14px;
+}
+
+[data-assist='on'] .help-panel__assist {
+  min-height: 44px;
+}
+
+[data-assist='on'] .help-panel__door-link {
+  min-height: 44px;
+}
+
 [data-assist='on'] .help-panel__cta {
   font-size: 15px;
   min-height: 58px;

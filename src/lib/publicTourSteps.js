@@ -1,34 +1,49 @@
 /**
  * publicTourSteps.js — PLU ARG
  *
- * Recorridos guiados de las pantallas públicas: afiliación, alta de cuenta,
- * inscripción a un meet y cuenta del atleta. Mismo motor que el panel
- * (`AdminTourProvider` + `AdminTourOverlay`, montados global en
- * `AppProviders`): cada paso apunta a un elemento real con un selector CSS y
- * el overlay lo resuelve con `document.querySelector`.
+ * Recorridos guiados de las pantallas públicas y de la cuenta. Mismo motor que
+ * el panel (`AdminTourProvider` + `AdminTourOverlay`, montados global en
+ * `AppProviders`): cada paso apunta a un elemento real con un selector CSS y el
+ * overlay lo resuelve quedándose con el primero **visible**.
  *
- * Dos formas según la pantalla:
+ * Dos formas, y una sola se ofrece por pantalla:
  *
- * - **Presentación** (`modal`): tres o cuatro paradas que muestran de qué se
- *   trata la pantalla y dónde está la acción. Sirve para portada, afiliación,
- *   calendario y cuenta.
- * - **Tutorial campo por campo** (`coach`): un paso por cada inciso del
- *   formulario, explicando qué escribir y con un ejemplo. No bloquea nada, así
- *   que la persona completa el campo mientras lee. Es la forma de las dos
- *   pantallas donde realmente se traba la gente: el alta de cuenta y la
- *   inscripción.
+ * - **Tutorial campo por campo** (`coach`) en las tres pantallas con
+ *   formulario — entrar, crear la cuenta e inscribirse. Un paso por inciso,
+ *   con qué escribir y un ejemplo. No bloquea nada: la persona completa el
+ *   campo mientras lee.
+ * - **Orientación** (`modal`) en todas las demás. No presenta la pantalla:
+ *   enseña a *moverse* — el escudo que vuelve al inicio, dónde está la
+ *   afiliación, dónde se abre el resto del sitio, dónde se entra a la cuenta,
+ *   dónde está la ayuda y qué hay en el pie. Termina en el punto de acción de
+ *   la pantalla donde se lanzó, así la orientación no queda abstracta.
  *
- * Los blancos son clases, `name` de campo o ids que ya usaban los componentes,
- * no atributos nuevos. `frame: '.field'` hace que el spotlight ilumine el
- * bloque completo del campo (etiqueta + control + error) apuntando al control,
- * que es lo único con selector estable: los campos de este proyecto no llevan
- * `id`.
+ * La orientación tiene una variante propia para el modo simple, donde la
+ * navegación *es* la barra de cuatro botones y explicar el navbar completo
+ * sería explicar algo que la persona no está viendo.
  *
- * Convención de ids: `public-<vista>`, para no colisionar con los
- * `admin-<sección>` que ya persisten su "visto" en localStorage.
+ * Convenciones:
+ * - Los blancos son clases, `name` de campo o `data-tour` que ya existen. Un
+ *   paso puede listar varios selectores separados por coma: el overlay se
+ *   queda con el visible, que es lo que resuelve desktop vs mobile (el navbar
+ *   monta las dos versiones y esconde una con `display: none`).
+ * - `frame` hace que el spotlight ilumine el bloque completo del campo
+ *   (etiqueta + control + error) apuntando al control, que es lo único con
+ *   selector estable: los campos de este proyecto no llevan `id`.
+ * - Ids `public-<vista>` y `public-orientation[-simple]`, para no colisionar
+ *   con los `admin-<sección>` que persisten su "visto" en localStorage.
  */
 
 const FIELD = '.field'
+const LOGIN_FIELD = '.login-field'
+
+/** El navbar monta desktop y mobile a la vez; el overlay elige el visible. */
+const NAV_BRAND = '.plu-global-nav__brand'
+const NAV_AFFILIATE = '.plu-global-nav__link--affiliate, .plu-global-nav__mobile-affiliate'
+const NAV_MENU = '.plu-global-nav__dropdown, .plu-global-nav__menu-button'
+const NAV_ACCOUNT =
+  '.plu-global-nav__login, .plu-global-nav__profile, .plu-global-nav__mobile-login'
+const HELP_TRIGGER = '[data-tour~="help-dock"]'
 
 function buildSteps(t, prefix, entries) {
   return entries.map(([target, placement, key, frame = null]) => ({
@@ -40,44 +55,69 @@ function buildSteps(t, prefix, entries) {
   }))
 }
 
-/* ── Presentaciones ─────────────────────────────── */
+/* ── Orientación ────────────────────────────────── */
 
-function getHomeTourSteps(t) {
-  return buildSteps(t, 'home', [
-    ['.hero__cta--primary', 'bottom', 'affiliate'],
-    ['#torneo-destacado', 'top', 'meet'],
-    ['[data-tour="help-dock"]', 'top', 'help'],
-  ])
-}
+/**
+ * Punto de acción por pantalla: el último paso de la orientación aterriza en
+ * lo que esa pantalla concretamente ofrece hacer. Las pantallas con formulario
+ * no están acá porque tienen su propio tutorial.
+ */
+const ORIENTATION_ACTION = Object.freeze({
+  home: '.hero__cta--primary',
+  members: '.members-plu-hero__cta-row',
+  events: '.events-detail__actions',
+  pitbull: '.pitbull-inscription__cta--primary',
+  profile: '.account-nav',
+})
 
-function getMembersTourSteps(t) {
-  return buildSteps(t, 'members', [
-    ['.members-plu-hero__cta-row', 'bottom', 'start'],
-    ['#requisitos', 'top', 'requirements'],
-    ['#planes', 'top', 'plans'],
-    ['#members-faq', 'top', 'faq'],
-  ])
-}
+/** `App` no monta el pie en estas dos vistas: el paso no tendría blanco. */
+const VIEWS_WITHOUT_FOOTER = new Set(['login', 'register'])
 
-function getEventsTourSteps(t) {
-  return buildSteps(t, 'events', [
-    ['.events-detail__actions', 'top', 'actions'],
-    ['[data-tour="help-dock"]', 'top', 'help'],
-  ])
-}
+/**
+ * @param {(key: string, vars?: Record<string, unknown>) => string} t
+ * @param {{ assist?: boolean, view?: string | null }} options
+ */
+export function getOrientationTour(t, { assist = false, view = null } = {}) {
+  const entries = assist
+    ? [
+        ['[data-tour~="assist-nav-home"]', 'top', 'assistHome'],
+        ['[data-tour~="assist-nav-action"]', 'top', 'assistAction'],
+        ['[data-tour~="assist-nav-account"]', 'top', 'assistAccount'],
+        ['[data-tour~="assist-nav-help"]', 'top', 'assistHelp'],
+      ]
+    : [
+        [NAV_BRAND, 'bottom', 'brand'],
+        [NAV_AFFILIATE, 'bottom', 'affiliate'],
+        [NAV_MENU, 'bottom', 'menu'],
+        [NAV_ACCOUNT, 'bottom', 'account'],
+        [HELP_TRIGGER, 'top', 'help'],
+      ]
 
-function getPitbullTourSteps(t) {
-  return buildSteps(t, 'pitbull', [['.pitbull-inscription__cta--primary', 'top', 'register']])
-}
+  const action = view ? ORIENTATION_ACTION[view] : null
+  if (action) entries.push([action, 'top', `action_${view}`])
+  if (!VIEWS_WITHOUT_FOOTER.has(view)) entries.push(['.site-footer', 'top', 'footer'])
 
-function getProfileTourSteps(t) {
-  return buildSteps(t, 'profile', [
-    ['.account-nav', 'bottom', 'tabs'],
-    ['[data-tour="help-dock"]', 'top', 'help'],
-  ])
+  return {
+    id: assist ? 'public-orientation-simple' : 'public-orientation',
+    mode: 'modal',
+    kind: 'orientation',
+    steps: buildSteps(t, 'orientation', entries),
+  }
 }
 
 /* ── Tutoriales campo por campo ─────────────────── */
+
+/** Entrar con una cuenta que ya existe. Es donde más se traba quien ya se
+ *  registró y no logra volver a entrar. */
+function getLoginCoachSteps(t) {
+  return buildSteps(t, 'loginCoach', [
+    ['[name="email"]', 'bottom', 'email', LOGIN_FIELD],
+    ['[name="password"]', 'bottom', 'password', LOGIN_FIELD],
+    ['.login-field__forgot', 'bottom', 'forgot'],
+    ['.login-submit', 'top', 'submit'],
+    ['.login-join__link', 'top', 'join'],
+  ])
+}
 
 /**
  * Alta de la ficha de atleta. Cubre los dos tramos del formulario de corrido:
@@ -115,30 +155,30 @@ function getCompetitionCoachSteps(t) {
   ])
 }
 
-const PUBLIC_TOURS = Object.freeze({
-  home: { build: getHomeTourSteps, mode: 'modal' },
-  members: { build: getMembersTourSteps, mode: 'modal' },
-  events: { build: getEventsTourSteps, mode: 'modal' },
-  pitbull: { build: getPitbullTourSteps, mode: 'modal' },
-  profile: { build: getProfileTourSteps, mode: 'modal' },
-  register: { build: getRegisterCoachSteps, mode: 'coach' },
-  competition: { build: getCompetitionCoachSteps, mode: 'coach' },
+const FIELD_COACHES = Object.freeze({
+  login: getLoginCoachSteps,
+  register: getRegisterCoachSteps,
+  competition: getCompetitionCoachSteps,
 })
 
-/** ¿Esta vista tiene recorrido? La ayuda no ofrece "guiame" si no hay nada que señalar. */
-export function hasPublicTour(view) {
-  return Object.hasOwn(PUBLIC_TOURS, view)
+/** ¿Esta pantalla se guía campo por campo, o se orienta la navegación? */
+export function hasFieldCoach(view) {
+  return Object.hasOwn(FIELD_COACHES, view)
 }
 
 /**
+ * El recorrido que ofrece la ayuda en esta pantalla. Uno solo: si la pantalla
+ * tiene formulario, el tutorial de sus campos; si no, la orientación.
+ *
  * @param {string} view
  * @param {(key: string, vars?: Record<string, unknown>) => string} t
- * @returns {{ id: string, mode: 'modal' | 'coach', steps: Array<{ target: string, placement: string, frame: string | null, title: string, body: string }> } | null}
+ * @param {{ assist?: boolean }} options
+ * @returns {{ id: string, mode: 'modal' | 'coach', kind: 'coach' | 'orientation', steps: Array<object> }}
  */
-export function getPublicTour(view, t) {
-  const entry = PUBLIC_TOURS[view]
-  if (!entry) return null
-  const steps = entry.build(t)
-  if (!steps.length) return null
-  return { id: `public-${view}`, mode: entry.mode, steps }
+export function getPublicTour(view, t, { assist = false } = {}) {
+  const build = FIELD_COACHES[view]
+  if (build) {
+    return { id: `public-${view}`, mode: 'coach', kind: 'coach', steps: build(t) }
+  }
+  return getOrientationTour(t, { assist, view })
 }

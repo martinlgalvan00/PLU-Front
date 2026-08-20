@@ -83,33 +83,38 @@ export default function AssistNavBar({
   return (
     <nav className="assist-nav" aria-label={t('help.assistNav.aria')}>
       <div className="assist-nav__inner">
+        {/* `data-tour` por destino: el recorrido de orientación del modo simple
+            explica los cuatro botones de uno en uno y necesita apuntarlos. */}
         <NavItem
           icon={Home}
           label={t('help.assistNav.home')}
           active={view === 'home'}
           onClick={() => onNavigate?.('home')}
+          data-tour="assist-nav-home"
         />
         <NavItem
           icon={ActionIcon}
           label={t(ACTION_LABEL_KEY[actionKey] ?? ACTION_LABEL_KEY.credential)}
           tone="action"
           onClick={onRunAction}
+          data-tour="assist-nav-action"
         />
         <NavItem
           icon={isAthlete ? User : LogIn}
           label={t(isAthlete ? 'help.assistNav.account' : 'help.assistNav.login')}
           active={view === 'profile' || view === 'login'}
           onClick={() => onNavigate?.(accountView)}
+          data-tour="assist-nav-account"
         />
-        {/* Mismo `data-tour` que el botón flotante: los recorridos que
-            terminan señalando la ayuda siguen encontrando su blanco cuando el
-            modo asistido reemplaza el botón por esta barra. */}
+        {/* Dos `data-tour`: `help-dock` para los recorridos que terminan
+            señalando la ayuda (el mismo blanco que el botón flotante) y
+            `assist-nav-help` para el paso propio de la orientación. */}
         <NavItem
           icon={LifeBuoy}
           label={t('help.assistNav.help')}
           badge={pending}
           onClick={onOpenHelp}
-          data-tour="help-dock"
+          data-tour="help-dock assist-nav-help"
           aria-expanded={helpOpen}
           aria-haspopup="dialog"
         />
