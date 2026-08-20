@@ -12,7 +12,12 @@ import { waitForSecretOfferRedirect } from '../../services/secretOfferRedemption
 import CodeScanButton from './CodeScanButton.jsx'
 import '../../styles/components/secret-code-redeemer.css'
 
-export default function SecretOfferCodeRedeemer({ session = null, onNavigate, className = '' }) {
+export default function SecretOfferCodeRedeemer({
+  session = null,
+  onNavigate,
+  onOfferUnlocked,
+  className = '',
+}) {
   const { t } = useI18n()
   const inputId = useId()
   const [open, setOpen] = useState(false)
@@ -59,7 +64,15 @@ export default function SecretOfferCodeRedeemer({ session = null, onNavigate, cl
         return
       }
       setState('redirecting')
-      await waitForSecretOfferRedirect()
+      // Si el destino es la ficha secreta, hay que refrescarla ANTES de saltar:
+      // esta misma página puede ya estar montada (el widget vive dentro del
+      // perfil), así que un simple `onNavigate` no alcanza — sin este refresh,
+      // AthleteProfilePage sigue viendo la lista de ofertas vieja, filtra la
+      // ficha por no tener oferta todavía y el salto no lleva a ningún lado.
+      await Promise.all([
+        result.action === 'open_exclusive_offer' ? onOfferUnlocked?.() : null,
+        waitForSecretOfferRedirect(),
+      ])
       onNavigate?.(destination.view, destination.options)
     } catch (error) {
       if (error?.status === 401) {

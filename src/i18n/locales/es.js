@@ -106,8 +106,7 @@ export default {
     ariaLabel: 'Canje de código',
     toggle: 'Tengo un código',
     label: 'Código',
-    hint:
-      'Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.',
+    hint: 'Canjeá tu código.',
     placeholder: 'INGRESÁ TU CÓDIGO',
     apply: 'Canjear',
     checking: 'Validando…',
@@ -767,6 +766,7 @@ export default {
     message: 'Mensaje',
     messagePlaceholder: 'En qué podemos ayudarte…',
     submit: 'Enviar',
+    submitting: 'Enviando…',
     submitNote: 'Respuesta en 24–48 h hábiles.',
     formEyebrow: 'Consulta',
     formTitle: 'Escribinos',
@@ -774,6 +774,9 @@ export default {
     sentTitle: 'Consulta enviada',
     sentDesc:
       'El equipo de Maximal / PLU ARG te va a responder a la brevedad por el correo que dejaste.',
+    errorTitle: 'No se pudo enviar',
+    errorDesc: 'Volvé a intentar en un momento, o escribinos directo a {{email}}.',
+    errorRetry: 'Reintentar',
     sidebarTitle: 'Datos de contacto',
     sidebarEmail: 'hola@pluarg.com.ar',
     sidebarLocation: 'Buenos Aires, Argentina',
@@ -1148,8 +1151,7 @@ export default {
       comboPromoHint: 'Ahorrás {{amount}} frente a pagar por separado.',
       discountLabel: 'Código',
       discountToggle: 'Tengo un código',
-      discountHint:
-        'Ingresá cualquier código: puede aplicar un beneficio o desbloquear una oferta de afiliación + inscripción.',
+      discountHint: 'Canjeá tu código.',
       discountPlaceholder: 'INGRESÁ TU CÓDIGO',
       discountApply: 'Canjear',
       discountChecking: 'Validando…',
@@ -2846,8 +2848,7 @@ export default {
       packageLegend: 'Paquete',
       packageSavings: 'Ahorrás {{amount}}',
       discountLabel: 'Código',
-      discountHint:
-        'Puede aplicar un beneficio o desbloquear una oferta de afiliación + inscripción a este torneo.',
+      discountHint: 'Canjeá tu código.',
       discountPlaceholder: 'INGRESÁ TU CÓDIGO',
       discountApply: 'Canjear',
       discountChecking: 'Validando...',

@@ -35,6 +35,7 @@ VITE_SUPABASE_ANON_KEY
 MERCADO_PAGO_ACCESS_TOKEN
 VITE_MERCADO_PAGO_PUBLIC_KEY
 MERCADO_PAGO_WEBHOOK_SECRET
+MERCADO_PAGO_COLLECTOR_ID
 APP_URL
 # API_URL es opcional: si falta, se usa APP_URL.
 # false en local y Vercel; true solo en un unico worker persistente por entorno.
@@ -102,6 +103,7 @@ MERCADO_PAGO_ENV=sandbox
 VITE_MERCADO_PAGO_PUBLIC_KEY=<public key TEST>
 MERCADO_PAGO_ACCESS_TOKEN=<access token TEST>
 MERCADO_PAGO_WEBHOOK_SECRET=<secret app TEST>
+MERCADO_PAGO_COLLECTOR_ID=<id de GET /users/me para token TEST>
 APP_URL=https://plu-git-dev-martinlgalvan00s-projects.vercel.app
 
 # Production (app PROD)
@@ -110,6 +112,7 @@ MERCADO_PAGO_ENV=production
 VITE_MERCADO_PAGO_PUBLIC_KEY=<public key PROD>
 MERCADO_PAGO_ACCESS_TOKEN=<access token PROD>
 MERCADO_PAGO_WEBHOOK_SECRET=<secret app PROD>
+MERCADO_PAGO_COLLECTOR_ID=<id de GET /users/me para token PROD>
 APP_URL=https://www.powerliftingunited.ar
 APP_PRODUCTION=true
 ```

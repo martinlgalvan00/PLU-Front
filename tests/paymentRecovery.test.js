@@ -136,6 +136,38 @@ describe('payment recovery workflow', () => {
     })
   })
 
+  it('no consulta ni acredita un intento creado por otra cuenta cobradora', async () => {
+    const repository = {
+      claimDueWebhookEvents: vi.fn(async () => []),
+      claimEmbeddedReconciliations: vi.fn(async () => [
+        {
+          id: 'attempt-other-collector',
+          order_id: order.id,
+          order_kind: 'athlete',
+          external_payment_id: 'payment-from-other-app',
+          provider_payload: { collector_id: 359152682 },
+        },
+      ]),
+      getOrder: vi.fn(async () => order),
+      applyPayment: vi.fn(),
+      completeEmbeddedReconciliation: vi.fn(),
+    }
+    const mercadoPago = {
+      getAccountIdentity: vi.fn(async () => ({ id: '3601496880' })),
+      getPayment: vi.fn(),
+    }
+
+    const result = await recoverPaymentOperations({ repository, mercadoPago })
+
+    expect(mercadoPago.getPayment).not.toHaveBeenCalled()
+    expect(repository.applyPayment).not.toHaveBeenCalled()
+    expect(repository.completeEmbeddedReconciliation).toHaveBeenCalledWith(
+      'attempt-other-collector',
+      expect.objectContaining({ succeeded: false, error: expect.stringContaining('MP_ACCOUNT_MISMATCH') }),
+    )
+    expect(result.reconciliations).toMatchObject({ claimed: 1, processed: 0, failed: 1 })
+  })
+
   it('no acredita ni descarta el intento si el id y la referencia no existen', async () => {
     const notFound = Object.assign(new Error('Payment not found'), {
       provider: { apiResponseStatus: 404, code: 2000 },

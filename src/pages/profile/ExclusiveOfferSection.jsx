@@ -48,6 +48,12 @@ export default function ExclusiveOfferSection({
   const eventTitle = catalogEvent?.title ?? offer.event?.title ?? ''
   const planName = offer.membershipPlan?.name ?? t('account.offer.membershipFallback')
   const campaignTitle = offer.campaign?.name || t('account.offer.title')
+  const leadText =
+    offer.campaign?.description || offer.description || t('account.offer.lead', { code: offer.code })
+  // La campaña puede cargar el mismo texto como nombre y como descripción (se
+  // vio en ONLY-PITBULL): sin esto la ficha repetía la misma oración dos veces
+  // seguidas, título y bajada.
+  const showLead = leadText.trim() !== campaignTitle.trim()
 
   function goToCheckout() {
     if (!state.available) return
@@ -83,11 +89,7 @@ export default function ExclusiveOfferSection({
           <span>{t('account.offer.codeLabel')}</span>
           <code>{offer.code}</code>
         </p>
-        <p className="account-offer__lead">
-          {offer.campaign?.description ||
-            offer.description ||
-            t('account.offer.lead', { code: offer.code })}
-        </p>
+        {showLead ? <p className="account-offer__lead">{leadText}</p> : null}
 
         <div className="account-offer__package">
           <span className="account-offer__package-label">{t('account.offer.packageLabel')}</span>

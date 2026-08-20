@@ -60,6 +60,46 @@ describe('canje secreto reutilizable', () => {
     )
   })
 
+  it(
+    'espera a que se refresquen las ofertas antes de redirigir a la ficha secreta',
+    async () => {
+      vi.mocked(redeemPromotionCodeRequest).mockResolvedValue({
+        status: 'accepted',
+        accepted: true,
+        action: 'open_exclusive_offer',
+        code: 'ONLY-PITBULL',
+        offer: { code: 'ONLY-PITBULL' },
+      })
+      const onNavigate = vi.fn()
+      let resolveUnlocked
+      const onOfferUnlocked = vi.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveUnlocked = resolve
+          }),
+      )
+      renderRedeemer({ onNavigate, onOfferUnlocked })
+
+      await openAndSubmit()
+      await waitFor(() => expect(onOfferUnlocked).toHaveBeenCalledTimes(1))
+
+      // Pasa de sobra el delay fijo de redirección (700ms) sin que
+      // `onOfferUnlocked` resuelva: si `onNavigate` se disparara acá sería la
+      // regresión original — el widget vive dentro de AthleteProfilePage, que
+      // no se remonta al cambiar de tab, así que sin esperar el refresh la
+      // ficha sigue viendo la lista de ofertas vieja y el salto no lleva a
+      // ningún lado.
+      await new Promise((resolve) => setTimeout(resolve, 850))
+      expect(onNavigate).not.toHaveBeenCalled()
+
+      resolveUnlocked()
+      await waitFor(() =>
+        expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-offer' }),
+      )
+    },
+    10000,
+  )
+
   it('pide iniciar sesión si todavía no hay un atleta autenticado', async () => {
     renderRedeemer({ session: null })
 
