@@ -340,6 +340,34 @@ export function createSupabaseAthleteRepository(
         },
         'No se pudo validar el código de descuento.',
       ),
+    /**
+     * Canje de la llave de una oferta exclusiva. NO es una redención: no
+     * consume cupo ni escribe importe, sólo registra que este atleta tiene el
+     * código (ver la cabecera de 20260902100000). Lo que habilita es la ficha
+     * "Oferta exclusiva" de Mi cuenta; el cobro sigue saliendo del checkout.
+     *
+     * Devuelve `{ unlocked: false, reason }` en vez de fallar: la pantalla
+     * necesita distinguir "no existe" de "venció" de "sin cupo".
+     */
+    unlockOfferCode: (athleteId, code) =>
+      rpc(
+        'athlete_unlock_offer_code',
+        {
+          p_organization_id: organizationId,
+          p_athlete_id: athleteId,
+          p_code: code,
+        },
+        'No se pudo canjear el código.',
+      ),
+    listOfferUnlocks: (athleteId) =>
+      rpc(
+        'athlete_list_offer_unlocks',
+        {
+          p_organization_id: organizationId,
+          p_athlete_id: athleteId,
+        },
+        'No se pudieron leer tus ofertas desbloqueadas.',
+      ),
     // Lectura simple (no RPC): sólo decide si el canal manual se destraba
     // para esta compra puntual. La redención real, con todas sus validaciones
     // (vencido, agotado, ya usado por este atleta), sigue pasando únicamente

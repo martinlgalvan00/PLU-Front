@@ -430,8 +430,15 @@ export async function previewDiscountCode({
     source: preview.source === 'public_promo' ? 'public_promo' : 'code',
     description: preview.description ?? '',
     // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final;
-    // 'access' no descuenta nada, sólo desbloquea el combo.
+    // 'access' no descuenta nada, sólo desbloquea el combo; 'offer' desbloquea
+    // y además fija el importe — es la oferta exclusiva de un código secreto.
     kind: preview.kind ?? 'percent',
+    // Alcance del código: viaja también con `reason: 'not_applicable'` y con
+    // `reason: 'other_event'`, para poder decir de qué inscripción es en vez de
+    // un "no aplica" seco.
+    appliesTo: preview.appliesTo ?? null,
+    eventSlug: preview.eventSlug ?? null,
+    eventTitle: preview.eventTitle ?? null,
     percentOff: preview.percentOff ?? null,
     // Ya viene resuelto para el canal que se mandó en `paymentMethod`: una
     // promo puede tener un importe pactado para Mercado Pago y otro para
@@ -451,6 +458,33 @@ export async function previewDiscountCode({
         ? ['bank_transfer', 'cash_pitbull']
         : [],
   }
+}
+
+/**
+ * Canje de un código secreto de oferta exclusiva.
+ *
+ * A diferencia del preview, no necesita saber contra qué se está comprando: la
+ * oferta trae su propia inscripción y su propio precio. Es lo que permite
+ * canjear el código desde Afiliación, donde el atleta todavía no eligió evento.
+ *
+ * Devuelve `{ unlocked: false, reason }` cuando el código no sirve: no es un
+ * error de red, es una respuesta que la pantalla tiene que explicar.
+ */
+export async function unlockOfferCode({ code }) {
+  const result = await apiPost('/api/athletes/me/offer-unlocks', { code })
+  return {
+    unlocked: result?.unlocked === true,
+    alreadyUnlocked: result?.alreadyUnlocked === true,
+    reason: result?.reason ?? null,
+    startsAt: result?.startsAt ?? null,
+    offer: result?.offer ?? null,
+  }
+}
+
+/** Ofertas exclusivas que este atleta ya canjeó. Sostiene la ficha de Mi cuenta. */
+export async function fetchOfferUnlocks() {
+  const result = await apiGet('/api/athletes/me/offer-unlocks')
+  return Array.isArray(result?.offers) ? result.offers : []
 }
 
 export async function createCompetitionRegistrationCombo({
