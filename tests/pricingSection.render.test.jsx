@@ -2,6 +2,11 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import PricingSection from '../src/pages/admin/PricingSection.jsx'
+import { generateCredentialQr } from '../src/lib/credentialQr.js'
+
+vi.mock('../src/lib/credentialQr.js', () => ({
+  generateCredentialQr: vi.fn(async () => 'data:image/png;base64,promotion-qr'),
+}))
 
 beforeAll(() => {
   if (typeof window.matchMedia === 'function') return
@@ -10,6 +15,64 @@ beforeAll(() => {
     addEventListener: () => {},
     removeEventListener: () => {},
   })
+})
+
+it('copia el enlace con fallback, descarga el QR y expone un canje real tras validar', async () => {
+  const writeText = vi.fn(async () => {
+    throw new Error('Clipboard permission denied')
+  })
+  const execCommand = vi.fn(() => true)
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: { writeText },
+  })
+  Object.defineProperty(document, 'execCommand', { configurable: true, value: execCommand })
+  const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+  const onSimulatePromotionCode = vi.fn(async () => ({
+    simulation: {
+      destination: { kind: 'account_offer' },
+      checks: { active: true, withinWindow: true },
+    },
+  }))
+
+  renderPricing({
+    onSimulatePromotionCode,
+    configuration: {
+      ...configuration,
+      discountCodes: [
+        {
+          id: 'coupon-actions',
+          code: 'ONLY-PITBULL',
+          kind: 'offer',
+          fixedPrice: 120000,
+          appliesTo: 'combo',
+          redeemedCount: 0,
+          active: true,
+        },
+      ],
+    },
+  })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }))
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/canjear/ONLY-PITBULL`)
+    expect(await screen.findByText('Enlace copiado')).toBeTruthy()
+    expect(execCommand).toHaveBeenCalledWith('copy')
+
+  fireEvent.click(screen.getByRole('button', { name: 'Descargar QR' }))
+    expect(generateCredentialQr).toHaveBeenCalledWith(
+      `${window.location.origin}/canjear/ONLY-PITBULL`,
+    )
+  expect(await screen.findByText('QR descargado')).toBeTruthy()
+  expect(anchorClick).toHaveBeenCalled()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Probar flujo' }))
+  expect(onSimulatePromotionCode).toHaveBeenCalledWith('coupon-actions')
+  expect(await screen.findByText('Recorrido verificado')).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Abrir canje en otra pestaña' })).toHaveProperty(
+    'href',
+      `${window.location.origin}/canjear/ONLY-PITBULL`,
+  )
+  anchorClick.mockRestore()
 })
 
 afterEach(cleanup)

@@ -507,6 +507,27 @@
   color: var(--color-text-primary);
 }
 
+.admin-pricing__simulation-link {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-weight: 650;
+  gap: 0.35rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  width: fit-content;
+}
+
+.admin-pricing__simulation-link:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-pricing__simulation-link:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-brand-action);
+  outline-offset: 3px;
+}
+
 .admin-pricing__simulation ul {
   display: flex;
   flex-wrap: wrap;

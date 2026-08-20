@@ -10,6 +10,50 @@ import {
   processClaimedPaymentEvent,
   applyCanonicalPayment,
 } from './paymentWorkflow.js'
+import { selectCanonicalProviderPayment } from './providerPaymentSelection.js'
+
+function isProviderPaymentNotFound(error) {
+  if (Number(error?.provider?.apiResponseStatus) === 404) return true
+  return /payment not found|resource not found|pago mock no encontrado/i.test(
+    String(error?.message ?? ''),
+  )
+}
+
+/**
+ * Un intento del Brick ya tiene evidencia local de que Payment.create devolvio
+ * un recurso. Si el GET directo pasa a responder 404, no alcanza con asumir
+ * que el pago nunca existio: primero se reconstruye la verdad de la orden por
+ * external_reference. Esto tambien cubre un segundo intento valido para la
+ * misma orden sin acreditar a ciegas: applyCanonicalPayment vuelve a validar
+ * referencia, monto y moneda antes de tocar el dominio.
+ */
+async function resolveAttemptPayment(attempt, order, mercadoPago) {
+  try {
+    return {
+      payment: await mercadoPago.getPayment(attempt.external_payment_id),
+      source: 'payment_id',
+    }
+  } catch (error) {
+    if (
+      !isProviderPaymentNotFound(error) ||
+      typeof mercadoPago.searchPaymentsForOrder !== 'function'
+    ) {
+      throw error
+    }
+
+    let candidates
+    try {
+      candidates = await mercadoPago.searchPaymentsForOrder(order)
+    } catch {
+      // Se conserva el 404 original: es el dato que explica por que comenzo la
+      // recuperacion y evita reemplazarlo por una falla secundaria de search.
+      throw error
+    }
+    const canonical = selectCanonicalProviderPayment(candidates)
+    if (!canonical) throw error
+    return { payment: canonical, source: 'external_reference' }
+  }
+}
 
 /**
  * `mapWithConcurrency` ya aisla el fallo de cada item (no corta el lote); acá
@@ -34,7 +78,8 @@ export async function reconcileClaimedPaymentAttempt(attempt, options = {}) {
   const { repository, mercadoPago, notifyPaymentApplied, auditTrail } = options
   try {
     const order = await repository.getOrder(attempt.order_id)
-    const payment = await mercadoPago.getPayment(attempt.external_payment_id)
+    const resolved = await resolveAttemptPayment(attempt, order, mercadoPago)
+    const payment = resolved.payment
     const applied = await applyCanonicalPayment(payment, order, {
       repository,
       notifyPaymentApplied,
@@ -53,6 +98,8 @@ export async function reconcileClaimedPaymentAttempt(attempt, options = {}) {
         stage: 'reconciliation',
         attemptId: attempt.id,
         terminal,
+        recoverySource: resolved.source,
+        originalExternalPaymentId: String(attempt.external_payment_id),
         ...paymentTrailMetadata(payment),
       },
     })
