@@ -106,7 +106,7 @@
   box-shadow: var(--elevation-lg);
   display: grid;
   gap: var(--space-md);
-  max-height: min(78vh, 660px);
+  max-height: min(88vh, 760px);
   overflow-y: auto;
   padding: var(--space-lg);
   position: fixed;
@@ -513,16 +513,7 @@
   margin: 0;
 }
 
-/* ── Interruptor del modo asistido ───────────── */
-
-.help-panel__link--switch {
-  gap: 11px;
-}
-
-.help-panel__link--switch .help-panel__link-copy {
-  flex: 1 1 auto;
-  min-width: 0;
-}
+/* ── Interruptor del modo simple ───────────── */
 
 .help-panel__switch {
   background: color-mix(in srgb, var(--color-text-primary) 16%, transparent);
@@ -557,4 +548,108 @@
   .help-panel__switch-knob {
     transition: none;
   }
+}
+
+/* ── Ubicación y puerta alternativa ──────────── */
+
+/* Fila superior: dónde estás, y el interruptor del modo simple a la derecha. */
+.help-panel__bar {
+  align-items: center;
+  border-block: 1px solid var(--color-border-subtle);
+  column-gap: var(--space-md);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-block: 7px;
+  row-gap: 4px;
+}
+
+/* "Estás en Crear tu cuenta": orientación básica para quien abre la ayuda
+   porque perdió de vista en qué pantalla está. */
+.help-panel__location {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+}
+
+.help-panel__assist {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-family);
+  gap: 8px;
+  min-height: 40px;
+  padding: 0;
+}
+
+.help-panel__assist:hover {
+  color: var(--color-text-primary);
+}
+
+.help-panel__assist:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.help-panel__assist-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.help-panel__location svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.help-panel__location strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Segunda puerta debajo de la acción: quien ya se registró y no logra volver a
+   entrar necesita esta salida, y no puede ser otro botón del mismo peso. */
+.help-panel__door {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 4px 8px;
+  margin: 0;
+}
+
+.help-panel__door-link {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.help-panel__door-link:hover {
+  color: var(--color-text-primary);
+}
+
+.help-panel__door-link:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
 }

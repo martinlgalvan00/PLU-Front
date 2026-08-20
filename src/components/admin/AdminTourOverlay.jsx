@@ -38,6 +38,31 @@ function readFieldFilled(el) {
 }
 
 /**
+ * Primer elemento **visible** que matchea el selector.
+ *
+ * `document.querySelector` devuelve el primero en orden de documento, que en
+ * este proyecto suele ser el oculto: el navbar tiene la versión desktop y la
+ * mobile montadas a la vez y esconde una con `display: none` según el ancho.
+ * Sin este filtro un paso enganchaba un rect de 0x0 y el spotlight quedaba
+ * degenerado. Permite además pasar una lista de selectores separados por coma
+ * y quedarse con el que esté en pantalla.
+ *
+ * Se usa `checkVisibility` y no `getClientRects`: en un entorno sin layout
+ * (jsdom, los tests de render) los rects son siempre vacíos y el filtro
+ * descartaría elementos que sí están. Donde la API no existe no se filtra,
+ * que es el comportamiento de antes.
+ */
+function pickVisible(selector) {
+  const candidates = document.querySelectorAll(selector)
+  for (const candidate of candidates) {
+    if (typeof candidate.checkVisibility !== 'function' || candidate.checkVisibility()) {
+      return candidate
+    }
+  }
+  return null
+}
+
+/**
  * `frame` permite señalar el bloque completo del campo (`.field`, que envuelve
  * label + control + error) apuntando al control, que es lo único con un
  * selector estable — los campos de este proyecto no llevan `id`.
@@ -72,7 +97,7 @@ function useTargetRect(selector, stepKey, onMissing, { frame = null, coach = fal
 
     function measure() {
       if (cancelled) return
-      const el = document.querySelector(selector)
+      const el = pickVisible(selector)
       if (!el) {
         // En coach no se abandona el paso: el campo puede estar en la sección
         // siguiente del formulario y aparecer cuando la persona avanza.
@@ -95,7 +120,7 @@ function useTargetRect(selector, stepKey, onMissing, { frame = null, coach = fal
     measure()
 
     function handleReflow() {
-      const el = document.querySelector(selector)
+      const el = pickVisible(selector)
       if (!el) return
       setRect(measureRect(el, frame))
     }

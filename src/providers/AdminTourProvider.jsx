@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 const AdminTourContext = createContext(null)
 
 const SEEN_KEY_PREFIX = 'plu-admin-tour-seen:'
+const PROGRESS_KEY_PREFIX = 'plu-tour-progress:'
 const MODE_KEY = 'plu-tour-mode'
 
 /** 'once': se auto-abre la primera vez y no más (default). 'always': se
@@ -29,6 +30,37 @@ function markTourSeen(tourId) {
   } catch {
     // Almacenamiento no disponible (modo privado, cuota) -- el tour va a
     // reaparecer la próxima vez, no es crítico.
+  }
+}
+
+/**
+ * Progreso de un recorrido que se abandonó a mitad. Un tutorial de trece
+ * incisos se interrumpe -- suena el teléfono, hay que buscar el documento --
+ * y volver a empezar de cero es motivo suficiente para no retomarlo.
+ */
+export function readTourProgress(tourId) {
+  try {
+    const raw = window.localStorage.getItem(`${PROGRESS_KEY_PREFIX}${tourId}`)
+    const index = Number.parseInt(raw ?? '', 10)
+    return Number.isInteger(index) && index > 0 ? index : null
+  } catch {
+    return null
+  }
+}
+
+function saveTourProgress(tourId, index) {
+  try {
+    window.localStorage.setItem(`${PROGRESS_KEY_PREFIX}${tourId}`, String(index))
+  } catch {
+    // Sin storage el recorrido simplemente arranca de cero la próxima vez.
+  }
+}
+
+function clearTourProgress(tourId) {
+  try {
+    window.localStorage.removeItem(`${PROGRESS_KEY_PREFIX}${tourId}`)
+  } catch {
+    // Idem.
   }
 }
 
@@ -84,7 +116,7 @@ export function AdminTourProvider({ children }) {
   }, [])
 
   const startTour = useCallback(
-    (tourId, steps, { mode = 'modal' } = {}) => {
+    (tourId, steps, { mode = 'modal', startIndex = 0 } = {}) => {
       if (!steps?.length || tourMode === 'off') return false
       if (tourMode === 'once' && hasSeenTour(tourId)) return false
       // Se marca "visto" apenas arranca, no solo al cerrarlo: si la sección
@@ -94,33 +126,43 @@ export function AdminTourProvider({ children }) {
       // -- de ahí la sensación de que se repite todo el tiempo.
       markTourSeen(tourId)
       setActiveTour({ id: tourId, steps, mode })
-      setStepIndex(0)
+      setStepIndex(Math.min(Math.max(startIndex, 0), steps.length - 1))
       return true
     },
     [tourMode],
   )
 
-  const replayTour = useCallback((tourId, steps, { mode = 'modal' } = {}) => {
+  const replayTour = useCallback((tourId, steps, { mode = 'modal', startIndex = 0 } = {}) => {
     if (!steps?.length) return false
     setActiveTour({ id: tourId, steps, mode })
-    setStepIndex(0)
+    setStepIndex(Math.min(Math.max(startIndex, 0), steps.length - 1))
     return true
   }, [])
 
   const closeTour = useCallback(() => {
-    if (activeTour) markTourSeen(activeTour.id)
+    if (activeTour) {
+      markTourSeen(activeTour.id)
+      // Salir a mitad guarda el paso; salir en el primero no, porque no hay
+      // nada que retomar y ofrecerlo sería ruido.
+      if (stepIndex > 0) saveTourProgress(activeTour.id, stepIndex)
+      else clearTourProgress(activeTour.id)
+    }
     setActiveTour(null)
     setStepIndex(0)
-  }, [activeTour])
+  }, [activeTour, stepIndex])
 
   const nextStep = useCallback(() => {
     if (!activeTour) return
     if (stepIndex + 1 >= activeTour.steps.length) {
-      closeTour()
+      // Terminarlo borra el progreso: la próxima vez arranca del principio.
+      markTourSeen(activeTour.id)
+      clearTourProgress(activeTour.id)
+      setActiveTour(null)
+      setStepIndex(0)
       return
     }
     setStepIndex(stepIndex + 1)
-  }, [activeTour, stepIndex, closeTour])
+  }, [activeTour, stepIndex])
 
   // Un paso puede quedar sin blanco (viewport angosto, sección no montada);
   // el overlay llama a `skipStep` en vez de trabarse mostrando una tarjeta
@@ -145,6 +187,7 @@ export function AdminTourProvider({ children }) {
       prevStep,
       skipStep,
       hasSeenTour,
+      readTourProgress,
     }),
     [
       activeTour,
@@ -180,6 +223,7 @@ const NOOP_TOUR_CONTEXT = {
   prevStep: () => {},
   skipStep: () => {},
   hasSeenTour,
+  readTourProgress,
 }
 
 export function useAdminTour() {

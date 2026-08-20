@@ -105,8 +105,7 @@ export default {
     ariaLabel: 'Code redemption',
     toggle: 'I have a code',
     label: 'Code',
-    hint:
-      'It may apply a benefit, grant access, or open an exclusive offer in your account.',
+    hint: 'It may apply a benefit, grant access, or open an exclusive offer in your account.',
     placeholder: 'ENTER YOUR CODE',
     apply: 'Redeem',
     checking: 'Checking…',
@@ -369,7 +368,7 @@ export default {
     triggerPendingAria: 'Open step-by-step help. You have a pending step.',
     eyebrow: 'Help',
     title: 'What do I need to do?',
-    lead: 'Three steps, always in the same order. We mark the one you are on.',
+    lead: 'Three steps, always in the same order.',
     titleComplete: 'You are all set',
     leadComplete:
       'Account, membership and registration are up to date. Keep your credential for the door.',
@@ -415,18 +414,33 @@ export default {
     actionRegistrationPending: 'See my registration',
     actionCredential: 'See my credential',
     actionEvents: 'See my meets',
-    guideMe: 'Walk me through this screen',
-    guideMeHint: 'I point at what to tap, one at a time.',
+    guideMe: 'Show me how to get around',
+    guideMeHint: 'Where everything is and how to get back, in a short tour.',
     guideMeFields: 'Walk me through every field',
     guideMeFieldsHint: 'I explain what goes in each detail, one by one.',
+    resume: 'Pick up where you left off',
+    resumeHint: 'You were on step {{step}} of {{total}}.',
+    locationLabel: 'You are on',
+    views: {
+      home: 'the front page',
+      members: 'Membership',
+      register: 'Create your account',
+      login: 'Sign in',
+      competition: 'Meet registration',
+      profile: 'My account',
+      events: 'the calendar',
+      pitbull: 'Pitbull Classic',
+    },
+    haveAccountLabel: 'Already have an account?',
+    haveAccountAction: 'Sign in with my email',
     contact: 'I would rather talk to a person',
     assist: {
-      title: 'Assisted mode',
+      title: 'Simple mode',
       hint: 'Bigger type and buttons, plus a bottom bar with just the essentials: home, your next step, your account and this help.',
       activeHint: 'It is on. You can turn it off from here whenever you want.',
     },
     assistNav: {
-      aria: 'Assisted navigation',
+      aria: 'Simple navigation',
       home: 'Home',
       account: 'My account',
       login: 'Sign in',
@@ -439,36 +453,88 @@ export default {
       actionEvents: 'My meets',
     },
     tour: {
-      home: {
-        affiliate: {
-          title: 'This is where it starts',
-          body: 'This button takes you to membership, the first step towards competing.',
+      orientation: {
+        brand: {
+          title: 'The crest takes you home',
+          body: 'Wherever you are, tap the crest at the top left and you are back on the front page. That is how you never get lost.',
         },
-        meet: {
-          title: 'The next meet',
-          body: 'Date, venue and whether registration is open.',
+        affiliate: {
+          title: 'Membership',
+          body: 'Everything about joining lives here: what it includes, what it costs and how to pay it.',
+        },
+        menu: {
+          title: 'The rest of the site',
+          body: 'This opens everything else: meet calendar, tickets, rulebook and records.',
+        },
+        account: {
+          title: 'Your account',
+          body: 'This is where you sign in with your email and password. Once inside, it is where your credential lives.',
         },
         help: {
-          title: 'Lost? Come back here',
-          body: 'This button is on every screen and always tells you your next step.',
+          title: 'Help is always right here',
+          body: 'This button is on every screen. It always tells you which step you are on and which one comes next.',
+        },
+        footer: {
+          title: 'The full index is at the bottom',
+          body: 'If you cannot find something, the end of every page lists every section.',
+        },
+        assistHome: {
+          title: 'Home',
+          body: 'This button takes you back to the front page from any screen.',
+        },
+        assistAction: {
+          title: 'Your next step',
+          body: 'The middle button always takes you to whatever is left to do. It changes on its own as you go: create the account, join, register.',
+        },
+        assistAccount: {
+          title: 'Your account',
+          body: 'This is where you sign in with your email and password. Once inside, it is where your credential lives.',
+        },
+        assistHelp: {
+          title: 'Help',
+          body: 'This button opens help. That is where you see your step and where you can turn simple mode off.',
+        },
+        action_home: {
+          title: 'It all starts here',
+          body: 'This button takes you to membership, the first thing you need to compete.',
+        },
+        action_members: {
+          title: 'Membership starts here',
+          body: 'Tap to begin. If you do not have an account yet, we will ask for it first.',
+        },
+        action_events: {
+          title: 'You register from here',
+          body: 'Each meet has its own buttons: see the full detail or register.',
+        },
+        action_pitbull: {
+          title: 'The button to register',
+          body: 'It needs an account and an active membership. If either is missing, help takes you there.',
+        },
+        action_profile: {
+          title: 'Your account, by section',
+          body: 'Credential, meets, membership and personal data. Swipe the rail to see them all.',
         },
       },
-      members: {
-        start: {
-          title: 'Start your membership',
-          body: 'Tap here to begin. If you do not have an account yet, we will ask for it first.',
+      loginCoach: {
+        email: {
+          title: 'Your email address',
+          body: 'The same address you used to create the account. If you cannot recall it, try the one you always use.',
         },
-        requirements: {
-          title: 'What to have at hand',
-          body: 'Your ID, your date of birth and an email you can open. Nothing else.',
+        password: {
+          title: 'Your password',
+          body: 'The one you chose when creating the account. Tap the eye on the right to see what you type.',
         },
-        plans: {
-          title: 'What it costs',
-          body: 'Season price and what it includes. You pick and pay online.',
+        forgot: {
+          title: 'If you forgot your password',
+          body: 'Tap here and we email you a link to set a new one. Nothing you have done is lost.',
         },
-        faq: {
-          title: 'Common questions',
-          body: 'If something does not add up, the answer is usually on this list.',
+        submit: {
+          title: 'And done: Sign in',
+          body: 'If the email or password do not match, we say so under the field and you can try again.',
+        },
+        join: {
+          title: 'If you never signed up',
+          body: 'This link takes you to create the account from scratch. It is step 1 of the whole process.',
         },
       },
       registerCoach: {
@@ -545,32 +611,6 @@ export default {
         finish: {
           title: 'Confirm your registration',
           body: 'The total sits above the button. Confirming files the registration under your name.',
-        },
-      },
-      events: {
-        actions: {
-          title: 'You register from here',
-          body: 'Each meet has its own buttons: see the full detail or register.',
-        },
-        help: {
-          title: 'Help follows you',
-          body: 'This button is on every screen and always tells you your next step.',
-        },
-      },
-      pitbull: {
-        register: {
-          title: 'Register for the meet',
-          body: 'It needs an account and an active membership. If either is missing, help takes you there.',
-        },
-      },
-      profile: {
-        tabs: {
-          title: 'Your account, by section',
-          body: 'Credential, meets, membership and personal data. Swipe the rail to see them all.',
-        },
-        help: {
-          title: 'Help follows you',
-          body: 'This button is on every screen and always tells you your next step.',
         },
       },
     },

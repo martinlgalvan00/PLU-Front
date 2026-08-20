@@ -6,8 +6,9 @@ import StickyMobileCta from '../src/components/ui/StickyMobileCta.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import { HelpProvider } from '../src/providers/HelpProvider.jsx'
 import { AssistProvider } from '../src/providers/AssistProvider.jsx'
+import { AdminTourProvider, useAdminTour } from '../src/providers/AdminTourProvider.jsx'
 import { isJourneyActionRedundant, resolveAthleteJourney } from '../src/lib/athleteJourney.js'
-import { getPublicTour, hasPublicTour } from '../src/lib/publicTourSteps.js'
+import { getOrientationTour, getPublicTour, hasFieldCoach } from '../src/lib/publicTourSteps.js'
 import { hasSeenHomeGuide } from '../src/lib/homeGuideStorage.js'
 import { ASSIST_STORAGE_KEY } from '../src/lib/assistMode.js'
 
@@ -56,10 +57,40 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
-  window.localStorage.removeItem(STORAGE_KEY)
-  window.localStorage.removeItem(ASSIST_STORAGE_KEY)
+  window.localStorage.clear()
   document.documentElement.removeAttribute('data-assist')
 })
+
+/** Sonda del motor de recorridos: jsdom no da layout, así que el overlay no
+ *  puede enganchar ningún blanco. Lo observable es qué recorrido quedó activo. */
+function ActiveTourProbe() {
+  const { activeTour, stepIndex } = useAdminTour()
+  if (!activeTour) return null
+  return (
+    <output data-testid="active-tour">{`${activeTour.id}:${activeTour.mode}:${stepIndex}`}</output>
+  )
+}
+
+function renderLayerWithTours(props = {}) {
+  render(
+    <I18nProvider>
+      <AssistProvider>
+        <AdminTourProvider>
+          <HelpProvider>
+            <HelpLayer
+              view="home"
+              event={EVENT}
+              onNavigate={() => {}}
+              onSelectEvent={() => {}}
+              {...props}
+            />
+            <ActiveTourProbe />
+          </HelpProvider>
+        </AdminTourProvider>
+      </AssistProvider>
+    </I18nProvider>,
+  )
+}
 
 afterEach(cleanup)
 
@@ -80,6 +111,7 @@ function renderPanel(journey, overrides = {}) {
     onClose: () => {},
     onNavigate: () => {},
     onRunNext: () => {},
+    onLogin: () => {},
     onStartTour: null,
     ...overrides,
   }
@@ -233,11 +265,11 @@ describe('HelpPanel', () => {
 
   it('nombra el recorrido por lo que hace: presentación o tutorial campo por campo', () => {
     const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
-    renderPanel(journey, { onStartTour: () => {}, tourMode: 'modal' })
-    expect(screen.getByRole('button', { name: /guiame en esta pantalla/i })).toBeTruthy()
+    renderPanel(journey, { onStartTour: () => {}, tourKind: 'orientation' })
+    expect(screen.getByRole('button', { name: /enseñame a moverme por el sitio/i })).toBeTruthy()
 
     cleanup()
-    renderPanel(journey, { onStartTour: () => {}, tourMode: 'coach' })
+    renderPanel(journey, { onStartTour: () => {}, tourKind: 'coach' })
     expect(screen.getByRole('button', { name: /guiame campo por campo/i })).toBeTruthy()
   })
 
@@ -245,7 +277,7 @@ describe('HelpPanel', () => {
     const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
     const onStartTour = vi.fn()
     const onRunNext = vi.fn()
-    renderPanel(journey, { atDestination: true, tourMode: 'coach', onStartTour, onRunNext })
+    renderPanel(journey, { atDestination: true, tourKind: 'coach', onStartTour, onRunNext })
 
     expect(screen.getByText('Estás en el paso que te toca')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /crear mi cuenta/i })).toBeNull()
@@ -276,11 +308,63 @@ describe('HelpPanel', () => {
     expect(screen.getByRole('button', { name: /ver mi credencial/i })).toBeTruthy()
   })
 
-  it('expone el modo asistido como interruptor accesible', () => {
+  it('dice en qué pantalla estás', () => {
+    const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
+    renderPanel(journey, { view: 'register' })
+
+    expect(screen.getByText(/estás en/i)).toBeTruthy()
+    expect(screen.getByText('Crear tu cuenta', { selector: 'strong' })).toBeTruthy()
+  })
+
+  it('no inventa un nombre para las pantallas que no sabe nombrar', () => {
+    const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
+    renderPanel(journey, { view: 'records' })
+
+    expect(screen.queryByText(/estás en/i)).toBeNull()
+  })
+
+  it('ofrece entrar con una cuenta existente, no sólo crear una nueva', () => {
+    const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
+    const onLogin = vi.fn()
+    const onClose = vi.fn()
+    renderPanel(journey, { onLogin, onClose })
+
+    fireEvent.click(screen.getByRole('button', { name: /entrar con mi correo/i }))
+    expect(onLogin).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('con cuenta ya creada no ofrece la puerta de entrada', () => {
+    const journey = resolveAthleteJourney({
+      session: ATHLETE_SESSION,
+      memberships: [],
+      event: EVENT,
+      now: NOW,
+    })
+    renderPanel(journey, { onLogin: () => {} })
+
+    expect(screen.queryByRole('button', { name: /entrar con mi correo/i })).toBeNull()
+  })
+
+  it('un tutorial a medias se ofrece como retomar, diciendo por dónde iba', () => {
+    const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
+    renderPanel(journey, {
+      view: 'register',
+      tourKind: 'coach',
+      onStartTour: () => {},
+      resume: { step: 4, total: 13 },
+    })
+
+    expect(screen.getByRole('button', { name: /seguir donde lo dejaste/i })).toBeTruthy()
+    expect(screen.getByText('Ibas por el paso 5 de 13.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /guiame campo por campo/i })).toBeNull()
+  })
+
+  it('expone el modo simple como interruptor accesible', () => {
     const journey = resolveAthleteJourney({ session: null, event: EVENT, now: NOW })
     renderPanel(journey)
 
-    const toggle = screen.getByRole('switch', { name: /modo asistido/i })
+    const toggle = screen.getByRole('switch', { name: /modo simple/i })
     expect(toggle.getAttribute('aria-checked')).toBe('false')
 
     fireEvent.click(toggle)
@@ -337,20 +421,20 @@ describe('HelpLayer', () => {
     expect(onSelectEvent).toHaveBeenCalledWith(EVENT)
   })
 
-  it('en modo asistido el botón flotante se reemplaza por la barra recortada', () => {
+  it('en modo simple el botón flotante se reemplaza por la barra recortada', () => {
     renderLayer()
 
     fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
-    fireEvent.click(screen.getByRole('switch', { name: /modo asistido/i }))
+    fireEvent.click(screen.getByRole('switch', { name: /modo simple/i }))
 
-    const bar = screen.getByRole('navigation', { name: /navegación asistida/i })
+    const bar = screen.getByRole('navigation', { name: /navegación simple/i })
     expect(bar).toBeTruthy()
     // Cuatro destinos y ni uno más: en eso consiste el recorte.
     expect(bar.querySelectorAll('.assist-nav__item')).toHaveLength(4)
     expect(screen.queryByRole('button', { name: /abrir la ayuda paso a paso/i })).toBeNull()
   })
 
-  it('la barra asistida nombra el próximo paso real y lo ejecuta', () => {
+  it('la barra simple nombra el próximo paso real y lo ejecuta', () => {
     const onSelectEvent = vi.fn()
     renderLayer({
       session: ATHLETE_SESSION,
@@ -359,10 +443,69 @@ describe('HelpLayer', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
-    fireEvent.click(screen.getByRole('switch', { name: /modo asistido/i }))
+    fireEvent.click(screen.getByRole('switch', { name: /modo simple/i }))
 
     fireEvent.click(screen.getByRole('button', { name: /^inscribirme$/i }))
     expect(onSelectEvent).toHaveBeenCalledWith(EVENT)
+  })
+})
+
+describe('HelpLayer + motor de recorridos', () => {
+  it('al activar el modo simple arranca sola la orientación de la barra nueva', () => {
+    renderLayerWithTours()
+
+    fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
+    fireEvent.click(screen.getByRole('switch', { name: /modo simple/i }))
+
+    // El panel se cierra para dejar ver la barra que el recorrido va a explicar.
+    expect(screen.queryByRole('dialog', { name: /qué tengo que hacer/i })).toBeNull()
+    expect(screen.getByTestId('active-tour').textContent).toBe('public-orientation-simple:modal:0')
+  })
+
+  it('no vuelve a insistir con esa orientación una vez vista', () => {
+    renderLayerWithTours()
+    fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
+    fireEvent.click(screen.getByRole('switch', { name: /modo simple/i }))
+    expect(screen.getByTestId('active-tour')).toBeTruthy()
+
+    cleanup()
+    // Apagar y volver a encender: el recorrido ya fue visto.
+    window.localStorage.removeItem(ASSIST_STORAGE_KEY)
+    renderLayerWithTours()
+    fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
+    fireEvent.click(screen.getByRole('switch', { name: /modo simple/i }))
+    expect(screen.queryByTestId('active-tour')).toBeNull()
+  })
+
+  it('el tutorial arranca en el paso guardado cuando quedó a medias', () => {
+    window.localStorage.setItem('plu-tour-progress:public-register', '4')
+    renderLayerWithTours({ view: 'register' })
+
+    fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
+    fireEvent.click(screen.getByRole('button', { name: /seguir donde lo dejaste/i }))
+
+    expect(screen.getByTestId('active-tour').textContent).toBe('public-register:coach:4')
+  })
+
+  it('sin progreso guardado el tutorial arranca del principio', () => {
+    renderLayerWithTours({ view: 'register' })
+
+    fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
+    fireEvent.click(screen.getByRole('button', { name: /guiame campo por campo/i }))
+
+    expect(screen.getByTestId('active-tour').textContent).toBe('public-register:coach:0')
+  })
+
+  it('un progreso que ya no existe en el recorrido se ignora', () => {
+    // El recorrido de login tiene cinco pasos: un progreso en el 9 es de una
+    // versión anterior y mandaría a alguien a un paso que no existe.
+    window.localStorage.setItem('plu-tour-progress:public-login', '9')
+    renderLayerWithTours({ view: 'login' })
+
+    fireEvent.click(screen.getByRole('button', { name: /abrir la ayuda/i }))
+    expect(screen.queryByRole('button', { name: /seguir donde lo dejaste/i })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /guiame campo por campo/i }))
+    expect(screen.getByTestId('active-tour').textContent).toBe('public-login:coach:0')
   })
 })
 
@@ -408,25 +551,34 @@ describe('portada', () => {
 describe('publicTourSteps', () => {
   const t = (key) => key
 
-  it('cubre las pantallas del trámite y no inventa recorridos', () => {
-    for (const view of ['home', 'members', 'register', 'competition', 'profile', 'events']) {
-      expect(hasPublicTour(view)).toBe(true)
+  it('las tres pantallas con formulario se guían campo por campo', () => {
+    for (const view of ['login', 'register', 'competition']) {
+      expect(hasFieldCoach(view)).toBe(true)
       const tour = getPublicTour(view, t)
       expect(tour.id).toBe(`public-${view}`)
-      expect(tour.steps.length).toBeGreaterThan(0)
-      for (const step of tour.steps) expect(step.target).toBeTruthy()
+      expect(tour.mode).toBe('coach')
+      expect(tour.kind).toBe('coach')
     }
-
-    expect(hasPublicTour('records')).toBe(false)
-    expect(getPublicTour('records', t)).toBeNull()
   })
 
-  it('el alta de cuenta es un tutorial campo por campo que cubre los dos tramos', () => {
+  it('entrar con una cuenta que ya existe tiene su propio tutorial', () => {
+    const tour = getPublicTour('login', t)
+
+    expect(tour.steps.map((step) => step.target)).toEqual([
+      '[name="email"]',
+      '[name="password"]',
+      '.login-field__forgot',
+      '.login-submit',
+      '.login-join__link',
+    ])
+    // Los dos campos iluminan su bloque completo (etiqueta + control + error).
+    expect(tour.steps[0].frame).toBe('.login-field')
+    expect(tour.steps[1].frame).toBe('.login-field')
+  })
+
+  it('el alta de cuenta cubre los dos tramos del formulario', () => {
     const tour = getPublicTour('register', t)
 
-    expect(tour.mode).toBe('coach')
-    // Siete datos personales, el botón que pasa de tramo, cuatro de ubicación y
-    // el cierre: si el tutorial se recorta, la persona queda a mitad de camino.
     expect(tour.steps).toHaveLength(13)
     const targets = tour.steps.map((step) => step.target)
     for (const field of [
@@ -444,16 +596,12 @@ describe('publicTourSteps', () => {
     ]) {
       expect(targets).toContain(`[name="${field}"]`)
     }
-    // Los pasos de campo iluminan el bloque completo (etiqueta + control + error).
     const fieldSteps = tour.steps.filter((step) => step.target.startsWith('[name='))
     expect(fieldSteps.every((step) => step.frame === '.field')).toBe(true)
   })
 
   it('la inscripción guía división, categoría, peso, medio de pago y cierre', () => {
-    const tour = getPublicTour('competition', t)
-
-    expect(tour.mode).toBe('coach')
-    expect(tour.steps.map((step) => step.target)).toEqual([
+    expect(getPublicTour('competition', t).steps.map((step) => step.target)).toEqual([
       '[name="division"]',
       '[name="category"]',
       '[name="estimatedWeight"]',
@@ -462,8 +610,72 @@ describe('publicTourSteps', () => {
     ])
   })
 
-  it('las presentaciones siguen en modo modal', () => {
-    expect(getPublicTour('home', t).mode).toBe('modal')
-    expect(getPublicTour('members', t).mode).toBe('modal')
+  it('las pantallas sin formulario enseñan a moverse por el sitio', () => {
+    const tour = getPublicTour('members', t)
+
+    expect(hasFieldCoach('members')).toBe(false)
+    expect(tour.kind).toBe('orientation')
+    expect(tour.mode).toBe('modal')
+    expect(tour.id).toBe('public-orientation')
+    const targets = tour.steps.map((step) => step.target)
+    // El recorrido explica la navegación y recién después aterriza en la
+    // acción de esta pantalla y en el pie.
+    expect(targets[0]).toContain('plu-global-nav__brand')
+    expect(targets).toContain('.members-plu-hero__cta-row')
+    expect(targets).toContain('.site-footer')
+  })
+
+  it('cada pantalla aterriza en su propia acción', () => {
+    const actionByView = {
+      home: '.hero__cta--primary',
+      members: '.members-plu-hero__cta-row',
+      events: '.events-detail__actions',
+      pitbull: '.pitbull-inscription__cta--primary',
+      profile: '.account-nav',
+    }
+    for (const [view, target] of Object.entries(actionByView)) {
+      expect(getPublicTour(view, t).steps.map((step) => step.target)).toContain(target)
+    }
+  })
+
+  it('la orientación existe para cualquier pantalla, aunque no tenga acción propia', () => {
+    const tour = getPublicTour('records', t)
+
+    expect(tour.kind).toBe('orientation')
+    expect(tour.steps.length).toBeGreaterThan(0)
+  })
+
+  it('el pie no se señala donde App no lo monta', () => {
+    // `login` y `register` se sirven sin footer: un paso apuntándolo no tendría
+    // blanco y quedaría como un salto sin explicación.
+    for (const view of ['login', 'register']) {
+      const tour = getOrientationTour(t, { view })
+      expect(tour.steps.map((step) => step.target)).not.toContain('.site-footer')
+    }
+    expect(getOrientationTour(t, { view: 'home' }).steps.map((step) => step.target)).toContain(
+      '.site-footer',
+    )
+  })
+
+  it('en modo simple la orientación explica la barra de cuatro botones', () => {
+    const tour = getOrientationTour(t, { assist: true, view: 'home' })
+
+    expect(tour.id).toBe('public-orientation-simple')
+    const targets = tour.steps.map((step) => step.target)
+    expect(targets.slice(0, 4)).toEqual([
+      '[data-tour~="assist-nav-home"]',
+      '[data-tour~="assist-nav-action"]',
+      '[data-tour~="assist-nav-account"]',
+      '[data-tour~="assist-nav-help"]',
+    ])
+    // No explica el navbar completo: en modo simple la persona no lo está viendo.
+    expect(targets.some((target) => target.includes('plu-global-nav'))).toBe(false)
+  })
+
+  it('el blanco de la ayuda usa coincidencia por palabra', () => {
+    // La barra simple lleva dos valores en el mismo `data-tour`; con igualdad
+    // exacta el paso no encontraría su blanco.
+    const targets = getOrientationTour(t, { view: 'home' }).steps.map((step) => step.target)
+    expect(targets).toContain('[data-tour~="help-dock"]')
   })
 })
