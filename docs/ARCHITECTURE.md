@@ -144,6 +144,9 @@ Componentes actuales:
 | Pagos | `server/modules/payments/paymentWorkflow.js`, `embeddedPaymentWorkflow.js` |
 | Suscripciones | `server/modules/subscriptions/subscriptionWorkflow.js` |
 | Combo afiliación + evento | `create_membership_registration_combo_order` (RPC Supabase) |
+| Campañas y códigos | `promotion_campaigns`, `promotion_campaign_benefits`, `discount_codes` |
+| Canje universal | `athlete_redeem_promotion_code` (RPC Supabase) + `promotionCodeService.js` |
+| Embudo promocional | `promotion_campaign_events`, unlocks, redenciones y órdenes aprobadas |
 | Credencial única | `athletes.credential_token` + `get_membership_by_code_or_token` (RPC Supabase) |
 | Recuperación | `server/modules/payments/paymentRecoveryWorkflow.js`, `server/jobs/paymentRecoveryJob.js` |
 | Notificaciones | `server/modules/notifications/notificationWorkflow.js` |

@@ -310,6 +310,9 @@ export function createSupabaseAthleteRepository(
       )
       const offer = Array.isArray(event?.comboOffer) ? event.comboOffer[0] : event?.comboOffer
       if (!offer || !offer.active) return null
+      // Privado significa habilitado para administración, pero fuera de todo
+      // canal comercial. Ni un request directo al checkout puede comprarlo.
+      if (offer.audience === 'private') return null
       const now = new Date()
       if (offer.starts_at && new Date(offer.starts_at) > now) return null
       if (offer.ends_at && new Date(offer.ends_at) < now) return null
@@ -358,6 +361,17 @@ export function createSupabaseAthleteRepository(
           p_code: code,
         },
         'No se pudo canjear el código.',
+      ),
+    redeemPromotionCode: (athleteId, { code, context = {} }) =>
+      rpc(
+        'athlete_redeem_promotion_code',
+        {
+          p_organization_id: organizationId,
+          p_athlete_id: athleteId,
+          p_code: code,
+          p_context: context,
+        },
+        'No se pudo resolver el código.',
       ),
     listOfferUnlocks: (athleteId) =>
       rpc(

@@ -544,7 +544,30 @@ export default {
       comboOverLimit: 'Over the maximum',
       comboMax: 'Max {{amount}}',
       comboOfferOn: 'Enabled',
+      comboOfferStatus: 'Enabled · {{visibility}}',
       comboOfferOff: 'Off',
+      comboVisibilityLabel: 'Commercial visibility',
+      comboVisibilityShort: {
+        public: 'Public',
+        code: 'Restricted',
+        private: 'Private',
+      },
+      comboVisibility: {
+        public: {
+          title: 'Public',
+          description: 'Listed in the catalog and available for anyone to purchase.',
+        },
+        code: {
+          title: 'Restricted',
+          description: 'Not advertised. A valid code unlocks the secret page.',
+        },
+        private: {
+          title: 'Private',
+          description: 'Stays configured, but nobody can view, redeem, or purchase it.',
+        },
+      },
+      comboPrivateNote:
+        'Saving as private pauses active secret codes for this combo. Previous purchases keep their history.',
       editCombo: 'Edit offer',
       closeComboEditor: 'Close editor',
       comboNotConfigured: 'Not configured',
@@ -561,7 +584,7 @@ export default {
       scheduleRetirement: 'Schedule retirement',
       discountCodesTitle: 'Discount and promo codes',
       discountCodesLead:
-        'Percentage discounts or fixed-price promos, with limited spots, expiry and live tracking.',
+        'Create discounts, access codes, or an Exclusive offer with membership + registration, one price, and a private payment page.',
       discountCodesEmpty: 'No codes yet.',
       newDiscountCode: 'New code',
       publishDiscountCode: 'Publish code',
@@ -571,14 +594,14 @@ export default {
       codeFormatHint: 'Uppercase letters, numbers and dashes.',
       percentOff: 'Discount (%)',
       percentOffInvalid: 'The discount must be a whole number between 1 and 99.',
-      codeKindLabel: 'Type',
+      codeKindLabel: 'Code type',
       codeKindHint:
-        'A discount takes a percentage off. A promo price sets what is paid, agreed separately per payment method. Access does not discount anything: it only unlocks the combo. An exclusive offer does both — it unlocks one registration’s combo and sets its own price.',
+        'Choose Exclusive offer to grant membership + tournament registration for a single secret price.',
       codeKind: {
         percent: 'Percentage discount',
         fixed_price: 'Fixed promo price',
         access: 'Combo access (no discount)',
-        offer: 'Exclusive offer (membership + registration)',
+        offer: 'Exclusive offer · membership + registration',
       },
       offerBadge: 'Exclusive offer',
       offerPrice: 'Offer price via Mercado Pago (ARS)',
@@ -586,12 +609,24 @@ export default {
       offerEventPlaceholder: 'Choose the registration',
       offerEventComboPrice: 'combo {{price}}',
       offerEventHint:
-        'The offer replaces that registration’s combo price only for whoever redeems the code. Only registrations that already have a combo configured are listed.',
+        'The offer replaces the combo price only for whoever redeems the code. Only tournaments with an enabled, Restricted combo are listed.',
       offerEventRequired: 'Choose which registration the exclusive offer applies to.',
       offerComboMissing:
         'That registration does not have a membership + registration combo configured yet. Set it up above before creating the offer.',
+      offerComboVisibilityRequired:
+        'The exclusive offer requires that combo to be enabled and set to Restricted.',
       offerPriceTooHigh:
         'The offer price must be lower than that registration’s combo price ({{price}}).',
+      exclusiveFlowEyebrow: 'Secret flow',
+      exclusiveFlowTitle: 'Private offer page',
+      exclusiveFlowLead:
+        'It can be redeemed from Membership or Registration: it reveals the package and opens its private payment page without publishing it.',
+      exclusiveFlowCode: 'Key',
+      exclusiveFlowBenefit: 'Benefit',
+      exclusiveFlowDestination: 'Destination',
+      exclusiveFlowCodePending: 'Define the code',
+      exclusiveFlowBenefitPending: 'Choose an event and price',
+      exclusiveFlowDestinationValue: 'My account · Exclusive offer · Process payment',
       codeEventLabel: 'Limit to one registration',
       codeEventAny: 'Any registration',
       codeEventHint:
@@ -606,8 +641,7 @@ export default {
       fixedPriceManualPlaceholder: 'Same as the Mercado Pago price',
       fixedPriceManualHint:
         'Empty = they pay the same as through Mercado Pago. Can be equal, lower or higher.',
-      fixedPriceManualInvalid:
-        'The transfer or cash price must be a whole number greater than 0.',
+      fixedPriceManualInvalid: 'The transfer or cash price must be a whole number greater than 0.',
       fixedPriceManualNote: 'Transfer and cash: {{amount}}',
       fixedPriceScopeInvalid:
         'A promo price needs a single scope: membership, registration or combo.',
@@ -694,9 +728,9 @@ export default {
       promoWindowInvalid: 'The promotion must close after it opens.',
       invitees: 'Exclusive to (emails)',
       inviteesPlaceholder: 'one email per line',
-      inviteesHint:
-        'Empty = open to anyone. With addresses, only those accounts can use it.',
+      inviteesHint: 'Empty = open to anyone. With addresses, only those accounts can use it.',
       inviteesCountHint: 'Exclusive to {{count}} account(s). Clear the list to open it.',
+      personalCodeHint: 'Personal code: only the account tied to this email can redeem it.',
       inviteesInvalid: '{{email}} is not a valid email address.',
       inviteesTooMany: 'The invite list cannot hold more than 500 addresses.',
       exclusiveBadge: 'Exclusive · {{count}}',
@@ -718,6 +752,28 @@ export default {
       copyDiscountCode: 'Copy code {{code}}',
       discountCodeCopied: 'Copied',
       copyDiscountCodeError: 'We could not copy the code. Select it and copy it manually.',
+      copyPromotionLink: 'Copy link',
+      promotionLinkCopied: 'Link copied',
+      copyPromotionLinkError: 'We could not copy the direct redemption link.',
+      downloadPromotionQr: 'Download QR',
+      downloadPromotionQrError: 'We could not generate the redemption QR.',
+      simulatePromotion: 'Test flow',
+      simulatingPromotion: 'Testing…',
+      simulationTitle: 'Journey verified',
+      simulationDestination: 'Destination: {{destination}}',
+      simulationCheck: {
+        active: 'The code is active',
+        withinWindow: 'It is within its validity window',
+        restrictedCombo: 'The combo is code-restricted',
+        hasEvent: 'It has a linked registration',
+        hasPrice: 'It has a configured final price',
+      },
+      campaignMetric: {
+        resolvedCount: 'Validated',
+        unlockedCount: 'Unlocked',
+        checkoutCount: 'Started checkout',
+        paidCount: 'Paid',
+      },
       discountStatus: {
         active: 'Active',
         exhausted: 'Exhausted',
@@ -780,8 +836,10 @@ export default {
       channelAria: 'Enable {{channel}} for {{concept}}',
       channelOn: 'Active',
       channelOff: 'Closed',
-      noChannelWarning: 'With no method open this concept cannot be charged, even if intake is enabled.',
-      environmentHold: 'An environment variable is holding payments above the panel ({{variables}}). The switches have no effect until it is removed.',
+      noChannelWarning:
+        'With no method open this concept cannot be charged, even if intake is enabled.',
+      environmentHold:
+        'An environment variable is holding payments above the panel ({{variables}}). The switches have no effect until it is removed.',
       togglesTitle: 'General enablement',
       togglesLead:
         'One block per concept: whether intake is open, which methods it is charged with, and whether Finance settles it. Off here, nobody starts anything new, code or no code.',

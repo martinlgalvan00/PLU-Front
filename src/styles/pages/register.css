@@ -5154,6 +5154,13 @@
   text-transform: uppercase;
 }
 
+.register-discount__hint {
+  color: var(--color-text-secondary);
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
 .register-discount__row {
   display: flex;
   gap: 8px;

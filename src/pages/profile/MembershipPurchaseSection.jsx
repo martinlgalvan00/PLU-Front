@@ -17,10 +17,21 @@ import { formatShortDate, money } from '../../lib/format.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
-import { previewDiscountCode, unlockOfferCode } from '../../services/athleteApi.js'
+import { previewDiscountCode } from '../../services/athleteApi.js'
 import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
-import { isOfferUnlockKind } from '../../services/exclusiveOfferService.js'
+import {
+  redeemSecretOfferCode,
+  shouldTrySecretOfferFallback,
+  waitForSecretOfferRedirect,
+} from '../../services/secretOfferRedemptionService.js'
+import {
+  clearPendingPromotionCode,
+  promotionDestination,
+  readPendingPromotionCode,
+  redeemPromotionCode,
+  savePendingPromotionCode,
+} from '../../services/promotionCodeService.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
@@ -50,6 +61,7 @@ export default function MembershipPurchaseSection({
   onSelectEvent,
   checkoutAvailability = {},
   onNavigateSection,
+  onNavigate,
   onOfferUnlocked,
 }) {
   const { locale, t } = useI18n()
@@ -84,6 +96,8 @@ export default function MembershipPurchaseSection({
   // del precio de la afiliación: la oferta se compra en el checkout del torneo.
   // Acá sólo se confirma el canje y se ofrece la ficha donde vive.
   const [unlockedOffer, setUnlockedOffer] = useState(null)
+  const [offerRedirecting, setOfferRedirecting] = useState(false)
+  const pendingPromotionAppliedRef = useRef(null)
   // Promoción que corre para todos y se aplica sola dentro de la transacción de
   // compra. Se guarda aparte del cupón tipeado porque son dos cosas distintas:
   // el cupón se puede quitar, la promo pública no es del atleta. Si hay cupón,
@@ -333,14 +347,41 @@ export default function MembershipPurchaseSection({
     wiseOffered,
   ])
 
-  async function applyDiscountCode() {
-    const code = discountCodeInput.trim().toUpperCase()
+  async function applyDiscountCode(codeOverride) {
+    const override = typeof codeOverride === 'string' ? codeOverride : null
+    const code = (override ?? discountCodeInput).trim().toUpperCase()
     if (!code || !selectedPlan) return
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
     setUnlockedOffer(null)
+    setOfferRedirecting(false)
     try {
+      let resolution = null
+      try {
+        resolution = await redeemPromotionCode(code, {
+          surface: 'membership',
+          planCode: selectedPlan.code,
+        })
+      } catch {
+        // Compatibilidad durante despliegues escalonados: el preview económico
+        // existente sigue operativo aunque el resolvedor nuevo aún no responda.
+      }
+      if (resolution?.accepted && resolution.action === 'open_exclusive_offer') {
+        await redeemSecretOffer(code, resolution)
+        return
+      }
+      const resolvedDestination = promotionDestination(resolution)
+      if (resolution?.accepted && resolvedDestination?.view === 'competition') {
+        savePendingPromotionCode(resolution.code, {
+          surface: 'membership',
+          destination: resolution.destination,
+          resolved: true,
+        })
+        onNavigate?.(resolvedDestination.view, resolvedDestination.options)
+        return
+      }
+
       const preview = await previewDiscountCode({
         code,
         appliesTo: 'membership',
@@ -353,13 +394,14 @@ export default function MembershipPurchaseSection({
         // reparte para canjear acá: en vez de un "no aplica" seco, se intenta el
         // canje y se lo manda a su ficha. Ese es el punto de un código secreto —
         // se tipea donde uno lo tiene a mano.
-        if (preview.reason === 'not_applicable' && isOfferUnlockKind(preview.kind)) {
+        if (shouldTrySecretOfferFallback(preview)) {
           if (await redeemSecretOffer(code)) return
         }
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
         return
       }
       setDiscountPreview(preview)
+      clearPendingPromotionCode()
     } catch (error) {
       setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
     } finally {
@@ -374,20 +416,46 @@ export default function MembershipPurchaseSection({
    * error del preview. Acá no se cobra nada — el combo se compra desde el
    * checkout del torneo, así que la pantalla anuncia el canje y ofrece la ficha.
    */
-  async function redeemSecretOffer(code) {
+  async function redeemSecretOffer(code, resolution = null) {
     try {
-      const unlock = await unlockOfferCode({ code })
+      const unlock = resolution
+        ? { unlocked: true, offer: resolution.offer ?? { code, campaign: resolution.campaign } }
+        : await redeemSecretOfferCode(code)
       if (!unlock.unlocked) {
-        setDiscountError(t(`account.membership.offerUnlockError.${unlock.reason ?? 'not_found'}`))
-        return true
+        // Un cupón común puede ser válido para otro alcance sin ser una oferta
+        // secreta. En ese caso conserva el error del preview original. Los
+        // rechazos propios de una oferta (agotada, vencida, etc.) sí se explican.
+        if (!['not_applicable', 'not_found'].includes(unlock.reason)) {
+          setDiscountError(t(`account.membership.offerUnlockError.${unlock.reason}`))
+          return true
+        }
+        return false
       }
       setUnlockedOffer(unlock.offer ?? { code })
-      onOfferUnlocked?.()
+      clearPendingPromotionCode()
+      setOfferRedirecting(true)
+      // Primero se recarga la cinta para que la ficha ya exista cuando se la
+      // selecciona; después el canje lleva directo al contenido secreto.
+      await Promise.all([onOfferUnlocked?.(), waitForSecretOfferRedirect()])
+      onNavigateSection?.('account-offer')
+      setOfferRedirecting(false)
       return true
     } catch {
       return false
     }
   }
+
+  useEffect(() => {
+    if (!selectedPlan) return
+    const pending = readPendingPromotionCode()
+    if (!pending || pendingPromotionAppliedRef.current === pending.code) return
+    const destination = pending.context?.destination
+    if (destination?.view !== 'profile' || destination?.tab !== 'account-membership') return
+    pendingPromotionAppliedRef.current = pending.code
+    setDiscountCodeInput(pending.code)
+    void applyDiscountCode(pending.code)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlan?.code])
 
   // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
   // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
@@ -433,6 +501,7 @@ export default function MembershipPurchaseSection({
     setDiscountError('')
     setDiscountOpen(false)
     setUnlockedOffer(null)
+    setOfferRedirecting(false)
   }
 
   function openDiscountField() {
@@ -836,16 +905,20 @@ export default function MembershipPurchaseSection({
               {unlockedOffer ? (
                 <div className="offer-unlocked" role="status">
                   <span className="offer-unlocked__eyebrow">
-                    {t('account.membership.offerUnlocked.eyebrow')}
+                    {offerRedirecting
+                      ? t('secretOfferRedeemer.redirectingTitle')
+                      : t('account.membership.offerUnlocked.eyebrow')}
                   </span>
                   <strong className="offer-unlocked__code">{unlockedOffer.code}</strong>
                   <p className="offer-unlocked__lead">
-                    {unlockedOffer.description ||
-                      t('account.membership.offerUnlocked.lead', {
-                        event: unlockedOffer.event?.title ?? '',
-                      })}
+                    {offerRedirecting
+                      ? t('secretOfferRedeemer.redirectingLead')
+                      : unlockedOffer.description ||
+                        t('account.membership.offerUnlocked.lead', {
+                          event: unlockedOffer.event?.title ?? '',
+                        })}
                   </p>
-                  {onNavigateSection ? (
+                  {onNavigateSection && !offerRedirecting ? (
                     <button
                       type="button"
                       className="offer-unlocked__cta"
@@ -890,6 +963,9 @@ export default function MembershipPurchaseSection({
                       <label htmlFor="membership-discount-code">
                         {t('account.membership.discountLabel')}
                       </label>
+                      <small className="account-discount__hint">
+                        {t('account.membership.discountHint')}
+                      </small>
                       <div className="account-discount__row">
                         <input
                           ref={discountInputRef}

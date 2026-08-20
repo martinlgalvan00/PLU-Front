@@ -47,6 +47,7 @@ export default function ExclusiveOfferSection({
 
   const eventTitle = catalogEvent?.title ?? offer.event?.title ?? ''
   const planName = offer.membershipPlan?.name ?? t('account.offer.membershipFallback')
+  const campaignTitle = offer.campaign?.name || t('account.offer.title')
 
   function goToCheckout() {
     if (!state.available) return
@@ -73,13 +74,19 @@ export default function ExclusiveOfferSection({
         </div>
         <div className="account-section__heading-copy">
           <span className="account-section__eyebrow">{t('account.offer.eyebrow')}</span>
-          <h2 className="account-offer__code">{offer.code}</h2>
+          <h2 className="account-offer__title">{campaignTitle}</h2>
         </div>
       </div>
 
       <div className="account-offer">
+        <p className="account-offer__key">
+          <span>{t('account.offer.codeLabel')}</span>
+          <code>{offer.code}</code>
+        </p>
         <p className="account-offer__lead">
-          {offer.description || t('account.offer.lead', { code: offer.code })}
+          {offer.campaign?.description ||
+            offer.description ||
+            t('account.offer.lead', { code: offer.code })}
         </p>
 
         <div className="account-offer__package">
@@ -121,6 +128,7 @@ export default function ExclusiveOfferSection({
 
         {state.available ? (
           <>
+            <p className="account-offer__checkout-note">{t('account.offer.checkoutNote')}</p>
             <div className="account-offer__actions">
               <button type="button" className="account-offer__cta" onClick={goToCheckout}>
                 {t('account.offer.cta')}
@@ -147,6 +155,11 @@ export default function ExclusiveOfferSection({
                     { day: 'numeric', month: 'long' },
                   ),
                 })}
+              </p>
+            ) : null}
+            {offer.remaining != null ? (
+              <p className="account-offer__fine">
+                {t('account.offer.remaining', { count: offer.remaining })}
               </p>
             ) : null}
           </>

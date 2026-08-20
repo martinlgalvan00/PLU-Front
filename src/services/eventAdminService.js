@@ -2,6 +2,7 @@ import {
   DEFAULT_EVENT_PRICING,
   isComboOfferLive,
   normalizeEventPricingInput,
+  resolveLiveComboOffer,
 } from '../lib/eventPricing.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
 import { isRegistrationOpen } from '../lib/status.js'
@@ -618,6 +619,12 @@ export function mapSupabaseEventRow(row) {
             comboOfferRow.manual_price != null ? Number(comboOfferRow.manual_price) : null,
           currency: comboOfferRow.currency,
           active: comboOfferRow.active === true,
+          // Sin audiencia, un combo restringido se interpretaba como público
+          // en Home, Afiliación y el checkout. Es una propiedad de acceso, no
+          // sólo un dato del panel: tiene que sobrevivir la normalización.
+          audience: ['code', 'private'].includes(comboOfferRow.audience)
+            ? comboOfferRow.audience
+            : 'public',
           startsAt: comboOfferRow.starts_at ?? null,
           endsAt: comboOfferRow.ends_at ?? null,
         }
@@ -654,6 +661,24 @@ export function mapSupabaseEventRow(row) {
   }
 }
 
+/**
+ * Proyeccion apta para landing/dashboard. El mapper administrativo conserva
+ * combos apagados y restringidos; esta frontera publica los elimina por
+ * completo, incluso del precio legacy guardado en `rules.comboPrice`.
+ */
+export function mapPublishedEventRow(row, now = new Date()) {
+  const event = mapSupabaseEventRow(row)
+  const publicOffer = resolveLiveComboOffer(event, now)
+  return {
+    ...event,
+    comboOffer: publicOffer,
+    pricing: {
+      ...event.pricing,
+      combo: publicOffer ? Number(publicOffer.price) : 0,
+    },
+  }
+}
+
 function mapAdminEventRow(row, index = 0) {
   const capacity = Object.fromEntries(
     (row.capacityRules ?? []).map((item) => [item.key || 'event', item.limit_count]),
@@ -676,7 +701,7 @@ const PUBLISHED_EVENTS_SELECT = `
   capacity, status, published, requires_membership, price, manual_price, currency, rules,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventDays:event_days(id, day_index, label, date),
-  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, archived_at),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
@@ -690,7 +715,7 @@ export async function fetchPublishedEvents() {
   try {
     const { events } = await apiGet('/api/events/catalog')
     if (Array.isArray(events) && events.length > 0) {
-      return events.map(mapAdminEventRow)
+      return events.map((row) => mapPublishedEventRow(row))
     }
   } catch (error) {
     console.warn(
@@ -707,7 +732,7 @@ export async function fetchPublishedEvents() {
     .select(PUBLISHED_EVENTS_SELECT)
     .eq('published', true)
   if (error) throw error
-  return (data ?? []).map(mapSupabaseEventRow)
+  return (data ?? []).map((row) => mapPublishedEventRow(row))
 }
 
 /** Guarda el evento completo a través de Express y devuelve el estado

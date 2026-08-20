@@ -2154,6 +2154,12 @@
   text-transform: uppercase;
 }
 
+.account-discount__hint {
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
 .account-discount__row {
   display: flex;
   gap: 8px;
