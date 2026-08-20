@@ -336,20 +336,217 @@ export default {
     statDigital: '100%',
     statDigitalLabel: 'Digital management',
   },
-  homeGuide: {
-    trigger: 'How it works',
-    title: 'How it works',
-    lead: 'Three steps to compete in an official meet.',
-    step1Title: 'Join',
-    step1Body:
-      'Create your athlete profile and pay for the season. That issues your digital credential.',
-    step2Title: 'Register',
-    step2Body: 'Pick the meet, set division and bodyweight, and generate the registration order.',
-    step3Title: 'Arrive with your QR',
-    step3Body: 'Door staff check you in with the credential. No paper needed.',
-    cta: 'Become a member',
+  help: {
+    trigger: 'Help',
+    triggerAria: 'Open step-by-step help',
+    triggerPendingAria: 'Open step-by-step help. You have a pending step.',
+    eyebrow: 'Help',
+    title: 'What do I need to do?',
+    lead: 'Three steps, always in the same order. We mark the one you are on.',
+    titleComplete: 'You are all set',
+    leadComplete:
+      'Account, membership and registration are up to date. Keep your credential for the door.',
     close: 'Close',
-    closeAria: 'Close how it works',
+    closeAria: 'Close help',
+    stepsAria: 'Steps of the process',
+    stateDone: 'Done',
+    stateNow: 'Your turn',
+    statePending: 'Awaiting payment',
+    stateBlocked: 'Not yet',
+    stateClosed: 'Closed',
+    stateUnavailable: 'No open date',
+    steps: {
+      account: {
+        title: 'Create your account',
+        done: 'You already have an account.',
+        todo: 'You enter your details once: name, ID, date of birth and a password.',
+      },
+      membership: {
+        title: 'Become a PLU member',
+        done: 'Membership valid through {{date}}.',
+        doneNoDate: 'Your membership is active.',
+        todo: 'You pay for the season and your digital credential lands in your profile.',
+        blocked: 'You need the account from step 1 first.',
+      },
+      registration: {
+        title: 'Register for the meet',
+        titleWithEvent: 'Register for {{event}}',
+        done: 'You are registered.',
+        pending: 'Your registration is filed. The payment still has to clear.',
+        todo: 'You pick division and weight class, and pay the entry fee.',
+        blockedAccount: 'You need steps 1 and 2 first.',
+        blockedMembership: 'You need the membership from step 2 first.',
+        closed: 'Registration for this meet is closed.',
+        unavailable: 'No meet has registration open yet.',
+      },
+    },
+    nextEyebrow: 'Your next step',
+    hereEyebrow: 'You are on the step that is due',
+    actionAccount: 'Create my account',
+    actionMembership: 'Become a member',
+    actionRegistration: 'Register for the meet',
+    actionRegistrationPending: 'See my registration',
+    actionCredential: 'See my credential',
+    actionEvents: 'See my meets',
+    guideMe: 'Walk me through this screen',
+    guideMeHint: 'I point at what to tap, one at a time.',
+    guideMeFields: 'Walk me through every field',
+    guideMeFieldsHint: 'I explain what goes in each detail, one by one.',
+    contact: 'I would rather talk to a person',
+    assist: {
+      title: 'Assisted mode',
+      hint: 'Bigger type and buttons, plus a bottom bar with just the essentials: home, your next step, your account and this help.',
+      activeHint: 'It is on. You can turn it off from here whenever you want.',
+    },
+    assistNav: {
+      aria: 'Assisted navigation',
+      home: 'Home',
+      account: 'My account',
+      login: 'Sign in',
+      help: 'Help',
+      actionAccount: 'Create account',
+      actionMembership: 'Become a member',
+      actionRegistration: 'Register',
+      actionRegistrationPending: 'My registration',
+      actionCredential: 'Credential',
+      actionEvents: 'My meets',
+    },
+    tour: {
+      home: {
+        affiliate: {
+          title: 'This is where it starts',
+          body: 'This button takes you to membership, the first step towards competing.',
+        },
+        meet: {
+          title: 'The next meet',
+          body: 'Date, venue and whether registration is open.',
+        },
+        help: {
+          title: 'Lost? Come back here',
+          body: 'This button is on every screen and always tells you your next step.',
+        },
+      },
+      members: {
+        start: {
+          title: 'Start your membership',
+          body: 'Tap here to begin. If you do not have an account yet, we will ask for it first.',
+        },
+        requirements: {
+          title: 'What to have at hand',
+          body: 'Your ID, your date of birth and an email you can open. Nothing else.',
+        },
+        plans: {
+          title: 'What it costs',
+          body: 'Season price and what it includes. You pick and pay online.',
+        },
+        faq: {
+          title: 'Common questions',
+          body: 'If something does not add up, the answer is usually on this list.',
+        },
+      },
+      registerCoach: {
+        fullName: {
+          title: 'Your first and last name',
+          body: 'Write it as it appears on your ID. For example: María Rivas.',
+        },
+        country: {
+          title: 'Your nationality',
+          body: 'Open the list and pick your country. It decides which ID document we ask for next.',
+        },
+        documentId: {
+          title: 'Your ID number',
+          body: 'Digits only, no dots or dashes. For example: 28456789.',
+        },
+        birthDate: {
+          title: 'Your date of birth',
+          body: 'Type day, month and year, or tap the calendar on the side and pick it there.',
+        },
+        email: {
+          title: 'Your email address',
+          body: 'It has to be an inbox you can open: we send you a message to confirm the account.',
+        },
+        phone: {
+          title: 'Your phone number',
+          body: 'Your mobile with the area code. For example: +54 9 11 1234 5678.',
+        },
+        password: {
+          title: 'Your password',
+          body: 'Make one up with at least 12 letters or numbers. Write it on paper if that helps: you will need it to sign in.',
+        },
+        continue: {
+          title: 'Now tap Continue',
+          body: 'It saves what you typed and moves to the second part. Anything missing gets flagged and stops you there.',
+        },
+        province: {
+          title: 'Your province',
+          body: 'Open the list and pick the province where you live.',
+        },
+        city: {
+          title: 'Your city',
+          body: 'The city or town where you live.',
+        },
+        gym: {
+          title: 'Your gym or club',
+          body: 'Where you train. If you train on your own, write Independiente.',
+        },
+        sex: {
+          title: 'The category you compete in',
+          body: 'Pick one of the two options. It decides which category your lifts are filed under.',
+        },
+        finish: {
+          title: 'Done: create your account',
+          body: 'This files your profile. You then get an email to confirm it and you can become a member.',
+        },
+      },
+      competitionCoach: {
+        division: {
+          title: 'Your division',
+          body: 'Pick the division you will compete in. If you are unsure, check the rulebook or ask for help before moving on.',
+        },
+        category: {
+          title: 'Your weight class',
+          body: 'The class that matches your bodyweight. It gets confirmed at the official weigh-in.',
+        },
+        estimatedWeight: {
+          title: 'Your estimated bodyweight',
+          body: 'Your weight today, in kilos. It is an estimate used to build the groups: it does not bind you.',
+        },
+        method: {
+          title: 'How you will pay',
+          body: 'Pick a payment method. If you choose transfer or cash, the next step shows you how to continue.',
+        },
+        finish: {
+          title: 'Confirm your registration',
+          body: 'The total sits above the button. Confirming files the registration under your name.',
+        },
+      },
+      events: {
+        actions: {
+          title: 'You register from here',
+          body: 'Each meet has its own buttons: see the full detail or register.',
+        },
+        help: {
+          title: 'Help follows you',
+          body: 'This button is on every screen and always tells you your next step.',
+        },
+      },
+      pitbull: {
+        register: {
+          title: 'Register for the meet',
+          body: 'It needs an account and an active membership. If either is missing, help takes you there.',
+        },
+      },
+      profile: {
+        tabs: {
+          title: 'Your account, by section',
+          body: 'Credential, meets, membership and personal data. Swipe the rail to see them all.',
+        },
+        help: {
+          title: 'Help follows you',
+          body: 'This button is on every screen and always tells you your next step.',
+        },
+      },
+    },
   },
   launchTeaser: {
     badge: 'Official opening',
@@ -731,7 +928,8 @@ export default {
         redeemed: 'You already bought this offer. Your membership and registration are on file.',
         expired: 'This offer has closed.',
         not_started: 'This offer is not open yet.',
-        offer_unavailable: 'The offer is not available right now. Write to us if you think this is a mistake.',
+        offer_unavailable:
+          'The offer is not available right now. Write to us if you think this is a mistake.',
         missing: 'We could not find the offer.',
       },
     },
@@ -1026,7 +1224,8 @@ export default {
       eyebrow: 'My account',
       title: 'Personal data',
       lead: 'Keep your details up to date. Fields marked with * are required to register for meets.',
-      photoHint: 'Click or drag an image onto your photo to change it. JPG, PNG or WEBP, up to 3 MB.',
+      photoHint:
+        'Click or drag an image onto your photo to change it. JPG, PNG or WEBP, up to 3 MB.',
       photoUpload: 'Upload photo',
       photoChange: 'Change photo',
       photoUploading: 'Uploading…',
