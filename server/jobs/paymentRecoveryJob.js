@@ -5,8 +5,8 @@ import { createSupabaseNotificationRepository } from '../modules/notifications/s
 import { createPaymentAuditTrail } from '../modules/payments/paymentAuditTrail.js'
 import { createPaymentProviderAdapter } from '../modules/payments/createPaymentProviderAdapter.js'
 import {
-  PAYMENT_RECOVERY_JOB_ENABLED,
   PAYMENT_RECOVERY_JOB_INTERVAL_MS,
+  isPaymentRecoveryJobEnabled,
 } from '../modules/payments/paymentRuntimeDefaults.js'
 import { recoverPaymentOperations } from '../modules/payments/paymentRecoveryWorkflow.js'
 import { createSupabasePaymentRepository } from '../modules/payments/supabasePaymentRepository.js'
@@ -37,7 +37,7 @@ export async function runPaymentRecoveryJob({ client, env = process.env } = {}) 
 }
 
 export function startPaymentRecoveryJob({ client, env = process.env } = {}) {
-  if (!PAYMENT_RECOVERY_JOB_ENABLED || !client) return null
+  if (!isPaymentRecoveryJobEnabled(env) || !client) return null
 
   let running = false
   const run = async () => {

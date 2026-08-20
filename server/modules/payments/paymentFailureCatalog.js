@@ -145,11 +145,11 @@ const CATALOG = [
     match: /Pago mock no encontrado|payment not found|resource not found|Not Found/i,
     title: 'Mercado Pago no reconoce ese pago',
     cause:
-      'La consulta canonica por el id de la notificacion devolvio 404. Suele ser una notificacion de otra aplicacion de MP (sandbox contra produccion), un reenvio de un pago borrado o una prueba manual.',
+      'La consulta canonica por el id devolvio 404. En un webhook puede ser una prueba manual o un id de otra aplicacion; durante la conciliacion de un pago que el checkout ya creo, suele indicar que otro proceso usa una cuenta o entorno distinto, o que el recurso sandbox dejo de existir.',
     fix: [
-      'Verificar que el id exista en el panel de MP de la MISMA aplicacion que tiene cargado el Access Token.',
-      'Confirmar que MERCADO_PAGO_ENV coincide con el entorno del que provino la notificacion.',
-      'Si el pago no existe, el evento se puede descartar: no hay dinero asociado.',
+      'Buscar tanto el id como el external_reference de la orden en la MISMA cuenta y aplicacion que creo el pago.',
+      'Comparar MERCADO_PAGO_ENV y la identidad del Access Token en todos los procesos; dejar un solo worker de recovery por entorno.',
+      'Si existe evidencia de Payment.create, no aprobar ni descartar a mano: la recuperacion busca por external_reference y valida referencia, monto y moneda antes de aplicar.',
     ],
     severity: 'degraded',
     scope: 'proveedor',

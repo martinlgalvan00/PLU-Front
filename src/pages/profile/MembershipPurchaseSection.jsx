@@ -38,6 +38,7 @@ import {
   MEMBERSHIP_LIFECYCLE,
 } from '../../services/membershipService.js'
 import CheckoutDesk, { CheckoutBar } from '../../components/checkout/CheckoutDesk.jsx'
+import CodeScanButton from '../../components/ui/CodeScanButton.jsx'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
@@ -1000,6 +1001,13 @@ export default function MembershipPurchaseSection({
                             ? t('account.membership.discountChecking')
                             : t('account.membership.discountApply')}
                         </button>
+                        <CodeScanButton
+                          disabled={checkoutLocked || discountChecking}
+                          onScan={(scanned) => {
+                            setDiscountCodeInput(scanned)
+                            void applyDiscountCode(scanned)
+                          }}
+                        />
                       </div>
                       {discountError ? (
                         <p className="account-discount__error" role="alert">

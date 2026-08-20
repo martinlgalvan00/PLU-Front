@@ -9,6 +9,7 @@ import {
   savePendingPromotionCode,
 } from '../../services/promotionCodeService.js'
 import { waitForSecretOfferRedirect } from '../../services/secretOfferRedemptionService.js'
+import CodeScanButton from './CodeScanButton.jsx'
 import '../../styles/components/secret-code-redeemer.css'
 
 export default function SecretOfferCodeRedeemer({ session = null, onNavigate, className = '' }) {
@@ -21,7 +22,11 @@ export default function SecretOfferCodeRedeemer({ session = null, onNavigate, cl
 
   async function redeem(event) {
     event.preventDefault()
-    const normalized = normalizePromotionCode(code)
+    await attemptRedeem(code)
+  }
+
+  async function attemptRedeem(rawCode) {
+    const normalized = normalizePromotionCode(rawCode)
     if (!normalized || state === 'checking' || state === 'redirecting') return
     if (session?.role !== 'athlete_plu') {
       savePendingPromotionCode(normalized, { surface: 'global' })
@@ -127,6 +132,14 @@ export default function SecretOfferCodeRedeemer({ session = null, onNavigate, cl
                 ? t('secretOfferRedeemer.checking')
                 : t('secretOfferRedeemer.apply')}
             </button>
+            <CodeScanButton
+              className="secret-code-redeemer__scan"
+              disabled={state === 'checking'}
+              onScan={(scanned) => {
+                setCode(scanned)
+                void attemptRedeem(scanned)
+              }}
+            />
           </div>
           {state === 'login' ? (
             <p className="secret-code-redeemer__message" role="status">

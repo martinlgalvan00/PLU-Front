@@ -37,7 +37,8 @@ VITE_MERCADO_PAGO_PUBLIC_KEY
 MERCADO_PAGO_WEBHOOK_SECRET
 APP_URL
 # API_URL es opcional: si falta, se usa APP_URL.
-PAYMENT_RECOVERY_JOB_ENABLED=true
+# false en local y Vercel; true solo en un unico worker persistente por entorno.
+PAYMENT_RECOVERY_JOB_ENABLED=false
 DOMAIN_MAINTENANCE_JOB_ENABLED=true
 CRON_SECRET
 ```
@@ -188,7 +189,9 @@ informe que para Mercado Pago.
 
 - `GET /api/health`: confirma que la Function responde.
 - `GET /api/ready`: devuelve 200 solamente si Prisma y Supabase responden.
-- `PAYMENT_RECOVERY_JOB_ENABLED=true`: reprocesamiento de webhook y conciliacion.
+- `PAYMENT_RECOVERY_JOB_ENABLED=true`: inicia un loop residente de recuperacion;
+  usarlo solamente en un unico worker persistente por entorno. En local y
+  Vercel queda `false`: el cron autenticado ejecuta la recuperacion bajo demanda.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
 

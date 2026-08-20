@@ -28,6 +28,7 @@ import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFiel
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
+import CodeScanButton from '../components/ui/CodeScanButton.jsx'
 import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
 import RegisterProfileWelcome from '../components/ui/RegisterProfileWelcome.jsx'
@@ -2493,6 +2494,13 @@ export default function RegisterPage({
                                 ? t('pages.register.discountChecking')
                                 : t('pages.register.discountApply')}
                             </button>
+                            <CodeScanButton
+                              disabled={submitting || discountChecking}
+                              onScan={(scanned) => {
+                                setDiscountCodeInput(scanned)
+                                void applyDiscountCode(scanned)
+                              }}
+                            />
                           </div>
                           {discountError ? (
                             <p className="register-discount__error" role="alert">
