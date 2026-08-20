@@ -30,6 +30,12 @@ export default {
     next: 'Siguiente',
     finish: 'Entendido',
     stepOf: 'Paso {{current}} de {{total}}',
+    coach: {
+      exit: 'Salir del tutorial',
+      filled: 'Ya completaste este campo',
+      pending: 'Completalo y seguí con Siguiente',
+      waiting: 'Cuando este paso aparezca en pantalla te lo señalo.',
+    },
     menuReplay: 'Ver este recorrido',
     menuModeLabel: 'Mostrar automáticamente',
     mode: {

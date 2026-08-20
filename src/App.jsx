@@ -6,6 +6,7 @@ import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
+import HelpLayer from './components/ui/HelpLayer.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import {
@@ -775,6 +776,8 @@ export default function App() {
         view="profile"
         navigate={navigate}
         transitionDirection={transitionDirection}
+        helpEvent={featuredEvent}
+        onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
           <AthleteProfilePage
@@ -813,6 +816,8 @@ export default function App() {
         view={view}
         navigate={navigate}
         transitionDirection={transitionDirection}
+        helpEvent={competitionEvent}
+        onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
           <RegisterPage
@@ -879,11 +884,30 @@ export default function App() {
         </PageErrorBoundary>
       </PageTransition>
       {!['login', 'register'].includes(view) && <Footer onNavigate={navigate} />}
+      {/* Fuera de PageTransition: el botón de ayuda no se desmonta al cambiar
+          de pantalla, así que sigue estando donde la persona lo dejó. */}
+      <HelpLayer
+        event={featuredEvent}
+        memberships={app.memberships}
+        onNavigate={navigate}
+        onSelectEvent={selectEvent}
+        registrations={app.registrations}
+        session={app.session}
+        view={view}
+      />
     </div>
   )
 }
 
-function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
+function PrivateLayout({
+  app,
+  children,
+  navigate,
+  view,
+  transitionDirection,
+  helpEvent = null,
+  onSelectEvent,
+}) {
   return (
     <div className="app-shell">
       <EmailVerificationNotice />
@@ -917,6 +941,15 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
         </PageErrorBoundary>
       </PageTransition>
       <Footer onNavigate={navigate} />
+      <HelpLayer
+        event={helpEvent}
+        memberships={app.memberships}
+        onNavigate={navigate}
+        onSelectEvent={onSelectEvent}
+        registrations={app.registrations}
+        session={app.session}
+        view={view}
+      />
     </div>
   )
 }
