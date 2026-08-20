@@ -58,9 +58,10 @@ const EMPTY_DISCOUNT_CODE = {
   // Quién accede: 'code' hay que tipearla, 'public' se aplica sola a todos.
   audience: 'code',
   // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final de
-  // la compra (promo tipo "afiliación + inscripción a $120.000"); 'access' no
-  // descuenta nada — es un código secreto que sólo desbloquea el combo, sólo
-  // válido con appliesTo 'combo'/'both'.
+  // la compra; 'access' no descuenta nada — es un código secreto que sólo
+  // desbloquea el combo; 'offer' es la OFERTA EXCLUSIVA: desbloquea el combo y
+  // además fija su precio ("afiliación + inscripción a $120.000" detrás de un
+  // código secreto). 'access' y 'offer' sólo valen con appliesTo 'combo'.
   kind: 'percent',
   percentOff: '',
   fixedPrice: '',
@@ -68,6 +69,9 @@ const EMPTY_DISCOUNT_CODE = {
   // `fixedPrice` en cualquier canal, que es el caso más común.
   fixedPriceManual: '',
   appliesTo: 'membership',
+  // A qué inscripción aplica. Vacío = cualquiera. Obligatorio en 'offer': la
+  // oferta se cotiza contra el combo de ese evento.
+  eventId: '',
   maxRedemptions: '',
   startsAt: '',
   expiresAt: '',
@@ -513,6 +517,7 @@ export default function PricingSection({
             fixedPrice: source.fixedPrice ?? '',
             fixedPriceManual: source.fixedPriceManual ?? '',
             appliesTo: source.appliesTo,
+            eventId: source.eventId ?? '',
             maxRedemptions: source.maxRedemptions ?? '',
             startsAt: toLocalDateTime(source.startsAt),
             expiresAt: toLocalDateTime(source.expiresAt),
@@ -527,7 +532,10 @@ export default function PricingSection({
   async function submitCode(event) {
     event.preventDefault()
     setCodeError('')
-    const isFixedPrice = codeDraft.kind === 'fixed_price'
+    const isOffer = codeDraft.kind === 'offer'
+    // 'offer' comparte con 'fixed_price' todo lo económico: importe obligatorio,
+    // precio manual opcional y alcance único.
+    const isFixedPrice = codeDraft.kind === 'fixed_price' || isOffer
     const isAccess = codeDraft.kind === 'access'
     const percentOff = Number(codeDraft.percentOff)
     const fixedPrice = Number(codeDraft.fixedPrice)
@@ -585,6 +593,27 @@ export default function PricingSection({
       setCodeError(t('admin.sections.pricing.publicPromoChannelsInvalid'))
       return
     }
+    if (isOffer) {
+      if (!codeDraft.eventId) {
+        setCodeError(t('admin.sections.pricing.offerEventRequired'))
+        return
+      }
+      const offerEvent = configuration.events?.find((item) => item.id === codeDraft.eventId)
+      // Sin combo cargado no hay qué ofertar: el combo define qué plan de
+      // afiliación se empaqueta y contra qué precio se compara la oferta.
+      if (!offerEvent?.comboOffer) {
+        setCodeError(t('admin.sections.pricing.offerComboMissing'))
+        return
+      }
+      if (fixedPrice >= Number(offerEvent.comboOffer.price)) {
+        setCodeError(
+          t('admin.sections.pricing.offerPriceTooHigh', {
+            price: money(offerEvent.comboOffer.price, locale),
+          }),
+        )
+        return
+      }
+    }
 
     setPendingAction('code')
     const result = await onUpsertDiscountCode?.({
@@ -593,6 +622,12 @@ export default function PricingSection({
       percentOff: isFixedPrice || isAccess ? undefined : percentOff,
       fixedPrice: isFixedPrice ? fixedPrice : undefined,
       fixedPriceManual: isFixedPrice ? fixedPriceManual : undefined,
+      // Sólo una inscripción o un combo pueden limitarse a un evento; el resto
+      // manda el campo vacío para que el servidor lo descarte.
+      eventId:
+        codeDraft.eventId && ['registration', 'combo'].includes(codeDraft.appliesTo)
+          ? codeDraft.eventId
+          : undefined,
       maxRedemptions:
         codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
       invitees,
@@ -1566,9 +1601,22 @@ export default function PricingSection({
                         })}
                       </span>
                     ) : null}
+                    {code.kind === 'offer' ? (
+                      <span className="admin-pricing__status admin-pricing__status--offer">
+                        {t('admin.sections.pricing.offerBadge')}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="admin-pricing__plan-meta">
                     <span>{t(`admin.sections.pricing.appliesTo.${code.appliesTo}`)}</span>
+                    {code.eventTitle ? <span>{code.eventTitle}</span> : null}
+                    {/* Cuánta gente tiene el código contra cuánta lo usó: es lo
+                        único que hace legible una oferta secreta. */}
+                    {code.unlockedCount ? (
+                      <span>
+                        {t('admin.sections.pricing.unlockedCount', { count: code.unlockedCount })}
+                      </span>
+                    ) : null}
                     {!availability.hasLimit ? <span>{usageLabel}</span> : null}
                     {availability.scheduled ? (
                       <span className="admin-pricing__plan-meta-date">
@@ -1616,7 +1664,7 @@ export default function PricingSection({
                   ) : null}
                 </div>
 
-                {code.kind === 'fixed_price' ? (
+                {['fixed_price', 'offer'].includes(code.kind) ? (
                   <div className="admin-pricing__plan-amount-stack">
                     <strong className="admin-pricing__plan-amount">
                       {money(code.fixedPrice ?? 0, locale)}
@@ -1632,6 +1680,12 @@ export default function PricingSection({
                       </span>
                     ) : null}
                   </div>
+                ) : code.kind === 'access' ? (
+                  /* Un código de acceso no tiene importe: sin esta rama la lista
+                     mostraba "−null%". */
+                  <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
+                    {t('admin.sections.pricing.accessAmount')}
+                  </strong>
                 ) : (
                   <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
                     −{code.percentOff}%
@@ -1752,12 +1806,16 @@ export default function PricingSection({
                         // en "afiliación e inscripción", se cae a afiliación.
                         kind === 'fixed_price' && codeDraft.appliesTo === 'both'
                           ? 'membership'
-                          : // Un código de acceso sólo existe para el combo
-                            // (nunca 'both': no hay nada que desbloquear en una
-                            // afiliación o inscripción sueltas).
-                            kind === 'access' && codeDraft.appliesTo !== 'combo'
+                          : // Un código de acceso y una oferta exclusiva sólo
+                            // existen para el combo (nunca 'both': no hay nada
+                            // que desbloquear en una afiliación o inscripción
+                            // sueltas).
+                            ['access', 'offer'].includes(kind) && codeDraft.appliesTo !== 'combo'
                             ? 'combo'
                             : codeDraft.appliesTo,
+                      // Una oferta secreta que se aplica sola a todo el mundo no
+                      // es una oferta secreta: es el precio nuevo del combo.
+                      audience: kind === 'offer' ? 'code' : codeDraft.audience,
                     })
                   }}
                 >
@@ -1766,12 +1824,17 @@ export default function PricingSection({
                     {t('admin.sections.pricing.codeKind.fixed_price')}
                   </option>
                   <option value="access">{t('admin.sections.pricing.codeKind.access')}</option>
+                  <option value="offer">{t('admin.sections.pricing.codeKind.offer')}</option>
                 </select>
                 <small>{t('admin.sections.pricing.codeKindHint')}</small>
               </label>
-              {codeDraft.kind === 'fixed_price' ? (
+              {['fixed_price', 'offer'].includes(codeDraft.kind) ? (
                 <label>
-                  <span>{t('admin.sections.pricing.fixedPrice')}</span>
+                  <span>
+                    {codeDraft.kind === 'offer'
+                      ? t('admin.sections.pricing.offerPrice')
+                      : t('admin.sections.pricing.fixedPrice')}
+                  </span>
                   <input
                     type="number"
                     min="1"
@@ -1785,7 +1848,7 @@ export default function PricingSection({
                   <small>{t('admin.sections.pricing.fixedPriceHint')}</small>
                 </label>
               ) : null}
-              {codeDraft.kind === 'fixed_price' ? (
+              {['fixed_price', 'offer'].includes(codeDraft.kind) ? (
                 <label>
                   <span>{t('admin.sections.pricing.fixedPriceManual')}</span>
                   <input
@@ -1801,7 +1864,7 @@ export default function PricingSection({
                   <small>{t('admin.sections.pricing.fixedPriceManualHint')}</small>
                 </label>
               ) : null}
-              {codeDraft.kind === 'fixed_price' || codeDraft.kind === 'access' ? null : (
+              {['fixed_price', 'access', 'offer'].includes(codeDraft.kind) ? null : (
                 <label>
                   <span>{t('admin.sections.pricing.percentOff')}</span>
                   <input
@@ -1825,22 +1888,66 @@ export default function PricingSection({
                     setCodeDraft({ ...codeDraft, appliesTo: event.target.value })
                   }
                 >
-                  {codeDraft.kind === 'access' ? null : (
+                  {['access', 'offer'].includes(codeDraft.kind) ? null : (
                     <option value="membership">
                       {t('admin.sections.pricing.appliesTo.membership')}
                     </option>
                   )}
-                  {codeDraft.kind === 'access' ? null : (
+                  {['access', 'offer'].includes(codeDraft.kind) ? null : (
                     <option value="registration">
                       {t('admin.sections.pricing.appliesTo.registration')}
                     </option>
                   )}
                   <option value="combo">{t('admin.sections.pricing.appliesTo.combo')}</option>
-                  {codeDraft.kind === 'fixed_price' || codeDraft.kind === 'access' ? null : (
+                  {['fixed_price', 'access', 'offer'].includes(codeDraft.kind) ? null : (
                     <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
                   )}
                 </select>
               </label>
+              {/* Alcance por inscripción. Obligatorio en una oferta exclusiva
+                  —se cotiza contra el combo de ese evento— y opcional en el
+                  resto: sin evento, el código vale para cualquiera. Una promo
+                  pública no puede limitarse (ver discount_codes_public_event_check). */}
+              {['registration', 'combo'].includes(codeDraft.appliesTo) &&
+              codeDraft.audience === 'code' ? (
+                <label>
+                  <span>
+                    {codeDraft.kind === 'offer'
+                      ? t('admin.sections.pricing.offerEventLabel')
+                      : t('admin.sections.pricing.codeEventLabel')}
+                  </span>
+                  <select
+                    value={codeDraft.eventId ?? ''}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, eventId: event.target.value })
+                    }
+                    required={codeDraft.kind === 'offer'}
+                  >
+                    {codeDraft.kind === 'offer' ? (
+                      <option value="">{t('admin.sections.pricing.offerEventPlaceholder')}</option>
+                    ) : (
+                      <option value="">{t('admin.sections.pricing.codeEventAny')}</option>
+                    )}
+                    {(configuration.events ?? [])
+                      .filter((item) => codeDraft.kind !== 'offer' || item.comboOffer)
+                      .map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.title}
+                          {codeDraft.kind === 'offer' && item.comboOffer
+                            ? ` · ${t('admin.sections.pricing.offerEventComboPrice', {
+                                price: money(item.comboOffer.price, locale),
+                              })}`
+                            : ''}
+                        </option>
+                      ))}
+                  </select>
+                  <small>
+                    {codeDraft.kind === 'offer'
+                      ? t('admin.sections.pricing.offerEventHint')
+                      : t('admin.sections.pricing.codeEventHint')}
+                  </small>
+                </label>
+              ) : null}
               <label>
                 <span>{t('admin.sections.pricing.maxRedemptions')}</span>
                 <input
@@ -1901,7 +2008,9 @@ export default function PricingSection({
                   }}
                 >
                   <option value="code">{t('admin.sections.pricing.audience.code')}</option>
-                  <option value="public">{t('admin.sections.pricing.audience.public')}</option>
+                  {codeDraft.kind === 'offer' ? null : (
+                    <option value="public">{t('admin.sections.pricing.audience.public')}</option>
+                  )}
                 </select>
                 <small>{t('admin.sections.pricing.audienceHint')}</small>
               </label>

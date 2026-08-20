@@ -25,6 +25,10 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     // dejaría el panel entrando por el lado contrario al del tab que lo abrió.
     expect(ACCOUNT_TAB_IDS).toEqual([
       'account-qr',
+      // Ficha condicional: sólo se dibuja para quien canjeó un código secreto
+      // de oferta exclusiva, pero su posición vive acá igual — la dirección de
+      // la transición se lee del orden completo, no del filtrado.
+      'account-offer',
       'account-events',
       'account-history',
       'account-membership',
@@ -37,14 +41,18 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     const page = readFileSync('src/pages/AthleteProfilePage.jsx', 'utf8')
     expect(page).toContain("import MotionContentSwap from '../motion/MotionContentSwap.tsx'")
     expect(page).toContain(
-      "import { ACCOUNT_TAB_IDS, DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'",
+      "import { ACCOUNT_OFFER_TAB, ACCOUNT_TAB_IDS, DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'",
     )
     expect(page).toContain('ACCOUNT_TAB_IDS.indexOf(activeTab)')
     // `sync` y no `wait`: con `wait` el contenedor colapsa un frame entre el
     // panel que sale y el que entra, y la página da un salto de scroll.
     expect(page).toMatch(/mode="sync"/)
     expect(page).toContain('direction={swapDirection}')
-    expect(page).toContain('swapKey={activeTab}')
+    // `resolvedTab` y no `activeTab`: con fichas condicionales, el tab activo
+    // puede dejar de existir entre renders (la consulta de ofertas todavía no
+    // volvió, o el código venció) y el panel quedaría vacío.
+    expect(page).toContain('swapKey={resolvedTab}')
+    expect(page).toContain('visibleTabIds.includes(activeTab)')
     // El fade sin dirección que había en CSS no puede seguir corriendo encima.
     expect(page).not.toContain('key={activeTab} className="account-tab-panel"')
   })

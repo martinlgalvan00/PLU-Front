@@ -1,4 +1,5 @@
 import { HttpError } from '../lib/errors.js'
+import { isOfferUnlockKind } from './offerCodeService.js'
 import { verifyPassword } from './passwordService.js'
 
 export function normalizeRegistrationAccessCode(value) {
@@ -50,12 +51,26 @@ export function assertComboAccessCode(offer, code) {
 /**
  * Un `discount_codes.kind = 'access'` no cambia el precio, pero es una prueba
  * de acceso tan válida como el `access_code` del evento (ver
- * `20260901100000_discount_code_access_kind.sql`). Se resuelve con un
- * preview (no redime): la redención real la hace `apply_discount_code_to_order`
- * al confirmarse el checkout, dentro de la misma transacción que crea la
- * orden — acá sólo se decide si destraba el paquete.
+ * `20260901100000_discount_code_access_kind.sql`). Un `kind = 'offer'` —la
+ * oferta exclusiva de `20260902100000`— también destraba, y además fija el
+ * importe: el desbloqueo y el precio son el mismo objeto.
+ *
+ * Se resuelve con un preview (no redime): la redención real la hace
+ * `apply_discount_code_to_order` al confirmarse el checkout, dentro de la misma
+ * transacción que crea la orden — acá sólo se decide si destraba el paquete.
+ *
+ * `eventSlug` se compara cuando el código declara alcance de inscripción: sin
+ * esto, un código de oferta de un torneo destrabaría el combo restringido de
+ * otro. La guarda definitiva sigue siendo la de la RPC, que compara contra el
+ * evento real de la orden.
  */
-async function discountCodeGrantsComboAccess(previewDiscountCode, athleteId, code, baseAmount) {
+async function discountCodeGrantsComboAccess(
+  previewDiscountCode,
+  athleteId,
+  code,
+  baseAmount,
+  eventSlug,
+) {
   const candidate = normalizeRegistrationAccessCode(code)
   if (!candidate || typeof previewDiscountCode !== 'function') return false
   try {
@@ -64,7 +79,9 @@ async function discountCodeGrantsComboAccess(previewDiscountCode, athleteId, cod
       appliesTo: 'combo',
       baseAmount,
     })
-    return Boolean(preview?.valid) && preview?.kind === 'access'
+    if (!preview?.valid || !isOfferUnlockKind(preview.kind)) return false
+    if (preview.eventSlug && preview.eventSlug !== eventSlug) return false
+    return true
   } catch {
     return false
   }
@@ -80,7 +97,7 @@ async function discountCodeGrantsComboAccess(previewDiscountCode, athleteId, cod
  */
 export async function assertComboAccessCodeOrDiscountCode(
   offer,
-  { comboAccessCode, discountCode, previewDiscountCode, athleteId, baseAmount },
+  { comboAccessCode, discountCode, previewDiscountCode, athleteId, baseAmount, eventSlug = null },
 ) {
   if (offer?.audience !== 'code') return null
 
@@ -94,7 +111,15 @@ export async function assertComboAccessCodeOrDiscountCode(
   }
 
   for (const candidate of candidates) {
-    if (await discountCodeGrantsComboAccess(previewDiscountCode, athleteId, candidate, baseAmount)) {
+    if (
+      await discountCodeGrantsComboAccess(
+        previewDiscountCode,
+        athleteId,
+        candidate,
+        baseAmount,
+        eventSlug,
+      )
+    ) {
       return offer
     }
   }

@@ -59,8 +59,14 @@ export const discountCodeSchema = z
       .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Usá letras mayúsculas, números y guiones.'),
     description: z.string().trim().max(200).optional().default(''),
     // 'percent' descuenta sobre el precio vigente; 'fixed_price' fija el
-    // importe final de la compra ("afiliación + inscripción a $120.000").
-    kind: z.enum(['percent', 'fixed_price']).default('percent'),
+    // importe final de la compra; 'access' no toca el precio y sólo destraba el
+    // combo restringido; 'offer' hace las dos cosas — es la oferta exclusiva
+    // detrás de un código secreto ("afiliación + inscripción a $120.000").
+    //
+    // 'access' estaba implementado en la RPC y ofrecido en el panel desde
+    // 20260901100000, pero este enum nunca lo incluyó: guardar un código de
+    // acceso desde Administración fallaba con 400 antes de llegar a la base.
+    kind: z.enum(['percent', 'fixed_price', 'access', 'offer']).default('percent'),
     // Tope en 99: un cupón nunca puede dejar una orden en $0 — Mercado Pago no
     // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
     // gratuita. Ver apply_discount_code_to_order (rechaza descuento == importe).
@@ -75,6 +81,10 @@ export const discountCodeSchema = z
     // en USD y su canal no admite cupones.
     fixedPriceManual: money.optional(),
     appliesTo: z.enum(['membership', 'registration', 'combo', 'both']),
+    // A qué inscripción aplica el código. Vacío = cualquiera, que es como se
+    // comportaban todos los códigos antes de 20260902100000. Obligatorio en
+    // 'offer': la oferta se cotiza contra el combo de ese evento.
+    eventId: z.string().uuid().optional(),
     maxRedemptions: z.coerce.number().int().positive().optional(),
     // Ventana de la promo. `startsAt` vacío = vigente desde que se enciende,
     // que es como se comportaban todas las promos antes de tener apertura.
@@ -127,6 +137,34 @@ export const discountCodeSchema = z
         message: 'El cierre de la promoción debe ser posterior a su apertura.',
       })
     }
+    // Una afiliación es anual y no pertenece a ninguna inscripción.
+    if (code.eventId && !['registration', 'combo'].includes(code.appliesTo)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['eventId'],
+        message: 'Sólo una inscripción o un combo pueden limitarse a un evento.',
+      })
+    }
+    // Ver `discount_codes_public_event_check` en 20260902100000: el resolver de
+    // promo pública no recibe el evento, así que una pública con alcance de
+    // inscripción podría impedir que se aplique cualquier otra.
+    if (code.eventId && code.audience === 'public') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['eventId'],
+        message: 'Una promoción pública no puede limitarse a una inscripción. Repartila como código.',
+      })
+    }
+    // 'percent' y 'access' no llevan importe: el precio manual sólo significa
+    // algo cuando hay un precio promocional que desdoblar por canal.
+    if (code.fixedPriceManual != null && !['fixed_price', 'offer'].includes(code.kind)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fixedPriceManual'],
+        message:
+          'El precio por transferencia o efectivo sólo aplica a una promoción de precio promocional.',
+      })
+    }
     if (code.kind === 'percent') {
       if (code.percentOff == null) {
         context.addIssue({
@@ -135,14 +173,16 @@ export const discountCodeSchema = z
           message: 'Indicá el porcentaje de descuento.',
         })
       }
-      // 'percent' descuenta un porcentaje sobre el precio de cada canal, que ya
-      // sale distinto del catálogo: un precio manual acá no significa nada.
-      if (code.fixedPriceManual != null) {
+      return
+    }
+    // Un código de acceso no descuenta: sólo destraba el combo restringido, y
+    // no hay nada que destrabar en una afiliación o una inscripción sueltas.
+    if (code.kind === 'access') {
+      if (code.appliesTo !== 'combo') {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['fixedPriceManual'],
-          message:
-            'El precio por transferencia o efectivo sólo aplica a una promoción de precio promocional.',
+          path: ['appliesTo'],
+          message: 'Un código de acceso sólo puede aplicarse al combo.',
         })
       }
       return
@@ -154,6 +194,32 @@ export const discountCodeSchema = z
         message: 'Indicá el precio promocional.',
       })
     }
+    // La oferta exclusiva es el paquete completo detrás de un secreto: se aplica
+    // al combo, se reparte como código y sabe a qué inscripción pertenece.
+    if (code.kind === 'offer') {
+      if (code.appliesTo !== 'combo') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['appliesTo'],
+          message: 'Una oferta exclusiva se aplica al combo de afiliación e inscripción.',
+        })
+      }
+      if (code.audience !== 'code') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['audience'],
+          message: 'Una oferta exclusiva se reparte como código: no puede ser pública.',
+        })
+      }
+      if (!code.eventId) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['eventId'],
+          message: 'Elegí a qué inscripción aplica la oferta exclusiva.',
+        })
+      }
+      return
+    }
     // Un mismo importe fijo no significa lo mismo aplicado a una afiliación
     // sola que a un combo: el precio promocional exige un alcance único.
     if (code.appliesTo === 'both') {
@@ -164,14 +230,18 @@ export const discountCodeSchema = z
       })
     }
   })
-  .transform((code) =>
+  .transform((code) => {
     // Los campos de la modalidad que no corresponde se descartan acá: así
     // editar un cupón de porcentaje a precio fijo (o al revés) no deja el valor
     // viejo colgado en la fila.
-    code.kind === 'percent'
-      ? { ...code, fixedPrice: undefined, fixedPriceManual: undefined }
-      : { ...code, percentOff: undefined },
-  )
+    if (code.kind === 'percent') {
+      return { ...code, fixedPrice: undefined, fixedPriceManual: undefined }
+    }
+    if (code.kind === 'access') {
+      return { ...code, percentOff: undefined, fixedPrice: undefined, fixedPriceManual: undefined }
+    }
+    return { ...code, percentOff: undefined }
+  })
 
 /**
  * Un solo endpoint para los tres estados de la promo. `audience` ausente
