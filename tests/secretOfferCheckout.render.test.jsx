@@ -204,7 +204,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     expect(screen.queryByLabelText(/Código del combo/i)).toBe(null)
     expect(screen.queryByText('$\u00a0150.000')).toBe(null)
     expect(screen.getByLabelText(/^Código$/i)).toBeTruthy()
-    expect(screen.getByText(/Puede aplicar un beneficio o desbloquear/i)).toBeTruthy()
+    expect(screen.getByText(/^Canjeá tu código\.$/i)).toBeTruthy()
   })
 
   it('destraba un combo restringido reintentando el preview contra el combo', async () => {

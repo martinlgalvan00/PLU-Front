@@ -259,6 +259,7 @@ export default function AthleteProfilePage({
               className="account-code-redeemer"
               session={session}
               onNavigate={onNavigate}
+              onOfferUnlocked={loadUnlockedOffers}
             />
           ) : null}
           {/* `sync` y no `wait`: el panel saliente sigue montado mientras entra

@@ -1,4 +1,5 @@
 import { mapWithConcurrency } from '../../lib/concurrency.js'
+import { HttpError } from '../../lib/errors.js'
 import { logger } from '../../lib/logger.js'
 import {
   PAYMENT_TRAIL_ACTIONS,
@@ -19,6 +20,27 @@ function isProviderPaymentNotFound(error) {
   )
 }
 
+async function assertAttemptCollectorOwnership(attempt, mercadoPago) {
+  const expectedCollectorId = String(attempt?.provider_payload?.collector_id ?? '').trim()
+  if (!expectedCollectorId || typeof mercadoPago.getAccountIdentity !== 'function') return
+
+  const account = await mercadoPago.getAccountIdentity()
+  if (String(account?.id ?? '') === expectedCollectorId) return
+
+  const error = new HttpError(
+    409,
+    'El intento fue creado por otra cuenta de Mercado Pago; este worker no puede conciliarlo.',
+    { code: 'MP_ACCOUNT_MISMATCH' },
+  )
+  error.provider = {
+    code: 'MP_ACCOUNT_MISMATCH',
+    expectedCollectorId,
+    currentCollectorId: String(account?.id ?? ''),
+    apiResponseStatus: null,
+  }
+  throw error
+}
+
 /**
  * Un intento del Brick ya tiene evidencia local de que Payment.create devolvio
  * un recurso. Si el GET directo pasa a responder 404, no alcanza con asumir
@@ -28,6 +50,9 @@ function isProviderPaymentNotFound(error) {
  * referencia, monto y moneda antes de tocar el dominio.
  */
 async function resolveAttemptPayment(attempt, order, mercadoPago) {
+  // Payment.create persiste collector_id junto al intento. Compararlo antes
+  // del GET evita convertir una mezcla de entornos en un 404 enganoso.
+  await assertAttemptCollectorOwnership(attempt, mercadoPago)
   try {
     return {
       payment: await mercadoPago.getPayment(attempt.external_payment_id),

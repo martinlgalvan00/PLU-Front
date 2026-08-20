@@ -136,7 +136,7 @@ function renderSection(props = {}) {
 async function typeCode(code) {
   fireEvent.click(await screen.findByRole('button', { name: /Tengo un código/i }))
   const input = await screen.findByLabelText(/^Código$/i)
-  expect(screen.getByText(/Ingresá cualquier código: puede aplicar un beneficio/i)).toBeTruthy()
+  expect(screen.getByText(/^Canjeá tu código\.$/i)).toBeTruthy()
   fireEvent.change(input, { target: { value: code } })
   fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 }

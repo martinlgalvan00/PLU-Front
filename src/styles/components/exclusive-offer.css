@@ -170,6 +170,7 @@
   letter-spacing: 0.01em;
   line-height: 1.1;
   margin: 0;
+  text-wrap: balance;
 }
 
 .account-offer__key {

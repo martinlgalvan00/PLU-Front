@@ -139,4 +139,13 @@ describe('ficha de oferta exclusiva', () => {
     renderSection({ offer: { ...OFFER, description: 'Solo para el equipo Pitbull.' } })
     expect(screen.getByText('Solo para el equipo Pitbull.')).toBeTruthy()
   })
+
+  it('no repite la misma oración como título y como bajada', () => {
+    const sameText = 'Oferta secreta: afiliación PLU + inscripción al Pitbull Classic.'
+    renderSection({
+      offer: { ...OFFER, campaign: { name: sameText, description: sameText } },
+    })
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe(sameText)
+    expect(screen.getAllByText(sameText)).toHaveLength(1)
+  })
 })

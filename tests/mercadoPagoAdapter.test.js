@@ -30,6 +30,7 @@ const order = {
 describe('adaptador de Mercado Pago', () => {
   beforeEach(() => {
     mpMocks.preferenceCreate.mockReset()
+    vi.unstubAllGlobals()
   })
 
   it('rechaza credenciales placeholder antes de construir el cliente', () => {
@@ -118,6 +119,31 @@ describe('adaptador de Mercado Pago', () => {
         requestOptions: expect.objectContaining({ idempotencyKey: 'membership-order-1' }),
       }),
     )
+  })
+
+  it('bloquea crear un checkout si el token no pertenece al collector configurado', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify({ id: 999, nickname: 'cuenta-ajena' }), { status: 200 }),
+      ),
+    )
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_COLLECTOR_ID: '111',
+        MERCADO_PAGO_ENV: 'sandbox',
+        APP_URL: 'http://localhost:5173',
+      },
+    })
+
+    await expect(
+      adapter.createPreference({ order, idempotencyKey: 'collector-identity-order-1' }),
+    ).rejects.toMatchObject({
+      status: 503,
+      provider: { code: 'MP_ACCOUNT_MISMATCH', expectedCollectorId: '111' },
+    })
+    expect(mpMocks.preferenceCreate).not.toHaveBeenCalled()
   })
 
   it('redirige las inscripciones de atleta al perfil', async () => {

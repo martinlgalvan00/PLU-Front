@@ -163,11 +163,16 @@ function assertProviderRequest(order, idempotencyKey) {
 
 export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_TIMEOUT_MS } = {}) {
   const accessToken = requireAccessToken(env)
+  const expectedCollectorId = String(env.MERCADO_PAGO_COLLECTOR_ID ?? '').trim() || null
+  if (expectedCollectorId && !/^\d+$/.test(expectedCollectorId)) {
+    throw new HttpError(503, 'MERCADO_PAGO_COLLECTOR_ID debe ser el id numerico de la cuenta cobradora.')
+  }
   const client = new MercadoPagoConfig({ accessToken, options: { timeout } })
   const preferenceClient = new Preference(client)
   const paymentClient = new Payment(client)
   const subscriptionClient = new PreApproval(client)
   const subscriptionPlanClient = new PreApprovalPlan(client)
+  let accountIdentityPromise = null
 
   async function getJson(path) {
     const controller = new AbortController()
@@ -210,6 +215,48 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
   }
 
   /**
+   * La cuenta cobradora es parte del contrato del entorno, igual que el token.
+   * Se consulta una vez por proceso y nunca se expone el token ni datos del
+   * pagador. Esto evita que un worker con credenciales de otra aplicacion
+   * intente recuperar pagos que no puede ver.
+   */
+  async function getAccountIdentity() {
+    if (!accountIdentityPromise) {
+      accountIdentityPromise = callProvider('getAccountIdentity', {}, async () => {
+        const account = await getJson('/users/me')
+        if (!account?.id) throw new HttpError(502, 'Mercado Pago no devolvio la identidad de la cuenta.')
+        return {
+          id: String(account.id),
+          nickname: account.nickname ?? null,
+        }
+      }).catch((error) => {
+        accountIdentityPromise = null
+        throw error
+      })
+    }
+    return accountIdentityPromise
+  }
+
+  async function assertConfiguredCollector() {
+    if (!expectedCollectorId) return
+    const account = await getAccountIdentity()
+    if (account.id === expectedCollectorId) return
+
+    const error = new HttpError(
+      503,
+      'El Access Token de Mercado Pago no pertenece a la cuenta cobradora configurada.',
+      { code: 'MP_ACCOUNT_MISMATCH' },
+    )
+    error.provider = {
+      code: 'MP_ACCOUNT_MISMATCH',
+      expectedCollectorId,
+      currentCollectorId: account.id,
+      apiResponseStatus: null,
+    }
+    throw error
+  }
+
+  /**
    * Todos los pagos que Mercado Pago tiene registrados contra esta orden.
    * `external_reference` es el id de la orden y viaja en la preferencia, en el
    * pago embebido y en la suscripcion, asi que es la unica clave que permite
@@ -229,6 +276,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
   return {
     async createPreference({ order, appUrl, apiUrl, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
+      await assertConfiguredCollector()
       const returnBase = resolveIntegrationUrl({
         explicit: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
         label: 'APP_URL',
@@ -298,6 +346,8 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       )
     },
 
+    getAccountIdentity,
+
     searchPaymentsForOrder,
 
     async findPaymentForOrder(order) {
@@ -308,6 +358,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
     async createPayment({ order, formData, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
+      await assertConfiguredCollector()
       const webhookBase = requireIntegrationUrl(resolveApiUrl({ env }), 'API_URL o APP_URL', env)
       const payer = {
         email: formData.payer?.email ?? order.payerEmail,
@@ -353,6 +404,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
     async createSubscriptionPlan({ plan, appUrl, idempotencyKey }) {
       assertProviderRequest({ amount: plan.price, currency: plan.currency }, idempotencyKey)
+      await assertConfiguredCollector()
       const backUrl = requireIntegrationUrl(
         appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
         'APP_URL',
@@ -389,6 +441,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       cardToken,
     }) {
       assertProviderRequest({ amount: plan.price, currency: plan.currency }, idempotencyKey)
+      await assertConfiguredCollector()
       const backUrl = requireIntegrationUrl(
         appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
         'APP_URL',

@@ -141,6 +141,21 @@ const CATALOG = [
     retryable: true,
   },
   {
+    code: 'MP_ACCOUNT_MISMATCH',
+    match: /MP_ACCOUNT_MISMATCH|otra cuenta de Mercado Pago|cuenta cobradora configurada/i,
+    title: 'El checkout y la recuperacion usan cuentas distintas de Mercado Pago',
+    cause:
+      'El intento guarda el collector_id de la cuenta que creo el pago, pero el proceso actual autentica contra otra cuenta. Esa cuenta no puede consultar ni acreditar ese recurso, aunque el id sea valido.',
+    fix: [
+      'Configurar MERCADO_PAGO_COLLECTOR_ID con el id de /users/me de la MISMA aplicacion que tiene el Access Token.',
+      'Separar las variables de Vercel DEV (TEST) y Production (PROD): Access Token, Public Key, webhook secret y collector id deben pertenecer a la misma aplicacion.',
+      'Dejar PAYMENT_RECOVERY_JOB_ENABLED=false fuera de un unico worker por entorno; luego reintentar la recuperacion sin aprobar ni descartar manualmente.',
+    ],
+    severity: 'blocker',
+    scope: 'configuracion',
+    retryable: true,
+  },
+  {
     code: 'PROVIDER_PAYMENT_NOT_FOUND',
     match: /Pago mock no encontrado|payment not found|resource not found|Not Found/i,
     title: 'Mercado Pago no reconoce ese pago',
