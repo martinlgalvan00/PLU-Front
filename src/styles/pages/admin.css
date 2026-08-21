@@ -7588,6 +7588,61 @@
   }
 }
 
+/* Activación / baja manual de una afiliación. Reusa el shell del diálogo de
+   borrado -- es el mismo objeto: una decisión irreversible que se confirma --
+   y sólo agrega los dos campos que ahora son obligatorios.
+
+   El foco NO usa el rojo del diálogo de borrado: acá la acción principal es
+   activar, que no es destructiva. Va el celeste de foco del resto del panel. */
+.membership-manual-dialog__field {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.membership-manual-dialog__field label {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.membership-manual-dialog__field select,
+.membership-manual-dialog__field textarea {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  padding: var(--space-xs) var(--space-sm);
+  width: 100%;
+}
+
+/* 44px de alto mínimo: es un control táctil y se opera desde el celular en la
+   mesa de acreditación. */
+.membership-manual-dialog__field select {
+  min-height: 44px;
+}
+
+.membership-manual-dialog__field textarea {
+  line-height: 1.5;
+  min-height: 76px;
+  resize: vertical;
+}
+
+.membership-manual-dialog__field select:focus-visible,
+.membership-manual-dialog__field textarea:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.membership-manual-dialog__field small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 /* Revisión de comprobante desde la cola operativa (Validar → Confirmar). */
 .payment-validation-dialog {
   align-items: center;
@@ -14965,6 +15020,143 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail__panel .data-table__empty-wrap {
   padding: 28px 16px;
+}
+
+/* =============================================
+   ESTADO CON MOTIVO
+   =============================================
+
+   Un estado sin su motivo es la mitad de un hecho. La celda apila badge y
+   explicación en vez de esconder el motivo en un tooltip: dentro de una tabla
+   operativa tiene que poder leerse de corrido y encontrarse con Ctrl+F, y en
+   mobile el hover no existe.
+
+   El ancho de lectura se corta en 46ch. Sin tope, el motivo estira la columna
+   de estado y le come el espacio a monto y método, que son las dos que el
+   operador compara entre filas. */
+.admin-state-cell {
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  min-width: 0;
+}
+
+/* La columna de estado se auto-dimensionaba por su contenido más ancho, que era
+   un badge de ocho caracteres. Con el motivo adentro y envolviendo, colapsaba a
+   ~130px y la frase caía en una cinta de dos palabras por línea: la fila crecía
+   a diez renglones y la tabla dejaba de poder leerse comparando filas.
+
+   El piso le da al motivo una medida de lectura (~30 caracteres) sin fijarle un
+   ancho, así que la columna sigue cediendo espacio a monto y método cuando la
+   fila no tiene motivo que mostrar. */
+.athlete-detail__panel .data-table__column--status {
+  min-width: 244px;
+}
+
+@media (max-width: 1024px) {
+  .athlete-detail__panel .data-table__column--status {
+    min-width: 200px;
+  }
+}
+
+.admin-state-cell__reason,
+.admin-state-cell__note {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+  /* Sin esto una referencia larga o un mail de operador desbordan la celda en
+     lugar de cortar. */
+  overflow-wrap: anywhere;
+  text-transform: none;
+  /* La celda de estado de la tabla del panel es `white-space: nowrap` -- es lo
+     correcto para un badge, que nunca debe partirse en dos líneas. Un motivo de
+     una frase hereda eso y no envuelve: con `max-width` puesto igual se sale de
+     la celda y termina pintado debajo de la columna FECHA, que es sticky y tiene
+     fondo propio. El texto se leía cortado al medio ("el derecho se otorgó a
+     man…ta orden"). Recupera el flujo normal sólo el párrafo; el badge sigue en
+     una línea. */
+  white-space: normal;
+}
+
+.admin-state-cell__note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+
+/* El hueco que dejó el backfill: es un pendiente, no una explicación, y se
+   distingue del motivo que alguien sí escribió. */
+.admin-state-cell__note--gap {
+  color: var(--color-warning-text);
+}
+
+/* En la tarjeta mobile la celda de estado vive en una fila angosta: el motivo
+   pasa a ocupar el ancho completo en vez de competir con el badge. */
+@media (max-width: 768px) {
+  .admin-state-cell__reason,
+  .admin-state-cell__note {
+    max-width: none;
+  }
+}
+
+/* =============================================
+   AVISO DE DIVERGENCIA
+   =============================================
+
+   Derecho otorgado sobre un cobro que no lo respalda. Va antes de los tabs
+   porque es lo primero que hay que saber al abrir la ficha.
+
+   Tono `warning` y nunca `danger`: en la mayoría de los casos no es una falla
+   sino una decisión operativa (la plata entró por transferencia y alguien
+   activó a mano). El rojo está reservado para error real -- gastarlo acá lo
+   volvería ruido en la pantalla donde más importa. La barra lateral, y no un
+   fondo pleno, mantiene el presupuesto de superficies: la ficha ya tiene canvas
+   y surface, y esto no es una tercera caja. */
+.athlete-detail__divergence {
+  border-left: 2px solid color-mix(in srgb, var(--color-warning-text) 45%, transparent);
+  display: grid;
+  gap: 6px;
+  padding: 2px 0 2px 14px;
+}
+
+.athlete-detail__divergence-title {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* Sin explicación es lo único accionable del bloque, y se marca en el título
+   -- no con un icono extra ni un segundo acento. */
+.athlete-detail__divergence[data-unexplained='true'] {
+  border-left-color: var(--color-warning-text);
+}
+
+.athlete-detail__divergence[data-unexplained='true'] .athlete-detail__divergence-title {
+  color: var(--color-warning-text);
+}
+
+.athlete-detail__divergence-list {
+  display: grid;
+  gap: 5px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.athlete-detail__divergence-item {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 78ch;
+  white-space: normal;
+}
+
+.athlete-detail__divergence-what {
+  color: var(--color-text-primary);
+  font-weight: 550;
 }
 
 .athlete-detail__timeline {

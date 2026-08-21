@@ -230,20 +230,25 @@ describe('asignación de grilla en Inscripciones', () => {
 
 describe('acciones de fila en Inscripciones', () => {
   it('muestra acciones solo cuando hay permiso de validar o eliminar', () => {
+    // `method` sólo admite 'mercado_pago' | 'manual_link' en la base: el
+    // fixture usaba 'transferencia', que no existe como orden real.
     const payments = [
       {
         id: 'pay-1',
         athleteId: 'ath-1',
         event: 'Pitbull Classic 2026',
         amount: 85000,
-        status: 'pendiente',
-        method: 'transferencia',
+        status: 'validacion_manual',
+        method: 'manual_link',
+        manualPaymentChannel: 'bank_transfer',
+        paymentProofPath: 'pay-1/comprobante.jpg',
       },
     ]
 
     const { unmount } = renderSection({
       canEdit: true,
       canDelete: true,
+      canValidatePayments: true,
       payments,
       registrations: [registration({ paymentOrderId: 'pay-1' })],
     })

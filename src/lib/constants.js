@@ -199,6 +199,26 @@ export const REGISTRATION_FILTER_STATUSES = [
 /** Lista para competir. `acreditada` es alias legacy; el backend escribe `confirmada`. */
 export const CONFIRMED_REGISTRATION_STATUSES = ['confirmada', 'acreditada']
 
+/**
+ * Canales por los que se puede resolver un derecho a mano, cuando el cobro no
+ * entró por la plataforma.
+ *
+ * Espeja la constraint de `memberships.manual_override_channel` y
+ * `event_registrations.manual_override_channel` (ver 20260910100000): si acá se
+ * agrega uno que la base no acepta, la RPC lo rechaza. El catálogo es cerrado a
+ * propósito -- `other` con nota libre cubre lo imprevisto sin volver la columna
+ * un campo de texto que Finanzas después no puede agregar por canal.
+ */
+export const MANUAL_OVERRIDE_CHANNELS = [
+  'bank_transfer',
+  'wise_transfer',
+  'cash',
+  'courtesy',
+  'error_correction',
+  'sponsor',
+  'other',
+]
+
 export const MEMBERSHIP_FILTER_STATUSES = [
   ['all', 'allStatuses'],
   ['activa', 'membershipActive'],

@@ -8,9 +8,12 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
  * acreditar. Cubre las dos pantallas involucradas — la bandeja de Finanzas y la
  * de Acceso y habilitación, que es donde se prende y apaga.
  */
+// `listAthletePaymentOrders` devuelve `{ orders, counts }`: los contadores de
+// los chips salen de la base y no de contar las filas traídas.
 vi.mock('../src/services/athleteApi.js', () => ({
   listAthletePaymentOrders: vi.fn(),
   getAthletePaymentProofUrl: vi.fn(async () => 'https://example.test/proof.pdf'),
+  getAthletePaymentProofUrls: vi.fn(async () => ({})),
 }))
 
 vi.mock('../src/services/platformSettingsAdminService.js', async (importOriginal) => {
@@ -108,15 +111,22 @@ async function renderOrders(validationEnabled) {
 
 describe('bandeja de Finanzas con la validación congelada', () => {
   beforeEach(() => {
-    vi.mocked(listAthletePaymentOrders).mockResolvedValue([
-      order({ id: '11111111-1111-4111-8111-111111111111', concept: 'membership' }),
-      order({
-        id: '22222222-2222-4222-8222-222222222222',
-        concept: 'registration',
-        conceptLabel: 'Inscripción Pitbull',
-      }),
-      order({ id: '33333333-3333-4333-8333-333333333333', concept: 'combo', conceptLabel: 'Combo' }),
-    ])
+    vi.mocked(listAthletePaymentOrders).mockResolvedValue({
+      orders: [
+        order({ id: '11111111-1111-4111-8111-111111111111', concept: 'membership' }),
+        order({
+          id: '22222222-2222-4222-8222-222222222222',
+          concept: 'registration',
+          conceptLabel: 'Inscripción Pitbull',
+        }),
+        order({
+          id: '33333333-3333-4333-8333-333333333333',
+          concept: 'combo',
+          conceptLabel: 'Combo',
+        }),
+      ],
+      counts: null,
+    })
   })
 
   it('habilita validar cuando los tres interruptores están abiertos', async () => {

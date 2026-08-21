@@ -2342,12 +2342,15 @@ export function useAppData() {
   // permiso y audita al responsable; este chequeo solo evita ofrecer una
   // acción que iba a rebotar.
   const setMembershipStatusAction = useCallback(
-    async (membershipId, status) => {
+    async (membershipId, status, { reason, channel } = {}) => {
       if (!hasPermission(session, 'admin.memberships.write')) {
         return { error: 'Sin permisos para editar afiliaciones.' }
       }
       try {
-        const { membership } = await setMembershipStatusRequest(membershipId, status)
+        const { membership } = await setMembershipStatusRequest(membershipId, status, {
+          reason,
+          channel,
+        })
         setMemberships((current) =>
           current.map((item) => (item.id === membership.id ? { ...item, ...membership } : item)),
         )

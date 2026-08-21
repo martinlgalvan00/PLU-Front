@@ -31,7 +31,18 @@ export const STATUS_FILTERS = [
   ['ready', 'admin.checkin.filterReady'],
   ['done', 'admin.checkin.filterDone'],
   ['pending', 'admin.checkin.filterPending'],
+  // Sólo aparece cuando hay algo que cobrar: ver `statusOptions`.
+  ['to_validate', 'admin.checkin.filterToValidate'],
 ]
+
+/** Contador de `summarizeCheckinRows` que le corresponde a cada filtro. */
+const STATUS_FILTER_COUNT_KEYS = Object.freeze({
+  all: 'total',
+  ready: 'ready',
+  done: 'done',
+  pending: 'pending',
+  to_validate: 'toValidate',
+})
 
 export const SCAN_VERDICT_META = {
   ready: { Icon: CheckCircle2, tone: 'success' },
@@ -152,6 +163,7 @@ export function useCheckInWorkspace({
   onCheckInTicket,
   onRedeemTicketAddon,
   onRefreshTickets,
+  payments = [],
   registrations,
   ticketTypes = [],
   tickets,
@@ -198,8 +210,8 @@ export function useCheckInWorkspace({
   }, [eventSlug, onRefreshTickets])
 
   const allRows = useMemo(
-    () => buildCheckinRows({ athletes, registrations, tickets, eventSlug, ticketTypes }),
-    [athletes, eventSlug, registrations, ticketTypes, tickets],
+    () => buildCheckinRows({ athletes, payments, registrations, tickets, eventSlug, ticketTypes }),
+    [athletes, eventSlug, payments, registrations, ticketTypes, tickets],
   )
 
   const statusCounts = useMemo(() => summarizeCheckinRows(allRows, eventDays), [allRows, eventDays])
@@ -223,17 +235,15 @@ export function useCheckInWorkspace({
   )
   const statusOptions = useMemo(
     () =>
-      STATUS_FILTERS.map(([value, key]) => {
-        const count =
-          value === 'all'
-            ? filteredScopeCounts.total
-            : value === 'ready'
-              ? filteredScopeCounts.ready
-              : value === 'done'
-                ? filteredScopeCounts.done
-                : filteredScopeCounts.pending
-        return [value, t(key), count]
-      }),
+      STATUS_FILTERS
+        // "Por cobrar" no es un estado permanente de la puerta: sin órdenes
+        // abiertas el filtro sería una opción que siempre da cero.
+        .filter(([value]) => value !== 'to_validate' || filteredScopeCounts.toValidate > 0)
+        .map(([value, key]) => [
+          value,
+          t(key),
+          filteredScopeCounts[STATUS_FILTER_COUNT_KEYS[value] ?? 'pending'],
+        ]),
     [filteredScopeCounts, t],
   )
 

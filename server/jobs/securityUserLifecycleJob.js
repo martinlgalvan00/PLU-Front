@@ -1,4 +1,5 @@
 import { fetchSupabaseEventsByIds } from '../services/securityEventService.js'
+import { staffSessionCache } from '../lib/sessionCache.js'
 
 /**
  * securityUserLifecycleJob.js — PLU ARG
@@ -115,6 +116,17 @@ export async function runSecurityUserLifecycleJob({
     })
     purged = result.count
   }
+
+  // La fase 1 corta acceso apoyándose en que `readSession` relee `users.status`
+  // en cada request. Desde que esa lectura tiene caché en memoria
+  // (server/lib/sessionCache.js), un `updateMany` masivo como el de arriba no
+  // alcanza: la sesión ya resuelta seguiría entrando hasta que venciera su TTL.
+  //
+  // Se vacía la caché entera y no cuenta por cuenta porque este job no conoce
+  // los ids -- son dos escrituras en bloque -- y porque el costo es una relectura
+  // por sesión activa, una sola vez, contra el riesgo de que una credencial de
+  // puerta siga abriendo después de que el evento terminó.
+  if (disabled > 0 || purged > 0) staffSessionCache.clear()
 
   return { disabled, purged }
 }

@@ -4,10 +4,16 @@ import App from './App.jsx'
 import AppProviders from './providers/AppProviders.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import { initTheme } from './lib/theme.js'
+import { purgeLegacyCreatedOrder } from './services/storageService.js'
 import './styles/index.css'
 
 initTheme()
 document.documentElement.lang = localStorage.getItem('plu-arg-locale') ?? 'es'
+// La orden en curso pasó a `sessionStorage` porque lleva el token de acceso a
+// una orden de pago. Esto borra la copia que las versiones anteriores dejaron
+// escrita en `localStorage`, que de otro modo se queda ahí para siempre en el
+// navegador de cualquiera que ya pasó por el checkout.
+purgeLegacyCreatedOrder()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

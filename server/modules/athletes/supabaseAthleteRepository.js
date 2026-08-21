@@ -1,9 +1,53 @@
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
+import { forgetAthleteSessionCache } from '../../services/athleteSessionService.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
 const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
+const PAYMENT_PROOF_URL_TTL_SECONDS = 300
+// Tope de la bandeja de validación: firmar más de esto en una request deja de
+// ser una optimización y pasa a ser trabajo especulativo.
+const PAYMENT_PROOF_BATCH_LIMIT = 60
+/** Estados que todavía esperan una decisión de Finanzas. */
+const OPEN_PAYMENT_ORDER_STATUSES = ['pendiente', 'validacion_manual']
+/**
+ * Techo de la suma de lo pendiente. No hay `sum()` en PostgREST sin una RPC y
+ * no vale la pena una función nueva para un total que se muestra al lado del
+ * contador: con más órdenes abiertas que esto, el número sale marcado como
+ * parcial.
+ */
+const OPEN_AMOUNT_SAMPLE_LIMIT = 1000
+/**
+ * Columnas que consume la bandeja de órdenes del panel (`toCamelPaymentOrder`
+ * en src/services/athleteApi.js). Explícitas para que agregar una columna a la
+ * tabla no engorde esta lectura sin que nadie lo decida.
+ */
+const PAYMENT_ORDER_LIST_COLUMNS = [
+  'id',
+  'athlete_id',
+  'concept',
+  'amount',
+  'currency',
+  'method',
+  'manual_payment_channel',
+  'status',
+  'reference',
+  'rejected_by',
+  'rejection_reason',
+  'rejected_at',
+  'payment_proof_path',
+  'payment_proof_uploaded_at',
+  'financing_allowed',
+  'manual_payment_declared_at',
+  'financed_entitlements_at',
+  'financed_entitlements_revoked_at',
+  'discount_code',
+  'discount_amount',
+  'notes',
+  'created_at',
+  'athlete:athletes(id, full_name, document_id, email)',
+].join(', ')
 const PHOTO_URL_TTL_SECONDS = 3600
 // En una Function la cache es best-effort (puede desaparecer en un cold start),
 // pero evita firmar de nuevo las mismas fotos para cada refresh del dashboard
@@ -188,12 +232,19 @@ export function createSupabaseAthleteRepository(
     // esta expuesta a PostgREST (revocada en 20260716000000), asi que desde
     // aca no se puede tocar; la RPC lo resuelve del lado de la base.
     // Devuelve { revokedSessions }.
-    setPassword: (athleteId, passwordHash, actor = null) =>
-      rpc(
+    // La caché en memoria se purga acá y no en cada ruta: la RPC corta las
+    // sesiones en la base, pero una sesión ya resuelta seguiría contestando
+    // desde `athleteSessionCache` hasta que venciera su TTL -- justo después de
+    // un cambio de contraseña, que es cuando cortar importa.
+    setPassword: async (athleteId, passwordHash, actor = null) => {
+      const result = await rpc(
         'set_athlete_password',
         { p_athlete_id: athleteId, p_password_hash: passwordHash, p_actor: actor },
         'No se pudo actualizar la credencial del atleta.',
-      ),
+      )
+      forgetAthleteSessionCache(athleteId)
+      return result
+    },
     credential: async (athleteId) =>
       assertSupabaseResult(
         await client
@@ -236,8 +287,8 @@ export function createSupabaseAthleteRepository(
       )
       return Boolean(consumed)
     },
-    resetPasswordWithToken: ({ athleteId, tokenHash, passwordHash }) =>
-      rpc(
+    resetPasswordWithToken: async ({ athleteId, tokenHash, passwordHash }) => {
+      const result = await rpc(
         'reset_athlete_password_with_token',
         {
           p_athlete_id: athleteId,
@@ -245,7 +296,13 @@ export function createSupabaseAthleteRepository(
           p_password_hash: passwordHash,
         },
         'No se pudo restablecer la contraseña.',
-      ),
+      )
+      // Mismo motivo que en `setPassword`: recuperar la cuenta desde el mail
+      // tiene que dejar afuera a quien tuviera la sesión abierta, y eso incluye
+      // la copia en memoria.
+      forgetAthleteSessionCache(athleteId)
+      return result
+    },
     snapshot: async (athleteId) =>
       addSignedPhotoUrls(
         await rpc(
@@ -609,7 +666,7 @@ export function createSupabaseAthleteRepository(
         'No se pudo acreditar el pago a mano.',
       )
     },
-    async setRegistrationStatus(registrationId, status, reason, actor = null) {
+    async setRegistrationStatus(registrationId, status, reason, actor = null, channel = null) {
       return rpc(
         'staff_set_registration_status',
         {
@@ -617,6 +674,11 @@ export function createSupabaseAthleteRepository(
           p_status: status,
           p_actor: actor,
           p_reason: reason,
+          // Opcional acá y obligatorio en la afiliación a propósito: una
+          // inscripción se pone en 'observada' por razones que no tienen ningún
+          // canal de cobro detrás. El canal se pide cuando hay plata que
+          // atribuir, no por simetría.
+          p_channel: channel,
         },
         'No se pudo cambiar el estado de la inscripción.',
       )
@@ -650,17 +712,29 @@ export function createSupabaseAthleteRepository(
      * Finanzas. Hasta ahora la única forma de llegar a una era entrar atleta
      * por atleta desde el padrón.
      */
-    async listPaymentOrders({ status, method, concept, limit = 100 } = {}) {
+    async listPaymentOrders({ status, statuses, method, concept, financed, limit = 100 } = {}) {
       let query = client
         .from('athlete_payment_orders')
-        .select('*, athlete:athletes(id, full_name, document_id, email)')
+        // Lista explícita en lugar de `*`: la bandeja pide hasta 200 filas y
+        // `*` arrastraba el idempotency key, la organización y las marcas de
+        // preferencia de Mercado Pago, que esta pantalla no usa.
+        .select(PAYMENT_ORDER_LIST_COLUMNS)
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false })
         .limit(limit)
 
       if (status) query = query.eq('status', status)
+      // `statuses` filtra en la base lo que el panel filtraba en el navegador:
+      // la vista "pendientes" son dos estados, y traerse las 200 para descartar
+      // las aprobadas era transferencia pura.
+      else if (Array.isArray(statuses) && statuses.length > 0) query = query.in('status', statuses)
       if (method) query = query.eq('method', method)
       if (concept) query = query.eq('concept', concept)
+      // Combo financiado: derechos ya otorgados con la deuda todavía abierta.
+      // Es la única vista donde el club tiene plata comprometida sin cobrar.
+      if (financed === true) {
+        query = query.eq('financing_allowed', true).not('financed_entitlements_at', 'is', null)
+      }
 
       // Mismo patrón que auditoría: el builder de PostgREST hay que awaitedarlo
       // antes de assertSupabaseResult, si no `data` queda undefined.
@@ -743,6 +817,119 @@ export function createSupabaseAthleteRepository(
       return signed.signedUrl
     },
 
+    /**
+     * Contadores de la bandeja de validación, calculados en la base.
+     *
+     * Los chips los armaba el navegador sobre las 200 filas que traía la
+     * lectura, así que a partir de la orden 201 los números eran mentira: decía
+     * "12 pendientes" porque las otras nunca habían viajado. Acá se cuenta
+     * sobre la tabla entera y sin transferir filas (`head: true`).
+     *
+     * El importe abierto sí necesita los montos, pero sólo de las órdenes que
+     * esperan decisión — que es un conjunto acotado por definición: si crece,
+     * es justamente el problema que la pantalla tiene que mostrar.
+     */
+    async paymentOrderCounts() {
+      const scoped = () =>
+        client
+          .from('athlete_payment_orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId)
+
+      const [
+        openResponse,
+        manualResponse,
+        financedResponse,
+        approvedResponse,
+        totalResponse,
+        openAmounts,
+      ] = await Promise.all([
+        scoped().in('status', OPEN_PAYMENT_ORDER_STATUSES),
+        scoped().eq('status', 'validacion_manual'),
+        scoped()
+          .in('status', OPEN_PAYMENT_ORDER_STATUSES)
+          .eq('financing_allowed', true)
+          .not('financed_entitlements_at', 'is', null),
+        scoped().eq('status', 'aprobado'),
+        scoped(),
+        client
+          .from('athlete_payment_orders')
+          .select('amount')
+          .eq('organization_id', organizationId)
+          .in('status', OPEN_PAYMENT_ORDER_STATUSES)
+          .limit(OPEN_AMOUNT_SAMPLE_LIMIT),
+      ])
+
+      for (const response of [
+        openResponse,
+        manualResponse,
+        financedResponse,
+        approvedResponse,
+        totalResponse,
+      ]) {
+        assertSupabaseResult(response, 'No se pudieron contar las órdenes de pago.')
+      }
+      const amounts = assertSupabaseResult(openAmounts, 'No se pudo sumar lo pendiente de cobro.')
+
+      return {
+        pending: openResponse.count ?? 0,
+        validacion_manual: manualResponse.count ?? 0,
+        financed: financedResponse.count ?? 0,
+        aprobado: approvedResponse.count ?? 0,
+        all: totalResponse.count ?? 0,
+        openAmount: (amounts ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
+        // El importe queda truncado si hay más órdenes abiertas que la muestra:
+        // la pantalla lo dice en vez de mostrar un total que no es el total.
+        openAmountTruncated: (openResponse.count ?? 0) > (amounts?.length ?? 0),
+      }
+    },
+
+    /**
+     * Comprobantes de varias órdenes en una sola vuelta.
+     *
+     * Cada apertura del diálogo de validación gastaba dos llamadas —leer la
+     * ruta y firmar la URL— y el operador miraba un spinner antes de poder
+     * decidir. Validar diez transferencias eran veinte esperas. Con las URLs ya
+     * resueltas para las filas abiertas, el comprobante aparece al instante.
+     *
+     * Mismo TTL y mismo bucket que `paymentProofUrl`: no relaja el acceso, sólo
+     * agrupa el trabajo. Una orden sin comprobante simplemente no figura.
+     */
+    async paymentProofUrls(orderIds = []) {
+      const ids = [...new Set(orderIds.filter(Boolean))].slice(0, PAYMENT_PROOF_BATCH_LIMIT)
+      if (ids.length === 0) return {}
+
+      const rows = assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select('id, payment_proof_path')
+          .eq('organization_id', organizationId)
+          .in('id', ids),
+        'No se pudieron leer las órdenes.',
+      )
+      const withProof = (rows ?? []).filter((row) => row.payment_proof_path)
+      if (withProof.length === 0) return {}
+
+      const signed = assertSupabaseResult(
+        await client.storage.from(PAYMENT_PROOF_BUCKET).createSignedUrls(
+          withProof.map((row) => row.payment_proof_path),
+          PAYMENT_PROOF_URL_TTL_SECONDS,
+        ),
+        'No se pudieron abrir los comprobantes.',
+      )
+      const urlByPath = new Map(
+        (signed ?? [])
+          .filter((entry) => entry?.signedUrl)
+          .map((entry) => [entry.path, entry.signedUrl]),
+      )
+
+      return Object.fromEntries(
+        withProof
+          .map((row) => [row.id, urlByPath.get(row.payment_proof_path) ?? null])
+          .filter(([, url]) => Boolean(url)),
+      )
+    },
+
     /** Credencial de un socio para el panel: QR, vigencia y datos de emisión. */
     async membershipCredential(membershipId) {
       const membership = assertSupabaseResult(
@@ -789,13 +976,20 @@ export function createSupabaseAthleteRepository(
 
     // Activación/baja manual: los casos sin cobro (cortesía, canje, corrección)
     // no pasan por la aprobación de una orden de pago.
-    setMembershipStatus: (membershipId, status, actor) =>
+    //
+    // `reason` y `channel` no son opcionales aunque la firma los deje al final:
+    // la RPC de 3 argumentos ahora falla a propósito (ver 20260910100000). Era
+    // la única puerta manual del dominio que no pedía motivo, y por eso las
+    // afiliaciones activadas a mano eran las únicas que no se podían explicar.
+    setMembershipStatus: (membershipId, status, actor, reason, channel = null) =>
       rpc(
         'staff_set_membership_status',
         {
           p_membership_id: membershipId,
           p_status: status,
           p_actor: actor,
+          p_reason: reason,
+          p_channel: channel,
         },
         'No se pudo actualizar el estado de la afiliación.',
       ),
@@ -951,7 +1145,7 @@ export function createSupabaseAthleteRepository(
                 client
                   .from('memberships')
                   .select(
-                    'id, athlete_id, year, status, start_date, expiration_date, member_code, qr_token, payment_order_id, created_at, updated_at',
+                    'id, athlete_id, year, status, start_date, expiration_date, member_code, qr_token, payment_order_id, created_at, updated_at, manual_override_status, manual_override_channel, manual_override_reason, manual_override_by, manual_override_at',
                   )
                   .eq('organization_id', organizationId)
                   .order('created_at', { ascending: false }),
@@ -967,6 +1161,7 @@ export function createSupabaseAthleteRepository(
                   .select(
                     `
                       id, athlete_id, category, division, bodyweight_kg, public_visible, status, payment_order_id, created_at, updated_at,
+                      manual_override_status, manual_override_channel, manual_override_reason, manual_override_by, manual_override_at,
                       event:events(title, slug, starts_at, ends_at, requires_membership),
                       checkIn:check_ins(scanned_at),
                       eventDay:event_days(id, day_index, label, date),
@@ -983,7 +1178,15 @@ export function createSupabaseAthleteRepository(
           ? client
               .from('athlete_payment_orders')
               .select(
-                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at',
+                // `expires_at`, `updated_at` y `rejection_reason` no son
+                // decorativos: son las tres columnas con las que
+                // `derivePaymentProgress` distingue "venció sin que nadie
+                // pagara" de "lo cerró la organización con un motivo escrito".
+                // Sin ellas el panel mostraba un `Cancelado` pelado mientras
+                // /mi-cuenta -- que lee el snapshot completo -- sí explicaba el
+                // motivo al atleta. El operador que atiende el reclamo veía
+                // menos que la persona que lo hacía.
+                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at',
               )
               .eq('organization_id', organizationId)
               .order('created_at', { ascending: false })
@@ -1015,6 +1218,41 @@ export function createSupabaseAthleteRepository(
         })),
         paymentOrders: assertSupabaseResult(paymentOrders, 'No se pudieron leer los pagos.'),
       }
+
+      // Libro de intentos por orden. Va en una consulta aparte y acotada a las
+      // órdenes que efectivamente se devuelven -- no a toda la organización --
+      // porque es lo que distingue "abandonó el checkout" de "intentó pagar y
+      // la tarjeta lo rechazó", y esa diferencia es la respuesta a un reclamo.
+      //
+      // Sin `raw_payload`: es la respuesta cruda de Mercado Pago (id del
+      // pagador, últimos cuatro dígitos, headers internos) y era el 62% del
+      // snapshot del atleta antes de 20260907100000. No vuelve por la puerta
+      // del panel.
+      if (payload.paymentOrders.length) {
+        const orderIds = payload.paymentOrders.map((order) => order.id)
+        const attempts =
+          assertSupabaseResult(
+            await client
+              .from('athlete_payments')
+              .select(
+                'order_id, external_payment_id, status, status_detail, amount, confirmed_at, created_at, updated_at',
+              )
+              .in('order_id', orderIds)
+              .order('created_at', { ascending: true }),
+            'No se pudieron leer los intentos de cobro.',
+          ) ?? []
+
+        const byOrderId = new Map()
+        for (const attempt of attempts) {
+          const bucket = byOrderId.get(attempt.order_id)
+          if (bucket) bucket.push(attempt)
+          else byOrderId.set(attempt.order_id, [attempt])
+        }
+        for (const order of payload.paymentOrders) {
+          order.attempts = byOrderId.get(order.id) ?? []
+        }
+      }
+
       return addSignedPhotoUrls(payload)
     },
 

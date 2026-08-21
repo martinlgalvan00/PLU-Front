@@ -78,21 +78,78 @@ function timeOf(value) {
 }
 
 /**
- * Motivo por el que una orden cancelada quedó así.
+ * Códigos que la base sella en `athlete_payment_orders.cancellation_code`
+ * (20260910100000, y el trigger de 20260910110000 que garantiza que ningún
+ * camino de cierre quede sin motivo) traducidos al vocabulario que ya usaba
+ * esta función.
  *
- * "Cancelado" tapa tres cosas que para la persona no tienen nada que ver entre
- * sí, y sin distinguirlas no hay forma de contestar un reclamo:
+ * Los dos juegos existen porque el de acá nació como inferencia del frontend y
+ * el de la base es el hecho registrado. Se mapea en vez de renombrarse para no
+ * romper las claves de i18n ya publicadas.
+ */
+/**
+ * Marca que dejó el backfill de 20260910100000 donde no había un motivo que
+ * recuperar. No se traduce ni se muestra como explicación: es un pendiente.
+ *
+ * Duplicado a propósito con `isPlaceholderReason` de stateCoherenceService:
+ * este módulo es puro y no importa servicios, y la alternativa era invertir esa
+ * dependencia por una comparación de prefijo.
+ */
+const BACKFILL_PLACEHOLDER_PREFIX = 'Sin motivo registrado'
+
+function placeholderFreeReason(reason) {
+  if (typeof reason !== 'string') return reason ?? null
+  return reason.startsWith(BACKFILL_PLACEHOLDER_PREFIX) ? null : reason
+}
+
+const PERSISTED_CANCELLATION_CODES = Object.freeze({
+  expired_without_payment: 'expired_without_attempt',
+  expired_after_failed_attempt: 'expired_after_attempt',
+  provider_cancelled: 'provider_cancelled',
+  cancelled_by_staff: 'staff_rejected',
+  superseded_by_new_order: 'superseded_by_new_order',
+  resolved_off_platform: 'resolved_off_platform',
+  closed_before_expiry: 'closed_before_expiry',
+})
+
+/**
+ * Motivo por el que una orden cerrada quedó así.
+ *
+ * "Cancelado" tapa cosas que para la persona no tienen nada que ver entre sí, y
+ * sin distinguirlas no hay forma de contestar un reclamo:
  *
  *   · nunca llegó a pagar y el cobro venció solo (abandonó el checkout),
  *   · intentó pagar, algo falló y el cobro venció igual,
- *   · lo cerró la organización, con un motivo escrito.
+ *   · lo cerró la organización, con un motivo escrito,
+ *   · se reemplazó por un cobro nuevo (cambió de canal, de plan o de evento),
+ *   · el cobro murió y el derecho se otorgó por otra vía.
  *
- * El vencimiento no deja rastro propio: el cron sólo mueve `status` y
- * `updated_at`. Se reconoce porque la orden se cerró en el mismo momento en que
- * vencía o después — el cron corre cada tres minutos, así que la ventana es
- * chica y no se confunde con una cancelación de otro origen.
+ * El camino de abajo (comparar `updated_at` contra `expires_at`) es el que se
+ * usaba cuando el vencimiento no dejaba rastro propio. Queda como respaldo para
+ * las filas viejas y para cualquier consumidor que reciba una orden sin el
+ * campo sellado, pero ya no es la primera respuesta.
  */
 function cancellationReason(order = {}, { hasAttempts, canonical } = {}) {
+  // El motivo sellado en la base manda sobre cualquier inferencia. Adivinar
+  // funcionaba hasta que una cancelación manual caía dentro de la ventana de
+  // tolerancia del cron, y ahí reportaba un vencimiento que nunca pasó.
+  const persisted = order.cancellationCode ?? order.cancellation_code ?? null
+  const mapped = persisted ? PERSISTED_CANCELLATION_CODES[persisted] : null
+  if (mapped) {
+    return {
+      reasonCode: mapped,
+      // El texto libre gana sobre el catálogo -- salvo que sea el relleno que
+      // dejó el backfill de 20260910100000, que no explica nada y taparía la
+      // frase del catálogo, que sí. El hueco se muestra donde corresponde: en la
+      // procedencia del derecho, marcado como pendiente.
+      reasonText: placeholderFreeReason(
+        order.cancellationReason ?? order.cancellation_reason ?? null,
+      ),
+      expiredAt: order.expiresAt ?? order.expires_at ?? null,
+      attemptReasonCode: canonical?.reasonCode ?? null,
+    }
+  }
+
   const explicit = order.rejectionReason ?? order.rejection_reason ?? null
   if (explicit) return { reasonCode: 'staff_rejected', reasonText: explicit }
 
