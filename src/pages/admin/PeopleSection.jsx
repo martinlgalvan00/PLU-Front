@@ -1,4 +1,5 @@
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { motion } from 'motion/react'
 
 /**
  * Cascarón de navegación para el ítem de menú único "Personas": una fila de
@@ -19,18 +20,29 @@ export default function PeopleSection({ activeTab, onTabChange, tabs = [], child
         role="tablist"
         aria-label={t('admin.nav.people')}
       >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            className={`admin-people-section__tab${activeTab === tab.id ? ' is-active' : ''}`}
-            onClick={() => onTabChange(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`admin-people-section__tab${isActive ? ' is-active' : ''}`}
+              onClick={() => onTabChange(tab.id)}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="people-tab-indicator"
+                  className="admin-people-section__tab-indicator"
+                  initial={false}
+                  transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                />
+              )}
+              <span className="admin-people-section__tab-label">{tab.label}</span>
+            </button>
+          )
+        })}
       </div>
       {children}
     </div>

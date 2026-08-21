@@ -6523,8 +6523,8 @@
 .admin-filters__clear {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
@@ -6533,7 +6533,7 @@
   font-size: 12px;
   font-weight: 500;
   gap: 6px;
-  padding: 6px 11px;
+  padding: 6px 14px;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
@@ -7047,8 +7047,8 @@
 .admin-filter-chip {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -7058,11 +7058,12 @@
   gap: 6px;
   letter-spacing: 0;
   line-height: 1.2;
-  padding: 6px 11px;
+  padding: 6px 14px;
+  position: relative;
   transition:
     background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
+    color var(--transition-fast),
+    transform var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -7087,21 +7088,18 @@
 }
 
 .admin-filter-chip:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--color-border-light);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-primary);
 }
 
 .admin-filter-chip.is-active {
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 34%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   color: var(--color-text-primary);
   font-weight: 600;
 }
 
 .admin-filter-chip.is-active:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
 }
 
 .admin-filter-chip:disabled {
@@ -7116,23 +7114,20 @@
 
 [data-theme='light'] .admin-filter-chip {
   background: transparent;
-  border-color: rgba(15, 17, 23, 0.12);
+  border-color: transparent;
 }
 
 [data-theme='light'] .admin-filter-chip:hover {
-  background: rgba(15, 17, 23, 0.04);
-  border-color: rgba(15, 17, 23, 0.2);
+  background: rgba(15, 17, 23, 0.06);
 }
 
 [data-theme='light'] .admin-filter-chip.is-active {
-  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
-  border-color: rgba(26, 107, 176, 0.32);
+  background: rgba(15, 17, 23, 0.08);
   color: var(--plu-ink-900);
 }
 
 [data-theme='light'] .admin-filter-chip.is-active:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
-  border-color: rgba(26, 107, 176, 0.4);
+  background: rgba(15, 17, 23, 0.12);
 }
 
 /* Tono opcional del chip activo — mapea al mismo color que ya usa el
@@ -7172,20 +7167,22 @@
 .admin-filters--compact .admin-filters__search {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-muted);
   display: flex;
   flex: 1 1 100%;
   gap: 8px;
   min-height: 34px;
   min-width: 0;
-  padding: 0 10px;
-  transition: border-color var(--transition-fast);
+  padding: 0 14px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  background-color: rgba(255, 255, 255, 0.03);
 }
 
 .admin-filters--compact .admin-filters__search:focus-within {
-  border-color: rgba(116, 172, 223, 0.38);
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(116, 172, 223, 0.2);
 }
 
 .admin-filters--compact .admin-filters__search input {
@@ -7194,11 +7191,16 @@
   color: var(--color-text-primary);
   flex: 1 1 auto;
   font: inherit;
+  font-size: 13px;
   min-height: 32px;
   min-width: 0;
   outline: none;
   padding: 0;
   width: 100%;
+}
+
+.admin-filters--compact .admin-filters__search input::placeholder {
+  color: var(--color-text-muted);
 }
 
 .admin-filters--compact .admin-filters__selects {
@@ -7209,15 +7211,15 @@
 
 .admin-filters--compact .admin-filters__select {
   align-items: stretch;
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   cursor: pointer;
   display: grid;
   flex: 0 1 auto;
   gap: 1px;
   min-width: min(100%, 148px);
-  padding: 5px 10px 6px;
+  padding: 5px 12px 6px;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast);
@@ -7225,12 +7227,12 @@
 }
 
 .admin-filters--compact .admin-filters__select:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--color-border-light);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .admin-filters--compact .admin-filters__select:focus-within {
-  border-color: rgba(116, 172, 223, 0.38);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(116, 172, 223, 0.2);
 }
 
 .admin-filters__select-label {
@@ -7255,18 +7257,26 @@
   padding: 1px 4px 1px 0;
 }
 
+[data-theme='light'] .admin-filters--compact .admin-filters__search {
+  background-color: rgba(15, 17, 23, 0.04);
+}
+
+[data-theme='light'] .admin-filters--compact .admin-filters__search:focus-within {
+  background-color: rgba(15, 17, 23, 0.06);
+  border-color: rgba(26, 107, 176, 0.2);
+}
+
 [data-theme='light'] .admin-filters--compact .admin-filters__select {
-  background: transparent;
-  border-color: rgba(15, 17, 23, 0.12);
+  background: rgba(15, 17, 23, 0.04);
 }
 
 [data-theme='light'] .admin-filters--compact .admin-filters__select:hover {
-  background: rgba(15, 17, 23, 0.04);
-  border-color: rgba(15, 17, 23, 0.2);
+  background: rgba(15, 17, 23, 0.06);
 }
 
 [data-theme='light'] .admin-filters--compact .admin-filters__select:focus-within {
-  border-color: rgba(26, 107, 176, 0.38);
+  background: rgba(15, 17, 23, 0.06);
+  border-color: rgba(26, 107, 176, 0.2);
 }
 
 [data-theme='light'] .admin-filters--compact .admin-filters__select select {

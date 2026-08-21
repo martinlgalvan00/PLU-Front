@@ -382,7 +382,6 @@ export default function RegistrationsSection({
       : {
           id: 'event',
           label: t('admin.filters.event'),
-          showLabel: true,
           value: filters.event ?? 'all',
           onChange: handleEventChange,
           options: eventOptions,
@@ -391,7 +390,6 @@ export default function RegistrationsSection({
   const affiliationFilter = {
     id: 'affiliationStatus',
     label: t('admin.filters.affiliation'),
-    showLabel: true,
     value: filters.affiliationStatus ?? 'all',
     onChange: handleAffiliationChange,
     options: affiliationOptions,
@@ -416,6 +414,22 @@ export default function RegistrationsSection({
     savedViewSnapshot.status !== 'all' ||
     savedViewSnapshot.affiliationStatus !== 'all' ||
     savedViewSnapshot.query.trim() !== ''
+
+  // Resumen legible de filtros activos para el popover
+  const filterSummary = useMemo(() => {
+    const items = []
+    if (savedViewSnapshot.query.trim()) items.push({ label: 'Búsqueda', value: savedViewSnapshot.query.trim() })
+    if (savedViewSnapshot.event !== 'all') items.push({ label: t('admin.filters.event'), value: savedViewSnapshot.event })
+    if (savedViewSnapshot.status !== 'all') {
+      const opt = statusOptions.find(([v]) => v === savedViewSnapshot.status)
+      if (opt) items.push({ label: t('admin.filters.status'), value: opt[1] })
+    }
+    if (savedViewSnapshot.affiliationStatus !== 'all') {
+      const opt = affiliationOptions.find(([v]) => v === savedViewSnapshot.affiliationStatus)
+      if (opt) items.push({ label: t('admin.filters.affiliation'), value: opt[1] })
+    }
+    return items
+  }, [savedViewSnapshot, statusOptions, affiliationOptions, t])
 
   function applySavedView(view) {
     onSetFilters((current) => ({ ...current, ...view.snapshot }))
@@ -500,7 +514,6 @@ export default function RegistrationsSection({
                 {
                   id: 'status',
                   label: t('admin.filters.status'),
-                  showLabel: true,
                   value: filters.status,
                   onChange: handleStatusChange,
                   options: statusOptions,
@@ -511,7 +524,7 @@ export default function RegistrationsSection({
         onQueryChange={handleQueryChange}
         beforeFilters={
           isGloballyEmpty ? null : (
-            <AdminSavedViews
+          <AdminSavedViews
               views={savedViews}
               activeViewId={activeSavedView?.id ?? null}
               allLabel={t('admin.savedViews.all')}
@@ -520,6 +533,7 @@ export default function RegistrationsSection({
               namePlaceholder={t('admin.savedViews.namePlaceholder')}
               removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
               canSave={hasFiltersToSave && !activeSavedView}
+              filterSummary={filterSummary}
               onApply={applySavedView}
               onClear={handleClearFilters}
               onSave={(label) => saveView(label, savedViewSnapshot)}

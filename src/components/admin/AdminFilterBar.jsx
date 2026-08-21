@@ -215,6 +215,74 @@ export default function AdminFilterBar({
 
   return (
     <div ref={rootRef} className={rootClassName}>
+      {filters.length > 0 ? (
+        <div
+          id={panelId}
+          className={`admin-filters__panel${panelOpen ? ' is-open' : ''}`}
+          hidden={panelOpen ? undefined : true}
+        >
+          <div className="admin-filters__panel-inner">
+            <div className="admin-filters__chips-row">
+              <div
+                className={[
+                  'admin-filters__groups',
+                  isMultiGroup ? 'admin-filters__groups--multi' : '',
+                  chipGroupCount === 0 ? 'admin-filters__groups--secondary-only' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {visibleFilters.map(renderFilter)}
+              </div>
+
+              {/* Advanced toggle inline — vive en la misma fila que los chips
+                  para que el usuario lo perciba como "ver más opciones de esta barra"
+                  y no como un bloque separado. */}
+              {advancedFilters.length > 0 ? (
+                <button
+                  type="button"
+                  className={[
+                    'admin-filters__advanced-toggle',
+                    advancedOpen ? 'is-open' : '',
+                    advancedActiveCount > 0 ? 'is-active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-expanded={advancedOpen}
+                  onClick={() => setAdvancedOpen((current) => !current)}
+                >
+                  <span>
+                    {advancedOpen
+                      ? t('admin.filters.fewerFilters')
+                      : t('admin.filters.moreFilters')}
+                  </span>
+                  {!advancedOpen && advancedActiveCount > 0 ? (
+                    <span
+                      className="admin-filters__active-count"
+                      aria-label={t('admin.filters.activeCount', { count: advancedActiveCount })}
+                    >
+                      {advancedActiveCount}
+                    </span>
+                  ) : null}
+                  <ChevronDown className="admin-filters__toggle-icon" size={12} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+
+            {advancedOpen && advancedFilters.length > 0 ? (
+              <div className="admin-filters__advanced-panel">
+                <span className="admin-filters__advanced-label">
+                  {t('admin.filters.advancedLabel')}
+                </span>
+                <div className="admin-filters__advanced-groups">
+                  {advancedFilters.map(renderFilter)}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <div className="admin-filters__primary">
         <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
 
@@ -255,72 +323,6 @@ export default function AdminFilterBar({
           </span>
         ) : null}
       </div>
-
-      {filters.length > 0 ? (
-        <div
-          id={panelId}
-          className={`admin-filters__panel${panelOpen ? ' is-open' : ''}`}
-          hidden={panelOpen ? undefined : true}
-        >
-          <div className="admin-filters__panel-inner">
-            <div
-              className={[
-                'admin-filters__groups',
-                isMultiGroup ? 'admin-filters__groups--multi' : '',
-                chipGroupCount === 0 ? 'admin-filters__groups--secondary-only' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {visibleFilters.map(renderFilter)}
-              {advancedFilters.length > 0 ? (
-                <button
-                  type="button"
-                  className={[
-                    'admin-filters__advanced-toggle',
-                    advancedOpen ? 'is-open' : '',
-                    advancedActiveCount > 0 ? 'is-active' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  aria-expanded={advancedOpen}
-                  onClick={() => setAdvancedOpen((current) => !current)}
-                >
-                  <span>
-                    {advancedOpen
-                      ? t('admin.filters.fewerFilters')
-                      : t('admin.filters.moreFilters')}
-                  </span>
-                  {!advancedOpen && advancedActiveCount > 0 ? (
-                    <span
-                      className="admin-filters__active-count"
-                      aria-label={t('admin.filters.activeCount', { count: advancedActiveCount })}
-                    >
-                      {advancedActiveCount}
-                    </span>
-                  ) : null}
-                  <ChevronDown className="admin-filters__toggle-icon" size={13} aria-hidden />
-                </button>
-              ) : null}
-            </div>
-
-            {/* Panel propio y recesado para los avanzados: antes se sumaban a
-                `.admin-filters__groups`, la misma fila que Fuente/Estado, y una
-                vez expandidos no había forma de distinguir "filtro principal"
-                de "raramente usado" -- todo se leía como una sola pared de chips. */}
-            {advancedOpen && advancedFilters.length > 0 ? (
-              <div className="admin-filters__advanced-panel">
-                <span className="admin-filters__advanced-label">
-                  {t('admin.filters.advancedLabel')}
-                </span>
-                <div className="admin-filters__advanced-groups">
-                  {advancedFilters.map(renderFilter)}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </div>
   )
 }
