@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildOfferResumeOrder,
+  checkoutMethodForChannel,
   getOfferState,
   isOfferUnlockKind,
   pickPrimaryOffer,
   previewUnlocksOffer,
+  resolveManualSettlement,
+  resolveOfferChannels,
   resolveOfferPricing,
 } from '../src/services/exclusiveOfferService.js'
 
@@ -224,5 +227,97 @@ describe('previewUnlocksOffer / isOfferUnlockKind', () => {
   it('el espejo del backend no se desincroniza', () => {
     expect(isOfferUnlockKind('offer')).toBe(true)
     expect(isOfferUnlockKind('percent')).toBe(false)
+  })
+})
+
+describe('resolveOfferChannels', () => {
+  it('sin declarar nada, la oferta va sólo por Mercado Pago', () => {
+    // Es el comportamiento de todos los códigos anteriores a 20260908100000, y
+    // el de cualquier payload que responda una API sin la migración aplicada.
+    expect(resolveOfferChannels(buildOffer())).toEqual(['mercado_pago'])
+  })
+
+  it('suma los canales manuales que el código destraba, en orden de lectura', () => {
+    expect(
+      resolveOfferChannels(buildOffer({ manualChannels: ['cash_pitbull', 'bank_transfer'] })),
+    ).toEqual(['mercado_pago', 'bank_transfer', 'cash_pitbull'])
+  })
+
+  it('un código que cierra la pasarela deja sólo lo que habilita', () => {
+    expect(
+      resolveOfferChannels(
+        buildOffer({ mercadoPagoEnabled: false, manualChannels: ['cash_pitbull'] }),
+      ),
+    ).toEqual(['cash_pitbull'])
+  })
+
+  it('con un concepto cerrado no hay medio por el que cobrar', () => {
+    // El combo acredita afiliación E inscripción: si Administración cerró
+    // cualquiera de las dos, no alcanza con que el código habilite un canal.
+    expect(
+      resolveOfferChannels(buildOffer({ manualChannels: ['bank_transfer'] }), {
+        conceptsOpen: false,
+      }),
+    ).toEqual([])
+    expect(resolveOfferChannels(null)).toEqual([])
+  })
+})
+
+describe('checkoutMethodForChannel', () => {
+  it('traduce al nombre que espera la API', () => {
+    expect(checkoutMethodForChannel('bank_transfer')).toBe('manual_link')
+    expect(checkoutMethodForChannel('cash_pitbull')).toBe('cash_pitbull')
+    expect(checkoutMethodForChannel('mercado_pago')).toBe('mercado_pago')
+    // Sin canal (cobro cerrado) el default es la pasarela: es sólo el medio con
+    // el que se cotiza en pantalla, no un alta.
+    expect(checkoutMethodForChannel(null)).toBe('mercado_pago')
+  })
+})
+
+describe('resolveManualSettlement', () => {
+  const manualPurchase = {
+    orderId: 'order-1',
+    status: 'validacion_manual',
+    amount: 110000,
+    currency: 'ARS',
+    method: 'manual_link',
+    manualPaymentChannel: 'bank_transfer',
+  }
+
+  it('devuelve la orden manual abierta y su canal', () => {
+    expect(resolveManualSettlement(buildOffer({ purchase: manualPurchase }))).toMatchObject({
+      channel: 'bank_transfer',
+      orderId: 'order-1',
+      amount: 110000,
+    })
+  })
+
+  it('una orden manual sin canal guardado es una transferencia', () => {
+    const legacy = { ...manualPurchase, manualPaymentChannel: null }
+    expect(resolveManualSettlement(buildOffer({ purchase: legacy })).channel).toBe('bank_transfer')
+  })
+
+  it('la orden recién creada gana sobre la del payload', () => {
+    const created = {
+      paymentId: 'order-nueva',
+      amount: 95000,
+      status: 'pendiente',
+      paymentMethod: 'manual_link',
+      manualPaymentChannel: 'cash_pitbull',
+    }
+    expect(resolveManualSettlement(buildOffer({ purchase: manualPurchase }), created)).toMatchObject(
+      { channel: 'cash_pitbull', orderId: 'order-nueva', amount: 95000 },
+    )
+  })
+
+  it('Mercado Pago no se liquida a mano: eso lo cobra el brick', () => {
+    const mp = { ...manualPurchase, method: 'mercado_pago', manualPaymentChannel: null }
+    expect(resolveManualSettlement(buildOffer({ purchase: mp }))).toBe(null)
+  })
+
+  it('una orden cerrada no ofrece liquidarse de nuevo', () => {
+    const paid = { ...manualPurchase, status: 'aprobado' }
+    expect(resolveManualSettlement(buildOffer({ purchase: paid }))).toBe(null)
+    expect(resolveManualSettlement(buildOffer())).toBe(null)
   })
 })

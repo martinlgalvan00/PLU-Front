@@ -69,6 +69,9 @@ export function mapDiscountCode(row) {
       ((row.enables_manual_payment ?? row.enablesManualPayment)
         ? ['bank_transfer', 'cash_pitbull']
         : []),
+    // Mercado Pago para este código. `false` lo cierra (20260908100000);
+    // ausente = abierto, que es como se comportaban todos los códigos antes.
+    mercadoPagoEnabled: (row.mercado_pago_enabled ?? row.mercadoPagoEnabled) !== false,
     redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
     // Cuánta gente canjeó la llave, contra `redeemedCount`, que es cuánta la
     // usó para comprar. Son dos números distintos en una oferta secreta.
@@ -239,6 +242,10 @@ export async function upsertDiscountCodeRequest(code) {
     // RPC): se limpian aca para que cambiar de restringida a publica en el
     // formulario no mande un payload que el servidor va a rebotar.
     manualChannels: audience === 'public' ? [] : (code.manualChannels ?? []),
+    // Por el mismo motivo, una promo publica no puede cerrar la pasarela: el
+    // formulario la reabre al pasar a publica en vez de mandar un payload que
+    // el servidor rebota.
+    mercadoPagoEnabled: audience === 'public' ? true : code.mercadoPagoEnabled !== false,
     // Cada modalidad manda sólo su campo: el schema del servidor descarta el
     // otro, y un string vacío haría fallar la coerción numérica.
     percentOff: kind === 'percent' ? code.percentOff : undefined,

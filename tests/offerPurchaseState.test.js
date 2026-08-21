@@ -65,8 +65,24 @@ describe('estado de la compra en el payload (migración)', () => {
     }
   })
 
+  /**
+   * El tripwire, no la invariante: cuando una migración nueva redefine el
+   * payload hay que venir acá, verificar que el test de arriba siga cubriendo lo
+   * que la ficha usa y mover el nombre. 20260908100000 lo redefinió para agregar
+   * `mercadoPagoEnabled` —los medios que habilita el código— conservando el
+   * cuerpo de este archivo.
+   */
   it('es esta migración la que está vigente', () => {
-    expect(lastPayloadMigration()).toBe(FILE)
+    expect(lastPayloadMigration()).toBe('20260908100000_promo_code_mercado_pago_optout.sql')
+  })
+
+  it('la definición vigente también dice qué medios habilita el código', () => {
+    const effective = readFileSync(resolve(DIR, lastPayloadMigration()), 'utf8')
+    const payload = effective.slice(
+      effective.lastIndexOf(`create or replace ${PAYLOAD_DEFINITION}`),
+    )
+    expect(payload).toContain("'manualChannels'")
+    expect(payload).toContain("'mercadoPagoEnabled'")
   })
 })
 

@@ -1093,17 +1093,43 @@ export default {
       yourPrice: 'Tu precio',
       savings: 'Ahorrás {{amount}} sobre la suma de las dos compras.',
       savingsRedeemed: 'Ahorraste {{amount}} sobre la suma de las dos compras.',
-      cta: 'Procesar el pago de la oferta',
+      cta: {
+        mercado_pago: 'Procesar el pago de la oferta',
+        bank_transfer: 'Continuar con la transferencia',
+        cash_pitbull: 'Reservar y pagar en efectivo',
+      },
       entryLegend: 'Datos de tu inscripción',
       entryHint: 'Los tomamos de tu perfil. Revisalos antes de pagar.',
       entryEdit: 'Ajustar mis datos',
-      checkoutNoteHere: 'El cobro se procesa acá mismo, con el importe exclusivo de tu código.',
+      channelLegend: 'Cómo querés pagar',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Transferencia bancaria',
+        cash_pitbull: 'Efectivo en el evento',
+      },
+      checkoutNote: {
+        mercado_pago:
+          'El cobro se procesa acá mismo, con el importe exclusivo de tu código.',
+        bank_transfer:
+          'Te damos los datos para transferir acá mismo y subís el comprobante sin salir de esta página.',
+        cash_pitbull:
+          'Reservás la oferta ahora y pagás en efectivo el día del evento, con la referencia que te damos acá.',
+      },
       checkoutClosed: 'El cobro está cerrado por ahora. Tu oferta queda reservada.',
       checkoutUnavailable: 'No pudimos abrir el cobro. Volvé a intentar en un momento.',
-      payTitle: 'Pagá tu oferta',
+      payTitle: {
+        mercado_pago: 'Pagá tu oferta',
+        bank_transfer: 'Transferí el importe de tu oferta',
+        cash_pitbull: 'Pagás en efectivo el día del evento',
+      },
       paySafeNote: 'Cobro seguro de Mercado Pago, dentro de tu cuenta.',
+      payManualNote: 'Tu lugar queda reservado; el equipo confirma el pago a mano.',
+      cashLead:
+        'Reservamos tu oferta por {{amount}}. Llevá el importe en efectivo y mostrá esta referencia en la mesa de acreditación.',
+      cashReference: 'Referencia de tu orden',
+      cashFine:
+        'Si no llegás a pagarla el día del evento, la oferta se libera y vuelve al cupo.',
       backToDetail: 'Volver al detalle',
-      otherMethods: 'Pagar por transferencia u otro medio',
       resumeAction: 'Terminar de pagar',
       manualPendingAction: 'Ver el estado de mi pago',
       orderConcept: 'Afiliación + inscripción {{event}}',
@@ -3036,6 +3062,8 @@ export default {
         'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
       paymentNoChannelHint:
         'No hay medios de pago disponibles en este momento. Volvé a intentar más tarde o escribinos.',
+      paymentCodeWithoutGatewayHint:
+        'Tu código no se paga con Mercado Pago: el precio quedó pactado para los medios que ves acá. El equipo valida el pago a mano.',
       paymentLinkLabel: 'Link de pago',
       paymentTransferLabel: 'Transferencia bancaria',
       // Faltaba: `RegisterSettle` ya ofrecía la opción, así que el selector

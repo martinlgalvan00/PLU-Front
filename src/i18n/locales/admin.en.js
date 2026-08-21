@@ -710,12 +710,20 @@ export default {
         'It ran out of redemptions and closed itself. Raise the redemption limit to enable it again.',
       publicPromoChannelsInvalid:
         'A public promotion cannot unlock manual payment methods. Open them from Access and availability.',
+      publicPromoGatewayInvalid:
+        'A public promotion cannot close Mercado Pago: it applies to every purchase on its own. Close it from Access and availability.',
       manualChannelsPublicHint:
-        'Not used on a public promotion: opening a channel for everyone is done from Access and availability, not here.',
+        'Not used on a public promotion: opening or closing a channel for everyone is done from Access and availability, not here.',
       manualChannelsLegend: 'Payment methods it unlocks',
+      codeChannelsLegend: 'Payment methods for this code',
       manualChannelsHint:
-        'Mercado Pago is always available. Check a channel so this code unlocks it only for whoever uses it, even if it is off globally. With nothing checked, the purchase goes through Mercado Pago only.',
+        'Check how this code can be paid. Transfer and cash are unlocked only for whoever uses it, even if they are off globally.',
+      codeChannelsWithoutGateway:
+        'Without Mercado Pago: whoever uses this code can only pay through the checked channels, and the team validates the payment by hand.',
+      codeChannelsEmpty:
+        'Pick at least one payment method. With none, the code is redeemed and there is no way to pay for it.',
       manualChannel: {
+        mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
         cash_pitbull: 'Cash at Pitbull',
       },
@@ -723,6 +731,11 @@ export default {
         bank_transfer: 'Unlocks bank transfer',
         cash_pitbull: 'Unlocks cash',
         'bank_transfer+cash_pitbull': 'Unlocks transfer and cash',
+      },
+      codeChannelsOnlyBadge: {
+        bank_transfer: 'Bank transfer only',
+        cash_pitbull: 'Cash only',
+        'bank_transfer+cash_pitbull': 'No Mercado Pago',
       },
       comboAudienceLabel: 'Who sees the combo',
       comboAudience: {

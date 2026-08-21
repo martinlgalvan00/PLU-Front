@@ -513,6 +513,28 @@ export function createAthleteRoutes({
       manualPaymentChannel(body.paymentMethod),
     )
   }
+  /**
+   * El otro sentido del mismo dato: un código que CIERRA la pasarela
+   * (`mercado_pago_enabled = false`, ver 20260908100000) no se puede pagar con
+   * Mercado Pago aunque Administración la tenga abierta. Sólo se consulta para
+   * Mercado Pago; los canales manuales los decide `manualChannelOverride`.
+   *
+   * El mensaje es lo único que aporta: la guarda dura está en
+   * `apply_discount_code_to_order` (PLU28) y voltea la orden entera. Si el
+   * repositorio no expone la lectura —un doble de test viejo—, no bloquea:
+   * dejar caer el checkout por una lectura ausente sería peor que un 409 con el
+   * mensaje de la RPC.
+   */
+  const assertCodeAcceptsMercadoPago = async (body, scope) => {
+    if (isManualPaymentMethod(body?.paymentMethod)) return
+    if (!body?.discountCode || typeof repo().discountCodeChannelPolicy !== 'function') return
+    const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
+    if (!policy?.found || policy.mercadoPagoEnabled !== false) return
+    throw new HttpError(409, 'Ese código no se puede pagar con Mercado Pago.', {
+      code: 'PLU28',
+      manualChannels: policy.manualChannels,
+    })
+  }
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
   const adminGuard = requirePermission(
@@ -1246,6 +1268,7 @@ export function createAthleteRoutes({
         assertPaymentChannelEnabled(toggles, 'membership', membershipChannel, {
           override: await manualChannelOverride(req.validatedBody, 'membership'),
         })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'membership')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -1307,6 +1330,7 @@ export function createAthleteRoutes({
         assertPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
           override: await manualChannelOverride(req.validatedBody, 'registration'),
         })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'registration')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
@@ -1385,6 +1409,7 @@ export function createAthleteRoutes({
         assertPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
         })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'combo')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
