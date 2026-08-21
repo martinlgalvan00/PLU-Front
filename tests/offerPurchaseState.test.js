@@ -70,10 +70,11 @@ describe('estado de la compra en el payload (migración)', () => {
    * payload hay que venir acá, verificar que el test de arriba siga cubriendo lo
    * que la ficha usa y mover el nombre. 20260908100000 lo redefinió para agregar
    * `mercadoPagoEnabled` —los medios que habilita el código— conservando el
-   * cuerpo de este archivo.
+   * cuerpo de este archivo. 20260909100000 vuelve a definirlo para sumar la
+   * condicion financiada y el aviso manual sin perder los campos anteriores.
    */
   it('es esta migración la que está vigente', () => {
-    expect(lastPayloadMigration()).toBe('20260908100000_promo_code_mercado_pago_optout.sql')
+    expect(lastPayloadMigration()).toBe('20260909100000_financed_manual_confirmation.sql')
   })
 
   it('la definición vigente también dice qué medios habilita el código', () => {
@@ -83,6 +84,8 @@ describe('estado de la compra en el payload (migración)', () => {
     )
     expect(payload).toContain("'manualChannels'")
     expect(payload).toContain("'mercadoPagoEnabled'")
+    expect(payload).toContain("'financingAllowed'")
+    expect(payload).toContain("'manualPaymentDeclaredAt'")
   })
 })
 

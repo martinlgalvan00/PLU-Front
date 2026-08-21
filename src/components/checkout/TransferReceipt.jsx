@@ -3,6 +3,7 @@ import { Check, Copy } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
 import TransferProofUpload from '../ui/TransferProofUpload.jsx'
+import ManualPaymentConfirmation from './ManualPaymentConfirmation.jsx'
 // Las reglas del recibo viven acá y las alcanzan dos scopes: el modal
 // (`.account-payment-modal--transfer`) y la liquidación en línea de la ficha de
 // la oferta (`.account-offer__manual`). Se importa desde el componente y no
@@ -69,6 +70,9 @@ export default function TransferReceipt({
   channel = 'bank_transfer',
   purpose = 'membership',
   warningId = 'transfer-verify',
+  financingAllowed = false,
+  manualPaymentDeclaredAt = null,
+  financedEntitlementsAt = null,
 }) {
   const { t } = useI18n()
   const [notes, setNotes] = useState('')
@@ -92,7 +96,11 @@ export default function TransferReceipt({
         <dl className="account-transfer-data account-transfer-data--receipt">
           <div className="account-transfer-data__row--alias">
             <dt>
-              {t(isWise ? 'account.membership.transferWiseEmail' : 'account.membership.transferAlias')}
+              {t(
+                isWise
+                  ? 'account.membership.transferWiseEmail'
+                  : 'account.membership.transferAlias',
+              )}
             </dt>
             {alias !== askAdmin ? (
               <CopyableValue
@@ -100,7 +108,9 @@ export default function TransferReceipt({
                 copyLabel={copyLabel}
                 copiedLabel={copiedLabel}
                 copyAria={copyAria(
-                  isWise ? 'account.membership.transferWiseEmail' : 'account.membership.transferAlias',
+                  isWise
+                    ? 'account.membership.transferWiseEmail'
+                    : 'account.membership.transferAlias',
                 )}
                 meta={isWise ? undefined : t('account.membership.transferAccountValue')}
               />
@@ -167,7 +177,18 @@ export default function TransferReceipt({
         />
       </label>
       {orderId ? (
-        <TransferProofUpload notes={notes} orderId={orderId} />
+        <>
+          <TransferProofUpload notes={notes} orderId={orderId} />
+          {!isWise ? (
+            <ManualPaymentConfirmation
+              channel={channel}
+              financedEntitlementsAt={financedEntitlementsAt}
+              financingAllowed={financingAllowed}
+              manualPaymentDeclaredAt={manualPaymentDeclaredAt}
+              orderId={orderId}
+            />
+          ) : null}
+        </>
       ) : (
         <p className="account-payment-modal__footnote">
           {isCompetition ? t('pages.register.transferHint') : t('account.membership.transferHint')}

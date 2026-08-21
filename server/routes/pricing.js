@@ -151,8 +151,7 @@ export const discountCodeSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['manualChannels'],
-        message:
-          'Si el codigo no acepta Mercado Pago, habilita al menos transferencia o efectivo.',
+        message: 'Si el codigo no acepta Mercado Pago, habilita al menos transferencia o efectivo.',
       })
     }
     // Mismo check que la RPC: una ventana que cierra antes de abrir es una
@@ -292,6 +291,7 @@ export const comboOfferSchema = z
     price: money,
     manualPrice: money.optional(),
     active: z.boolean().default(false),
+    financed: z.boolean().default(false),
     startsAt: optionalDateTime,
     endsAt: optionalDateTime,
     // Mismo eje que las promociones: 'public' lo ve cualquiera, 'code' sólo
@@ -325,10 +325,19 @@ export const comboOfferSchema = z
         message: 'Definí el código de acceso al combo (mínimo 3 caracteres).',
       })
     }
+    if (offer.financed && offer.audience !== 'code') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['financed'],
+        message: 'El financiamiento sólo puede habilitarse en un combo con código.',
+      })
+    }
   })
   // Un combo público no conserva el código: volver a restringirlo tiene que
   // obligar a elegir uno nuevo en vez de revivir el que ya se repartió.
-  .transform((offer) => (offer.audience === 'code' ? offer : { ...offer, accessCode: '' }))
+  .transform((offer) =>
+    offer.audience === 'code' ? offer : { ...offer, accessCode: '', financed: false },
+  )
 
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`

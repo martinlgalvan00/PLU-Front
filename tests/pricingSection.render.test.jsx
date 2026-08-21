@@ -53,15 +53,15 @@ it('copia el enlace con fallback, descarga el QR y expone un canje real tras val
     },
   })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }))
-    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/canjear/ONLY-PITBULL`)
-    expect(await screen.findByText('Enlace copiado')).toBeTruthy()
-    expect(execCommand).toHaveBeenCalledWith('copy')
+  fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }))
+  expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/canjear/ONLY-PITBULL`)
+  expect(await screen.findByText('Enlace copiado')).toBeTruthy()
+  expect(execCommand).toHaveBeenCalledWith('copy')
 
   fireEvent.click(screen.getByRole('button', { name: 'Descargar QR' }))
-    expect(generateCredentialQr).toHaveBeenCalledWith(
-      `${window.location.origin}/canjear/ONLY-PITBULL`,
-    )
+  expect(generateCredentialQr).toHaveBeenCalledWith(
+    `${window.location.origin}/canjear/ONLY-PITBULL`,
+  )
   expect(await screen.findByText('QR descargado')).toBeTruthy()
   expect(anchorClick).toHaveBeenCalled()
 
@@ -70,7 +70,7 @@ it('copia el enlace con fallback, descarga el QR y expone un canje real tras val
   expect(await screen.findByText('Recorrido verificado')).toBeTruthy()
   expect(screen.getByRole('link', { name: 'Abrir canje en otra pestaña' })).toHaveProperty(
     'href',
-      `${window.location.origin}/canjear/ONLY-PITBULL`,
+    `${window.location.origin}/canjear/ONLY-PITBULL`,
   )
   anchorClick.mockRestore()
 })
@@ -206,6 +206,47 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.click(within(visibility).getByRole('radio', { name: /Privada/ }))
     expect(screen.queryByLabelText('Código de acceso')).toBeNull()
     expect(screen.getByText(/Al guardar como privada/)).toBeTruthy()
+  })
+
+  it('expone financiamiento solo para un combo con codigo y lo envia al guardar', async () => {
+    const onSaveComboOffer = vi.fn(async () => ({}))
+    renderPricing({
+      onSaveComboOffer,
+      configuration: {
+        ...configuration,
+        events: [
+          {
+            ...configuration.events[0],
+            comboOffer: {
+              membershipPlanId: 'plan-active',
+              price: 1,
+              active: true,
+              audience: 'code',
+              accessCode: 'ONLY-PITBULL',
+              financed: false,
+            },
+          },
+        ],
+      },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Editar oferta/ }))
+    const financing = screen.getByRole('checkbox', {
+      name: /Permitir financiamiento con este código/,
+    })
+    fireEvent.click(financing)
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar oferta' }))
+
+    expect(onSaveComboOffer).toHaveBeenCalledWith(
+      'pitbull-classic',
+      expect.objectContaining({ audience: 'code', financed: true }),
+    )
+
+    const visibility = screen.getByRole('group', { name: 'Visibilidad comercial' })
+    fireEvent.click(within(visibility).getByRole('radio', { name: /Pública/ }))
+    expect(
+      screen.queryByRole('checkbox', { name: /Permitir financiamiento con este código/ }),
+    ).toBeNull()
   })
 
   it('explica el recorrido secreto y sólo lista combos restringidos', async () => {

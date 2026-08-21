@@ -70,6 +70,7 @@ import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.
 import FeatureComingSoon from '../components/ui/FeatureComingSoon.jsx'
 import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/RegisterSettle.jsx'
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
+import ManualPaymentConfirmation from '../components/checkout/ManualPaymentConfirmation.jsx'
 import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
 import { previewCheckoutPrice, toApiPaymentMethod } from '../services/checkoutPricing.js'
 import { getMissingCompetitionProfileFields } from '../services/competitionProfile.js'
@@ -1173,7 +1174,8 @@ export default function RegisterPage({
    * resolvió, cerrar la pasarela dejaría la pantalla sin ningún medio, y el 409
    * del backend sigue siendo la última palabra.
    */
-  const codeClosesMercadoPago = discountPreview?.valid && discountPreview.mercadoPagoEnabled === false
+  const codeClosesMercadoPago =
+    discountPreview?.valid && discountPreview.mercadoPagoEnabled === false
   const mercadoPagoEnabled =
     !codeClosesMercadoPago &&
     channelOpen(checkoutAvailability, 'membership', 'mercado_pago') &&
@@ -1807,7 +1809,16 @@ export default function RegisterPage({
               <div className="register-status__manual-actions">
                 <p className="manual-note">{t('pages.register.manualNote')}</p>
                 {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
-                  <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
+                  <>
+                    <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
+                    <ManualPaymentConfirmation
+                      channel="cash_pitbull"
+                      financedEntitlementsAt={visibleOrder.financedEntitlementsAt}
+                      financingAllowed={visibleOrder.financingAllowed}
+                      manualPaymentDeclaredAt={visibleOrder.manualPaymentDeclaredAt}
+                      orderId={visibleOrder.paymentId ?? visibleOrder.id ?? null}
+                    />
+                  </>
                 ) : flow === 'competition' ? (
                   <button
                     type="button"
@@ -2051,6 +2062,14 @@ export default function RegisterPage({
                     settle
                   />
                 </div>
+              ) : visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
+                <ManualPaymentConfirmation
+                  channel="cash_pitbull"
+                  financedEntitlementsAt={visibleOrder.financedEntitlementsAt}
+                  financingAllowed={visibleOrder.financingAllowed}
+                  manualPaymentDeclaredAt={visibleOrder.manualPaymentDeclaredAt}
+                  orderId={visibleOrder.paymentId ?? visibleOrder.id ?? null}
+                />
               ) : (
                 <div className="register-settle__toolbar">
                   <div className="register-settle__nav">
@@ -2851,6 +2870,9 @@ export default function RegisterPage({
             (form.paymentMethod === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')
           }
           orderId={transferOrderId ?? visibleOrder?.paymentId ?? visibleOrder?.id ?? null}
+          financingAllowed={visibleOrder?.financingAllowed === true}
+          manualPaymentDeclaredAt={visibleOrder?.manualPaymentDeclaredAt ?? null}
+          financedEntitlementsAt={visibleOrder?.financedEntitlementsAt ?? null}
           onClose={() => setTransferOpen(false)}
           purpose={flow === 'membership' ? 'membership' : 'competition'}
         />

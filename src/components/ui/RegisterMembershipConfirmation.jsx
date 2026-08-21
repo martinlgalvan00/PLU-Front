@@ -9,6 +9,7 @@ import { getStatusMeta } from '../../lib/status.js'
 import { useMotionConfig } from '../../motion/MotionProvider'
 import { MOTION_EASE } from '../../motion/tokens'
 import MercadoPagoEmbeddedCheckout from './MercadoPagoEmbeddedCheckout.jsx'
+import ManualPaymentConfirmation from '../checkout/ManualPaymentConfirmation.jsx'
 
 /* Secuencia one-shot al montar (no whileInView: la pantalla ya está a la
    vista cuando aparece). La pieza entra como una sola composición y los
@@ -174,9 +175,18 @@ export default function RegisterMembershipConfirmation({
               el comprobante solo se podía adjuntar entrando después a la
               cuenta, y Finanzas aprobaba sin evidencia. */}
           {isCashAtPitbull ? (
-            <p className="register-membership-confirmation__manual">
-              {t('pages.register.cashPitbullCreated')}
-            </p>
+            <>
+              <p className="register-membership-confirmation__manual">
+                {t('pages.register.cashPitbullCreated')}
+              </p>
+              <ManualPaymentConfirmation
+                channel="cash_pitbull"
+                financedEntitlementsAt={order.financedEntitlementsAt}
+                financingAllowed={order.financingAllowed}
+                manualPaymentDeclaredAt={order.manualPaymentDeclaredAt}
+                orderId={order.paymentId ?? order.id ?? null}
+              />
+            </>
           ) : order.paymentId && onOpenTransfer ? (
             <button
               type="button"

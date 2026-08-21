@@ -1592,6 +1592,20 @@ export function createAthleteRoutes({
    * Finanzas aprobaba sin evidencia adjunta.
    */
   router.post(
+    '/me/payment-orders/:orderId/manual-confirmation',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(await repo().confirmManualPayment(auth.athleteId, orderId.data))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.post(
     '/me/payment-orders/:orderId/proof-upload',
     athleteWriteLimiter,
     validateBody(proofUploadSchema),

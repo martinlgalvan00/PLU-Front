@@ -148,7 +148,7 @@ export default {
       },
       table: {
         title: 'Each event in detail',
-        body: "Tap any row to see the full detail -- including the payment trace when the event is tied to a payment order.",
+        body: 'Tap any row to see the full detail -- including the payment trace when the event is tied to a payment order.',
       },
     },
     events: {
@@ -748,6 +748,9 @@ export default {
       comboAccessCodePlaceholder: 'e.g. COMBO-PITBULL',
       comboAccessCodeHint:
         'Uppercase, numbers and hyphens. This is what you hand out: switching the combo to public clears it.',
+      comboFinanced: 'Allow financing with this code',
+      comboFinancedHint:
+        'When the athlete reports a transfer or cash handoff, membership and registration are enabled while Finance keeps the balance open.',
       comboAccessCodeInvalid: 'The combo access code must be uppercase, numbers and hyphens.',
       deleteCombo: 'Delete combo',
       comboDeleted: 'Combo offer deleted.',
@@ -2743,12 +2746,14 @@ export default {
     openAmount: '{{amount}} awaiting settlement',
     refresh: 'Refresh',
     filterPending: 'To review',
-    filterManual: 'With receipt',
+    filterManual: 'Under review',
     filterApproved: 'Approved',
     filterAll: 'All',
     rejectedBy: 'Rejected by {{actor}}',
     columnProof: 'Receipt',
     proofMissing: 'No receipt',
+    declared: 'Declared by athlete',
+    financedActive: 'Financed · access active',
     proofError: 'Could not open the receipt.',
     webhookOnly: 'Mercado Pago settles through the webhook',
     forceSettle: 'Settle manually',

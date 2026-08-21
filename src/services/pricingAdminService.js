@@ -148,6 +148,7 @@ export function mapPricingConfiguration(payload = {}) {
             price: Number(event.comboOffer.price) || 0,
             manualPrice:
               event.comboOffer.manualPrice != null ? Number(event.comboOffer.manualPrice) : null,
+            financed: event.comboOffer.financed === true,
           }
         : null,
     })),

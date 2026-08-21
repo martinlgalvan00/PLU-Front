@@ -176,6 +176,19 @@ describe('configuración económica administrativa', () => {
     ).toBe(false)
   })
 
+  it('solo permite financiamiento en combos restringidos por codigo', () => {
+    const base = {
+      membershipPlanId: PLAN_ID,
+      price: 60000,
+      active: true,
+      accessCode: 'CLUB-PLU',
+      financed: true,
+    }
+    expect(comboOfferSchema.safeParse({ ...base, audience: 'code' }).success).toBe(true)
+    expect(comboOfferSchema.safeParse({ ...base, audience: 'public' }).success).toBe(false)
+    expect(comboOfferSchema.safeParse({ ...base, audience: 'private' }).success).toBe(false)
+  })
+
   it('crea cupones para afiliaciones e inscripciones y conserva sus límites', async () => {
     const { cookie, rpc, target } = await setup()
     try {

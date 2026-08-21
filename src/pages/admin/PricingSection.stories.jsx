@@ -55,6 +55,7 @@ const configuration = {
         active: true,
         audience: 'code',
         accessCode: 'ONLY-PITBULL',
+        financed: true,
       },
     },
   ],

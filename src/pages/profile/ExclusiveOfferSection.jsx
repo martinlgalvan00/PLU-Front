@@ -16,6 +16,7 @@ import {
 import { ChoiceField, Field } from '../../components/ui/FormFields.jsx'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import TransferReceipt from '../../components/checkout/TransferReceipt.jsx'
+import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentConfirmation.jsx'
 import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
 
 const COMPETITION_FIELDS = ['division', 'category', 'estimatedWeight']
@@ -194,7 +195,8 @@ export default function ExclusiveOfferSection({
   const checkoutEvent = catalogEvent ?? offer.event
   const checkoutOpen = channels.length > 0
   const payDisabled = submitting || !checkoutOpen
-  const settleChannel = manualSettlement?.channel ?? (step === 'pay' ? 'mercado_pago' : activeChannel)
+  const settleChannel =
+    manualSettlement?.channel ?? (step === 'pay' ? 'mercado_pago' : activeChannel)
 
   function updateEntry(event) {
     const { name, value } = event.target
@@ -367,9 +369,7 @@ export default function ExclusiveOfferSection({
                 <p className="account-offer__settle-note">
                   <ShieldCheck size={14} aria-hidden />
                   {t(
-                    manualSettlement
-                      ? 'account.offer.payManualNote'
-                      : 'account.offer.paySafeNote',
+                    manualSettlement ? 'account.offer.payManualNote' : 'account.offer.paySafeNote',
                   )}
                 </p>
               </div>
@@ -382,11 +382,7 @@ export default function ExclusiveOfferSection({
                   <div className="account-offer__cash">
                     <p className="account-offer__cash-lead">
                       {t('account.offer.cashLead', {
-                        amount: money(
-                          manualSettlement.amount,
-                          locale,
-                          manualSettlement.currency,
-                        ),
+                        amount: money(manualSettlement.amount, locale, manualSettlement.currency),
                       })}
                     </p>
                     {manualSettlement.reference ? (
@@ -396,6 +392,14 @@ export default function ExclusiveOfferSection({
                       </p>
                     ) : null}
                     <p className="account-offer__fine">{t('account.offer.cashFine')}</p>
+                    <ManualPaymentConfirmation
+                      channel="cash_pitbull"
+                      financedEntitlementsAt={manualSettlement.financedEntitlementsAt}
+                      financingAllowed={manualSettlement.financingAllowed}
+                      manualPaymentDeclaredAt={manualSettlement.manualPaymentDeclaredAt}
+                      orderId={manualSettlement.orderId}
+                      onConfirmed={() => void onOfferRefresh?.()}
+                    />
                   </div>
                 ) : (
                   // El recibo comparte los datos bancarios con el modal del
@@ -408,6 +412,9 @@ export default function ExclusiveOfferSection({
                       orderId={manualSettlement.orderId}
                       purpose="competition"
                       warningId="account-offer-transfer-verify"
+                      financingAllowed={manualSettlement.financingAllowed}
+                      manualPaymentDeclaredAt={manualSettlement.manualPaymentDeclaredAt}
+                      financedEntitlementsAt={manualSettlement.financedEntitlementsAt}
                     />
                   </div>
                 )
@@ -504,10 +511,7 @@ export default function ExclusiveOfferSection({
                   className="account-offer__channel"
                   label={t('account.offer.channelLegend')}
                   name="offer-payment-channel"
-                  options={channels.map((option) => [
-                    option,
-                    t(`account.offer.channel.${option}`),
-                  ])}
+                  options={channels.map((option) => [option, t(`account.offer.channel.${option}`)])}
                   value={activeChannel}
                   onChange={(event) => {
                     setChannel(event.target.value)

@@ -750,6 +750,9 @@ export default {
       comboAccessCodePlaceholder: 'Ej: COMBO-PITBULL',
       comboAccessCodeHint:
         'Mayúsculas, números y guiones. Es el que repartís: pasar el combo a público lo borra.',
+      comboFinanced: 'Permitir financiamiento con este código',
+      comboFinancedHint:
+        'Cuando el atleta avisa que transfirió o entregó efectivo, se habilitan afiliación e inscripción; la deuda sigue abierta para Finanzas.',
       comboAccessCodeInvalid:
         'El código de acceso al combo tiene que ser mayúsculas, números y guiones.',
       deleteCombo: 'Eliminar combo',
@@ -2779,12 +2782,14 @@ export default {
     openAmount: '{{amount}} por acreditar',
     refresh: 'Actualizar',
     filterPending: 'Por validar',
-    filterManual: 'Con comprobante',
+    filterManual: 'En revisión',
     filterApproved: 'Aprobadas',
     filterAll: 'Todas',
     rejectedBy: 'Rechazada por {{actor}}',
     columnProof: 'Comprobante',
     proofMissing: 'Sin comprobante',
+    declared: 'Declarado por atleta',
+    financedActive: 'Financiado · derechos activos',
     proofError: 'No se pudo abrir el comprobante.',
     webhookOnly: 'Mercado Pago se acredita por webhook',
     forceSettle: 'Acreditar a mano',
