@@ -274,36 +274,6 @@ export default function MembershipsSection({
     [projectedMemberships, query, status, expiring, registeredToTournament],
   )
 
-  // Métricas de gestión, no un recuento de estados: lo que el admin necesita
-  // saber de un vistazo es cuántos socios cubre hoy la afiliación, cuántos
-  // entraron este mes, a quiénes hay que ir a renovar y cuánto quedó trabado
-  // esperando pago.
-  const stats = useMemo(
-    () => [
-      {
-        label: t('admin.sections.memberships.statActive'),
-        value: metrics.active,
-        tone: 'success',
-      },
-      {
-        label: t('admin.sections.memberships.statNewThisMonth'),
-        value: metrics.newThisMonth,
-        tone: 'default',
-      },
-      {
-        label: t('admin.sections.memberships.statExpiringSoon'),
-        value: metrics.expiringSoon,
-        tone: 'warning',
-      },
-      {
-        label: t('admin.sections.memberships.statPendingPayment'),
-        value: metrics.pendingPayment,
-        tone: metrics.pendingPayment > 0 ? 'warning' : 'default',
-      },
-    ],
-    [metrics, t],
-  )
-
   return (
     <>
       <AdminPaymentReconciliationAlert
@@ -324,11 +294,10 @@ export default function MembershipsSection({
         placeholder={t('admin.search.membership')}
         query={query}
         showHeader
-        showStats
+        showStats={false}
         eyebrow={t('admin.sections.memberships.eyebrow')}
         title={t('admin.sections.memberships.title')}
         subtitle={t('admin.sections.memberships.subtitle')}
-        stats={stats}
         totalCount={memberships.length}
         filters={[
           {

@@ -234,8 +234,8 @@ export function useAppData() {
   const [athleteDataRefreshing, setAthleteDataRefreshing] = useState(false)
   const [athleteDataSyncedAt, setAthleteDataSyncedAt] = useState(null)
   const [athleteDataError, setAthleteDataError] = useState(null)
-  // Las entradas viven en Postgres, no en localStorage â€” este estado es
-  // solo un cache de lo Ãºltimo que se creÃ³/consultÃ³ vÃ­a la API real.
+  // Las entradas viven en Postgres, no en localStorage — este estado es
+  // solo un cache de lo último que se creó/consultó vía la API real.
   const [tickets, setTickets] = useState([])
   const [pendingTicketOrders, setPendingTicketOrders] = useState([])
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
@@ -1274,11 +1274,11 @@ export function useAppData() {
     [submitCompetition],
   )
 
-  // Compra pÃºblica de entradas â€” no requiere cuenta ni sesiÃ³n: cualquiera
+  // Compra pública de entradas — no requiere cuenta ni sesión: cualquiera
   // puede comprar para un evento dando el DNI de cada asistente. A
   // diferencia del resto del dominio, esto habla con el backend real
-  // (Postgres): es la parte del sistema que necesita la garantÃ­a dura de
-  // "no se puede duplicar/reusar", y esa garantÃ­a no existe sin una base
+  // (Postgres): es la parte del sistema que necesita la garantía dura de
+  // "no se puede duplicar/reusar", y esa garantía no existe sin una base
   // de datos real arbitrando el check-in.
   const submitTicketPurchase = useCallback(
     async (event, purchaseEvent, attendees, paymentMethod) => {
@@ -1458,14 +1458,14 @@ export function useAppData() {
       setPendingTicketOrders(orders)
     } catch (error) {
       console.error('refreshPendingTicketOrders:', error)
-      setPendingTicketOrdersError(error.message ?? 'No se pudieron cargar las Ã³rdenes pendientes.')
+      setPendingTicketOrdersError(error.message ?? 'No se pudieron cargar las órdenes pendientes.')
     } finally {
       setPendingTicketOrdersLoading(false)
     }
   }, [session])
 
   // Check-in en la puerta: el backend valida el qrToken y lo marca como
-  // usado de forma atÃ³mica â€” dos escaneos simultÃ¡neos del mismo QR no
+  // usado de forma atómica — dos escaneos simultáneos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
   useEffect(() => {
     if (!hasPermission(session, 'admin.payments.read')) return undefined
@@ -1513,9 +1513,9 @@ export function useAppData() {
     }
   }, [])
 
-  // Refresca la lista de entradas de un evento desde el backend real â€”
+  // Refresca la lista de entradas de un evento desde el backend real —
   // la usa el panel de Seguridad, que necesita ver compras hechas desde
-  // cualquier dispositivo, no solo las de esta pestaÃ±a.
+  // cualquier dispositivo, no solo las de esta pestaña.
   const refreshTickets = useCallback(async (eventSlug) => {
     try {
       const { tickets: apiTickets } = await listTicketsForEventRequest(eventSlug)
@@ -1525,7 +1525,7 @@ export function useAppData() {
     }
   }, [])
 
-  // Check-in en la puerta para un atleta inscripto (competidor) â€” separado
+  // Check-in en la puerta para un atleta inscripto (competidor) — separado
   // del check-in de entradas porque los atletas no tienen ticketCode/QR de
   // entrada, se buscan directo por su fila en el panel de seguridad.
   const checkInRegistrationAction = useCallback(
@@ -2132,7 +2132,7 @@ export function useAppData() {
         }
 
         // La cuenta de seguridad SÃ pasa por el backend real (mÃ¡s abajo, loginRequest):
-        // necesita una sesiÃ³n de verdad porque el check-in muta datos reales en Postgres,
+        // necesita una sesión de verdad porque el check-in muta datos reales en Postgres,
         // a diferencia del resto de la demo que vive en localStorage.
       }
 

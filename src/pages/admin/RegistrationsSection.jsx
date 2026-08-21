@@ -464,34 +464,8 @@ export default function RegistrationsSection({
         placeholder={t('admin.search.registration')}
         query={filters.query ?? ''}
         showHeader
-        showStats={!isGloballyEmpty}
+        showStats={false}
         showFilters={!isGloballyEmpty}
-        stats={
-          isGloballyEmpty
-            ? []
-            : [
-                {
-                  label: t('admin.registrations.stats.total'),
-                  value: statusCounts.all ?? total,
-                  tone: 'default',
-                },
-                {
-                  label: t('admin.registrations.stats.pending'),
-                  value: statusCounts.pendiente_pago ?? 0,
-                  tone: 'warning',
-                },
-                {
-                  label: t('admin.registrations.stats.manual'),
-                  value: statusCounts.validacion_manual ?? 0,
-                  tone: 'warning',
-                },
-                {
-                  label: t('admin.registrations.stats.confirmed'),
-                  value: statusCounts.confirmada ?? 0,
-                  tone: 'success',
-                },
-              ]
-        }
         title={t('admin.sections.registrations.title')}
         subtitle={t('admin.sections.registrations.subtitle')}
         totalCount={total}

@@ -1904,7 +1904,7 @@
 }
 
 .login-field__error {
-  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 92%, var(--color-text-primary));
+  color: color-mix(in srgb, var(--color-brand-red) 92%, var(--color-text-primary));
   font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
@@ -1913,6 +1913,12 @@
   align-items: flex-start;
   gap: 6px;
   animation: slide-down-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* El ícono del control también marca el error: el texto rojo bajo el campo
+   quedaba como única señal y se perdía al escanear rápido el formulario. */
+.login-field.is-invalid .login-field__icon {
+  color: var(--color-brand-red);
 }
 
 .login-field__error .error-icon,
@@ -1932,24 +1938,26 @@
   }
 }
 
+/* Misma gramática que el error de campo (ícono + texto, sin caja): este
+   formulario no usa cards ni superficies elevadas en ningún otro estado, y
+   el bloque con fondo tintado y borde de acento a la izquierda rompía esa
+   regla — leía como alerta de plantilla, no como parte del formulario. */
 .form-submit-error {
-  background: color-mix(in srgb, var(--color-brand-red, #e35d5d) 8%, transparent);
-  border-left: 2px solid var(--color-brand-red, #e35d5d);
-  border-radius: 4px;
-  color: color-mix(in srgb, var(--color-brand-red, #e35d5d) 84%, var(--color-text-primary));
+  align-items: flex-start;
+  animation: slide-down-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  border-top: 1px solid color-mix(in srgb, var(--color-brand-red) 22%, transparent);
+  color: color-mix(in srgb, var(--color-brand-red) 88%, var(--color-text-primary));
+  display: flex;
   font-size: 13px;
+  gap: 8px;
   line-height: 1.5;
   margin-top: 28px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  animation: slide-down-fade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  padding-top: 14px;
 }
 
 .login-field.is-invalid .login-field__control {
-  border-bottom-color: var(--color-brand-red, #e35d5d);
-  background: color-mix(in srgb, var(--color-brand-red, #e35d5d) 4%, transparent);
+  border-bottom-color: var(--color-brand-red);
+  background: color-mix(in srgb, var(--color-brand-red) 4%, transparent);
 }
 
 .login-form__back {
@@ -4512,6 +4520,19 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   color: var(--plu-red-500);
   font-size: 12px;
   margin-top: 4px;
+}
+
+/* La variante immersive define su propio border-bottom (underline) con la
+   misma especificidad que la regla base is-invalid: sin este override el
+   campo inválido se quedaba sin ninguna señal visual en el control, solo el
+   texto pequeño debajo lo avisaba. */
+.auth-immersive-glass .login-field.is-invalid .login-field__control {
+  border-bottom-color: var(--plu-red-500);
+}
+
+.auth-immersive-glass .form-submit-error {
+  border-top-color: color-mix(in srgb, var(--plu-red-500) 26%, transparent);
+  color: var(--plu-red-500);
 }
 
 /* rgba(255,255,255) fijo dejaba borde y texto blancos sobre canvas claro:

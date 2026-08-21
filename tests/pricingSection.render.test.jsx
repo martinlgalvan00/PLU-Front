@@ -178,6 +178,50 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByRole('button', { name: 'Guardar oferta' })).toBeTruthy()
   })
 
+  it('conserva el borrador del combo ante una sincronización mientras se edita', () => {
+    const view = renderPricing({
+      configuration: {
+        ...configuration,
+        events: [
+          {
+            ...configuration.events[0],
+            comboOffer: { membershipPlanId: 'plan-active', price: 1, active: true },
+          },
+        ],
+      },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Editar oferta/ }))
+    const price = screen.getByLabelText('Precio combo')
+    fireEvent.change(price, { target: { value: '999' } })
+
+    // La API entrega objetos nuevos en cada refresh, aun sin cambios para este
+    // combo. Esa actualización no debe pisar el trabajo sin guardar.
+    view.rerender(
+      <I18nProvider>
+        <PricingSection
+          canEdit
+          configuration={{
+            ...configuration,
+            events: [
+              {
+                ...configuration.events[0],
+                comboOffer: { membershipPlanId: 'plan-active', price: 1, active: true },
+              },
+            ],
+          }}
+          onCreatePlanVersion={vi.fn(async () => ({}))}
+          onRefresh={vi.fn()}
+          onSaveComboOffer={vi.fn(async () => ({}))}
+          onSetPlanActive={vi.fn(async () => ({}))}
+          onSetPlanRetirement={vi.fn(async () => ({}))}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByLabelText('Precio combo')).toHaveProperty('value', '999')
+  })
+
   it('separa habilitación de los tres estados de visibilidad del combo', () => {
     renderPricing({
       configuration: {

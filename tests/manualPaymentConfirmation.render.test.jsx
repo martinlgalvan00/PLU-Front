@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 const confirmAthleteManualPayment = vi.fn()
@@ -9,6 +9,10 @@ vi.mock('../src/services/athleteApi.js', () => ({ confirmAthleteManualPayment })
 const ManualPaymentConfirmation = (
   await import('../src/components/checkout/ManualPaymentConfirmation.jsx')
 ).default
+const TransferReceipt = (await import('../src/components/checkout/TransferReceipt.jsx')).default
+
+afterEach(cleanup)
+beforeEach(() => confirmAthleteManualPayment.mockReset())
 
 describe('ManualPaymentConfirmation', () => {
   it('declara la transferencia y explica la habilitacion financiada sin llamarla pago', async () => {
@@ -49,5 +53,34 @@ describe('ManualPaymentConfirmation', () => {
       </I18nProvider>,
     )
     expect(screen.getByRole('button', { name: 'Ya entregué el efectivo' })).toBeTruthy()
+  })
+
+  it('la transferencia avisa a la ficha para releer FIAR y retirarse', async () => {
+    confirmAthleteManualPayment.mockResolvedValue({
+      order: {
+        id: 'order-fiar',
+        status: 'validacion_manual',
+        financingAllowed: true,
+        manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
+        financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
+      },
+      entitlementsGranted: true,
+    })
+    const onConfirmed = vi.fn()
+
+    render(
+      <I18nProvider>
+        <TransferReceipt
+          athlete={{ documentId: '30111222', fullName: 'Ana Pérez' }}
+          financingAllowed
+          onConfirmed={onConfirmed}
+          orderId="order-fiar"
+        />
+      </I18nProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ya transferí' }))
+    await waitFor(() => expect(onConfirmed).toHaveBeenCalledTimes(1))
+    expect(onConfirmed.mock.calls[0][0]).toMatchObject({ entitlementsGranted: true })
   })
 })

@@ -7,6 +7,7 @@ import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import { hasPlayedCredentialMerge } from '../lib/credentialMerge.js'
 import {
+  ACCOUNT_BENEFITS_TAB,
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
   ACCOUNT_OFFER_TAB,
@@ -15,13 +16,12 @@ import {
 } from '../lib/navigation.js'
 import { isRegistrationAdmitted } from '../lib/status.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
-import { pickPrimaryOffer } from '../services/exclusiveOfferService.js'
+import { getActionableOffers, pickPrimaryOffer } from '../services/exclusiveOfferService.js'
 import { fetchOfferUnlocks } from '../services/athleteApi.js'
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import EmailVerificationBanner from '../components/ui/EmailVerificationBanner.jsx'
 import GateMembershipBanner from '../components/ui/GateMembershipBanner.jsx'
-import SecretOfferCodeRedeemer from '../components/ui/SecretOfferCodeRedeemer.jsx'
 import AccountNav from './profile/AccountNav.jsx'
 import ProfileHero from './profile/ProfileHero.jsx'
 import QrCredentialSection from './profile/QrCredentialSection.jsx'
@@ -32,6 +32,7 @@ import MembershipPurchaseSection from './profile/MembershipPurchaseSection.jsx'
 import PaymentsSection from './profile/PaymentsSection.jsx'
 import PersonalDataSection from './profile/PersonalDataSection.jsx'
 import SecuritySection from './profile/SecuritySection.jsx'
+import PromotionBenefitsSection from './profile/PromotionBenefitsSection.jsx'
 
 export default function AthleteProfilePage({
   athlete,
@@ -59,6 +60,7 @@ export default function AthleteProfilePage({
   // `localStorage`: la ficha tiene que seguir estando después de un refresh y en
   // otro dispositivo — es el registro de lo que canjeó, no un estado de sesión.
   const [unlockedOffers, setUnlockedOffers] = useState([])
+  const [offersLoaded, setOffersLoaded] = useState(false)
   const mainRef = useRef(null)
   const isFirstTabRef = useRef(true)
 
@@ -90,9 +92,17 @@ export default function AthleteProfilePage({
   const athleteRegistrations = athleteId
     ? registrations.filter((item) => item.athleteId === athleteId)
     : []
-  const athletePayments = athleteId
-    ? payments.filter((item) => item.athleteId === athleteId)
-    : []
+  const athletePayments = athleteId ? payments.filter((item) => item.athleteId === athleteId) : []
+  const offerLifecycleKey = athletePayments
+    .map((payment) =>
+      [
+        payment.id,
+        payment.status,
+        payment.manualPaymentDeclaredAt,
+        payment.financedEntitlementsAt,
+      ].join(':'),
+    )
+    .join('|')
   const availableEvents = (events.length ? events : UPCOMING_EVENTS).filter(
     (event) => event.status !== 'finalizado',
   )
@@ -125,13 +135,23 @@ export default function AthleteProfilePage({
       setUnlockedOffers(await fetchOfferUnlocks())
     } catch {
       setUnlockedOffers([])
+    } finally {
+      setOffersLoaded(true)
     }
   }, [])
 
   useEffect(() => {
     if (!athleteId || demoMode) return
     void loadUnlockedOffers()
-  }, [athleteId, demoMode, loadUnlockedOffers])
+  }, [athleteId, demoMode, loadUnlockedOffers, offerLifecycleKey])
+
+  const actionableOffers = getActionableOffers(unlockedOffers)
+  const primaryOffer = pickPrimaryOffer(actionableOffers)
+
+  useEffect(() => {
+    if (!offersLoaded || activeTab !== ACCOUNT_OFFER_TAB || primaryOffer) return
+    setActiveTab(ACCOUNT_EVENTS_TAB)
+  }, [activeTab, offersLoaded, primaryOffer])
 
   // Si la afiliación acaba de activarse y todavía no se vio el ritual de
   // fusión, saltamos al tab QR para mostrarlo (p.ej. tras pagar desde
@@ -158,7 +178,6 @@ export default function AthleteProfilePage({
 
   if (!athlete) return null
 
-  const primaryOffer = pickPrimaryOffer(unlockedOffers)
   // La ficha se dibuja sólo si hay algo que mostrar. `ACCOUNT_TAB_IDS` conserva
   // su posición para que la dirección de la transición no cambie según qué
   // fichas estén visibles.
@@ -168,7 +187,11 @@ export default function AthleteProfilePage({
   // La ficha de oferta puede desaparecer entre renders (la consulta todavía no
   // volvió, o el código venció). Sin esto, el panel quedaría vacío con la cinta
   // marcando un tab que ya no está.
-  const resolvedTab = visibleTabIds.includes(activeTab) ? activeTab : DEFAULT_ACCOUNT_TAB
+  const resolvedTab = visibleTabIds.includes(activeTab)
+    ? activeTab
+    : activeTab === ACCOUNT_OFFER_TAB
+      ? ACCOUNT_EVENTS_TAB
+      : DEFAULT_ACCOUNT_TAB
 
   const tabContent = {
     'account-qr': (
@@ -181,10 +204,19 @@ export default function AthleteProfilePage({
         onNavigate={onNavigate}
       />
     ),
+    [ACCOUNT_BENEFITS_TAB]: (
+      <PromotionBenefitsSection
+        session={session}
+        hasExclusiveOffer={Boolean(primaryOffer)}
+        onNavigate={onNavigate}
+        onNavigateSection={setActiveTab}
+        onOfferUnlocked={loadUnlockedOffers}
+      />
+    ),
     'account-offer': (
       <ExclusiveOfferSection
         offer={primaryOffer}
-        offers={unlockedOffers}
+        offers={actionableOffers}
         athlete={athlete}
         events={availableEvents}
         onSelectEvent={onSelectEvent}
@@ -277,20 +309,6 @@ export default function AthleteProfilePage({
             pendingEvents={gatePendingRegistrations}
             onCompleteMembership={() => setActiveTab('account-membership')}
           />
-          {/* Canje universal, fuera de `tabContent`: no importa qué ficha esté
-              abierta, el atleta siempre tiene dónde tipear un código, sea de
-              descuento, promoción u oferta exclusiva (mismo resolvedor). Se
-              oculta en Afiliación porque esa ficha ya tiene su propio campo
-              — el que calcula el precio del checkout — y mostrar los dos a
-              la vez es el mismo canje dos veces en la misma pantalla. */}
-          {resolvedTab !== 'account-membership' ? (
-            <SecretOfferCodeRedeemer
-              className="account-code-redeemer"
-              session={session}
-              onNavigate={onNavigate}
-              onOfferUnlocked={loadUnlockedOffers}
-            />
-          ) : null}
           {/* `sync` y no `wait`: el panel saliente sigue montado mientras entra
               el nuevo, así el contenedor no colapsa un frame y la página no da
               un salto de scroll en los tabs altos. Los dos paneles comparten la

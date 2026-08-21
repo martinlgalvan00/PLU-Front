@@ -27,9 +27,10 @@ export function getTransitionDirection(fromView, toView) {
   return toRank >= fromRank ? 'forward' : 'back'
 }
 
-const ATHLETE_DESTINATIONS = new Set(['membership', 'competition'])
+const ATHLETE_DESTINATIONS = new Set(['profile', 'membership', 'competition'])
 
 export const DEFAULT_ACCOUNT_TAB = 'account-qr'
+export const ACCOUNT_BENEFITS_TAB = 'account-benefits'
 export const ACCOUNT_MEMBERSHIP_TAB = 'account-membership'
 export const ACCOUNT_EVENTS_TAB = 'account-events'
 /**
@@ -53,6 +54,7 @@ export const ACCOUNT_PAYMENTS_TAB = 'account-payments'
  */
 export const ACCOUNT_TAB_IDS = [
   DEFAULT_ACCOUNT_TAB,
+  ACCOUNT_BENEFITS_TAB,
   // Segunda posición y no al final: una oferta exclusiva con cupo y ventana no
   // puede quedar escondida detrás de Seguridad.
   ACCOUNT_OFFER_TAB,
@@ -75,6 +77,8 @@ const ACCOUNT_TAB_BY_SECTION = Object.freeze({
   payments: ACCOUNT_PAYMENTS_TAB,
   membership: ACCOUNT_MEMBERSHIP_TAB,
   events: ACCOUNT_EVENTS_TAB,
+  benefits: ACCOUNT_BENEFITS_TAB,
+  beneficios: ACCOUNT_BENEFITS_TAB,
   offer: ACCOUNT_OFFER_TAB,
   history: 'account-history',
   security: 'account-security',

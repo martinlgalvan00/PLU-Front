@@ -172,27 +172,6 @@ export default function AthletesSection({
     gatePendingIds,
   ])
 
-  const stats = useMemo(
-    () => [
-      {
-        label: t('admin.sections.athletes.statActive'),
-        value: statusCounts.afiliado_activo ?? 0,
-        tone: 'success',
-      },
-      {
-        label: t('admin.sections.athletes.statExpired'),
-        value: statusCounts.afiliado_vencido ?? 0,
-        tone: 'warning',
-      },
-      {
-        label: t('admin.sections.athletes.statBlocked'),
-        value: statusCounts.bloqueado ?? 0,
-        tone: 'default',
-      },
-    ],
-    [statusCounts, t],
-  )
-
   return (
     <AdminListSection
       variant="athletes"
@@ -200,11 +179,10 @@ export default function AthletesSection({
       placeholder={t('admin.search.athlete')}
       query={query}
       showHeader
-      showStats
+      showStats={false}
       eyebrow={t('admin.sections.athletes.eyebrow')}
       title={t('admin.sections.athletes.title')}
       subtitle={t('admin.sections.athletes.subtitle')}
-      stats={stats}
       totalCount={athletes.length}
       filters={[
         {

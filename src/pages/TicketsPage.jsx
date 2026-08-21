@@ -12,7 +12,6 @@ import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
-import SecretOfferCodeRedeemer from '../components/ui/SecretOfferCodeRedeemer.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
   useTicketAvailability,
@@ -42,7 +41,6 @@ export default function TicketsPage({
   tickets = [],
   createdOrder,
   onNavigate,
-  session = null,
   onSubmitTicketPurchase,
   onUploadPaymentProof,
 }) {
@@ -366,11 +364,6 @@ export default function TicketsPage({
           </header>
 
           <div className="tickets-page__checkout-panel">
-            <SecretOfferCodeRedeemer
-              className="tickets-page__secret-code"
-              session={session}
-              onNavigate={onNavigate}
-            />
             {ticketSalesOpen ? (
               <TicketPurchaseSection
                 editorial

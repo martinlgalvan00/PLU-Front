@@ -142,6 +142,7 @@ describe('lectura de la compra en la ficha', () => {
     expect(state).toMatchObject({ available: false, reason: 'redeemed' })
     expect(state.resumable).toBeUndefined()
     expect(state.purchase.paid).toBe(true)
+    expect(pickPrimaryOffer([offerWith({ ...OPEN_PURCHASE, status: 'aprobado' })])).toBe(null)
   })
 
   it('la oferta con un pago abierto gana sobre una ya cobrada', () => {

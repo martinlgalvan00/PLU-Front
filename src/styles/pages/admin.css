@@ -167,7 +167,7 @@
   gap: 10px;
 }
 
-/* â”€â”€ Luxury dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Luxury dashboard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-dashboard--luxury {
   gap: 14px;
@@ -310,13 +310,13 @@
 
   .admin-kpi-more__summary::after {
     color: var(--color-text-muted);
-    content: 'â–¾';
+    content: '▾';
     flex: 0 0 auto;
     font-size: 11px;
   }
 
   .admin-kpi-more[open] .admin-kpi-more__summary::after {
-    content: 'â–´';
+    content: '▴';
   }
 
   .admin-kpi-more__count {
@@ -1897,7 +1897,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-/* â”€â”€ Dashboard spotlight + finance v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Dashboard spotlight + finance v2 Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-spotlight {
   display: grid;
@@ -2622,7 +2622,7 @@
   color: var(--color-brand-celeste);
 }
 
-/* â”€â”€ Admin events module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Admin events module Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-form {
   border-radius: 12px;
@@ -2688,10 +2688,10 @@
   gap: 0;
   margin-inline: -24px;
   /* `overflow-x: auto` fuerza a `overflow-y` a `auto` por spec (CSS Overflow
-     Â§3), y eso resetea el alto mÃ­nimo automÃ¡tico del Ã­tem a 0 dentro del grid
+     §3), y eso resetea el alto mínimo automático del ítem a 0 dentro del grid
      de `.admin-event-form` -- la fila colapsaba a los 2px del borde y el nav
-     de 40px quedaba invisible, aunque funcional (por eso nadie lo veÃ­a ni
-     saltaba de secciÃ³n; el editor se sentÃ­a como un scroll largo sin salida). */
+     de 40px quedaba invisible, aunque funcional (por eso nadie lo veía ni
+     saltaba de sección; el editor se sentía como un scroll largo sin salida). */
   min-height: min-content;
   overflow-x: auto;
   padding: 0 18px;
@@ -2849,8 +2849,8 @@
   border-color: color-mix(in oklab, #e35d5d 32%, transparent);
 }
 
-/* Carriles de "Ventas y cupos": inscripciÃ³n de atletas y entradas de pÃºblico
-   son dos vÃ­as simÃ©tricas de ingreso al evento, asÃ­ que se leen como dos
+/* Carriles de "Ventas y cupos": inscripción de atletas y entradas de público
+   son dos vías simétricas de ingreso al evento, así que se leen como dos
    bloques equivalentes en vez de dos secciones separadas del editor. */
 .admin-event-form__lane {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 1.8%, transparent);
@@ -3001,7 +3001,7 @@
   }
 }
 
-/* Contradicciones entre el estado pÃºblico elegido a mano y la configuraciÃ³n
+/* Contradicciones entre el estado público elegido a mano y la configuración
    real. Advierte, no bloquea: el guardado sigue disponible. */
 .admin-event-form__consistency {
   background: var(--admin-status-warning-bg);
@@ -3984,7 +3984,7 @@
   gap: 4px;
 }
 
-/* â”€â”€ Events workspace â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Events workspace Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-events-workspace {
   container-name: admin-events;
@@ -4057,7 +4057,7 @@
   margin: 0;
 }
 
-/* â”€â”€ Events toolbar & filter bar overrides â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Events toolbar & filter bar overrides Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-list-section--events {
   --admin-events-gutter: clamp(14px, 2.4vw, 22px);
@@ -4240,7 +4240,7 @@
   color: var(--plu-ink-900, var(--color-text-primary));
 }
 
-/* â”€â”€ Event list â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Event list Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-group {
   display: grid;
@@ -4304,7 +4304,7 @@
   text-align: center;
 }
 
-/* â”€â”€ Event row â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Event row Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-row {
   align-items: center;
@@ -4372,7 +4372,7 @@
   outline-offset: -2px;
 }
 
-/* Selected: single quiet celeste rail on the left â€” status itself is
+/* Selected: single quiet celeste rail on the left Ã¢â‚¬â€ status itself is
    already conveyed by the pill, so no per-row color coding. */
 .admin-event-row--selected {
   background: color-mix(in srgb, var(--color-brand-celeste) 7%, transparent);
@@ -5239,7 +5239,7 @@
 }
 
 /* =============================================
-   ADMIN WELCOME BANNER â€” glassmorphism premium
+   ADMIN WELCOME BANNER Ã¢â‚¬â€ glassmorphism premium
    ============================================= */
 
 .admin-welcome {
@@ -5346,17 +5346,15 @@
 
 /* Strip operativo siempre visible */
 .admin-payments-ops-strip {
-  align-items: stretch;
-  background: color-mix(in srgb, var(--admin-surface, var(--color-bg-surface)) 92%, transparent);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 14px;
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 12;
+  align-items: center;
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  margin-bottom: 2rem;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
@@ -5366,55 +5364,30 @@
 }
 
 .admin-payments-ops-strip__kpis {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
 }
 
 .admin-payments-ops-strip__kpi {
   align-items: flex-start;
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 2.5%, transparent);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 12px;
+  background: transparent;
+  border: none;
   color: inherit;
   cursor: pointer;
   display: flex;
-  gap: 10px;
-  min-height: 72px;
-  padding: 12px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  margin: -8px -12px;
+  border-radius: 8px;
   position: relative;
   text-align: left;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast);
-}
-
-.admin-payments-ops-strip__kpi::before {
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 20%, transparent);
-  border-radius: 3px 0 0 3px;
-  bottom: 10px;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 10px;
-  width: 2px;
-}
-
-.admin-payments-ops-strip__kpi--warning::before {
-  background: var(--admin-status-warning, var(--color-warning, #c9a227));
-}
-
-.admin-payments-ops-strip__kpi--danger::before {
-  background: var(--admin-status-danger, var(--color-danger, #c0392b));
-}
-
-.admin-payments-ops-strip__kpi--success::before {
-  background: var(--color-success-text, #3d9a5f);
+  transition: background 0.2s ease;
 }
 
 .admin-payments-ops-strip__kpi:hover {
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4.5%, transparent);
-  border-color: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 16%, transparent);
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
 }
 
 .admin-payments-ops-strip__kpi:focus-visible {
@@ -5423,25 +5396,7 @@
 }
 
 .admin-payments-ops-strip__kpi-icon {
-  align-items: center;
-  color: var(--admin-muted, var(--color-text-muted));
-  display: inline-flex;
-  flex-shrink: 0;
-  height: 28px;
-  justify-content: center;
-  width: 28px;
-}
-
-.admin-payments-ops-strip__kpi--warning .admin-payments-ops-strip__kpi-icon {
-  color: var(--admin-status-warning, var(--color-warning));
-}
-
-.admin-payments-ops-strip__kpi--danger .admin-payments-ops-strip__kpi-icon {
-  color: var(--admin-status-danger, var(--color-danger));
-}
-
-.admin-payments-ops-strip__kpi--success .admin-payments-ops-strip__kpi-icon {
-  color: var(--color-success-text, #3d9a5f);
+  display: none;
 }
 
 .admin-payments-ops-strip__kpi-body {
@@ -5451,19 +5406,19 @@
 }
 
 .admin-payments-ops-strip__kpi-value {
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .admin-payments-ops-strip__kpi--warning .admin-payments-ops-strip__kpi-value {
-  color: var(--admin-status-warning, var(--color-warning));
+  color: var(--admin-status-warning, var(--color-warning, #c9a227));
 }
 
 .admin-payments-ops-strip__kpi--danger .admin-payments-ops-strip__kpi-value {
-  color: var(--admin-status-danger, var(--color-danger));
+  color: var(--admin-status-danger, var(--color-danger, #c0392b));
 }
 
 .admin-payments-ops-strip__kpi--success .admin-payments-ops-strip__kpi-value {
@@ -6246,7 +6201,7 @@
 }
 
 /* =============================================
-   ADMIN METRIC CARD â€” premium rediseÃ±o
+   ADMIN METRIC CARD Ã¢â‚¬â€ premium rediseÃƒÂ±o
    ============================================= */
 
 .admin-metric {
@@ -6318,12 +6273,12 @@
   opacity: 1;
 }
 
-/* â”€â”€ Tone: default â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: default Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--default::before {
   background: var(--color-border-light);
 }
 
-/* â”€â”€ Tone: celeste â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: celeste Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--celeste {
   background:
     linear-gradient(145deg, rgba(116, 172, 223, 0.06) 0%, transparent 60%), var(--color-bg-surface);
@@ -6340,7 +6295,7 @@
     0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-/* â”€â”€ Tone: gold â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: gold Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--gold {
   background:
     linear-gradient(145deg, rgba(242, 183, 5, 0.06) 0%, transparent 60%), var(--color-bg-surface);
@@ -6357,7 +6312,7 @@
     0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-/* â”€â”€ Tone: alert/red â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: alert/red Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--alert {
   background:
     linear-gradient(145deg, rgba(225, 6, 0, 0.06) 0%, transparent 60%), var(--color-bg-surface);
@@ -6374,7 +6329,7 @@
     0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-/* â”€â”€ Icon â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Icon Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric__icon {
   align-items: center;
   background: rgba(255, 255, 255, 0.05);
@@ -6420,7 +6375,7 @@
   box-shadow: 0 4px 14px rgba(225, 6, 0, 0.3);
 }
 
-/* â”€â”€ Value â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Value Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric__value {
   color: var(--color-text-primary);
   display: block;
@@ -6435,7 +6390,7 @@
   color: var(--color-brand-red);
 }
 
-/* â”€â”€ Label â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Label Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric__label {
   color: var(--color-text-muted);
   font-size: 12px;
@@ -6445,7 +6400,7 @@
   text-transform: uppercase;
 }
 
-/* â”€â”€ Compact metric (dashboard) â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Compact metric (dashboard) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-metric--compact {
   align-items: center;
@@ -6618,7 +6573,7 @@
   outline: none;
 }
 
-/* â”€â”€ Admin list sections (Atletas, Afiliaciones) â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Admin list sections (Atletas, Afiliaciones) Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-page:has(.admin-list-section) {
   gap: 0;
@@ -7291,7 +7246,7 @@
   overscroll-behavior-x: contain;
 }
 
-/* â”€â”€â”€ Usuarios: alta rÃ¡pida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Usuarios: alta rÃƒÂ¡pida Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-users__add-form {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--color-border-subtle);
@@ -8943,7 +8898,7 @@
   border-color: color-mix(in srgb, var(--color-brand-celeste) 48%, rgba(15, 17, 23, 0.16));
 }
 
-/* â”€â”€â”€ Roles y permisos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Roles y permisos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-roles {
   display: grid;
   gap: 14px;
@@ -9081,9 +9036,9 @@
   white-space: nowrap;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SIDEBAR: lista de roles, plana, sin ningÃºn adorno
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   SIDEBAR: lista de roles, plana, sin ningún adorno
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* Sidebar: misma superficie que la matriz (sin tarjeta aparte) */
 .admin-roles__list {
   background: transparent;
@@ -9114,7 +9069,7 @@
   text-transform: uppercase;
 }
 
-/* BotÃ³n "Nuevo rol" â€” solo texto celeste, cero adornos */
+/* BotÃƒÂ³n "Nuevo rol" Ã¢â‚¬â€ solo texto celeste, cero adornos */
 .admin-roles__add {
   align-items: center;
   background: transparent;
@@ -9323,7 +9278,7 @@
   }
 }
 
-/* â”€â”€ NotificaciÃ³n / mensaje â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ NotificaciÃƒÂ³n / mensaje Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-roles__message {
   border-radius: 10px;
   font-size: 12.5px;
@@ -9346,9 +9301,9 @@
   color: var(--admin-ink, var(--color-text-primary));
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    PANEL DERECHO: header + matriz de permisos
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* PANEL: superficie plana (sin card) — head + activity + tabla + footer */
 .admin-roles__matrix-panel {
   background: transparent;
@@ -9480,9 +9435,9 @@
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   ÃREA DE SCROLL
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   ÃƒÂREA DE SCROLL
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__matrix-scroll {
   flex: 0 0 auto;
   min-height: 0;
@@ -9496,7 +9451,7 @@
   outline: none;
 }
 
-/* ═══ Tabla de permisos: módulo × acciones ═══ */
+/* â•â•â• Tabla de permisos: mÃ³dulo Ã— acciones â•â•â• */
 .admin-roles__perm-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -9704,16 +9659,16 @@
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TABLA PLANA â€” sin ninguna card, solo hairlines
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   TABLA PLANA Ã¢â‚¬â€ sin ninguna card, solo hairlines
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__matrix {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
 }
 
-/* ═══ TABLA COMPARATIVA: roles como columnas, permisos como filas ═══ */
+/* â•â•â• TABLA COMPARATIVA: roles como columnas, permisos como filas â•â•â• */
 
 /* Override base: la tabla comparativa usa layout de tabla real */
 .admin-roles__matrix--compare {
@@ -9942,14 +9897,14 @@
   border: 0;
   border-radius: 0;
   display: block;
-  margin-bottom: 28px; /* Espacio entre secciones / mÃ³dulos */
+  margin-bottom: 28px; /* Espacio entre secciones / módulos */
 }
 
 .admin-roles__matrix tbody tr:last-child {
   margin-bottom: 0;
 }
 
-/* Nombre del mÃ³dulo: etiqueta flotante, 100% plana */
+/* Nombre del módulo: etiqueta flotante, 100% plana */
 .admin-roles__matrix tbody th {
   background: transparent;
   border: 0;
@@ -9981,16 +9936,16 @@
     color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
 }
 
-/* Celda vacÃ­a: invisible */
+/* Celda vacía: invisible */
 .admin-roles__matrix .admin-roles__empty-cell {
   display: none;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    TOGGLE DE PERMISO
    Fila: [etiqueta izq] [switch der]
-   El switch es puro CSS â€” ningÃºn Ã­cono dentro del span
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   El switch es puro CSS Ã¢â‚¬â€ ningÃƒÂºn ÃƒÂ­cono dentro del span
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__permission {
   align-items: center;
   background: transparent;
@@ -10032,7 +9987,7 @@
   outline-offset: -2px;
 }
 
-/* Nombre de la acciÃ³n â€” tipografÃ­a limpia */
+/* Nombre de la acciÃƒÂ³n Ã¢â‚¬â€ tipografÃƒÂ­a limpia */
 .admin-roles__permission em {
   color: var(--admin-ink, var(--color-text-primary));
   display: block;
@@ -10048,8 +10003,8 @@
   font-weight: 500;
 }
 
-/* â”€â”€â”€ El switch iOS puro CSS â”€â”€â”€ */
-/* El span es el track (la pÃ­ldora) */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ El switch iOS puro CSS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* El span es el track (la píldora) */
 .admin-roles__permission > span {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 18%, transparent);
   border-radius: 999px;
@@ -10093,14 +10048,14 @@
   background: var(--color-brand-gold);
 }
 
-/* Modo claro: el track OFF es un gris cÃ¡lido */
+/* Modo claro: el track OFF es un gris cálido */
 [data-theme='light'] .admin-roles__permission > span {
   background: rgba(0, 0, 0, 0.14);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    FOOTER DEL PANEL: barra de guardado
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__matrix-footer {
   border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
@@ -10254,9 +10209,9 @@
   background: var(--color-brand-action-hover);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SECCIÃ“N DE ACTIVIDAD
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   SECCIÓN DE ACTIVIDAD
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* Actividad: franja mínima bajo el header */
 .admin-roles__activity {
   background: transparent;
@@ -10379,9 +10334,9 @@
   text-align: center;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    CONTAINER QUERIES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* Angosto: meta debajo del título (cubre sidebar colapsado ~650–780px). */
 @container roles-matrix (max-width: 780px) {
   .admin-roles__matrix-head {
@@ -10443,9 +10398,9 @@
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    RESPONSIVE
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 @media (min-width: 721px) and (max-width: 1279px) {
   .admin-roles__matrix-head {
     gap: 6px 14px;
@@ -10633,7 +10588,7 @@
   }
 }
 
-/* â”€â”€â”€ Check-in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Check-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-list-section--checkin {
   --admin-checkin-gutter: clamp(12px, 2.2vw, 18px);
 }
@@ -11157,7 +11112,7 @@
   }
 }
 
-/* â”€â”€â”€ Registrations list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Registrations list Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-list-section--registrations {
   --admin-registrations-gutter: clamp(14px, 2.4vw, 20px);
   min-width: 0;
@@ -12348,8 +12303,8 @@
 }
 
 /* =============================================
-   COPY LINK MENU â€” links de un evento (pÃºblico,
-   entradas, seguridad) copiables desde un solo Ã­cono
+   COPY LINK MENU Ã¢â‚¬â€ links de un evento (pÃƒÂºblico,
+   entradas, seguridad) copiables desde un solo ícono
    ============================================= */
 
 .admin-copy-menu {
@@ -13055,7 +13010,7 @@
   background: var(--plu-warm-100);
 }
 
-/* Notebook + tablet: resumen compacto en una fila (colapsable vÃ­a AdminListSection). */
+/* Notebook + tablet: resumen compacto en una fila (colapsable vía AdminListSection). */
 @media (max-width: 1100px) {
   .admin-list-shell__stats-strip {
     align-items: stretch;
@@ -13259,7 +13214,7 @@
 }
 
 /* =============================================
-   ACTION QUEUE â€” mejorado
+   ACTION QUEUE Ã¢â‚¬â€ mejorado
    ============================================= */
 
 .admin-action-drawer__backdrop {
@@ -14185,7 +14140,7 @@ button.action-queue__proof:focus-visible {
 }
 
 /* =============================================
-   DASHBOARD PANELS â€” action queue + activity
+   DASHBOARD PANELS Ã¢â‚¬â€ action queue + activity
    ============================================= */
 
 .admin-dashboard__panels {
@@ -14506,7 +14461,7 @@ button.action-queue__proof:focus-visible {
   width: 6px;
 }
 
-/* Editorial â€” underline luxury tabs */
+/* Editorial Ã¢â‚¬â€ underline luxury tabs */
 .detail-tabs--editorial {
   background: transparent;
   border: 0;
@@ -14902,7 +14857,7 @@ button.action-queue__proof:focus-visible {
   color: var(--admin-on-action, var(--plu-ink-inverse));
 }
 
-/* Competencia: filas simples, jerarquÃ­a por color (sin negrita) */
+/* Competencia: filas simples, jerarquía por color (sin negrita) */
 .athlete-detail__group--competition .athlete-detail__rows {
   gap: 0;
   grid-template-columns: 1fr;
@@ -15231,7 +15186,7 @@ button.action-queue__proof:focus-visible {
 }
 
 /* =============================================
-   DATA TABLE ROW â€” clickable
+   DATA TABLE ROW Ã¢â‚¬â€ clickable
    ============================================= */
 
 .data-table__row--clickable {
@@ -15327,7 +15282,7 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* â”€â”€ Event editor Â· pricing & ticket insights â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Event editor Ã‚Â· pricing & ticket insights Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-form__pricing {
   background: var(--admin-surface-muted, rgba(255, 255, 255, 0.02));
@@ -16099,7 +16054,7 @@ button.action-queue__proof:focus-visible {
   justify-content: flex-end;
 }
 
-/* â”€â”€ Credencial de acceso (modal) â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Credencial de acceso (modal) Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .security-credential-modal {
   align-items: center;
@@ -16252,7 +16207,7 @@ button.action-queue__proof:focus-visible {
   background: #ffffff;
 }
 
-/* â”€â”€ Puerta: validando credencial â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Puerta: validando credencial Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .security-gate-loading {
   align-items: center;
@@ -16641,10 +16596,10 @@ button.action-queue__proof:focus-visible {
   border-left-color: rgba(15, 17, 23, 0.06);
 }
 
-/* â”€â”€ Ticket insights dentro del panel lateral (â‰¥960px): horizontal compacto â”€â”€
-   A ese ancho el panel es ~280px; 3-col tarjetas quedarÃ­an de ~79px cada una.
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Ticket insights dentro del panel lateral (Ã¢â€°Â¥960px): horizontal compacto Ã¢â€â‚¬Ã¢â€â‚¬
+   A ese ancho el panel es ~280px; 3-col tarjetas quedarían de ~79px cada una.
    Usamos 1-col con layout flex horizontal (etiqueta izq. | valor der.).
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+   Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 @media (min-width: 960px) {
   .admin-event-preview--panel .admin-event-ticket-insights__metrics {
     grid-template-columns: 1fr;
@@ -17839,13 +17794,13 @@ button.action-queue__proof:focus-visible {
     transition: none;
   }
 }
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN EVENTOS: KPIs + workspace
    KPIs viven fuera del shell (AdminListSection beforeShell).
    Tipografía/dossier: admin-minimal.css
    (.admin-list-section--events .admin-events-kpis).
    Acá solo layout base del strip y del split.
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-events-kpis {
   align-items: stretch;
@@ -17980,9 +17935,9 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN ROLES: TOOLBAR + BUSCADOR + PRESETS (fuera del card)
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .admin-roles__toolbar {
   align-items: center;
   border-bottom: 0;
@@ -18116,9 +18071,9 @@ button.action-queue__proof:focus-visible {
   margin: 8px 0 14px;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN ROLES: macOS CONTROL CENTER (SECCIONES POR MÓDULO)
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-roles__control-center {
   display: grid;
@@ -18326,9 +18281,9 @@ button.action-queue__proof:focus-visible {
   opacity: 0.65;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN ROLES: macOS CONTROL CENTER (PREMIUM HIGH CONTRAST)
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-roles__control-center {
   display: flex;
@@ -18519,10 +18474,10 @@ button.action-queue__proof:focus-visible {
 /* Search Box & Presets Toolbar High Contrast — removido:
    pisaba tokens y rompía light mode. Estilos canónicos arriba. */
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Asignación masiva de grilla (AdminScheduleAssigner)
    Aparece sobre la tabla cuando hay inscripciones seleccionadas.
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-schedule-assigner {
   position: relative;
@@ -18948,6 +18903,15 @@ button.action-queue__proof:focus-visible {
   border-color: var(--color-brand-gold);
   color: var(--color-brand-action-text);
 }
+.admin-payment-ops__tabs { 
+  margin: 2rem auto 2.5rem; 
+  display: flex;
+  justify-content: center;
+}
+.admin-payment-ops__tabs .segmented-switch {
+  width: auto;
+  min-width: 400px;
+}
 
 .admin-shell .btn.admin-athletes-bulk__block-confirm:hover:not(:disabled) {
   background: var(--color-brand-gold-light, var(--color-brand-gold));
@@ -18967,65 +18931,6 @@ button.action-queue__proof:focus-visible {
   .admin-athletes-bulk__actions {
     width: 100%;
   }
-}
-
-/* ---- AthletesSection — filtros en píldora + tabla separada del bloque
-   de filtros (dos superficies en vez de una sola card continua). ---- */
-
-/* admin-minimal.css importa después de este archivo y ya trae, con la
-   misma especificidad, un fondo/reset propios para estas dos superficies
-   (`.admin-shell .admin-list-section__chrome` y el reset a transparente
-   de `.admin-shell .admin-list-shell`) — hace falta una clase extra de
-   especificidad para ganarles, no alcanza con el orden. */
-.admin-shell .admin-list-section--athletes > .admin-list-section__chrome {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--elevation-sm);
-  margin-bottom: var(--space-lg);
-  overflow: hidden;
-}
-
-/* El glifo mayúscula del eyebrow ("PERSONAS") queda pegado al límite
-   superior del padding-box; sin este aire, el overflow:hidden de arriba
-   (necesario para las esquinas redondeadas) le corta la "P". El layout
-   "rails" (admin-minimal.css) ya fija padding-top:2px acá con 4 clases —
-   hace falta una quinta para ganarle. */
-.admin-shell
-  .admin-list-section--athletes.admin-list-section--rails
-  > .admin-list-section__chrome
-  > .admin-list-shell__header {
-  padding-top: 18px;
-}
-
-.admin-shell .admin-list-section--athletes .admin-list-shell--athletes {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--elevation-sm);
-  overflow: hidden;
-}
-
-/* El resumen (Activos/Vencidos/Bloqueados) quedaba pegado a la tabla con
-   solo una línea fina — un tinte propio lo lee como su propia franja en
-   vez de la primera fila más de la tabla, sin llegar a ser una card
-   anidada adentro de la card de la tabla. */
-.admin-shell
-  .admin-list-section--athletes
-  .admin-list-shell--athletes
-  .admin-list-shell__stats-panel {
-  background: var(--color-bg-elevated);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-/* Divisores más discretos entre stats — la separación ya la da el fondo
-   de la franja de arriba; una línea fuerte adentro suma ruido de más. */
-.admin-shell
-  .admin-list-shell--athletes
-  .admin-list-shell__stats-strip
-  .admin-list-stat {
-  border-right-color: color-mix(in srgb, var(--color-border-subtle) 45%, transparent);
-  padding: 16px 20px;
 }
 
 /* ---- Selección de filas — un único tratamiento para cualquier tabla
@@ -19119,27 +19024,16 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* admin-minimal.css importa después y pinta estos radios con selectores
-   .admin-shell-prefixed (3 clases) — hace falta esa misma raíz + el
-   variant para ganarles, ver nota más arriba sobre el tono de los chips. */
-.admin-shell .admin-filters--athletes.admin-filters--compact .admin-filters__search {
-  border-radius: var(--border-radius-pill);
-}
-
-.admin-shell .admin-filters--athletes.admin-filters--compact .admin-filter-chip {
-  border-radius: var(--border-radius-pill);
-}
-
 /* Valor ausente en una celda de tabla (ej. inscripción sin grilla asignada):
    se dice, en el tono de un dato pendiente y no de uno firme. */
 .admin-muted-text {
   color: var(--admin-muted, var(--color-text-muted));
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Editor de tandas (AdminEventSessionsEditor)
    Pestaña "Grilla" del editor de eventos.
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-event-sessions {
   display: flex;
@@ -19462,3 +19356,5 @@ button.action-queue__proof:focus-visible {
   padding: 0 12px !important;
   font-size: 12px !important;
 }
+.admin-payment-ops__tabs { margin-bottom: 1.5rem; }
+

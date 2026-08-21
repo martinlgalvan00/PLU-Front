@@ -4,6 +4,8 @@ import {
   clearPendingPromotionCode,
   matchPromotionCodeRoute,
   promotionDestination,
+  promotionBenefitPresentation,
+  promotionDestinationType,
   readPendingPromotionCode,
   redeemPromotionCode,
   savePendingPromotionCode,
@@ -53,5 +55,17 @@ describe('servicio universal de códigos', () => {
       view: 'profile',
       options: { tab: 'account-offer' },
     })
+  })
+
+  it('describe el beneficio y el checkout sin inferirlos desde el copy', () => {
+    const result = {
+      accepted: true,
+      kind: 'percent',
+      benefit: { percentOff: 15 },
+      destination: { view: 'profile', tab: 'account-membership' },
+    }
+
+    expect(promotionBenefitPresentation(result)).toEqual({ type: 'percent', percent: 15 })
+    expect(promotionDestinationType(result)).toBe('membership')
   })
 })
