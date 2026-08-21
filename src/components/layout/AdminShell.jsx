@@ -31,6 +31,7 @@ import {
 import LanguageToggle from '../ui/LanguageToggle.jsx'
 import ThemeToggle from '../ui/ThemeToggle.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
+import AdminGlobalSearch from '../admin/AdminGlobalSearch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { TOUR_MODES, useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAdminIntroTourSteps, getTourForSection } from '../../lib/adminTourSteps.js'
@@ -60,7 +61,12 @@ const ICONS = {
   Landmark,
 }
 
-const ALERT_BADGE_KEYS = new Set(['payments', 'registrations'])
+const ALERT_BADGE_KEYS = new Set(['payments', 'registrations', 'people'])
+// El contador de "por validar" seguía viviendo bajo la clave 'registrations'
+// (getAdminNavBadges / sus tests) desde que esa era su propia entrada de
+// menú. "Personas" la reemplaza en la barra, así que el badge se resuelve
+// por alias en vez de duplicar el cálculo o renombrar esa clave.
+const NAV_BADGE_ALIASES = { people: 'registrations' }
 const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'checkin'])
 const PINNED_NAV_KEY = 'dashboard'
 const SIDEBAR_MODE_STORAGE_KEY = 'plu-admin-sidebar-mode'
@@ -87,7 +93,7 @@ function splitPinnedNav(groups) {
 
 function toMenuItem([key, labelKey, iconName], navBadges, t) {
   const Icon = ICONS[iconName]
-  const badgeCount = Number(navBadges[key]) || 0
+  const badgeCount = Number(navBadges[key] ?? navBadges[NAV_BADGE_ALIASES[key]]) || 0
   const isAlert = ALERT_BADGE_KEYS.has(key)
 
   return {
@@ -157,6 +163,8 @@ export default function AdminShell({
   roleLabel = 'Sin rol',
   restrictedNav = false,
   onOpenAccount,
+  athletes = [],
+  onSelectAthlete,
   children,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -250,6 +258,10 @@ export default function AdminShell({
       children: group.items.map((item) => toMenuItem(item, navBadges, t)),
     }))
   }, [scrollGroups, navBadges, t])
+
+  const canSearchAthletes =
+    typeof onSelectAthlete === 'function' &&
+    (!Array.isArray(allowedSections) || allowedSections.length === 0 || allowedSections.includes('athletes'))
 
   const activeLabel = useMemo(() => {
     const match = ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(
@@ -477,6 +489,12 @@ export default function AdminShell({
               </div>
             </div>
           </Space>
+
+          {canSearchAthletes && !isPhoneViewport ? (
+            <div className="admin-shell__header-search">
+              <AdminGlobalSearch athletes={athletes} onSelectAthlete={onSelectAthlete} />
+            </div>
+          ) : null}
 
           <div className="admin-shell__header-actions">
             {sidebarHidden && !isPhoneViewport && (

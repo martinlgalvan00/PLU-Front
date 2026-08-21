@@ -149,11 +149,14 @@ const CATALOG = [
     fix: [
       'Configurar MERCADO_PAGO_COLLECTOR_ID con el id de /users/me de la MISMA aplicacion que tiene el Access Token.',
       'Separar las variables de Vercel DEV (TEST) y Production (PROD): Access Token, Public Key, webhook secret y collector id deben pertenecer a la misma aplicacion.',
-      'Dejar PAYMENT_RECOVERY_JOB_ENABLED=false fuera de un unico worker por entorno; luego reintentar la recuperacion sin aprobar ni descartar manualmente.',
+      'Corregir la configuracion y relanzar manualmente la conciliacion desde la orden; no acreditar ni descartar el pago a mano.',
     ],
     severity: 'blocker',
     scope: 'configuracion',
-    retryable: true,
+    // Repetir con las mismas credenciales nunca va a poder leer un recurso de
+    // otra cuenta. Se detiene hasta que alguien corrija la configuracion y lo
+    // relance de forma explicita.
+    retryable: false,
   },
   {
     code: 'PROVIDER_PAYMENT_NOT_FOUND',
@@ -164,7 +167,7 @@ const CATALOG = [
     fix: [
       'Buscar tanto el id como el external_reference de la orden en la MISMA cuenta y aplicacion que creo el pago.',
       'Comparar MERCADO_PAGO_ENV y la identidad del Access Token en todos los procesos; dejar un solo worker de recovery por entorno.',
-      'Si existe evidencia de Payment.create, no aprobar ni descartar a mano: la recuperacion busca por external_reference y valida referencia, monto y moneda antes de aplicar.',
+      'Si existe evidencia de Payment.create, no aprobar ni descartar a mano. Corregir el entorno y relanzar la conciliacion: validara referencia, monto y moneda antes de aplicar.',
     ],
     severity: 'degraded',
     scope: 'proveedor',
@@ -482,7 +485,8 @@ const REJECTION_DETAILS = {
   cc_rejected_card_disabled: 'Tarjeta inactiva. El atleta debe activarla con el banco.',
   cc_rejected_duplicated_payment:
     'Pago duplicado: ya existe uno igual reciente. Verificar antes de reintentar.',
-  cc_rejected_high_risk: 'Rechazo por prevencion de fraude de MP. Sugerir otro medio de pago.',
+  cc_rejected_high_risk:
+    'Mercado Pago rechazó el pago por prevención de fraude. No acreditar ni reintentar desde el panel; pedirle al atleta que use otro medio de pago o consulte con Mercado Pago.',
   cc_rejected_max_attempts: 'Se agotaron los intentos permitidos. Esperar y usar otra tarjeta.',
   cc_rejected_other_reason: 'El emisor rechazo el pago sin detalle. Reintentar con otro medio.',
   cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',

@@ -14,6 +14,7 @@ import RegistrationStatusDialog from '../../components/admin/RegistrationStatusD
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
+import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import {
   AdminIdentityCell,
   AdminPaymentCell,
@@ -41,6 +42,7 @@ import {
   VALIDATION_DISABLED_CODES,
 } from '../../services/platformSettingsAdminService.js'
 import { notifyError } from '../../lib/adminToast.js'
+import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
@@ -122,6 +124,7 @@ export default function RegistrationsSection({
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
   const [validationEnabled, setValidationEnabled] = useState(true)
+  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('registrations')
 
   useEffect(() => {
     startTour('admin-registrations', getRegistrationsTourSteps(t))
@@ -395,6 +398,29 @@ export default function RegistrationsSection({
     advanced: true,
   }
 
+  const savedViewSnapshot = useMemo(
+    () => ({
+      event: filters.event ?? 'all',
+      status: filters.status ?? 'all',
+      affiliationStatus: filters.affiliationStatus ?? 'all',
+      query: filters.query ?? '',
+    }),
+    [filters.event, filters.status, filters.affiliationStatus, filters.query],
+  )
+  const activeSavedView = useMemo(
+    () => findMatchingView(savedViews, savedViewSnapshot),
+    [savedViews, savedViewSnapshot],
+  )
+  const hasFiltersToSave =
+    savedViewSnapshot.event !== 'all' ||
+    savedViewSnapshot.status !== 'all' ||
+    savedViewSnapshot.affiliationStatus !== 'all' ||
+    savedViewSnapshot.query.trim() !== ''
+
+  function applySavedView(view) {
+    onSetFilters((current) => ({ ...current, ...view.snapshot }))
+  }
+
   return (
     <>
       <AdminPaymentReconciliationAlert
@@ -483,6 +509,24 @@ export default function RegistrationsSection({
               ].filter(Boolean)
         }
         onQueryChange={handleQueryChange}
+        beforeFilters={
+          isGloballyEmpty ? null : (
+            <AdminSavedViews
+              views={savedViews}
+              activeViewId={activeSavedView?.id ?? null}
+              allLabel={t('admin.savedViews.all')}
+              caption={t('admin.savedViews.caption')}
+              addLabel={t('admin.savedViews.add')}
+              namePlaceholder={t('admin.savedViews.namePlaceholder')}
+              removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+              canSave={hasFiltersToSave && !activeSavedView}
+              onApply={applySavedView}
+              onClear={handleClearFilters}
+              onSave={(label) => saveView(label, savedViewSnapshot)}
+              onRemove={removeView}
+            />
+          )
+        }
       >
         {isGloballyEmpty ? (
           <div className="admin-empty admin-empty--registrations">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminAthletesBulkBar from '../../components/admin/AdminAthletesBulkBar.jsx'
+import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import { AdminIdentityCell, AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
@@ -9,6 +10,7 @@ import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAthletesTourSteps } from '../../lib/adminTourSteps.js'
 import { getStatusMeta } from '../../lib/status.js'
 import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
+import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import {
   createRegistrationPaymentIndex,
   groupRegistrationsByAthlete,
@@ -33,6 +35,7 @@ export default function AthletesSection({
   const [registrationStatus, setRegistrationStatus] = useState('all')
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const { startTour } = useAdminTour()
+  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('athletes')
 
   useEffect(() => {
     startTour('admin-athletes', getAthletesTourSteps(t))
@@ -104,6 +107,28 @@ export default function AthletesSection({
       ]),
     [registrationStatusCounts, t],
   )
+
+  const savedViewSnapshot = useMemo(
+    () => ({ query, status, registrationStatus }),
+    [query, status, registrationStatus],
+  )
+  const activeSavedView = useMemo(
+    () => findMatchingView(savedViews, savedViewSnapshot),
+    [savedViews, savedViewSnapshot],
+  )
+  const hasFiltersToSave = query.trim() !== '' || status !== 'all' || registrationStatus !== 'all'
+
+  function applySavedView(view) {
+    setQuery(view.snapshot.query ?? '')
+    setStatus(view.snapshot.status ?? 'all')
+    setRegistrationStatus(view.snapshot.registrationStatus ?? 'all')
+  }
+
+  function clearSavedView() {
+    setQuery('')
+    setStatus('all')
+    setRegistrationStatus('all')
+  }
 
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -180,9 +205,26 @@ export default function AthletesSection({
           value: registrationStatus,
           onChange: setRegistrationStatus,
           options: registrationStatusOptions,
+          advanced: true,
         },
       ]}
       onQueryChange={setQuery}
+      beforeFilters={
+        <AdminSavedViews
+          views={savedViews}
+          activeViewId={activeSavedView?.id ?? null}
+          allLabel={t('admin.savedViews.all')}
+          caption={t('admin.savedViews.caption')}
+          addLabel={t('admin.savedViews.add')}
+          namePlaceholder={t('admin.savedViews.namePlaceholder')}
+          removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+          canSave={hasFiltersToSave && !activeSavedView}
+          onApply={applySavedView}
+          onClear={clearSavedView}
+          onSave={(label) => saveView(label, savedViewSnapshot)}
+          onRemove={removeView}
+        />
+      }
     >
       {canEdit ? (
         <AdminAthletesBulkBar

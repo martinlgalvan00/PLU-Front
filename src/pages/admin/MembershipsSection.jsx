@@ -5,6 +5,7 @@ import AdminPaymentReconciliationAlert from '../../components/admin/AdminPayment
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
+import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import MembershipCredentialModal from '../../components/admin/MembershipCredentialModal.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import {
@@ -35,6 +36,7 @@ import {
   projectMembershipStatus,
 } from '../../services/membershipService.js'
 import { groupRegistrationsByAthlete } from '../../services/registrationAdminService.js'
+import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 
 // Una inscripción cancelada o todavía en borrador no cuenta como "inscripto
 // a un torneo" — el socio no tiene ahí una participación real en curso.
@@ -61,6 +63,7 @@ export default function MembershipsSection({
   }, [])
   const [expiring, setExpiring] = useState('all')
   const [registeredToTournament, setRegisteredToTournament] = useState('all')
+  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('memberships')
   // Credencial abierta en modal. Guardamos id + nombre para el encabezado
   // sin esperar al fetch; solo una abierta a la vez.
   const [credentialTarget, setCredentialTarget] = useState(null)
@@ -202,6 +205,31 @@ export default function MembershipsSection({
     [tournamentRegisteredCount, t],
   )
 
+  const savedViewSnapshot = useMemo(
+    () => ({ query, status, expiring, registeredToTournament }),
+    [query, status, expiring, registeredToTournament],
+  )
+  const activeSavedView = useMemo(
+    () => findMatchingView(savedViews, savedViewSnapshot),
+    [savedViews, savedViewSnapshot],
+  )
+  const hasFiltersToSave =
+    query.trim() !== '' || status !== 'all' || expiring !== 'all' || registeredToTournament !== 'all'
+
+  function applySavedView(view) {
+    setQuery(view.snapshot.query ?? '')
+    setStatus(view.snapshot.status ?? 'all')
+    setExpiring(view.snapshot.expiring ?? 'all')
+    setRegisteredToTournament(view.snapshot.registeredToTournament ?? 'all')
+  }
+
+  function clearSavedView() {
+    setQuery('')
+    setStatus('all')
+    setExpiring('all')
+    setRegisteredToTournament('all')
+  }
+
   const rows = useMemo(
     () =>
       filterMemberships(projectedMemberships, {
@@ -318,9 +346,26 @@ export default function MembershipsSection({
             onChange: setRegisteredToTournament,
             options: tournamentOptions,
             variant: 'toggle',
+            advanced: true,
           },
         ]}
         onQueryChange={setQuery}
+        beforeFilters={
+          <AdminSavedViews
+            views={savedViews}
+            activeViewId={activeSavedView?.id ?? null}
+            allLabel={t('admin.savedViews.all')}
+            caption={t('admin.savedViews.caption')}
+            addLabel={t('admin.savedViews.add')}
+            namePlaceholder={t('admin.savedViews.namePlaceholder')}
+            removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+            canSave={hasFiltersToSave && !activeSavedView}
+            onApply={applySavedView}
+            onClear={clearSavedView}
+            onSave={(label) => saveView(label, savedViewSnapshot)}
+            onRemove={removeView}
+          />
+        }
       >
         <AdminDataTable
           className="admin-data-table--memberships"

@@ -45,6 +45,31 @@ const PERMANENT_PROVIDER_CODES = new Set([
   'method_not_allowed',
 ])
 
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'hotmail.com',
+  'outlook.com',
+  'live.com',
+  'yahoo.com',
+])
+
+function senderConfigurationIssue(senderEmail) {
+  if (!senderEmail) return 'Falta BREVO_SENDER_EMAIL en el servidor.'
+  const match = senderEmail.match(/^[^\s@]+@([^\s@]+\.[^\s@]+)$/)
+  if (!match) return 'BREVO_SENDER_EMAIL no tiene un formato de correo válido.'
+  if (PUBLIC_EMAIL_DOMAINS.has(match[1].toLowerCase())) {
+    return 'BREVO_SENDER_EMAIL debe usar un dominio institucional verificado en Brevo; no se puede enviar desde una casilla pública.'
+  }
+  return null
+}
+
+function isSenderValidationFailure(message) {
+  return /sender you used .* is not valid|validate your sender|authenticate your domain|sender.*not valid/i.test(
+    String(message ?? ''),
+  )
+}
+
 export class BrevoError extends HttpError {
   constructor(
     message,
@@ -103,12 +128,14 @@ export function createBrevoAdapter({
   const replyToEmail = env.BREVO_REPLY_TO_EMAIL?.trim() || senderEmail
   const timeoutMs = Number(env.BREVO_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS
   const maxAttempts = Math.max(1, Number(env.BREVO_MAX_ATTEMPTS) || DEFAULT_MAX_ATTEMPTS)
+  const senderIssue = senderConfigurationIssue(senderEmail)
 
   function assertConfigured() {
-    if (!apiKey || !senderEmail) {
-      throw new BrevoError('Brevo no está configurado en el servidor.', {
+    if (!apiKey || senderIssue) {
+      throw new BrevoError(senderIssue ?? 'Brevo no está configurado en el servidor.', {
         status: 503,
         retryable: false,
+        providerCode: senderIssue ? 'BREVO_SENDER_NOT_VERIFIED' : null,
       })
     }
   }
@@ -154,12 +181,19 @@ export function createBrevoAdapter({
       const retryable =
         isRetryableStatus(response.status) && !PERMANENT_PROVIDER_CODES.has(providerCode)
 
-      lastError = new BrevoError(body?.message ?? `Brevo respondió ${response.status}.`, {
+      const providerMessage = body?.message ?? `Brevo respondió ${response.status}.`
+      const senderRejected = isSenderValidationFailure(providerMessage)
+      lastError = new BrevoError(
+        senderRejected
+          ? 'Brevo rechazó el remitente. Validá la casilla remitente o autenticá su dominio en Brevo antes de volver a enviar.'
+          : providerMessage,
+        {
         status: response.status === 401 || response.status === 403 ? 503 : 502,
-        retryable,
-        providerCode,
+        retryable: senderRejected ? false : retryable,
+        providerCode: senderRejected ? 'BREVO_SENDER_NOT_VERIFIED' : providerCode,
         providerStatus: response.status,
-      })
+        },
+      )
 
       if (!retryable || attempt === maxAttempts) throw lastError
       await sleepImpl(backoffDelay(attempt, parseRetryAfter(response)))
@@ -169,7 +203,8 @@ export function createBrevoAdapter({
   }
 
   return {
-    configured: Boolean(apiKey && senderEmail),
+    configured: Boolean(apiKey && senderEmail && !senderIssue),
+    configurationIssue: senderIssue,
 
     /**
      * Envío unificado. Acepta `templateId` (template del dashboard) o
