@@ -1,0 +1,324 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@300;400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #f2b705; } a:hover { color: #ffd23f; }
+    .dc {
+      --bg: #181a1f; --text: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --rule: rgba(255, 255, 255, 0.14); --rule-soft: rgba(255, 255, 255, 0.08);
+      --gold: #f2b705; --gold-dim: #a9790f; --danger: #ff8b86; --on-gold: #14181f;
+      /* Registro de la credencial (credential-card.css), tal cual: el borde de
+         oro al 34%, el marco interior al 7% de blanco y la cara en degradé
+         158deg. Es el vocabulario que la app ya usa para lo distinguido. */
+      --face: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+      --face-wash-gold: color-mix(in oklab, #f2b705 14%, transparent);
+      --face-wash-celeste: color-mix(in oklab, #74acdf 8%, transparent);
+      --face-edge: color-mix(in oklab, #f2b705 34%, rgba(255, 255, 255, 0.1));
+      --face-frame: color-mix(in oklab, #fff 7%, transparent);
+      --face-lip: rgba(255, 255, 255, 0.08);
+      --grain-a: rgba(255, 255, 255, 0.03); --grain-b: rgba(255, 255, 255, 0.01);
+      --code-ink: color-mix(in oklab, #ffd23f 88%, #fff);
+      --code-label: color-mix(in oklab, #fff 38%, transparent);
+    }
+    .dc.is-page { --bg: #0a0b0d; }
+    .dc.is-light {
+      --bg: #ffffff; --text: #0d0e12; --secondary: #2c2f3c; --muted: #636878;
+      --rule: rgba(15, 17, 23, 0.10); --rule-soft: rgba(15, 17, 23, 0.06);
+      --gold: #a9790f; --gold-dim: #a9790f; --danger: #991b1b;
+      /* La credencial es oscura por definición; en light se traduce a papel
+         cálido conservando el filo de oro y el marco interior. */
+      --face: linear-gradient(158deg, #ffffff 0%, #fbfaf7 52%, #f6f4ef 100%);
+      --face-wash-gold: color-mix(in oklab, #a9790f 8%, transparent);
+      --face-wash-celeste: color-mix(in oklab, #74acdf 6%, transparent);
+      --face-edge: color-mix(in oklab, #a9790f 38%, rgba(15, 17, 23, 0.08));
+      --face-frame: rgba(15, 17, 23, 0.05);
+      --face-lip: rgba(255, 255, 255, 0.9);
+      --grain-a: rgba(15, 17, 23, 0.02); --grain-b: rgba(15, 17, 23, 0.012);
+      --code-ink: #8a5f08; --code-label: rgba(13, 14, 18, 0.45);
+    }
+    .dc {
+      background: var(--bg); color: var(--text);
+      font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      min-height: 100%; padding: 40px 40px 48px;
+    }
+    .eyebrow {
+      color: var(--muted); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .head-name { font-size: 26px; font-weight: 300; letter-spacing: -0.01em; margin: 6px 0 10px; }
+    .head-thesis { color: var(--secondary); font-size: 13px; line-height: 1.6; margin: 0; max-width: 46ch; }
+    .sep { background: var(--rule-soft); height: 1px; margin: 28px 0; }
+    .group-label {
+      color: var(--muted); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .states { display: flex; flex-direction: column; gap: 26px; margin-top: 18px; }
+    .state-name {
+      color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 10px; letter-spacing: 0.06em; margin: 0 0 10px;
+    }
+
+    /* ---------------------------------------------------------------------
+       D · Sello. El canje toma el registro de la credencial: filo de oro,
+       marco interior, grano y el código en el mismo mono espaciado que el
+       número de socio. No es una tarjeta nueva: es una banda baja, para no
+       competir con la credencial de verdad.
+       --------------------------------------------------------------------- */
+    .sel { display: grid; gap: 10px; max-width: 470px; }
+    .band {
+      background: radial-gradient(70% 55% at 100% 0%, var(--face-wash-gold) 0%, transparent 55%),
+        radial-gradient(55% 45% at 0% 100%, var(--face-wash-celeste) 0%, transparent 50%),
+        var(--face);
+      border: 1px solid var(--face-edge); border-radius: 10px;
+      box-shadow: inset 0 1px 0 var(--face-lip), 0 18px 34px -22px rgba(0, 0, 0, 0.7);
+      isolation: isolate; overflow: hidden; padding: 3px; position: relative;
+    }
+    .band-frame {
+      border: 1px solid var(--face-frame); border-radius: 7px;
+      display: grid; gap: 12px; padding: 15px 17px; position: relative; z-index: 2;
+    }
+    .band-grain {
+      background: linear-gradient(122deg, transparent 36%, var(--grain-a) 50%, transparent 64%),
+        repeating-linear-gradient(135deg, var(--grain-b) 0 1px, transparent 1px 13px);
+      inset: 0; opacity: 0.55; pointer-events: none; position: absolute; z-index: 1;
+    }
+    .band-head { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
+    .band-mark {
+      color: var(--code-label); font-family: 'Poppins', sans-serif; font-size: 10px;
+      font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase;
+    }
+    .band-state { color: var(--code-label); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+    .band-row { align-items: center; display: flex; gap: 14px; }
+    .band-code {
+      color: var(--code-ink); flex: 1; font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 20px; font-weight: 600; letter-spacing: 0.18em; line-height: 1;
+      min-width: 0; text-transform: uppercase;
+    }
+    .band-code.is-empty { color: var(--code-label); font-size: 12.5px; font-weight: 500; letter-spacing: 0.18em; }
+    .band-code.is-dim { opacity: 0.5; }
+    /* Chip metálico: el mismo degradé del chip de la credencial. */
+    .band-chip {
+      align-items: center; background: linear-gradient(145deg, #f8e7a8 0%, #e0b03a 42%, #a9790f 72%, #f3e6b0 100%);
+      border: 0; border-radius: 8px; color: #14181f; display: inline-flex;
+      font: 700 12px/1 'Poppins', sans-serif; letter-spacing: 0.08em;
+      min-height: 44px; padding-inline: 16px; text-transform: uppercase; white-space: nowrap;
+    }
+    .band-scan {
+      align-items: center; background: none; border: 0; color: var(--secondary);
+      display: inline-flex; height: 44px; justify-content: center; width: 30px;
+    }
+    .band-amount { color: var(--text); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+    .dc.is-light .band-amount { color: #0d0e12; }
+    .sel-hint { color: var(--muted); font-size: 12px; line-height: 1.55; margin: 0; max-width: 52ch; }
+    .sel-error { color: var(--danger); font-size: 12px; margin: 0; }
+    .sel-done { display: grid; gap: 3px; }
+    .sel-done strong { font-size: 13px; font-weight: 600; }
+    .sel-done span { color: var(--muted); font-size: 12px; }
+    .sel-drop {
+      align-items: center; background: none; border: 0; color: var(--muted);
+      display: inline-flex; font: 400 12px/1 'Poppins', sans-serif; justify-self: start;
+      min-height: 44px; padding: 0; text-decoration: underline; text-underline-offset: 3px;
+    }
+    .sel-toggle {
+      align-items: center; background: none; border: 0; color: var(--secondary);
+      display: inline-flex; font: 500 13px/1 'Poppins', sans-serif; gap: 10px;
+      letter-spacing: 0.02em; min-height: 44px;
+    }
+    .sel-toggle-seal {
+      align-items: center; background: var(--face); border: 1px solid var(--face-edge);
+      border-radius: 6px; color: var(--gold); display: inline-flex; height: 26px;
+      justify-content: center; width: 26px;
+    }
+  </style>
+</helmet>
+<div class="dc {{surfaceClass}}">
+  <span class="eyebrow">Dirección D</span>
+  <h1 class="head-name">Sello</h1>
+  <p class="head-thesis">
+    La app ya tiene una pieza lujosa: la credencial. Esta dirección le presta su
+    registro al canje — filo de oro al 34 %, marco interior, grano y el código en
+    el mismo mono espaciado que el número de socio. Se lee como una llave emitida
+    por la federación, no como un campo de formulario.
+  </p>
+
+  <div class="sep"></div>
+  <span class="group-label">Canje universal</span>
+  <div class="states">
+    <div>
+      <p class="state-name">cerrado</p>
+      <button type="button" class="sel-toggle">
+        <span class="sel-toggle-seal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+        </span>
+        Tengo un código
+      </button>
+    </div>
+
+    <div>
+      <p class="state-name">abierto</p>
+      <div class="sel">
+        <div class="band">
+          <span class="band-grain"></span>
+          <div class="band-frame">
+            <div class="band-head">
+              <span class="band-mark">PLU · Llave privada</span>
+              <span class="band-state">Sin canjear</span>
+            </div>
+            <div class="band-row">
+              <span class="band-code is-empty">INGRESÁ TU CÓDIGO</span>
+              <button type="button" class="band-scan" aria-label="Escanear">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M3 12h18"></path></svg>
+              </button>
+              <button type="button" class="band-chip">Canjear</button>
+            </div>
+          </div>
+        </div>
+        <p class="sel-hint">Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">escrito</p>
+      <div class="sel">
+        <div class="band">
+          <span class="band-grain"></span>
+          <div class="band-frame">
+            <div class="band-head">
+              <span class="band-mark">PLU · Llave privada</span>
+              <span class="band-state">Sin canjear</span>
+            </div>
+            <div class="band-row">
+              <span class="band-code">ONLY-PITBULL</span>
+              <button type="button" class="band-chip">Canjear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">validando</p>
+      <div class="sel">
+        <div class="band">
+          <span class="band-grain"></span>
+          <div class="band-frame">
+            <div class="band-head">
+              <span class="band-mark">PLU · Llave privada</span>
+              <span class="band-state">Validando</span>
+            </div>
+            <div class="band-row">
+              <span class="band-code is-dim">ONLY-PITBULL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">error</p>
+      <div class="sel">
+        <div class="band" style="border-color: color-mix(in oklab, #ff8b86 42%, rgba(255, 255, 255, 0.1))">
+          <span class="band-grain"></span>
+          <div class="band-frame">
+            <div class="band-head">
+              <span class="band-mark">PLU · Llave privada</span>
+              <span class="band-state" style="color: var(--danger)">No reconocida</span>
+            </div>
+            <div class="band-row">
+              <span class="band-code">ONLY-NORTE</span>
+              <button type="button" class="band-chip">Canjear</button>
+            </div>
+          </div>
+        </div>
+        <p class="sel-error">Ese código no existe.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">canjeado</p>
+      <div class="sel">
+        <div class="band">
+          <span class="band-grain"></span>
+          <div class="band-frame">
+            <div class="band-head">
+              <span class="band-mark">PLU · Llave privada</span>
+              <span class="band-state" style="color: var(--code-ink)">Aceptada</span>
+            </div>
+            <div class="band-row">
+              <span class="band-code">ONLY-PITBULL</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="color: var(--code-ink)"><path d="M20 6 9 17l-5-5"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div class="sel-done">
+          <strong>Código secreto canjeado</strong>
+          <span>Redirigiéndote a tu pestaña secreta…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <span class="group-label">Campo del checkout</span>
+  <div class="states">
+    <div>
+      <p class="state-name">vacío</p>
+      <div class="sel">
+        <div class="band">
+          <span class="band-grain"></span>
+          <div class="band-frame">
+            <div class="band-head">
+              <span class="band-mark">PLU · Código</span>
+            </div>
+            <div class="band-row">
+              <span class="band-code is-empty">INGRESÁ TU CÓDIGO</span>
+              <button type="button" class="band-chip">Canjear</button>
+            </div>
+          </div>
+        </div>
+        <p class="sel-hint">Canjeá tu código.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">aplicado</p>
+      <div class="sel">
+        <div class="band">
+          <span class="band-grain"></span>
+          <div class="band-frame">
+            <div class="band-head">
+              <span class="band-mark">PLU · Precio exclusivo</span>
+              <span class="band-state" style="color: var(--code-ink)">Aplicado</span>
+            </div>
+            <div class="band-row">
+              <span class="band-code">ONLY-PITBULL</span>
+              <span class="band-amount">$ 120.000</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="sel-drop">Quitar</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"surface":{"editor":"enum","options":["card","page","light"],"default":"card","section":"Superficie"},"$preview":{"width":620,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const surface = this.props.surface ?? 'card';
+    return {
+      surfaceClass: surface === 'page' ? 'is-page' : surface === 'light' ? 'is-light' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>

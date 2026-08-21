@@ -1,0 +1,213 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #f2b705; } a:hover { color: #ffd23f; }
+    /* Tokens reales de PLU, resueltos desde palette.css + themes/dark.css y
+       light.css. El bloque de canje vive en cuatro hosts con fondos distintos,
+       así que la superficie es una palanca y no una decisión fija. */
+    .dc {
+      --bg: #181a1f; --text: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --rule: rgba(255, 255, 255, 0.14); --rule-soft: rgba(255, 255, 255, 0.08);
+      --gold: #f2b705; --gold-dim: #a9790f; --celeste: #74acdf;
+      --danger: #ff8b86; --inset: #0a0b0d; --input: #121218; --on-gold: #14181f;
+    }
+    .dc.is-page { --bg: #0a0b0d; --inset: #000000; }
+    .dc.is-light {
+      --bg: #ffffff; --text: #0d0e12; --secondary: #2c2f3c; --muted: #636878;
+      --rule: rgba(15, 17, 23, 0.10); --rule-soft: rgba(15, 17, 23, 0.06);
+      --gold: #a9790f; --gold-dim: #a9790f; --celeste: #74acdf;
+      --danger: #991b1b; --inset: #f0efec; --input: #fcfcfb;
+    }
+    .dc {
+      background: var(--bg); color: var(--text);
+      font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      min-height: 100%; padding: 40px 40px 48px;
+    }
+    .eyebrow {
+      color: var(--muted); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .head-name { font-size: 26px; font-weight: 300; letter-spacing: -0.01em; margin: 6px 0 10px; }
+    .head-thesis { color: var(--secondary); font-size: 13px; line-height: 1.6; margin: 0; max-width: 46ch; }
+    .sep { background: var(--rule-soft); height: 1px; margin: 28px 0; }
+    .group-label {
+      color: var(--muted); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .states { display: flex; flex-direction: column; gap: 24px; margin-top: 18px; }
+    .state-name {
+      color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 10px; letter-spacing: 0.06em; margin: 0 0 8px;
+    }
+    /* --- Reproducción de secret-code-redeemer.css, valor por valor --- */
+    .scr { border-top: 1px solid rgba(255, 255, 255, 0.12); padding: 16px 0 0; }
+    .dc.is-light .scr { border-top-color: rgba(13, 14, 18, 0.12); }
+    .scr-toggle {
+      align-items: center; color: var(--celeste); display: inline-flex;
+      font: 600 14px/1.2 'Poppins', sans-serif; gap: 8px; min-height: 44px;
+    }
+    .scr-form { display: grid; gap: 12px; grid-template-columns: minmax(140px, 0.7fr) minmax(200px, 1.3fr); }
+    .scr-copy { display: grid; gap: 3px; }
+    .scr-copy label { font-size: 14px; font-weight: 650; }
+    .scr-copy span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .scr-controls { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr) auto; }
+    .scr-input {
+      align-items: center; background: var(--input); border: 1px solid var(--rule);
+      border-radius: 8px; color: var(--text); display: flex;
+      font: 600 14px/1 'JetBrains Mono', monospace; min-height: 44px;
+      padding-inline: 13px; text-transform: uppercase;
+    }
+    .scr-cta {
+      align-items: center; background: var(--gold); border-radius: 8px; color: var(--on-gold);
+      display: inline-flex; font: 700 13px/1 'Poppins', sans-serif; gap: 7px;
+      justify-content: center; min-height: 44px; padding-inline: 16px;
+    }
+    .scr-scan {
+      align-items: center; border: 1px solid var(--rule); border-radius: 8px;
+      color: var(--secondary); display: inline-flex; font: 600 13px/1 'Poppins', sans-serif;
+      gap: 7px; justify-content: center; min-height: 44px; padding-inline: 14px;
+    }
+    .scr-msg { color: var(--danger); font-size: 12px; grid-column: 2; margin: 0; }
+    .scr-redirect { align-items: center; color: var(--gold); display: flex; gap: 12px; min-height: 52px; }
+    .scr-redirect strong { color: var(--text); display: block; font-size: 14px; }
+    .scr-redirect span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    /* --- Reproducción de .register-discount, valor por valor --- */
+    .rd { display: grid; gap: 6px; }
+    .rd-label { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+    .rd-hint { color: var(--secondary); font-size: 12px; line-height: 1.45; }
+    .rd-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .rd-input {
+      align-items: center; border: 1px solid var(--rule-soft); border-radius: 10px;
+      color: var(--text); display: flex; flex: 1; font-size: 14px; letter-spacing: 0.04em;
+      min-height: 44px; padding: 0 14px; text-transform: uppercase;
+    }
+    .rd-btn {
+      align-items: center; border: 1px solid var(--rule-soft); border-radius: 10px;
+      color: var(--secondary); display: inline-flex; font-size: 14px; font-weight: 600;
+      min-height: 44px; padding: 0 16px;
+    }
+    .rd-applied { align-items: center; color: var(--gold); display: flex; font-size: 13px; font-weight: 600; gap: 8px; margin: 0; }
+    .rd-applied button { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 500; text-decoration: underline; }
+  </style>
+</helmet>
+<div class="dc {{surfaceClass}}">
+  <span class="eyebrow">Estado actual</span>
+  <h1 class="head-name">Hoy</h1>
+  <p class="head-thesis">
+    El canje se lee como un formulario de contacto: caja rellena, acción en oro macizo
+    y la entrada en celeste, que en PLU es navegación. Nada distingue una llave secreta
+    de cualquier otro campo de la página.
+  </p>
+
+  <div class="sep"></div>
+  <span class="group-label">Canje universal</span>
+  <div class="states">
+    <div>
+      <p class="state-name">cerrado</p>
+      <div class="scr">
+        <span class="scr-toggle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+          Tengo un código
+        </span>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">abierto</p>
+      <div class="scr">
+        <div class="scr-form">
+          <div class="scr-copy">
+            <label>Código</label>
+            <span>Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.</span>
+          </div>
+          <div class="scr-controls">
+            <div class="scr-input">ONLY-PITBULL</div>
+            <span class="scr-cta">
+              Canjear
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">error</p>
+      <div class="scr">
+        <div class="scr-form">
+          <div class="scr-copy">
+            <label>Código</label>
+            <span>Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.</span>
+          </div>
+          <div class="scr-controls">
+            <div class="scr-input" style="color: var(--muted)">INGRESÁ TU CÓDIGO</div>
+            <span class="scr-scan">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M3 12h18"></path></svg>
+              Escanear
+            </span>
+          </div>
+          <p class="scr-msg">Ese código no existe.</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">canjeado</p>
+      <div class="scr">
+        <div class="scr-redirect">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+          <div>
+            <strong>Código secreto canjeado</strong>
+            <span>Redirigiéndote a tu pestaña secreta…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <span class="group-label">Campo del checkout</span>
+  <div class="states">
+    <div>
+      <p class="state-name">vacío</p>
+      <div class="rd">
+        <span class="rd-label">Código</span>
+        <span class="rd-hint">Canjeá tu código.</span>
+        <div class="rd-row">
+          <div class="rd-input" style="color: var(--muted)">INGRESÁ TU CÓDIGO</div>
+          <span class="rd-btn">Canjear</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="state-name">aplicado</p>
+      <p class="rd-applied">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"></path><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>
+        Código ONLY-PITBULL aplicado · pagás $ 120.000
+        <button type="button">Quitar</button>
+      </p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"surface":{"editor":"enum","options":["card","page","light"],"default":"card","section":"Superficie"},"$preview":{"width":620,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const surface = this.props.surface ?? 'card';
+    return {
+      surfaceClass: surface === 'page' ? 'is-page' : surface === 'light' ? 'is-light' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>

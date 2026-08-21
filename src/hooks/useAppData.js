@@ -1083,12 +1083,25 @@ export function useAppData() {
       try {
         const purchaseType = options.purchaseType === 'combo' ? 'combo' : 'registration'
         const paymentMethod = options.paymentMethod ?? form.paymentMethod
+        // La ficha de oferta exclusiva cobra desde Mi cuenta, donde el
+        // formulario del checkout no existe: manda sus propios datos de
+        // inscripción. Sin override, sigue mandando el formulario global.
+        const competition = {
+          division: options.competition?.division ?? form.division,
+          category: options.competition?.category ?? form.category,
+          bodyweightKg:
+            options.competition?.bodyweightKg !== undefined
+              ? options.competition.bodyweightKg
+              : form.estimatedWeight
+                ? Number(String(form.estimatedWeight).replace(',', '.'))
+                : null,
+        }
         const attemptFingerprint = JSON.stringify([
           athlete.id,
           selectedEvent.slug,
-          form.division,
-          form.category,
-          form.estimatedWeight,
+          competition.division,
+          competition.category,
+          competition.bodyweightKg,
           paymentMethod,
           purchaseType,
         ])
@@ -1108,11 +1121,9 @@ export function useAppData() {
           await createRegistrationRequest({
             athleteId: athlete.id,
             eventSlug: selectedEvent.slug,
-            division: form.division,
-            category: form.category,
-            bodyweightKg: form.estimatedWeight
-              ? Number(String(form.estimatedWeight).replace(',', '.'))
-              : null,
+            division: competition.division,
+            category: competition.category,
+            bodyweightKg: competition.bodyweightKg,
             paymentMethod,
             idempotencyKey: registrationAttemptRef.current.idempotencyKey,
             ...(purchaseType === 'combo'
@@ -1228,6 +1239,31 @@ export function useAppData() {
       }
     },
     [athletes, form, payments, registrations, session],
+  )
+
+  /**
+   * Cobro de una oferta exclusiva desde su propia pestaña.
+   *
+   * Es el mismo alta que el checkout de inscripción —misma RPC, mismas guardas,
+   * misma idempotencia— con el paquete y el código ya decididos por la oferta:
+   * lo único que aporta el atleta son los datos de su inscripción. El código
+   * viaja en los dos campos porque cumple los dos roles: destraba el combo
+   * restringido y fija el importe promocional.
+   */
+  const startOfferPayment = useCallback(
+    ({ offer, event, paymentMethod = 'mercado_pago', division, category, bodyweightKg }) => {
+      if (!offer?.code || !event?.slug) {
+        return Promise.resolve({ error: 'No se pudo resolver la oferta.' })
+      }
+      return submitCompetition({ preventDefault() {} }, event, {
+        purchaseType: 'combo',
+        paymentMethod,
+        discountCode: offer.code,
+        comboAccessCode: offer.code,
+        competition: { division, category, bodyweightKg },
+      })
+    },
+    [submitCompetition],
   )
 
   // Compra pÃºblica de entradas â€” no requiere cuenta ni sesiÃ³n: cualquiera
@@ -3126,6 +3162,7 @@ export function useAppData() {
     submitMembership,
     startMembershipPayment,
     submitCompetition,
+    startOfferPayment,
     activateDemoMembership,
     cancelDemoMembership,
     setMembershipStatusAction,
