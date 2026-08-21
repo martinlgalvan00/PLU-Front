@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { History, KeyRound, QrCode, ShieldCheck, Sparkles, Trophy, UserRound } from 'lucide-react'
+import {
+  History,
+  KeyRound,
+  QrCode,
+  Receipt,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  UserRound,
+} from 'lucide-react'
 import { LayoutGroup, m } from 'motion/react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { ACCOUNT_TAB_IDS } from '../../lib/navigation.js'
@@ -17,6 +26,7 @@ const ITEM_CHROME = {
   'account-events': { icon: Trophy, labelKey: 'events' },
   'account-history': { icon: History, labelKey: 'history' },
   'account-membership': { icon: ShieldCheck, labelKey: 'membership' },
+  'account-payments': { icon: Receipt, labelKey: 'payments' },
   'account-personal-data': { icon: UserRound, labelKey: 'personalData' },
   'account-security': { icon: KeyRound, labelKey: 'security' },
 }

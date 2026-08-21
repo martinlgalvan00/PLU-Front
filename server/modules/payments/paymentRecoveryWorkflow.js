@@ -162,6 +162,73 @@ export async function reconcileClaimedPaymentAttempt(attempt, options = {}) {
   }
 }
 
+/**
+ * Estados del proveedor que representan plata: si MP tiene un pago en alguno de
+ * estos y nosotros cerramos la orden, la orden esta mal. Un `rejected` o
+ * `cancelled` del lado de MP coincide con lo que ya dice la app, asi que no hay
+ * nada que reabrir (y no se toca el ledger para no generar ruido).
+ */
+const PROVIDER_STATUSES_WITH_MONEY = new Set([
+  'approved',
+  'authorized',
+  'in_process',
+  'in_mediation',
+  'pending',
+  'refunded',
+  'charged_back',
+])
+
+/**
+ * Ultima red contra "en Mercado Pago figura pagado y en la app dice cancelado".
+ *
+ * El webhook y la conciliacion del Brick cubren los caminos donde quedo rastro
+ * local. Esta pasada cubre el que no deja ninguno: la orden vencio por cron sin
+ * un solo asiento de cobro y el pago existe igual del lado del proveedor. Se le
+ * pregunta a MP por `external_reference` —la unica clave que no depende de que
+ * el webhook haya llegado— y si aparece plata se acredita por el mismo camino
+ * validado que el resto (referencia, monto y moneda se revalidan ahi).
+ */
+export async function sweepClosedOrdersAgainstProvider(options = {}) {
+  const { repository, mercadoPago, notifyPaymentApplied, auditTrail, limit = 20 } = options
+  if (!repository.listClosedOrdersWithoutPayments || !mercadoPago.searchPaymentsForOrder) {
+    return { checked: 0, recovered: 0, failures: [] }
+  }
+
+  const orderIds = await repository.listClosedOrdersWithoutPayments(limit)
+  let recovered = 0
+  const failures = []
+
+  for (const orderId of orderIds) {
+    try {
+      const order = await repository.getOrder(orderId)
+      const candidates = await mercadoPago.searchPaymentsForOrder(order)
+      const canonical = selectCanonicalProviderPayment(candidates)
+      if (!canonical || !PROVIDER_STATUSES_WITH_MONEY.has(String(canonical.status))) continue
+
+      await applyCanonicalPayment(canonical, order, {
+        repository,
+        notifyPaymentApplied,
+        auditTrail,
+        stage: 'provider_sweep',
+      })
+      recovered += 1
+      // Un cobro que aparece por acá es un webhook que no llegó: se registra
+      // aparte del asiento de aplicación para que se pueda contar cuántas veces
+      // la red tuvo que actuar.
+      logger.warn('payment.recovered_by_provider_sweep', {
+        orderId,
+        externalPaymentId: String(canonical.id),
+        providerStatus: canonical.status,
+        localStatus: order.status,
+      })
+    } catch (error) {
+      failures.push({ id: orderId, error: summarizeFailure(error, { stage: 'provider_sweep' }) })
+    }
+  }
+
+  return { checked: orderIds.length, recovered, failures }
+}
+
 export async function recoverPaymentOperations(options = {}) {
   const {
     repository,
@@ -170,6 +237,7 @@ export async function recoverPaymentOperations(options = {}) {
     auditTrail,
     eventLimit = 20,
     reconciliationLimit = 20,
+    providerSweepLimit = 20,
     concurrency = 4,
   } = options
 
@@ -214,8 +282,22 @@ export async function recoverPaymentOperations(options = {}) {
     ),
   )
 
+  // Corre después de los dos caminos con rastro local: si el webhook estaba
+  // demorado, ya se aplicó arriba y esta pasada no encuentra nada que hacer.
+  const sweep = await sweepClosedOrdersAgainstProvider({
+    repository,
+    mercadoPago,
+    notifyPaymentApplied,
+    auditTrail,
+    limit: providerSweepLimit,
+  }).catch((error) => {
+    logger.error('payment.provider_sweep_failed', { err: error })
+    return { checked: 0, recovered: 0, failures: [{ id: null, error: error.message }] }
+  })
+
   const summary = {
     claimErrors,
+    providerSweep: sweep,
     events: {
       claimed: events.length,
       processed: eventResults.filter((item) => item.ok).length,
@@ -235,14 +317,23 @@ export async function recoverPaymentOperations(options = {}) {
     durationMs: Date.now() - startedAt,
   }
 
-  if (summary.events.claimed || summary.reconciliations.claimed || claimErrors.length) {
+  const failed = summary.events.failed || summary.reconciliations.failed || sweep.failures.length
+  if (
+    summary.events.claimed ||
+    summary.reconciliations.claimed ||
+    claimErrors.length ||
+    // Una orden reabierta por el barrido es un webhook perdido: siempre se
+    // asienta, aunque no haya habido nada mas en la corrida.
+    sweep.recovered ||
+    sweep.failures.length
+  ) {
     logger.info(PAYMENT_TRAIL_ACTIONS.recoveryRun, summary)
     await auditTrail?.record({
       action: PAYMENT_TRAIL_ACTIONS.recoveryRun,
       entityType: 'payment_recovery',
       entityId: 'payment_recovery',
-      status: summary.events.failed || summary.reconciliations.failed ? 'partial' : 'processed',
-      severity: summary.events.failed || summary.reconciliations.failed ? 'warning' : 'info',
+      status: failed ? 'partial' : 'processed',
+      severity: failed || sweep.recovered ? 'warning' : 'info',
       metadata: summary,
     })
   }

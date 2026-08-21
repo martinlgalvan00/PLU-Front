@@ -1,6 +1,8 @@
 import { callRpc } from '../lib/rpcErrors.js'
 import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
 import { toCamelSchedule } from '../lib/eventSchedule.js'
+import { describePaymentConcept } from '../lib/paymentConcept.js'
+import { derivePaymentProgress } from '../lib/paymentProgress.js'
 
 /**
  * athleteApi.js — PLU ARG
@@ -148,22 +150,44 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
   const registrationRows = (registrations ?? []).map(toCamelRegistrationEntry)
   const orders = paymentOrders ?? []
 
-  const registrationEventByOrderId = new Map(
-    registrationRows
-      .filter((item) => item.paymentOrderId)
-      .map((item) => [item.paymentOrderId, item.event]),
+  const registrationByOrderId = new Map(
+    registrationRows.filter((item) => item.paymentOrderId).map((item) => [item.paymentOrderId, item]),
+  )
+  const membershipByOrderId = new Map(
+    membershipRows.filter((item) => item.paymentOrderId).map((item) => [item.paymentOrderId, item]),
   )
 
   const paymentRows = orders.map((order) => {
-    const eventTitle =
-      order.concept === 'registration' ? registrationEventByOrderId.get(order.id) : null
+    const registration = registrationByOrderId.get(order.id) ?? null
+    const membership = membershipByOrderId.get(order.id) ?? null
     const paymentProofPath = order.payment_proof_path ?? order.paymentProofPath ?? null
+    // La descripción declarada sale del mismo módulo que arma el título que
+    // viaja a Mercado Pago: lo que ve el atleta en la app y lo que le llega al
+    // resumen de la tarjeta dicen lo mismo.
+    const described = describePaymentConcept({
+      concept: order.concept,
+      membershipYear: membership?.year ?? null,
+      fallbackYear: String(order.created_at ?? order.createdAt ?? '').slice(0, 4) || null,
+      eventTitle: registration?.event ?? null,
+      division: registration?.division ?? null,
+      category: registration?.category ?? null,
+    })
+    const normalizedOrder = {
+      status: order.status,
+      method: order.method,
+      manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,
+      expiresAt: order.expires_at ?? order.expiresAt ?? null,
+      updatedAt: order.updated_at ?? order.updatedAt ?? null,
+      rejectionReason: order.rejection_reason ?? order.rejectionReason ?? null,
+      paymentProofUploadedAt:
+        order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
+    }
+
     return {
       id: order.id,
       athleteId: order.athlete_id,
-      concept: eventTitle
-        ? `Inscripción ${eventTitle}`
-        : (CONCEPT_LABELS[order.concept] ?? order.concept),
+      concept: described.title,
+      conceptDetail: described.detail,
       // Valor crudo ('membership' | 'registration' | 'combo'), distinto de
       // `concept` (la etiqueta ya formateada arriba) -- lo necesita
       // paymentReconciliationService para saber qué entitlement debería
@@ -171,14 +195,30 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       conceptType: order.concept,
       amount: order.amount,
       method: order.method,
-      manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,
+      manualPaymentChannel: normalizedOrder.manualPaymentChannel,
       status: order.status,
       reference: order.reference,
+      rejectionReason: normalizedOrder.rejectionReason,
+      expiresAt: normalizedOrder.expiresAt,
+      updatedAt: normalizedOrder.updatedAt,
       paymentProofPath:
         typeof paymentProofPath === 'string' ? paymentProofPath.trim() || null : paymentProofPath,
-      paymentProofUploadedAt:
-        order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
+      paymentProofUploadedAt: normalizedOrder.paymentProofUploadedAt,
       createdAt: order.created_at ?? order.createdAt ?? null,
+      // Estado real derivado del agregado + el libro de intentos, no del último
+      // intento aplicado. `outcome` es el derecho que este cobro pagaba: si el
+      // cobro murió y el derecho igual quedó otorgado (activación manual desde
+      // el panel), la fila lo dice en vez de contradecir a la sección de
+      // Afiliación.
+      progress: derivePaymentProgress({
+        order: normalizedOrder,
+        attempts: order.attempts ?? [],
+        outcome: membership
+          ? { kind: 'membership', status: membership.status }
+          : registration
+            ? { kind: 'registration', status: registration.status }
+            : null,
+      }),
     }
   })
 

@@ -2115,170 +2115,40 @@
    Antes no tenía estilos: el input y el botón salían nativos del browser. */
 .account-discount {
   display: grid;
-  gap: 6px;
+  gap: 10px;
   justify-items: start;
 }
 
-.account-discount__toggle {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color var(--transition-fast);
-}
-
-.account-discount__toggle:hover:not(:disabled) {
-  color: var(--color-brand-gold);
-}
-
-.account-discount__toggle:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.account-discount__toggle:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
-  outline-offset: 3px;
-}
-
+/* El aspecto del canje —sello, filo de oro, código en mono, chip metálico— lo
+   define components/code-band.css, compartido con el canje universal y con el
+   campo de inscripción. Acá queda sólo el sitio que ocupa en la ficha. */
 .account-discount__field {
   display: grid;
-  gap: 7px;
-  max-width: 380px;
+  gap: 10px;
+  justify-items: start;
+  max-width: 470px;
   width: 100%;
 }
 
-.account-discount__field > label {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.account-discount__hint {
-  color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  line-height: 1.45;
-}
-
-.account-discount__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.account-discount__row input {
-  background: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text-primary);
-  flex: 1;
-  font: inherit;
-  letter-spacing: 0.04em;
-  min-height: 44px;
-  min-width: 0;
-  padding: 0 14px;
-  text-transform: uppercase;
-  transition: border-color var(--transition-fast);
-}
-
-.account-discount__row input:focus-visible {
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
-  outline: none;
-}
-
-.account-discount__row input:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.account-discount__row button {
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  flex: none;
-  font: inherit;
-  font-weight: 600;
-  min-height: 44px;
-  padding: 0 16px;
-  transition:
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.account-discount__row button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
-  color: var(--color-brand-gold);
-}
-
-.account-discount__row button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.account-discount__row button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
-  outline-offset: 2px;
-}
-
-.account-discount__error {
-  color: var(--color-brand-red);
-  font-size: 12px;
-  margin: 0;
-}
-
 .account-discount__applied {
-  align-items: center;
-  color: var(--color-brand-gold);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 8px;
-  margin: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  width: 100%;
 }
 
 /* Promo que corre para todos: no la trajo el atleta con un codigo, asi que
    se lee como informacion del catalogo (celeste) y no como un logro suyo
    (oro), y no ofrece "quitar" porque no hay nada que quitar. */
 .account-discount__applied--public {
+  align-items: center;
   color: var(--color-brand-celeste);
-}
-
-.account-discount__applied button {
-  background: transparent;
-  border: 0;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 500;
-  margin-left: auto;
-  min-height: 44px;
-  padding: 4px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.account-discount__applied button:hover:not(:disabled) {
-  color: var(--color-text-secondary);
-}
-
-.account-discount__applied button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
 }
 
 /* Estilos de .segmented-switch--membership: components/segmented-switch.css
@@ -5581,5 +5451,207 @@
     margin-inline: 0;
     max-width: none;
     padding-inline: 0;
+  }
+}
+
+/* =============================================
+   PAGOS DE LA CUENTA (#account-payments)
+   =============================================
+   Lista editorial de cobros, no grilla de cards: son registros comparables en
+   orden cronológico. Cada fila abre con una regla superior — mismo recurso que
+   .account-history-list — y sostiene una sola acción posible.
+
+   El tono del estado lo lleva el StatusPill (status.css). La cinta de etapas no
+   se colorea por tono a propósito: `--color-success-text` y compañía sólo están
+   declarados en dark.css, así que en claro heredarían el valor oscuro y el
+   contraste sobre el fondo de la página no estaría garantizado. Celeste es el
+   único acento acá, y está definido en los dos temas. */
+
+.account-payments-list {
+  /* Celeste como TEXTO necesita otra escala por tema. `--color-brand-celeste`
+     es `--plu-celeste-400` en los dos, y sobre el fondo claro da 2,04:1: muy
+     por debajo de AA. La 600 es la que el proyecto ya usa para celeste sobre
+     claro (`--institution-blue`, `--admin-brand`) y da 6,1:1. */
+  --account-payment-accent: var(--plu-celeste-400);
+
+  display: grid;
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+}
+
+[data-theme='light'] .account-payments-list {
+  --account-payment-accent: var(--plu-celeste-600);
+}
+
+.account-payment {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 22px 0;
+}
+
+.account-payment__head {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+}
+
+.account-payment__identity h3 {
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.account-payment__detail {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+
+.account-payment__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.account-payment__figures {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.account-payment__amount {
+  color: var(--color-text-primary);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Cinta de etapas: sólo mientras el cobro sigue abierto. */
+.account-payment__track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.account-payment__stage {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 11.5px;
+  gap: 7px;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.account-payment__stage-mark {
+  background: var(--color-border-subtle);
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.account-payment__stage[data-done='true'] {
+  color: var(--color-text-secondary);
+}
+
+.account-payment__stage[data-done='true'] .account-payment__stage-mark {
+  background: var(--color-text-secondary);
+}
+
+.account-payment__stage[data-current='true'] {
+  color: var(--account-payment-accent);
+  font-weight: 600;
+}
+
+.account-payment__stage[data-current='true'] .account-payment__stage-mark {
+  background: var(--account-payment-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--account-payment-accent) 18%, transparent);
+}
+
+.account-payment__reason,
+.account-payment__note {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.account-payment__note {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.account-payment__note--alert {
+  color: var(--color-text-secondary);
+}
+
+.account-payment__meta code {
+  display: inline-block;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  max-width: 100%;
+  /* La referencia es lo que el atleta copia en un reclamo: baja entera a la
+     línea siguiente en vez de partirse al medio (`MORD-0 / 07fe4e…`). Sólo se
+     parte si por sí sola no entra en el ancho. */
+  overflow-wrap: anywhere;
+}
+
+/* Acción de un cobro puntual: misma regla inferior que la acción del estado
+   vacío, pero con clase propia — reusar `.account-empty__action` fuera del
+   estado vacío ataba dos cosas que pueden evolucionar por separado. */
+.account-payment__action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--account-payment-accent) 45%, transparent);
+  color: var(--account-payment-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 2px;
+  /* 44px de alto real: es un target táctil, no un link de párrafo. */
+  min-height: 44px;
+  padding: 0;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.account-payment__action:hover {
+  border-bottom-color: var(--account-payment-accent);
+}
+
+@media (max-width: 560px) {
+  /* El monto y el estado bajan bajo el concepto: en 360px la columna derecha
+     dejaba el título en dos o tres líneas partidas. */
+  .account-payment__head {
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .account-payment__figures {
+    align-items: center;
+    flex-direction: row;
+    grid-auto-flow: column;
+    justify-content: start;
+    justify-items: start;
   }
 }

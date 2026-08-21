@@ -1,0 +1,223 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #f2b705; } a:hover { color: #ffd23f; }
+    .dc {
+      --bg: #181a1f; --text: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --rule: rgba(255, 255, 255, 0.14); --rule-soft: rgba(255, 255, 255, 0.08);
+      --gold: #f2b705; --gold-dim: #a9790f; --danger: #ff8b86;
+      --inset: #0a0b0d; --on-gold: #14181f;
+    }
+    .dc.is-page { --bg: #0a0b0d; --inset: #000000; }
+    .dc.is-light {
+      --bg: #ffffff; --text: #0d0e12; --secondary: #2c2f3c; --muted: #636878;
+      --rule: rgba(15, 17, 23, 0.10); --rule-soft: rgba(15, 17, 23, 0.06);
+      --gold: #a9790f; --gold-dim: #a9790f; --danger: #991b1b; --inset: #f0efec;
+    }
+    .dc {
+      background: var(--bg); color: var(--text);
+      font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      min-height: 100%; padding: 40px 40px 48px;
+    }
+    .eyebrow {
+      color: var(--muted); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .head-name { font-size: 26px; font-weight: 300; letter-spacing: -0.01em; margin: 6px 0 10px; }
+    .head-thesis { color: var(--secondary); font-size: 13px; line-height: 1.6; margin: 0; max-width: 46ch; }
+    .sep { background: var(--rule-soft); height: 1px; margin: 28px 0; }
+    .group-label {
+      color: var(--muted); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .states { display: flex; flex-direction: column; gap: 26px; margin-top: 18px; }
+    .state-name {
+      color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 10px; letter-spacing: 0.06em; margin: 0 0 10px;
+    }
+
+    /* ---------------------------------------------------------------------
+       B · Ceremonia. Canjear no es completar un campo: es abrir algo. El
+       bloque se centra, respira y lleva un sello. La acción conserva el oro
+       macizo porque acá sí es la conclusión del momento, no un botón más.
+       --------------------------------------------------------------------- */
+    .cer {
+      border: 1px solid var(--rule-soft); border-radius: 14px;
+      display: grid; gap: 14px; justify-items: center; margin: 0 auto;
+      max-width: 380px; padding: 30px 28px; text-align: center;
+    }
+    .cer-seal {
+      align-items: center; border: 1px solid var(--gold-dim); border-radius: 999px;
+      color: var(--gold); display: flex; height: 34px; justify-content: center; width: 34px;
+    }
+    .cer-seal.is-done { background: var(--gold); border-color: var(--gold); color: var(--on-gold); }
+    .cer-eyebrow {
+      color: var(--gold-dim); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .cer-title { font-size: 21px; font-weight: 300; letter-spacing: -0.01em; margin: 0; }
+    .cer-input {
+      align-items: center; background: none; border: 1px solid var(--rule);
+      border-radius: 8px; color: var(--text); display: flex;
+      font: 500 15px/1 'JetBrains Mono', ui-monospace, monospace;
+      justify-content: center; letter-spacing: 0.24em; min-height: 48px;
+      text-transform: uppercase; width: 100%;
+    }
+    .cer-input.is-empty { color: var(--muted); font-size: 12px; letter-spacing: 0.18em; }
+    .cer-input.is-error { border-color: var(--danger); }
+    .cer-cta {
+      align-items: center; background: var(--gold); border: 0; border-radius: 8px;
+      color: var(--on-gold); display: flex; font: 700 13px/1 'Poppins', sans-serif;
+      justify-content: center; min-height: 44px; width: 100%;
+    }
+    .cer-cta.is-wait { opacity: 0.55; }
+    .cer-hint { color: var(--muted); font-size: 11.5px; line-height: 1.55; margin: 0; max-width: 40ch; }
+    .cer-error { color: var(--danger); font-size: 12px; margin: 0; }
+    .cer-lead { color: var(--secondary); font-size: 12.5px; line-height: 1.5; margin: 0; max-width: 34ch; }
+    .cer-toggle {
+      align-items: center; background: none; border: 0; color: var(--secondary);
+      display: flex; font: 500 13px/1 'Poppins', sans-serif; gap: 14px;
+      justify-content: center; margin: 0 auto; min-height: 44px;
+    }
+
+    /* En el checkout el mismo lenguaje sin marco: dentro de la tarjeta de
+       compra un recuadro sería una card anidada. Queda la composición
+       centrada y la regla superior. */
+    .cer-flat {
+      border-top: 1px solid var(--rule-soft); display: grid; gap: 12px;
+      justify-items: center; margin: 0 auto; max-width: 380px;
+      padding-top: 22px; text-align: center;
+    }
+    .cer-applied { align-items: baseline; display: flex; gap: 10px; justify-content: center; }
+    .cer-applied-code {
+      color: var(--gold); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.16em;
+    }
+    .cer-applied-amount { font-size: 17px; font-weight: 600; }
+    .cer-drop { background: none; border: 0; color: var(--muted); font: 400 12px/1 'Poppins', sans-serif; text-decoration: underline; text-underline-offset: 3px; }
+  </style>
+</helmet>
+<div class="dc {{surfaceClass}}">
+  <span class="eyebrow">Dirección B</span>
+  <h1 class="head-name">Ceremonia</h1>
+  <p class="head-thesis">
+    Canjear deja de ser completar un campo y pasa a ser abrir algo: composición
+    centrada, un sello, aire alrededor y peso tipográfico liviano. Es la más
+    declaradamente lujosa de las tres, y la que más lugar pide.
+  </p>
+
+  <div class="sep"></div>
+  <span class="group-label">Canje universal</span>
+  <div class="states">
+    <div>
+      <p class="state-name">cerrado</p>
+      <button type="button" class="cer-toggle">
+        <span class="cer-seal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+        </span>
+        Tengo un código
+      </button>
+    </div>
+
+    <div>
+      <p class="state-name">abierto</p>
+      <div class="cer">
+        <span class="cer-seal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+        </span>
+        <span class="cer-eyebrow">Llave privada</span>
+        <h2 class="cer-title">Canjeá tu código</h2>
+        <div class="cer-input is-empty">INGRESÁ TU CÓDIGO</div>
+        <button type="button" class="cer-cta">Canjear</button>
+        <p class="cer-hint">Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">validando</p>
+      <div class="cer">
+        <span class="cer-seal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+        </span>
+        <span class="cer-eyebrow">Llave privada</span>
+        <h2 class="cer-title">Canjeá tu código</h2>
+        <div class="cer-input">ONLY-PITBULL</div>
+        <button type="button" class="cer-cta is-wait">Validando…</button>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">error</p>
+      <div class="cer">
+        <span class="cer-seal">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+        </span>
+        <span class="cer-eyebrow">Llave privada</span>
+        <h2 class="cer-title">Canjeá tu código</h2>
+        <div class="cer-input is-error">ONLY-NORTE</div>
+        <p class="cer-error">Ese código no existe.</p>
+        <button type="button" class="cer-cta">Canjear</button>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">canjeado</p>
+      <div class="cer">
+        <span class="cer-seal is-done">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </span>
+        <span class="cer-eyebrow">Llave aceptada</span>
+        <h2 class="cer-title">Código secreto canjeado</h2>
+        <p class="cer-lead">Redirigiéndote a tu pestaña secreta…</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <span class="group-label">Campo del checkout</span>
+  <div class="states">
+    <div>
+      <p class="state-name">vacío</p>
+      <div class="cer-flat">
+        <span class="cer-eyebrow">Código</span>
+        <div class="cer-input is-empty">INGRESÁ TU CÓDIGO</div>
+        <button type="button" class="cer-cta">Canjear</button>
+        <p class="cer-hint">Canjeá tu código.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">aplicado</p>
+      <div class="cer-flat">
+        <span class="cer-eyebrow">Precio exclusivo aplicado</span>
+        <div class="cer-applied">
+          <span class="cer-applied-code">ONLY-PITBULL</span>
+          <span class="cer-applied-amount">$ 120.000</span>
+        </div>
+        <button type="button" class="cer-drop">Quitar</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"surface":{"editor":"enum","options":["card","page","light"],"default":"card","section":"Superficie"},"$preview":{"width":620,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const surface = this.props.surface ?? 'card';
+    return {
+      surfaceClass: surface === 'page' ? 'is-page' : surface === 'light' ? 'is-light' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>
