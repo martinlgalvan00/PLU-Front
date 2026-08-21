@@ -103,7 +103,7 @@ function AuditLikeFilterBar({ initialAction = 'all' }) {
   return (
     <AppConfigProvider>
       <div className="admin-shell" style={{ minHeight: 0, background: 'var(--admin-canvas)', padding: '24px' }}>
-        <div style={{ maxWidth: 900 }}>
+        <div style={{ maxWidth: 1120 }}>
           <AdminFilterBar
             compact
             inline

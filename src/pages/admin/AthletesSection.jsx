@@ -118,6 +118,21 @@ export default function AthletesSection({
   )
   const hasFiltersToSave = query.trim() !== '' || status !== 'all' || registrationStatus !== 'all'
 
+  // Resumen legible de los filtros activos para el popover
+  const filterSummary = useMemo(() => {
+    const items = []
+    if (query.trim()) items.push({ label: 'Búsqueda', value: query.trim() })
+    if (status !== 'all') {
+      const opt = statusOptions.find(([v]) => v === status)
+      if (opt) items.push({ label: t('admin.filters.affiliation'), value: opt[1] })
+    }
+    if (registrationStatus !== 'all') {
+      const opt = registrationStatusOptions.find(([v]) => v === registrationStatus)
+      if (opt) items.push({ label: t('admin.filters.registrationStatus'), value: opt[1] })
+    }
+    return items
+  }, [query, status, registrationStatus, statusOptions, registrationStatusOptions, t])
+
   function applySavedView(view) {
     setQuery(view.snapshot.query ?? '')
     setStatus(view.snapshot.status ?? 'all')
@@ -219,6 +234,7 @@ export default function AthletesSection({
           namePlaceholder={t('admin.savedViews.namePlaceholder')}
           removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
           canSave={hasFiltersToSave && !activeSavedView}
+          filterSummary={filterSummary}
           onApply={applySavedView}
           onClear={clearSavedView}
           onSave={(label) => saveView(label, savedViewSnapshot)}

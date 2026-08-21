@@ -248,12 +248,12 @@
 }
 
 .admin-shell .admin-list-section__chrome {
-  background: var(--admin-canvas);
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 60%, transparent);
   display: grid;
   flex: none;
-  gap: 6px;
-  padding-bottom: 8px;
+  gap: 8px;
+  padding-bottom: 16px;
   position: relative;
   z-index: 5;
 }
@@ -665,13 +665,34 @@
   display: block;
 }
 
-/* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice. */
+/* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice.
+   Lo ocultamos siempre en la variante inline compact — los chips son autodescriptivos. */
 .admin-shell
   .admin-filters--inline
-  .admin-filters__groups:not(.admin-filters__groups--multi)
+  .admin-filters__groups
   .admin-filter-group--inline
   > .admin-filter-group__label {
   display: none;
+}
+
+/* Fila que une los chips principales con el toggle de avanzados.
+   Los chips se expanden y el toggle queda pegado a la derecha. */
+.admin-shell .admin-filters__chips-row {
+  align-items: center;
+  display: flex;
+  gap: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell .admin-filters__chips-row > .admin-filters__groups {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-shell .admin-filters__chips-row > .admin-filters__advanced-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .admin-shell .admin-filters__clear {
@@ -2217,16 +2238,16 @@
   align-items: center;
   background: color-mix(in srgb, var(--admin-control-bg) 92%, var(--admin-surface-raised));
   border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
-  border-radius: 11px;
+  border-radius: 14px;
   color: var(--admin-muted);
   display: flex;
   flex: 1 1 auto;
-  gap: 10px;
-  height: 42px;
+  gap: 12px;
+  height: 52px;
   margin: 0;
-  min-height: 42px;
+  min-height: 52px;
   min-width: 0;
-  padding: 0 12px 0 14px;
+  padding: 0 16px 0 18px;
   transition:
     border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
     background var(--motion-fast, 160ms) var(--ease-standard, ease),
@@ -2244,13 +2265,34 @@
   transform: translateY(-1px);
 }
 
-.admin-shell .admin-filters__search input {
-  color: var(--admin-ink);
-  font-size: 13px;
-  min-height: 40px;
+.admin-shell .admin-filters__search-icon {
+  color: var(--admin-muted);
+  flex: none;
 }
 
-.admin-shell .admin-filters__search input::placeholder {
+.admin-shell .admin-filters__search-input {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 13px;
+  min-height: 36px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  width: 100%;
+}
+
+/* Ocultar el botón nativo de type=search en WebKit */
+.admin-shell .admin-filters__search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.admin-shell .admin-filters__search-input::placeholder {
   color: var(--admin-muted);
   opacity: 0.9;
 }
@@ -2359,7 +2401,7 @@
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
-  gap: 10px;
+  gap: 16px;
   min-width: 0;
   overflow: visible;
 }
@@ -2370,7 +2412,7 @@
   display: flex !important;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 10px 14px;
+  gap: 16px 14px;
 }
 
 .admin-shell
@@ -2415,28 +2457,38 @@
   align-items: center;
   align-self: center;
   background: transparent;
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border: 0;
   border-radius: 9px;
   color: var(--admin-muted, var(--color-text-muted));
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 13px;
-  font-weight: 600;
-  gap: 6px;
+  font-size: 12px;
+  font-weight: 550;
+  gap: 5px;
   justify-content: center;
-  letter-spacing: -0.01em;
-  min-height: 42px;
+  letter-spacing: 0.01em;
+  min-height: 36px;
   min-width: max-content;
-  padding: 0 14px;
+  padding: 0 10px;
+  transition:
+    color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    background var(--motion-fast, 160ms) var(--ease-standard, ease);
   white-space: nowrap;
 }
 
-.admin-shell .admin-filters__advanced-toggle:hover,
+.admin-shell .admin-filters__advanced-toggle:hover {
+  background: var(--admin-row-hover);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
 .admin-shell .admin-filters__advanced-toggle.is-open,
 .admin-shell .admin-filters__advanced-toggle.is-active {
-  border-color: color-mix(in oklab, var(--color-text-primary) 22%, transparent);
   color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-shell .admin-filters__advanced-toggle.is-active:not(.is-open) {
+  color: var(--admin-brand);
 }
 
 .admin-shell .admin-filters__advanced-toggle:focus-visible {
@@ -2457,13 +2509,12 @@
    para que los avanzados se lean como un nivel propio (raramente usado),
    no como una extensión de los chips principales. */
 .admin-shell .admin-filters__advanced-panel {
-  background: var(--admin-surface-muted);
-  border-radius: 10px;
+  border-top: 1px solid var(--admin-hairline);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-  padding: 14px 16px;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
 }
 
 .admin-shell .admin-filters__advanced-label {
@@ -2471,14 +2522,24 @@
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0.08em;
+  opacity: 0.6;
   text-transform: uppercase;
 }
 
+/* Los chips del panel avanzado son más chicos para comunicar menor jerarquía.
+   Al ser claramente "secundarios" en tamaño, el usuario no los confunde con
+   los filtros principales de arriba. */
 .admin-shell .admin-filters__advanced-groups {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 12px 20px;
+}
+
+.admin-shell .admin-filters__advanced-groups .admin-filter-chip {
+  font-size: 11.5px;
+  min-height: 30px;
+  padding: 4px 10px;
 }
 
 .admin-shell .admin-filters__advanced-groups .admin-filter-group {
@@ -2534,24 +2595,22 @@
   mask-image: none;
 }
 
-/* Track premium: cápsula activa + count quieto. Sin subrayado ni línea de barra.
-   `width: fit-content` -- antes forzaba 100% del row y el `flex: 1 0 auto` de
-   cada chip repartía ese ancho en partes iguales, dejando 2-3 opciones cortas
-   estiradas con mucho aire muerto alrededor. Con los chips a ancho natural,
-   la cápsula también se ajusta a su contenido en vez de ocupar la fila entera. */
+/* Chips como text-tabs: el track es plano, sin cápsula visible.
+   El chip activo se distingue por su underline + peso tipográfico.
+   `overflow: visible` para que el border-bottom del activo no quede cortado. */
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chips {
-  align-items: stretch;
-  background: color-mix(in srgb, var(--admin-control-bg) 82%, transparent);
-  border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
-  border-radius: 12px;
+  align-items: flex-end;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   display: flex;
   flex-wrap: nowrap;
-  gap: 4px;
+  gap: 8px;
   max-width: 100%;
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 4px;
+  padding: 0 0 2px;
   scroll-padding-inline: 4px;
   scrollbar-width: none;
   width: fit-content;
@@ -2586,7 +2645,7 @@
   letter-spacing: -0.01em;
   min-height: 36px;
   min-width: max-content;
-  padding: 7px 14px;
+  padding: 10px 16px;
   position: relative;
   transform: none;
   transition:
@@ -2611,20 +2670,22 @@
   color: var(--admin-ink);
 }
 
+/* Chip activo: underline sutil + texto oscuro. Sin caja, sin sombra.
+   La jerarquía se lee por tipografía, no por fondos rellenos. */
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip.is-active,
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--admin-surface-raised) 88%, var(--admin-brand) 12%);
+  background: transparent !important;
   border: 0;
-  box-shadow:
-    0 3px 8px color-mix(in srgb, var(--admin-ink) 14%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--admin-brand) 30%, transparent);
+  border-bottom: 2px solid var(--admin-brand);
+  border-radius: 0;
+  box-shadow: none;
   color: var(--admin-ink);
-  font-weight: 650;
-  transform: translateY(-1px);
+  font-weight: 700;
+  transform: none;
 }
 
 .admin-shell
@@ -2703,6 +2764,21 @@
   gap: 14px;
 }
 
+/* Personas es un listado anidado dentro de sus pestañas. No usa el rail de
+   página completa, por lo que el fallback sticky del chrome lo dejaba flotando
+   sobre las filas. Acá el buscador y los filtros forman parte del documento:
+   al seguir bajando, pasan junto con la cabecera y no tapan resultados. */
+.admin-shell .admin-people-section .admin-list-section__chrome {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  position: relative;
+  top: auto;
+  z-index: auto;
+}
+
 .admin-people-section__tabs {
   align-items: center;
   background: var(--admin-control-bg);
@@ -2724,6 +2800,7 @@
   font-size: 12.5px;
   font-weight: 500;
   padding: 7px 18px;
+  position: relative;
   transition:
     background var(--motion-fast, 160ms) var(--ease-standard, ease),
     color var(--motion-fast, 160ms) var(--ease-standard, ease);
@@ -2734,9 +2811,21 @@
 }
 
 .admin-people-section__tab.is-active {
-  background: var(--admin-premium, var(--color-brand-gold));
   color: var(--admin-on-brand, #14181f);
   font-weight: 600;
+}
+
+.admin-people-section__tab-indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--admin-premium, var(--color-brand-gold));
+  z-index: 0;
+}
+
+.admin-people-section__tab-label {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-people-section__tab:focus-visible {
@@ -2744,39 +2833,62 @@
   outline-offset: 2px;
 }
 
-/* Vistas guardadas: fila de combinaciones de filtro con nombre, arriba de la
-   barra de filtros. Reutiliza `.admin-filter-chip` vía `admin-filter-group--compact`
-   para heredar el estilo de los chips de la barra sin duplicar reglas. */
+/* Vistas guardadas: fila superior sutil para presets de búsqueda rápida. */
 .admin-saved-views {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 16px;
+  padding: 0 4px;
 }
 
 .admin-saved-views__caption {
   color: var(--admin-muted);
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.admin-shell .admin-filter-group--compact.admin-saved-views .admin-filter-chips {
+.admin-saved-views__list {
+  align-items: center;
+  display: flex;
   flex-wrap: wrap;
-  overflow: visible;
-  width: auto;
+  gap: 16px;
 }
 
 .admin-saved-views__item {
   align-items: center;
   display: inline-flex;
+  gap: 4px;
   position: relative;
 }
 
+.admin-saved-views__tab {
+  background: transparent;
+  border: 0;
+  color: var(--admin-text-secondary, var(--admin-muted));
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  transition: color var(--motion-fast, 160ms) ease;
+}
+
+.admin-saved-views__tab:hover {
+  color: var(--admin-ink);
+}
+
+.admin-saved-views__tab.is-active {
+  color: var(--admin-ink);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .admin-shell .admin-saved-views .admin-filter-chip.admin-saved-views__chip {
-  padding-right: 26px;
+  display: none; /* Obsoleto */
 }
 
 .admin-saved-views__remove {
@@ -2787,13 +2899,9 @@
   color: var(--admin-muted);
   cursor: pointer;
   display: flex;
-  height: 18px;
+  height: 16px;
   justify-content: center;
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
+  width: 16px;
 }
 
 .admin-saved-views__remove:hover {
@@ -2801,24 +2909,147 @@
   color: var(--admin-ink);
 }
 
+.admin-saved-views__add-wrap {
+  position: relative;
+}
+
 .admin-saved-views__add {
   align-items: center;
   background: transparent;
-  border: 1px dashed color-mix(in srgb, var(--admin-hairline) 160%, transparent);
-  border-radius: 9px;
+  border: 0;
   color: var(--admin-muted);
   cursor: pointer;
   display: flex;
-  font-size: 12.5px;
-  gap: 6px;
-  min-height: 36px;
-  padding: 7px 12px;
-  white-space: nowrap;
+  font-size: 12px;
+  gap: 5px;
+  padding: 0;
+  transition: color var(--motion-fast, 160ms) ease;
 }
 
-.admin-saved-views__add:hover {
-  border-color: var(--admin-brand);
+.admin-saved-views__add:hover,
+.admin-saved-views__add.is-open {
   color: var(--admin-ink);
+}
+
+/* Popover flotante del constructor de filtros */
+.admin-saved-views__popover {
+  background: var(--admin-surface-raised, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
+  box-shadow:
+    0 4px 6px -1px color-mix(in srgb, var(--admin-ink) 8%, transparent),
+    0 16px 32px -8px color-mix(in srgb, var(--admin-ink) 18%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  left: 0;
+  min-width: 260px;
+  padding: 16px;
+  position: absolute;
+  top: calc(100% + 8px);
+  z-index: 100;
+}
+
+/* Resumen de filtros activos */
+.admin-saved-views__snapshot {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+}
+
+.admin-saved-views__snapshot-title {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 10px;
+  font-weight: 650;
+  gap: 5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-saved-views__snapshot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-saved-views__snapshot-item {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.admin-saved-views__snapshot-label {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-saved-views__snapshot-value {
+  color: var(--admin-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Form dentro del popover */
+.admin-saved-views__popover-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-saved-views__popover-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-saved-views__cancel {
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 10px;
+  transition: color var(--motion-fast, 160ms) ease;
+}
+
+.admin-saved-views__cancel:hover {
+  color: var(--admin-ink);
+}
+
+.admin-saved-views__confirm {
+  background: var(--admin-brand);
+  border: 0;
+  border-radius: 7px;
+  color: var(--admin-on-brand, #fff);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  padding: 7px 14px;
+  transition:
+    opacity var(--motion-fast, 160ms) ease,
+    background var(--motion-fast, 160ms) ease;
+}
+
+.admin-saved-views__confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.admin-saved-views__confirm:not(:disabled):hover {
+  background: color-mix(in srgb, var(--admin-brand) 84%, var(--admin-ink));
 }
 
 .admin-saved-views__input {
