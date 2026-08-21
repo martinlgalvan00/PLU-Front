@@ -705,15 +705,23 @@ export default function RegisterPage({
         }
         return
       }
+      // Mismo caso para un cupón común ya aplicado: recotizar es sólo volver a
+      // pedir el importe del canal nuevo. La guarda de arriba cubría sólo el
+      // código de la oferta, así que un porcentaje o un precio promocional
+      // seguía re-resolviéndose —otro evento de embudo y otro pedido— en cada
+      // cambio de medio de pago.
+      const repricing = discountPreview?.valid === true && discountPreview.code === code
       let resolution = null
-      try {
-        resolution = await redeemPromotionCode(code, {
-          surface: 'registration',
-          eventSlug: event.slug,
-        })
-      } catch {
-        // El preview específico conserva compatibilidad si el resolvedor se
-        // despliega unos minutos después que el frontend.
+      if (!repricing) {
+        try {
+          resolution = await redeemPromotionCode(code, {
+            surface: 'registration',
+            eventSlug: event.slug,
+          })
+        } catch {
+          // El preview específico conserva compatibilidad si el resolvedor se
+          // despliega unos minutos después que el frontend.
+        }
       }
       if (resolution?.accepted && resolution.action === 'open_exclusive_offer') {
         setDiscountCodeInput(resolution.code)
@@ -990,11 +998,19 @@ export default function RegisterPage({
   // La promo pública se aplica sola al crear la orden. Sin este preview el
   // checkout anunciaría el precio de lista y cobraría otro. Depende del alcance
   // (combo o inscripción suelta) y del canal, igual que el cupón.
+  //
+  // Con un cupón en juego no se consulta: gana el cupón (`activeDiscount`), así
+  // que era un pedido por cada cambio de paquete o de canal cuyo resultado nadie
+  // lee. `discountChecking` entra en la condición porque aplicar o recotizar
+  // limpia el preview por un instante, y sin eso la consulta volvía en ese
+  // hueco. No se apaga `publicPromo`: sólo se deja de pedir.
+  const hasAppliedDiscountCode = discountChecking || discountPreview?.valid === true
   useEffect(() => {
     if (!event?.slug || flow !== 'competition') {
       setPublicPromo(null)
       return undefined
     }
+    if (hasAppliedDiscountCode) return undefined
     let cancelled = false
     void (async () => {
       try {
@@ -1013,7 +1029,7 @@ export default function RegisterPage({
     return () => {
       cancelled = true
     }
-  }, [effectivePurchaseType, event?.slug, flow, form.paymentMethod])
+  }, [effectivePurchaseType, event?.slug, flow, form.paymentMethod, hasAppliedDiscountCode])
 
   const comboSavings =
     comboAvailability.offer && membershipListPrice + registrationListPrice > comboListPrice

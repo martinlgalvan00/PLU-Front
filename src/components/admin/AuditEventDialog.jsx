@@ -249,14 +249,20 @@ export default function AuditEventDialog({ eventId, onClose }) {
                   <TriangleAlert size={15} aria-hidden /> {t('admin.auditDetail.failureTitle')}
                 </h3>
 
+                {/* El titular es el mensaje del error: el operador vino a leer
+                    lo que produjo el servidor. Con una traducción operativa
+                    manda esa y el técnico queda plegado. El título del
+                    diagnóstico NO entra acá: es del bloque "por qué falló", y
+                    ponerlo en los dos lugares repetía la misma frase mientras
+                    el mensaje real desaparecía del diálogo. */}
                 {failure.message ? (
                   <>
                     <p className="audit-detail__message">
-                      {failure.operatorMessage ?? failure.diagnosis?.title ?? failure.message}
+                      {failure.operatorMessage ?? failure.message}
                     </p>
                     {failure.operatorMessage && failure.operatorMessage !== failure.message ? (
                       <details className="audit-detail__provider-message">
-                        <summary>Mensaje técnico original</summary>
+                        <summary>{t('admin.auditDetail.providerMessage')}</summary>
                         <p>{failure.message}</p>
                       </details>
                     ) : null}

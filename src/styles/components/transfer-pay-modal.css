@@ -407,6 +407,16 @@
   margin-bottom: 3px;
 }
 
+/* El sello del cierre financiado hereda su propio bloque (confirmation-seal.css)
+   y sólo necesita separarse del recibo con la misma regla que el resto de los
+   estados de este panel. Sin borde ni fondo propios: dos superficies encimadas
+   dentro del recibo se leerían como una card anidada. */
+.manual-payment-confirmation__seal {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
 .manual-payment-confirmation__spinner {
   animation: manual-payment-confirmation-spin 0.8s linear infinite;
 }

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import PricingSection from '../src/pages/admin/PricingSection.jsx'
@@ -326,13 +326,24 @@ describe('Tarifas — alta de planes y combo', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
-    fireEvent.change(screen.getByLabelText(/^Tipo de código/), { target: { value: 'offer' } })
-    expect(screen.getByLabelText(/^Tipo de código/).value).toBe('offer')
+    // Tres tipos, en el vocabulario de quien reparte el código: la diferencia
+    // interna entre una oferta con precio propio y una sin él la decide el
+    // importe, no el operador.
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'offer_access' },
+    })
+    expect(screen.getByLabelText(/^Tipo de código/).value).toBe('offer_access')
+    expect(screen.getByRole('option', { name: 'Acceso a una oferta' })).toBeTruthy()
+    expect(screen.queryByRole('option', { name: /Oferta exclusiva/ })).toBeNull()
+    // Y la oferta se instancia: se nombra el paquete que abre.
+    expect(screen.getByLabelText(/Oferta que abre/).value).toBe('membership_registration')
     expect(
-      screen.getByRole('option', { name: 'Oferta exclusiva · afiliación + inscripción' }),
+      screen.getByRole('option', { name: 'Afiliación + inscripción a un evento' }),
     ).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Página privada de la oferta' })).toBeTruthy()
-    expect(screen.getByLabelText('Aplica a').value).toBe('combo')
+    // El alcance ya lo dijo la oferta: preguntarlo de nuevo con una sola opción
+    // era ruido.
+    expect(screen.queryByLabelText('Aplica a')).toBeNull()
     expect(screen.getByLabelText(/Quién accede/).value).toBe('code')
     fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
       target: { value: 'only-pitbull' },
@@ -533,40 +544,88 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(onUpsertDiscountCode).not.toHaveBeenCalled()
     expect(screen.getByText('no-es-un-mail no es una dirección de correo válida.')).toBeTruthy()
 
-    // Se aceptan los separadores que trae pegar una columna de planilla, y se
-    // normaliza a minúsculas sin repetidos.
+    // Un solo invitado conserva el código tipeado: la exclusividad es nominal,
+    // no cambia el material que se reparte.
     fireEvent.change(screen.getByLabelText(/Exclusiva para/), {
-      target: { value: 'Ana@PLU.ar, bruno@plu.ar; ana@plu.ar' },
+      target: { value: 'Ana@PLU.ar' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
-      expect.objectContaining({
-        code: 'GYM',
-        invitees: ['ana@plu.ar', 'bruno@plu.ar'],
-      }),
+      expect.objectContaining({ code: 'GYM', invitees: ['ana@plu.ar'] }),
     )
   })
 
-  it('crea un código de acceso al combo, sin descuento', async () => {
+  it('con varios invitados genera un código por persona, con el prefijo elegido', async () => {
+    // Se aceptan los separadores que trae pegar una columna de planilla, y se
+    // normaliza a minúsculas sin repetidos. Con más de uno el código no se
+    // tipea: cada invitado recibe el suyo, así que la exclusividad es real y no
+    // una lista compartiendo una sola llave.
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '15' } })
+    fireEvent.change(screen.getByLabelText(/Exclusiva para/), {
+      target: { value: 'Ana@PLU.ar, bruno@plu.ar; ana@plu.ar' },
+    })
+
+    // El campo de código deja lugar al prefijo, y la pantalla dice cuántos sale.
+    expect(screen.queryByRole('textbox', { name: /^Código/ })).toBeNull()
+    fireEvent.change(screen.getByLabelText(/Prefijo/), { target: { value: 'club' } })
+    expect(screen.getByText(/Se generan 2 códigos individuales/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    await waitFor(() => expect(onUpsertDiscountCode).toHaveBeenCalledTimes(2))
+    const [first, second] = onUpsertDiscountCode.mock.calls.map(([payload]) => payload)
+    expect(first.invitees).toEqual(['ana@plu.ar'])
+    expect(second.invitees).toEqual(['bruno@plu.ar'])
+    for (const payload of [first, second]) {
+      expect(payload.code).toMatch(/^CLUB-[A-Z0-9]+$/)
+    }
+    expect(first.code).not.toBe(second.code)
+  })
+
+  /** Un evento con combo habilitado y restringido: lo único sobre lo que se
+   *  puede instanciar una oferta. */
+  const restrictedComboConfiguration = {
+    ...configuration,
+    events: [
+      {
+        ...configuration.events[0],
+        comboOffer: {
+          membershipPlanId: 'plan-active',
+          price: 140000,
+          active: true,
+          audience: 'code',
+          accessCode: 'ONLY-PITBULL',
+        },
+      },
+    ],
+  }
+
+  it('una oferta sin precio propio cobra el combo del torneo', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode, configuration: restrictedComboConfiguration })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
     fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
       target: { value: 'combo-secreto' },
     })
-    fireEvent.change(screen.getByLabelText(/^Tipo de código/), { target: { value: 'access' } })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'offer_access' },
+    })
 
-    // Ni porcentaje ni precio promocional: un acceso no descuenta nada.
+    // Sin porcentaje: una oferta no descuenta sobre un precio publicado, abre
+    // un paquete que no está publicado.
     expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
-    expect(screen.queryByLabelText(/Precio promocional por Mercado Pago/)).toBeNull()
-    // El alcance se cae solo a combo, el único donde un acceso tiene sentido.
-    expect(screen.getByLabelText('Aplica a').value).toBe('combo')
-    expect(screen.queryByRole('option', { name: 'Afiliación' })).toBeNull()
-    expect(screen.queryByRole('option', { name: 'Inscripción' })).toBeNull()
-    expect(screen.queryByRole('option', { name: 'Afiliación e inscripción' })).toBeNull()
+    // El precio es opcional y su ausencia es el contrato: cobra el combo.
+    expect(screen.getByLabelText(/Precio de la oferta por Mercado Pago/).required).toBe(false)
 
+    fireEvent.change(screen.getByLabelText(/Inscripción de la oferta/), {
+      target: { value: 'event-1' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
@@ -576,8 +635,51 @@ describe('Tarifas — alta de planes y combo', () => {
         percentOff: undefined,
         fixedPrice: undefined,
         appliesTo: 'combo',
+        eventId: 'event-1',
       }),
     )
+  })
+
+  it('poner un precio convierte la misma oferta en una con importe propio', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode, configuration: restrictedComboConfiguration })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'only-pitbull-gold' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'offer_access' },
+    })
+    fireEvent.change(screen.getByLabelText(/Precio de la oferta por Mercado Pago/), {
+      target: { value: '120000' },
+    })
+    fireEvent.change(screen.getByLabelText(/Inscripción de la oferta/), {
+      target: { value: 'event-1' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'ONLY-PITBULL-GOLD', kind: 'offer', fixedPrice: 120000 }),
+    )
+  })
+
+  it('una oferta sin torneo elegido no se guarda', async () => {
+    // Instanciar la oferta ES elegir el torneo: sin eso el código no abre nada.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode, configuration: restrictedComboConfiguration })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'sin-torneo' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'offer_access' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
+    expect(screen.getByText(/Elegí a qué inscripción aplica la oferta/)).toBeTruthy()
   })
 
   it('no ofrece el alcance combinado para una promo de precio fijo', () => {

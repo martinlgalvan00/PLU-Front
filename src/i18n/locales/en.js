@@ -187,6 +187,11 @@ export default {
       notApproval:
         'This notice does not credit the payment. The order remains pending until Finance validates it.',
       received: 'Notice received',
+      // The closing seal: what got enabled, in the first person. The open
+      // balance is stated in the detail (`financedGranted`), never omitted:
+      // enabling is not settling.
+      financedEyebrow: 'Membership and registration enabled',
+      financedTitle: 'You are a member and you are registered',
       financedGranted:
         'Your membership and registration are enabled. The balance is still pending validation.',
       pendingReview: 'Finance has been notified. The payment is still pending validation.',
@@ -1231,6 +1236,7 @@ export default {
       brandLine: 'Argentina · Digital credential',
       athlete: 'Athlete',
       document: 'ID document',
+      memberCode: 'Member',
       birthDate: 'Date of birth',
       gym: 'Gym or team',
       location: 'Location',
@@ -3355,6 +3361,7 @@ export default {
     competingIn: 'Competing in',
     qrScan: 'Scan the QR to verify entry',
     qrScanMembership: 'Scan the QR to verify this membership',
+    joinCta: 'Join at plu-arg.com',
     issued: 'Issued {{date}}',
     tagline: '@pluarg',
   },

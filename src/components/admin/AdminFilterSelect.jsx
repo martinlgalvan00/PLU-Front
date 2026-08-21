@@ -15,8 +15,15 @@ export default function AdminFilterSelect({
 
   return (
     <div className={`admin-filters__select${isActive ? ' is-active' : ''}`}>
+      {/* `label` y no `span`: con el texto visible se anulaba el `aria-label` y
+          el `span` no estaba asociado a nada, así que el control quedaba sin
+          nombre accesible —un combobox sin nombre para un lector de pantalla, y
+          sin forma de encontrarlo por su etiqueta—. La clase no cambia, así que
+          el estilo es el mismo. */}
       {label ? (
-        <span className="admin-filters__select-label">{label}</span>
+        <label className="admin-filters__select-label" htmlFor={id}>
+          {label}
+        </label>
       ) : null}
       <div className="admin-filters__select-control">
         <select
