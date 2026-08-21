@@ -7,6 +7,7 @@ import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import MembershipCredentialModal from '../../components/admin/MembershipCredentialModal.jsx'
+import MembershipManualStatusDialog from '../../components/admin/MembershipManualStatusDialog.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import {
   AdminIdentityCell,
@@ -69,7 +70,9 @@ export default function MembershipsSection({
   const [credentialTarget, setCredentialTarget] = useState(null)
   const [pendingId, setPendingId] = useState(null)
   const [actionError, setActionError] = useState('')
-  const [cancelTarget, setCancelTarget] = useState(null)
+  // Un solo estado para las dos decisiones manuales: las dos abren el mismo
+  // diálogo y las dos exigen motivo. `{ id, athlete, status }`.
+  const [manualTarget, setManualTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   // Default abierto: si el GET falla no bloqueamos la pantalla. Un `false`
   // explícito del interruptor es lo único que congela Activar / Dar de baja.
@@ -89,7 +92,13 @@ export default function MembershipsSection({
     }
   }, [])
 
-  async function applyStatus(membershipId, nextStatus) {
+  /**
+   * `reason` y `channel` no son opcionales: la RPC los exige (ver
+   * 20260910100000) y el 400 del backend es la última palabra. El diálogo no
+   * habilita el botón sin ellos, así que esto no debería poder llamarse sin
+   * motivo -- pero si pasa, falla del lado del servidor y no en silencio.
+   */
+  async function applyStatus(membershipId, nextStatus, { reason, channel } = {}) {
     if (!validationEnabled) {
       setActionError(t('admin.sections.memberships.validationPaused'))
       return false
@@ -97,7 +106,7 @@ export default function MembershipsSection({
     setPendingId(membershipId)
     setActionError('')
     try {
-      const result = await onSetMembershipStatus?.(membershipId, nextStatus)
+      const result = await onSetMembershipStatus?.(membershipId, nextStatus, { reason, channel })
       if (result?.error) {
         // El toggle pudo apagarse después de montar la sección (el fetch de
         // arriba corre una sola vez al entrar): si el backend confirma que la
@@ -112,7 +121,7 @@ export default function MembershipsSection({
         }
         return false
       }
-      if (nextStatus === 'cancelada') setCancelTarget(null)
+      setManualTarget(null)
       return true
     } catch (error) {
       setActionError(error?.message ?? t('admin.sections.memberships.actionError'))
@@ -453,7 +462,14 @@ export default function MembershipsSection({
                               ? t('admin.sections.memberships.activate')
                               : pausedLabel
                         }
-                        onClick={() => applyStatus(row.id, 'activa')}
+                        // Antes activaba en el acto. Activar a mano es otorgar
+                        // un derecho sin cobro que lo respalde: pasa por el
+                        // diálogo que pide canal y motivo, como ya hacía la
+                        // baja.
+                        onClick={() => {
+                          setActionError('')
+                          setManualTarget({ ...row, status: 'activa' })
+                        }}
                         variant="celeste"
                       />
                     )}
@@ -471,7 +487,7 @@ export default function MembershipsSection({
                         }
                         onClick={() => {
                           setActionError('')
-                          setCancelTarget(row)
+                          setManualTarget({ ...row, status: 'cancelada' })
                         }}
                         variant="ghost"
                       />
@@ -514,22 +530,18 @@ export default function MembershipsSection({
           />
         ) : null}
 
-        {cancelTarget ? (
-          <AdminDeleteConfirmDialog
-            busy={pendingId === cancelTarget.id}
+        {manualTarget ? (
+          <MembershipManualStatusDialog
+            athleteName={manualTarget.athlete}
+            busy={pendingId === manualTarget.id}
             error={actionError}
             onCancel={() => {
-              if (pendingId !== cancelTarget.id) setCancelTarget(null)
+              if (pendingId !== manualTarget.id) setManualTarget(null)
             }}
-            onConfirm={() => applyStatus(cancelTarget.id, 'cancelada')}
-            title={t('admin.sections.memberships.cancelConfirmTitle')}
-            description={t('admin.sections.memberships.cancelConfirmDescription', {
-              athlete: cancelTarget.athlete,
-            })}
-            warning={t('admin.sections.memberships.cancelConfirmWarning')}
-            cancelLabel={t('admin.sections.memberships.keepActive')}
-            confirmLabel={t('admin.sections.memberships.confirmCancel')}
-            busyLabel={t('admin.sections.memberships.applying')}
+            onConfirm={({ reason, channel }) =>
+              applyStatus(manualTarget.id, manualTarget.status, { reason, channel })
+            }
+            status={manualTarget.status}
           />
         ) : null}
 

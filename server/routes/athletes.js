@@ -401,13 +401,48 @@ const registrationStatusSchema = z.object({
   status: z.enum(['confirmada', 'observada', 'cancelada']),
   reason: z.string().trim().min(3).max(500),
 })
+const proofUrlsSchema = z.object({
+  orderIds: z.array(z.string().uuid()).min(1).max(60),
+})
+const paymentOrderStatusEnum = z.enum([
+  'pendiente',
+  'validacion_manual',
+  'aprobado',
+  'rechazado',
+  'cancelado',
+  'reembolsado',
+])
 const paymentOrdersQuerySchema = z.object({
-  status: z
-    .enum(['pendiente', 'validacion_manual', 'aprobado', 'rechazado', 'cancelado', 'reembolsado'])
+  status: paymentOrderStatusEnum.optional(),
+  // Un estado del filtro de la bandeja puede ser más de un estado de la base
+  // ("pendientes" son dos): se filtra en la base en vez de traer todo y
+  // descartar en el navegador. Llega como lista o como CSV en la query string,
+  // y en los dos casos termina validado contra el mismo enum.
+  statuses: z
+    .union([
+      z.array(paymentOrderStatusEnum),
+      z
+        .string()
+        .transform((value) =>
+          value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        )
+        .pipe(z.array(paymentOrderStatusEnum).min(1).max(6)),
+    ])
     .optional(),
   method: z.enum(['mercado_pago', 'manual_link']).optional(),
   concept: z.enum(['membership', 'registration', 'combo']).optional(),
+  // Sólo las que ya habilitaron derechos sin cobrar (combo financiado).
+  financed: z
+    .union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')])
+    .optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+  withCounts: z
+    .union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')])
+    .optional()
+    .default(false),
 })
 /**
  * Filtros/paginación opcionales del snapshot admin. Sin query params el
@@ -1898,11 +1933,39 @@ export function createAthleteRoutes({
     try {
       const parsed = paymentOrdersQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Filtros de pago inválidos.')
-      res.json({ orders: await repo().listPaymentOrders(parsed.data) })
+      const { withCounts, ...filters } = parsed.data
+      // Los contadores viajan sólo si se piden: el listado se relee en cada
+      // aprobación y los cuatro `count` de la bandeja no cambian por eso.
+      const [orders, counts] = await Promise.all([
+        repo().listPaymentOrders(filters),
+        withCounts ? repo().paymentOrderCounts() : Promise.resolve(null),
+      ])
+      res.json(counts ? { orders, counts } : { orders })
     } catch (error) {
       next(error)
     }
   })
+  /**
+   * Comprobantes de varias órdenes de una vez. La bandeja de validación los
+   * pide para las filas abiertas al cargar, así que el diálogo abre con la
+   * imagen ya resuelta en vez de dispararle dos llamadas por cada revisión.
+   *
+   * Es una lectura, pero va por POST: la lista de ids no entra cómoda en una
+   * query string y el límite lo fija el schema, no el largo de la URL.
+   */
+  router.post(
+    '/admin/payment-orders/proof-urls',
+    ...financeReadGuard,
+    staffLimiter,
+    validateBody(proofUrlsSchema),
+    async (req, res, next) => {
+      try {
+        res.json({ urls: await repo().paymentProofUrls(req.validatedBody.orderIds) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.get(
     '/admin/payment-orders/:orderId/proof-url',
     ...financeReadGuard,
@@ -2080,7 +2143,34 @@ export function createAthleteRoutes({
     '/admin/memberships/:membershipId/status',
     ...membershipWriteGuard,
     staffLimiter,
-    validateBody(z.object({ status: z.enum(['activa', 'cancelada']) })),
+    // El motivo y el canal son obligatorios del lado del servidor, no sólo en
+    // el formulario: una afiliación activada a mano sobre una orden cancelada es
+    // la divergencia que el panel mostraba sin explicación, y el único momento
+    // en que el motivo se puede capturar es cuando alguien toma la decisión.
+    // `channel` sólo se exige al activar -- dar de baja no atribuye plata a
+    // ningún canal, ahí alcanza con el motivo escrito.
+    validateBody(
+      z
+        .object({
+          status: z.enum(['activa', 'cancelada']),
+          reason: z.string().trim().min(3, 'Indicá el motivo del cambio manual.').max(500),
+          channel: z
+            .enum([
+              'bank_transfer',
+              'wise_transfer',
+              'cash',
+              'courtesy',
+              'error_correction',
+              'sponsor',
+              'other',
+            ])
+            .nullish(),
+        })
+        .refine((value) => value.status !== 'activa' || Boolean(value.channel), {
+          message: 'Al activar a mano hay que declarar por qué canal se resolvió.',
+          path: ['channel'],
+        }),
+    ),
     async (req, res, next) => {
       try {
         const membershipId = z.string().uuid().safeParse(req.params.membershipId)
@@ -2093,6 +2183,8 @@ export function createAthleteRoutes({
           membershipId.data,
           req.validatedBody.status,
           actorLabel(req),
+          req.validatedBody.reason,
+          req.validatedBody.channel ?? null,
         )
 
         const membership = result?.membership

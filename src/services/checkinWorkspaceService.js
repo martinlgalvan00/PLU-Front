@@ -1,4 +1,5 @@
 import { registrationCheckinStatus, scheduleDayIndexes } from './checkinScanService.js'
+import { findOpenManualOrderForRegistration } from './paymentValidationService.js'
 
 function belongsToEvent(record, eventSlug) {
   if (!eventSlug) return true
@@ -23,6 +24,8 @@ function matchesStatus(row, status) {
   if (status === 'all') return true
   if (status === 'done') return row.status === 'usada'
   if (status === 'ready') return row.status === 'pagada'
+  // Subconjunto de "sin habilitar": los que la puerta puede resolver cobrando.
+  if (status === 'to_validate') return Boolean(row.pendingOrder)
   return row.status !== 'usada' && row.status !== 'pagada'
 }
 
@@ -30,6 +33,7 @@ const STATUS_ORDER = { pagada: 0, pendiente: 1, pendiente_pago: 1, confirmada: 1
 
 export function buildCheckinRows({
   athletes = [],
+  payments = [],
   registrations = [],
   tickets = [],
   eventSlug,
@@ -45,6 +49,7 @@ export function buildCheckinRows({
       return {
         id: `reg-${registration.id}`,
         registrationId: registration.id,
+        athleteId: registration.athleteId,
         type: 'atleta',
         name: athlete?.fullName,
         document: athlete?.documentId,
@@ -55,6 +60,10 @@ export function buildCheckinRows({
         schedule: registration.schedule ?? null,
         status: registrationCheckinStatus(registration),
         checkedInAt: registration.checkedInAt,
+        // La orden manual que traba el ingreso, si la hay. Sin esto la puerta
+        // veía "sin habilitar" y no tenía con qué resolverlo: el efectivo que
+        // se cobra ahí mismo obligaba a ir a Finanzas desde otro dispositivo.
+        pendingOrder: findOpenManualOrderForRegistration(payments, registration),
       }
     })
 
@@ -89,6 +98,8 @@ export function summarizeCheckinRows(rows = [], eventDays = []) {
     ready: count((row) => row.status === 'pagada'),
     done: count((row) => row.status === 'usada'),
     pending: count((row) => row.status !== 'usada' && row.status !== 'pagada'),
+    // Cuántos de los que no pueden ingresar se destraban cobrando en la puerta.
+    toValidate: count((row) => Boolean(row.pendingOrder)),
     athletes: count((row) => row.type === 'atleta'),
     spectators: count((row) => row.type === 'espectador'),
     byDay: Object.fromEntries(

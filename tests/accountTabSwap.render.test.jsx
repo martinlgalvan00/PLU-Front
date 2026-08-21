@@ -26,7 +26,7 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     expect(ACCOUNT_TAB_IDS).toEqual([
       'account-qr',
       // El canje es una ficha estable del perfil. La oferta que pueda resultar
-      // sigue siendo condicional y aparece inmediatamente despuÃ©s.
+      // sigue siendo condicional y aparece inmediatamente después.
       'account-benefits',
       // Ficha condicional: sólo se dibuja para quien canjeó un código secreto
       // de oferta exclusiva, pero su posición vive acá igual — la dirección de

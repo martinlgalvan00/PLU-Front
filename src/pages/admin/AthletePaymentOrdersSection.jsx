@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BadgeCheck, HandCoins, Paperclip, RefreshCw, Route, ScanSearch } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -15,7 +15,17 @@ import { PAYMENT_METHODS } from '../../lib/constants.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { formatRejectionActor } from '../../lib/paymentAudit.js'
-import { listAthletePaymentOrders } from '../../services/athleteApi.js'
+import { getAthletePaymentProofUrls, listAthletePaymentOrders } from '../../services/athleteApi.js'
+import {
+  OPEN_ORDER_STATUSES,
+  buildPaymentValidationItem,
+  canValidateConcept,
+  canValidateManualOrder,
+  hasPaymentProof,
+  isCashOrder,
+  isManualOrder,
+  isOpenOrder,
+} from '../../services/paymentValidationService.js'
 import { VALIDATION_DISABLED_CODES } from '../../services/platformSettingsAdminService.js'
 import { revalidatePaymentOrder } from '../../services/paymentService.js'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
@@ -36,12 +46,26 @@ import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 const STATUS_FILTERS = [
   ['pending', 'admin.athletePayments.filterPending'],
   ['validacion_manual', 'admin.athletePayments.filterManual'],
+  // Combo financiado: derechos ya otorgados con la deuda abierta. Es el unico
+  // grupo donde el club esta expuesto, asi que tiene su propia vista en vez de
+  // quedar mezclado entre las pendientes.
+  ['financed', 'admin.athletePayments.filterFinanced'],
   ['aprobado', 'admin.athletePayments.filterApproved'],
   ['all', 'admin.athletePayments.filterAll'],
 ]
 
-// Estados que todavía esperan una decisión operativa.
-const OPEN_STATUSES = ['pendiente', 'validacion_manual']
+/**
+ * Estados de la base detras de cada chip. "Pendientes" son dos, y el filtro
+ * viaja a la consulta en vez de descartarse en el navegador: quien mira
+ * pendientes no necesita que le lleguen todas las aprobadas de la temporada.
+ */
+const DB_STATUSES_BY_FILTER = Object.freeze({
+  pending: ['pendiente', 'validacion_manual'],
+  validacion_manual: ['validacion_manual'],
+  financed: ['pendiente', 'validacion_manual'],
+  aprobado: ['aprobado'],
+  all: null,
+})
 
 function formatDateTime(value, locale) {
   if (!value) return '—'
@@ -51,18 +75,6 @@ function formatDateTime(value, locale) {
     dateStyle: 'short',
     timeStyle: 'short',
   })
-}
-
-/**
- * Con el interruptor de validación del concepto apagado no se acredita ni se
- * rechaza esa orden. El combo pesa en los dos: acredita afiliación e
- * inscripción en la misma transacción, así que alcanza uno congelado.
- */
-function canValidateConcept(concept, validationEnabled) {
-  if (concept === 'combo') {
-    return validationEnabled.membership !== false && validationEnabled.registration !== false
-  }
-  return validationEnabled[concept] !== false
 }
 
 /**
@@ -104,27 +116,72 @@ export default function AthletePaymentOrdersSection({
   const [traceOrderId, setTraceOrderId] = useState(null)
   const [revalidatingId, setRevalidatingId] = useState(null)
   const [revalidation, setRevalidation] = useState(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [serverCounts, setServerCounts] = useState(null)
+  // URLs firmadas de los comprobantes de las filas que se pueden validar,
+  // pedidas en lote al cargar. Sin esto cada apertura del dialogo esperaba dos
+  // llamadas antes de poder mostrar la evidencia.
+  const [proofUrls, setProofUrls] = useState({})
+  const loadedRef = useRef(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      setOrders(await listAthletePaymentOrders({ limit: 200 }))
-    } catch (loadError) {
-      setError(loadError?.message ?? t('admin.athletePayments.loadError'))
-    } finally {
-      setLoading(false)
+  const prefetchProofs = useCallback(async (rows) => {
+    const ids = rows
+      .filter((order) => canValidateManualOrder(order) && order.paymentProofPath)
+      .map((order) => order.id)
+    if (ids.length === 0) {
+      setProofUrls({})
+      return
     }
-  }, [t])
+    try {
+      setProofUrls(await getAthletePaymentProofUrls(ids))
+    } catch {
+      // Precarga best-effort: el dialogo sigue sabiendo firmar la suya.
+      setProofUrls({})
+    }
+  }, [])
+
+  const load = useCallback(
+    async (statusFilterKey) => {
+      // El esqueleto es solo para la primera carga: cambiar de chip o releer
+      // despues de aprobar deja las filas en pantalla y avisa aparte, para no
+      // hacer parpadear la tabla que el operador esta mirando.
+      if (!loadedRef.current) setLoading(true)
+      else setRefreshing(true)
+      setError('')
+      try {
+        const result = await listAthletePaymentOrders({
+          limit: 200,
+          statuses: DB_STATUSES_BY_FILTER[statusFilterKey] ?? undefined,
+          financed: statusFilterKey === 'financed' ? true : undefined,
+          withCounts: true,
+        })
+        loadedRef.current = true
+        setOrders(result.orders)
+        if (result.counts) setServerCounts(result.counts)
+        void prefetchProofs(result.orders)
+      } catch (loadError) {
+        setError(loadError?.message ?? t('admin.athletePayments.loadError'))
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
+      }
+    },
+    [prefetchProofs, t],
+  )
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void load(status)
+  }, [load, status])
 
+  // El pedido externo de refresco no puede depender de `status`: ese cambio ya
+  // dispara su propia lectura arriba, y tenerlo en las dependencias hacia dos
+  // consultas por cada cambio de chip.
+  const statusRef = useRef(status)
+  statusRef.current = status
   useEffect(() => {
     if (refreshKey === 0) return
-    void load()
-  }, [refreshKey, load])
+    void load(statusRef.current)
+  }, [load, refreshKey])
 
   useEffect(() => {
     if (statusFilter?.status == null) return
@@ -140,15 +197,20 @@ export default function AthletePaymentOrdersSection({
   }, [highlightOrderId, loading])
 
   const counts = useMemo(() => {
-    const open = orders.filter((order) => OPEN_STATUSES.includes(order.status))
+    if (serverCounts) return serverCounts
+    // Fallback mientras la primera lectura no volvio: cuenta lo que hay a mano.
+    const open = orders.filter((order) => OPEN_ORDER_STATUSES.includes(order.status))
     return {
       pending: open.length,
       validacion_manual: orders.filter((order) => order.status === 'validacion_manual').length,
       aprobado: orders.filter((order) => order.status === 'aprobado').length,
       all: orders.length,
       openAmount: open.reduce((sum, order) => sum + (order.amount ?? 0), 0),
+      openAmountTruncated: false,
+      financed: orders.filter((order) => order.financingAllowed && order.financedEntitlementsAt)
+        .length,
     }
-  }, [orders])
+  }, [orders, serverCounts])
 
   useEffect(() => {
     onSummaryChange?.({
@@ -158,38 +220,35 @@ export default function AthletePaymentOrdersSection({
     })
   }, [counts.openAmount, counts.pending, loading, onSummaryChange])
 
-  const rows = useMemo(() => {
-    const filtered = orders.filter((order) => {
-      if (status === 'all') return true
-      if (status === 'pending') return OPEN_STATUSES.includes(order.status)
-      return order.status === status
-    })
-
-    return filtered.map((order) => ({
-      id: order.id,
-      athlete: order.athlete?.fullName ?? '—',
-      document: order.athlete?.documentId ?? '—',
-      concept: order.conceptLabel,
-      validatable: canValidateConcept(order.concept, validationEnabled),
-      amount: order.amount,
-      currency: order.currency,
-      method: order.method,
-      manualPaymentChannel: order.manualPaymentChannel,
-      status: order.status,
-      reference: order.reference,
-      rejectedBy: order.rejectedBy ?? null,
-      rejectionReason: order.rejectionReason ?? null,
-      rejectedAt: order.rejectedAt ?? null,
-      createdAt: order.createdAt,
-      notes: order.notes,
-      hasProof: Boolean(order.paymentProofPath),
-      paymentProofPath: order.paymentProofPath ?? null,
-      proofUploadedAt: order.paymentProofUploadedAt,
-      financingAllowed: order.financingAllowed === true,
-      manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
-      financedEntitlementsAt: order.financedEntitlementsAt ?? null,
-    }))
-  }, [orders, status, validationEnabled])
+  // Sin filtro local: la consulta ya trajo solo los estados del chip activo.
+  const rows = useMemo(
+    () =>
+      orders.map((order) => ({
+        id: order.id,
+        athlete: order.athlete?.fullName ?? '—',
+        document: order.athlete?.documentId ?? '—',
+        concept: order.conceptLabel,
+        validatable: canValidateConcept(order.concept, validationEnabled),
+        amount: order.amount,
+        currency: order.currency,
+        method: order.method,
+        manualPaymentChannel: order.manualPaymentChannel,
+        status: order.status,
+        reference: order.reference,
+        rejectedBy: order.rejectedBy ?? null,
+        rejectionReason: order.rejectionReason ?? null,
+        rejectedAt: order.rejectedAt ?? null,
+        createdAt: order.createdAt,
+        notes: order.notes,
+        hasProof: Boolean(order.paymentProofPath),
+        paymentProofPath: order.paymentProofPath ?? null,
+        paymentProofUploadedAt: order.paymentProofUploadedAt,
+        financingAllowed: order.financingAllowed === true,
+        manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
+        financedEntitlementsAt: order.financedEntitlementsAt ?? null,
+      })),
+    [orders, validationEnabled],
+  )
 
   async function approve(orderId) {
     setApprovingId(orderId)
@@ -214,7 +273,7 @@ export default function AthletePaymentOrdersSection({
           current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
         )
       } else {
-        await load()
+        await load(status)
       }
       notifySuccess(t('admin.toasts.paymentApproved'))
       return true
@@ -239,7 +298,7 @@ export default function AthletePaymentOrdersSection({
           current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
         )
       } else {
-        await load()
+        await load(status)
       }
       return true
     } finally {
@@ -289,7 +348,7 @@ export default function AthletePaymentOrdersSection({
           current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
         )
       } else {
-        await load()
+        await load(status)
       }
       notifySuccess(t('admin.toasts.paymentRejected'))
       return true
@@ -300,22 +359,17 @@ export default function AthletePaymentOrdersSection({
 
   function openReview(row, mode = 'validate') {
     setError('')
+    // Mismo objeto de revisión que arma la puerta y la cola del dashboard:
+    // el diálogo no puede pedir menos evidencia según desde dónde se abra.
     setReviewRow({
-      mode,
-      type: 'payment',
-      paymentId: row.id,
-      hasProof: row.hasProof,
-      cashAtPitbull: row.manualPaymentChannel === 'cash_pitbull',
-      paymentProofPath: row.paymentProofPath,
-      paymentProofUploadedAt: row.proofUploadedAt,
-      subject: row.athlete,
-      documentId: row.document,
-      detail: `${row.concept} · ${row.reference}`,
-      meta: money(row.amount, locale, row.currency),
-      notes: row.notes,
-      rejectedBy: row.rejectedBy,
-      rejectionReason: row.rejectionReason,
-      rejectedAt: row.rejectedAt,
+      ...buildPaymentValidationItem(row, {
+        mode,
+        athlete: { fullName: row.athlete, documentId: row.document },
+        detail: `${row.concept} · ${row.reference}`,
+        meta: money(row.amount, locale, row.currency),
+      }),
+      // Ya firmada al cargar la bandeja: el comprobante se ve al abrir.
+      proofUrl: proofUrls[row.id] ?? null,
     })
   }
 
@@ -337,15 +391,23 @@ export default function AthletePaymentOrdersSection({
         />
         <div className="admin-orders-block__actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span className="admin-orders-block__amount">
-            {t('admin.athletePayments.openAmount', { amount: money(counts.openAmount, locale) })}
+            {t(
+              counts.openAmountTruncated
+                ? 'admin.athletePayments.openAmountPartial'
+                : 'admin.athletePayments.openAmount',
+              { amount: money(counts.openAmount, locale) },
+            )}
           </span>
           <button
             type="button"
             className="btn btn--secondary btn--small"
-            onClick={() => void load()}
+            disabled={refreshing}
+            onClick={() => void load(status)}
           >
             <RefreshCw size={15} aria-hidden />
-            {t('admin.athletePayments.refresh')}
+            {refreshing
+              ? t('admin.athletePayments.refreshing')
+              : t('admin.athletePayments.refresh')}
           </button>
         </div>
       </div>
@@ -451,14 +513,21 @@ export default function AthletePaymentOrdersSection({
                   )
                 }
                 return (
+                  // El comprobante se abre desde la fecha: era la única forma de
+                  // verlo y no estaba a la vista. `mode: 'view'` abre el diálogo
+                  // en modo lectura, sin ofrecer acreditar.
+                  //
+                  // Sin `style` inline: `.admin-orders-block__proof` ya está
+                  // estilada como botón (borde, celeste del panel, 32px de alto
+                  // táctil, hover y disabled). El inline la pisaba con
+                  // `padding: 0` y `height: auto`, que además rompía el target.
                   <button
                     type="button"
-                    className="admin-orders-block__proof btn btn--ghost"
-                    style={{ padding: '0', height: 'auto', textDecoration: 'underline', color: 'var(--color-text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    className="admin-orders-block__proof"
                     onClick={() => openReview(row, 'view')}
                   >
                     <Paperclip size={14} aria-hidden />
-                    {formatDateTime(row.proofUploadedAt, locale)}
+                    {formatDateTime(row.paymentProofUploadedAt, locale)}
                   </button>
                 )
               },
@@ -540,10 +609,20 @@ export default function AthletePaymentOrdersSection({
                       variant="ghost"
                     />
                   ) : null}
-                  {/* Ocultamos validación manual para Mercado Pago y mostramos feedback si falta comprobante */}
-                  {row.method === 'mercado_pago' ? null : !row.hasProof &&
-                    row.manualPaymentChannel !== 'cash_pitbull' &&
-                    OPEN_STATUSES.includes(row.status) ? (
+                  {/* Falta el comprobante y la orden todavía espera decisión:
+                      se dice, en vez de dejar un botón deshabilitado sin motivo.
+                      Es la mitad que aportaba el otro lado del merge.
+
+                      La condición sale de `paymentValidationService` y no de una
+                      lista de estados escrita acá: la regla completa (Mercado
+                      Pago nunca, estado abierto, comprobante salvo efectivo) ya
+                      vive ahí, es la que aplica el backend, y duplicarla inline
+                      es cómo empezaron a divergir las tres pantallas que ese
+                      servicio unificó. */}
+                  {isManualOrder(row) &&
+                  isOpenOrder(row) &&
+                  !isCashOrder(row) &&
+                  !hasPaymentProof(row) ? (
                     <span className="status-pill status-pill--warning">
                       {t('admin.athletePayments.proofMissing')}
                     </span>
@@ -552,14 +631,16 @@ export default function AthletePaymentOrdersSection({
                       disabled={
                         !canEdit ||
                         !row.validatable ||
-                        !OPEN_STATUSES.includes(row.status) ||
+                        !canValidateManualOrder(row) ||
                         approvingId === row.id
                       }
                       icon={BadgeCheck}
                       label={
-                        row.validatable
-                          ? t('admin.actions.validate')
-                          : t('admin.athletePayments.validationPaused')
+                        row.method === 'mercado_pago'
+                          ? t('admin.athletePayments.webhookOnly')
+                          : row.validatable
+                            ? t('admin.actions.validate')
+                            : t('admin.athletePayments.validationPaused')
                       }
                       onClick={() => openReview(row)}
                       variant="celeste"
