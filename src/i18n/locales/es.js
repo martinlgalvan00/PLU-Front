@@ -188,6 +188,11 @@ export default {
       notApproval:
         'Este aviso no acredita el pago. La orden queda pendiente hasta que Finanzas la valide.',
       received: 'Aviso recibido',
+      // El sello del cierre: lo que quedó habilitado, en primera persona.
+      // El saldo abierto se dice en el detalle (`financedGranted`), no se
+      // omite: habilitar no es acreditar.
+      financedEyebrow: 'Afiliación e inscripción habilitadas',
+      financedTitle: 'Ya estás afiliado e inscripto',
       financedGranted:
         'Tu afiliación y tu inscripción ya están habilitadas. El saldo sigue pendiente de validación.',
       pendingReview: 'Avisamos a Finanzas. El pago sigue pendiente de validación.',
@@ -1230,6 +1235,7 @@ export default {
       brandLine: 'Argentina · Credencial digital',
       athlete: 'Atleta',
       document: 'DNI o documento',
+      memberCode: 'Socio',
       birthDate: 'Fecha de nacimiento',
       gym: 'Gimnasio o equipo',
       location: 'Ubicación',
@@ -3372,6 +3378,7 @@ export default {
     competingIn: 'Compito en',
     qrScan: 'Escaneá el QR para verificar tu ingreso',
     qrScanMembership: 'Escaneá el QR para verificar la afiliación',
+    joinCta: 'Afiliate en plu-arg.com',
     issued: 'Emitido {{date}}',
     tagline: '@pluarg',
   },

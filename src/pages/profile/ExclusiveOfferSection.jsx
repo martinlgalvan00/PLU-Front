@@ -266,6 +266,21 @@ export default function ExclusiveOfferSection({
     }
   }
 
+  /**
+   * Declaración de pago manual.
+   *
+   * Con habilitación no se relee la oferta acá: el acuse queda a la vista
+   * dentro del recibo (`ManualPaymentConfirmation` estampa el sello) y releer
+   * la retira en el acto —una compra habilitada deja de ser promoción activa—,
+   * cortando el cierre a mitad. El refresco llega igual: la declaración emite
+   * `plu:payment-updated` una vez que el sello se leyó, y de ahí lo toma
+   * `useAppData`. Sin habilitación no hay nada que sostener y se relee ya.
+   */
+  function handleManualDeclared(result) {
+    if (result?.entitlementsGranted || result?.order?.financedEntitlementsAt) return
+    void onOfferRefresh?.()
+  }
+
   /** El pago aprobado convierte la ficha en recibo; el payload se relee. */
   function handlePaymentResult(result) {
     if (result?.status !== 'approved') return
@@ -407,7 +422,7 @@ export default function ExclusiveOfferSection({
                       financingAllowed={manualSettlement.financingAllowed}
                       manualPaymentDeclaredAt={manualSettlement.manualPaymentDeclaredAt}
                       orderId={manualSettlement.orderId}
-                      onConfirmed={() => void onOfferRefresh?.()}
+                      onConfirmed={handleManualDeclared}
                     />
                   </div>
                 ) : (
@@ -424,7 +439,7 @@ export default function ExclusiveOfferSection({
                       financingAllowed={manualSettlement.financingAllowed}
                       manualPaymentDeclaredAt={manualSettlement.manualPaymentDeclaredAt}
                       financedEntitlementsAt={manualSettlement.financedEntitlementsAt}
-                      onConfirmed={() => void onOfferRefresh?.()}
+                      onConfirmed={handleManualDeclared}
                     />
                   </div>
                 )

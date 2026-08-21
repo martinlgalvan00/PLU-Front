@@ -66,6 +66,15 @@ el checkout vuelve a validar precio y alcance en el servidor. **Privado**
 no se desbloquea y no admite compra directa. Al pasar un combo a Privado se
 pausan sus códigos secretos activos sin borrar compras ni redenciones históricas.
 
+El panel ofrece **tres tipos de código**: descuento por porcentaje
+(`kind='percent'`), precio fijo promocional (`fixed_price`) y acceso a una oferta.
+El tercero tiene dos caras en la base y una sola decisión en pantalla: con importe
+propio se guarda como `offer` y cobra ese importe; sin importe se guarda como
+`access` y cobra lo que ya cuesta el combo del evento. En los dos casos hay que
+instanciar qué oferta se abre —hoy la única es el paquete de afiliación +
+inscripción de un evento (`event_combo_offers`)— y el evento es obligatorio: un
+código de acceso sin evento no desbloquea nada.
+
 Una **oferta exclusiva** es un `discount_codes` con `kind='offer'`: un código
 secreto que no descuenta sino que desbloquea el combo de una inscripción y le
 fija su propio precio. Exige `applies_to='combo'`, `audience='code'`,

@@ -1317,6 +1317,17 @@
   text-transform: uppercase;
 }
 
+/* La versalita es del nombre del campo, no de su explicación: el `small`
+   heredaba el uppercase del label y cada aclaración quedaba como un párrafo en
+   mayúsculas de 11px. Los inputs ya se reseteaban igual unas reglas más abajo. */
+.admin-pricing__form label small {
+  font-size: 0.76rem;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
+
 .admin-pricing__form input,
 .admin-pricing__form select,
 .admin-pricing__form textarea {
@@ -1397,6 +1408,14 @@
   accent-color: var(--color-brand-gold);
   min-height: 18px;
   width: 18px;
+}
+
+/* El código y su alternativa por lote comparten celda: con un solo invitado se
+   tipea el código, con varios se elige el prefijo y cada persona recibe el suyo. */
+.admin-pricing__batch-group {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
 }
 
 /* Matriz de medios de pago del código: los tres canales y, colgando de ellos,

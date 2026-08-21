@@ -656,7 +656,7 @@ export default {
       scheduleRetirement: 'Programar vigencia',
       discountCodesTitle: 'Códigos de descuento y promoción',
       discountCodesLead:
-        'Creá descuentos, accesos o una Oferta exclusiva con afiliación + inscripción, precio único y página privada de pago.',
+        'Tres tipos: un descuento por porcentaje, un precio fijo promocional, o el acceso a una oferta que no está publicada.',
       discountCodesEmpty: 'Todavía no hay códigos cargados.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
@@ -668,19 +668,33 @@ export default {
       batchQuantityHint: 'Cantidad de códigos a generar (1 para manual, >1 para automáticos).',
       batchPrefix: 'Prefijo (Opcional)',
       batchPrefixHint: 'Prefijo base para códigos automáticos (ej: PROMO).',
+      batchPreview:
+        'Se generan {{count}} códigos individuales, uno por invitado. Ejemplo: {{example}}.',
       percentOff: 'Descuento (%)',
       percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
       codeKindLabel: 'Tipo de código',
       codeKindHint:
-        'Elegí Oferta exclusiva para dar afiliación + inscripción a un torneo por un único precio secreto.',
+        'Un porcentaje descuenta sobre el precio vigente; un precio fijo lo reemplaza; una oferta abre un paquete que no está publicado.',
       codeKind: {
         percent: 'Descuento por porcentaje',
-        fixed_price: 'Precio promocional fijo',
-        access: 'Acceso al combo (sin descuento)',
-        offer: 'Oferta exclusiva · afiliación + inscripción',
+        fixed_price: 'Precio fijo promocional',
+        offer_access: 'Acceso a una oferta',
       },
+      // Qué oferta instancia el código. Hoy hay una sola; el select existe
+      // igual porque nombrar el paquete es lo que hace legible al código.
+      offerKindLabel: 'Oferta que abre',
+      offerKind: {
+        membership_registration: 'Afiliación + inscripción a un evento',
+      },
+      offerKindHint:
+        'El paquete que se desbloquea al canjear. Se cobra completo, una sola vez, y acredita las dos cosas.',
+      offerKindOnlyOne: 'Es la única oferta disponible por ahora.',
       offerBadge: 'Oferta exclusiva',
       offerPrice: 'Precio de la oferta por Mercado Pago (ARS)',
+      offerPricePlaceholder: 'Precio del combo',
+      offerPriceHint:
+        'Lo que paga por Mercado Pago quien canjea la oferta. Vacío = cobra lo que ya cuesta el combo de ese torneo.',
+      offerPriceOptional: 'Opcional. Vacío cobra el precio del combo del torneo.',
       offerEventLabel: 'Inscripción de la oferta',
       offerEventPlaceholder: 'Elegí la inscripción',
       offerEventComboPrice: 'combo {{price}}',
@@ -701,7 +715,8 @@ export default {
       exclusiveFlowBenefit: 'Beneficio',
       exclusiveFlowDestination: 'Destino',
       exclusiveFlowCodePending: 'Definí el código',
-      exclusiveFlowBenefitPending: 'Elegí evento y precio',
+      exclusiveFlowBenefitPending: 'Elegí el torneo',
+      exclusiveFlowBenefitCombo: 'al precio del combo ({{price}})',
       exclusiveFlowDestinationValue: 'Mi cuenta · Oferta exclusiva · Procesar pago',
       codeEventLabel: 'Limitar a una inscripción',
       codeEventAny: 'Cualquier inscripción',
@@ -1822,6 +1837,7 @@ export default {
     factRequestId: 'ID de request',
 
     failureTitle: 'Qué falló',
+    providerMessage: 'Mensaje técnico original',
     factCode: 'Código',
     factHttp: 'Status HTTP',
     factErrorName: 'Tipo de error',

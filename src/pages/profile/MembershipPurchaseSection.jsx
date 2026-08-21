@@ -362,6 +362,16 @@ export default function MembershipPurchaseSection({
     const override = typeof codeOverride === 'string' ? codeOverride : null
     const code = (override ?? discountCodeInput).trim().toUpperCase()
     if (!code || !selectedPlan) return
+    /*
+     * Recotización: el mismo código ya está aplicado y lo único que cambió es
+     * el canal, que puede cobrar otro importe. No vuelve a pasar por el
+     * resolvedor —sería un evento de embudo y un round-trip de más por cada
+     * cambio de medio de pago, además de reintentar el unlock— y tampoco vuelve
+     * a resolver destino: ese canje ya llegó acá. Mismo criterio que el
+     * checkout de inscripción, donde esta guarda existía sólo para el código de
+     * la oferta.
+     */
+    const repricing = discountPreview?.valid === true && discountPreview.code === code
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
@@ -369,28 +379,30 @@ export default function MembershipPurchaseSection({
     setOfferRedirecting(false)
     try {
       let resolution = null
-      try {
-        resolution = await redeemPromotionCode(code, {
-          surface: 'membership',
-          planCode: selectedPlan.code,
-        })
-      } catch {
-        // Compatibilidad durante despliegues escalonados: el preview económico
-        // existente sigue operativo aunque el resolvedor nuevo aún no responda.
-      }
-      if (resolution?.accepted && resolution.action === 'open_exclusive_offer') {
-        await redeemSecretOffer(code, resolution)
-        return
-      }
-      const resolvedDestination = promotionDestination(resolution)
-      if (resolution?.accepted && resolvedDestination?.view === 'competition') {
-        savePendingPromotionCode(resolution.code, {
-          surface: 'membership',
-          destination: resolution.destination,
-          resolved: true,
-        })
-        onNavigate?.(resolvedDestination.view, resolvedDestination.options)
-        return
+      if (!repricing) {
+        try {
+          resolution = await redeemPromotionCode(code, {
+            surface: 'membership',
+            planCode: selectedPlan.code,
+          })
+        } catch {
+          // Compatibilidad durante despliegues escalonados: el preview económico
+          // existente sigue operativo aunque el resolvedor nuevo aún no responda.
+        }
+        if (resolution?.accepted && resolution.action === 'open_exclusive_offer') {
+          await redeemSecretOffer(code, resolution)
+          return
+        }
+        const resolvedDestination = promotionDestination(resolution)
+        if (resolution?.accepted && resolvedDestination?.view === 'competition') {
+          savePendingPromotionCode(resolution.code, {
+            surface: 'membership',
+            destination: resolution.destination,
+            resolved: true,
+          })
+          onNavigate?.(resolvedDestination.view, resolvedDestination.options)
+          return
+        }
       }
 
       const preview = await previewDiscountCode({
@@ -484,11 +496,24 @@ export default function MembershipPurchaseSection({
   // La promo pública se aplica sola al crear la orden. Sin este preview el
   // checkout anunciaría el precio de lista y cobraría otro. Depende del plan y
   // del canal por el mismo motivo que el cupón.
+  //
+  // Con un cupón en juego no se consulta: el cupón gana (`activeDiscount`) y la
+  // promo pública no se muestra ni se cobra, así que era un pedido por cada
+  // cambio de plan o de canal cuyo resultado nadie leía. Al quitar el cupón el
+  // efecto vuelve a correr y la repuebla.
+  //
+  // `discountChecking` entra en la condición porque recotizar limpia el preview
+  // por un instante: sin eso, cada cambio de canal volvía a disparar la consulta
+  // en ese hueco. Y no se apaga `publicPromo` acá —sólo se deja de pedir— para
+  // no parpadear la línea de promo mientras se valida un código que puede
+  // terminar rechazado.
+  const hasAppliedCode = discountChecking || discountPreview?.valid === true
   useEffect(() => {
     if (!selectedPlan) {
       setPublicPromo(null)
       return undefined
     }
+    if (hasAppliedCode) return undefined
     let cancelled = false
     void (async () => {
       try {
@@ -507,7 +532,7 @@ export default function MembershipPurchaseSection({
     return () => {
       cancelled = true
     }
-  }, [paymentMethod, selectedPlan])
+  }, [hasAppliedCode, paymentMethod, selectedPlan])
 
   function clearDiscountCode() {
     setDiscountCodeInput('')

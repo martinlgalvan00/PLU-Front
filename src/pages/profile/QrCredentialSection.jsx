@@ -5,7 +5,11 @@ import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import ConfirmationSeal from '../../components/ui/ConfirmationSeal.jsx'
 import CredentialCard from '../../components/ui/CredentialCard.jsx'
 import CredentialMergeRitual from '../../components/ui/CredentialMergeRitual.jsx'
-import { buildAthleteCredentialUrl, generateCredentialQr } from '../../lib/credentialQr.js'
+import {
+  buildAthleteCredentialUrl,
+  generateCredentialQr,
+  resolveCredentialCode,
+} from '../../lib/credentialQr.js'
 import { hasCelebrated, markCelebrated } from '../../lib/celebration.js'
 import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
 import { formatShortDate } from '../../lib/format.js'
@@ -49,8 +53,7 @@ export default function QrCredentialSection({
   const issueSealRef = useRef(null)
 
   const memberCode = membership?.memberCode ?? latestMembership?.memberCode
-  const credentialCode =
-    athlete?.credentialToken ?? membership?.qrToken ?? latestMembership?.qrToken ?? memberCode
+  const credentialCode = resolveCredentialCode({ athlete, membership, latestMembership })
   const membershipCurrent = isMembershipCurrent(membership)
   const membershipForPass = membershipCurrent ? membership : latestMembership
 

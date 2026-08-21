@@ -651,7 +651,7 @@ export default {
       scheduleRetirement: 'Schedule retirement',
       discountCodesTitle: 'Discount and promo codes',
       discountCodesLead:
-        'Create discounts, access codes, or an Exclusive offer with membership + registration, one price, and a private payment page.',
+        'Three types: a percentage discount, a fixed promotional price, or access to an offer that is not published.',
       discountCodesEmpty: 'No codes yet.',
       newDiscountCode: 'New code',
       publishDiscountCode: 'Publish code',
@@ -663,19 +663,33 @@ export default {
       batchQuantityHint: 'Number of codes to generate (1 for manual, >1 for automatic).',
       batchPrefix: 'Prefix (Optional)',
       batchPrefixHint: 'Base prefix for automatic codes (e.g., PROMO).',
+      batchPreview:
+        'It generates {{count}} individual codes, one per invitee. Example: {{example}}.',
       percentOff: 'Discount (%)',
       percentOffInvalid: 'The discount must be a whole number between 1 and 99.',
       codeKindLabel: 'Code type',
       codeKindHint:
-        'Choose Exclusive offer to grant membership + tournament registration for a single secret price.',
+        'A percentage discounts the current price; a fixed price replaces it; an offer opens a package that is not published.',
       codeKind: {
         percent: 'Percentage discount',
-        fixed_price: 'Fixed promo price',
-        access: 'Combo access (no discount)',
-        offer: 'Exclusive offer · membership + registration',
+        fixed_price: 'Fixed promotional price',
+        offer_access: 'Access to an offer',
       },
+      // Which offer the code instantiates. There is only one today; the select
+      // exists anyway because naming the package is what makes the code legible.
+      offerKindLabel: 'Offer it opens',
+      offerKind: {
+        membership_registration: 'Membership + registration for an event',
+      },
+      offerKindHint:
+        'The package unlocked on redemption. It is paid in full, once, and credits both things.',
+      offerKindOnlyOne: 'It is the only offer available for now.',
       offerBadge: 'Exclusive offer',
       offerPrice: 'Offer price via Mercado Pago (ARS)',
+      offerPricePlaceholder: 'Combo price',
+      offerPriceHint:
+        'What whoever redeems the offer pays via Mercado Pago. Empty = it charges what that event combo already costs.',
+      offerPriceOptional: 'Optional. Empty charges the event combo price.',
       offerEventLabel: 'Offer registration',
       offerEventPlaceholder: 'Choose the registration',
       offerEventComboPrice: 'combo {{price}}',
@@ -696,7 +710,8 @@ export default {
       exclusiveFlowBenefit: 'Benefit',
       exclusiveFlowDestination: 'Destination',
       exclusiveFlowCodePending: 'Define the code',
-      exclusiveFlowBenefitPending: 'Choose an event and price',
+      exclusiveFlowBenefitPending: 'Choose the event',
+      exclusiveFlowBenefitCombo: 'at the combo price ({{price}})',
       exclusiveFlowDestinationValue: 'My account · Exclusive offer · Process payment',
       codeEventLabel: 'Limit to one registration',
       codeEventAny: 'Any registration',
@@ -1807,6 +1822,7 @@ export default {
     factRequestId: 'Request ID',
 
     failureTitle: 'What failed',
+    providerMessage: 'Original technical message',
     factCode: 'Code',
     factHttp: 'HTTP status',
     factErrorName: 'Error type',
