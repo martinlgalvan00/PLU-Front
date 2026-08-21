@@ -498,12 +498,26 @@ export default {
       cancel: 'Deactivate',
       applying: 'Applying…',
       actionError: 'We could not update the membership.',
-      cancelConfirmTitle: 'Confirm membership deactivation',
-      cancelConfirmDescription: 'You are about to deactivate {{athlete}}’s membership.',
+      manual: {
+        activateTitle: 'Activate the membership manually',
+        activateDescription:
+          'You are about to leave {{athlete}}’s membership active without a settled charge on the platform.',
+        cancelTitle: 'Confirm membership deactivation',
+        cancelDescription: 'You are about to deactivate {{athlete}}’s membership.',
+        channelLabel: 'How was it resolved?',
+        channelPlaceholder: 'Pick the channel…',
+        reasonLabel: 'Reason',
+        reasonPlaceholder: 'E.g. transfer received on Aug 20, receipt shared in the group.',
+        reasonHint: 'It stays on the athlete’s record and in the audit log. This is what gets read when someone disputes it.',
+        orderNotice:
+          'The Mercado Pago order stays cancelled: no money came in through that channel, and marking it settled would falsify revenue. If you need the accounting entry, use manual settlement with a receipt.',
+        back: 'Back',
+        close: 'Close',
+        confirmActivate: 'Activate and record the reason',
+        confirmCancel: 'Confirm deactivation',
+      },
       cancelConfirmWarning:
         'The credential will no longer grant entry and the athlete will receive an email about the change.',
-      keepActive: 'Keep active',
-      confirmCancel: 'Confirm deactivation',
       registeredToTournamentBadge: 'Tournament',
       validationPaused: 'Membership validation is paused from Access and enablement.',
       validationPausedLead:
@@ -592,6 +606,9 @@ export default {
       comboOfferStatus: 'Enabled · {{visibility}}',
       comboOfferOff: 'Off',
       comboVisibilityLabel: 'Commercial visibility',
+      comboEntitlementLabel: 'Access',
+      comboEntitlementFinanced: 'Granted when the athlete declares payment',
+      comboEntitlementOnApproval: 'Granted when Finance approves the payment',
       comboVisibilityShort: {
         public: 'Public',
         code: 'Restricted',
@@ -1062,6 +1079,7 @@ export default {
       eyebrow: 'Event mode',
       title: 'Gate and accreditation',
       subtitle: 'Scanning, access and live operational control',
+      subtitleForEvent: '{{event}} gate: scanning, payments and entries',
     },
     pluUsa: {
       eyebrow: 'Read-only view',
@@ -1340,6 +1358,7 @@ export default {
     filterReady: 'Eligible',
     filterDone: 'Checked in',
     filterPending: 'Not eligible',
+    filterToValidate: 'To settle',
     statusLabel: 'Entry status',
     statusLabelShort: 'Status',
     type: 'Type',
@@ -1354,8 +1373,11 @@ export default {
     statReady: 'Eligible',
     statDone: 'Checked in',
     statPending: 'Not eligible',
+    statToValidate: 'To settle',
+    dayNumber: 'Day {{day}}',
     searchPlaceholder: 'Search by name, ID or code',
     markEntry: 'Record entry',
+    settleAtDoor: 'Settle and approve',
     checkedInAt: 'Checked in {{time}}',
     empty: 'No athletes or tickets to show',
     scanner: {
@@ -1807,6 +1829,72 @@ export default {
     rawTitle: 'Full event metadata',
   },
 
+  // Operational vocabulary, deliberately not reusing `account.payments.*`:
+  // those are written in second person for the athlete.
+  paymentState: {
+    state: {
+      acreditado: 'Settled',
+      en_revision: 'Under review',
+      revision_pendiente: 'Settling',
+      esperando_comprobante: 'Proof missing',
+      esperando_pago: 'Awaiting payment',
+      esperando_pago_en_sede: 'Pay on site',
+      procesando: 'Processing',
+      rechazado: 'Rejected',
+      cancelado: 'Cancelled',
+      reembolsado: 'Refunded',
+    },
+    reason: {
+      expired_without_attempt: 'Expired on {{date}} with no payment attempt on record.',
+      expired_after_attempt: 'Expired on {{date}}; no attempt ever settled.',
+      closed_without_attempt: 'Closed with no payment attempt on record.',
+      closed_after_attempt: 'Closed without any attempt settling.',
+      closed_before_expiry: 'Closed before expiring, most likely replaced by a new charge.',
+      superseded_by_new_order: 'Replaced by a new charge for the same concept.',
+      provider_cancelled: 'Mercado Pago reported the payment as cancelled.',
+      staff_rejected: 'Closed by the organization.',
+      resolved_off_platform:
+        'No money came in through this channel: the entitlement was granted manually. Do not settle this order.',
+    },
+    attempt: {
+      cc_rejected_insufficient_amount: 'Card had insufficient funds.',
+      cc_rejected_bad_filled_card_number: 'Card number entered incorrectly.',
+      cc_rejected_bad_filled_date: 'Card expiry date was wrong.',
+      cc_rejected_bad_filled_security_code: 'Security code was wrong.',
+      cc_rejected_bad_filled_other: 'Card details entered incorrectly.',
+      cc_rejected_call_for_authorize: 'Bank required authorization for the amount.',
+      cc_rejected_card_disabled: 'Card was inactive.',
+      cc_rejected_duplicated_payment: 'Recent duplicate payment.',
+      cc_rejected_high_risk: 'Rejected by Mercado Pago fraud prevention.',
+      cc_rejected_max_attempts: 'Allowed attempts exhausted.',
+      cc_rejected_other_reason: 'Bank rejected without a reason.',
+      cc_rejected_invalid_installments: 'Card did not allow those installments.',
+      cc_rejected_card_type_not_allowed: 'Card type not enabled.',
+      pending_contingency: 'Mercado Pago was still processing the payment.',
+      pending_review_manual: 'Mercado Pago left it under manual review.',
+      pending_waiting_transfer: 'Waiting for the transfer to settle.',
+      pending_waiting_payment: 'Voucher issued but unpaid.',
+    },
+    resolvedElsewhere: {
+      membership: 'The membership is active through another route: do not charge this again.',
+      registration: 'The registration is confirmed through another route: do not charge this again.',
+    },
+    manual: {
+      stamp: 'Manually by {{actor}} · {{date}}',
+      unknownActor: 'an operator',
+      missingReason:
+        'No reason on record: it was activated before the panel asked for one. Worth writing down.',
+      channel: {
+        bank_transfer: 'Bank transfer',
+        wise_transfer: 'Wise transfer',
+        cash: 'Cash',
+        courtesy: 'Courtesy',
+        error_correction: 'Error correction',
+        sponsor: 'Trade / sponsor',
+        other: 'Other channel',
+      },
+    },
+  },
   paymentTrace: {
     open: 'View payment trace',
     eyebrow: 'Audit',
@@ -2744,9 +2832,12 @@ export default {
     title: 'Athlete orders',
     subtitle: 'Transfers awaiting review and Mercado Pago settlements',
     openAmount: '{{amount}} awaiting settlement',
+    openAmountPartial: '{{amount}}+ awaiting settlement',
     refresh: 'Refresh',
+    refreshing: 'Refreshing…',
     filterPending: 'To review',
     filterManual: 'Under review',
+    filterFinanced: 'Financed',
     filterApproved: 'Approved',
     filterAll: 'All',
     rejectedBy: 'Rejected by {{actor}}',
@@ -2794,6 +2885,17 @@ export default {
   },
   athleteDetail: {
     back: 'Back to athletes',
+    divergence: {
+      title: 'States resolved outside the charge',
+      titleUnexplained: 'A state has no explanation',
+      kind: {
+        membership: 'Membership {{status}} while the payment is {{orderStatus}}.',
+        registration: 'Registration {{status}} while the payment is {{orderStatus}}.',
+      },
+      explained: 'Resolved by {{actor}}: {{reason}}',
+      unexplained:
+        'Nobody wrote down why. Check whether the payment came in through another channel and record it.',
+    },
     tabs: {
       profile: 'Profile',
       memberships: 'Memberships',

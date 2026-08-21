@@ -457,6 +457,189 @@ describe('combo afiliacion + inscripcion contra Supabase', () => {
     expect(duplicateBody.order.status).toBe('aprobado')
   })
 
+  /**
+   * Combo financiado: el unico camino del sistema donde el derecho se habilita
+   * antes del cobro. Existia desde 20260909100000 pero ninguna suite lo
+   * ejercitaba end-to-end, y en la base hosteada no hay ninguna oferta con
+   * `financed = true`, asi que en produccion nunca corrio.
+   *
+   * Lo que se fija: declarar el pago activa afiliacion E inscripcion dejando la
+   * orden abierta (la deuda sigue existiendo), y el rechazo de Finanzas revoca
+   * las dos cosas. Si alguna de las dos mitades se rompe, el club regala
+   * afiliaciones o le saca el acceso a alguien que pago.
+   */
+  it('el combo financiado habilita afiliacion e inscripcion al declarar el pago, y el rechazo las revoca', async () => {
+    const nowIso = new Date().toISOString()
+    const planResult = await admin
+      .from('membership_plans')
+      .select('*')
+      .eq('active', true)
+      .eq('collection_mode', 'one_time')
+      .lte('effective_from', nowIso)
+      .or(`retired_at.is.null,retired_at.gt.${nowIso}`)
+      .limit(1)
+      .maybeSingle()
+    if (planResult.error || !planResult.data) {
+      throw new Error(
+        `Falta un plan one_time activo para el test: ${planResult.error?.message ?? ''}`,
+      )
+    }
+    const plan = planResult.data
+    const slug = `combo-financed-integration-${randomUUID()}`
+    const now = Date.now()
+    const eventResult = await admin
+      .from('events')
+      .insert({
+        organization_id: plan.organization_id,
+        slug,
+        title: 'Combo financiado integration test',
+        description: 'Fixture de combo financiado',
+        venue: 'Test venue',
+        location: 'Buenos Aires',
+        starts_at: new Date(now + 7 * 86400000).toISOString(),
+        ends_at: new Date(now + 8 * 86400000).toISOString(),
+        registration_opens_at: new Date(now - 86400000).toISOString(),
+        registration_closes_at: new Date(now + 6 * 86400000).toISOString(),
+        capacity: 2,
+        status: 'inscripcion_abierta',
+        published: true,
+        requires_membership: true,
+        price: 45000,
+        currency: plan.currency,
+      })
+      .select()
+      .single()
+    if (eventResult.error) throw new Error(eventResult.error.message)
+    const competition = eventResult.data
+    createdEventIds.push(competition.id)
+
+    const accessCode = `FIN-${randomUUID().slice(0, 8).toUpperCase()}`
+    const comboPrice = Math.max(1, plan.price + competition.price - 1000)
+    // `financed` solo es valido con `audience = 'code'`: lo fuerza el CHECK
+    // `event_combo_offers_financed_code_check`.
+    const offerResult = await admin.from('event_combo_offers').insert({
+      organization_id: plan.organization_id,
+      event_id: competition.id,
+      membership_plan_id: plan.id,
+      price: comboPrice,
+      manual_price: comboPrice,
+      currency: plan.currency,
+      active: true,
+      audience: 'code',
+      access_code: accessCode,
+      financed: true,
+    })
+    if (offerResult.error) throw new Error(offerResult.error.message)
+
+    const suffix = randomUUID()
+    const athleteResponse = await fetch(`${listenTarget.url}/api/athletes/register`, {
+      method: 'POST',
+      headers: mutationHeaders,
+      body: JSON.stringify({
+        fullName: `Combo Financed Athlete ${suffix}`,
+        documentId: String(10_000_000 + (randomBytes(4).readUInt32BE(0) % 90_000_000)),
+        email: `combo-financed-${suffix}@pluarg.test`,
+        birthDate: '1995-01-01',
+        phone: '1122334455',
+        country: 'Argentina',
+        province: 'Buenos Aires',
+        city: 'CABA',
+        gym: 'Test Gym',
+        sex: 'Masculino',
+        division: 'Open',
+        category: 'Raw',
+        estimatedWeight: 90,
+        password: 'integration-test-password-athlete',
+      }),
+    })
+    const athleteBody = await athleteResponse.json()
+    expect(athleteResponse.status, JSON.stringify(athleteBody)).toBe(201)
+    const athleteId = athleteBody.athlete.id
+    createdAthleteIds.push(athleteId)
+    await admin
+      .from('athletes')
+      .update({ email_verified_at: new Date().toISOString() })
+      .eq('id', athleteId)
+
+    const cookie = sessionCookie(athleteResponse)
+    const comboResponse = await fetch(`${listenTarget.url}/api/athletes/me/registration-combos`, {
+      method: 'POST',
+      headers: { ...mutationHeaders, Cookie: cookie },
+      body: JSON.stringify({
+        eventSlug: slug,
+        division: 'Open',
+        category: 'Raw',
+        bodyweightKg: 90,
+        paymentMethod: 'manual_link',
+        manualPaymentChannel: 'bank_transfer',
+        idempotencyKey: randomUUID(),
+        comboAccessCode: accessCode,
+      }),
+    })
+    const comboBody = await comboResponse.json()
+    expect(comboResponse.status, JSON.stringify(comboBody)).toBe(201)
+    // La autorizacion se calcula con la oferta de la inscripcion recien creada,
+    // nunca con un booleano que mande el navegador.
+    expect(comboBody.order.financingAllowed ?? comboBody.order.financing_allowed).toBe(true)
+    expect(comboBody.membership.status).toBe('pendiente_pago')
+    expect(comboBody.registration.status).toBe('pendiente_pago')
+
+    const declared = await admin.rpc('athlete_confirm_manual_payment', {
+      p_order_id: comboBody.order.id,
+      p_athlete_id: athleteId,
+    })
+    if (declared.error) throw new Error(declared.error.message)
+    expect(declared.data.financed).toBe(true)
+    expect(declared.data.entitlementsGranted).toBe(true)
+    expect(declared.data.membership.status).toBe('activa')
+    expect(declared.data.registration.status).toBe('confirmada')
+    // La declaracion NO acredita: la orden sigue esperando a Finanzas y no hay
+    // asiento de cobro. Es deuda habilitada, no pago.
+    expect(declared.data.order.status).toBe('validacion_manual')
+    expect(declared.data.order.financed_entitlements_at).toBeTruthy()
+    expect(declared.data.order.expires_at).toBeNull()
+
+    const payments = await admin
+      .from('athlete_payments')
+      .select('id')
+      .eq('order_id', comboBody.order.id)
+    if (payments.error) throw new Error(payments.error.message)
+    expect(payments.data).toHaveLength(0)
+
+    const athleteAfterDeclaration = await admin
+      .from('athletes')
+      .select('status')
+      .eq('id', athleteId)
+      .single()
+    expect(athleteAfterDeclaration.data.status).toBe('afiliado_activo')
+
+    // Segunda declaracion: idempotente, no vuelve a otorgar nada.
+    const repeated = await admin.rpc('athlete_confirm_manual_payment', {
+      p_order_id: comboBody.order.id,
+      p_athlete_id: athleteId,
+    })
+    if (repeated.error) throw new Error(repeated.error.message)
+    expect(repeated.data.duplicate).toBe(true)
+
+    const rejected = await admin.rpc('reject_athlete_payment_order', {
+      p_order_id: comboBody.order.id,
+      p_reason: 'La transferencia nunca llego.',
+      p_actor: 'integration-test',
+    })
+    if (rejected.error) throw new Error(rejected.error.message)
+    expect(rejected.data.order.status).toBe('rechazado')
+    expect(rejected.data.order.financed_entitlements_revoked_at).toBeTruthy()
+
+    const [membershipAfter, registrationAfter, athleteAfter] = await Promise.all([
+      admin.from('memberships').select('status').eq('id', comboBody.membership.id).single(),
+      admin.from('event_registrations').select('status').eq('id', comboBody.registration.id).single(),
+      admin.from('athletes').select('status').eq('id', athleteId).single(),
+    ])
+    expect(membershipAfter.data.status).toBe('cancelada')
+    expect(registrationAfter.data.status).toBe('cancelada')
+    expect(athleteAfter.data.status).toBe('registrado')
+  })
+
   const listenTarget = listen(
     createApp({
       supabaseAdmin: admin,

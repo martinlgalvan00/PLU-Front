@@ -1389,6 +1389,19 @@ export default function PricingSection({
                     {t(`admin.sections.pricing.comboVisibility.${comboDraft.audience}.title`)}
                   </dd>
                 </div>
+                {/* El financiamiento vivia solo dentro del editor, detras de un
+                    checkbox: desde afuera no habia forma de saber si canjear el
+                    codigo habilita en el acto o deja al atleta esperando. */}
+                <div>
+                  <dt>{t('admin.sections.pricing.comboEntitlementLabel')}</dt>
+                  <dd>
+                    {t(
+                      comboDraft.financed
+                        ? 'admin.sections.pricing.comboEntitlementFinanced'
+                        : 'admin.sections.pricing.comboEntitlementOnApproval',
+                    )}
+                  </dd>
+                </div>
               </dl>
             ) : null}
 

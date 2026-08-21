@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  AlertTriangle,
-  BadgeCheck,
-  ClipboardList,
-  Eye,
-  EyeOff,
-  PencilLine,
-  Trash2,
-} from 'lucide-react'
+import { AlertTriangle, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
@@ -15,6 +7,7 @@ import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
+import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
 import {
   AdminIdentityCell,
   AdminPaymentCell,
@@ -38,10 +31,14 @@ import {
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
 import {
+  canValidateManualOrder,
+  isManualOrder,
+  isOpenOrder,
+} from '../../services/paymentValidationService.js'
+import {
   fetchPlatformFeatureToggles,
   VALIDATION_DISABLED_CODES,
 } from '../../services/platformSettingsAdminService.js'
-import { notifyError } from '../../lib/adminToast.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
@@ -58,13 +55,18 @@ function formatRegistrationWeight(registration) {
   return /kg/i.test(label) ? label : `${label} kg`
 }
 
-function canValidateRegistrationPayment(row, canEdit) {
-  return Boolean(
-    canEdit &&
-    row.paymentId &&
-    row.paymentMethod !== 'mercado_pago' &&
-    row.paymentStatus !== 'aprobado',
-  )
+/**
+ * `canEdit` acá es la unión de inscripciones y pagos, así que no alcanza:
+ * acreditar exige `admin.payments.approve`. Antes el botón salía habilitado
+ * para quien sólo podía escribir inscripciones y la acción moría en un 403 que
+ * la pantalla descartaba.
+ *
+ * La orden aparece mientras siga abierta y sea manual; que tenga comprobante
+ * decide si el botón está habilitado, no si existe — mismo criterio que
+ * Finanzas, para que no se lea como que la acción desapareció.
+ */
+function canValidateRegistrationPayment(row, canValidatePayments) {
+  return Boolean(canValidatePayments && isManualOrder(row.payment) && isOpenOrder(row.payment))
 }
 
 /**
@@ -91,6 +93,7 @@ function buildRegistrationFilterCounts(registrations, resolvePayment, gatePendin
 export default function RegistrationsSection({
   canAssignSchedule = false,
   canEdit,
+  canValidatePayments = false,
   filters,
   filteredRegistrations,
   gatePendingIds = EMPTY_GATE_PENDING_IDS,
@@ -98,6 +101,7 @@ export default function RegistrationsSection({
   registrations = [],
   registrationsCount,
   onApprovePayment,
+  onRejectPayment,
   onExportAdmin,
   onExportPluUsa,
   onGoToEvents,
@@ -221,6 +225,9 @@ export default function RegistrationsSection({
           paymentMethod: payment?.method,
           amount: payment ? money(payment.amount) : '—',
           paymentId: payment?.id,
+          // La orden completa: el diálogo de validación necesita comprobante,
+          // canal y notas, no sólo el id y el estado.
+          payment: payment ?? null,
         }
       }),
     [filteredRegistrations, resolvePayment],
@@ -310,15 +317,15 @@ export default function RegistrationsSection({
   // de arriba corre una sola vez al montar la sección.
   async function handleApprovePayment(paymentId) {
     const result = await onApprovePayment?.(paymentId)
-    if (result?.error) {
-      if (
-        result.code === VALIDATION_DISABLED_CODES.registration ||
-        result.code === VALIDATION_DISABLED_CODES.membership
-      ) {
-        setValidationEnabled(false)
-      }
-      notifyError(result.error)
+    if (
+      result?.code === VALIDATION_DISABLED_CODES.registration ||
+      result?.code === VALIDATION_DISABLED_CODES.membership
+    ) {
+      setValidationEnabled(false)
     }
+    // El resultado vuelve al diálogo: el aviso al operador y el toast salen de
+    // `PaymentValidationAction`, que es el que sabe si sigue abierto.
+    return result
   }
 
   async function togglePublicVisibility(row) {
@@ -700,23 +707,28 @@ export default function RegistrationsSection({
                   label: t('admin.columns.action'),
                   mobile: 'action',
                   render: (row) => {
-                    const canValidate = canValidateRegistrationPayment(row, canEdit)
+                    const canValidate = canValidateRegistrationPayment(row, canValidatePayments)
                     const hasActions =
                       canValidate || canManageVisibility || canSetStatus || canDelete
                     if (!hasActions) return <AdminTableActionsEmpty />
                     return (
                       <AdminTableActions onClick={(event) => event.stopPropagation()}>
                         {canValidate ? (
-                          <AdminIconButton
-                            disabled={!validationEnabled}
-                            icon={BadgeCheck}
+                          /* Antes acreditaba de un click, sin abrir el
+                             comprobante. Ahora es el mismo diálogo de Finanzas
+                             y de la puerta: la evidencia se mira siempre. */
+                          <PaymentValidationAction
+                            athlete={{ fullName: row.athlete, documentId: row.document }}
+                            detail={[row.event, row.category].filter(Boolean).join(' · ')}
+                            disabled={!validationEnabled || !canValidateManualOrder(row.payment)}
                             label={
                               validationEnabled
                                 ? t('admin.actions.validate')
                                 : t('admin.athletePayments.validationPaused')
                             }
-                            onClick={() => void handleApprovePayment(row.paymentId)}
-                            variant="celeste"
+                            onApprove={handleApprovePayment}
+                            onReject={onRejectPayment}
+                            order={row.payment}
                           />
                         ) : null}
                         {canManageVisibility && onSetPublicVisibility ? (

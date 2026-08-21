@@ -1,3 +1,7 @@
+// `globals` está apagado en vitest.config.js: los hooks se importan, no se
+// asumen en el scope.
+import { beforeEach } from 'vitest'
+
 // jsdom no implementa ResizeObserver. Los componentes de antd (Table, Menu
 // colapsable, Select) lo usan internamente para medir su propio tamaño, y
 // sin este stub cualquier test que renderice uno de esos componentes
@@ -45,3 +49,21 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
     },
   })
 }
+
+// La validación de sesión tiene caché en memoria por proceso
+// (server/lib/sessionCache.js). Los tests de API montan la app muchas veces en
+// el mismo worker y comparten esa instancia, igual que los rate limiters: sin
+// vaciarla entre tests, una sesión que un caso dejó cacheada sigue contestando
+// en el siguiente y lo hace pasar (o fallar) por el estado del anterior.
+//
+// El import es dinámico y tolerante a fallos porque este setup también corre
+// para tests puramente de frontend, que no tienen por qué poder resolver un
+// módulo del server.
+beforeEach(async () => {
+  try {
+    const { resetSessionCaches } = await import('../../server/lib/sessionCache.js')
+    resetSessionCaches()
+  } catch {
+    // Sin módulo de server disponible no hay caché que vaciar.
+  }
+})

@@ -64,6 +64,7 @@ import {
   serializeUser,
   SESSION_COOKIE_NAME,
 } from '../services/sessionService.js'
+import { staffSessionCache } from '../lib/sessionCache.js'
 
 // Vigencia de una credencial de acceso de puerta. Si el evento tiene fin
 // conocido, la credencial dura hasta 7 días después (margen operativo);
@@ -956,6 +957,12 @@ export function createAuthRoutes({
           },
           data: { status: 'disabled' },
         })
+
+        // Igual que el job de ciclo de vida: es un `updateMany` en bloque que no
+        // conoce los ids, y desde que la validación de sesión tiene caché en
+        // memoria, cortar `status` no alcanza para cortar acceso. Sin esta línea
+        // una credencial de puerta seguiría entrando hasta que venciera el TTL.
+        if (result.count > 0) staffSessionCache.clear()
 
         res.json({ deactivated: result.count })
       } catch (error) {

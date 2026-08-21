@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { getDefaultPermissionsForRole } from '../../src/lib/permissions.js'
+import { staffSessionCache } from '../lib/sessionCache.js'
 import { ACCESS_ROLE_INCLUDE, permissionKeysFromAccessRole } from './accessControlService.js'
 
 export const SESSION_COOKIE_NAME = 'plu_session'
@@ -98,8 +99,16 @@ export function serializeUser(user) {
 export async function readSession({ prisma, token, now = new Date() }) {
   if (!token) return null
 
+  const tokenHash = hashToken(token)
+  // La resolución de la sesión es idéntica request a request mientras nada la
+  // revoque, y revocar pasa siempre por `revokeSession`/`revokeSessionsForUser`,
+  // que purgan esta caché. Ver server/lib/sessionCache.js para por qué es
+  // seguro cachear una decisión de autorización acá.
+  const cached = staffSessionCache.get(tokenHash, now.getTime())
+  if (cached) return cached
+
   const session = await prisma.session.findUnique({
-    where: { tokenHash: hashToken(token) },
+    where: { tokenHash },
     include: {
       user: {
         include: {
@@ -120,10 +129,14 @@ export async function readSession({ prisma, token, now = new Date() }) {
     return null
   }
 
-  return {
+  const resolved = {
     session,
     user: serializeUser(session.user),
   }
+  // Sólo el resultado positivo: una cookie revocada tiene que volver a
+  // consultarse en vez de quedar clavada en "no" por lo que dure el TTL.
+  staffSessionCache.set(tokenHash, resolved, { ownerKey: session.userId, now: now.getTime() })
+  return resolved
 }
 
 export async function readSessionFromRequest({ prisma, req }) {
@@ -133,8 +146,15 @@ export async function readSessionFromRequest({ prisma, req }) {
 export async function revokeSession({ prisma, token, now = new Date() }) {
   if (!token) return
 
+  const tokenHash = hashToken(token)
+  // Antes de la base, no después: si el update falla, la caché ya no tiene la
+  // sesión y el próximo request la relee. Al revés, un fallo dejaría la sesión
+  // viva en memoria durante todo el TTL después de un logout que el usuario ya
+  // vio confirmado.
+  staffSessionCache.invalidateKey(tokenHash)
+
   await prisma.session.updateMany({
-    where: { tokenHash: hashToken(token), revokedAt: null },
+    where: { tokenHash, revokedAt: null },
     data: { revokedAt: now },
   })
 }
@@ -146,7 +166,12 @@ export async function revokeSession({ prisma, token, now = new Date() }) {
  * de más para alguien a quien justamente se le acaban de recortar permisos.
  */
 export async function revokeSessionsForUser({ prisma, userId, now = new Date() }) {
-  if (!userId || typeof prisma.session?.updateMany !== 'function') return 0
+  if (!userId) return 0
+  // La purga corre incluso si el doble de test no trae `session.updateMany`:
+  // este llamado es el punto donde un recorte de permisos tiene que empezar a
+  // valer, y saltearlo dejaría la matriz vieja viva en memoria.
+  staffSessionCache.invalidateOwner(userId)
+  if (typeof prisma.session?.updateMany !== 'function') return 0
 
   const result = await prisma.session.updateMany({
     where: { userId, revokedAt: null },

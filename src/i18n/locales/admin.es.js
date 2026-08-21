@@ -499,12 +499,30 @@ export default {
       cancel: 'Dar de baja',
       applying: 'Aplicando…',
       actionError: 'No pudimos actualizar la afiliación.',
-      cancelConfirmTitle: 'Confirmar baja de afiliación',
-      cancelConfirmDescription: 'Vas a dar de baja la afiliación de {{athlete}}.',
+      /**
+       * Activación y baja manual. Las dos piden motivo; sólo activar pide canal,
+       * porque es la que atribuye plata que entró por fuera de la plataforma.
+       */
+      manual: {
+        activateTitle: 'Activar la afiliación a mano',
+        activateDescription:
+          'Vas a dejar activa la afiliación de {{athlete}} sin un cobro acreditado en la plataforma.',
+        cancelTitle: 'Confirmar baja de afiliación',
+        cancelDescription: 'Vas a dar de baja la afiliación de {{athlete}}.',
+        channelLabel: '¿Por dónde se resolvió?',
+        channelPlaceholder: 'Elegí el canal…',
+        reasonLabel: 'Motivo',
+        reasonPlaceholder: 'Ej.: transferencia recibida el 20/08, comprobante en el grupo.',
+        reasonHint: 'Queda en la ficha del atleta y en la auditoría. Es lo que se lee ante un reclamo.',
+        orderNotice:
+          'La orden de Mercado Pago queda cancelada: no entró plata por ese canal y marcarla aprobada falsearía los ingresos. Si necesitás el asiento contable, usá la acreditación manual con comprobante.',
+        back: 'Volver',
+        close: 'Cerrar',
+        confirmActivate: 'Activar y registrar el motivo',
+        confirmCancel: 'Confirmar baja',
+      },
       cancelConfirmWarning:
         'La credencial deja de habilitar el ingreso y el atleta recibe un email con el cambio.',
-      keepActive: 'Mantener activa',
-      confirmCancel: 'Confirmar baja',
       registeredToTournamentBadge: 'Torneo',
       validationPaused: 'La validación de afiliaciones está pausada desde Acceso y habilitación.',
       validationPausedLead:
@@ -593,6 +611,9 @@ export default {
       comboOfferStatus: 'Habilitada · {{visibility}}',
       comboOfferOff: 'Apagada',
       comboVisibilityLabel: 'Visibilidad comercial',
+      comboEntitlementLabel: 'Habilitación',
+      comboEntitlementFinanced: 'Automática al declarar el pago',
+      comboEntitlementOnApproval: 'Cuando Finanzas valida el cobro',
       comboVisibilityShort: {
         public: 'Pública',
         code: 'Restringida',
@@ -1067,6 +1088,7 @@ export default {
       eyebrow: 'Modo evento',
       title: 'Puerta y acreditaciones',
       subtitle: 'Escaneo, ingresos y control operativo en tiempo real',
+      subtitleForEvent: 'Puerta de {{event}}: escaneo, cobros y ingresos',
     },
     pluUsa: {
       eyebrow: 'Vista de solo lectura',
@@ -1351,6 +1373,7 @@ export default {
     filterReady: 'Habilitados',
     filterDone: 'Ingresados',
     filterPending: 'Sin habilitar',
+    filterToValidate: 'Por cobrar',
     statusLabel: 'Estado de ingreso',
     statusLabelShort: 'Estado',
     type: 'Tipo',
@@ -1365,8 +1388,11 @@ export default {
     statReady: 'Habilitados',
     statDone: 'Ingresados',
     statPending: 'Sin habilitar',
+    statToValidate: 'Por cobrar',
+    dayNumber: 'Día {{day}}',
     searchPlaceholder: 'Buscar por nombre, DNI o código',
     markEntry: 'Registrar ingreso',
+    settleAtDoor: 'Cobrar y acreditar',
     checkedInAt: 'Ingresó {{time}}',
     empty: 'No hay atletas ni entradas para mostrar',
     scanner: {
@@ -1819,6 +1845,84 @@ export default {
     rawTitle: 'Metadata completa del evento',
   },
 
+  /**
+   * Estado de un cobro y procedencia de un estado puesto a mano, con
+   * vocabulario operativo.
+   *
+   * No se reusan las claves de `account.payments.*` a propósito: ésas están
+   * escritas en segunda persona para el atleta ("Tu banco pide que autorices el
+   * monto"), y en una tabla del panel eso no informa a nadie. Mismo hecho,
+   * distinto lector.
+   */
+  paymentState: {
+    state: {
+      acreditado: 'Acreditado',
+      en_revision: 'En revisión',
+      revision_pendiente: 'Acreditando',
+      esperando_comprobante: 'Falta comprobante',
+      esperando_pago: 'Esperando pago',
+      esperando_pago_en_sede: 'A pagar en sede',
+      procesando: 'Procesando',
+      rechazado: 'Rechazado',
+      cancelado: 'Cancelado',
+      reembolsado: 'Reembolsado',
+    },
+    reason: {
+      expired_without_attempt: 'Venció el {{date}} sin un solo intento de pago registrado.',
+      expired_after_attempt: 'Venció el {{date}}; ningún intento llegó a acreditarse.',
+      closed_without_attempt: 'Se cerró sin un solo intento de pago registrado.',
+      closed_after_attempt: 'Se cerró sin que ningún intento llegara a acreditarse.',
+      closed_before_expiry: 'Se cerró antes de vencer, probablemente reemplazada por un cobro nuevo.',
+      superseded_by_new_order: 'Se reemplazó por un cobro nuevo del mismo concepto.',
+      provider_cancelled: 'Mercado Pago dio el pago por cancelado.',
+      staff_rejected: 'Cerrada por la organización.',
+      resolved_off_platform:
+        'El cobro no entró por este canal: el derecho se otorgó a mano. No corresponde acreditar esta orden.',
+    },
+    /**
+     * Motivo del intento fallido que quedó detrás de un vencimiento. Se suma al
+     * motivo de arriba: "venció" y "además la tarjeta rechazó" son dos datos
+     * distintos y el atleta pregunta por el segundo.
+     */
+    attempt: {
+      cc_rejected_insufficient_amount: 'La tarjeta no tenía fondos.',
+      cc_rejected_bad_filled_card_number: 'Número de tarjeta mal cargado.',
+      cc_rejected_bad_filled_date: 'Vencimiento de tarjeta incorrecto.',
+      cc_rejected_bad_filled_security_code: 'Código de seguridad incorrecto.',
+      cc_rejected_bad_filled_other: 'Datos de tarjeta mal cargados.',
+      cc_rejected_call_for_authorize: 'El banco pedía autorización del monto.',
+      cc_rejected_card_disabled: 'Tarjeta inactiva.',
+      cc_rejected_duplicated_payment: 'Pago duplicado reciente.',
+      cc_rejected_high_risk: 'Rechazado por prevención de fraude de Mercado Pago.',
+      cc_rejected_max_attempts: 'Se agotaron los intentos permitidos.',
+      cc_rejected_other_reason: 'El banco rechazó sin dar motivo.',
+      cc_rejected_invalid_installments: 'La tarjeta no admitía esas cuotas.',
+      cc_rejected_card_type_not_allowed: 'Tipo de tarjeta no habilitado.',
+      pending_contingency: 'Mercado Pago quedó procesando el pago.',
+      pending_review_manual: 'Mercado Pago lo dejó en revisión manual.',
+      pending_waiting_transfer: 'Esperaba la acreditación de la transferencia.',
+      pending_waiting_payment: 'Cupón emitido sin pagar.',
+    },
+    resolvedElsewhere: {
+      membership: 'La afiliación quedó activa por otra vía: no hay que volver a cobrar esto.',
+      registration: 'La inscripción quedó confirmada por otra vía: no hay que volver a cobrar esto.',
+    },
+    manual: {
+      stamp: 'A mano por {{actor}} · {{date}}',
+      unknownActor: 'un operador',
+      missingReason:
+        'Sin motivo registrado: se activó cuando el panel todavía no lo pedía. Conviene anotarlo.',
+      channel: {
+        bank_transfer: 'Transferencia bancaria',
+        wise_transfer: 'Transferencia Wise',
+        cash: 'Efectivo',
+        courtesy: 'Cortesía',
+        error_correction: 'Corrección de un error',
+        sponsor: 'Canje / sponsor',
+        other: 'Otro canal',
+      },
+    },
+  },
   paymentTrace: {
     open: 'Ver traza del cobro',
     eyebrow: 'Auditoría',
@@ -2780,9 +2884,12 @@ export default {
     title: 'Órdenes de atleta',
     subtitle: 'Transferencias por validar y acreditaciones de Mercado Pago',
     openAmount: '{{amount}} por acreditar',
+    openAmountPartial: '{{amount}}+ por acreditar',
     refresh: 'Actualizar',
+    refreshing: 'Actualizando…',
     filterPending: 'Por validar',
     filterManual: 'En revisión',
+    filterFinanced: 'Financiadas',
     filterApproved: 'Aprobadas',
     filterAll: 'Todas',
     rejectedBy: 'Rechazada por {{actor}}',
@@ -2831,6 +2938,23 @@ export default {
   },
   athleteDetail: {
     back: 'Volver a atletas',
+    /**
+     * Aviso de divergencia entre un derecho otorgado y el cobro que debería
+     * respaldarlo. El título cambia según haya o no algo que hacer: una
+     * divergencia con motivo escrito es una decisión registrada y se informa;
+     * una sin motivo es un pendiente y se pide.
+     */
+    divergence: {
+      title: 'Estados resueltos por fuera del cobro',
+      titleUnexplained: 'Hay un estado sin explicación',
+      kind: {
+        membership: 'Afiliación {{status}} con el pago en {{orderStatus}}.',
+        registration: 'Inscripción {{status}} con el pago en {{orderStatus}}.',
+      },
+      explained: 'Lo resolvió {{actor}}: {{reason}}',
+      unexplained:
+        'Nadie dejó anotado por qué. Revisá si el pago entró por otro canal y registralo.',
+    },
     tabs: {
       profile: 'Perfil',
       memberships: 'Afiliaciones',

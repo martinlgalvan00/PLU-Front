@@ -36,6 +36,7 @@ const PlaceholderSection = lazy(() => import('./admin/PlaceholderSection.jsx'))
 const PluUsaSection = lazy(() => import('./admin/PluUsaSection.jsx'))
 const RegistrationsSection = lazy(() => import('./admin/RegistrationsSection.jsx'))
 const ScheduleBoardSection = lazy(() => import('./admin/ScheduleBoardSection.jsx'))
+const CheckInSection = lazy(() => import('./admin/CheckInSection.jsx'))
 const PaymentsOperationsSection = lazy(() => import('./admin/PaymentsOperationsSection.jsx'))
 const FinanceSection = lazy(() => import('./admin/FinanceSection.jsx'))
 const PricingSection = lazy(() => import('./admin/PricingSection.jsx'))
@@ -81,6 +82,11 @@ export default function AdminPage({
   onApproveTicketPurchase,
   onRejectTicketOrder,
   onRefreshPendingTicketOrders,
+  canCheckIn = false,
+  onCheckInRegistration,
+  onCheckInTicket,
+  onRedeemTicketAddon,
+  onRefreshTickets,
   onRefreshAdminEvents,
   onRefreshAthleteData,
   onRefreshPricing,
@@ -180,6 +186,9 @@ export default function AdminPage({
   const [peopleTab, setPeopleTab] = useState('athletes')
   const [paymentEventScope, setPaymentEventScope] = useState('')
   const [paymentFocusId, setPaymentFocusId] = useState(null)
+  // Evento cuya puerta se está operando. Se fija al entrar desde la consola de
+  // Eventos; sin eso, el primero que todavía no terminó.
+  const [checkinEventSlug, setCheckinEventSlug] = useState(null)
 
   const pendingPayments = payments.filter(
     (payment) => payment.status === 'pendiente' || payment.status === 'validacion_manual',
@@ -199,6 +208,21 @@ export default function AdminPage({
       }),
     [enrichedMemberships, registrations, payments, athletes],
   )
+  // Puerta activa: la elegida desde Eventos, o el primer evento que todavía no
+  // terminó. Sin resolverlo, la sección tomaba el slug por defecto y podía
+  // estar acreditando gente de otro evento.
+  const checkinEvent = useMemo(() => {
+    if (!adminEvents?.length) return null
+    if (checkinEventSlug) {
+      const chosen = adminEvents.find((event) => event.slug === checkinEventSlug)
+      if (chosen) return chosen
+    }
+    const open = [...adminEvents]
+      .filter((event) => !['finalizado', 'cerrado'].includes(event.status))
+      .sort((left, right) => String(left.startsAt ?? '').localeCompare(String(right.startsAt ?? '')))
+    return open[0] ?? adminEvents[0] ?? null
+  }, [adminEvents, checkinEventSlug])
+
   const unreconciledMembershipPayments = useMemo(
     () => unreconciledPayments.filter((entry) => entry.missingMembership),
     [unreconciledPayments],
@@ -272,8 +296,9 @@ export default function AdminPage({
     setSection('payments')
   }
 
-  function handleManageEventCheckin() {
+  function handleManageEventCheckin(event) {
     if (!allowedSections.includes('checkin')) return
+    setCheckinEventSlug(event?.slug ?? null)
     setSection('checkin')
   }
 
@@ -322,12 +347,16 @@ export default function AdminPage({
             canEdit={hasPermission(authorization, 'admin.athletes.write')}
             canRotateCredential={hasPermission(authorization, 'admin.memberships.write')}
             canDelete={canDeleteAthletes && Boolean(onDeleteAthlete)}
+            // Acreditar no es editar la ficha: la validación tiene su propio
+            // permiso y hasta ahora el botón salía habilitado con el de atletas.
+            canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
             onDelete={async (athleteId) => {
               await onDeleteAthlete?.(athleteId)
               setSelectedAthleteId(null)
             }}
             onUpdate={onUpdateAthlete}
             onApprovePayment={onApprovePayment}
+            onRejectPayment={onRejectPayment}
           />
         )
       }
@@ -388,8 +417,10 @@ export default function AdminPage({
               unreconciledPayments={unreconciledRegistrationPayments}
               onApprovePayment={onApprovePayment}
               onForceSettlePayment={onForceSettlePayment}
+              onRejectPayment={onRejectPayment}
               onSetRegistrationStatus={onSetRegistrationStatus}
               canSetStatus={hasPermission(authorization, 'admin.registrations.write')}
+              canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
               canForceSettle={hasPermission(authorization, 'admin.payments.approve')}
               canDelete={canDeleteRegistrations && Boolean(onDeleteRegistration)}
               onDelete={onDeleteRegistration}
@@ -594,6 +625,32 @@ export default function AdminPage({
           canViewIdentity={hasPermission(authorization, 'admin.analytics.identity')}
           canViewPaymentFailures={hasPermission(authorization, 'admin.payments.read')}
           onNavigate={handleSectionChange}
+        />
+      )
+    }
+
+    if (section === 'checkin') {
+      return (
+        <CheckInSection
+          athletes={athletes}
+          canCheckIn={canCheckIn}
+          // Mismo permiso que Finanzas: la puerta no gana la facultad de
+          // acreditar por estar operando el evento.
+          canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
+          eventDays={checkinEvent?.eventDays ?? []}
+          eventSlug={checkinEvent?.slug ?? undefined}
+          eventTitle={checkinEvent?.title ?? null}
+          memberships={enrichedMemberships}
+          onApprovePayment={onApprovePayment}
+          onCheckInRegistration={onCheckInRegistration}
+          onCheckInTicket={onCheckInTicket}
+          onRedeemTicketAddon={onRedeemTicketAddon}
+          onRefreshTickets={onRefreshTickets}
+          onRejectPayment={onRejectPayment}
+          payments={payments}
+          registrations={registrations}
+          ticketTypes={checkinEvent?.ticketTypes ?? []}
+          tickets={tickets}
         />
       )
     }
