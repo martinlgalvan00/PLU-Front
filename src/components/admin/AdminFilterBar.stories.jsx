@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AdminFilterBar from './AdminFilterBar.jsx'
 import { AppConfigProvider } from '../../providers/AppConfigProvider.jsx'
+import '../../styles/pages/admin.css'
 import '../../styles/pages/admin-minimal.css'
 
 /** Mismas 6 facetas que arma AuditSection: fuente/estado/categoría a la vista,
@@ -122,7 +123,11 @@ function AuditLikeFilterBar({ initialAction = 'all' }) {
 /** Mismas 5 facetas que arma AthletesSection, todas inline (sin "Más filtros"):
  * afiliación, inscripción, gimnasio (select con lista dinámica), división
  * (chips) y fecha de alta (variant `dateRange`, dos inputs nativos). */
-function AthletesLikeFilterBar({ initialRange = { from: '', to: '' }, containerWidth = null }) {
+function AthletesLikeFilterBar({
+  initialRange = { from: '', to: '' },
+  containerWidth = null,
+  layout = undefined,
+}) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [registrationStatus, setRegistrationStatus] = useState('all')
@@ -204,6 +209,7 @@ function AthletesLikeFilterBar({ initialRange = { from: '', to: '' }, containerW
             compact
             inline
             className="admin-filters--athletes"
+            layout={layout}
             query={query}
             onQueryChange={setQuery}
             filters={filters}
@@ -248,4 +254,23 @@ export const CincoFiltrosContenedorAngosto = {
 /** Rango de fecha de alta activo -- confirma el resaltado `is-active` del variant `dateRange`. */
 export const ConRangoDeFechaActivo = {
   render: () => <AthletesLikeFilterBar initialRange={{ from: '2026-01-01', to: '2026-03-15' }} />,
+}
+
+/** Rediseño: mismas 5 facetas como pills compactos que abren un popover
+ * (`layout="popover"`) en vez de quedar siempre expandidas en el panel. */
+export const CincoFiltrosPopover = {
+  render: () => <AthletesLikeFilterBar layout="popover" />,
+}
+
+/** Popover con un rango de fecha ya activo -- confirma el pill activo + botón de limpiar. */
+export const CincoFiltrosPopoverConRangoActivo = {
+  render: () => (
+    <AthletesLikeFilterBar layout="popover" initialRange={{ from: '2026-01-01', to: '2026-03-15' }} />
+  ),
+}
+
+/** Mismo rediseño en un contenedor angosto -- confirma que el riel de pills
+ * scrollea en vez de desbordar. */
+export const CincoFiltrosPopoverContenedorAngosto = {
+  render: () => <AthletesLikeFilterBar layout="popover" containerWidth={390} />,
 }
