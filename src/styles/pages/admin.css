@@ -20,12 +20,12 @@
 }
 
 /* =============================================
-   LIVE SYNC â€” aviso no bloqueante de que el
-   snapshot admin se estÃ¡ sincronizando en
+   LIVE SYNC — aviso no bloqueante de que el
+   snapshot admin se está sincronizando en
    background (polling de 15s). Abajo a la
    izquierda: abajo a la derecha viven los toasts
    operativos. El flag llega diferido desde
-   useAppData, asÃ­ que un polling que responde
+   useAppData, así que un polling que responde
    bien no muestra nada.
    ============================================= */
 
@@ -119,12 +119,12 @@
 }
 
 /* =============================================
-   ADMIN GLASS â€” primitiva compartida
+   ADMIN GLASS — primitiva compartida
    Una sola receta de vidrio para las superficies
-   del panel: fondo translÃºcido, blur, hairline y
+   del panel: fondo translúcido, blur, hairline y
    highlight superior. Los tokens (--admin-glass-*)
-   viven en dark.css / light.css; acÃ¡ solo se
-   define cÃ³mo se combinan. No suma acento de
+   viven en dark.css / light.css; acá solo se
+   define cómo se combinan. No suma acento de
    color: el material es el efecto.
    ============================================= */
 
@@ -133,7 +133,7 @@
   border: 1px solid var(--color-border-subtle);
 }
 
-/* Variante mÃ¡s opaca: drawers, flyouts y superficies que flotan
+/* Variante más opaca: drawers, flyouts y superficies que flotan
    sobre contenido scrolleable y necesitan lectura garantizada. */
 .admin-glass--strong {
   background: var(--color-bg-surface);
@@ -310,13 +310,13 @@
 
   .admin-kpi-more__summary::after {
     color: var(--color-text-muted);
-    content: 'Ã¢â€“Â¾';
+    content: '▾';
     flex: 0 0 auto;
     font-size: 11px;
   }
 
   .admin-kpi-more[open] .admin-kpi-more__summary::after {
-    content: 'Ã¢â€“Â´';
+    content: '▴';
   }
 
   .admin-kpi-more__count {
@@ -2084,7 +2084,7 @@
 }
 
 /* Tres superficies (resumen / egreso / movimientos) en vez de una franja
-   continua de secciones separadas por lÃ­neas â€” mismo criterio que el resto
+   continua de secciones separadas por líneas — mismo criterio que el resto
    del panel: cada bloque funcional es su propia tarjeta con aire y sombra
    propios. */
 .admin-finance--ledger .admin-finance__summary,
@@ -2142,7 +2142,7 @@
   animation: admin-spin 0.9s linear infinite;
 }
 
-/* Keyframe compartido por los Ã­conos de refresh en giro (sync en curso).
+/* Keyframe compartido por los íconos de refresh en giro (sync en curso).
    Los estados de espera usan la primitiva `.plu-spinner`. */
 @keyframes admin-spin {
   to {
@@ -2688,10 +2688,10 @@
   gap: 0;
   margin-inline: -24px;
   /* `overflow-x: auto` fuerza a `overflow-y` a `auto` por spec (CSS Overflow
-     Ã‚Â§3), y eso resetea el alto mÃƒÂ­nimo automÃƒÂ¡tico del ÃƒÂ­tem a 0 dentro del grid
+     §3), y eso resetea el alto mínimo automático del ítem a 0 dentro del grid
      de `.admin-event-form` -- la fila colapsaba a los 2px del borde y el nav
-     de 40px quedaba invisible, aunque funcional (por eso nadie lo veÃƒÂ­a ni
-     saltaba de secciÃƒÂ³n; el editor se sentÃƒÂ­a como un scroll largo sin salida). */
+     de 40px quedaba invisible, aunque funcional (por eso nadie lo veía ni
+     saltaba de sección; el editor se sentía como un scroll largo sin salida). */
   min-height: min-content;
   overflow-x: auto;
   padding: 0 18px;
@@ -2849,8 +2849,8 @@
   border-color: color-mix(in oklab, #e35d5d 32%, transparent);
 }
 
-/* Carriles de "Ventas y cupos": inscripciÃƒÂ³n de atletas y entradas de pÃƒÂºblico
-   son dos vÃƒÂ­as simÃƒÂ©tricas de ingreso al evento, asÃƒÂ­ que se leen como dos
+/* Carriles de "Ventas y cupos": inscripción de atletas y entradas de público
+   son dos vías simétricas de ingreso al evento, así que se leen como dos
    bloques equivalentes en vez de dos secciones separadas del editor. */
 .admin-event-form__lane {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 1.8%, transparent);
@@ -3001,7 +3001,7 @@
   }
 }
 
-/* Contradicciones entre el estado pÃƒÂºblico elegido a mano y la configuraciÃƒÂ³n
+/* Contradicciones entre el estado público elegido a mano y la configuración
    real. Advierte, no bloquea: el guardado sigue disponible. */
 .admin-event-form__consistency {
   background: var(--admin-status-warning-bg);
@@ -3023,8 +3023,8 @@
 }
 
 /* Acceso al meet: dos opciones excluyentes y la consecuencia escrita entera.
-   El bloque se separa con una regla porque no es un campo mÃ¡s de la pestaÃ±a de
-   publicaciÃ³n: decide quiÃ©n puede inscribirse y quiÃ©n pasa la puerta. */
+   El bloque se separa con una regla porque no es un campo más de la pestaña de
+   publicación: decide quién puede inscribirse y quién pasa la puerta. */
 .admin-event-form__access {
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
@@ -3045,12 +3045,12 @@
   vertical-align: -2px;
 }
 
-/* MÃ­nimo tÃ¡ctil de los chips del editor.
+/* Mínimo táctil de los chips del editor.
    `.admin-filter-chip` no declara `min-height`: la altura sale del padding y
-   queda en 26px, asÃ­ que los dos grupos de esta pestaÃ±a â€”estado pÃºblico y
-   acceso al meetâ€” quedaban por debajo del target tÃ¡ctil. La consola de
-   operaciÃ³n ya lo tenÃ­a resuelto (admin-minimal.css, `@media pointer: coarse`)
-   pero el editor es un modal que tambiÃ©n se usa en tablet. Solo con puntero
+   queda en 26px, así que los dos grupos de esta pestaña —estado público y
+   acceso al meet— quedaban por debajo del target táctil. La consola de
+   operación ya lo tenía resuelto (admin-minimal.css, `@media pointer: coarse`)
+   pero el editor es un modal que también se usa en tablet. Solo con puntero
    grueso: en mouse la densidad del panel se conserva. */
 @media (pointer: coarse) {
   .admin-event-form .admin-filter-chip {
@@ -4181,7 +4181,7 @@
   gap: 0;
 }
 
-/* Filtros de eventos: pills de vidrio con transiciÃ³n de estado â€” el
+/* Filtros de eventos: pills de vidrio con transición de estado — el
    activo se lee como material, no como subrayado. */
 .admin-list-shell--events .admin-filter-chip {
   background: transparent;
@@ -5492,7 +5492,7 @@
   padding-left: 0;
 }
 
-/* DiagnÃ³stico accionable: tÃ­tulo del problema, causa y pasos concretos. Se
+/* Diagnóstico accionable: título del problema, causa y pasos concretos. Se
    lee como una lista de tareas, no como un volcado de errores. */
 .admin-payments-ops-callout__diagnoses {
   display: grid;
@@ -6062,7 +6062,7 @@
   flex-shrink: 0;
 }
 
-/* Header siempre visible: el nav solo dice "Pagos", no reemplaza el tÃ­tulo. */
+/* Header siempre visible: el nav solo dice "Pagos", no reemplaza el título. */
 @media (max-width: 1024px) {
   .admin-payment-ops__header {
     align-items: stretch;
@@ -7085,13 +7085,13 @@
   background: rgba(15, 17, 23, 0.12);
 }
 
-/* Tono opcional del chip activo â€” mapea al mismo color que ya usa el
+/* Tono opcional del chip activo — mapea al mismo color que ya usa el
    status-pill de la fila (ej. filtro "Bloqueado" en rojo), para que el
-   filtro prediga el color del resultado en vez de un celeste genÃ©rico.
-   admin-minimal.css importa DESPUÃ‰S de este archivo y ya pinta el chip
-   activo con `.admin-shell :is(.admin-filters--compact, â€¦) .admin-filter-chip.is-active`
-   (4 clases) â€” hace falta mÃ¡s especificidad, no solo orden, para ganarle
-   (mismo criterio que el override de `.btn` mÃ¡s abajo en este archivo). */
+   filtro prediga el color del resultado en vez de un celeste genérico.
+   admin-minimal.css importa DESPUÉS de este archivo y ya pinta el chip
+   activo con `.admin-shell :is(.admin-filters--compact, …) .admin-filter-chip.is-active`
+   (4 clases) — hace falta más especificidad, no solo orden, para ganarle
+   (mismo criterio que el override de `.btn` más abajo en este archivo). */
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip.admin-filter-chip--tone-success.is-active {
@@ -7466,12 +7466,12 @@
   min-height: 44px;
 }
 
-/* `.admin-shell .btn` (admin-minimal.css) repinta cualquier botÃ³n al
-   celeste operativo; como carga despuÃ©s de este archivo, la confirmaciÃ³n
+/* `.admin-shell .btn` (admin-minimal.css) repinta cualquier botón al
+   celeste operativo; como carga después de este archivo, la confirmación
    de borrado definitivo necesita ganarle por especificidad (3 clases sobre
-   el mismo elemento), no por orden -- este botÃ³n dispara borrados
-   irreversibles en todo el panel y no puede leerse como una acciÃ³n
-   primaria mÃ¡s. */
+   el mismo elemento), no por orden -- este botón dispara borrados
+   irreversibles en todo el panel y no puede leerse como una acción
+   primaria más. */
 .admin-shell .btn.admin-user-delete-dialog__confirm {
   align-items: center;
   background: var(--color-danger-text);
@@ -7490,7 +7490,7 @@
   animation: admin-spin 0.9s linear infinite;
 }
 
-/* ConfirmaciÃ³n escrita: solo aparece cuando lo borrado no se puede reconstruir
+/* Confirmación escrita: solo aparece cuando lo borrado no se puede reconstruir
    (un evento con inscripciones pagadas o acreditaciones). */
 .admin-user-delete-dialog__phrase {
   display: grid;
@@ -7543,7 +7543,62 @@
   }
 }
 
-/* RevisiÃ³n de comprobante desde la cola operativa (Validar â†’ Confirmar). */
+/* Activación / baja manual de una afiliación. Reusa el shell del diálogo de
+   borrado -- es el mismo objeto: una decisión irreversible que se confirma --
+   y sólo agrega los dos campos que ahora son obligatorios.
+
+   El foco NO usa el rojo del diálogo de borrado: acá la acción principal es
+   activar, que no es destructiva. Va el celeste de foco del resto del panel. */
+.membership-manual-dialog__field {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.membership-manual-dialog__field label {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.membership-manual-dialog__field select,
+.membership-manual-dialog__field textarea {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  padding: var(--space-xs) var(--space-sm);
+  width: 100%;
+}
+
+/* 44px de alto mínimo: es un control táctil y se opera desde el celular en la
+   mesa de acreditación. */
+.membership-manual-dialog__field select {
+  min-height: 44px;
+}
+
+.membership-manual-dialog__field textarea {
+  line-height: 1.5;
+  min-height: 76px;
+  resize: vertical;
+}
+
+.membership-manual-dialog__field select:focus-visible,
+.membership-manual-dialog__field textarea:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.membership-manual-dialog__field small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Revisión de comprobante desde la cola operativa (Validar → Confirmar). */
 .payment-validation-dialog {
   align-items: center;
   display: grid;
@@ -7625,8 +7680,8 @@
   gap: var(--space-sm);
 }
 
-/* Traza del cobro: la lÃ­nea de tiempo se lee de arriba abajo, con el
-   veredicto primero para que la respuesta estÃ© antes que la evidencia. */
+/* Traza del cobro: la línea de tiempo se lee de arriba abajo, con el
+   veredicto primero para que la respuesta esté antes que la evidencia. */
 .payment-trace__panel {
   max-width: 780px;
   width: min(100%, 780px);
@@ -8117,7 +8172,7 @@
   font-family: var(--font-family);
   font-size: 13.5px;
   /* En mobile el alto que dan `rows` y el padding se quedaba en 43px, apenas
-     debajo del target tÃ¡ctil mÃ­nimo. */
+     debajo del target táctil mínimo. */
   min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   resize: vertical;
@@ -8125,7 +8180,7 @@
 
 .payment-validation-dialog__settle-form input {
   /* El input de referencia no se redimensiona: `resize` sobre un campo de una
-     lÃ­nea no hace nada y confunde al leer la regla compartida. */
+     línea no hace nada y confunde al leer la regla compartida. */
   resize: none;
 }
 
@@ -8136,9 +8191,9 @@
   outline: none;
 }
 
-/* Acreditar por fuera del proveedor es una excepciÃ³n, no un atajo: la nota
-   advierte antes de que el operador llegue al botÃ³n, sin gritar en rojo (no es
-   un error, es una acciÃ³n deliberada que queda firmada). */
+/* Acreditar por fuera del proveedor es una excepción, no un atajo: la nota
+   advierte antes de que el operador llegue al botón, sin gritar en rojo (no es
+   un error, es una acción deliberada que queda firmada). */
 .payment-validation-dialog__settle-note {
   background: var(--color-warning-bg, color-mix(in srgb, var(--color-brand-gold) 12%, transparent));
   border-left: 2px solid var(--color-brand-gold);
@@ -8233,10 +8288,10 @@
   }
 }
 
-/* CorrecciÃ³n de estado de inscripciÃ³n â€” mismo material y escala que el diÃ¡logo
-   de validaciÃ³n de pagos. Las opciones se muestran como radios grandes y no
-   como un select: son tres, cada una necesita una lÃ­nea de ayuda para que el
-   operador entienda quÃ© implica, y un select las esconde. */
+/* Corrección de estado de inscripción — mismo material y escala que el diálogo
+   de validación de pagos. Las opciones se muestran como radios grandes y no
+   como un select: son tres, cada una necesita una línea de ayuda para que el
+   operador entienda qué implica, y un select las esconde. */
 .admin-status-dialog {
   align-items: center;
   display: grid;
@@ -8351,7 +8406,7 @@
   display: grid;
   gap: var(--space-md);
   grid-template-columns: auto 1fr;
-  /* 44px de alto mÃ­nimo: es un control tÃ¡ctil, no una fila de tabla. */
+  /* 44px de alto mínimo: es un control táctil, no una fila de tabla. */
   min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   transition:
@@ -8378,10 +8433,10 @@
   outline-offset: 2px;
 }
 
-/* Badge sobre la explicaciÃ³n, no al lado: en lÃ­nea, la opciÃ³n cuyo texto no
-   entraba envolvÃ­a a una segunda fila y las tres quedaban con alturas y
-   alineaciones distintas segÃºn el largo del copy. Apilado, las tres leen igual
-   y no dependen de cuÃ¡nto mida cada etiqueta. */
+/* Badge sobre la explicación, no al lado: en línea, la opción cuyo texto no
+   entraba envolvía a una segunda fila y las tres quedaban con alturas y
+   alineaciones distintas según el largo del copy. Apilado, las tres leen igual
+   y no dependen de cuánto mida cada etiqueta. */
 .admin-status-dialog__option-body {
   display: grid;
   gap: var(--space-xs);
@@ -8451,8 +8506,8 @@
   }
 }
 
-/* Mi cuenta â€” mismo material y tokens que el diÃ¡logo de eliminaciÃ³n, con el
-   icono en celeste (navegaciÃ³n/identidad) en vez del rojo de peligro. */
+/* Mi cuenta — mismo material y tokens que el diálogo de eliminación, con el
+   icono en celeste (navegación/identidad) en vez del rojo de peligro. */
 .admin-account-dialog {
   align-items: center;
   display: grid;
@@ -8646,10 +8701,10 @@
   }
 }
 
-/* Credencial reciÃ©n emitida. No es un toast de Ã©xito: es un dato que hay que
-   transcribir, asÃ­ que la jerarquÃ­a la da la monoespaciada y el tamaÃ±o, sobre
-   superficie neutra. El verde anterior venÃ­a de rgba sueltos, fuera del
-   sistema de tokens, y ademÃ¡s leÃ­a como "listo" cuando todavÃ­a falta pasarla. */
+/* Credencial recién emitida. No es un toast de éxito: es un dato que hay que
+   transcribir, así que la jerarquía la da la monoespaciada y el tamaño, sobre
+   superficie neutra. El verde anterior venía de rgba sueltos, fuera del
+   sistema de tokens, y además leía como "listo" cuando todavía falta pasarla. */
 .admin-users__temp-password {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
@@ -8697,7 +8752,7 @@
   overflow-wrap: anywhere;
 }
 
-/* La contraseÃ±a es el dato protagonista del bloque. */
+/* La contraseña es el dato protagonista del bloque. */
 .admin-users__temp-password-meta code {
   color: var(--color-text-primary);
   display: inline-block;
@@ -8857,7 +8912,7 @@
   }
 }
 
-/* Workspace: flujo natural â€” la tabla muestra todas las filas (scroll de pÃ¡gina) */
+/* Workspace: flujo natural — la tabla muestra todas las filas (scroll de página) */
 .admin-roles__workspace {
   background: transparent;
   border: 0;
@@ -8982,7 +9037,7 @@
 }
 
 /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-   SIDEBAR: lista de roles, plana, sin ningÃƒÂºn adorno
+   SIDEBAR: lista de roles, plana, sin ningún adorno
    Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* Sidebar: misma superficie que la matriz (sin tarjeta aparte) */
 .admin-roles__list {
@@ -9144,7 +9199,7 @@
   opacity: 0.7;
 }
 
-/* Formulario para crear rol â€” banda bajo las tabs */
+/* Formulario para crear rol — banda bajo las tabs */
 .admin-roles__create {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 2%, transparent);
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -9249,7 +9304,7 @@
 /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    PANEL DERECHO: header + matriz de permisos
    Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
-/* PANEL: superficie plana (sin card) â€” head + activity + tabla + footer */
+/* PANEL: superficie plana (sin card) — head + activity + tabla + footer */
 .admin-roles__matrix-panel {
   background: transparent;
   border: 0;
@@ -9264,7 +9319,7 @@
   overflow: visible;
 }
 
-/* Header editorial: tÃ­tulo + meta en una franja */
+/* Header editorial: título + meta en una franja */
 .admin-roles__matrix-head {
   align-items: baseline;
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -9288,7 +9343,7 @@
   gap: 8px;
 }
 
-/* Chip de nivel â€” solo texto, sin fondo */
+/* Chip de nivel — solo texto, sin fondo */
 .admin-roles__matrix-level {
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 10px;
@@ -9842,14 +9897,14 @@
   border: 0;
   border-radius: 0;
   display: block;
-  margin-bottom: 28px; /* Espacio entre secciones / mÃƒÂ³dulos */
+  margin-bottom: 28px; /* Espacio entre secciones / módulos */
 }
 
 .admin-roles__matrix tbody tr:last-child {
   margin-bottom: 0;
 }
 
-/* Nombre del mÃƒÂ³dulo: etiqueta flotante, 100% plana */
+/* Nombre del módulo: etiqueta flotante, 100% plana */
 .admin-roles__matrix tbody th {
   background: transparent;
   border: 0;
@@ -9881,7 +9936,7 @@
     color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
 }
 
-/* Celda vacÃƒÂ­a: invisible */
+/* Celda vacía: invisible */
 .admin-roles__matrix .admin-roles__empty-cell {
   display: none;
 }
@@ -9949,7 +10004,7 @@
 }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ El switch iOS puro CSS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
-/* El span es el track (la pÃƒÂ­ldora) */
+/* El span es el track (la píldora) */
 .admin-roles__permission > span {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 18%, transparent);
   border-radius: 999px;
@@ -9993,7 +10048,7 @@
   background: var(--color-brand-gold);
 }
 
-/* Modo claro: el track OFF es un gris cÃƒÂ¡lido */
+/* Modo claro: el track OFF es un gris cálido */
 [data-theme='light'] .admin-roles__permission > span {
   background: rgba(0, 0, 0, 0.14);
 }
@@ -10155,9 +10210,9 @@
 }
 
 /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-   SECCIÃƒâ€œN DE ACTIVIDAD
+   SECCIÓN DE ACTIVIDAD
    Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
-/* Actividad: franja mÃ­nima bajo el header */
+/* Actividad: franja mínima bajo el header */
 .admin-roles__activity {
   background: transparent;
   border: 0;
@@ -10282,7 +10337,7 @@
 /* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    CONTAINER QUERIES
    Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
-/* Angosto: meta debajo del tÃ­tulo (cubre sidebar colapsado ~650â€“780px). */
+/* Angosto: meta debajo del título (cubre sidebar colapsado ~650–780px). */
 @container roles-matrix (max-width: 780px) {
   .admin-roles__matrix-head {
     gap: 6px;
@@ -11377,7 +11432,7 @@
   min-width: 0;
 }
 
-/* PLU USA â€” vista de socio: toolbar en filtros, nota corta, stats limpios. */
+/* PLU USA — vista de socio: toolbar en filtros, nota corta, stats limpios. */
 
 .admin-list-section--plu-usa
   > .admin-list-section__chrome
@@ -12185,8 +12240,8 @@
 }
 
 @media (max-width: 720px) {
-  /* Fuera de las cards de tabla (que ya fuerzan 40px) el botÃ³n queda en
-     32px en cualquier viewport â€” por debajo del target tÃ¡ctil de 44px. */
+  /* Fuera de las cards de tabla (que ya fuerzan 40px) el botón queda en
+     32px en cualquier viewport — por debajo del target táctil de 44px. */
   .admin-icon-btn {
     height: 44px;
     min-width: 44px;
@@ -12249,7 +12304,7 @@
 
 /* =============================================
    COPY LINK MENU Ã¢â‚¬â€ links de un evento (pÃƒÂºblico,
-   entradas, seguridad) copiables desde un solo ÃƒÂ­cono
+   entradas, seguridad) copiables desde un solo ícono
    ============================================= */
 
 .admin-copy-menu {
@@ -12611,7 +12666,7 @@
   padding-top: 9px;
 }
 
-/* Registrations â€” ficha operativa: atleta â†’ estado â†’ contexto â†’ acciones */
+/* Registrations — ficha operativa: atleta → estado → contexto → acciones */
 .admin-list-shell--registrations .data-table-card--compact {
   display: grid;
   gap: 10px 14px;
@@ -12777,7 +12832,7 @@
   letter-spacing: -0.01em;
 }
 
-/* Tickets / athlete orders (Pagos) â€” cards densas espejo de registrations */
+/* Tickets / athlete orders (Pagos) — cards densas espejo de registrations */
 .admin-list-shell--tickets .data-table-card--compact,
 .admin-orders-block .data-table-card--compact {
   gap: 7px;
@@ -12842,7 +12897,7 @@
   .data-table-cards--admin {
     background: transparent;
     /* Las cards se leen como fichas separadas: 9px de aire entre ellas.
-       Con 5px se pegaban y la lista parecÃ­a una hoja de cÃ¡lculo. */
+       Con 5px se pegaban y la lista parecía una hoja de cálculo. */
     gap: 9px;
     padding: 4px 0 12px;
   }
@@ -12955,7 +13010,7 @@
   background: var(--plu-warm-100);
 }
 
-/* Notebook + tablet: resumen compacto en una fila (colapsable vÃƒÂ­a AdminListSection). */
+/* Notebook + tablet: resumen compacto en una fila (colapsable vía AdminListSection). */
 @media (max-width: 1100px) {
   .admin-list-shell__stats-strip {
     align-items: stretch;
@@ -13016,7 +13071,7 @@
     display: none;
   }
 
-  /* El tÃ­tulo ya vive en .admin-mobile-bar; ocultamos el header vacÃ­o. */
+  /* El título ya vive en .admin-mobile-bar; ocultamos el header vacío. */
   .admin-list-shell__header:not(:has(.admin-list-shell__actions:not(:empty))):not(
       :has(.admin-list-shell__meta)
     ) {
@@ -13203,8 +13258,8 @@
   z-index: 250;
 }
 
-/* Filete dorado: la firma de la casa (mismo dibujo que el toast de sesiÃ³n).
-   Una sola lÃ­nea estÃ¡tica que se desvanece en los extremos. */
+/* Filete dorado: la firma de la casa (mismo dibujo que el toast de sesión).
+   Una sola línea estática que se desvanece en los extremos. */
 .admin-action-drawer::before {
   background: var(--drawer-rule);
   content: '';
@@ -13261,8 +13316,8 @@
   gap: 12px;
 }
 
-/* Cifra hero: responde "Â¿cuÃ¡nto falta?" antes que cualquier texto.
-   TipografÃ­a display con tabular-nums para que el nÃºmero no baile
+/* Cifra hero: responde "¿cuánto falta?" antes que cualquier texto.
+   Tipografía display con tabular-nums para que el número no baile
    entre sincronizaciones. */
 .admin-action-drawer__count {
   display: grid;
@@ -13341,8 +13396,8 @@
   background: rgba(150, 150, 150, 0.4);
 }
 
-/* VacÃ­o = calma. El Ãºnico momento del drawer que puede respirar en
-   vertical: marca en anillo hairline, tÃ­tulo display y un renglÃ³n. */
+/* Vacío = calma. El único momento del drawer que puede respirar en
+   vertical: marca en anillo hairline, título display y un renglón. */
 .admin-action-drawer__empty {
   align-content: center;
   display: grid;
@@ -13464,7 +13519,7 @@
 }
 
 /* Fila editorial: [tipo] [sujeto + detalle] [monto] [acciones].
-   La prioridad es la Ãºnica marca de color de la fila: una veta de 2px
+   La prioridad es la única marca de color de la fila: una veta de 2px
    que se desvanece en los extremos (hairline, no banner). */
 .action-queue__row {
   background: transparent;
@@ -13592,7 +13647,7 @@
   gap: 0;
 }
 
-/* El texto del tipo es neutro; el Ã­cono lleva la categorÃ­a en color de
+/* El texto del tipo es neutro; el ícono lleva la categoría en color de
    marca. Un punto de color por fila y ya lo dijo la veta de prioridad. */
 .action-queue__type {
   align-items: center;
@@ -13800,7 +13855,7 @@ button.action-queue__proof:focus-visible {
 }
 
 /* En rail colapsado el contenido baja a ~685px sin que el viewport
-   cruce 640. Apilar por ancho Ãºtil, no solo por media de ventana. */
+   cruce 640. Apilar por ancho útil, no solo por media de ventana. */
 @media (max-width: 900px) {
   .action-queue__card,
   .action-queue__row {
@@ -14780,11 +14835,11 @@ button.action-queue__proof:focus-visible {
   max-width: 56ch;
 }
 
-/* `.admin-shell .btn` (admin-minimal.css) repinta cualquier botÃ³n al
+/* `.admin-shell .btn` (admin-minimal.css) repinta cualquier botón al
    celeste operativo y no excluye variantes fuera de los modales de evento;
-   como carga despuÃ©s de este archivo necesita perder por especificidad
-   (3 clases sobre el mismo elemento), no por orden -- una acciÃ³n
-   destructiva irreversible no puede quedar con el color de un botÃ³n
+   como carga después de este archivo necesita perder por especificidad
+   (3 clases sobre el mismo elemento), no por orden -- una acción
+   destructiva irreversible no puede quedar con el color de un botón
    primario cualquiera. */
 .admin-shell .btn.athlete-detail__danger-action {
   align-items: center;
@@ -14802,7 +14857,7 @@ button.action-queue__proof:focus-visible {
   color: var(--admin-on-action, var(--plu-ink-inverse));
 }
 
-/* Competencia: filas simples, jerarquÃƒÂ­a por color (sin negrita) */
+/* Competencia: filas simples, jerarquía por color (sin negrita) */
 .athlete-detail__group--competition .athlete-detail__rows {
   gap: 0;
   grid-template-columns: 1fr;
@@ -14920,6 +14975,143 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail__panel .data-table__empty-wrap {
   padding: 28px 16px;
+}
+
+/* =============================================
+   ESTADO CON MOTIVO
+   =============================================
+
+   Un estado sin su motivo es la mitad de un hecho. La celda apila badge y
+   explicación en vez de esconder el motivo en un tooltip: dentro de una tabla
+   operativa tiene que poder leerse de corrido y encontrarse con Ctrl+F, y en
+   mobile el hover no existe.
+
+   El ancho de lectura se corta en 46ch. Sin tope, el motivo estira la columna
+   de estado y le come el espacio a monto y método, que son las dos que el
+   operador compara entre filas. */
+.admin-state-cell {
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  min-width: 0;
+}
+
+/* La columna de estado se auto-dimensionaba por su contenido más ancho, que era
+   un badge de ocho caracteres. Con el motivo adentro y envolviendo, colapsaba a
+   ~130px y la frase caía en una cinta de dos palabras por línea: la fila crecía
+   a diez renglones y la tabla dejaba de poder leerse comparando filas.
+
+   El piso le da al motivo una medida de lectura (~30 caracteres) sin fijarle un
+   ancho, así que la columna sigue cediendo espacio a monto y método cuando la
+   fila no tiene motivo que mostrar. */
+.athlete-detail__panel .data-table__column--status {
+  min-width: 244px;
+}
+
+@media (max-width: 1024px) {
+  .athlete-detail__panel .data-table__column--status {
+    min-width: 200px;
+  }
+}
+
+.admin-state-cell__reason,
+.admin-state-cell__note {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+  /* Sin esto una referencia larga o un mail de operador desbordan la celda en
+     lugar de cortar. */
+  overflow-wrap: anywhere;
+  text-transform: none;
+  /* La celda de estado de la tabla del panel es `white-space: nowrap` -- es lo
+     correcto para un badge, que nunca debe partirse en dos líneas. Un motivo de
+     una frase hereda eso y no envuelve: con `max-width` puesto igual se sale de
+     la celda y termina pintado debajo de la columna FECHA, que es sticky y tiene
+     fondo propio. El texto se leía cortado al medio ("el derecho se otorgó a
+     man…ta orden"). Recupera el flujo normal sólo el párrafo; el badge sigue en
+     una línea. */
+  white-space: normal;
+}
+
+.admin-state-cell__note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+
+/* El hueco que dejó el backfill: es un pendiente, no una explicación, y se
+   distingue del motivo que alguien sí escribió. */
+.admin-state-cell__note--gap {
+  color: var(--color-warning-text);
+}
+
+/* En la tarjeta mobile la celda de estado vive en una fila angosta: el motivo
+   pasa a ocupar el ancho completo en vez de competir con el badge. */
+@media (max-width: 768px) {
+  .admin-state-cell__reason,
+  .admin-state-cell__note {
+    max-width: none;
+  }
+}
+
+/* =============================================
+   AVISO DE DIVERGENCIA
+   =============================================
+
+   Derecho otorgado sobre un cobro que no lo respalda. Va antes de los tabs
+   porque es lo primero que hay que saber al abrir la ficha.
+
+   Tono `warning` y nunca `danger`: en la mayoría de los casos no es una falla
+   sino una decisión operativa (la plata entró por transferencia y alguien
+   activó a mano). El rojo está reservado para error real -- gastarlo acá lo
+   volvería ruido en la pantalla donde más importa. La barra lateral, y no un
+   fondo pleno, mantiene el presupuesto de superficies: la ficha ya tiene canvas
+   y surface, y esto no es una tercera caja. */
+.athlete-detail__divergence {
+  border-left: 2px solid color-mix(in srgb, var(--color-warning-text) 45%, transparent);
+  display: grid;
+  gap: 6px;
+  padding: 2px 0 2px 14px;
+}
+
+.athlete-detail__divergence-title {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* Sin explicación es lo único accionable del bloque, y se marca en el título
+   -- no con un icono extra ni un segundo acento. */
+.athlete-detail__divergence[data-unexplained='true'] {
+  border-left-color: var(--color-warning-text);
+}
+
+.athlete-detail__divergence[data-unexplained='true'] .athlete-detail__divergence-title {
+  color: var(--color-warning-text);
+}
+
+.athlete-detail__divergence-list {
+  display: grid;
+  gap: 5px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.athlete-detail__divergence-item {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 78ch;
+  white-space: normal;
+}
+
+.athlete-detail__divergence-what {
+  color: var(--color-text-primary);
+  font-weight: 550;
 }
 
 .athlete-detail__timeline {
@@ -16036,7 +16228,7 @@ button.action-queue__proof:focus-visible {
   width: 52px;
 }
 
-/* Spinner de la puerta â€” primitivo `.plu-spinner` (states.css) en celeste. */
+/* Spinner de la puerta — primitivo `.plu-spinner` (states.css) en celeste. */
 .security-gate-loading__spinner {
   --spinner-accent: var(--color-brand-celeste);
   --spinner-track: var(--color-border-subtle);
@@ -16405,7 +16597,7 @@ button.action-queue__proof:focus-visible {
 }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ Ticket insights dentro del panel lateral (Ã¢â€°Â¥960px): horizontal compacto Ã¢â€â‚¬Ã¢â€â‚¬
-   A ese ancho el panel es ~280px; 3-col tarjetas quedarÃƒÂ­an de ~79px cada una.
+   A ese ancho el panel es ~280px; 3-col tarjetas quedarían de ~79px cada una.
    Usamos 1-col con layout flex horizontal (etiqueta izq. | valor der.).
    Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 @media (min-width: 960px) {
@@ -16652,7 +16844,7 @@ button.action-queue__proof:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-/* Shop admin â€” catÃ¡logo mÃ­nimo + modal de alta */
+/* Shop admin — catálogo mínimo + modal de alta */
 .admin-shop {
   display: grid;
   gap: 24px;
@@ -17117,7 +17309,7 @@ button.action-queue__proof:focus-visible {
 .admin-shop-modal {
   inset: 0;
   position: fixed;
-  /* Alineado con el resto de los diÃ¡logos admin (1200-1300): en 80 quedaba
+  /* Alineado con el resto de los diálogos admin (1200-1300): en 80 quedaba
      por debajo del sidebar (200) y de la mobile bar (120). */
   z-index: 1200;
 }
@@ -17605,9 +17797,9 @@ button.action-queue__proof:focus-visible {
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN EVENTOS: KPIs + workspace
    KPIs viven fuera del shell (AdminListSection beforeShell).
-   TipografÃ­a/dossier: admin-minimal.css
+   Tipografía/dossier: admin-minimal.css
    (.admin-list-section--events .admin-events-kpis).
-   AcÃ¡ solo layout base del strip y del split.
+   Acá solo layout base del strip y del split.
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-events-kpis {
@@ -17811,7 +18003,7 @@ button.action-queue__proof:focus-visible {
   color: var(--admin-ink, var(--color-text-primary));
 }
 
-/* Presets: segmento Ãºnico, sin cajas sueltas */
+/* Presets: segmento único, sin cajas sueltas */
 .admin-roles__presets {
   align-items: stretch;
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3.5%, transparent);
@@ -17880,7 +18072,7 @@ button.action-queue__proof:focus-visible {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   ADMIN ROLES: macOS CONTROL CENTER (SECCIONES POR MÃ“DULO)
+   ADMIN ROLES: macOS CONTROL CENTER (SECCIONES POR MÓDULO)
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-roles__control-center {
@@ -17897,7 +18089,7 @@ button.action-queue__proof:focus-visible {
   outline-offset: -2px;
 }
 
-/* â”€â”€ Tarjeta / SecciÃ³n de MÃ³dulo (macOS Grouped List) â”€â”€ */
+/* ── Tarjeta / Sección de Módulo (macOS Grouped List) ── */
 .admin-roles__module-card {
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -17979,7 +18171,7 @@ button.action-queue__proof:focus-visible {
   font-weight: 500;
 }
 
-/* Master Toggle del MÃ³dulo */
+/* Master Toggle del Módulo */
 .admin-roles__master-toggle {
   align-items: center;
   cursor: pointer;
@@ -18279,11 +18471,11 @@ button.action-queue__proof:focus-visible {
   margin: 0;
 }
 
-/* Search Box & Presets Toolbar High Contrast â€” removido:
-   pisaba tokens y rompÃ­a light mode. Estilos canÃ³nicos arriba. */
+/* Search Box & Presets Toolbar High Contrast — removido:
+   pisaba tokens y rompía light mode. Estilos canónicos arriba. */
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   AsignaciÃ³n masiva de grilla (AdminScheduleAssigner)
+   Asignación masiva de grilla (AdminScheduleAssigner)
    Aparece sobre la tabla cuando hay inscripciones seleccionadas.
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
@@ -18476,8 +18668,8 @@ button.action-queue__proof:focus-visible {
   outline-offset: 1px;
 }
 
-/* Checkbox de selecciÃ³n en la tabla de inscripciones. 24px de Ã¡rea tÃ¡ctil
-   real aunque el control se dibuje mÃ¡s chico. */
+/* Checkbox de selección en la tabla de inscripciones. 24px de área táctil
+   real aunque el control se dibuje más chico. */
 .admin-schedule-select {
   display: inline-flex;
   align-items: center;
@@ -18515,11 +18707,11 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* ---- Toolbar de acciones en bloque â€” AthletesSection ---- */
+/* ---- Toolbar de acciones en bloque — AthletesSection ---- */
 
-/* Franja lisa, no una card flotante propia â€” ya vive adentro de la card
-   de la tabla (misma lÃ³gica que el fondo del resumen arriba): apilar una
-   card con radio/sombra propios ahÃ­ adentro se leÃ­a como card anidada. */
+/* Franja lisa, no una card flotante propia — ya vive adentro de la card
+   de la tabla (misma lógica que el fondo del resumen arriba): apilar una
+   card con radio/sombra propios ahí adentro se leía como card anidada. */
 .admin-athletes-bulk {
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border-subtle);
@@ -18741,13 +18933,13 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* ---- SelecciÃ³n de filas â€” un Ãºnico tratamiento para cualquier tabla
+/* ---- Selección de filas — un único tratamiento para cualquier tabla
    (AdminDataTable) que reciba rowSelection, no solo la de atletas. ---- */
 
 /* antd pinta la fila seleccionada con su color primario (oro) a bastante
-   opacidad â€” llamativo para una selecciÃ³n de trabajo. Un tinte celeste
+   opacidad — llamativo para una selección de trabajo. Un tinte celeste
    suave, igual criterio que el resto de la pantalla, se nota sin gritar.
-   TransiciÃ³n explÃ­cita: sin esto el cambio de fondo es instantÃ¡neo y la
+   Transición explícita: sin esto el cambio de fondo es instantáneo y la
    fila "salta" al tildarla. */
 .admin-shell .admin-data-table tr.ant-table-row-selected > td {
   background: color-mix(in srgb, var(--color-brand-celeste) 12%, var(--color-bg-surface)) !important;
@@ -18758,8 +18950,8 @@ button.action-queue__proof:focus-visible {
   background: color-mix(in srgb, var(--color-brand-celeste) 16%, var(--color-bg-surface)) !important;
 }
 
-/* Acento vertical que "crece" al tildar una fila â€” comunica la selecciÃ³n
-   ademÃ¡s del tinte de fondo, Ãºtil en el primer instante antes de que el
+/* Acento vertical que "crece" al tildar una fila — comunica la selección
+   además del tinte de fondo, útil en el primer instante antes de que el
    usuario note el cambio de color. Vive en la primera celda para no
    depender de position:relative sobre <tr>, poco fiable entre navegadores. */
 .admin-shell .admin-data-table .ant-table-tbody > tr > td:first-child {
@@ -18782,9 +18974,9 @@ button.action-queue__proof:focus-visible {
   transform: scaleY(1);
 }
 
-/* Checkbox de selecciÃ³n: el celeste es el tono de identidad/selecciÃ³n de
-   PLU (ver palette.css) â€” el oro queda reservado a la acciÃ³n primaria, asÃ­
-   que no deberÃ­a filtrarse al check de una fila. antd v6 pinta el cuadrado
+/* Checkbox de selección: el celeste es el tono de identidad/selección de
+   PLU (ver palette.css) — el oro queda reservado a la acción primaria, así
+   que no debería filtrarse al check de una fila. antd v6 pinta el cuadrado
    directamente sobre `.ant-checkbox`/`.ant-checkbox-checked` (ya no existe
    un `.ant-checkbox-inner` separado). */
 .admin-shell .admin-data-table .ant-checkbox-checked {
@@ -18807,8 +18999,8 @@ button.action-queue__proof:focus-visible {
 }
 
 /* Modo lote (2+ filas tildadas): la tabla suma un borde celeste sutil que
-   enmarca todo el bloque en selecciÃ³n de trabajo, y cada fila que entra al
-   grupo hace un pop breve del acento â€” confirma visualmente "ahora estÃ¡s
+   enmarca todo el bloque en selección de trabajo, y cada fila que entra al
+   grupo hace un pop breve del acento — confirma visualmente "ahora estás
    operando sobre un conjunto", no solo sobre una fila. */
 .admin-shell .admin-data-table.admin-data-table--bulk-active .ant-table-container {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand-celeste) 35%, transparent);
@@ -18832,7 +19024,7 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* Valor ausente en una celda de tabla (ej. inscripciÃ³n sin grilla asignada):
+/* Valor ausente en una celda de tabla (ej. inscripción sin grilla asignada):
    se dice, en el tono de un dato pendiente y no de uno firme. */
 .admin-muted-text {
   color: var(--admin-muted, var(--color-text-muted));
@@ -18840,7 +19032,7 @@ button.action-queue__proof:focus-visible {
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Editor de tandas (AdminEventSessionsEditor)
-   PestaÃ±a "Grilla" del editor de eventos.
+   Pestaña "Grilla" del editor de eventos.
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-event-sessions {
@@ -18996,9 +19188,9 @@ button.action-queue__proof:focus-visible {
 }
 
 /* =========================================================================
-   PAGOS â€” Traza de rechazo en la orden (quiÃ©n y por quÃ©)
-   Sub-lÃ­nea bajo el status badge de la bandeja de Finanzas y fila del
-   diÃ¡logo de validaciÃ³n. Muted y truncada: identifica, no compite con el
+   PAGOS — Traza de rechazo en la orden (quién y por qué)
+   Sub-línea bajo el status badge de la bandeja de Finanzas y fila del
+   diálogo de validación. Muted y truncada: identifica, no compite con el
    veredicto.
    ========================================================================= */
 
@@ -19034,9 +19226,9 @@ button.action-queue__proof:focus-visible {
   line-height: 1.5;
 }
 
-/* --- Mejoras UX SecciÃ³n Eventos --- */
+/* --- Mejoras UX Sección Eventos --- */
 
-/* 1. BotÃ³n de regreso en Mobile */
+/* 1. Botón de regreso en Mobile */
 .admin-event-preview__back-btn {
   align-items: center;
   background: var(--admin-surface-raised, rgba(0,0,0,0.05));

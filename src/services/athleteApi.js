@@ -56,6 +56,31 @@ function toCamelAthlete(row) {
   }
 }
 
+/**
+ * Procedencia de un estado que puso una persona y no un cobro
+ * (`manual_override_*`, ver 20260910100000).
+ *
+ * Vive acá y no en cada mapper porque la pregunta que contesta es idéntica para
+ * afiliaciones e inscripciones: "¿este estado lo decidió alguien, y por qué?".
+ * Sin esto, una afiliación activa sobre una orden cancelada se lee como un bug
+ * del sistema en vez de como la decisión operativa que fue.
+ *
+ * Devuelve `null` -- y no un objeto con todo en null -- cuando el estado salió
+ * del cobro: así la UI pregunta `if (manualOverride)` en vez de tener que
+ * chequear campo por campo.
+ */
+function toCamelManualOverride(row) {
+  const at = row?.manual_override_at ?? row?.manualOverrideAt ?? null
+  if (!at) return null
+  return {
+    status: row.manual_override_status ?? row.manualOverrideStatus ?? null,
+    channel: row.manual_override_channel ?? row.manualOverrideChannel ?? null,
+    reason: row.manual_override_reason ?? row.manualOverrideReason ?? null,
+    by: row.manual_override_by ?? row.manualOverrideBy ?? null,
+    at,
+  }
+}
+
 function toCamelMembership(row) {
   if (!row) return row
   return {
@@ -70,6 +95,7 @@ function toCamelMembership(row) {
     paymentOrderId: row.payment_order_id,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: row.updated_at ?? row.updatedAt ?? null,
+    manualOverride: toCamelManualOverride(row),
   }
 }
 
@@ -88,6 +114,13 @@ function toCamelPaymentOrder(row) {
     rejectedBy: row.rejected_by ?? row.rejectedBy ?? null,
     rejectionReason: row.rejection_reason ?? row.rejectionReason ?? null,
     rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
+    // Motivo de cierre sellado por la base (20260910100000): toda orden cerrada
+    // dice por qué. Sin esto, una fila cancelada llega al panel sin nada que
+    // distinguir un checkout abandonado de un cobro resuelto por transferencia.
+    cancellationCode: row.cancellation_code ?? row.cancellationCode ?? null,
+    cancellationReason: row.cancellation_reason ?? row.cancellationReason ?? null,
+    cancelledAt: row.cancelled_at ?? row.cancelledAt ?? null,
+    cancelledBy: row.cancelled_by ?? row.cancelledBy ?? null,
     paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
     paymentProofUploadedAt: row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
     financingAllowed: row.financing_allowed ?? row.financingAllowed ?? false,
@@ -133,6 +166,7 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
       event?.requires_membership ??
       event?.requiresMembership ??
       null,
+    manualOverride: toCamelManualOverride(registration),
     notes: '',
   }
 }
@@ -186,6 +220,13 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       expiresAt: order.expires_at ?? order.expiresAt ?? null,
       updatedAt: order.updated_at ?? order.updatedAt ?? null,
       rejectionReason: order.rejection_reason ?? order.rejectionReason ?? null,
+      // Motivo de cierre sellado por la base (20260910100000). Va al progreso
+      // para que el estado que se muestra traiga siempre su explicación:
+      // "Cancelado" sin motivo es la mitad de un hecho.
+      cancellationCode: order.cancellation_code ?? order.cancellationCode ?? null,
+      cancellationReason: order.cancellation_reason ?? order.cancellationReason ?? null,
+      cancelledAt: order.cancelled_at ?? order.cancelledAt ?? null,
+      cancelledBy: order.cancelled_by ?? order.cancelledBy ?? null,
       paymentProofUploadedAt:
         order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
       financingAllowed: order.financing_allowed ?? order.financingAllowed ?? false,
@@ -213,6 +254,10 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       status: order.status,
       reference: order.reference,
       rejectionReason: normalizedOrder.rejectionReason,
+      cancellationCode: normalizedOrder.cancellationCode,
+      cancellationReason: normalizedOrder.cancellationReason,
+      cancelledAt: normalizedOrder.cancelledAt,
+      cancelledBy: normalizedOrder.cancelledBy,
       expiresAt: normalizedOrder.expiresAt,
       updatedAt: normalizedOrder.updatedAt,
       paymentProofPath:
@@ -231,10 +276,22 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       progress: derivePaymentProgress({
         order: normalizedOrder,
         attempts: order.attempts ?? [],
+        // `manualOverride` viaja con el resultado: cuando el cobro murió y el
+        // derecho quedó otorgado igual, es lo único que convierte una
+        // contradicción aparente ("Afiliación activa" / "Pago cancelado") en un
+        // hecho explicable -- quién lo decidió, cuándo y por qué.
         outcome: membership
-          ? { kind: 'membership', status: membership.status }
+          ? {
+              kind: 'membership',
+              status: membership.status,
+              manualOverride: membership.manualOverride ?? null,
+            }
           : registration
-            ? { kind: 'registration', status: registration.status }
+            ? {
+                kind: 'registration',
+                status: registration.status,
+                manualOverride: registration.manualOverride ?? null,
+              }
             : null,
       }),
     }
@@ -753,34 +810,65 @@ export async function getStaffMembershipCredential(code, eventSlug) {
   return toCredentialResult(result, eventSlug)
 }
 
-/** Órdenes de afiliación/inscripción para la bandeja de Finanzas. */
+/**
+ * Órdenes de afiliación/inscripción para la bandeja de Finanzas.
+ *
+ * Devuelve `{ orders, counts }`: los contadores de los chips los calcula la
+ * base sobre la tabla entera. Antes salían de contar las filas traídas, así que
+ * pasada la orden 200 el panel mostraba números que no eran los reales.
+ * `counts` es `null` si no se pidieron.
+ */
 export async function listAthletePaymentOrders(filters = {}) {
   const params = new URLSearchParams()
   if (filters.status) params.set('status', filters.status)
+  if (Array.isArray(filters.statuses) && filters.statuses.length > 0) {
+    params.set('statuses', filters.statuses.join(','))
+  }
   if (filters.method) params.set('method', filters.method)
   if (filters.concept) params.set('concept', filters.concept)
+  if (filters.financed) params.set('financed', 'true')
   if (filters.limit) params.set('limit', String(filters.limit))
+  if (filters.withCounts) params.set('withCounts', 'true')
   const query = params.toString()
-  const { orders } = await apiGet(`/api/athletes/admin/payment-orders${query ? `?${query}` : ''}`)
+  const { orders, counts } = await apiGet(
+    `/api/athletes/admin/payment-orders${query ? `?${query}` : ''}`,
+  )
 
-  return orders.map((row) => ({
-    ...toCamelPaymentOrder(row),
-    concept: row.concept,
-    conceptLabel: CONCEPT_LABELS[row.concept] ?? row.concept,
-    athlete: row.athlete
-      ? {
-          id: row.athlete.id,
-          fullName: row.athlete.full_name,
-          documentId: row.athlete.document_id,
-          email: row.athlete.email,
-        }
-      : null,
-  }))
+  return {
+    orders: (orders ?? []).map((row) => ({
+      ...toCamelPaymentOrder(row),
+      concept: row.concept,
+      conceptLabel: CONCEPT_LABELS[row.concept] ?? row.concept,
+      athlete: row.athlete
+        ? {
+            id: row.athlete.id,
+            fullName: row.athlete.full_name,
+            documentId: row.athlete.document_id,
+            email: row.athlete.email,
+          }
+        : null,
+    })),
+    counts: counts ?? null,
+  }
 }
 
 export async function getAthletePaymentProofUrl(orderId) {
   const { url } = await apiGet(`/api/athletes/admin/payment-orders/${orderId}/proof-url`)
   return url
+}
+
+/**
+ * Comprobantes de varias órdenes en una sola llamada, para que el diálogo de
+ * validación no espere a firmar la URL recién cuando se abre. Devuelve un mapa
+ * `{ [orderId]: url }` y omite las órdenes sin comprobante.
+ */
+export async function getAthletePaymentProofUrls(orderIds = []) {
+  const ids = [...new Set(orderIds.filter(Boolean))]
+  if (ids.length === 0) return {}
+  const { urls } = await apiPost('/api/athletes/admin/payment-orders/proof-urls', {
+    orderIds: ids,
+  })
+  return urls ?? {}
 }
 
 export async function registerAthletePaymentProof(orderId, proofPath, notes) {
@@ -830,10 +918,19 @@ export async function rotateMembershipQrToken(membershipId) {
   return { membership: toCamelMembership(membership) }
 }
 
-/** Activa o da de baja una afiliación a mano. Queda auditada con el actor. */
-export async function setMembershipStatus(membershipId, status) {
+/**
+ * Activa o da de baja una afiliación a mano. Queda auditada con el actor, el
+ * motivo y -- al activar -- el canal por el que se resolvió.
+ *
+ * `reason` es obligatorio y `channel` lo es al activar: los valida el backend y
+ * la RPC. Es lo que evita el estado que originó esto -- una afiliación activa
+ * sobre un cobro cancelado, sin nada que explique la diferencia.
+ */
+export async function setMembershipStatus(membershipId, status, { reason, channel } = {}) {
   const { membership } = await apiPost(`/api/athletes/admin/memberships/${membershipId}/status`, {
     status,
+    reason,
+    channel: channel ?? null,
   })
   return { membership: toCamelMembership(membership) }
 }

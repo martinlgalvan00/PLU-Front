@@ -4466,7 +4466,7 @@
    en la confirmación de afiliación del alta, que no carga esta hoja. Lo
    importa el propio TransferProofUpload.jsx. */
 /* =============================================
-   PERFIL â€” COMPLETITUD Y WARNING
+   PERFIL — COMPLETITUD Y WARNING
    ============================================= */
 
 /* Estado de completitud — tipografía, sin pill */
@@ -4529,7 +4529,7 @@
   white-space: nowrap;
 }
 
-/* Badge de completitud del perfil en el hero (junto al botÃ³n "Editar datos") */
+/* Badge de completitud del perfil en el hero (junto al botón "Editar datos") */
 .account-hero__profile-badge {
   align-items: center;
   border-radius: 999px;
@@ -4640,7 +4640,7 @@
   outline-offset: 2px;
 }
 
-/* BotÃ³n de inscribirse cuando el perfil estÃ¡ incompleto */
+/* Botón de inscribirse cuando el perfil está incompleto */
 .account-events-list__cta.is-profile-incomplete {
   border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
   color: var(--color-brand-gold);
@@ -4699,7 +4699,7 @@
   color: var(--color-brand-red, #e05a5a);
 }
 
-/* BotÃ³n de foto con Ã­cono */
+/* Botón de foto con ícono */
 .account-secondary-action svg {
   flex: none;
 }

@@ -444,7 +444,7 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
         const planId = parseRouteParam(
           z.string().uuid(),
           req.params.planId,
-          'El identificador del plan es invÃ¡lido.',
+          'El identificador del plan es inválido.',
         )
         const result = await repository().deletePlan(planId, actor(req))
         res.json(result)

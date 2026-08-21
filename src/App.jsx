@@ -392,8 +392,8 @@ export default function App() {
     if (!pending || pending.context?.surface !== 'direct' || pending.context?.presented) return
 
     // Los links y QR promocionales aterrizan en la ficha privada: el atleta
-    // ve el cÃ³digo y confirma el canje, en lugar de aplicarlo automÃ¡ticamente
-    // desde una pÃ¡gina pÃºblica. `navigate` conserva este destino durante login.
+    // ve el código y confirma el canje, en lugar de aplicarlo automáticamente
+    // desde una página pública. `navigate` conserva este destino durante login.
     savePendingPromotionCode(pending.code, {
       ...pending.context,
       surface: 'direct',

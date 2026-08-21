@@ -67,7 +67,10 @@ const ALERT_BADGE_KEYS = new Set(['payments', 'registrations', 'people'])
 // menú. "Personas" la reemplaza en la barra, así que el badge se resuelve
 // por alias en vez de duplicar el cálculo o renombrar esa clave.
 const NAV_BADGE_ALIASES = { people: 'registrations' }
-const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports', 'checkin'])
+// Secciones que todavía caen en `PlaceholderSection`. 'checkin' salió de acá
+// cuando AdminPage empezó a renderizar la sección: hasta entonces el ítem
+// llevaba a una pantalla en blanco, igual que el acceso directo de Eventos.
+const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports'])
 const PINNED_NAV_KEY = 'dashboard'
 const SIDEBAR_MODE_STORAGE_KEY = 'plu-admin-sidebar-mode'
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'

@@ -1,19 +1,28 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, BadgeCheck, Check, Pencil, Route, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, Pencil, Route, Trash2, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminAthleteActivity from '../../components/admin/AdminAthleteActivity.jsx'
 import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
-import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import { EntitlementStateCell, PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
+import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
+import { actorLabel } from '../../lib/stateProvenance.js'
+import { canValidateManualOrder } from '../../services/paymentValidationService.js'
+import {
+  findAthleteStateDivergences,
+  isPlaceholderReason,
+  resolveEntitlementBacking,
+} from '../../services/stateCoherenceService.js'
 
 function formatDateTime(value, locale) {
   if (!value) return '—'
@@ -41,9 +50,11 @@ export default function AthleteDetailSection({
   canEdit,
   canRotateCredential = false,
   canDelete = false,
+  canValidatePayments = false,
   onDelete,
   onUpdate,
   onApprovePayment,
+  onRejectPayment,
 }) {
   const { locale, t } = useI18n()
   const [activeTab, setActiveTab] = useState('profile')
@@ -63,6 +74,28 @@ export default function AthleteDetailSection({
       translateFilterOptions(ATHLETE_FILTER_STATUSES, t).filter(([value]) => value !== 'all'),
     [t],
   )
+  // Derechos otorgados sobre un cobro que no los respalda. Es lo que hacía que
+  // la ficha se contradijera entre dos tabs sin decir por qué: se resuelve una
+  // vez acá y lo consumen el aviso de arriba y las tres tablas.
+  const divergences = useMemo(
+    () => findAthleteStateDivergences({ memberships, registrations, payments }),
+    [memberships, registrations, payments],
+  )
+  // Las que todavía nadie explicó son las accionables. Una divergencia con
+  // motivo escrito es una decisión operativa registrada, no un pendiente.
+  const unexplainedDivergences = useMemo(
+    () => divergences.filter((item) => !item.backing.explained),
+    [divergences],
+  )
+  const backingByEntityId = useMemo(() => {
+    const index = new Map()
+    for (const entity of [...memberships, ...registrations]) {
+      const backing = resolveEntitlementBacking(entity, payments)
+      if (backing) index.set(entity.id, backing)
+    }
+    return index
+  }, [memberships, registrations, payments])
+
   const activeMembership = memberships.find((item) => item.status === 'activa')
   // La credencial vigente es la de la afiliación activa; si no hay ninguna, se
   // muestra la última emitida para poder cotejar un QR viejo.
@@ -219,6 +252,60 @@ export default function AthleteDetailSection({
         memberCode={activeMembership?.memberCode}
       />
 
+      {/* Divergencia entre el derecho y el cobro que lo respalda. Va arriba y
+          antes de los tabs porque es lo primero que hay que saber al abrir la
+          ficha: sin esto, el operador descubre la contradicción recién al
+          comparar dos tabs a mano, y la lee como un error del sistema.
+
+          Tono `warning` y no `danger` a propósito: en la enorme mayoría de los
+          casos no es una falla, es una decisión operativa (la plata entró por
+          transferencia y alguien activó a mano). Lo que sí es un pendiente real
+          es la que nadie explicó, y esa se distingue por su propio modificador. */}
+      {divergences.length ? (
+        <section
+          className="athlete-detail__divergence"
+          data-unexplained={unexplainedDivergences.length ? 'true' : 'false'}
+          aria-labelledby="athlete-detail-divergence-title"
+        >
+          <h3
+            id="athlete-detail-divergence-title"
+            className="athlete-detail__divergence-title"
+          >
+            {t(
+              unexplainedDivergences.length
+                ? 'admin.athleteDetail.divergence.titleUnexplained'
+                : 'admin.athleteDetail.divergence.title',
+            )}
+          </h3>
+          <ul className="athlete-detail__divergence-list">
+            {divergences.map(({ kind, entity, backing }) => {
+              const actor = actorLabel(backing.manualOverride?.by)
+              const hasReason =
+                backing.manualOverride?.reason &&
+                !isPlaceholderReason(backing.manualOverride.reason)
+              return (
+                <li key={entity.id} className="athlete-detail__divergence-item">
+                  <span className="athlete-detail__divergence-what">
+                    {t(`admin.athleteDetail.divergence.kind.${kind}`, {
+                      status: t(`status.${entity.status}`),
+                      orderStatus: t(`status.${backing.order?.status}`),
+                    })}
+                  </span>{' '}
+                  <span className="athlete-detail__divergence-why">
+                    {hasReason
+                      ? t('admin.athleteDetail.divergence.explained', {
+                          actor: actor ?? t('admin.paymentState.manual.unknownActor'),
+                          reason: backing.manualOverride.reason,
+                        })
+                      : t('admin.athleteDetail.divergence.unexplained')}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       {isEditOpen ? (
         <div className="athlete-detail__edit-panel">
           <label className="athlete-detail__edit-field">
@@ -320,7 +407,12 @@ export default function AthleteDetailSection({
                 key: 'status',
                 label: t('admin.columns.status'),
                 mobile: 'badge',
-                render: (row) => <StatusBadge value={row.status} />,
+                render: (row) => (
+                  <EntitlementStateCell
+                    backing={backingByEntityId.get(row.id)}
+                    status={row.status}
+                  />
+                ),
               },
               { key: 'memberCode', label: t('admin.columns.code') },
               { key: 'startDate', label: t('admin.columns.start') },
@@ -343,7 +435,12 @@ export default function AthleteDetailSection({
                 key: 'status',
                 label: t('admin.columns.status'),
                 mobile: 'badge',
-                render: (row) => <StatusBadge value={row.status} />,
+                render: (row) => (
+                  <EntitlementStateCell
+                    backing={backingByEntityId.get(row.id)}
+                    status={row.status}
+                  />
+                ),
               },
             ]}
             rows={registrations}
@@ -365,7 +462,7 @@ export default function AthleteDetailSection({
                 key: 'status',
                 label: t('admin.columns.status'),
                 mobile: 'badge',
-                render: (row) => <StatusBadge value={row.status} />,
+                render: (row) => <PaymentStateCell payment={row} />,
               },
               {
                 key: 'createdAt',
@@ -405,12 +502,19 @@ export default function AthleteDetailSection({
                       onClick={() => setTraceOrderId(row.id)}
                       variant="ghost"
                     />
-                    <AdminIconButton
-                      disabled={!canEdit || row.status === 'aprobado'}
-                      icon={BadgeCheck}
-                      label={t('admin.actions.validate')}
-                      onClick={() => onApprovePayment?.(row.id)}
-                      variant="celeste"
+                    {/* Antes esto era `onApprovePayment(row.id)` a secas: la
+                        ficha acreditaba sin abrir el comprobante y descartaba
+                        el resultado, así que un 403 o el interruptor de
+                        validación apagado no dejaban rastro en pantalla. El
+                        botón además se habilitaba con `admin.athletes.write`,
+                        que no alcanza para mover plata. */}
+                    <PaymentValidationAction
+                      athlete={athlete}
+                      detail={[row.concept, row.reference].filter(Boolean).join(' · ')}
+                      disabled={!canValidatePayments || !canValidateManualOrder(row)}
+                      onApprove={onApprovePayment}
+                      onReject={onRejectPayment}
+                      order={row}
                     />
                   </AdminTableActions>
                 ),

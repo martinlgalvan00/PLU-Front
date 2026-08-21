@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { HttpError } from '../lib/errors.js'
+import { athleteSessionCache } from '../lib/sessionCache.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { hashToken } from './sessionService.js'
 
@@ -49,20 +50,48 @@ export async function createAthleteSession({ client, athleteId, req, now = new D
   return { token, expiresAt }
 }
 
+/**
+ * Cada cuánto se refresca `last_seen_at`. Antes se escribía en CADA request
+ * autenticado del atleta: /mi-cuenta repregunta su snapshot por polling, así que
+ * era un UPDATE por minuto por pestaña abierta, y el dato sólo se usa para saber
+ * si la sesión sigue viva -- una precisión de minutos alcanza y sobra.
+ *
+ * El corte se decide contra el valor guardado y no contra un contador en
+ * memoria: así vale igual entre instancias de la Function, que no comparten
+ * proceso.
+ */
+const LAST_SEEN_REFRESH_MS = 5 * 60 * 1000
+
 export async function readAthleteSession({ client, token, now = new Date() }) {
   requireSupabaseClient(client)
   if (!token) return null
+  const tokenHash = hashToken(token)
+
+  const cached = athleteSessionCache.get(tokenHash, now.getTime())
+  if (cached) return cached
+
   const row = assertSupabaseResult(
     await client
       .from('athlete_sessions')
-      .select('id, athlete_id, expires_at, revoked_at')
-      .eq('token_hash', hashToken(token))
+      .select('id, athlete_id, expires_at, revoked_at, last_seen_at')
+      .eq('token_hash', tokenHash)
       .maybeSingle(),
     'No se pudo validar la sesion del atleta.',
   )
   if (!row || row.revoked_at || new Date(row.expires_at) <= now) return null
-  void client.from('athlete_sessions').update({ last_seen_at: now.toISOString() }).eq('id', row.id)
-  return { session: row, athleteId: row.athlete_id }
+
+  const lastSeenAt = row.last_seen_at ? Date.parse(row.last_seen_at) : Number.NaN
+  const stale = Number.isNaN(lastSeenAt) || now.getTime() - lastSeenAt >= LAST_SEEN_REFRESH_MS
+  if (stale) {
+    void client.from('athlete_sessions').update({ last_seen_at: now.toISOString() }).eq('id', row.id)
+  }
+
+  const resolved = { session: row, athleteId: row.athlete_id }
+  athleteSessionCache.set(tokenHash, resolved, {
+    ownerKey: row.athlete_id,
+    now: now.getTime(),
+  })
+  return resolved
 }
 
 export async function requireAthleteSession({ client, req }) {
@@ -77,12 +106,31 @@ export async function requireAthleteSession({ client, req }) {
 export async function revokeAthleteSession({ client, token, now = new Date() }) {
   requireSupabaseClient(client)
   if (!token) return
+  const tokenHash = hashToken(token)
+  // Antes de la escritura: un fallo del update deja la sesión fuera de la caché
+  // y el próximo request la relee, en vez de mantenerla viva por lo que dure el
+  // TTL después de un logout que el atleta ya vio confirmado.
+  athleteSessionCache.invalidateKey(tokenHash)
   assertSupabaseResult(
     await client
       .from('athlete_sessions')
       .update({ revoked_at: now.toISOString() })
-      .eq('token_hash', hashToken(token))
+      .eq('token_hash', tokenHash)
       .is('revoked_at', null),
     'No se pudo cerrar la sesion.',
   )
+}
+
+/**
+ * Corta la caché de todas las sesiones de un atleta.
+ *
+ * El corte real en la base lo hace la RPC de cambio de contraseña, que revoca
+ * `athlete_sessions` en la misma transacción (ver 20260716000000:
+ * `athlete_sessions` no está expuesta a PostgREST, así que la baja no puede
+ * hacerse con un update suelto desde acá). Esta función es la contraparte en
+ * memoria: sin ella, una contraseña cambiada dejaba las sesiones viejas
+ * resolviendo desde la caché por lo que durara el TTL.
+ */
+export function forgetAthleteSessionCache(athleteId) {
+  athleteSessionCache.invalidateOwner(athleteId)
 }

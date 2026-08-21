@@ -100,9 +100,9 @@ export function promotionDestination(result) {
 }
 
 /**
- * Traduce la respuesta del resolvedor a una descripciÃ³n presentacional estable.
- * La UI no vuelve a inferir el contrato econÃ³mico desde nombres de campaÃ±a:
- * usa los campos autoritativos que devolviÃ³ el servidor.
+ * Traduce la respuesta del resolvedor a una descripción presentacional estable.
+ * La UI no vuelve a inferir el contrato económico desde nombres de campaña:
+ * usa los campos autoritativos que devolvió el servidor.
  */
 export function promotionBenefitPresentation(result) {
   const percentOff = Number(result?.benefit?.percentOff)

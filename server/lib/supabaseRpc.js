@@ -57,12 +57,25 @@ const STATUS_BY_CODE = {
   42883: 500,
 }
 
+// Violaciones de integridad: unique, foreign key y check. A diferencia de los
+// PLU*, que la base levanta con una frase escrita para el atleta, estos traen
+// el nombre crudo del constraint -- `duplicate key value violates unique
+// constraint "event_registrations_event_id_athlete_id_key"`. Eso ya se mostro
+// tal cual en el checkout de Pitbull. Cuando pasa, el unico texto presentable
+// es el fallback en castellano que aporta cada call site; el mensaje de
+// Postgres viaja en `details` para que quede en el log del errorHandler y no
+// en la pantalla.
+const RAW_INTEGRITY_CODES = new Set(['23505', '23503', '23514'])
+
 export function assertSupabaseResult(result, fallback = 'No se pudo completar la operacion.') {
   if (!result?.error) return result?.data
   const status = STATUS_BY_CODE[result.error.code] ?? 503
-  throw new HttpError(status, result.error.message || fallback, {
+  const raw = result.error.message
+  const leaksConstraintName = RAW_INTEGRITY_CODES.has(String(result.error.code))
+  throw new HttpError(status, (!leaksConstraintName && raw) || fallback, {
     code: result.error.code,
     details: result.error.details,
+    ...(leaksConstraintName && raw ? { raw } : {}),
   })
 }
 
