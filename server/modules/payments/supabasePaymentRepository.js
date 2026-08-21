@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
 import { assertSupabaseResult } from '../../lib/supabaseRpc.js'
-import { displayPaymentConcept } from '../notifications/paymentNotificationService.js'
+import {
+  describePaymentConcept,
+  paymentConceptInputFromOrder,
+} from '../../../src/lib/paymentConcept.js'
 import { mapMercadoPagoStatus } from './paymentWorkflow.js'
 
 function assertResult(result, fallbackMessage) {
@@ -21,8 +24,13 @@ export function createSupabasePaymentRepository(
       // La inscripción se trae para poder mandar `registration_confirmed` con
       // el título real del evento cuando el pago entra por Mercado Pago. Sin
       // este join, ese email solo salía por la aprobación manual.
+      //
+      // El plan y la afiliación entran por lo mismo que la inscripción: son los
+      // datos con los que se declara el cobro (modalidad y año del ciclo). El
+      // título que sale de acá es el que ve el atleta en el resumen de la
+      // tarjeta y Finanzas en la app de Mercado Pago.
       .select(
-        '*, athlete:athletes(id, full_name, email, document_id), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at))',
+        '*, athlete:athletes(id, full_name, email, document_id), plan:membership_plans(billing_frequency), membership:memberships(year), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at))',
       )
       .eq('id', orderId)
       .eq('organization_id', organizationId)
@@ -32,6 +40,7 @@ export function createSupabasePaymentRepository(
 
     if (athleteResult.data) {
       const data = athleteResult.data
+      const described = describePaymentConcept(paymentConceptInputFromOrder(data))
       return {
         kind: 'athlete',
         id: data.id,
@@ -40,8 +49,11 @@ export function createSupabasePaymentRepository(
         amount: data.amount,
         currency: data.currency,
         concept: data.concept,
-        displayConcept: displayPaymentConcept(data.concept),
+        displayConcept: described.title,
+        conceptDetail: described.detail,
+        conceptItems: described.items,
         method: data.method,
+        manualPaymentChannel: data.manual_payment_channel ?? null,
         status: data.status,
         reference: data.reference,
         idempotencyKey: data.idempotency_key,
@@ -50,6 +62,13 @@ export function createSupabasePaymentRepository(
         initPoint: data.provider_init_point,
         payerEmail: data.payer_email ?? data.athlete?.email ?? null,
         athlete: data.athlete,
+        // Ciclo de vida del cobro: lo consume el estado público de la orden
+        // para saber si sigue abierta, si espera comprobante o por qué se cerró.
+        expiresAt: data.expires_at ?? null,
+        approvedAt: data.approved_at ?? null,
+        rejectedAt: data.rejected_at ?? null,
+        rejectionReason: data.rejection_reason ?? null,
+        paymentProofUploadedAt: data.payment_proof_uploaded_at ?? null,
         // PostgREST devuelve un array en la relación inversa; interesa la única.
         registration: Array.isArray(data.registration)
           ? (data.registration[0] ?? null)
@@ -75,14 +94,23 @@ export function createSupabasePaymentRepository(
       amount: ticketData.amount,
       currency: ticketData.currency,
       concept: 'tickets',
-      displayConcept: `Entradas ${ticketData.event?.title ?? 'PLU ARG'}`,
+      displayConcept: describePaymentConcept({
+        concept: 'tickets',
+        eventTitle: ticketData.event?.title ?? null,
+      }).title,
       method: ticketData.provider,
+      manualPaymentChannel: ticketData.manual_payment_channel ?? null,
       status: ticketData.status,
       reference: ticketData.reference,
       idempotencyKey: ticketData.idempotency_key,
       preferenceId: ticketData.provider_preference_id,
       initPoint: ticketData.provider_init_point,
       payerEmail: ticketData.payer_email ?? ticketData.buyer_email ?? null,
+      expiresAt: ticketData.reservation_expires_at ?? null,
+      approvedAt: ticketData.approved_at ?? null,
+      rejectedAt: ticketData.rejected_at ?? null,
+      rejectionReason: ticketData.rejection_reason ?? null,
+      paymentProofUploadedAt: ticketData.payment_proof_uploaded_at ?? null,
       event: ticketData.event,
     }
   }
@@ -274,6 +302,46 @@ export function createSupabasePaymentRepository(
         }),
         'No se pudo registrar la falla del webhook.',
       )
+    },
+
+    /**
+     * Ordenes de Mercado Pago que localmente quedaron cerradas sin un solo
+     * asiento de cobro. Son las candidatas a "en MP figura pagado y en la app
+     * dice cancelado": el checkout se abrio (hay preferencia), el cron las
+     * vencio a los 30 minutos y el webhook nunca llego — porque se cayo, porque
+     * la firma se rechazo, o porque el atleta pago despues de que la orden
+     * vencio y cerro la pestana sin volver.
+     *
+     * Se acotan a las ultimas horas y a un lote chico: es una red, no un
+     * reprocesamiento del historico. Una orden sin preferencia nunca abrio
+     * checkout, asi que no hay nada que preguntarle al proveedor.
+     */
+    async listClosedOrdersWithoutPayments(limit = 20, { sinceHours = 6 } = {}) {
+      const since = new Date(Date.now() - sinceHours * 3_600_000).toISOString()
+      const candidates =
+        assertResult(
+          await client
+            .from('athlete_payment_orders')
+            .select('id')
+            .eq('organization_id', organizationId)
+            .eq('method', 'mercado_pago')
+            .in('status', ['cancelado', 'rechazado'])
+            .not('provider_preference_id', 'is', null)
+            .gte('updated_at', since)
+            .order('updated_at', { ascending: false })
+            .limit(limit),
+          'No se pudieron leer las ordenes cerradas.',
+        ) ?? []
+      if (!candidates.length) return []
+
+      const ids = candidates.map((row) => row.id)
+      const settled =
+        assertResult(
+          await client.from('athlete_payments').select('order_id').in('order_id', ids),
+          'No se pudieron leer los intentos de cobro.',
+        ) ?? []
+      const withPayments = new Set(settled.map((row) => row.order_id))
+      return ids.filter((id) => !withPayments.has(id))
     },
 
     async claimEmbeddedReconciliations(limit = 20) {
@@ -473,6 +541,31 @@ export function createSupabasePaymentRepository(
           },
         ),
         'No se pudo aplicar el pago.',
+      )
+    },
+
+    /**
+     * Intentos de cobro de una orden. `athlete_payments` / `ticket_payments` es
+     * el libro real: una fila por pago del proveedor, protegida por la guarda
+     * monotonica, y el estado de la orden es su agregado. Todo lo que se muestre
+     * como "progreso" o "por que se rechazo" sale de aca, nunca de
+     * `provider_payload` de la orden — esa columna la pisa el ultimo intento
+     * aplicado, que puede ser uno fallido posterior al que acredito.
+     *
+     * `raw_payload` queda deliberadamente afuera: pesa mas que todo el resto
+     * junto y no hay nada que mostrar en el que no este en estas columnas.
+     */
+    async listOrderPayments(orderId, kind = 'athlete') {
+      const table = kind === 'ticket' ? 'ticket_payments' : 'athlete_payments'
+      return (
+        assertResult(
+          await client
+            .from(table)
+            .select('external_payment_id, status, status_detail, amount, currency, confirmed_at, created_at, updated_at')
+            .eq('order_id', orderId)
+            .order('created_at'),
+          'No se pudieron leer los intentos de cobro.',
+        ) ?? []
       )
     },
 

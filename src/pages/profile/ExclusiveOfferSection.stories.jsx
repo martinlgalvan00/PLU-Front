@@ -32,6 +32,9 @@ const ATHLETE = {
   gym: 'Maximal Power',
   birthDate: '1996-04-02',
   sex: 'F',
+  division: 'Open',
+  category: 'Raw',
+  estimatedWeight: '72',
 }
 
 const OFFER = {
@@ -73,6 +76,20 @@ const OFFER = {
     price: 85000,
     manualPrice: null,
     currency: 'ARS',
+  },
+}
+
+/** La orden que ocupó el canje, todavía impaga. */
+const PENDING_OFFER = {
+  ...OFFER,
+  redeemed: true,
+  purchase: {
+    orderId: '4f6b1c2e-0000-4000-8000-000000000001',
+    status: 'pendiente',
+    amount: 120000,
+    currency: 'ARS',
+    concept: 'combo',
+    method: 'mercado_pago',
   },
 }
 
@@ -153,7 +170,37 @@ export const ConPrecioManual = {
   },
 }
 
-/** Perfil sin completar: el CTA pide los datos antes de mandar al checkout. */
+/** Perfil sin completar: el CTA pide los datos antes de cobrar. */
 export const PerfilIncompleto = {
   args: { athlete: { id: 'ath-story-2', fullName: 'Sin datos' } },
+}
+
+/**
+ * Compra iniciada y sin pagar. Antes esto decía "ya compraste" y no dejaba
+ * terminar: el estado real de la orden es lo que habilita retomar el cobro.
+ */
+export const PagoEnCurso = {
+  args: {
+    offer: PENDING_OFFER,
+    offers: [PENDING_OFFER],
+  },
+}
+
+/**
+ * La misma compra, pero por transferencia: eso no se cobra con el Brick, se
+ * resuelve con comprobante y validación de staff.
+ */
+export const PagoManualEnCurso = {
+  args: {
+    offer: {
+      ...PENDING_OFFER,
+      purchase: { ...PENDING_OFFER.purchase, method: 'manual_link', status: 'validacion_manual' },
+    },
+    offers: [PENDING_OFFER],
+  },
+}
+
+/** Cobro cerrado desde Administración: la oferta se explica, no se ofrece. */
+export const CobroCerrado = {
+  args: { checkoutAvailability: { registrationEnabled: false } },
 }

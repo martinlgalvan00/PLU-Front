@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import ExclusiveOfferSection from '../src/pages/profile/ExclusiveOfferSection.jsx'
@@ -95,37 +95,69 @@ describe('ficha de oferta exclusiva', () => {
     expect(container.querySelectorAll('dl.account-offer__ledger dd')).toHaveLength(3)
   })
 
-  it('una sola acción principal, que lleva al checkout de esa inscripción', () => {
+  it('una sola acción principal, y cobra sin salir de la pestaña', async () => {
+    const onStartOfferPayment = vi.fn(async () => ({}))
     const onSelectEvent = vi.fn()
-    const { container } = renderSection({ onSelectEvent })
+    const { container } = renderSection({ onStartOfferPayment, onSelectEvent })
     expect(container.querySelectorAll('.account-offer__cta')).toHaveLength(1)
+    fireEvent.change(screen.getByLabelText(/Peso corporal/), { target: { value: '83' } })
     fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
-    expect(onSelectEvent).toHaveBeenCalledWith(CATALOG_EVENT)
+
+    await waitFor(() => expect(onStartOfferPayment).toHaveBeenCalled())
+    // El evento del catálogo (el que trae fecha y sede) y los datos de la
+    // inscripción que el atleta acaba de confirmar.
+    expect(onStartOfferPayment.mock.calls[0][0]).toMatchObject({
+      offer: OFFER,
+      event: CATALOG_EVENT,
+      division: 'Open',
+      category: 'Raw',
+      bodyweightKg: 83,
+    })
+    // Nadie salió de la pestaña: el cobro es acá.
+    expect(onSelectEvent).not.toHaveBeenCalled()
   })
 
-  it('si el catálogo local no trae el evento, igual manda al checkout de ESE evento y no a uno random', () => {
-    // Regresión: cuando `catalogEvent` no matcheaba, el botón navegaba a
+  it('si el catálogo local no trae el evento, cobra el de ESA oferta y no uno random', async () => {
+    // Regresión: cuando `catalogEvent` no matcheaba, la acción navegaba a
     // 'competition' sin evento y el atleta terminaba en el torneo que hubiera
     // seleccionado antes (u otro por defecto), a su precio de lista en vez del
     // de la oferta.
-    const onSelectEvent = vi.fn()
-    const onNavigate = vi.fn()
-    renderSection({ onSelectEvent, onNavigate, events: [] })
+    const onStartOfferPayment = vi.fn(async () => ({}))
+    renderSection({ onStartOfferPayment, events: [] })
+    fireEvent.change(screen.getByLabelText(/Peso corporal/), { target: { value: '83' } })
     fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
-    expect(onSelectEvent).toHaveBeenCalledWith(OFFER.event)
-    expect(onNavigate).not.toHaveBeenCalled()
+
+    await waitFor(() => expect(onStartOfferPayment).toHaveBeenCalled())
+    expect(onStartOfferPayment.mock.calls[0][0].event).toEqual(OFFER.event)
   })
 
-  it('un perfil incompleto pide completarlo en vez de mandar al checkout', () => {
+  it('el medio alternativo sigue llevando al checkout de ESE torneo', () => {
     const onSelectEvent = vi.fn()
+    renderSection({ onSelectEvent, events: [] })
+    fireEvent.click(screen.getByRole('button', { name: /transferencia u otro medio/ }))
+    expect(onSelectEvent).toHaveBeenCalledWith(OFFER.event)
+  })
+
+  it('no cobra con un peso corporal inválido', async () => {
+    const onStartOfferPayment = vi.fn(async () => ({}))
+    renderSection({ onStartOfferPayment })
+    // Sin peso declarado el alta sería rechazada por el servidor: se corta acá
+    // con el mismo mensaje que el checkout.
+    fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
+    await waitFor(() => expect(screen.getByText(/peso entre 10 y 250 kg/)).toBeTruthy())
+    expect(onStartOfferPayment).not.toHaveBeenCalled()
+  })
+
+  it('un perfil incompleto pide completarlo en vez de cobrar', () => {
+    const onStartOfferPayment = vi.fn(async () => ({}))
     const onNavigateSection = vi.fn()
     renderSection({
-      onSelectEvent,
+      onStartOfferPayment,
       onNavigateSection,
       athlete: { id: 'athlete-2', fullName: 'Sin datos' },
     })
     fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
-    expect(onSelectEvent).not.toHaveBeenCalled()
+    expect(onStartOfferPayment).not.toHaveBeenCalled()
     expect(screen.getByRole('alert')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Completar mis datos/ }))
     expect(onNavigateSection).toHaveBeenCalledWith('account-personal-data')

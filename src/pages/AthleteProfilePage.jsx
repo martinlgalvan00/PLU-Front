@@ -6,7 +6,13 @@ import { UPCOMING_EVENTS } from '../lib/events.js'
 import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import { hasPlayedCredentialMerge } from '../lib/credentialMerge.js'
-import { ACCOUNT_OFFER_TAB, ACCOUNT_TAB_IDS, DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'
+import {
+  ACCOUNT_EVENTS_TAB,
+  ACCOUNT_MEMBERSHIP_TAB,
+  ACCOUNT_OFFER_TAB,
+  ACCOUNT_TAB_IDS,
+  DEFAULT_ACCOUNT_TAB,
+} from '../lib/navigation.js'
 import { isRegistrationAdmitted } from '../lib/status.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 import { pickPrimaryOffer } from '../services/exclusiveOfferService.js'
@@ -23,6 +29,7 @@ import UpcomingEventsSection from './profile/UpcomingEventsSection.jsx'
 import HistorySection from './profile/HistorySection.jsx'
 import ExclusiveOfferSection from './profile/ExclusiveOfferSection.jsx'
 import MembershipPurchaseSection from './profile/MembershipPurchaseSection.jsx'
+import PaymentsSection from './profile/PaymentsSection.jsx'
 import PersonalDataSection from './profile/PersonalDataSection.jsx'
 import SecuritySection from './profile/SecuritySection.jsx'
 
@@ -32,12 +39,14 @@ export default function AthleteProfilePage({
   onActivateMembership,
   onCancelMembership,
   onStartMembershipPayment,
+  onStartOfferPayment,
   demoMode = false,
   onNavigate,
   onSelectEvent,
   onUpdateProfile,
   onUpdatePhoto,
   onRemovePhoto,
+  payments = [],
   registrations,
   session,
   events = [],
@@ -80,6 +89,9 @@ export default function AthleteProfilePage({
   const storedMembership = membership ?? athleteMemberships[0]
   const athleteRegistrations = athleteId
     ? registrations.filter((item) => item.athleteId === athleteId)
+    : []
+  const athletePayments = athleteId
+    ? payments.filter((item) => item.athleteId === athleteId)
     : []
   const availableEvents = (events.length ? events : UPCOMING_EVENTS).filter(
     (event) => event.status !== 'finalizado',
@@ -178,6 +190,9 @@ export default function AthleteProfilePage({
         onSelectEvent={onSelectEvent}
         onNavigate={onNavigate}
         onNavigateSection={setActiveTab}
+        onStartOfferPayment={onStartOfferPayment}
+        onOfferRefresh={loadUnlockedOffers}
+        checkoutAvailability={checkoutAvailability}
       />
     ),
     'account-events': (
@@ -213,6 +228,20 @@ export default function AthleteProfilePage({
         onNavigateSection={setActiveTab}
         onNavigate={onNavigate}
         onOfferUnlocked={loadUnlockedOffers}
+      />
+    ),
+    'account-payments': (
+      <PaymentsSection
+        payments={athletePayments}
+        onNavigateSection={setActiveTab}
+        // Reintentar es volver a la pantalla que abre un cobro nuevo: la orden
+        // vieja quedó cerrada y no se reabre. La afiliación y el combo salen de
+        // Afiliación; una inscripción suelta, de Torneos.
+        onRetryPayment={(payment) =>
+          setActiveTab(
+            payment.conceptType === 'registration' ? ACCOUNT_EVENTS_TAB : ACCOUNT_MEMBERSHIP_TAB,
+          )
+        }
       />
     ),
     'account-personal-data': (

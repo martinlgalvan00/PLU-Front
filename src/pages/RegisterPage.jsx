@@ -1,6 +1,7 @@
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/register.css'
 import '../styles/components/exclusive-offer.css'
+import '../styles/components/code-band.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
@@ -598,26 +599,68 @@ export default function RegisterPage({
    * el checkout sigue funcionando: el desbloqueo de esta compra ya está resuelto
    * en memoria y el servidor lo revalida al crear la orden.
    */
-  async function commitUnlockedCode(code, preview, { redirect = true } = {}) {
+  async function commitUnlockedCode(code, preview, { redirect = true, offer = null } = {}) {
     setDiscountPreview(preview)
     setComboCode(code)
     setPurchaseType('combo')
     clearPendingPromotionCode()
-    try {
-      const unlock = await redeemSecretOfferCode(code)
-      setUnlockedOffer(unlock.unlocked ? (unlock.offer ?? { code }) : { code })
-      if (unlock.unlocked && redirect) {
-        // El canje termina en su destino natural: una ficha privada que no
-        // existía antes de conocer el código. Desde ahí se retoma el checkout
-        // con la oferta aplicada automáticamente.
-        setOfferRedirecting(true)
-        await waitForSecretOfferRedirect()
-        onNavigate?.('profile', { tab: ACCOUNT_OFFER_TAB })
-        setOfferRedirecting(false)
+    // La oferta ya conocida no se vuelve a canjear: cuando el resolvedor o el
+    // listado de ofertas desbloqueadas ya la trajeron, el unlock del servidor
+    // está hecho y repetirlo sólo agrega una ida y vuelta antes de poder pagar.
+    let unlocked = Boolean(offer)
+    if (offer) {
+      setUnlockedOffer(offer)
+    } else {
+      try {
+        const unlock = await redeemSecretOfferCode(code)
+        unlocked = unlock.unlocked
+        setUnlockedOffer(unlock.unlocked ? (unlock.offer ?? { code }) : { code })
+      } catch {
+        setUnlockedOffer({ code })
       }
-    } catch {
-      setUnlockedOffer({ code })
     }
+    if (!unlocked || !redirect) return
+    // El canje termina en su destino natural: una ficha privada que no
+    // existía antes de conocer el código. Desde ahí se retoma el checkout
+    // con la oferta aplicada automáticamente.
+    setOfferRedirecting(true)
+    await waitForSecretOfferRedirect()
+    onNavigate?.('profile', { tab: ACCOUNT_OFFER_TAB })
+    setOfferRedirecting(false)
+  }
+
+  /**
+   * Deja una oferta YA desbloqueada aplicada en ESTE checkout: cotiza el combo
+   * y fija el importe promocional.
+   *
+   * Es lo único que la pestaña secreta no puede hacer por sí misma. El canje ya
+   * está registrado del lado del servidor, pero eso no cobra nada: sin este
+   * paso, entrar desde la ficha terminaba de vuelta en la ficha —el resolvedor
+   * universal responde `open_exclusive_offer` también para un código ya
+   * canjeado— y el pago no llegaba nunca.
+   *
+   * `isCancelled` corta si el checkout ya cambió de torneo mientras el preview
+   * viajaba: aplicar la oferta del torneo anterior sería peor que no aplicarla.
+   */
+  async function applyUnlockedOffer(code, { offer = null, redirect = false, isCancelled } = {}) {
+    if (!code || !event?.slug) return null
+    const preview = await previewDiscountCode({
+      code,
+      appliesTo: 'combo',
+      eventSlug: event.slug,
+      paymentMethod: toApiPaymentMethod(form.paymentMethod),
+    })
+    if (isCancelled?.()) return null
+    if (!preview?.valid) return preview ?? { valid: false }
+    // Algunas versiones de la RPC no adjuntan `kind` en el preview. Acá ya se
+    // sabe que el código desbloquea (lo dijo el servidor al canjearlo), y el
+    // resumen del checkout necesita el `kind` para explicar el importe.
+    await commitUnlockedCode(
+      code,
+      { ...preview, kind: preview.kind ?? offer?.kind ?? 'offer' },
+      { redirect, offer },
+    )
+    return preview
   }
 
   function describeDiscountError(preview) {
@@ -643,6 +686,21 @@ export default function RegisterPage({
     setDiscountPreview(null)
     setOfferRedirecting(false)
     try {
+      // La oferta ya está aplicada en este checkout y hay que recotizarla
+      // (cambió el medio de pago, que cambia el importe). No pasa por el
+      // resolvedor —sería otro evento de embudo por cada cambio de medio— y
+      // sobre todo no vuelve a mandar a la pestaña secreta: ese canje ya llegó
+      // a su destino y el atleta está justamente pagándolo.
+      if (comboCode && comboCode === code) {
+        const repriced = await applyUnlockedOffer(code, { offer: unlockedOffer, redirect: false })
+        if (!repriced?.valid) {
+          // Sin importe promocional no hay oferta: dejar el paquete destrabado
+          // cobraría el combo a precio de lista anunciando una oferta.
+          clearDiscountCode()
+          setDiscountError(describeDiscountError(repriced ?? { reason: 'not_applicable' }))
+        }
+        return
+      }
       let resolution = null
       try {
         resolution = await redeemPromotionCode(code, {
@@ -655,10 +713,30 @@ export default function RegisterPage({
       }
       if (resolution?.accepted && resolution.action === 'open_exclusive_offer') {
         setDiscountCodeInput(resolution.code)
-        setUnlockedOffer(
-          resolution.offer ?? { code: resolution.code, campaign: resolution.campaign },
-        )
+        const unlocked = resolution.offer
+          ? { campaign: resolution.campaign ?? null, ...resolution.offer }
+          : { code: resolution.code, campaign: resolution.campaign }
+        setUnlockedOffer(unlocked)
         clearPendingPromotionCode()
+        // Si la oferta es de este torneo, se aplica acá mismo: el canje ya está
+        // hecho y lo que falta es el cobro. `redirect` sigue llevando a la
+        // pestaña secreta cuando el código se tipeó a mano (es el momento en que
+        // el atleta confirma qué desbloqueó), pero no cuando el checkout se
+        // auto-canjea al abrirse — ahí el atleta viene DE esa pestaña.
+        const unlockedSlug = unlocked.event?.slug ?? null
+        if (
+          (!unlockedSlug || unlockedSlug === event.slug) &&
+          (
+            await applyUnlockedOffer(resolution.code, {
+              offer: unlocked,
+              redirect: override === null,
+            })
+          )?.valid
+        ) {
+          return
+        }
+        // La oferta es de otro torneo (o el combo no la deja aplicar todavía):
+        // la pestaña secreta es el único lugar donde se entiende qué se canjeó.
         setOfferRedirecting(true)
         await waitForSecretOfferRedirect()
         onNavigate?.('profile', { tab: ACCOUNT_OFFER_TAB })
@@ -727,6 +805,11 @@ export default function RegisterPage({
   // Auto-canje: si el atleta ya desbloqueó una oferta para ESTE torneo, el
   // checkout la aplica solo. Sin esto, entrar desde la ficha "Oferta exclusiva"
   // obligaría a volver a tipear el código que ya canjeó.
+  //
+  // Va directo al preview del combo y no al resolvedor universal: la oferta ya
+  // vino resuelta en el listado, así que volver a canjearla sería registrar un
+  // evento de embudo por cada vez que se abre el checkout y —peor— pedir otra
+  // vez el destino de un canje que justamente terminó acá.
   useEffect(() => {
     if (flow !== 'competition' || !event?.slug) return undefined
     let cancelled = false
@@ -737,7 +820,11 @@ export default function RegisterPage({
         if (!match || cancelled) return
         setDiscountCodeInput(match.code)
         setUnlockedOffer(match)
-        await applyDiscountCode(match.code)
+        await applyUnlockedOffer(match.code, {
+          offer: match,
+          redirect: false,
+          isCancelled: () => cancelled,
+        })
       } catch {
         // Sin ofertas desbloqueadas el checkout es el de siempre.
       }
@@ -2442,68 +2529,119 @@ export default function RegisterPage({
                         </p>
                       ) : null}
                       {discountPreview ? (
-                        <p className="register-discount__applied">
-                          <Tag size={14} aria-hidden />
-                          {discountPreview.kind === 'access'
-                            ? t('pages.register.discountAppliedAccess', {
-                                code: discountPreview.code,
-                              })
-                            : ['fixed_price', 'offer'].includes(discountPreview.kind)
-                              ? t('pages.register.discountAppliedFixed', {
-                                  code: discountPreview.code,
-                                  amount: money(discountPreview.finalAmount, locale),
-                                })
-                              : t('pages.register.discountApplied', {
-                                  code: discountPreview.code,
-                                  amount: money(discountPreview.discountAmount, locale),
-                                })}
-                          <button type="button" onClick={clearDiscountCode} disabled={submitting}>
+                        /* Aplicado: la banda pasa a ser el registro de lo que
+                           se va a cobrar. El importe y su palabra ("pagás" /
+                           "ahorrás") se separan porque significan cosas
+                           distintas según el tipo de código, y un 'access' no
+                           tiene importe: destraba, no descuenta. */
+                        <div className="register-discount__applied">
+                          <div className="code-band" data-state="applied">
+                            <span className="code-band__grain" aria-hidden />
+                            <div className="code-band__frame">
+                              <div className="code-band__head">
+                                <span className="code-band__mark">
+                                  {t(
+                                    discountPreview.kind === 'access'
+                                      ? 'codeBand.markCode'
+                                      : 'codeBand.markPrice',
+                                  )}
+                                </span>
+                                <span className="code-band__status code-band__status--done">
+                                  {t('codeBand.statusApplied')}
+                                </span>
+                              </div>
+                              <div className="code-band__row">
+                                <span className="code-band__code">{discountPreview.code}</span>
+                                {discountPreview.kind === 'access' ? null : (
+                                  <span className="code-band__amount">
+                                    <span>
+                                      {t(
+                                        ['fixed_price', 'offer'].includes(discountPreview.kind)
+                                          ? 'codeBand.pay'
+                                          : 'codeBand.save',
+                                      )}
+                                    </span>
+                                    {money(
+                                      ['fixed_price', 'offer'].includes(discountPreview.kind)
+                                        ? discountPreview.finalAmount
+                                        : discountPreview.discountAmount,
+                                      locale,
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="code-band-drop"
+                            onClick={clearDiscountCode}
+                            disabled={submitting}
+                          >
                             {t('pages.register.discountRemove')}
                           </button>
-                        </p>
+                        </div>
                       ) : (
                         <>
-                          <label
-                            className="register-discount__label"
-                            htmlFor="registration-discount-code"
-                          >
+                          <label className="visually-hidden" htmlFor="registration-discount-code">
                             {t('pages.register.discountLabel')}
                           </label>
-                          <small className="register-discount__hint">
-                            {t('pages.register.discountHint')}
-                          </small>
-                          <div className="register-discount__row">
-                            <input
-                              id="registration-discount-code"
-                              type="text"
-                              autoComplete="off"
-                              spellCheck={false}
-                              placeholder={t('pages.register.discountPlaceholder')}
-                              value={discountCodeInput}
-                              disabled={submitting || discountChecking}
-                              onChange={(event) =>
-                                setDiscountCodeInput(event.target.value.toUpperCase())
-                              }
-                            />
-                            <button
-                              type="button"
-                              disabled={submitting || discountChecking || !discountCodeInput.trim()}
-                              onClick={applyDiscountCode}
-                            >
-                              {discountChecking
-                                ? t('pages.register.discountChecking')
-                                : t('pages.register.discountApply')}
-                            </button>
-                            <CodeScanButton
-                              disabled={submitting || discountChecking}
-                              onScan={(scanned) => {
-                                setDiscountCodeInput(scanned)
-                                void applyDiscountCode(scanned)
-                              }}
-                            />
+                          <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
+                            <span className="code-band__grain" aria-hidden />
+                            <div className="code-band__frame">
+                              <div className="code-band__head">
+                                <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                                <span
+                                  className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
+                                >
+                                  {t(
+                                    discountChecking
+                                      ? 'codeBand.statusChecking'
+                                      : discountError
+                                        ? 'codeBand.statusError'
+                                        : 'codeBand.statusIdle',
+                                  )}
+                                </span>
+                              </div>
+                              <div className="code-band__row">
+                                <input
+                                  id="registration-discount-code"
+                                  className="code-band__input"
+                                  type="text"
+                                  autoComplete="off"
+                                  spellCheck={false}
+                                  placeholder={t('pages.register.discountPlaceholder')}
+                                  value={discountCodeInput}
+                                  disabled={submitting || discountChecking}
+                                  onChange={(event) =>
+                                    setDiscountCodeInput(event.target.value.toUpperCase())
+                                  }
+                                />
+                                <CodeScanButton
+                                  disabled={submitting || discountChecking}
+                                  onScan={(scanned) => {
+                                    setDiscountCodeInput(scanned)
+                                    void applyDiscountCode(scanned)
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="code-band__chip"
+                                  disabled={
+                                    submitting || discountChecking || !discountCodeInput.trim()
+                                  }
+                                  onClick={applyDiscountCode}
+                                >
+                                  {discountChecking
+                                    ? t('pages.register.discountChecking')
+                                    : t('pages.register.discountApply')}
+                                </button>
+                              </div>
+                            </div>
                           </div>
+                          <p className="code-band-hint">{t('pages.register.discountHint')}</p>
                           {discountError ? (
-                            <p className="register-discount__error" role="alert">
+                            <p className="code-band-error" role="alert">
                               {discountError}
                             </p>
                           ) : null}
