@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useI18n } from '../i18n/I18nProvider.jsx'
+import { notifyError } from '../lib/adminToast.js'
 
 const STORAGE_PREFIX = 'plu-admin-saved-views:'
 const MAX_VIEWS_PER_SECTION = 8
@@ -18,11 +20,15 @@ function readViews(sectionKey) {
   }
 }
 
+/** @returns {boolean} Si el guardado en localStorage se completó. */
 function writeViews(sectionKey, views) {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined') return true
   try {
     window.localStorage.setItem(storageKey(sectionKey), JSON.stringify(views))
-  } catch {}
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -32,6 +38,7 @@ function writeViews(sectionKey, views) {
  * así que no pasa por el backend ni por servicios de dominio.
  */
 export function useAdminSavedFilterViews(sectionKey) {
+  const { t } = useI18n()
   const [views, setViews] = useState(() => readViews(sectionKey))
 
   useEffect(() => {
@@ -43,30 +50,43 @@ export function useAdminSavedFilterViews(sectionKey) {
       const trimmed = label.trim()
       if (!trimmed) return
       setViews((current) => {
+        const withoutDuplicate = current.filter((view) => view.label !== trimmed)
+        // Reemplazar una vista existente (mismo nombre) no cuenta contra el
+        // cap -- solo bloquea cuando el guardado suma una vista nueva.
+        if (withoutDuplicate.length >= MAX_VIEWS_PER_SECTION) {
+          notifyError(t('admin.savedViews.limitReached', { count: MAX_VIEWS_PER_SECTION }))
+          return current
+        }
         const next = [
-          ...current.filter((view) => view.label !== trimmed),
+          ...withoutDuplicate,
           {
             id: `view-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             label: trimmed,
             snapshot,
           },
-        ].slice(-MAX_VIEWS_PER_SECTION)
-        writeViews(sectionKey, next)
+        ]
+        if (!writeViews(sectionKey, next)) {
+          notifyError(t('admin.savedViews.saveFailed'))
+          return current
+        }
         return next
       })
     },
-    [sectionKey],
+    [sectionKey, t],
   )
 
   const removeView = useCallback(
     (id) => {
       setViews((current) => {
         const next = current.filter((view) => view.id !== id)
-        writeViews(sectionKey, next)
+        if (!writeViews(sectionKey, next)) {
+          notifyError(t('admin.savedViews.removeFailed'))
+          return current
+        }
         return next
       })
     },
-    [sectionKey],
+    [sectionKey, t],
   )
 
   return { views, saveView, removeView }

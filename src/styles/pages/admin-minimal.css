@@ -549,7 +549,9 @@
 }
 
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__select,
-.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select,
+.admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__date-range,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__date-range {
   flex: 1 1 160px;
   min-width: min(100%, 160px);
   width: auto;
@@ -639,9 +641,13 @@
 .admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filter-group--inline,
 .admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filters__select,
 .admin-shell .admin-filters--inline .admin-filters__select + .admin-filter-group--inline,
+.admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filters__date-range,
+.admin-shell .admin-filters--inline .admin-filters__date-range + .admin-filter-group--inline,
 .admin-shell .admin-filters__panel .admin-filter-group--inline + .admin-filter-group--inline,
 .admin-shell .admin-filters__panel .admin-filter-group--inline + .admin-filters__select,
-.admin-shell .admin-filters__panel .admin-filters__select + .admin-filter-group--inline {
+.admin-shell .admin-filters__panel .admin-filters__select + .admin-filter-group--inline,
+.admin-shell .admin-filters__panel .admin-filter-group--inline + .admin-filters__date-range,
+.admin-shell .admin-filters__panel .admin-filters__date-range + .admin-filter-group--inline {
   border-left: 0;
   margin-left: 0;
   padding-left: 0;
@@ -2439,7 +2445,8 @@
   width: auto;
 }
 
-.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select,
+.admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__date-range {
   flex: 1 1 160px;
   min-width: min(100%, 160px);
   width: auto;
@@ -2450,6 +2457,31 @@
     .admin-filters__panel
     .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
     flex-wrap: nowrap;
+  }
+
+  /* Atletas: 5 grupos (afiliación, inscripción, gimnasio, división, fecha de
+     alta) todos inline -- no entran en una sola fila sin recortarse ni en
+     desktop ancho. A diferencia del resto de las secciones (2-3 grupos
+     cortos), acá el wrap a una segunda fila es mejor que forzar una sola
+     fila apretada. */
+  .admin-shell
+    .admin-filters--athletes.admin-filters--inline
+    .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
+    flex-wrap: wrap;
+  }
+
+  /* Los grupos de chips reparten el ancho por flex-grow (`flex: 1 1 0`,
+     línea ~2445): con 5 grupos en la fila, cada uno se estira/encoge parejo
+     en vez de pedir el ancho que su contenido necesita -- terminan
+     recortando texto en vez de saltar de línea. Acá el ancho lo define el
+     contenido (chips + contador) y recién se achica si hace falta; el wrap
+     de arriba entra cuando la suma ya no entra en la fila. */
+  .admin-shell
+    .admin-filters--athletes.admin-filters--inline
+    .admin-filters__groups--multi
+    .admin-filter-group {
+    flex: 0 1 auto;
+    width: auto;
   }
 }
 
@@ -2598,7 +2630,8 @@
 }
 
 .admin-shell .admin-filters__advanced-groups .admin-filter-group,
-.admin-shell .admin-filters__advanced-groups .admin-filters__select {
+.admin-shell .admin-filters__advanced-groups .admin-filters__select,
+.admin-shell .admin-filters__advanced-groups .admin-filters__date-range {
   min-width: 0;
   width: 100%;
 }
@@ -3247,7 +3280,8 @@
 .admin-shell .admin-filter-chip:focus-visible,
 .admin-shell .admin-filters__toggle:focus-visible,
 .admin-shell .admin-filters__search-clear:focus-visible,
-.admin-shell .admin-filters__select select:focus-visible {
+.admin-shell .admin-filters__select select:focus-visible,
+.admin-shell .admin-filters__date-range-input:focus-visible {
   box-shadow: 0 0 0 3px var(--admin-focus-soft);
   outline: 1px solid var(--admin-focus);
   outline-offset: 1px;
@@ -3281,6 +3315,113 @@
   height: 14px;
   pointer-events: none;
   width: 14px;
+}
+
+.admin-shell .admin-filters__date-range {
+  align-items: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  position: relative;
+}
+
+.admin-shell .admin-filters__date-range-label {
+  color: var(--admin-muted);
+  display: block;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  pointer-events: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-filters__date-range-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-shell .admin-filters__date-range-field {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-control-bg) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
+  border-radius: 11px;
+  display: flex;
+  flex: 1 1 130px;
+  gap: 6px;
+  min-height: 42px;
+  min-width: 0;
+  padding: 0 10px;
+  transition:
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.admin-shell .admin-filters__date-range-field:hover {
+  border-color: color-mix(in srgb, var(--admin-brand) 28%, var(--admin-hairline));
+}
+
+.admin-shell .admin-filters__date-range-field:focus-within {
+  background: var(--admin-surface-raised);
+  border-color: var(--admin-brand-border);
+  box-shadow: 0 0 0 3px var(--admin-focus-soft);
+}
+
+.admin-shell .admin-filters__date-range-field span {
+  color: var(--admin-muted);
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-filters__date-range-input {
+  background-color: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  color-scheme: dark;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 550;
+  min-height: 40px;
+  min-width: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-shell .admin-filters__date-range-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.75);
+  opacity: 0.7;
+  transition: opacity var(--transition-fast, 160ms);
+}
+
+.admin-shell .admin-filters__date-range-input:hover::-webkit-calendar-picker-indicator,
+.admin-shell .admin-filters__date-range-input:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+[data-theme='light'] .admin-shell .admin-filters__date-range-input {
+  color-scheme: light;
+}
+
+[data-theme='light'] .admin-shell .admin-filters__date-range-input::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.55;
+}
+
+.admin-shell .admin-filters__date-range.is-active .admin-filters__date-range-label {
+  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--admin-muted));
+}
+
+.admin-shell .admin-filters__date-range.is-active .admin-filters__date-range-field {
+  background: color-mix(in oklab, var(--plu-gold-500) 8%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 36%, var(--admin-hairline));
 }
 
 /* Tabla: jerarquía tipográfica, densidad, columnas semánticas. */
@@ -3970,6 +4111,29 @@
     display: grid;
     gap: 7px;
     width: 100%;
+  }
+
+  /* Atletas: 5 grupos (afiliación, inscripción, gimnasio, división, fecha de
+     alta). La fila `nowrap` de arriba (pensada para 1-2 grupos + un select)
+     ahoga a los grupos de chips -- gimnasio y fecha de alta ya imponen un
+     piso de 160px cada uno (línea ~555) y no dejan margen, así que los
+     grupos de chips terminan en 0 de ancho. Acá el wrap a varias líneas
+     evita esa pelea por espacio. Selector con un nivel extra de anidamiento
+     (`.admin-filters__panel` explícito) a propósito: misma especificidad que
+     la regla de arriba (3 clases) perdía el empate por orden; con 4 clases
+     gana sin depender del orden de las reglas. */
+  .admin-shell .admin-filters--athletes .admin-filters__panel .admin-filters__groups--multi {
+    flex-wrap: wrap;
+  }
+
+  .admin-shell
+    .admin-filters--athletes
+    .admin-filters__panel
+    .admin-filters__groups--multi
+    .admin-filter-group {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
   }
 
   .admin-shell
@@ -6754,6 +6918,7 @@
   .admin-shell .admin-filters__primary .admin-filters__clear,
   .admin-shell .admin-filters__advanced-toggle,
   .admin-shell .admin-filters__select-control,
+  .admin-shell .admin-filters__date-range-field,
   .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip,
   .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
     min-height: 44px;
@@ -7458,7 +7623,9 @@
     }
 
     .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__select,
-    .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select {
+    .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__select,
+    .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filters__date-range,
+    .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filters__date-range {
       flex: none;
       min-width: 0;
       width: 100%;

@@ -115,7 +115,8 @@ export default function AdminListSection({
     (isNarrow || !showHeader) && (hasActiveQuery || !filtersCarryCounts) ? resultLabel : null
 
   const filterSignature = useMemo(
-    () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
+    () =>
+      `${query ?? ''}|${filters.map((filter) => `${filter.id}:${JSON.stringify(filter.value)}`).join('|')}`,
     [filters, query],
   )
 

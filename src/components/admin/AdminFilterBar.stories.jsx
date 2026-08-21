@@ -119,6 +119,93 @@ function AuditLikeFilterBar({ initialAction = 'all' }) {
   )
 }
 
+/** Mismas 5 facetas que arma AthletesSection, todas inline (sin "Más filtros"):
+ * afiliación, inscripción, gimnasio (select con lista dinámica), división
+ * (chips) y fecha de alta (variant `dateRange`, dos inputs nativos). */
+function AthletesLikeFilterBar({ initialRange = { from: '', to: '' } }) {
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('all')
+  const [registrationStatus, setRegistrationStatus] = useState('all')
+  const [gym, setGym] = useState('all')
+  const [division, setDivision] = useState('all')
+  const [registeredRange, setRegisteredRange] = useState(initialRange)
+
+  const filters = [
+    {
+      id: 'status',
+      label: 'Afiliación',
+      value: status,
+      onChange: setStatus,
+      options: [
+        ['all', 'Todos', 42],
+        ['afiliado_activo', 'Afiliado activo', 30, 'success'],
+        ['registrado', 'Registrado', 12, 'info'],
+      ],
+    },
+    {
+      id: 'registrationStatus',
+      label: 'Inscripción',
+      value: registrationStatus,
+      onChange: setRegistrationStatus,
+      options: [
+        ['all', 'Todas', 42],
+        ['confirmada', 'Confirmada', 25],
+        ['pendiente_pago', 'Pago pendiente', 9],
+      ],
+    },
+    {
+      id: 'gym',
+      label: 'Gimnasio',
+      value: gym,
+      onChange: setGym,
+      variant: 'select',
+      options: [
+        ['all', 'Todos los gimnasios'],
+        ['Fuerza Sur', 'Fuerza Sur'],
+        ['Power Gym', 'Power Gym'],
+      ],
+    },
+    {
+      id: 'division',
+      label: 'División',
+      value: division,
+      onChange: setDivision,
+      options: [
+        ['all', 'Todas las divisiones', 42],
+        ['Open', 'Open', 28],
+        ['Junior', 'Junior', 8],
+        ['Masters', 'Masters', 6],
+      ],
+    },
+    {
+      id: 'registeredAt',
+      label: 'Fecha de alta',
+      value: registeredRange,
+      onChange: setRegisteredRange,
+      variant: 'dateRange',
+      defaultValue: { from: '', to: '' },
+    },
+  ]
+
+  return (
+    <AppConfigProvider>
+      <div className="admin-shell" style={{ minHeight: 0, background: 'var(--admin-canvas)', padding: '24px' }}>
+        <div style={{ maxWidth: 1440 }}>
+          <AdminFilterBar
+            compact
+            inline
+            className="admin-filters--athletes"
+            query={query}
+            onQueryChange={setQuery}
+            filters={filters}
+            placeholder="Buscar por nombre, DNI, email o gimnasio"
+          />
+        </div>
+      </div>
+    </AppConfigProvider>
+  )
+}
+
 export default {
   title: 'Admin/AdminFilterBar',
   component: AdminFilterBar,
@@ -134,4 +221,14 @@ export const Default = {
  * bajan a su propio panel recesado en vez de sumarse a la fila de Fuente/Estado/Categoría. */
 export const FiltrosAvanzadosAbiertos = {
   render: () => <AuditLikeFilterBar initialAction="payment.webhook_failed" />,
+}
+
+/** Caso Atletas: 5 facetas siempre visibles, sin popover de avanzados. */
+export const CincoFiltrosInline = {
+  render: () => <AthletesLikeFilterBar />,
+}
+
+/** Rango de fecha de alta activo -- confirma el resaltado `is-active` del variant `dateRange`. */
+export const ConRangoDeFechaActivo = {
+  render: () => <AthletesLikeFilterBar initialRange={{ from: '2026-01-01', to: '2026-03-15' }} />,
 }

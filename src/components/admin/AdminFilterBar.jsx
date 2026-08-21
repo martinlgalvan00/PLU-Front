@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
+import AdminFilterDateRange from './AdminFilterDateRange.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminFilterSelect from './AdminFilterSelect.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -9,11 +10,12 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  * @typedef {Object} AdminFilterGroup
  * @property {string} id
  * @property {string} [label]
- * @property {string} value
- * @property {(value: string) => void} onChange
- * @property {[string, string, (string|number)?, ('success'|'danger'|'info')?][]} options
- * @property {'chips' | 'select' | 'toggle'} [variant]
- * @property {string} [defaultValue] Valor sin filtro; por convención, la primera opción.
+ * @property {string|{from: string, to: string}} value Objeto `{from, to}` solo para `variant: 'dateRange'`.
+ * @property {(value: string|{from: string, to: string}) => void} onChange
+ * @property {[string, string, (string|number)?, ('success'|'danger'|'info')?][]} [options] No aplica a `dateRange`.
+ * @property {'chips' | 'select' | 'toggle' | 'dateRange'} [variant]
+ * @property {string|{from: string, to: string}} [defaultValue] Valor sin filtro; por convención, la primera opción.
+ *   Obligatorio en `dateRange` (no tiene `options` del que inferirlo): usar `{ from: '', to: '' }`.
  * @property {boolean} [showLabel] Forzá label visible (inline suele ocultarlo si hay un solo grupo).
  * @property {string} [ariaLabel] Nombre accesible cuando el label visual está oculto.
  * @property {boolean} [advanced] Si es true, queda detrás de «Más filtros».
@@ -25,6 +27,9 @@ function neutralValue(filter) {
 }
 
 function isFilterActive(filter) {
+  if (filter.variant === 'dateRange') {
+    return Boolean(filter.value?.from) || Boolean(filter.value?.to)
+  }
   return filter.value !== neutralValue(filter)
 }
 
@@ -122,7 +127,8 @@ export default function AdminFilterBar({
   const activeCount = activeFilters.length + (hasQuery ? 1 : 0)
   const panelOpen = alwaysShowFilters || filtersOpen
   const chipGroupCount = shownFilters.filter(
-    (filter) => filter.variant !== 'select' && filter.variant !== 'toggle',
+    (filter) =>
+      filter.variant !== 'select' && filter.variant !== 'toggle' && filter.variant !== 'dateRange',
   ).length
   const isMultiGroup = shownFilters.length > 1 || advancedFilters.length > 0
   const rootClassName = [
@@ -139,7 +145,8 @@ export default function AdminFilterBar({
     .filter(Boolean)
     .join(' ')
   const filterSignature = useMemo(
-    () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
+    () =>
+      `${query ?? ''}|${filters.map((filter) => `${filter.id}:${JSON.stringify(filter.value)}`).join('|')}`,
     [filters, query],
   )
 
@@ -205,9 +212,22 @@ export default function AdminFilterBar({
     const sharedLabel =
       filter.showLabel === false
         ? undefined
-        : filter.showLabel === true || filter.variant === 'select'
+        : filter.showLabel === true || filter.variant === 'select' || filter.variant === 'dateRange'
           ? filter.label
           : undefined
+
+    if (filter.variant === 'dateRange') {
+      return (
+        <AdminFilterDateRange
+          key={filter.id}
+          id={filter.id}
+          label={sharedLabel}
+          value={filter.value}
+          onChange={filter.onChange}
+          disabled={filter.disabled}
+        />
+      )
+    }
 
     if (filter.variant === 'select') {
       return (
