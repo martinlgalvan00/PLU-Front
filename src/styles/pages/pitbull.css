@@ -12455,50 +12455,167 @@
   }
 }
 
-/* ── Pesajes — schedule editorial (sin cards) ── */
-.pitbull-dossier__section--weighins {
-  padding-bottom: clamp(60px, 8vw, 100px);
+/* ── Marco "reglamento oficial" — reservado a las secciones normativas
+   (pesajes, categorías): esquinas en escuadra + numeral fantasma detrás del
+   título. El resto del dossier sigue en el registro editorial simple. ── */
+.pitbull-dossier__frame {
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 13%, transparent);
+  padding: clamp(28px, 4vw, 52px);
+  position: relative;
 }
 
+.pitbull-dossier__frame-mark {
+  height: 20px;
+  position: absolute;
+  width: 20px;
+}
+
+.pitbull-dossier__frame-mark--tl {
+  border-left: 2px solid var(--color-brand-gold);
+  border-top: 2px solid var(--color-brand-gold);
+  left: -1px;
+  top: -1px;
+}
+
+.pitbull-dossier__frame-mark--tr {
+  border-right: 2px solid var(--color-brand-gold);
+  border-top: 2px solid var(--color-brand-gold);
+  right: -1px;
+  top: -1px;
+}
+
+.pitbull-dossier__frame-mark--bl {
+  border-bottom: 2px solid var(--color-brand-gold);
+  border-left: 2px solid var(--color-brand-gold);
+  bottom: -1px;
+  left: -1px;
+}
+
+.pitbull-dossier__frame-mark--br {
+  border-bottom: 2px solid var(--color-brand-gold);
+  border-right: 2px solid var(--color-brand-gold);
+  bottom: -1px;
+  right: -1px;
+}
+
+.pitbull-dossier__ghost-index {
+  font-size: clamp(4.5rem, 9vw, 7.5rem);
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: -0.3em;
+  user-select: none;
+}
+
+/* Divisor tipo entrada/credencial entre pesajes y categorías: dos secciones
+   normativas adyacentes en el dossier, referencia directa al producto de
+   credencial digital que ya existe en la plataforma. Sustituye el
+   border-top + padding-top automáticos de la sección siguiente (ver reglas
+   adyacentes más abajo) para no duplicar la separación entre secciones. */
+.pitbull-dossier__ticket-divider {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  padding-block: clamp(28px, 4vw, 40px);
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__section--weighins {
+  padding-bottom: 0;
+}
+
+.pitbull-dossier--minimal .pitbull-dossier__ticket-divider + .pitbull-dossier__section {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.pitbull-dossier__ticket-divider::before,
+.pitbull-dossier__ticket-divider::after {
+  border-top: 1px dashed color-mix(in oklab, var(--color-text-primary) 18%, transparent);
+  content: '';
+  flex: 1;
+}
+
+.pitbull-dossier__ticket-divider span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── Pesajes — cronograma vertical dentro del marco normativo ── */
 .pitbull-weighins {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
-  display: grid;
-  gap: 0;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   margin-top: clamp(20px, 3vw, 32px);
+  padding-left: 34px;
   position: relative;
 }
 
 .pitbull-weighins::before {
-  background: var(--color-brand-gold);
+  background: linear-gradient(
+    180deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in oklab, var(--color-brand-gold) 18%, transparent) 100%
+  );
+  bottom: 8px;
   content: '';
-  height: 1.5px;
-  left: 0;
+  left: 5px;
   position: absolute;
-  top: -1px;
-  width: 2.5rem;
+  top: 8px;
+  width: 1px;
 }
 
 .pitbull-weighin {
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   min-width: 0;
-  padding: clamp(20px, 2.8vw, 28px) 0;
+  padding-bottom: clamp(28px, 4vw, 40px);
+  position: relative;
 }
 
-.pitbull-weighin:first-child {
-  border-top: 0;
+.pitbull-weighin:last-child {
+  padding-bottom: 0;
+}
+
+.pitbull-weighin__node {
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-brand-gold);
+  border-radius: 50%;
+  height: 11px;
+  left: -34px;
+  position: absolute;
+  top: 4px;
+  width: 11px;
 }
 
 .pitbull-weighin__day {
+  align-items: baseline;
   color: var(--color-text-muted);
+  display: flex;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
+  gap: 10px;
   letter-spacing: 0.14em;
   margin: 0;
   text-transform: uppercase;
+}
+
+.pitbull-weighin__day-index {
+  color: color-mix(in oklab, var(--color-brand-gold) 55%, var(--color-text-muted));
+  font-size: 12px;
+  letter-spacing: 0;
+  opacity: 0.75;
+  text-transform: none;
+}
+
+.pitbull-weighin__content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .pitbull-weighin__slots {
@@ -12514,7 +12631,7 @@
   );
   display: block;
   font-family: var(--font-display);
-  font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -12526,19 +12643,24 @@
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  max-width: 36ch;
+  max-width: 40ch;
 }
 
-[data-theme='light'] .pitbull-weighins {
-  border-top-color: rgba(15, 17, 23, 0.09);
+[data-theme='light'] .pitbull-dossier__frame {
+  border-color: rgba(15, 17, 23, 0.14);
 }
 
-[data-theme='light'] .pitbull-weighin {
-  border-top-color: rgba(15, 17, 23, 0.07);
+[data-theme='light'] .pitbull-dossier__ticket-divider::before,
+[data-theme='light'] .pitbull-dossier__ticket-divider::after {
+  border-top-color: rgba(15, 17, 23, 0.2);
 }
 
 [data-theme='light'] .pitbull-weighin__day {
   color: rgba(15, 17, 23, 0.55);
+}
+
+[data-theme='light'] .pitbull-weighin__day-index {
+  color: color-mix(in oklab, var(--plu-gold-600) 62%, rgba(15, 17, 23, 0.55));
 }
 
 [data-theme='light'] .pitbull-weighin__time {
@@ -12549,24 +12671,12 @@
   color: rgba(15, 17, 23, 0.62);
 }
 
-@media (min-width: 768px) {
-  .pitbull-weighins {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
+@media (min-width: 640px) {
   .pitbull-weighin {
-    border-top: 0;
-    border-left: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-    padding: clamp(8px, 1.2vw, 12px) 0 clamp(8px, 1.2vw, 12px) clamp(20px, 2.8vw, 32px);
-  }
-
-  .pitbull-weighin:first-child {
-    border-left: 0;
-    padding-left: 0;
-  }
-
-  [data-theme='light'] .pitbull-weighin {
-    border-left-color: rgba(15, 17, 23, 0.08);
+    align-items: baseline;
+    display: grid;
+    gap: 6px 32px;
+    grid-template-columns: 168px 1fr;
   }
 }
 

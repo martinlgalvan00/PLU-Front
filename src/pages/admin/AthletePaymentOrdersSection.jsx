@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeCheck, HandCoins, RefreshCw, Route, ScanSearch } from 'lucide-react'
+import { BadgeCheck, HandCoins, Paperclip, RefreshCw, Route, ScanSearch } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -455,9 +455,15 @@ export default function AthletePaymentOrdersSection({
                   )
                 }
                 return (
-                  <span className="admin-orders-block__proof">
+                  <button
+                    type="button"
+                    className="admin-orders-block__proof btn btn--ghost"
+                    style={{ padding: '0', height: 'auto', textDecoration: 'underline', color: 'var(--color-text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => openReview(row, 'view')}
+                  >
+                    <Paperclip size={14} aria-hidden />
                     {formatDateTime(row.proofUploadedAt, locale)}
-                  </span>
+                  </button>
                 )
               },
             },
@@ -538,26 +544,31 @@ export default function AthletePaymentOrdersSection({
                       variant="ghost"
                     />
                   ) : null}
-                  <AdminIconButton
-                    disabled={
-                      !canEdit ||
-                      !row.validatable ||
-                      row.method !== 'manual_link' ||
-                      (!row.hasProof && row.manualPaymentChannel !== 'cash_pitbull') ||
-                      !OPEN_STATUSES.includes(row.status) ||
-                      approvingId === row.id
-                    }
-                    icon={BadgeCheck}
-                    label={
-                      row.method === 'mercado_pago'
-                        ? t('admin.athletePayments.webhookOnly')
-                        : row.validatable
+                  {/* Ocultamos validación manual para Mercado Pago y mostramos feedback si falta comprobante */}
+                  {row.method === 'mercado_pago' ? null : !row.hasProof &&
+                    row.manualPaymentChannel !== 'cash_pitbull' &&
+                    OPEN_STATUSES.includes(row.status) ? (
+                    <span className="status-pill status-pill--warning">
+                      {t('admin.athletePayments.proofMissing')}
+                    </span>
+                  ) : (
+                    <AdminIconButton
+                      disabled={
+                        !canEdit ||
+                        !row.validatable ||
+                        !OPEN_STATUSES.includes(row.status) ||
+                        approvingId === row.id
+                      }
+                      icon={BadgeCheck}
+                      label={
+                        row.validatable
                           ? t('admin.actions.validate')
                           : t('admin.athletePayments.validationPaused')
-                    }
-                    onClick={() => openReview(row)}
-                    variant="celeste"
-                  />
+                      }
+                      onClick={() => openReview(row)}
+                      variant="celeste"
+                    />
+                  )}
                   {/* Vía de excepción: sólo aparece en las órdenes que el botón
                       de validar no puede tocar (Mercado Pago, o rechazadas),
                       para que no compita con el flujo normal. */}

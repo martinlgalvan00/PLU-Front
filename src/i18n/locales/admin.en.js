@@ -282,6 +282,8 @@ export default {
     moreFilters: 'More filters',
     fewerFilters: 'Fewer filters',
     advancedLabel: 'Advanced filters',
+    searchFilters: 'Search filters…',
+    noMatchingFilters: 'No filters match your search',
   },
   stats: {
     total: 'Total',
@@ -451,9 +453,6 @@ export default {
       title: 'Athletes',
       subtitle: 'Identity, sporting status and roster traceability',
       empty: 'No athletes match your search',
-      statActive: 'Active',
-      statExpired: 'Expired',
-      statBlocked: 'Blocked',
       bulk: {
         label: 'Bulk actions',
         selectedCount: '{{count}} athletes selected',
@@ -483,12 +482,6 @@ export default {
       title: 'Memberships',
       subtitle: 'Validity, codes and federation renewals',
       empty: 'No memberships match the filters',
-      statActive: 'Active',
-      statExpired: 'Expired',
-      statCancelled: 'Cancelled',
-      statNewThisMonth: 'New this month',
-      statExpiringSoon: 'Expiring in 30 days',
-      statPendingPayment: 'Awaiting payment',
       viewCredential: 'Credential',
       credentialTitle: 'Member credential',
       credentialLead: 'Door QR and details for the issued membership.',
@@ -665,7 +658,7 @@ export default {
       exclusiveFlowEyebrow: 'Secret flow',
       exclusiveFlowTitle: 'Private offer page',
       exclusiveFlowLead:
-        'It can be redeemed from Membership or Registration: it reveals the package and opens its private payment page without publishing it.',
+        'It is redeemed from My account > Benefits or during payment: it reveals the package and opens its private page without publishing it.',
       exclusiveFlowCode: 'Key',
       exclusiveFlowBenefit: 'Benefit',
       exclusiveFlowDestination: 'Destination',
@@ -1077,14 +1070,6 @@ export default {
       statRegistrations: 'Confirmed registrations',
       export: 'Download report',
       empty: 'No memberships match the filters',
-    },
-  },
-  registrations: {
-    stats: {
-      total: 'Total',
-      pending: 'Pending payment',
-      manual: 'Manual review',
-      confirmed: 'Confirmed',
     },
   },
   board: {
@@ -1962,8 +1947,11 @@ export default {
     kindExpense: 'Expense',
   },
   paymentOperations: {
-    title: 'Payment operations and reconciliation',
+    title: 'Payment Operations & Reconciliation',
     subtitle: 'Mercado Pago webhooks, retries, subscriptions and reconciliations in one place.',
+    tabAthletes: 'Athletes',
+    tabTickets: 'Tickets',
+    tabLedger: 'System',
     workerActive: 'Automatic recovery is active',
     workerInactive: 'Automatic recovery is disabled',
     refresh: 'Refresh',

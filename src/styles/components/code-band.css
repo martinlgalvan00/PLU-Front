@@ -1,9 +1,9 @@
 /* Sello — el canje con el registro de la credencial — PLU ARG
    ---------------------------------------------------------------------------
-   Una sola hoja para las tres superficies donde se canjea un código: el widget
-   universal (`SecretOfferCodeRedeemer`, presente en Mi cuenta, Eventos, Pitbull
-   y Entradas), el campo del checkout de inscripción (`.register-discount`) y el
-   de afiliación (`.account-discount`). Antes cada una tenía su propia caja
+   Una sola hoja para las superficies habilitadas de canje: la ficha Beneficios
+   de Mi cuenta (`SecretOfferCodeRedeemer`) y los campos integrados a los
+   checkouts de inscripción (`.register-discount`) y afiliación
+   (`.account-discount`). Antes cada una tenía su propia caja
    rellena con el botón en oro macizo: tres formularios que no se distinguían de
    un campo de contacto.
 

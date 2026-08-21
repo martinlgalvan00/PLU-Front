@@ -277,6 +277,7 @@ export const PITBULL_CLASSIC = {
   location: 'Buenos Aires, Argentina',
   slots: 120,
   registered: 48,
+  modalities: ['Full Power', 'Push-Pull', 'Squat Specialist', 'Bench Specialist', 'Deadlift Specialist'],
   categories: ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'],
   divisions: ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'],
 }

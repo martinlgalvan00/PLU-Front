@@ -46,14 +46,12 @@ import {
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
-  clearPendingPromotionCode,
   matchPromotionCodeRoute,
-  promotionDestination,
   readPendingPromotionCode,
-  redeemPromotionCode,
   savePendingPromotionCode,
 } from './services/promotionCodeService.js'
 import {
+  ACCOUNT_BENEFITS_TAB,
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
   DEFAULT_ACCOUNT_TAB,
@@ -149,8 +147,7 @@ export default function App() {
     matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
   )
   const paymentReturnInFlightRef = useRef(null)
-  const directPromotionCapturedRef = useRef(false)
-  const promotionResolutionRef = useRef(null)
+  const directPromotionCapturedRef = useRef(null)
   const app = useAppData()
   const getSession = app.getSession
   const publicEvents = getPublicCatalogEvents(
@@ -242,7 +239,6 @@ export default function App() {
       const promotionRoute = matchPromotionCodeRoute()
       if (promotionRoute) {
         savePendingPromotionCode(promotionRoute.code, { surface: 'direct' })
-        promotionResolutionRef.current = null
         setView(getSession()?.role === 'athlete_plu' ? 'home' : 'login')
         return
       }
@@ -296,8 +292,8 @@ export default function App() {
         pendingAthleteDestination,
       )
       const requestedView = afterLogin.view
-      const requestedOptions = afterLogin.view === nextView ? options : afterLogin.options
-      const resumedAthleteDestination = requestedView !== nextView
+      const resumedAthleteDestination = afterLogin === pendingAthleteDestination
+      const requestedOptions = resumedAthleteDestination ? afterLogin.options : options
       const adminRequired = requestedView === 'admin'
       const athleteRequired = ['profile', 'membership', 'competition'].includes(requestedView)
       const blocked =
@@ -385,56 +381,25 @@ export default function App() {
 
   useEffect(() => {
     const directPromotion = matchPromotionCodeRoute()
-    if (directPromotion && !directPromotionCapturedRef.current) {
-      directPromotionCapturedRef.current = true
+    if (directPromotion && directPromotionCapturedRef.current !== directPromotion.code) {
+      directPromotionCapturedRef.current = directPromotion.code
       savePendingPromotionCode(directPromotion.code, { surface: 'direct' })
     }
 
     if (app.sessionPending) return
 
     const pending = readPendingPromotionCode()
-    if (!pending) return
+    if (!pending || pending.context?.surface !== 'direct' || pending.context?.presented) return
 
-    if (app.session?.role !== 'athlete_plu') {
-      if (directPromotion) {
-        window.history.replaceState({ view: 'login' }, '', '/login')
-        navigate('login')
-      }
-      return
-    }
-
-    const resolutionKey = `${app.session.id ?? app.session.email ?? 'athlete'}:${pending.code}`
-    if (promotionResolutionRef.current === resolutionKey) return
-    promotionResolutionRef.current = resolutionKey
-
-    void redeemPromotionCode(pending.code, {
+    // Los links y QR promocionales aterrizan en la ficha privada: el atleta
+    // ve el cÃ³digo y confirma el canje, en lugar de aplicarlo automÃ¡ticamente
+    // desde una pÃ¡gina pÃºblica. `navigate` conserva este destino durante login.
+    savePendingPromotionCode(pending.code, {
       ...pending.context,
-      surface: pending.context?.surface ?? 'direct',
+      surface: 'direct',
+      presented: true,
     })
-      .then((result) => {
-        if (!result.accepted) {
-          clearPendingPromotionCode()
-          if (directPromotion) navigate('home')
-          return
-        }
-
-        const destination = promotionDestination(result)
-        if (result.action === 'open_exclusive_offer') clearPendingPromotionCode()
-        else {
-          savePendingPromotionCode(result.code, {
-            ...pending.context,
-            destination: result.destination ?? null,
-            resolved: true,
-          })
-        }
-
-        if (destination) navigate(destination.view, destination.options)
-        else if (directPromotion) navigate('home')
-      })
-      .catch(() => {
-        promotionResolutionRef.current = null
-        if (directPromotion) navigate('login')
-      })
+    navigate('profile', { tab: ACCOUNT_BENEFITS_TAB })
   }, [app.session, app.sessionPending, navigate])
 
   function selectEvent(event) {
@@ -768,7 +733,6 @@ export default function App() {
                       initialEventSlug: ticketEventSlug,
                       tickets: app.tickets,
                       createdOrder: app.createdOrder,
-                      session: app.session,
                       onSubmitTicketPurchase: app.submitTicketPurchase,
                       onUploadPaymentProof: app.uploadTicketPaymentProofAction,
                     }

@@ -2388,6 +2388,10 @@
 
 .admin-shell .admin-filters__panel {
   min-width: 0;
+  /* Ancla el popover de filtros avanzados (ver admin-filters__advanced-popover):
+     vive como sibling de panel-inner, no anidado, para escapar el
+     overflow:hidden que panel-inner usa en mobile para animar su alto. */
+  position: relative;
   width: 100%;
 }
 
@@ -2505,16 +2509,27 @@
   transform: rotate(180deg);
 }
 
-/* Panel recesado para "Más filtros": separado de `.admin-filters__groups`
-   para que los avanzados se lean como un nivel propio (raramente usado),
-   no como una extensión de los chips principales. */
-.admin-shell .admin-filters__advanced-panel {
-  border-top: 1px solid var(--admin-hairline);
+/* Filtros avanzados: antes un bloque apilado en flujo (empujaba la tabla
+   hacia abajo apenas se abría); ahora un popover flotante anclado al botón
+   "Más filtros", mismo lenguaje visual que el popover de AdminSavedViews.
+   `.admin-filters__chips-row` es el ancla (position:relative, ver abajo). */
+.admin-shell .admin-filters__advanced-popover {
+  background: var(--admin-surface-raised, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline);
+  border-radius: 14px;
+  box-shadow:
+    0 4px 6px -1px color-mix(in srgb, var(--admin-ink) 8%, transparent),
+    0 16px 32px -8px color-mix(in srgb, var(--admin-ink) 18%, transparent);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 20px;
-  padding-top: 20px;
+  max-width: min(340px, calc(100vw - 32px));
+  min-width: 260px;
+  padding: 16px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 100;
 }
 
 .admin-shell .admin-filters__advanced-label {
@@ -2526,14 +2541,54 @@
   text-transform: uppercase;
 }
 
-/* Los chips del panel avanzado son más chicos para comunicar menor jerarquía.
-   Al ser claramente "secundarios" en tamaño, el usuario no los confunde con
-   los filtros principales de arriba. */
-.admin-shell .admin-filters__advanced-groups {
+.admin-shell .admin-filters__advanced-search {
   align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 9px;
+  color: var(--admin-muted);
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
+  flex: none;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.admin-shell .admin-filters__advanced-search svg {
+  flex: none;
+}
+
+.admin-shell .admin-filters__advanced-search-input {
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink);
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 12.5px;
+  min-width: 0;
+  outline: none;
+  padding: 8px 0;
+}
+
+.admin-shell .admin-filters__advanced-search-input::placeholder {
+  color: var(--admin-muted);
+}
+
+.admin-shell .admin-filters__advanced-empty {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 2px;
+}
+
+/* Los filtros avanzados se apilan en columna: el popover es angosto (~300px),
+   una fila por filtro se lee mejor que forzarlos a compartir el ancho. */
+.admin-shell .admin-filters__advanced-groups {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .admin-shell .admin-filters__advanced-groups .admin-filter-chip {
@@ -2542,22 +2597,10 @@
   padding: 4px 10px;
 }
 
-.admin-shell .admin-filters__advanced-groups .admin-filter-group {
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;
-}
-
+.admin-shell .admin-filters__advanced-groups .admin-filter-group,
 .admin-shell .admin-filters__advanced-groups .admin-filters__select {
-  flex: 1 1 160px;
-  min-width: min(100%, 160px);
-  width: auto;
-}
-
-@media (min-width: 720px) {
-  .admin-shell .admin-filters__advanced-groups {
-    flex-wrap: nowrap;
-  }
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__panel .admin-filter-group--rail {
@@ -2913,21 +2956,31 @@
   position: relative;
 }
 
+/* Antes un link fantasma sin borde — se perdía al lado de los tabs y nadie
+   lo leía como "creá tu propio filtro". Un borde propio + fondo en hover lo
+   marca como acción, no como texto secundario más. */
 .admin-saved-views__add {
   align-items: center;
   background: transparent;
-  border: 0;
-  color: var(--admin-muted);
+  border: 1px solid var(--admin-hairline);
+  border-radius: var(--border-radius-pill, 999px);
+  color: var(--admin-text-secondary, var(--admin-muted));
   cursor: pointer;
   display: flex;
   font-size: 12px;
+  font-weight: 600;
   gap: 5px;
-  padding: 0;
-  transition: color var(--motion-fast, 160ms) ease;
+  padding: 6px 12px 6px 10px;
+  transition:
+    background var(--motion-fast, 160ms) ease,
+    border-color var(--motion-fast, 160ms) ease,
+    color var(--motion-fast, 160ms) ease;
 }
 
 .admin-saved-views__add:hover,
 .admin-saved-views__add.is-open {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-brand-border, var(--admin-hairline-strong));
   color: var(--admin-ink);
 }
 

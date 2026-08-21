@@ -148,7 +148,7 @@ export const ConDescripcion = {
   },
 }
 
-/** Ya comprada: la ficha pasa a ser el registro de lo que canjeó. */
+/** Estado terminal aislado: AthleteProfilePage ya no selecciona esta ficha. */
 export const YaCanjeada = {
   args: { offer: { ...OFFER, redeemed: true }, offers: [{ ...OFFER, redeemed: true }] },
 }
