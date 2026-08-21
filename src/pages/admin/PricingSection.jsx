@@ -45,9 +45,26 @@ const EMPTY_PLAN = {
   retiresAt: '',
 }
 
-// Mercado Pago no se lista: está siempre disponible y no se puede apagar por
-// código. Sólo los canales manuales son opt-in.
+// Los dos canales que un código destraba (`manual_channels`). Mercado Pago va
+// aparte porque es el eje inverso: no se destraba, se cierra
+// (`mercado_pago_enabled`, ver 20260908100000).
 const MANUAL_PAYMENT_CHANNELS = ['bank_transfer', 'cash_pitbull']
+
+/**
+ * Etiqueta de medios de pago del código para la lista.
+ *
+ * Un código que suma un canal manual dice qué habilita; uno que además cerró la
+ * pasarela dice qué es lo único con lo que se puede pagar, que es la
+ * información que cambia la operación —a ese atleta hay que cobrarle a mano—. Un
+ * código que sólo va por Mercado Pago no lleva etiqueta: es el caso por defecto.
+ */
+function codeChannelsBadgeKey(code) {
+  const channels = [...(code.manualChannels ?? [])].sort().join('+')
+  if (!channels) return null
+  return code.mercadoPagoEnabled === false
+    ? `admin.sections.pricing.codeChannelsOnlyBadge.${channels}`
+    : `admin.sections.pricing.manualChannelsBadge.${channels}`
+}
 
 /**
  * Los tres estados de una promoción, en el orden en que los recorre el
@@ -82,9 +99,12 @@ const EMPTY_DISCOUNT_CODE = {
   startsAt: '',
   expiresAt: '',
   active: true,
-  // Canales manuales que el código destraba, además de Mercado Pago (que
-  // siempre está disponible). Vacío = sólo Mercado Pago.
+  // Canales manuales que el código destraba además de la pasarela. Vacío =
+  // ninguno.
   manualChannels: [],
+  // La otra mitad de la matriz: apagarlo cierra Mercado Pago para este código.
+  // Nace abierto, que es el comportamiento histórico de todos los códigos.
+  mercadoPagoEnabled: true,
   // Exclusividad nominal, un email por línea. Vacío = promo abierta.
   inviteesText: '',
 }
@@ -487,6 +507,13 @@ export default function PricingSection({
   // La exclusividad se lee del contador en vivo: el operador tiene que ver
   // cuántas direcciones quedaron cargadas antes de guardar, no después.
   const draftInviteeCount = codeDraft ? parseInvitees(codeDraft.inviteesText).length : 0
+  // Un código sin ningún medio no se puede guardar: el aviso lo dice en el
+  // mismo fieldset, antes de que el operador intente enviar el formulario.
+  const draftHasNoChannel = Boolean(
+    codeDraft &&
+      codeDraft.mercadoPagoEnabled === false &&
+      (codeDraft.manualChannels ?? []).length === 0,
+  )
   useEffect(() => {
     if (!codeFormOpen) return undefined
     const form = codeFormRef.current
@@ -601,6 +628,7 @@ export default function PricingSection({
             expiresAt: toLocalDateTime(source.expiresAt),
             active: source.active,
             manualChannels: source.manualChannels ?? [],
+            mercadoPagoEnabled: source.mercadoPagoEnabled !== false,
             inviteesText: (source.invitees ?? []).join('\n'),
           }
         : { ...EMPTY_DISCOUNT_CODE },
@@ -673,6 +701,16 @@ export default function PricingSection({
     }
     if (codeDraft.audience === 'public' && (codeDraft.manualChannels ?? []).length > 0) {
       setCodeError(t('admin.sections.pricing.publicPromoChannelsInvalid'))
+      return
+    }
+    // Mismos dos checks que el schema y la RPC, adelantados para explicarlos en
+    // el formulario en vez de traducir un 400 del servidor.
+    if (codeDraft.audience === 'public' && codeDraft.mercadoPagoEnabled === false) {
+      setCodeError(t('admin.sections.pricing.publicPromoGatewayInvalid'))
+      return
+    }
+    if (draftHasNoChannel) {
+      setCodeError(t('admin.sections.pricing.codeChannelsEmpty'))
       return
     }
     if (isOffer) {
@@ -1702,11 +1740,9 @@ export default function PricingSection({
                         {t('admin.sections.pricing.promoAudienceBadge.public')}
                       </span>
                     ) : null}
-                    {(code.manualChannels ?? []).length ? (
+                    {codeChannelsBadgeKey(code) ? (
                       <span className="admin-pricing__status admin-pricing__status--manual">
-                        {t(
-                          `admin.sections.pricing.manualChannelsBadge.${[...(code.manualChannels ?? [])].sort().join('+')}`,
-                        )}
+                        {t(codeChannelsBadgeKey(code))}
                       </span>
                     ) : null}
                     {availability.exclusive ? (
@@ -2251,11 +2287,26 @@ export default function PricingSection({
                 </select>
                 <small>{t('admin.sections.pricing.audienceHint')}</small>
               </label>
+              {/* Los tres medios en una sola matriz, en el orden en el que los
+                  ve el atleta. Mercado Pago se puede desmarcar: es lo que
+                  permite una oferta pactada que sólo cierra por transferencia o
+                  en efectivo. Dejar los tres sin marcar no se guarda —el aviso
+                  lo dice antes de intentarlo. */}
               <fieldset
                 className="admin-pricing__channels admin-pricing__wide"
                 disabled={codeDraft.audience === 'public'}
               >
-                <legend>{t('admin.sections.pricing.manualChannelsLegend')}</legend>
+                <legend>{t('admin.sections.pricing.codeChannelsLegend')}</legend>
+                <label className="admin-pricing__toggle">
+                  <input
+                    type="checkbox"
+                    checked={codeDraft.mercadoPagoEnabled !== false}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, mercadoPagoEnabled: event.target.checked })
+                    }
+                  />
+                  <span>{t('admin.sections.pricing.manualChannel.mercado_pago')}</span>
+                </label>
                 {MANUAL_PAYMENT_CHANNELS.map((channel) => (
                   <label className="admin-pricing__toggle" key={channel}>
                     <input
@@ -2276,7 +2327,11 @@ export default function PricingSection({
                 <small>
                   {codeDraft.audience === 'public'
                     ? t('admin.sections.pricing.manualChannelsPublicHint')
-                    : t('admin.sections.pricing.manualChannelsHint')}
+                    : draftHasNoChannel
+                      ? t('admin.sections.pricing.codeChannelsEmpty')
+                      : codeDraft.mercadoPagoEnabled === false
+                        ? t('admin.sections.pricing.codeChannelsWithoutGateway')
+                        : t('admin.sections.pricing.manualChannelsHint')}
                 </small>
               </fieldset>
               <label className="admin-pricing__wide">

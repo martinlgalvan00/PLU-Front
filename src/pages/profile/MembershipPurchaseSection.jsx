@@ -153,8 +153,14 @@ export default function MembershipPurchaseSection({
   const transferOffered = transferSelectable || manualChannelsOpenGlobally
   const cashOffered = cashSelectable || manualChannelsOpenGlobally
   // La pasarela también se cierra por concepto desde Administración. Un cupón no
-  // la reabre: sólo destraba canales manuales.
-  const mercadoPagoOffered = channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
+  // la reabre —para eso sólo sirven los canales manuales—, pero sí la puede
+  // cerrar: un código pactado a un precio que sólo cierra por transferencia o
+  // en efectivo viaja con `mercadoPagoEnabled: false` (20260908100000) y la RPC
+  // rechaza la orden con PLU28.
+  const codeClosesMercadoPago =
+    discountPreview?.valid && discountPreview.mercadoPagoEnabled === false
+  const mercadoPagoOffered =
+    !codeClosesMercadoPago && channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
   // Wise tiene interruptor propio, independiente del canal manual local y de
   // los cupones que lo destraban.
   const wiseOffered = channelOpen(checkoutAvailability, 'membership', 'wise_transfer')
@@ -1158,9 +1164,13 @@ export default function MembershipPurchaseSection({
                     ? t('pages.register.paymentWisePriceHint')
                     : !mercadoPagoOffered && !transferOffered && !cashOffered && !wiseOffered
                       ? t('pages.register.paymentNoChannelHint')
-                      : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
-                        ? t('pages.register.paymentMercadoPagoOnlyHint')
-                        : ''
+                      : // Mercado Pago desaparece del selector sin que el atleta
+                        // haya tocado nada: el código lo cerró y hay que decirlo.
+                        codeClosesMercadoPago
+                        ? t('pages.register.paymentCodeWithoutGatewayHint')
+                        : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
+                          ? t('pages.register.paymentMercadoPagoOnlyHint')
+                          : ''
                 }
                 offers={
                   selectedPlan

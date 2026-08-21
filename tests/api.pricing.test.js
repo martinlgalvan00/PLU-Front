@@ -378,6 +378,46 @@ describe('configuración económica administrativa', () => {
     ).toBe(true)
   })
 
+  it('deja cerrar Mercado Pago para un código restringido', () => {
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        audience: 'code',
+        mercadoPagoEnabled: false,
+        manualChannels: ['cash_pitbull'],
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.mercadoPagoEnabled).toBe(false)
+  })
+
+  it('la pasarela queda abierta si el payload no dice nada', () => {
+    // Comportamiento histórico: es lo que valía para todos los códigos antes de
+    // 20260908100000, y lo que manda un panel desplegado sin el campo.
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.mercadoPagoEnabled).toBe(true)
+  })
+
+  it('no deja un código sin ningún medio de pago', () => {
+    // Se canjea y no hay forma de pagarlo. Mismo check en la RPC y en el
+    // constraint discount_codes_any_channel_check.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ mercadoPagoEnabled: false, manualChannels: [] }),
+      ).success,
+    ).toBe(false)
+  })
+
+  it('no deja que una promoción pública cierre Mercado Pago', () => {
+    // Se aplica sola a todas las compras: cerrarle la pasarela desde acá sería
+    // cerrar el checkout entero desde la pantalla de precios.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ audience: 'public', mercadoPagoEnabled: false }),
+      ).success,
+    ).toBe(false)
+  })
+
   it('cambia estado y audiencia de una promoción en una sola llamada', async () => {
     const { cookie, rpc, target } = await setup()
     try {

@@ -649,3 +649,85 @@
     width: 100%;
   }
 }
+
+/* Con qué paga. El selector reusa el patrón de las elecciones de la
+   inscripción (`field--choice`) porque es la misma pregunta cerrada en la misma
+   ficha: dos controles distintos para lo mismo se leerían como dos formularios.
+   Aparece sólo cuando el código habilita más de un medio. */
+.account-offer__channel {
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 0;
+  max-width: 40rem;
+  min-width: 0;
+  padding-top: clamp(0.9rem, 2vw, 1.15rem);
+}
+
+/* El rótulo se alinea con los del resto de la ficha (código, paquete, datos de
+   la inscripción): son cuatro bloques de la misma columna, y un label de
+   formulario en minúscula rompía esa serie. */
+.account-offer__channel > .field__label {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Liquidación manual en línea. Las reglas del recibo (datos bancarios, botones
+   de copiado, comprobante) son las mismas del modal del checkout: viven en
+   `components/transfer-pay-modal.css`, alcanzadas también por esta clase, para
+   que no existan dos juegos de datos de cobro que se puedan desincronizar. */
+.account-offer__manual {
+  display: grid;
+  gap: 0.75rem;
+  /* Mismo ancho que el desglose y los datos de la inscripción: el recibo es la
+     conclusión de esa columna, no un bloque aparte. Sin el tope sobresalía
+     ~70px a la derecha y se leía como un desborde. */
+  max-width: 40rem;
+  min-width: 0;
+}
+
+/* Efectivo: no hay nada que cobrar acá, así que la conclusión es la referencia
+   que el atleta muestra en la mesa. Se compone como una constancia —regla,
+   importe, referencia en monoespaciado— y no como un aviso de color. */
+.account-offer__cash {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 0.6rem;
+  max-width: 40rem;
+  min-width: 0;
+  padding-top: clamp(0.9rem, 2vw, 1.15rem);
+}
+
+.account-offer__cash-lead {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.account-offer__cash-reference {
+  align-items: baseline;
+  column-gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  row-gap: 0.2rem;
+}
+
+.account-offer__cash-reference span {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-offer__cash-reference code {
+  color: var(--color-text-primary);
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}

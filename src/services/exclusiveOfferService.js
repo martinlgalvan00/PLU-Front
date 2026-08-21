@@ -87,6 +87,70 @@ export function resolveOfferPricing(offer, { paymentMethod = 'mercado_pago' } = 
 const OPEN_PURCHASE_STATUSES = ['pendiente', 'validacion_manual', 'creado']
 
 /**
+ * Medios de pago que habilita el código de la oferta, en el orden en que se
+ * leen: primero la pasarela, después los canales que se cobran a mano.
+ *
+ * Las dos celdas del código no son simétricas (ver la cabecera de
+ * 20260908100000): `manualChannels` ABRE transferencia y/o efectivo aunque
+ * Administración los tenga cerrados —el override viaja al gate de Express—, y
+ * `mercadoPagoEnabled: false` CIERRA la pasarela para este código. Por eso los
+ * canales manuales se ofrecen sólo cuando el código los declara: es lo único
+ * que garantiza que la orden no se caiga con un 409.
+ *
+ * `conceptsOpen` es el interruptor de concepto: el combo acredita afiliación e
+ * inscripción, así que con cualquiera de los dos cerrado no hay nada que cobrar
+ * por ningún canal.
+ */
+export function resolveOfferChannels(offer, { conceptsOpen = true } = {}) {
+  if (!offer || !conceptsOpen) return []
+  const manual = Array.isArray(offer.manualChannels) ? offer.manualChannels : []
+  const channels = []
+  if (offer.mercadoPagoEnabled !== false) channels.push('mercado_pago')
+  if (manual.includes('bank_transfer')) channels.push('bank_transfer')
+  if (manual.includes('cash_pitbull')) channels.push('cash_pitbull')
+  return channels
+}
+
+/**
+ * Canal de la ficha -> medio de pago del checkout. La API llama `manual_link` a
+ * la transferencia; el efectivo viaja con su propio nombre y el backend lo
+ * guarda como `manual_link` + `manual_payment_channel`.
+ */
+export function checkoutMethodForChannel(channel) {
+  if (channel === 'bank_transfer') return 'manual_link'
+  if (channel === 'cash_pitbull') return 'cash_pitbull'
+  return 'mercado_pago'
+}
+
+/**
+ * Transferencia y efectivo no se cobran con el brick: la primera se liquida con
+ * los datos bancarios y un comprobante, el segundo con la referencia que el
+ * atleta muestra el día del evento. Esto devuelve la orden manual que hay que
+ * liquidar —la que se acaba de crear o la que quedó abierta de un intento
+ * anterior— y por qué canal.
+ *
+ * Devuelve null cuando no hay nada manual pendiente: sin orden, con una orden de
+ * Mercado Pago (esa la cobra el brick) o con la compra ya cerrada.
+ */
+export function resolveManualSettlement(offer, createdOrder = null) {
+  const candidate = createdOrder ?? getOfferPurchase(offer)
+  if (!candidate) return null
+  const method = candidate.method ?? candidate.paymentMethod ?? null
+  if (method !== 'manual_link') return null
+  const status = String(candidate.status ?? '')
+  if (status && !OPEN_PURCHASE_STATUSES.includes(status)) return null
+  return {
+    // Una orden manual vieja puede no tener canal guardado: transferencia es el
+    // default histórico de `manual_link`.
+    channel: candidate.manualPaymentChannel ?? 'bank_transfer',
+    orderId: candidate.orderId ?? candidate.paymentId ?? candidate.id ?? null,
+    amount: Number(candidate.amount) || 0,
+    currency: candidate.currency ?? 'ARS',
+    reference: candidate.reference ?? null,
+  }
+}
+
+/**
  * La compra que ocupó el canje, normalizada (`plu_private.offer_code_payload`).
  *
  * `redeemed` se escribe al CREAR la orden, no al cobrarla: sin mirar el estado

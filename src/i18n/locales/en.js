@@ -1094,17 +1094,42 @@ export default {
       yourPrice: 'Your price',
       savings: 'You save {{amount}} against buying both separately.',
       savingsRedeemed: 'You saved {{amount}} against buying both separately.',
-      cta: 'Pay for the offer',
+      cta: {
+        mercado_pago: 'Pay for the offer',
+        bank_transfer: 'Continue with the transfer',
+        cash_pitbull: 'Reserve and pay in cash',
+      },
       entryLegend: 'Your registration details',
       entryHint: 'We take them from your profile. Check them before paying.',
       entryEdit: 'Adjust my details',
-      checkoutNoteHere: 'Payment is processed right here, with the exclusive price of your code.',
+      channelLegend: 'How you want to pay',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Bank transfer',
+        cash_pitbull: 'Cash at the event',
+      },
+      checkoutNote: {
+        mercado_pago:
+          'Payment is processed right here, with the exclusive price of your code.',
+        bank_transfer:
+          'We give you the transfer details right here and you upload the receipt without leaving this page.',
+        cash_pitbull:
+          'You reserve the offer now and pay in cash on event day, with the reference we give you here.',
+      },
       checkoutClosed: 'Payment is closed for now. Your offer stays reserved.',
       checkoutUnavailable: 'We could not open the payment. Please try again in a moment.',
-      payTitle: 'Pay your offer',
+      payTitle: {
+        mercado_pago: 'Pay your offer',
+        bank_transfer: 'Transfer the amount of your offer',
+        cash_pitbull: 'You pay in cash on event day',
+      },
       paySafeNote: 'Secure Mercado Pago checkout, inside your account.',
+      payManualNote: 'Your spot is reserved; the team confirms the payment by hand.',
+      cashLead:
+        'We reserved your offer for {{amount}}. Bring the amount in cash and show this reference at the check-in desk.',
+      cashReference: 'Your order reference',
+      cashFine: 'If you do not pay on event day, the offer is released back to the pool.',
       backToDetail: 'Back to the details',
-      otherMethods: 'Pay by transfer or another method',
       resumeAction: 'Finish paying',
       manualPendingAction: 'Check my payment status',
       orderConcept: '{{event}} membership + registration',
@@ -3023,6 +3048,8 @@ export default {
         'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash at Pitbull will be available soon.',
       paymentNoChannelHint:
         'No payment methods are available right now. Try again later or get in touch.',
+      paymentCodeWithoutGatewayHint:
+        'Your code is not paid through Mercado Pago: the price was agreed for the methods you see here. The team validates the payment by hand.',
       paymentLinkLabel: 'Payment link',
       paymentTransferLabel: 'Bank transfer',
       paymentCashPitbullLabel: 'Cash at Pitbull',

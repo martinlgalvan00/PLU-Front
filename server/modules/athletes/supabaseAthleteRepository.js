@@ -57,6 +57,54 @@ export function createSupabaseAthleteRepository(
     return payload
   }
 
+  /**
+   * Medios de pago que decide un cupón para esta compra. Lectura simple (no
+   * RPC): la redención real, con todas sus validaciones (vencido, agotado, ya
+   * usado por este atleta), sigue pasando únicamente por
+   * `apply_discount_code_to_order` dentro de la misma transacción que crea la
+   * orden — si el cupón resulta inválido ahí, la orden entera se cae, así que
+   * una lectura desactualizada acá nunca deja una orden sin cupón real detrás.
+   *
+   * Las dos celdas no son simétricas (ver la cabecera de 20260908100000):
+   * `manualChannels` ABRE canales que Administración tiene cerrados, y
+   * `mercadoPagoEnabled: false` CIERRA la pasarela para este código.
+   *
+   * Un código que no aplica —inexistente, apagado, fuera de ventana, de otro
+   * alcance— devuelve el estado neutro: no abre ningún canal manual y no cierra
+   * la pasarela. Es lo mismo que comprar sin cupón.
+   */
+  async function discountCodeChannelPolicy(code, scope) {
+    const neutral = { found: false, manualChannels: [], mercadoPagoEnabled: true }
+    if (!code) return neutral
+    const row = assertSupabaseResult(
+      await client
+        .from('discount_codes')
+        .select('active, applies_to, starts_at, expires_at, manual_channels, mercado_pago_enabled')
+        .eq('organization_id', organizationId)
+        .eq('code', String(code).trim().toUpperCase())
+        .maybeSingle(),
+      'No se pudo validar el cupón.',
+    )
+    if (!row || !row.active) return neutral
+    const now = new Date()
+    // Una promo programada todavía no abre nada: sin este chequeo el canal se
+    // ofrecía desde que la promo existía, no desde que empezaba.
+    if (row.starts_at && new Date(row.starts_at) > now) return neutral
+    if (row.expires_at && new Date(row.expires_at) < now) return neutral
+    if (row.applies_to !== scope && row.applies_to !== 'both') return neutral
+    // La lista de invitados NO se chequea acá: esta lectura no conoce al
+    // atleta. Quien no esté invitado ve el canal ofrecido y la orden se cae
+    // con PLU26 al enviarla — el preview (`/me/discount-preview`) sí devuelve
+    // `not_invited` antes, así que el caso queda explicado en pantalla.
+    return {
+      found: true,
+      manualChannels: row.manual_channels ?? [],
+      // Una columna ausente significa la pasarela abierta: es el
+      // comportamiento de todos los códigos anteriores a 20260908100000.
+      mercadoPagoEnabled: row.mercado_pago_enabled !== false,
+    }
+  }
+
   return {
     async register(form, passwordHash) {
       return rpc(
@@ -382,38 +430,13 @@ export function createSupabaseAthleteRepository(
         },
         'No se pudieron leer tus ofertas desbloqueadas.',
       ),
-    // Lectura simple (no RPC): sólo decide si el canal manual se destraba
-    // para esta compra puntual. La redención real, con todas sus validaciones
-    // (vencido, agotado, ya usado por este atleta), sigue pasando únicamente
-    // por apply_discount_code_to_order dentro de la misma transacción que crea
-    // la orden — si el cupón resulta inválido ahí, la orden entera se cae, así
-    // que una lectura desactualizada acá nunca deja una orden manual sin
-    // cupón real detrás.
+    discountCodeChannelPolicy,
     async discountCodeManualEligibility(code, scope, channel) {
       if (!code || !channel) return false
-      const row = assertSupabaseResult(
-        await client
-          .from('discount_codes')
-          .select('active, applies_to, starts_at, expires_at, manual_channels')
-          .eq('organization_id', organizationId)
-          .eq('code', String(code).trim().toUpperCase())
-          .maybeSingle(),
-        'No se pudo validar el cupón.',
-      )
-      if (!row || !row.active) return false
+      const policy = await discountCodeChannelPolicy(code, scope)
       // Un código que sólo destraba transferencia no habilita efectivo: el
       // canal pedido tiene que estar en su lista.
-      if (!(row.manual_channels ?? []).includes(channel)) return false
-      const now = new Date()
-      // Una promo programada todavía no abre nada: sin este chequeo el canal se
-      // ofrecía desde que la promo existía, no desde que empezaba.
-      if (row.starts_at && new Date(row.starts_at) > now) return false
-      if (row.expires_at && new Date(row.expires_at) < now) return false
-      // La lista de invitados NO se chequea acá: esta lectura no conoce al
-      // atleta. Quien no esté invitado ve el canal ofrecido y la orden se cae
-      // con PLU26 al enviarla — el preview (`/me/discount-preview`) sí devuelve
-      // `not_invited` antes, así que el caso queda explicado en pantalla.
-      return row.applies_to === scope || row.applies_to === 'both'
+      return policy.manualChannels.includes(channel)
     },
     createRegistration: (athleteId, data) =>
       rpc(

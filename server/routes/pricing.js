@@ -106,15 +106,20 @@ export const discountCodeSchema = z
     // (plu_private.resolve_public_promo). Apagada = active false, en cualquiera
     // de las dos audiencias: cerrarla no borra si era publica o restringida.
     audience: z.enum(['public', 'code']).default('code'),
-    // Opt-in por cupón y por canal: Mercado Pago siempre está disponible, y
-    // acá se listan los canales manuales que este código destraba además. No
-    // reemplaza el interruptor general de canal manual, lo salta puntualmente
-    // para quien use este código. Lista vacía = sólo Mercado Pago.
+    // Opt-in por cupón y por canal: acá se listan los canales manuales que este
+    // código destraba además de la pasarela. No reemplaza el interruptor
+    // general de canal manual, lo salta puntualmente para quien use este
+    // código. Lista vacía = ningún canal manual destrabado.
     manualChannels: z
       .array(z.enum(['bank_transfer', 'cash_pitbull']))
       .max(2)
       .default([])
       .transform((channels) => [...new Set(channels)]),
+    // La otra mitad de la matriz (20260908100000): apagarlo cierra Mercado Pago
+    // para este código puntual, para una oferta pactada a un precio que sólo
+    // cierra por transferencia o en efectivo. Default true = comportamiento
+    // histórico.
+    mercadoPagoEnabled: z.boolean().default(true),
   })
   .superRefine((code, context) => {
     // Una promo que corre para todos y ademas abre transferencia o efectivo es
@@ -126,6 +131,28 @@ export const discountCodeSchema = z
         path: ['manualChannels'],
         message:
           'Una promocion publica no puede habilitar medios de pago manuales. Abrilos desde Acceso y habilitacion.',
+      })
+    }
+    // Mismo criterio del otro lado: una promo publica se aplica sola a todas
+    // las compras, asi que cerrarle la pasarela cierra el checkout entero desde
+    // la pantalla de precios. Mismo check en la RPC y en el constraint
+    // discount_codes_public_channel_check.
+    if (code.audience === 'public' && !code.mercadoPagoEnabled) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['mercadoPagoEnabled'],
+        message:
+          'Una promocion publica no puede cerrar Mercado Pago. Cerralo desde Acceso y habilitacion.',
+      })
+    }
+    // Un codigo sin ningun canal es un codigo que nadie puede pagar: el atleta
+    // lo canjea y la ficha no tiene un solo medio que ofrecerle.
+    if (!code.mercadoPagoEnabled && code.manualChannels.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['manualChannels'],
+        message:
+          'Si el codigo no acepta Mercado Pago, habilita al menos transferencia o efectivo.',
       })
     }
     // Mismo check que la RPC: una ventana que cierra antes de abrir es una

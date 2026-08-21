@@ -100,7 +100,7 @@ describe('ficha de oferta exclusiva', () => {
     const onSelectEvent = vi.fn()
     const { container } = renderSection({ onStartOfferPayment, onSelectEvent })
     expect(container.querySelectorAll('.account-offer__cta')).toHaveLength(1)
-    fireEvent.change(screen.getByLabelText(/Peso corporal/), { target: { value: '83' } })
+    fireEvent.change(screen.getByLabelText(/^Categoría/), { target: { value: '83' } })
     fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
 
     await waitFor(() => expect(onStartOfferPayment).toHaveBeenCalled())
@@ -124,18 +124,73 @@ describe('ficha de oferta exclusiva', () => {
     // de la oferta.
     const onStartOfferPayment = vi.fn(async () => ({}))
     renderSection({ onStartOfferPayment, events: [] })
-    fireEvent.change(screen.getByLabelText(/Peso corporal/), { target: { value: '83' } })
+    fireEvent.change(screen.getByLabelText(/^Categoría/), { target: { value: '83' } })
     fireEvent.click(screen.getByRole('button', { name: /Procesar el pago de la oferta/ }))
 
     await waitFor(() => expect(onStartOfferPayment).toHaveBeenCalled())
     expect(onStartOfferPayment.mock.calls[0][0].event).toEqual(OFFER.event)
   })
 
-  it('el medio alternativo sigue llevando al checkout de ESE torneo', () => {
+  it('con un solo medio no arma un selector de una opción', () => {
+    renderSection()
+    expect(screen.queryByRole('radiogroup', { name: /Cómo querés pagar/ })).toBe(null)
+  })
+
+  it('ya no manda al checkout de inscripción para pagar por otro medio', () => {
+    // Ese salto perdía la oferta —el wizard no recibía el código— y dejaba al
+    // atleta sin forma de pagar por transferencia. Ahora se paga acá.
     const onSelectEvent = vi.fn()
     renderSection({ onSelectEvent, events: [] })
-    fireEvent.click(screen.getByRole('button', { name: /transferencia u otro medio/ }))
-    expect(onSelectEvent).toHaveBeenCalledWith(OFFER.event)
+    expect(screen.queryByRole('button', { name: /transferencia u otro medio/ })).toBe(null)
+    expect(onSelectEvent).not.toHaveBeenCalled()
+  })
+
+  describe('medios que habilita el código', () => {
+    const CASH_ONLY = {
+      ...OFFER,
+      mercadoPagoEnabled: false,
+      manualChannels: ['cash_pitbull'],
+      fixedPriceManual: 110000,
+    }
+    const THREE_CHANNELS = {
+      ...OFFER,
+      mercadoPagoEnabled: true,
+      manualChannels: ['bank_transfer', 'cash_pitbull'],
+    }
+
+    it('un código sin Mercado Pago no lo ofrece ni lo deja elegir', () => {
+      renderSection({ offer: CASH_ONLY, offers: [CASH_ONLY] })
+      expect(screen.queryByRole('radio', { name: 'Mercado Pago' })).toBe(null)
+      expect(screen.getByRole('button', { name: /Reservar y pagar en efectivo/ })).toBeTruthy()
+    })
+
+    it('cotiza el precio del canal, no el de la pasarela', () => {
+      // `fixedPriceManual` es el importe pactado para transferencia y efectivo:
+      // anunciar el de Mercado Pago sería anunciar un precio que no se cobra.
+      const { container } = renderSection({ offer: CASH_ONLY, offers: [CASH_ONLY] })
+      const total = container.querySelector('.account-offer__ledger-row--total dd')
+      expect(total.textContent).toContain('110.000')
+    })
+
+    it('con los tres medios abiertos deja elegir y recotiza al cambiar', () => {
+      renderSection({ offer: THREE_CHANNELS, offers: [THREE_CHANNELS] })
+      expect(screen.getByRole('radio', { name: 'Mercado Pago' }).checked).toBe(true)
+      fireEvent.click(screen.getByRole('radio', { name: 'Efectivo en el evento' }))
+      expect(screen.getByRole('radio', { name: 'Efectivo en el evento' }).checked).toBe(true)
+      expect(screen.getByRole('button', { name: /Reservar y pagar en efectivo/ })).toBeTruthy()
+    })
+
+    it('crea la orden con el medio elegido y no con Mercado Pago', async () => {
+      const onStartOfferPayment = vi.fn(async () => ({}))
+      renderSection({ offer: THREE_CHANNELS, offers: [THREE_CHANNELS], onStartOfferPayment })
+      fireEvent.click(screen.getByRole('radio', { name: 'Transferencia bancaria' }))
+      fireEvent.change(screen.getByLabelText(/^Categoría/), { target: { value: '83' } })
+      fireEvent.click(screen.getByRole('button', { name: /Continuar con la transferencia/ }))
+
+      await waitFor(() => expect(onStartOfferPayment).toHaveBeenCalled())
+      // `manual_link` es el nombre que usa la API para la transferencia.
+      expect(onStartOfferPayment.mock.calls[0][0].paymentMethod).toBe('manual_link')
+    })
   })
 
   it('no cobra con un peso corporal inválido', async () => {

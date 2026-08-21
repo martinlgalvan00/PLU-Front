@@ -7,11 +7,15 @@ import { getFormOptions } from '../../lib/formOptions.js'
 import { validateCompetitionFields } from '../../lib/validation.js'
 import {
   buildOfferResumeOrder,
+  checkoutMethodForChannel,
   getOfferState,
+  resolveManualSettlement,
+  resolveOfferChannels,
   resolveOfferPricing,
 } from '../../services/exclusiveOfferService.js'
 import { ChoiceField, Field } from '../../components/ui/FormFields.jsx'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
+import TransferReceipt from '../../components/checkout/TransferReceipt.jsx'
 import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
 
 const COMPETITION_FIELDS = ['division', 'category', 'estimatedWeight']
@@ -31,26 +35,35 @@ function competitionEntryOf(athlete) {
 /**
  * Ficha "Oferta exclusiva" — sólo existe para quien canjeó un código secreto.
  *
- * Tesis: esta pantalla tiene que sentirse privada y verificable, porque ayuda al
- * atleta que canjeó un código a confirmar qué desbloqueó y **pagarlo sin salir
- * de la pestaña que lo desbloqueó**, mediante una liquidación única que se
- * convierte en escritorio de cobro en el mismo lugar.
+ * Tesis: esta pantalla tiene que sentirse privada y liquidable, porque ayuda al
+ * atleta que canjeó un código a confirmar qué desbloqueó y **pagarlo con el
+ * medio que su código habilita sin salir de la pestaña que lo desbloqueó**,
+ * mediante una liquidación única que se convierte en escritorio de cobro en el
+ * mismo lugar.
  *
  * Orden de lectura: (1) qué código canjeó — es lo que vino a confirmar,
  * (2) qué es la oferta y para qué torneo, (3) el precio y contra qué se compara,
- * (4) los datos de su inscripción, (5) el cobro. Un solo acento (oro, que en PLU
- * es distinción/membresía), una sola acción principal por paso, sin cards
- * anidadas: el desglose son filas con reglas.
+ * (4) los datos de su inscripción, (5) con qué paga, (6) el cobro. Un solo
+ * acento (oro, que en PLU es distinción/membresía), una sola acción principal
+ * por paso, sin cards anidadas: el desglose son filas con reglas.
+ *
+ * Los medios los decide el código, no esta pantalla: `resolveOfferChannels`
+ * cruza lo que el código habilita (`manualChannels`) con lo que cierra
+ * (`mercadoPagoEnabled`, 20260908100000). Un código pactado para cobrarse en
+ * efectivo no ofrece la pasarela, y el precio se recotiza por canal —
+ * transferencia y efectivo pueden tener su propio importe.
  *
  * Dos pasos en el mismo espacio, no dos pantallas: `revisar` y `pagar` se
  * intercambian con `MotionContentSwap` en modo `sync` para que la tarjeta no
  * colapse entre uno y otro. La dirección del swap dice si se avanzó o se
- * volvió.
+ * volvió. Antes, todo lo que no fuera Mercado Pago mandaba al wizard de
+ * inscripción: ese salto perdía la oferta —el wizard no recibía el código— y
+ * dejaba al atleta sin forma de pagar por transferencia.
  *
  * La ficha no confirma ningún pago: crea la orden contra la misma RPC que el
- * checkout (que vuelve a validar código, alcance y precio) y el cobro lo hace el
- * Brick de Mercado Pago. La acreditación de afiliación e inscripción sigue
- * llegando por el webhook.
+ * checkout (que vuelve a validar código, alcance, canal y precio); el cobro lo
+ * hace el Brick de Mercado Pago, o lo valida Finanzas contra el comprobante. La
+ * acreditación de afiliación e inscripción sigue llegando por el webhook.
  */
 export default function ExclusiveOfferSection({
   offer,
@@ -71,6 +84,10 @@ export default function ExclusiveOfferSection({
   const [submitting, setSubmitting] = useState(false)
   const [checkoutError, setCheckoutError] = useState('')
   const [settled, setSettled] = useState(false)
+  // Canal elegido. Nace en null a propósito: el default sale de lo que el
+  // código habilita, que se resuelve en el render (`activeChannel`), así no hay
+  // un efecto que corrija la selección después de pintarla.
+  const [channel, setChannel] = useState(null)
   // Prellenado sincrónico y no por efecto: resuelto después, la ficha ya habría
   // decidido que faltan datos y el formulario quedaría abierto para siempre.
   const [entry, setEntry] = useState(() => competitionEntryOf(athlete))
@@ -83,7 +100,27 @@ export default function ExclusiveOfferSection({
   const prefilledRef = useRef(athlete?.id ?? null)
   const payRef = useRef(null)
 
-  const pricing = useMemo(() => resolveOfferPricing(offer), [offer])
+  // El combo acredita afiliación e inscripción: con cualquiera de los dos
+  // conceptos cerrado desde Administración no hay nada que cobrar por ningún
+  // canal. Default abierto (`!== false`) para no cerrar la venta por una
+  // lectura incompleta; el 409 del backend sigue siendo la última palabra.
+  const conceptsOpen =
+    checkoutAvailability.membershipEnabled !== false &&
+    checkoutAvailability.registrationEnabled !== false
+  const channels = useMemo(
+    () => resolveOfferChannels(offer, { conceptsOpen }),
+    [conceptsOpen, offer],
+  )
+  const activeChannel = channels.includes(channel) ? channel : (channels[0] ?? null)
+  const paymentMethod = checkoutMethodForChannel(activeChannel)
+  // Con el cobro cerrado no hay canal activo, pero el copy igual tiene que
+  // resolver a una clave existente: la pasarela es el caso por defecto.
+  const copyChannel = activeChannel ?? 'mercado_pago'
+
+  const pricing = useMemo(
+    () => resolveOfferPricing(offer, { paymentMethod }),
+    [offer, paymentMethod],
+  )
   const state = useMemo(() => getOfferState(offer), [offer])
   const formOptions = useMemo(() => getFormOptions(t), [t])
 
@@ -108,10 +145,8 @@ export default function ExclusiveOfferSection({
   // Un perfil sin peso declarado no puede confirmarse de un vistazo: ahí el
   // formulario se abre solo, con el campo que falta a la vista.
   const entryComplete = useMemo(
-    () =>
-      validateCompetitionFields({ ...entry, paymentMethod: 'mercado_pago' }, COMPETITION_FIELDS, t)
-        .success,
-    [entry, t],
+    () => validateCompetitionFields({ ...entry, paymentMethod }, COMPETITION_FIELDS, t).success,
+    [entry, paymentMethod, t],
   )
   useEffect(() => {
     if (!entryComplete) setEditingEntry(true)
@@ -119,8 +154,8 @@ export default function ExclusiveOfferSection({
 
   // Una compra que quedó impaga se retoma acá mismo: es el único lugar donde el
   // atleta entiende qué está pagando. `buildOfferResumeOrder` devuelve null si
-  // la orden es de transferencia —esa se resuelve con comprobante, no con el
-  // Brick—, y entonces la ficha explica el estado en vez de ofrecer un cobro.
+  // la orden no se cobra con el brick —transferencia y efectivo se resuelven con
+  // comprobante o el día del evento—, y para esas está `manualSettlement`.
   const resumeOrder = useMemo(
     () =>
       buildOfferResumeOrder(offer, {
@@ -131,6 +166,10 @@ export default function ExclusiveOfferSection({
       }),
     [athlete, offer, t],
   )
+  const activeOrder = order ?? resumeOrder
+  // La liquidación manual pendiente: la de la orden que se acaba de crear o la
+  // que quedó abierta de un intento anterior.
+  const manualSettlement = useMemo(() => resolveManualSettlement(offer, order), [offer, order])
 
   // Al entrar en el paso de pago, el foco va al encabezado del escritorio: sin
   // esto el teclado quedaba en un botón que ya no existe.
@@ -153,11 +192,9 @@ export default function ExclusiveOfferSection({
   // seguidas, título y bajada.
   const showLead = leadText.trim() !== campaignTitle.trim()
   const checkoutEvent = catalogEvent ?? offer.event
-  const mercadoPagoOpen =
-    checkoutAvailability.membershipEnabled !== false &&
-    checkoutAvailability.registrationEnabled !== false
-  const activeOrder = order ?? resumeOrder
-  const payDisabled = submitting || !mercadoPagoOpen
+  const checkoutOpen = channels.length > 0
+  const payDisabled = submitting || !checkoutOpen
+  const settleChannel = manualSettlement?.channel ?? (step === 'pay' ? 'mercado_pago' : activeChannel)
 
   function updateEntry(event) {
     const { name, value } = event.target
@@ -168,9 +205,9 @@ export default function ExclusiveOfferSection({
 
   /**
    * Crea la orden del combo con el código de la oferta y abre el escritorio de
-   * cobro. El código viaja en los dos campos porque cumple los dos roles:
-   * destraba el combo restringido y fija el importe promocional. Las dos cosas
-   * las vuelve a validar el servidor.
+   * cobro por el canal elegido. El código viaja en los dos campos porque cumple
+   * los dos roles: destraba el combo restringido y fija el importe promocional.
+   * Las dos cosas —y el canal— las vuelve a validar el servidor.
    */
   async function payHere() {
     if (payDisabled) return
@@ -179,11 +216,7 @@ export default function ExclusiveOfferSection({
       return
     }
     setProfileWarning(false)
-    const validation = validateCompetitionFields(
-      { ...entry, paymentMethod: 'mercado_pago' },
-      COMPETITION_FIELDS,
-      t,
-    )
+    const validation = validateCompetitionFields({ ...entry, paymentMethod }, COMPETITION_FIELDS, t)
     if (!validation.success) {
       setEntryErrors(validation.errors)
       setEditingEntry(true)
@@ -196,7 +229,7 @@ export default function ExclusiveOfferSection({
       const result = await onStartOfferPayment?.({
         offer,
         event: checkoutEvent,
-        paymentMethod: 'mercado_pago',
+        paymentMethod,
         division: entry.division,
         category: entry.category,
         bodyweightKg: Number(String(entry.estimatedWeight).replace(',', '.')),
@@ -211,6 +244,10 @@ export default function ExclusiveOfferSection({
       }
       setOrder(result.createdOrder)
       setStep('pay')
+      // Una orden manual no se cobra acá: queda esperando comprobante o el día
+      // del evento. Se relee la oferta para que, al volver, la ficha ofrezca
+      // retomar ESA orden en vez de crear otra.
+      if (result.createdOrder.paymentMethod !== 'mercado_pago') void onOfferRefresh?.()
     } catch (error) {
       setCheckoutError(error?.message ?? t('account.offer.checkoutUnavailable'))
     } finally {
@@ -316,7 +353,7 @@ export default function ExclusiveOfferSection({
                 {t('account.offer.redeemedAction')}
               </button>
             </div>
-          ) : step === 'pay' && activeOrder ? (
+          ) : step === 'pay' && (manualSettlement || activeOrder) ? (
             <div className="account-offer__settle">
               <div className="account-offer__settle-head">
                 <h3
@@ -325,18 +362,62 @@ export default function ExclusiveOfferSection({
                   tabIndex={-1}
                   id="account-offer-pay"
                 >
-                  {t('account.offer.payTitle')}
+                  {t(`account.offer.payTitle.${settleChannel}`)}
                 </h3>
                 <p className="account-offer__settle-note">
                   <ShieldCheck size={14} aria-hidden />
-                  {t('account.offer.paySafeNote')}
+                  {t(
+                    manualSettlement
+                      ? 'account.offer.payManualNote'
+                      : 'account.offer.paySafeNote',
+                  )}
                 </p>
               </div>
-              <MercadoPagoEmbeddedCheckout
-                order={activeOrder}
-                presentation="settle"
-                onResult={handlePaymentResult}
-              />
+              {/* Cada canal se liquida como corresponde: la pasarela con el
+                  brick, la transferencia con los datos bancarios y el
+                  comprobante, el efectivo con la referencia que el atleta
+                  muestra en el evento. Ninguno confirma el pago acá. */}
+              {manualSettlement ? (
+                manualSettlement.channel === 'cash_pitbull' ? (
+                  <div className="account-offer__cash">
+                    <p className="account-offer__cash-lead">
+                      {t('account.offer.cashLead', {
+                        amount: money(
+                          manualSettlement.amount,
+                          locale,
+                          manualSettlement.currency,
+                        ),
+                      })}
+                    </p>
+                    {manualSettlement.reference ? (
+                      <p className="account-offer__cash-reference">
+                        <span>{t('account.offer.cashReference')}</span>
+                        <code>{manualSettlement.reference}</code>
+                      </p>
+                    ) : null}
+                    <p className="account-offer__fine">{t('account.offer.cashFine')}</p>
+                  </div>
+                ) : (
+                  // El recibo comparte los datos bancarios con el modal del
+                  // checkout (`TransferReceipt`); `account-offer__manual` es el
+                  // alcance con el que esas reglas también aplican en línea.
+                  <div className="account-offer__manual">
+                    <TransferReceipt
+                      athlete={athlete}
+                      channel={manualSettlement.channel}
+                      orderId={manualSettlement.orderId}
+                      purpose="competition"
+                      warningId="account-offer-transfer-verify"
+                    />
+                  </div>
+                )
+              ) : (
+                <MercadoPagoEmbeddedCheckout
+                  order={activeOrder}
+                  presentation="settle"
+                  onResult={handlePaymentResult}
+                />
+              )}
               <button
                 type="button"
                 className="account-offer__settle-back"
@@ -415,13 +496,33 @@ export default function ExclusiveOfferSection({
                 </div>
               )}
 
+              {/* El selector aparece sólo cuando hay algo que elegir: con un
+                  único medio habilitado, un radiogroup de una opción es ruido y
+                  la nota de abajo ya dice con qué se paga. */}
+              {!state.resumable && channels.length > 1 ? (
+                <ChoiceField
+                  className="account-offer__channel"
+                  label={t('account.offer.channelLegend')}
+                  name="offer-payment-channel"
+                  options={channels.map((option) => [
+                    option,
+                    t(`account.offer.channel.${option}`),
+                  ])}
+                  value={activeChannel}
+                  onChange={(event) => {
+                    setChannel(event.target.value)
+                    setCheckoutError('')
+                  }}
+                />
+              ) : null}
+
               {/* Un solo enunciado por estado: con la compra ya iniciada, el
                   aviso de arriba explica lo mismo y dos reglas doradas seguidas
                   se leen como una repetición. */}
-              {mercadoPagoOpen ? (
+              {checkoutOpen ? (
                 state.resumable ? null : (
                   <p className="account-offer__checkout-note">
-                    {t('account.offer.checkoutNoteHere')}
+                    {t(`account.offer.checkoutNote.${copyChannel}`)}
                   </p>
                 )
               ) : (
@@ -432,7 +533,7 @@ export default function ExclusiveOfferSection({
 
               <div className="account-offer__actions">
                 {state.resumable ? (
-                  activeOrder ? (
+                  manualSettlement || activeOrder ? (
                     <button
                       type="button"
                       className="account-offer__cta"
@@ -451,27 +552,18 @@ export default function ExclusiveOfferSection({
                     </button>
                   )
                 ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="account-offer__cta"
-                      disabled={payDisabled}
-                      onClick={payHere}
-                    >
-                      {submitting ? (
-                        <LoaderCircle className="is-spinning" size={16} aria-hidden />
-                      ) : null}
-                      {submitting ? t('common.loading') : t('account.offer.cta')}
-                      {submitting ? null : <ArrowRight size={16} aria-hidden />}
-                    </button>
-                    <button
-                      type="button"
-                      className="account-offer__notice-action"
-                      onClick={goToFullCheckout}
-                    >
-                      {t('account.offer.otherMethods')}
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    className="account-offer__cta"
+                    disabled={payDisabled}
+                    onClick={payHere}
+                  >
+                    {submitting ? (
+                      <LoaderCircle className="is-spinning" size={16} aria-hidden />
+                    ) : null}
+                    {submitting ? t('common.loading') : t(`account.offer.cta.${copyChannel}`)}
+                    {submitting ? null : <ArrowRight size={16} aria-hidden />}
+                  </button>
                 )}
               </div>
 
