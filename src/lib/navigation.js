@@ -54,7 +54,6 @@ export const ACCOUNT_PAYMENTS_TAB = 'account-payments'
  */
 export const ACCOUNT_TAB_IDS = [
   DEFAULT_ACCOUNT_TAB,
-  ACCOUNT_BENEFITS_TAB,
   // Segunda posición y no al final: una oferta exclusiva con cupo y ventana no
   // puede quedar escondida detrás de Seguridad.
   ACCOUNT_OFFER_TAB,

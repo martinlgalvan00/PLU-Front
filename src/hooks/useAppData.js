@@ -916,6 +916,7 @@ export function useAppData() {
           name: athlete.fullName,
           email: athlete.email,
         })
+        markSignedIn(sessionDisplayName({ role: 'athlete_plu', name: athlete.fullName }, { short: true }))
         return { athlete, confirmation, emailVerification }
       } catch (error) {
         if (error instanceof ApiError) {

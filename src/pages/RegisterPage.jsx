@@ -19,6 +19,7 @@ import {
   Globe,
   MapPin,
   Dumbbell,
+  KeyRound,
   LockKeyhole,
   ShieldCheck,
   Tag,
@@ -466,6 +467,7 @@ export default function RegisterPage({
   // que permite reenviarlo al crear la orden: el servidor lo vuelve a exigir.
   const [comboCode, setComboCode] = useState('')
   const [discountChecking, setDiscountChecking] = useState(false)
+  const [discountOpen, setDiscountOpen] = useState(false)
   const [discountError, setDiscountError] = useState('')
   // Código secreto recién canjeado. No es lo mismo que `discountPreview`: el
   // preview dice cuánto se cobra, esto dice QUÉ se desbloqueó, y es lo único que
@@ -601,6 +603,7 @@ export default function RegisterPage({
    * en memoria y el servidor lo revalida al crear la orden.
    */
   async function commitUnlockedCode(code, preview, { redirect = true, offer = null } = {}) {
+    setDiscountOpen(true)
     setDiscountPreview(preview)
     setComboCode(code)
     setPurchaseType('combo')
@@ -2615,8 +2618,8 @@ export default function RegisterPage({
                             {t('pages.register.discountRemove')}
                           </button>
                         </div>
-                      ) : (
-                        <>
+                      ) : discountOpen ? (
+                        <div className="account-discount__field">
                           <label className="visually-hidden" htmlFor="registration-discount-code">
                             {t('pages.register.discountLabel')}
                           </label>
@@ -2650,6 +2653,17 @@ export default function RegisterPage({
                                   onChange={(event) =>
                                     setDiscountCodeInput(event.target.value.toUpperCase())
                                   }
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault()
+                                      void applyDiscountCode()
+                                      return
+                                    }
+                                    if (event.key === 'Escape') {
+                                      event.preventDefault()
+                                      clearDiscountCode()
+                                    }
+                                  }}
                                 />
                                 <CodeScanButton
                                   disabled={submitting || discountChecking}
@@ -2664,7 +2678,7 @@ export default function RegisterPage({
                                   disabled={
                                     submitting || discountChecking || !discountCodeInput.trim()
                                   }
-                                  onClick={applyDiscountCode}
+                                  onClick={() => applyDiscountCode()}
                                 >
                                   {discountChecking
                                     ? t('pages.register.discountChecking')
@@ -2679,7 +2693,19 @@ export default function RegisterPage({
                               {discountError}
                             </p>
                           ) : null}
-                        </>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="code-band-toggle account-discount__toggle"
+                          disabled={submitting}
+                          onClick={openDiscountField}
+                        >
+                          <span className="code-band-toggle__seal" aria-hidden>
+                            <KeyRound size={13} />
+                          </span>
+                          {t('account.membership.discountToggle')}
+                        </button>
                       )}
                     </div>
                   ) : null}

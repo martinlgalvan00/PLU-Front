@@ -204,15 +204,6 @@ export default function AthleteProfilePage({
         onNavigate={onNavigate}
       />
     ),
-    [ACCOUNT_BENEFITS_TAB]: (
-      <PromotionBenefitsSection
-        session={session}
-        hasExclusiveOffer={Boolean(primaryOffer)}
-        onNavigate={onNavigate}
-        onNavigateSection={setActiveTab}
-        onOfferUnlocked={loadUnlockedOffers}
-      />
-    ),
     'account-offer': (
       <ExclusiveOfferSection
         offer={primaryOffer}
