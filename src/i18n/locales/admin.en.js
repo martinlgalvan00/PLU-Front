@@ -688,20 +688,24 @@ export default {
       offerPrice: 'Offer price via Mercado Pago (ARS)',
       offerPricePlaceholder: 'Combo price',
       offerPriceHint:
-        'What whoever redeems the offer pays via Mercado Pago. Empty = it charges what that event combo already costs.',
+        'What whoever redeems the offer pays via Mercado Pago. With an amount here the code is the offer and no combo needs to exist; empty charges what that event combo already costs.',
       offerPriceOptional: 'Optional. Empty charges the event combo price.',
+      offerPriceCeiling: 'It must be lower than {{price}}, which is what is paid today without the code.',
+      offerPlanLabel: 'Membership in the package',
+      offerPlanPlaceholder: 'Choose the membership',
+      offerPlanHint:
+        'The membership bundled together with the registration. You are asked because more than one is current.',
       offerEventLabel: 'Offer registration',
       offerEventPlaceholder: 'Choose the registration',
       offerEventComboPrice: 'combo {{price}}',
       offerEventHint:
-        'The offer replaces the combo price only for whoever redeems the code. Only tournaments with an enabled, Restricted combo are listed.',
+        'The registration bundled in the package. The offer only applies to whoever redeems the code: if the tournament already has a combo, it replaces it for that person.',
       offerEventRequired: 'Choose which registration the exclusive offer applies to.',
-      offerComboMissing:
-        'That registration does not have a membership + registration combo configured yet. Set it up above before creating the offer.',
-      offerComboVisibilityRequired:
-        'The exclusive offer requires that combo to be enabled and set to Restricted.',
+      offerComboRequiredWithoutPrice:
+        'Without its own price the offer charges that tournament’s combo, and that tournament has no enabled combo. Set a price or load the combo.',
+      offerPlanRequired: 'Choose which membership the offer bundles.',
       offerPriceTooHigh:
-        'The offer price must be lower than that registration’s combo price ({{price}}).',
+        'The offer price must be lower than what is already paid without the code ({{price}}).',
       exclusiveFlowEyebrow: 'Secret flow',
       exclusiveFlowTitle: 'Private offer page',
       exclusiveFlowLead:

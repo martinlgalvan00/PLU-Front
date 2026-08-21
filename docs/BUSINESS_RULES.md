@@ -41,7 +41,7 @@ concepto. El frontend nunca puede enviar el monto autoritativo de una orden.
 Una oferta conjunta vive en `event_combo_offers`, referencia una versión de
 afiliación de pago único y no puede superar la suma del plan más la inscripción.
 La compra se crea con `create_membership_registration_combo_order`: bajo una
-misma transacción bloquea atleta, evento, oferta y plan; reserva el cupo; crea
+misma transacción bloquea atleta, evento, oferta —si existe— y plan; reserva el cupo; crea
 una sola `athlete_payment_order` con `concept=combo`; y vincula a esa orden la
 afiliación y la inscripción. El precio, la moneda y el plan siempre se releen
 del catálogo en PostgreSQL y nunca llegan como datos autoritativos del browser.
@@ -72,16 +72,31 @@ El tercero tiene dos caras en la base y una sola decisión en pantalla: con impo
 propio se guarda como `offer` y cobra ese importe; sin importe se guarda como
 `access` y cobra lo que ya cuesta el combo del evento. En los dos casos hay que
 instanciar qué oferta se abre —hoy la única es el paquete de afiliación +
-inscripción de un evento (`event_combo_offers`)— y el evento es obligatorio: un
-código de acceso sin evento no desbloquea nada.
+inscripción de un evento— y el evento es obligatorio: un código de acceso sin
+evento no desbloquea nada. Con importe propio el paquete lo define el código
+(`discount_codes.membership_plan_id`); sin importe, el combo del evento
+(`event_combo_offers`), que ahí pasa a ser obligatorio.
 
 Una **oferta exclusiva** es un `discount_codes` con `kind='offer'`: un código
-secreto que no descuenta sino que desbloquea el combo de una inscripción y le
-fija su propio precio. Exige `applies_to='combo'`, `audience='code'`,
-`event_id` (a qué inscripción aplica) y un `fixed_price` menor al precio del
-combo de ese evento; el alta lo rechaza si la inscripción todavía no tiene un
-combo habilitado y Restringido. `kind='access'` sigue siendo el desbloqueo sin
-precio.
+secreto que no descuenta sino que vende el paquete de afiliación + inscripción a
+su propio precio. Exige `applies_to='combo'`, `audience='code'`, `event_id` (a
+qué inscripción aplica), `membership_plan_id` (qué afiliación empaqueta) y un
+`fixed_price` menor a lo que ese atleta pagaría sin el código: el precio del
+combo si el evento tiene uno encendido, o la suma del plan más la inscripción si
+no lo tiene.
+
+**No hace falta cargar un combo para crear una oferta.** El código se sostiene
+solo: trae su paquete, su precio y su ventana. Si el evento no tiene combo
+vigente, el checkout resuelve el paquete con la llave que el atleta ya canjeó
+(`discount_code_unlocks`), crea la orden al precio de lista y el código la baja
+al importe pactado —la orden nunca nace por debajo del catálogo sin un código
+que la baje—. El combo del evento sigue existiendo como producto público, con su
+precio y su visibilidad, y borrar la afiliación que una oferta empaqueta queda
+bloqueado mientras esa oferta exista.
+
+`kind='access'` sigue siendo el desbloqueo sin precio, y es el único caso que
+todavía exige el combo cargado: sin importe propio, lo que se cobra es
+exactamente el precio de ese combo.
 
 El alcance por inscripción (`discount_codes.event_id`, opcional para el resto de
 las modalidades) se verifica en el canje contra el evento **real** de la orden

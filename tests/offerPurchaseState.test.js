@@ -74,10 +74,14 @@ describe('estado de la compra en el payload (migración)', () => {
    * condicion financiada y el aviso manual sin perder los campos anteriores.
    * 20260912100000 lo redefine para exponer `financed` del propio código: la
    * ficha necesita anunciar el pago delegable ANTES de crear la orden, y hasta
-   * ahí sólo llegaba la condición del combo del evento.
+   * ahí sólo llegaba la condición del combo del evento. 20260913100000 lo
+   * redefine para que `membershipPlan` salga del código cuando la oferta trae su
+   * propia afiliación: sin eso, una oferta sin combo mostraba la ficha sin
+   * paquete y sin ahorro. Los campos anteriores quedan intactos —lo verifica el
+   * test de arriba, que lee la definición vigente, no este archivo—.
    */
   it('es esta migración la que está vigente', () => {
-    expect(lastPayloadMigration()).toBe('20260912100000_promo_code_financing.sql')
+    expect(lastPayloadMigration()).toBe('20260913100000_offer_code_without_combo.sql')
   })
 
   it('la definición vigente también dice qué medios habilita el código', () => {

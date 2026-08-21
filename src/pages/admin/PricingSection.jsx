@@ -136,8 +136,12 @@ const EMPTY_DISCOUNT_CODE = {
   fixedPriceManual: '',
   appliesTo: 'membership',
   // A qué inscripción aplica. Vacío = cualquiera. Obligatorio en 'offer': la
-  // oferta se cotiza contra el combo de ese evento.
+  // oferta empaqueta la afiliación con esa inscripción.
   eventId: '',
+  // Qué afiliación empaqueta la oferta. Vacío la resuelve el servidor —la del
+  // combo del torneo, o la única de pago único vigente—, así que el campo sólo
+  // se muestra cuando hay más de una y la elección es real.
+  membershipPlanId: '',
   maxRedemptions: '',
   startsAt: '',
   expiresAt: '',
@@ -569,6 +573,34 @@ export default function PricingSection({
   // oferta con y sin precio propio son dos modalidades del mismo tipo.
   const draftCodeType = codeDraft ? codeTypeOf(codeDraft.kind) : 'percent'
   const draftOpensOffer = draftCodeType === 'offer_access'
+  /**
+   * Qué afiliación empaqueta la oferta, en el mismo orden que resuelve
+   * `staff_upsert_discount_code`: la elegida en el formulario, la del combo del
+   * torneo, o la única de pago único vigente. Con una sola afiliación vigente
+   * —el caso real— no hay nada que preguntar y el campo no aparece.
+   */
+  const offerPlan = useMemo(() => {
+    const chosen = oneTimePlans.find((plan) => plan.id === codeDraft?.membershipPlanId)
+    if (chosen) return chosen
+    const comboPlan = oneTimePlans.find(
+      (plan) => plan.id === selectedOfferEvent?.comboOffer?.membershipPlanId,
+    )
+    if (comboPlan) return comboPlan
+    return oneTimePlans.length === 1 ? oneTimePlans[0] : null
+  }, [codeDraft?.membershipPlanId, oneTimePlans, selectedOfferEvent])
+  /**
+   * Techo del precio de la oferta: lo que ese atleta pagaría sin el código. Es
+   * el precio del combo cuando el torneo tiene uno encendido —podría comprarlo
+   * igual— y la suma de las partes cuando no. Mismo cálculo que la RPC, para
+   * que el formulario explique el rechazo en vez de traducir un 400.
+   */
+  const offerCeiling = useMemo(() => {
+    if (!selectedOfferEvent || !offerPlan) return null
+    const listTotal =
+      Number(offerPlan.price ?? 0) + Number(selectedOfferEvent.registrationPrice ?? 0)
+    const combo = selectedOfferEvent.comboOffer
+    return combo?.active ? Math.min(Number(combo.price), listTotal) : listTotal
+  }, [offerPlan, selectedOfferEvent])
   useEffect(() => {
     if (!codeFormOpen) return undefined
     const form = codeFormRef.current
@@ -681,6 +713,7 @@ export default function PricingSection({
             fixedPriceManual: source.fixedPriceManual ?? '',
             appliesTo: source.appliesTo,
             eventId: source.eventId ?? '',
+            membershipPlanId: source.membershipPlanId ?? '',
             maxRedemptions: source.maxRedemptions ?? '',
             startsAt: toLocalDateTime(source.startsAt),
             expiresAt: toLocalDateTime(source.expiresAt),
@@ -809,23 +842,26 @@ export default function PricingSection({
         return
       }
       const offerEvent = configuration.events?.find((item) => item.id === codeDraft.eventId)
-      // Sin combo cargado no hay qué ofertar: el combo define qué plan de
-      // afiliación se empaqueta y contra qué precio se compara la oferta.
-      if (!offerEvent?.comboOffer) {
-        setCodeError(t('admin.sections.pricing.offerComboMissing'))
+      // Una oferta SIN precio propio cobra el del combo del torneo: ahí el
+      // combo sigue siendo obligatorio. Con precio propio el código ES la
+      // oferta y no hace falta cargar nada antes (20260913100000).
+      if (isAccess && !offerEvent?.comboOffer?.active) {
+        setCodeError(t('admin.sections.pricing.offerComboRequiredWithoutPrice'))
         return
       }
-      if (!offerEvent.comboOffer.active || offerEvent.comboOffer.audience !== 'code') {
-        setCodeError(t('admin.sections.pricing.offerComboVisibilityRequired'))
+      // Sin afiliación resuelta no hay paquete que ofrecer: pasa sólo cuando
+      // hay más de una vigente y el operador todavía no eligió.
+      if (isOffer && !offerPlan) {
+        setCodeError(t('admin.sections.pricing.offerPlanRequired'))
         return
       }
-      // Sólo se compara cuando la oferta declara un importe propio: sin
-      // precio cobra exactamente el del combo, y compararla contra sí misma
+      // Sólo se compara cuando la oferta declara un importe propio: sin precio
+      // cobra exactamente el del combo, y compararla contra sí misma
       // rechazaría una oferta válida.
-      if (isOffer && effectiveFixedPrice >= Number(offerEvent.comboOffer.price)) {
+      if (isOffer && offerCeiling != null && effectiveFixedPrice >= offerCeiling) {
         setCodeError(
           t('admin.sections.pricing.offerPriceTooHigh', {
-            price: money(offerEvent.comboOffer.price, locale),
+            price: money(offerCeiling, locale),
           }),
         )
         return
@@ -2295,7 +2331,16 @@ export default function PricingSection({
                     required={!draftOpensOffer}
                   />
                   {draftOpensOffer ? (
-                    <small>{t('admin.sections.pricing.offerPriceOptional')}</small>
+                    <small>
+                      {/* Con el torneo elegido el techo es un número real: lo
+                          que ese atleta pagaría sin el código. Decirlo acá
+                          evita el viaje al servidor para enterarse. */}
+                      {offerCeiling != null
+                        ? t('admin.sections.pricing.offerPriceCeiling', {
+                            price: money(offerCeiling, locale),
+                          })
+                        : t('admin.sections.pricing.offerPriceOptional')}
+                    </small>
                   ) : null}
                 </label>
               ) : null}
@@ -2363,10 +2408,34 @@ export default function PricingSection({
                   </select>
                 </label>
               )}
+              {/* Las dos mitades del paquete, juntas: qué afiliación y qué
+                  inscripción. La afiliación sólo se pregunta cuando hay más de
+                  una de pago único vigente —con una sola la resuelve el
+                  servidor, en el mismo orden— porque elegir mal cambia qué
+                  compra el atleta. */}
+              {draftOpensOffer && oneTimePlans.length > 1 ? (
+                <label title={t('admin.sections.pricing.offerPlanHint')}>
+                  <span>{t('admin.sections.pricing.offerPlanLabel')}</span>
+                  <select
+                    value={codeDraft.membershipPlanId || (offerPlan?.id ?? '')}
+                    onChange={(event) =>
+                      setCodeDraft({ ...codeDraft, membershipPlanId: event.target.value })
+                    }
+                  >
+                    <option value="">{t('admin.sections.pricing.offerPlanPlaceholder')}</option>
+                    {oneTimePlans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name} · {money(plan.price, locale)}
+                      </option>
+                    ))}
+                  </select>
+                  <small>{t('admin.sections.pricing.offerPlanHint')}</small>
+                </label>
+              ) : null}
               {/* Alcance por inscripción. Obligatorio en una oferta exclusiva
-                  —se cotiza contra el combo de ese evento— y opcional en el
-                  resto: sin evento, el código vale para cualquiera. Una promo
-                  pública no puede limitarse (ver discount_codes_public_event_check). */}
+                  —es la mitad del paquete— y opcional en el resto: sin evento,
+                  el código vale para cualquiera. Una promo pública no puede
+                  limitarse (ver discount_codes_public_event_check). */}
               {['registration', 'combo'].includes(codeDraft.appliesTo) &&
               codeDraft.audience === 'code' ? (
                 <label>
@@ -2387,19 +2456,18 @@ export default function PricingSection({
                     ) : (
                       <option value="">{t('admin.sections.pricing.codeEventAny')}</option>
                     )}
-                    {/* Una oferta sólo se puede instanciar sobre un combo
-                        habilitado y restringido: sobre un combo público el
-                        código no desbloquearía nada que no esté a la vista. */}
+                    {/* Cualquier torneo puede recibir una oferta: el código
+                        trae su propio precio y su propia afiliación. El único
+                        que queda afuera es el del combo privado, que está fuera
+                        de todo canal comercial y ninguna llave reabre. */}
                     {(configuration.events ?? [])
                       .filter(
-                        (item) =>
-                          !draftOpensOffer ||
-                          (item.comboOffer?.active && item.comboOffer?.audience === 'code'),
+                        (item) => !draftOpensOffer || item.comboOffer?.audience !== 'private',
                       )
                       .map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.title}
-                          {draftOpensOffer && item.comboOffer
+                          {draftOpensOffer && item.comboOffer?.active
                             ? ` · ${t('admin.sections.pricing.offerEventComboPrice', {
                                 price: money(item.comboOffer.price, locale),
                               })}`
