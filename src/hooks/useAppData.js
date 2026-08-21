@@ -976,6 +976,10 @@ export function useAppData() {
           method: order.method,
           status: order.status,
           reference: order.reference,
+          manualPaymentChannel: order.manualPaymentChannel,
+          financingAllowed: order.financingAllowed === true,
+          manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
+          financedEntitlementsAt: order.financedEntitlementsAt ?? null,
           createdAt: order.createdAt,
         }
         setPayments((current) => [payment, ...current])
@@ -1170,6 +1174,10 @@ export function useAppData() {
           method: order.method,
           status: order.status,
           reference: order.reference,
+          manualPaymentChannel: order.manualPaymentChannel,
+          financingAllowed: order.financingAllowed === true,
+          manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
+          financedEntitlementsAt: order.financedEntitlementsAt ?? null,
           createdAt: order.createdAt,
         }
         setPayments((current) => [payment, ...current])

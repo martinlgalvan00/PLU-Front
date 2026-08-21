@@ -90,6 +90,11 @@ function toCamelPaymentOrder(row) {
     rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
     paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
     paymentProofUploadedAt: row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
+    financingAllowed: row.financing_allowed ?? row.financingAllowed ?? false,
+    manualPaymentDeclaredAt: row.manual_payment_declared_at ?? row.manualPaymentDeclaredAt ?? null,
+    financedEntitlementsAt: row.financed_entitlements_at ?? row.financedEntitlementsAt ?? null,
+    financedEntitlementsRevokedAt:
+      row.financed_entitlements_revoked_at ?? row.financedEntitlementsRevokedAt ?? null,
     discountCode: row.discount_code ?? row.discountCode ?? null,
     discountAmount: Number(row.discount_amount ?? row.discountAmount) || 0,
     notes: row.notes ?? null,
@@ -151,7 +156,9 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
   const orders = paymentOrders ?? []
 
   const registrationByOrderId = new Map(
-    registrationRows.filter((item) => item.paymentOrderId).map((item) => [item.paymentOrderId, item]),
+    registrationRows
+      .filter((item) => item.paymentOrderId)
+      .map((item) => [item.paymentOrderId, item]),
   )
   const membershipByOrderId = new Map(
     membershipRows.filter((item) => item.paymentOrderId).map((item) => [item.paymentOrderId, item]),
@@ -181,6 +188,13 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       rejectionReason: order.rejection_reason ?? order.rejectionReason ?? null,
       paymentProofUploadedAt:
         order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
+      financingAllowed: order.financing_allowed ?? order.financingAllowed ?? false,
+      manualPaymentDeclaredAt:
+        order.manual_payment_declared_at ?? order.manualPaymentDeclaredAt ?? null,
+      financedEntitlementsAt:
+        order.financed_entitlements_at ?? order.financedEntitlementsAt ?? null,
+      financedEntitlementsRevokedAt:
+        order.financed_entitlements_revoked_at ?? order.financedEntitlementsRevokedAt ?? null,
     }
 
     return {
@@ -204,6 +218,10 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       paymentProofPath:
         typeof paymentProofPath === 'string' ? paymentProofPath.trim() || null : paymentProofPath,
       paymentProofUploadedAt: normalizedOrder.paymentProofUploadedAt,
+      financingAllowed: normalizedOrder.financingAllowed,
+      manualPaymentDeclaredAt: normalizedOrder.manualPaymentDeclaredAt,
+      financedEntitlementsAt: normalizedOrder.financedEntitlementsAt,
+      financedEntitlementsRevokedAt: normalizedOrder.financedEntitlementsRevokedAt,
       createdAt: order.created_at ?? order.createdAt ?? null,
       // Estado real derivado del agregado + el libro de intentos, no del último
       // intento aplicado. `outcome` es el derecho que este cobro pagaba: si el
@@ -588,11 +606,15 @@ export async function createCompetitionRegistrationCombo({
     comboOffer: result.comboOffer
       ? {
           id: result.comboOffer.id,
-          membershipPlanId: result.comboOffer.membership_plan_id,
+          membershipPlanId:
+            result.comboOffer.membership_plan_id ?? result.comboOffer.membershipPlanId ?? null,
           price: result.comboOffer.price,
+          manualPrice: result.comboOffer.manual_price ?? result.comboOffer.manualPrice ?? null,
           currency: result.comboOffer.currency,
-          startsAt: result.comboOffer.starts_at,
-          endsAt: result.comboOffer.ends_at,
+          audience: result.comboOffer.audience,
+          financed: result.comboOffer.financed === true,
+          startsAt: result.comboOffer.starts_at ?? result.comboOffer.startsAt ?? null,
+          endsAt: result.comboOffer.ends_at ?? result.comboOffer.endsAt ?? null,
         }
       : null,
   }
@@ -767,6 +789,20 @@ export async function registerAthletePaymentProof(orderId, proofPath, notes) {
     notes,
   })
   return { order: toCamelPaymentOrder(order) }
+}
+
+export async function confirmAthleteManualPayment(orderId) {
+  const result = await apiPost(`/api/athletes/me/payment-orders/${orderId}/manual-confirmation`, {})
+  return {
+    order: toCamelPaymentOrder(result.order),
+    membership: result.membership ? toCamelMembership(result.membership) : null,
+    registration: result.registration
+      ? toCamelRegistrationEntry({ registration: result.registration })
+      : null,
+    financed: result.financed === true,
+    entitlementsGranted: result.entitlementsGranted === true,
+    duplicate: result.duplicate === true,
+  }
 }
 
 /** Credencial emitida de un socio, para verla y reemitirla desde el panel. */

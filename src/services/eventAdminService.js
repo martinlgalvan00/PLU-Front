@@ -619,6 +619,7 @@ export function mapSupabaseEventRow(row) {
             comboOfferRow.manual_price != null ? Number(comboOfferRow.manual_price) : null,
           currency: comboOfferRow.currency,
           active: comboOfferRow.active === true,
+          financed: comboOfferRow.financed === true,
           // Sin audiencia, un combo restringido se interpretaba como público
           // en Home, Afiliación y el checkout. Es una propiedad de acceso, no
           // sólo un dato del panel: tiene que sobrevivir la normalización.
@@ -701,7 +702,7 @@ const PUBLISHED_EVENTS_SELECT = `
   capacity, status, published, requires_membership, price, manual_price, currency, rules,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventDays:event_days(id, day_index, label, date),
-  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, archived_at),
+  comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),

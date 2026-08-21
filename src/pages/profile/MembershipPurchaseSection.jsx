@@ -46,6 +46,7 @@ import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import Reveal from '../../components/ui/Reveal.jsx'
 import SeasonComboOffer from '../../components/ui/SeasonComboOffer.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
+import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentConfirmation.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
@@ -73,6 +74,7 @@ export default function MembershipPurchaseSection({
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [transferChannel, setTransferChannel] = useState('bank_transfer')
   const [transferAmount, setTransferAmount] = useState(null)
+  const [manualOrder, setManualOrder] = useState(null)
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
@@ -565,12 +567,14 @@ export default function MembershipPurchaseSection({
         setTransferOrderId(result?.createdOrder?.paymentId ?? null)
         setTransferChannel(method === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')
         setTransferAmount(result?.createdOrder?.amount ?? null)
+        setManualOrder(result?.createdOrder ?? null)
         setTransferOpen(true)
         return
       }
       if (method === 'cash_pitbull') {
         setEmbeddedOrder(null)
         setChangingMethod(false)
+        setManualOrder(result?.createdOrder ?? null)
         setCheckoutMessage(t('account.membership.cashPitbullCreated'))
         return
       }
@@ -1246,6 +1250,16 @@ export default function MembershipPurchaseSection({
         </p>
       )}
 
+      {manualOrder?.manualPaymentChannel === 'cash_pitbull' ? (
+        <ManualPaymentConfirmation
+          channel="cash_pitbull"
+          financedEntitlementsAt={manualOrder.financedEntitlementsAt}
+          financingAllowed={manualOrder.financingAllowed}
+          manualPaymentDeclaredAt={manualOrder.manualPaymentDeclaredAt}
+          orderId={manualOrder.paymentId ?? manualOrder.id ?? null}
+        />
+      ) : null}
+
       {transferOpen && (
         <TransferPayModal
           athlete={athlete}
@@ -1253,6 +1267,9 @@ export default function MembershipPurchaseSection({
           currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
           channel={transferChannel}
           orderId={transferOrderId}
+          financingAllowed={manualOrder?.financingAllowed === true}
+          manualPaymentDeclaredAt={manualOrder?.manualPaymentDeclaredAt ?? null}
+          financedEntitlementsAt={manualOrder?.financedEntitlementsAt ?? null}
           onClose={() => setTransferOpen(false)}
         />
       )}

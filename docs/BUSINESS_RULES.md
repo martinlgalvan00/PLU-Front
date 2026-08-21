@@ -10,15 +10,19 @@
 ## Estados
 
 ### Atleta
+
 `pre_registrado` → `registrado` → `afiliado_activo` → `afiliado_vencido` | `bloqueado`
 
 ### Afiliación
+
 `pendiente_pago` → `activa` → `vencida` | `cancelada` | `reembolsada`
 
 ### Inscripción
+
 `borrador` → `pendiente_pago` → `pagada` → `confirmada` | `observada` | `cancelada`
 
 ### Pago
+
 `creado` → `pendiente` → `aprobado` | `rechazado` | `cancelado` | `reembolsado`
 
 ## Precios
@@ -119,12 +123,12 @@ por compatibilidad y referencia un
 `AccessRole`, cuya matriz de `AccessPermission` es la fuente autoritativa para
 API y panel.
 
-| Jerarquía | Rol | Alcance predeterminado |
-|-----------|-----|------------------------|
-| 1 | Super Admin | Acceso total y protegido; supervisa toda la jerarquía |
-| 2 | Administrador | Acceso total y protegido; administra PLU y Seguridad |
-| 3 | PLU | Representación de la federación; lectura operativa y exportación institucional |
-| 4 | Seguridad | Eventos y check-in; su alcance puede ampliarse sin delegar administración |
+| Jerarquía | Rol           | Alcance predeterminado                                                         |
+| --------- | ------------- | ------------------------------------------------------------------------------ |
+| 1         | Super Admin   | Acceso total y protegido; supervisa toda la jerarquía                          |
+| 2         | Administrador | Acceso total y protegido; administra PLU y Seguridad                           |
+| 3         | PLU           | Representación de la federación; lectura operativa y exportación institucional |
+| 4         | Seguridad     | Eventos y check-in; su alcance puede ampliarse sin delegar administración      |
 
 Reglas:
 
@@ -197,6 +201,15 @@ confirmada alcanza para ingresar.
 
 Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
 conciliación server-side. Finanzas puede aprobar solamente métodos manuales.
+
+En transferencia y efectivo el atleta puede declarar que realizó la entrega.
+La declaración cambia la orden a `validacion_manual`, evita su vencimiento
+automático y genera auditoría, pero **no acredita el pago** ni crea un asiento
+en `athlete_payments`: la aprobación sigue siendo exclusiva de Finanzas. Si la
+orden fotografió `financing_allowed = true` al comprar un combo restringido
+por código, esa declaración habilita provisionalmente afiliación e inscripción
+mientras la deuda permanece abierta. Un rechazo de Finanzas revoca ambos
+derechos provisionales.
 
 Un `external_payment_id` de un proveedor pertenece a una única orden en todo el
 sistema, incluso entre entradas y afiliaciones. Una suscripción queda ligada al

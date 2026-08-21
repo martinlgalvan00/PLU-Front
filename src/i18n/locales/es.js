@@ -153,6 +153,19 @@ export default {
     },
   },
   payments: {
+    manualConfirmation: {
+      transferAction: 'Ya transferí',
+      cashAction: 'Ya entregué el efectivo',
+      financingHint:
+        'Este código permite financiamiento: al confirmar habilitamos tu afiliación y tu inscripción mientras Finanzas revisa el saldo.',
+      notApproval:
+        'Este aviso no acredita el pago. La orden queda pendiente hasta que Finanzas la valide.',
+      received: 'Aviso recibido',
+      financedGranted:
+        'Tu afiliación y tu inscripción ya están habilitadas. El saldo sigue pendiente de validación.',
+      pendingReview: 'Avisamos a Finanzas. El pago sigue pendiente de validación.',
+      error: 'No pudimos registrar el aviso. Intentá nuevamente.',
+    },
     embeddedTitle: 'Pagá con Mercado Pago',
     embeddedLead: 'Completá el pago sin salir del sitio.',
     walletRedirectNote:
@@ -1055,8 +1068,7 @@ export default {
       reason: {
         expired_without_attempt:
           'Venció el {{date}} sin que se registrara ningún intento de pago: el checkout se abrió pero no se llegó a pagar.',
-        expired_after_attempt:
-          'Venció el {{date}} y ningún intento de pago llegó a acreditarse.',
+        expired_after_attempt: 'Venció el {{date}} y ningún intento de pago llegó a acreditarse.',
         closed_without_attempt: 'Se cerró sin que se registrara ningún intento de pago.',
         closed_after_attempt: 'Se cerró sin que ningún intento de pago llegara a acreditarse.',
         provider_cancelled: 'Mercado Pago dio el pago por cancelado.',
@@ -1108,8 +1120,7 @@ export default {
         cash_pitbull: 'Efectivo en el evento',
       },
       checkoutNote: {
-        mercado_pago:
-          'El cobro se procesa acá mismo, con el importe exclusivo de tu código.',
+        mercado_pago: 'El cobro se procesa acá mismo, con el importe exclusivo de tu código.',
         bank_transfer:
           'Te damos los datos para transferir acá mismo y subís el comprobante sin salir de esta página.',
         cash_pitbull:
@@ -1127,8 +1138,7 @@ export default {
       cashLead:
         'Reservamos tu oferta por {{amount}}. Llevá el importe en efectivo y mostrá esta referencia en la mesa de acreditación.',
       cashReference: 'Referencia de tu orden',
-      cashFine:
-        'Si no llegás a pagarla el día del evento, la oferta se libera y vuelve al cupo.',
+      cashFine: 'Si no llegás a pagarla el día del evento, la oferta se libera y vuelve al cupo.',
       backToDetail: 'Volver al detalle',
       resumeAction: 'Terminar de pagar',
       manualPendingAction: 'Ver el estado de mi pago',
@@ -1434,7 +1444,7 @@ export default {
       transferCopyField: 'Copiar {{field}}',
       transferNotesLabel: 'Observaciones (opcional)',
       transferNotesPlaceholder: 'Algo que Finanzas debería saber sobre este pago',
-      transferUnderstood: 'Enviar a validación',
+      transferUnderstood: 'Cerrar',
       proofAction: 'Adjuntar comprobante',
       proofUploading: 'Subiendo comprobante...',
       proofUploaded:

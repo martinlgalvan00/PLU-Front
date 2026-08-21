@@ -185,6 +185,9 @@ export default function AthletePaymentOrdersSection({
       hasProof: Boolean(order.paymentProofPath),
       paymentProofPath: order.paymentProofPath ?? null,
       proofUploadedAt: order.paymentProofUploadedAt,
+      financingAllowed: order.financingAllowed === true,
+      manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
+      financedEntitlementsAt: order.financedEntitlementsAt ?? null,
     }))
   }, [orders, status, validationEnabled])
 
@@ -480,6 +483,15 @@ export default function AthletePaymentOrdersSection({
               render: (row) => (
                 <div className="admin-orders-block__status-cell">
                   <StatusBadge value={row.status} />
+                  {row.manualPaymentDeclaredAt ? (
+                    <span className="status-pill status-pill--info">
+                      {t(
+                        row.financingAllowed && row.financedEntitlementsAt
+                          ? 'admin.athletePayments.financedActive'
+                          : 'admin.athletePayments.declared',
+                      )}
+                    </span>
+                  ) : null}
                   {/* Trazabilidad del rechazo: quién decidió y con qué motivo.
                       Sin esto, la orden rechazada era una etiqueta sin
                       responsable — el "quién" vivía solo en los logs. */}

@@ -152,6 +152,19 @@ export default {
     },
   },
   payments: {
+    manualConfirmation: {
+      transferAction: 'I sent the transfer',
+      cashAction: 'I handed over the cash',
+      financingHint:
+        'This code allows financing: confirming enables your membership and registration while Finance reviews the balance.',
+      notApproval:
+        'This notice does not credit the payment. The order remains pending until Finance validates it.',
+      received: 'Notice received',
+      financedGranted:
+        'Your membership and registration are enabled. The balance is still pending validation.',
+      pendingReview: 'Finance has been notified. The payment is still pending validation.',
+      error: 'We could not record the notice. Please try again.',
+    },
     embeddedTitle: 'Pay with Mercado Pago',
     embeddedLead: 'Complete your payment without leaving the site.',
     walletRedirectNote:
@@ -1056,8 +1069,7 @@ export default {
       reason: {
         expired_without_attempt:
           'It expired on {{date}} with no payment attempt on record: the checkout was opened but never paid.',
-        expired_after_attempt:
-          'It expired on {{date}} and no payment attempt ever cleared.',
+        expired_after_attempt: 'It expired on {{date}} and no payment attempt ever cleared.',
         closed_without_attempt: 'It was closed with no payment attempt on record.',
         closed_after_attempt: 'It was closed without any payment attempt clearing.',
         provider_cancelled: 'Mercado Pago reported the payment as cancelled.',
@@ -1109,8 +1121,7 @@ export default {
         cash_pitbull: 'Cash at the event',
       },
       checkoutNote: {
-        mercado_pago:
-          'Payment is processed right here, with the exclusive price of your code.',
+        mercado_pago: 'Payment is processed right here, with the exclusive price of your code.',
         bank_transfer:
           'We give you the transfer details right here and you upload the receipt without leaving this page.',
         cash_pitbull:
@@ -1428,7 +1439,7 @@ export default {
       transferCopyField: 'Copy {{field}}',
       transferNotesLabel: 'Notes (optional)',
       transferNotesPlaceholder: 'Anything Finance should know about this payment',
-      transferUnderstood: 'Send for review',
+      transferUnderstood: 'Close',
       proofAction: 'Attach receipt',
       proofUploading: 'Uploading receipt...',
       proofUploaded:

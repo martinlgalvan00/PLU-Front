@@ -82,6 +82,11 @@ export function createSupabaseAthleteRepository(
         .select('active, applies_to, starts_at, expires_at, manual_channels, mercado_pago_enabled')
         .eq('organization_id', organizationId)
         .eq('code', String(code).trim().toUpperCase())
+        // Los códigos se archivan, no se borran, y el mismo texto se puede
+        // volver a publicar. Sin este filtro `maybeSingle()` ve la versión
+        // histórica y la vigente, y PostgREST responde PGRST116 antes de que el
+        // checkout pueda crear la orden.
+        .is('archived_at', null)
         .maybeSingle(),
       'No se pudo validar el cupón.',
     )
@@ -349,7 +354,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at, audience, access_code)',
+            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at, audience, access_code, financed)',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
@@ -372,6 +377,7 @@ export function createSupabaseAthleteRepository(
         // la ruta de checkout antes de crear la orden.
         audience: offer.audience === 'code' ? 'code' : 'public',
         accessCode: offer.access_code ?? null,
+        financed: offer.financed === true,
       }
     },
     // `paymentMethod` es el `method` con el que se guardaría la orden
@@ -708,6 +714,15 @@ export function createSupabaseAthleteRepository(
           p_notes: notes || null,
         },
         'No se pudo registrar el comprobante.',
+      ),
+    confirmManualPayment: (athleteId, orderId) =>
+      rpc(
+        'athlete_confirm_manual_payment',
+        {
+          p_order_id: orderId,
+          p_athlete_id: athleteId,
+        },
+        'No se pudo registrar el aviso de pago.',
       ),
     async paymentProofUrl(orderId) {
       const order = assertSupabaseResult(

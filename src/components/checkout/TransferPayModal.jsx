@@ -21,6 +21,9 @@ export default function TransferPayModal({
   orderId,
   purpose = 'membership',
   channel = 'bank_transfer',
+  financingAllowed = false,
+  manualPaymentDeclaredAt = null,
+  financedEntitlementsAt = null,
 }) {
   const { t, locale } = useI18n()
   const panelRef = usePaymentModal(onClose)
@@ -67,6 +70,9 @@ export default function TransferPayModal({
           orderId={orderId}
           purpose={purpose}
           warningId="transfer-verify"
+          financingAllowed={financingAllowed}
+          manualPaymentDeclaredAt={manualPaymentDeclaredAt}
+          financedEntitlementsAt={financedEntitlementsAt}
         />
         <button type="button" className="account-secondary-action" onClick={onClose}>
           {t('account.membership.transferUnderstood')}

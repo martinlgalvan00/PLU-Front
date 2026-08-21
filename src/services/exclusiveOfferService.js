@@ -147,6 +147,9 @@ export function resolveManualSettlement(offer, createdOrder = null) {
     amount: Number(candidate.amount) || 0,
     currency: candidate.currency ?? 'ARS',
     reference: candidate.reference ?? null,
+    financingAllowed: candidate.financingAllowed === true,
+    manualPaymentDeclaredAt: candidate.manualPaymentDeclaredAt ?? null,
+    financedEntitlementsAt: candidate.financedEntitlementsAt ?? null,
   }
 }
 

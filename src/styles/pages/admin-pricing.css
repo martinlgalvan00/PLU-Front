@@ -1387,6 +1387,27 @@
   width: 18px;
 }
 
+.admin-pricing__toggle--financing {
+  align-items: start;
+  background: color-mix(in srgb, var(--color-brand-gold) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 24%, transparent);
+  border-radius: 10px;
+  padding: 0.8rem;
+}
+
+.admin-pricing__toggle--financing span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-pricing__toggle--financing small {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
 .admin-pricing__form-actions {
   justify-content: flex-end;
 }

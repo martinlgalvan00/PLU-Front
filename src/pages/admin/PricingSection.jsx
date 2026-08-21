@@ -285,6 +285,7 @@ export default function PricingSection({
     // prepararlo/pausarlo. Es visibilidad, no precio ni estado operativo.
     audience: 'public',
     accessCode: '',
+    financed: false,
   })
   const [retirementPlanId, setRetirementPlanId] = useState(null)
   const [retirementDraft, setRetirementDraft] = useState('')
@@ -482,6 +483,7 @@ export default function PricingSection({
       active: offer?.active === true,
       audience: COMBO_VISIBILITY_STATES.includes(offer?.audience) ? offer.audience : 'public',
       accessCode: offer?.accessCode ?? '',
+      financed: offer?.financed === true,
     })
     setComboError('')
   }, [oneTimePlans, selectedEvent])
@@ -511,8 +513,8 @@ export default function PricingSection({
   // mismo fieldset, antes de que el operador intente enviar el formulario.
   const draftHasNoChannel = Boolean(
     codeDraft &&
-      codeDraft.mercadoPagoEnabled === false &&
-      (codeDraft.manualChannels ?? []).length === 0,
+    codeDraft.mercadoPagoEnabled === false &&
+    (codeDraft.manualChannels ?? []).length === 0,
   )
   useEffect(() => {
     if (!codeFormOpen) return undefined
@@ -1570,6 +1572,7 @@ export default function PricingSection({
                                 ...comboDraft,
                                 audience: visibility,
                                 accessCode: visibility === 'code' ? comboDraft.accessCode : '',
+                                financed: visibility === 'code' ? comboDraft.financed : false,
                               })
                             }
                           />
@@ -1593,21 +1596,36 @@ export default function PricingSection({
                     ) : null}
                   </fieldset>
                   {comboDraft.audience === 'code' ? (
-                    <label>
-                      <span>{t('admin.sections.pricing.comboAccessCode')}</span>
-                      <input
-                        value={comboDraft.accessCode}
-                        onChange={(event) =>
-                          setComboDraft({
-                            ...comboDraft,
-                            accessCode: event.target.value.toUpperCase(),
-                          })
-                        }
-                        placeholder={t('admin.sections.pricing.comboAccessCodePlaceholder')}
-                        required
-                      />
-                      <small>{t('admin.sections.pricing.comboAccessCodeHint')}</small>
-                    </label>
+                    <>
+                      <label>
+                        <span>{t('admin.sections.pricing.comboAccessCode')}</span>
+                        <input
+                          value={comboDraft.accessCode}
+                          onChange={(event) =>
+                            setComboDraft({
+                              ...comboDraft,
+                              accessCode: event.target.value.toUpperCase(),
+                            })
+                          }
+                          placeholder={t('admin.sections.pricing.comboAccessCodePlaceholder')}
+                          required
+                        />
+                        <small>{t('admin.sections.pricing.comboAccessCodeHint')}</small>
+                      </label>
+                      <label className="admin-pricing__toggle admin-pricing__toggle--financing">
+                        <input
+                          type="checkbox"
+                          checked={comboDraft.financed}
+                          onChange={(event) =>
+                            setComboDraft({ ...comboDraft, financed: event.target.checked })
+                          }
+                        />
+                        <span>
+                          {t('admin.sections.pricing.comboFinanced')}
+                          <small>{t('admin.sections.pricing.comboFinancedHint')}</small>
+                        </span>
+                      </label>
+                    </>
                   ) : null}
                 </fieldset>
 
