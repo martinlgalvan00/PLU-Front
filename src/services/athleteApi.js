@@ -493,13 +493,17 @@ export async function previewDiscountCode({
     expiresAt: preview.expiresAt ?? null,
     discountAmount: preview.discountAmount ?? null,
     finalAmount: preview.finalAmount ?? null,
-    // Canales manuales que este código destraba (Mercado Pago siempre está
-    // disponible). Un código anterior a la lista sólo trae el booleano.
+    // Canales manuales que este código destraba además de la pasarela. Un
+    // código anterior a la lista sólo trae el booleano.
     manualChannels: Array.isArray(preview.manualChannels)
       ? preview.manualChannels
       : preview.enablesManualPayment
         ? ['bank_transfer', 'cash_pitbull']
         : [],
+    // La otra mitad de la matriz: `false` cierra Mercado Pago para este código
+    // (20260908100000). Ausente = abierta, que es lo que valía para todos los
+    // códigos anteriores y también lo que responde una API sin la migración.
+    mercadoPagoEnabled: preview.mercadoPagoEnabled !== false,
   }
 }
 

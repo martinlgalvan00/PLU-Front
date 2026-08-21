@@ -513,13 +513,18 @@ describe('Tarifas — alta de planes y combo', () => {
       target: { value: 'solo-efectivo' },
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
-    // Mercado Pago no se lista: nunca se apaga.
-    expect(screen.queryByRole('checkbox', { name: /Mercado Pago/ })).toBeNull()
+    // Mercado Pago ahora se lista y viene marcado: es el default histórico,
+    // pero se puede apagar (ver 20260908100000).
+    expect(screen.getByRole('checkbox', { name: 'Mercado Pago' }).checked).toBe(true)
     fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'SOLO-EFECTIVO', manualChannels: ['cash_pitbull'] }),
+      expect.objectContaining({
+        code: 'SOLO-EFECTIVO',
+        manualChannels: ['cash_pitbull'],
+        mercadoPagoEnabled: true,
+      }),
     )
   })
 
@@ -535,8 +540,72 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'SOLO-MP', manualChannels: [] }),
+      expect.objectContaining({ code: 'SOLO-MP', manualChannels: [], mercadoPagoEnabled: true }),
     )
+  })
+
+  it('deja cerrar Mercado Pago para un código pactado en efectivo', async () => {
+    // El caso que no se podía cargar: una oferta a un precio que sólo cierra
+    // cobrada en efectivo, y que no debe poder pagarse con la pasarela.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'pactado-efectivo' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'PACTADO-EFECTIVO',
+        manualChannels: ['cash_pitbull'],
+        mercadoPagoEnabled: false,
+      }),
+    )
+  })
+
+  it('no guarda un código sin ningún medio de pago', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'sin-medios' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
+    // El aviso aparece en el mismo fieldset, antes de intentar enviar.
+    expect(screen.getByText(/Elegí al menos un medio de pago/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
+  })
+
+  it('la fila dice qué es lo único con lo que se puede pagar', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        discountCodes: [
+          {
+            id: 'coupon-cash',
+            code: 'PACTADO-EFECTIVO',
+            percentOff: 10,
+            appliesTo: 'membership',
+            manualChannels: ['cash_pitbull'],
+            mercadoPagoEnabled: false,
+            redeemedCount: 0,
+            active: true,
+          },
+        ],
+      },
+    })
+
+    expect(screen.getByText('Sólo efectivo')).toBeTruthy()
+    expect(screen.queryByText('Habilita efectivo')).toBeNull()
   })
 
   it('resume en la fila qué canales destraba el código', () => {

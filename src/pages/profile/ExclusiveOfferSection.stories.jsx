@@ -25,6 +25,9 @@ const EVENT = {
 const ATHLETE = {
   id: 'ath-story-1',
   fullName: 'Martina Rivas',
+  // La referencia de la transferencia es DNI + nombre: sin el documento el
+  // recibo mostraba 'undefined · Martina Rivas'.
+  documentId: '38111222',
   phone: '+54 9 11 3000-1188',
   city: 'La Plata',
   province: 'Buenos Aires',
@@ -188,13 +191,71 @@ export const PagoEnCurso = {
 
 /**
  * La misma compra, pero por transferencia: eso no se cobra con el Brick, se
- * resuelve con comprobante y validación de staff.
+ * resuelve con el recibo y el comprobante, en la misma ficha.
  */
 export const PagoManualEnCurso = {
   args: {
     offer: {
       ...PENDING_OFFER,
-      purchase: { ...PENDING_OFFER.purchase, method: 'manual_link', status: 'validacion_manual' },
+      manualChannels: ['bank_transfer'],
+      purchase: {
+        ...PENDING_OFFER.purchase,
+        method: 'manual_link',
+        manualPaymentChannel: 'bank_transfer',
+        status: 'validacion_manual',
+      },
+    },
+    offers: [PENDING_OFFER],
+  },
+}
+
+/**
+ * Los tres medios que puede habilitar un código. El selector aparece sólo
+ * cuando hay algo que elegir, y el precio se recotiza por canal.
+ */
+export const TresMedios = {
+  args: {
+    offer: {
+      ...OFFER,
+      mercadoPagoEnabled: true,
+      manualChannels: ['bank_transfer', 'cash_pitbull'],
+      fixedPriceManual: 110000,
+      event: { ...OFFER.event, registrationManualPrice: 60000 },
+      membershipPlan: { ...OFFER.membershipPlan, manualPrice: 80000 },
+    },
+  },
+}
+
+/**
+ * El caso que no se podía cargar: una oferta pactada a un precio que sólo
+ * cierra cobrada en efectivo. Sin selector —hay un solo medio— y sin Mercado
+ * Pago en ninguna parte.
+ */
+export const SoloEfectivo = {
+  args: {
+    offer: {
+      ...OFFER,
+      mercadoPagoEnabled: false,
+      manualChannels: ['cash_pitbull'],
+      fixedPriceManual: 110000,
+    },
+  },
+}
+
+/** La reserva en efectivo, ya creada: la conclusión es la referencia. */
+export const EfectivoReservado = {
+  args: {
+    offer: {
+      ...PENDING_OFFER,
+      mercadoPagoEnabled: false,
+      manualChannels: ['cash_pitbull'],
+      purchase: {
+        ...PENDING_OFFER.purchase,
+        method: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        reference: 'PLU-4F6B1C2E',
+        status: 'pendiente',
+      },
     },
     offers: [PENDING_OFFER],
   },

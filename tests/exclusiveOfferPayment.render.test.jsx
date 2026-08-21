@@ -110,20 +110,20 @@ describe('cobro dentro de la pestaña secreta', () => {
     // Con el perfil completo la ficha no muestra dos grillas de radios: muestra
     // lo que va a inscribir, en una línea.
     expect(screen.getByText('Masters · Single-Ply · 93 kg')).toBeTruthy()
-    expect(screen.queryByLabelText(/Peso corporal/)).toBe(null)
+    expect(screen.queryByLabelText(/^Categoría/)).toBe(null)
   })
 
   it('el formulario se abre a pedido, con los datos del perfil cargados', () => {
     renderSection()
     fireEvent.click(screen.getByRole('button', { name: /Ajustar mis datos/ }))
-    expect(screen.getByLabelText(/Peso corporal/).value).toBe('93')
+    expect(screen.getByLabelText(/^Categoría/).value).toBe('93')
     expect(screen.getByRole('radio', { name: 'Masters' }).checked).toBe(true)
     expect(screen.getByRole('radio', { name: 'Single-Ply' }).checked).toBe(true)
   })
 
   it('un perfil sin peso declarado abre el formulario solo', () => {
     renderSection({ athlete: { ...ATHLETE, estimatedWeight: '' } })
-    expect(screen.getByLabelText(/Peso corporal/)).toBeTruthy()
+    expect(screen.getByLabelText(/^Categoría/)).toBeTruthy()
   })
 
   it('crea la orden y abre el cobro en la misma ficha', async () => {
@@ -219,17 +219,47 @@ describe('compra iniciada y sin pagar', () => {
     expect(screen.getByTestId('offer-brick-amount').textContent).toBe('120000')
   })
 
-  it('una compra por transferencia no se cobra con el brick', () => {
+  it('una compra por transferencia se termina acá, con el recibo y sin brick', () => {
+    // Antes esto era un callejón: la única acción era "Ver el estado de mi
+    // pago", que sacaba al atleta de la ficha hacia el wizard de inscripción —
+    // donde el código de la oferta no viajaba y transferencia aparecía cerrada.
     const manual = {
       ...PENDING,
-      purchase: { ...PENDING.purchase, method: 'manual_link', status: 'validacion_manual' },
+      manualChannels: ['bank_transfer'],
+      purchase: {
+        ...PENDING.purchase,
+        method: 'manual_link',
+        manualPaymentChannel: 'bank_transfer',
+        status: 'validacion_manual',
+      },
     }
     const onSelectEvent = vi.fn()
     renderSection({ offer: manual, offers: [manual], onSelectEvent })
 
-    expect(screen.queryByRole('button', { name: /Terminar de pagar/ })).toBe(null)
-    fireEvent.click(screen.getByRole('button', { name: /Ver el estado de mi pago/ }))
-    expect(onSelectEvent).toHaveBeenCalledWith(CATALOG_EVENT)
+    fireEvent.click(screen.getByRole('button', { name: /Terminar de pagar/ }))
+    expect(screen.queryByTestId('offer-brick')).toBe(null)
+    // Los datos para transferir y la referencia de la orden, en la misma ficha.
+    expect(screen.getByText('30111222 · Ana Pérez')).toBeTruthy()
+    expect(onSelectEvent).not.toHaveBeenCalled()
+  })
+
+  it('una compra en efectivo muestra la referencia en vez de un cobro', () => {
+    const cash = {
+      ...PENDING,
+      mercadoPagoEnabled: false,
+      manualChannels: ['cash_pitbull'],
+      purchase: {
+        ...PENDING.purchase,
+        method: 'manual_link',
+        manualPaymentChannel: 'cash_pitbull',
+        status: 'pendiente',
+      },
+    }
+    renderSection({ offer: cash, offers: [cash] })
+
+    fireEvent.click(screen.getByRole('button', { name: /Terminar de pagar/ }))
+    expect(screen.queryByTestId('offer-brick')).toBe(null)
+    expect(screen.getByText(/pagás en efectivo el día del evento/i)).toBeTruthy()
   })
 
   it('una compra aprobada sí es el recibo', () => {

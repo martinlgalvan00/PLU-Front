@@ -24,6 +24,17 @@ const STATUS_BY_CODE = {
   PLU22: 409,
   PLU23: 409,
   PLU24: 409,
+  // Misma familia, agregados después: todavía no está vigente (PLU25),
+  // reservado para otras cuentas (PLU26), es de otra inscripción (PLU27) y no
+  // acepta el medio de pago elegido (PLU28, ver
+  // 20260908100000_promo_code_mercado_pago_optout). Los tres primeros ya los
+  // levantaba la RPC sin mapeo y salían como 503; PLU28 nace mapeado porque el
+  // checkout tiene que poder distinguir "código inválido" de "este código no se
+  // paga con la pasarela".
+  PLU25: 409,
+  PLU26: 409,
+  PLU27: 409,
+  PLU28: 409,
   23505: 409,
   23503: 409,
   23514: 400,
