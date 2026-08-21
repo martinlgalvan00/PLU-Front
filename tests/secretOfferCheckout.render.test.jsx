@@ -226,7 +226,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
     // El error de alcance NO se muestra: fue un paso intermedio, no el resultado.
     expect(screen.queryByText('Ese código no aplica a este pago.')).toBe(null)
-    expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
+    expect(screen.getAllByText('ONLY-PITBULL').length).toBeGreaterThan(0)
 
     // Se consultaron los dos alcances, en ese orden.
     const scopes = vi
@@ -339,7 +339,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     // Sin tipear nada: entrar desde la ficha no puede obligar a volver a
     // escribir el código que ya se canjeó.
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
-    expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
+    expect(screen.getAllByText('ONLY-PITBULL').length).toBeGreaterThan(0)
   })
 
   it('una oferta ya comprada no se auto-aplica', async () => {

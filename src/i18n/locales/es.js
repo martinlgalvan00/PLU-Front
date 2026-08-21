@@ -128,6 +128,18 @@ export default {
       service_unavailable: 'No pudimos validar el código. Intentá nuevamente.',
     },
   },
+  codeBand: {
+    markKey: 'PLU · Llave privada',
+    markCode: 'PLU · Código',
+    markPrice: 'PLU · Precio exclusivo',
+    statusIdle: 'Sin canjear',
+    statusChecking: 'Validando',
+    statusDone: 'Aceptada',
+    statusError: 'No reconocida',
+    statusApplied: 'Aplicado',
+    pay: 'Pagás',
+    save: 'Ahorrás',
+  },
   codeScan: {
     toggle: 'Escanear código',
     title: 'Escanear código',
@@ -987,8 +999,87 @@ export default {
       events: 'Torneos',
       history: 'Historial',
       membership: 'Afiliación',
+      payments: 'Pagos',
       personalData: 'Mis datos',
       security: 'Seguridad',
+    },
+    payments: {
+      eyebrow: 'Cobros',
+      title: 'Pagos',
+      lead: 'El estado de cada cobro, tal como lo registró el medio de pago.',
+      emptyTitle: 'Todavía no generaste ningún cobro',
+      emptyLead:
+        'Cuando te afilies o te inscribas a un torneo, cada pago va a aparecer acá con su estado y su comprobante.',
+      emptyAction: 'Ir a Afiliación',
+      settledAfterAttempts_one:
+        'Se acreditó después de {{count}} intento rechazado. Si te llegó un aviso de rechazo, quedó sin efecto.',
+      settledAfterAttempts_other:
+        'Se acreditó después de {{count}} intentos rechazados. Si te llegó un aviso de rechazo, quedó sin efecto.',
+      mismatch:
+        'Registramos tu pago y lo estamos terminando de acreditar. No hace falta que pagues de nuevo.',
+      resolvedElsewhere: {
+        membership:
+          'Tu afiliación quedó activa igual: la habilitó la organización por otra vía. Este cobro no se llegó a pagar y no tenés que volver a pagarlo.',
+        registration:
+          'Tu inscripción quedó confirmada igual: la habilitó la organización por otra vía. Este cobro no se llegó a pagar y no tenés que volver a pagarlo.',
+      },
+      state: {
+        acreditado: 'Acreditado',
+        en_revision: 'En revisión',
+        revision_pendiente: 'Acreditando',
+        esperando_comprobante: 'Falta el comprobante',
+        esperando_pago: 'Esperando el pago',
+        esperando_pago_en_sede: 'A pagar en la sede',
+        procesando: 'Procesando',
+        rechazado: 'Rechazado',
+        cancelado: 'Cancelado',
+        reembolsado: 'Reembolsado',
+      },
+      stage: {
+        creada: 'Generado',
+        pagando: 'Pagando',
+        comprobante: 'Comprobante',
+        revision: 'Revisión',
+        pago_en_sede: 'Pago en sede',
+        acreditado: 'Acreditado',
+      },
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Transferencia bancaria',
+        wise_transfer: 'Transferencia Wise',
+        cash_pitbull: 'Efectivo en la sede',
+      },
+      action: {
+        retry: 'Generar un cobro nuevo',
+      },
+      reason: {
+        expired_without_attempt:
+          'Venció el {{date}} sin que se registrara ningún intento de pago: el checkout se abrió pero no se llegó a pagar.',
+        expired_after_attempt:
+          'Venció el {{date}} y ningún intento de pago llegó a acreditarse.',
+        closed_without_attempt: 'Se cerró sin que se registrara ningún intento de pago.',
+        closed_after_attempt: 'Se cerró sin que ningún intento de pago llegara a acreditarse.',
+        provider_cancelled: 'Mercado Pago dio el pago por cancelado.',
+        staff_rejected: 'Rechazado por la organización.',
+        cc_rejected_insufficient_amount: 'La tarjeta no tenía fondos suficientes.',
+        cc_rejected_bad_filled_card_number: 'El número de tarjeta quedó mal cargado.',
+        cc_rejected_bad_filled_date: 'La fecha de vencimiento de la tarjeta era incorrecta.',
+        cc_rejected_bad_filled_security_code: 'El código de seguridad era incorrecto.',
+        cc_rejected_bad_filled_other: 'Algún dato de la tarjeta quedó mal cargado.',
+        cc_rejected_call_for_authorize:
+          'Tu banco pide que autorices este monto. Llamalos y volvé a intentar.',
+        cc_rejected_card_disabled: 'La tarjeta está inactiva. Activala con tu banco.',
+        cc_rejected_duplicated_payment: 'Ya había un pago igual reciente.',
+        cc_rejected_high_risk: 'Mercado Pago rechazó el pago por seguridad. Probá con otro medio.',
+        cc_rejected_max_attempts: 'Se agotaron los intentos permitidos. Probá con otra tarjeta.',
+        cc_rejected_other_reason: 'El banco rechazó el pago sin dar un motivo.',
+        cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',
+        cc_rejected_card_type_not_allowed: 'Ese tipo de tarjeta no está habilitado.',
+        pending_contingency: 'Mercado Pago está procesando el pago. Se acredita solo.',
+        pending_review_manual: 'Mercado Pago lo dejó en revisión. Se resuelve en minutos u horas.',
+        pending_waiting_transfer: 'Esperando que se acredite la transferencia.',
+        pending_waiting_payment: 'Cupón emitido: falta pagarlo en efectivo.',
+      },
     },
     offer: {
       eyebrow: 'Código secreto canjeado',
@@ -1002,9 +1093,23 @@ export default {
       yourPrice: 'Tu precio',
       savings: 'Ahorrás {{amount}} sobre la suma de las dos compras.',
       savingsRedeemed: 'Ahorraste {{amount}} sobre la suma de las dos compras.',
-      checkoutNote:
-        'El pago se procesa en el checkout seguro. Antes de cobrar, volvemos a validar tu código y el precio exclusivo.',
       cta: 'Procesar el pago de la oferta',
+      entryLegend: 'Datos de tu inscripción',
+      entryHint: 'Los tomamos de tu perfil. Revisalos antes de pagar.',
+      entryEdit: 'Ajustar mis datos',
+      checkoutNoteHere: 'El cobro se procesa acá mismo, con el importe exclusivo de tu código.',
+      checkoutClosed: 'El cobro está cerrado por ahora. Tu oferta queda reservada.',
+      checkoutUnavailable: 'No pudimos abrir el cobro. Volvé a intentar en un momento.',
+      payTitle: 'Pagá tu oferta',
+      paySafeNote: 'Cobro seguro de Mercado Pago, dentro de tu cuenta.',
+      backToDetail: 'Volver al detalle',
+      otherMethods: 'Pagar por transferencia u otro medio',
+      resumeAction: 'Terminar de pagar',
+      manualPendingAction: 'Ver el estado de mi pago',
+      orderConcept: 'Afiliación + inscripción {{event}}',
+      settledTitle: 'Pago acreditado',
+      settledLead:
+        'Tu afiliación y tu inscripción quedan confirmadas en cuanto el pago termine de acreditarse.',
       expires: 'La oferta se cierra el {{date}}.',
       more: 'Tenés {{count}} oferta más desbloqueada.',
       redeemedAction: 'Ver mi inscripción',
@@ -1017,6 +1122,8 @@ export default {
         offer_unavailable:
           'La oferta no está disponible en este momento. Escribinos si creés que es un error.',
         missing: 'No encontramos la oferta.',
+        pending_payment:
+          'Tu compra quedó iniciada y espera el pago. La afiliación y la inscripción se acreditan cuando se aprueba.',
       },
     },
     credential: {

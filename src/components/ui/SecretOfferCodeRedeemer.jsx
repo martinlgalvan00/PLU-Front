@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { ArrowRight, KeyRound, LoaderCircle } from 'lucide-react'
+import { Check, KeyRound, LoaderCircle } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   clearPendingPromotionCode,
@@ -11,7 +11,19 @@ import {
 import { waitForSecretOfferRedirect } from '../../services/secretOfferRedemptionService.js'
 import CodeScanButton from './CodeScanButton.jsx'
 import '../../styles/components/secret-code-redeemer.css'
+import '../../styles/components/code-band.css'
 
+/**
+ * Canje universal de códigos. Vive en Mi cuenta, Eventos, Pitbull y Entradas.
+ *
+ * Se presenta con el registro de la credencial (ver `code-band.css`): sello,
+ * filo de oro, y el código en el mismo mono espaciado que el número de socio. El
+ * estado del canje se dice en palabras en la ficha superior de la banda —igual
+ * que un documento emitido— en vez de pintarse con color.
+ *
+ * La lógica es la de siempre: el servidor resuelve qué es el código y a dónde
+ * lleva (`redeemPromotionCode`), y acá sólo se refleja.
+ */
 export default function SecretOfferCodeRedeemer({
   session = null,
   onNavigate,
@@ -85,75 +97,124 @@ export default function SecretOfferCodeRedeemer({
   }
 
   const classes = ['secret-code-redeemer', className].filter(Boolean).join(' ')
+  const checking = state === 'checking'
+  const settled = state === 'redirecting' || state === 'accepted'
+  // El estado se dice, no se pinta: es la misma ficha de una credencial emitida.
+  const status = checking
+    ? t('codeBand.statusChecking')
+    : settled
+      ? t('codeBand.statusDone')
+      : state === 'error'
+        ? t('codeBand.statusError')
+        : t('codeBand.statusIdle')
 
   return (
     <aside className={classes} aria-label={t('secretOfferRedeemer.ariaLabel')}>
       {!open ? (
         <button
           type="button"
-          className="secret-code-redeemer__toggle"
+          className="code-band-toggle secret-code-redeemer__toggle"
           aria-expanded="false"
           onClick={() => setOpen(true)}
         >
-          <KeyRound size={16} aria-hidden />
+          <span className="code-band-toggle__seal" aria-hidden>
+            <KeyRound size={13} />
+          </span>
           {t('secretOfferRedeemer.toggle')}
         </button>
-      ) : state === 'redirecting' ? (
-        <div className="secret-code-redeemer__redirect" role="status" aria-live="polite">
-          <LoaderCircle className="is-spinning" size={18} aria-hidden />
-          <div>
-            <strong>{t('secretOfferRedeemer.redirectingTitle')}</strong>
-            <span>{t('secretOfferRedeemer.redirectingLead')}</span>
-          </div>
-        </div>
-      ) : state === 'accepted' ? (
-        <div className="secret-code-redeemer__redirect" role="status" aria-live="polite">
-          <KeyRound size={18} aria-hidden />
-          <div>
-            <strong>{t('secretOfferRedeemer.acceptedTitle')}</strong>
-            <span>{t('secretOfferRedeemer.acceptedLead')}</span>
-          </div>
-        </div>
       ) : (
         <form className="secret-code-redeemer__form" onSubmit={redeem} noValidate>
-          <div className="secret-code-redeemer__copy">
-            <label htmlFor={inputId}>{t('secretOfferRedeemer.label')}</label>
-            <span>{t('secretOfferRedeemer.hint')}</span>
+          <label className="visually-hidden" htmlFor={inputId}>
+            {t('secretOfferRedeemer.label')}
+          </label>
+          <div
+            className={`code-band${state === 'error' ? ' code-band--error' : ''}`}
+            data-state={state}
+          >
+            <span className="code-band__grain" aria-hidden />
+            <div className="code-band__frame">
+              <div className="code-band__head">
+                <span className="code-band__mark">{t('codeBand.markKey')}</span>
+                <span
+                  className={`code-band__status${
+                    settled
+                      ? ' code-band__status--done'
+                      : state === 'error'
+                        ? ' code-band__status--error'
+                        : ''
+                  }`}
+                  role="status"
+                >
+                  {status}
+                </span>
+              </div>
+              <div className="code-band__row">
+                <input
+                  id={inputId}
+                  className="code-band__input"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={code}
+                  placeholder={t('secretOfferRedeemer.placeholder')}
+                  disabled={checking || settled}
+                  onChange={(event) => {
+                    setCode(event.target.value.toUpperCase())
+                    if (state !== 'idle') setState('idle')
+                    setReason('')
+                  }}
+                />
+                {settled ? (
+                  <Check size={18} aria-hidden className="secret-code-redeemer__seal-check" />
+                ) : (
+                  <>
+                    <CodeScanButton
+                      className="secret-code-redeemer__scan"
+                      disabled={checking}
+                      onScan={(scanned) => {
+                        setCode(scanned)
+                        void attemptRedeem(scanned)
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="code-band__chip"
+                      disabled={checking || !code.trim()}
+                    >
+                      {checking ? (
+                        <LoaderCircle className="is-spinning" size={15} aria-hidden />
+                      ) : null}
+                      {checking
+                        ? t('secretOfferRedeemer.checking')
+                        : t('secretOfferRedeemer.apply')}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="secret-code-redeemer__controls">
-            <input
-              id={inputId}
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              value={code}
-              placeholder={t('secretOfferRedeemer.placeholder')}
-              disabled={state === 'checking'}
-              onChange={(event) => {
-                setCode(event.target.value.toUpperCase())
-                if (state !== 'idle') setState('idle')
-                setReason('')
-              }}
-            />
-            <button type="submit" disabled={state === 'checking' || !code.trim()}>
-              {state === 'checking' ? (
-                <LoaderCircle className="is-spinning" size={16} aria-hidden />
-              ) : (
-                <ArrowRight size={16} aria-hidden />
-              )}
-              {state === 'checking'
-                ? t('secretOfferRedeemer.checking')
-                : t('secretOfferRedeemer.apply')}
-            </button>
-            <CodeScanButton
-              className="secret-code-redeemer__scan"
-              disabled={state === 'checking'}
-              onScan={(scanned) => {
-                setCode(scanned)
-                void attemptRedeem(scanned)
-              }}
-            />
-          </div>
+
+          {state === 'redirecting' || state === 'accepted' ? (
+            <div className="code-band-done" role="status" aria-live="polite">
+              <strong>
+                {t(
+                  state === 'accepted'
+                    ? 'secretOfferRedeemer.acceptedTitle'
+                    : 'secretOfferRedeemer.redirectingTitle',
+                )}
+              </strong>
+              <span>
+                {t(
+                  state === 'accepted'
+                    ? 'secretOfferRedeemer.acceptedLead'
+                    : 'secretOfferRedeemer.redirectingLead',
+                )}
+              </span>
+            </div>
+          ) : (
+            <p className="code-band-hint">{t('secretOfferRedeemer.hint')}</p>
+          )}
+
           {state === 'login' ? (
             <p className="secret-code-redeemer__message" role="status">
               {t('secretOfferRedeemer.loginRequired')}{' '}
@@ -163,7 +224,7 @@ export default function SecretOfferCodeRedeemer({
             </p>
           ) : null}
           {state === 'error' ? (
-            <p className="secret-code-redeemer__message is-error" role="alert">
+            <p className="code-band-error secret-code-redeemer__message is-error" role="alert">
               {t(`secretOfferRedeemer.error.${reason}`)}
             </p>
           ) : null}

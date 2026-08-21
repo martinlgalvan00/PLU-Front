@@ -1,5 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import {
+  derivePaymentProgress,
+  serializePaymentProgress,
+} from '../../src/lib/paymentProgress.js'
 import { HttpError } from '../lib/errors.js'
 import {
   assertPaidCheckoutAvailable,
@@ -399,10 +403,22 @@ export function createPaymentRoutes(deps = {}) {
     },
   )
 
+  /**
+   * Estado real de un cobro. Devolvia solo `status` — el agregado crudo — asi
+   * que la pantalla que espera el retorno de Mercado Pago no tenia con que
+   * distinguir "todavia procesando" de "vencio sin pagar" ni con que explicar
+   * un rechazo. Ahora viaja el progreso derivado del libro de intentos, que es
+   * el mismo que consume la seccion de pagos del atleta.
+   */
   router.get('/orders/:orderId/status', publicReadLimiter, async (req, res, next) => {
     try {
       const orderId = parseInput(z.string().uuid(), req.params.orderId)
       const order = await requireOrderAccess(req, orderId, req.get('x-order-access-token'))
+      const attempts = await repository()
+        .listOrderPayments(order.id, order.kind)
+        .catch(() => [])
+      const progress = derivePaymentProgress({ order, attempts })
+
       res.json({
         order: {
           id: order.id,
@@ -410,7 +426,15 @@ export function createPaymentRoutes(deps = {}) {
           amount: order.amount,
           currency: order.currency,
           reference: order.reference,
+          concept: order.concept,
+          displayConcept: order.displayConcept,
+          conceptDetail: order.conceptDetail ?? null,
+          method: order.method,
+          manualPaymentChannel: order.manualPaymentChannel ?? null,
+          expiresAt: order.expiresAt ?? null,
+          approvedAt: order.approvedAt ?? null,
         },
+        progress: serializePaymentProgress(progress),
       })
     } catch (error) {
       next(error)

@@ -83,16 +83,78 @@ export function resolveOfferPricing(offer, { paymentMethod = 'mercado_pago' } = 
   }
 }
 
+/** Órdenes que todavía se pueden pagar. Espejo de OPEN_PAYMENT_STATUSES. */
+const OPEN_PURCHASE_STATUSES = ['pendiente', 'validacion_manual', 'creado']
+
+/**
+ * La compra que ocupó el canje, normalizada (`plu_private.offer_code_payload`).
+ *
+ * `redeemed` se escribe al CREAR la orden, no al cobrarla: sin mirar el estado
+ * de esa orden la ficha declaraba "ya compraste" a quien todavía no había
+ * pagado. `open` es lo que habilita retomar el pago; `paid` es lo que convierte
+ * la ficha en recibo.
+ */
+export function getOfferPurchase(offer) {
+  const purchase = offer?.purchase
+  if (!purchase?.orderId) return null
+  const status = String(purchase.status ?? '')
+  return {
+    ...purchase,
+    status,
+    open: OPEN_PURCHASE_STATUSES.includes(status),
+    paid: status === 'aprobado',
+    // Transferencia, efectivo y Wise comparten `manual_link` y no se cobran con
+    // el brick: se resuelven con comprobante y validación de staff.
+    embeddable: purchase.method === 'mercado_pago' && OPEN_PURCHASE_STATUSES.includes(status),
+  }
+}
+
+/**
+ * Orden mínima que `MercadoPagoEmbeddedCheckout` necesita para retomar un cobro
+ * ya creado. La preferencia la resuelve el propio brick si la orden no la tiene.
+ *
+ * No inventa importes: el que se cobra es el que quedó en la orden cuando se
+ * aplicó el código, que es también el único que el servidor va a aceptar.
+ */
+export function buildOfferResumeOrder(offer, { athlete = null, concept = '' } = {}) {
+  const purchase = getOfferPurchase(offer)
+  if (!purchase?.embeddable) return null
+  return {
+    type: 'competition',
+    purchaseType: 'combo',
+    paymentId: purchase.orderId,
+    id: purchase.orderId,
+    amount: purchase.amount,
+    currency: purchase.currency ?? 'ARS',
+    concept: concept || purchase.concept,
+    method: purchase.method,
+    status: purchase.status,
+    paymentMode: 'payment',
+    athleteId: athlete?.id ?? null,
+    athleteName: athlete?.fullName ?? null,
+    athleteDocument: athlete?.documentId ?? null,
+    payerEmail: athlete?.email ?? null,
+  }
+}
+
 /**
  * ¿La oferta se puede comprar ahora?
  *
- * `redeemed` la cierra: la compra ya se hizo y la ficha pasa a ser el registro
- * de lo que se canjeó. El resto son las mismas condiciones que evalúa el
- * checkout — se replican para no ofrecer un botón que termina en error.
+ * `redeemed` cierra la compra de cero, pero no siempre significa "comprada":
+ * si la orden que ocupó el canje sigue impaga, la ficha tiene que poder
+ * terminar de pagarla (`resumable`). El resto son las mismas condiciones que
+ * evalúa el checkout — se replican para no ofrecer un botón que termina en
+ * error.
  */
 export function getOfferState(offer, { now = new Date() } = {}) {
   if (!offer) return { available: false, reason: 'missing' }
-  if (offer.redeemed) return { available: false, reason: 'redeemed' }
+  if (offer.redeemed) {
+    const purchase = getOfferPurchase(offer)
+    if (purchase?.open) {
+      return { available: false, resumable: true, reason: 'pending_payment', purchase }
+    }
+    return { available: false, reason: 'redeemed', purchase }
+  }
 
   const expiresAt = offer.expiresAt ? new Date(offer.expiresAt) : null
   if (expiresAt && expiresAt < now) return { available: false, reason: 'expired' }
@@ -112,11 +174,17 @@ export function getOfferState(offer, { now = new Date() } = {}) {
 }
 
 /**
- * La oferta que la ficha muestra primero: la comprable más reciente y, si no
- * quedó ninguna, la última canjeada — para que la ficha nunca aparezca vacía
- * después de haber anunciado un canje.
+ * La oferta que la ficha muestra primero: la comprable más reciente; si no
+ * quedó ninguna, la que tiene un pago abierto —es la que reclama una acción—;
+ * y en última instancia la última canjeada, para que la ficha nunca aparezca
+ * vacía después de haber anunciado un canje.
  */
 export function pickPrimaryOffer(offers = [], options = {}) {
   const list = Array.isArray(offers) ? offers.filter(Boolean) : []
-  return list.find((offer) => getOfferState(offer, options).available) ?? list[0] ?? null
+  return (
+    list.find((offer) => getOfferState(offer, options).available) ??
+    list.find((offer) => getOfferState(offer, options).resumable) ??
+    list[0] ??
+    null
+  )
 }

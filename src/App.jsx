@@ -57,6 +57,7 @@ import {
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
   DEFAULT_ACCOUNT_TAB,
+  accountTabFromSectionParam,
   getTransitionDirection,
   resolveAfterLoginDestination,
   resolveMembershipCheckout,
@@ -135,7 +136,11 @@ export default function App() {
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
-  const [profileTab, setProfileTab] = useState(DEFAULT_ACCOUNT_TAB)
+  // `?section=` llega en los emails de pago; sin leerlo, "revisá el estado de
+  // tu pago" abría la cuenta en la credencial.
+  const [profileTab, setProfileTab] = useState(
+    () => accountTabFromSectionParam() ?? DEFAULT_ACCOUNT_TAB,
+  )
   const [profileTabNonce, setProfileTabNonce] = useState(0)
   const [ticketEventSlug, setTicketEventSlug] = useState(() =>
     matchTicketsRoute() ? getTicketsRouteEventSlug() : null,
@@ -259,6 +264,13 @@ export default function App() {
       const publicView = matchPublicViewPath()
       if (publicView) {
         setEventPageSlug(null)
+        if (publicView === 'profile') {
+          const sectionTab = accountTabFromSectionParam()
+          if (sectionTab) {
+            setProfileTab(sectionTab)
+            setProfileTabNonce((current) => current + 1)
+          }
+        }
         setView(publicView)
         return
       }
@@ -793,12 +805,14 @@ export default function App() {
             onActivateMembership={app.activateDemoMembership}
             onCancelMembership={app.cancelDemoMembership}
             onStartMembershipPayment={app.startMembershipPayment}
+            onStartOfferPayment={app.startOfferPayment}
             demoMode={app.demoMode}
             onNavigate={navigate}
             onSelectEvent={selectEvent}
             onUpdateProfile={app.updateAthleteProfileAction}
             onUpdatePhoto={app.updateAthletePhotoAction}
             onRemovePhoto={app.removeAthletePhotoAction}
+            payments={app.payments}
             registrations={app.registrations}
             session={app.session}
             events={publicEvents}

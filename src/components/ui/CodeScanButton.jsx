@@ -71,7 +71,10 @@ export default function CodeScanButton({ onScan, disabled = false, className = '
         onClick={() => setOpen((current) => !current)}
       >
         <ScanLine size={16} aria-hidden />
-        {t('codeScan.toggle')}
+        {/* La etiqueta va en su propio span para que un host pueda dejar el
+            botón sólo con el ícono sin perder el nombre accesible (lo hace
+            `.code-band .code-scan__label`). */}
+        <span className="code-scan__label">{t('codeScan.toggle')}</span>
       </button>
 
       {open ? (

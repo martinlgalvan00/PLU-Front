@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildOfferResumeOrder,
   getOfferState,
   isOfferUnlockKind,
   pickPrimaryOffer,
@@ -106,21 +107,58 @@ describe('getOfferState', () => {
     expect(getOfferState(buildOffer(), { now })).toEqual({ available: true, reason: null })
   })
 
-  // Ya comprada: la ficha pasa a ser el registro de lo que canjeó.
+  // Ya comprada Y pagada: la ficha pasa a ser el registro de lo que canjeó.
   it('una oferta ya comprada deja de ofrecer la acción', () => {
-    expect(getOfferState(buildOffer({ redeemed: true }), { now })).toEqual({
+    expect(getOfferState(buildOffer({ redeemed: true }), { now })).toMatchObject({
       available: false,
       reason: 'redeemed',
     })
   })
 
+  // `redeemed` se escribe al CREAR la orden: sin mirar su estado, la ficha
+  // declaraba "ya compraste" a quien todavía no había pagado nada.
+  it('una compra iniciada y sin pagar se puede retomar', () => {
+    const state = getOfferState(
+      buildOffer({
+        redeemed: true,
+        purchase: {
+          orderId: 'ord-1',
+          status: 'pendiente',
+          amount: 120000,
+          method: 'mercado_pago',
+        },
+      }),
+      { now },
+    )
+    expect(state).toMatchObject({ available: false, resumable: true, reason: 'pending_payment' })
+    expect(state.purchase.embeddable).toBe(true)
+  })
+
+  it('una compra por transferencia no se cobra con el brick', () => {
+    const state = getOfferState(
+      buildOffer({
+        redeemed: true,
+        purchase: {
+          orderId: 'ord-2',
+          status: 'validacion_manual',
+          amount: 120000,
+          method: 'manual_link',
+        },
+      }),
+      { now },
+    )
+    expect(state.resumable).toBe(true)
+    expect(state.purchase.embeddable).toBe(false)
+    expect(buildOfferResumeOrder({ ...buildOffer(), purchase: state.purchase })).toBe(null)
+  })
+
   it('respeta la ventana del código', () => {
-    expect(
-      getOfferState(buildOffer({ expiresAt: '2026-09-01T00:00:00Z' }), { now }).reason,
-    ).toBe('expired')
-    expect(
-      getOfferState(buildOffer({ startsAt: '2026-09-03T00:00:00Z' }), { now }).reason,
-    ).toBe('not_started')
+    expect(getOfferState(buildOffer({ expiresAt: '2026-09-01T00:00:00Z' }), { now }).reason).toBe(
+      'expired',
+    )
+    expect(getOfferState(buildOffer({ startsAt: '2026-09-03T00:00:00Z' }), { now }).reason).toBe(
+      'not_started',
+    )
   })
 
   it('respeta la ventana y el estado del combo', () => {

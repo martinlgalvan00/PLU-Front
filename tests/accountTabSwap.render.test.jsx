@@ -32,6 +32,9 @@ describe('cinta de la cuenta como fuente única del orden', () => {
       'account-events',
       'account-history',
       'account-membership',
+      // Los pagos van pegados a Afiliación: es donde nace el cobro y adonde
+      // apuntan los emails (`/mi-cuenta?section=payments`).
+      'account-payments',
       'account-personal-data',
       'account-security',
     ])
@@ -40,9 +43,10 @@ describe('cinta de la cuenta como fuente única del orden', () => {
   it('la página deriva la dirección del swap de ese orden', () => {
     const page = readFileSync('src/pages/AthleteProfilePage.jsx', 'utf8')
     expect(page).toContain("import MotionContentSwap from '../motion/MotionContentSwap.tsx'")
-    expect(page).toContain(
-      "import { ACCOUNT_OFFER_TAB, ACCOUNT_TAB_IDS, DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'",
-    )
+    // Lo que se está resguardando es de dónde sale el orden, no cómo quedó
+    // formateada la línea de import: la lista de constantes crece y Prettier la
+    // parte en varias líneas.
+    expect(page).toMatch(/import \{[^}]*\bACCOUNT_TAB_IDS\b[^}]*\} from '\.\.\/lib\/navigation\.js'/s)
     expect(page).toContain('ACCOUNT_TAB_IDS.indexOf(activeTab)')
     // `sync` y no `wait`: con `wait` el contenedor colapsa un frame entre el
     // panel que sale y el que entra, y la página da un salto de scroll.
