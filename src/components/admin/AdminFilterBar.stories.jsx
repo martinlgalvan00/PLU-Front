@@ -122,7 +122,7 @@ function AuditLikeFilterBar({ initialAction = 'all' }) {
 /** Mismas 5 facetas que arma AthletesSection, todas inline (sin "Más filtros"):
  * afiliación, inscripción, gimnasio (select con lista dinámica), división
  * (chips) y fecha de alta (variant `dateRange`, dos inputs nativos). */
-function AthletesLikeFilterBar({ initialRange = { from: '', to: '' } }) {
+function AthletesLikeFilterBar({ initialRange = { from: '', to: '' }, containerWidth = null }) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [registrationStatus, setRegistrationStatus] = useState('all')
@@ -136,6 +136,7 @@ function AthletesLikeFilterBar({ initialRange = { from: '', to: '' } }) {
       label: 'Afiliación',
       value: status,
       onChange: setStatus,
+      showLabel: true,
       options: [
         ['all', 'Todos', 42],
         ['afiliado_activo', 'Afiliado activo', 30, 'success'],
@@ -147,6 +148,7 @@ function AthletesLikeFilterBar({ initialRange = { from: '', to: '' } }) {
       label: 'Inscripción',
       value: registrationStatus,
       onChange: setRegistrationStatus,
+      showLabel: true,
       options: [
         ['all', 'Todas', 42],
         ['confirmada', 'Confirmada', 25],
@@ -170,6 +172,7 @@ function AthletesLikeFilterBar({ initialRange = { from: '', to: '' } }) {
       label: 'División',
       value: division,
       onChange: setDivision,
+      showLabel: true,
       options: [
         ['all', 'Todas las divisiones', 42],
         ['Open', 'Open', 28],
@@ -190,7 +193,13 @@ function AthletesLikeFilterBar({ initialRange = { from: '', to: '' } }) {
   return (
     <AppConfigProvider>
       <div className="admin-shell" style={{ minHeight: 0, background: 'var(--admin-canvas)', padding: '24px' }}>
-        <div style={{ maxWidth: 1440 }}>
+        <div
+          style={
+            containerWidth
+              ? { width: containerWidth, containerType: 'inline-size', containerName: 'admin-panel' }
+              : { maxWidth: 1440 }
+          }
+        >
           <AdminFilterBar
             compact
             inline
@@ -226,6 +235,14 @@ export const FiltrosAvanzadosAbiertos = {
 /** Caso Atletas: 5 facetas siempre visibles, sin popover de avanzados. */
 export const CincoFiltrosInline = {
   render: () => <AthletesLikeFilterBar />,
+}
+
+/** Mismo caso dentro de un contenedor angosto (`admin-panel`, &lt;719px de ancho
+ * de contenedor): la rama `@container` -- no el viewport -- es la que manda acá,
+ * el mismo layout que ve la app real cuando el panel admin queda angosto por el
+ * sidebar aunque la ventana del navegador sea ancha. */
+export const CincoFiltrosContenedorAngosto = {
+  render: () => <AthletesLikeFilterBar containerWidth={650} />,
 }
 
 /** Rango de fecha de alta activo -- confirma el resaltado `is-active` del variant `dateRange`. */
