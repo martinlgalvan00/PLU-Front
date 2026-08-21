@@ -9,7 +9,11 @@ import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getAthletesTourSteps } from '../../lib/adminTourSteps.js'
 import { getStatusMeta } from '../../lib/status.js'
-import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
+import {
+  ATHLETE_FILTER_STATUSES,
+  FORM_OPTIONS,
+  REGISTRATION_FILTER_STATUSES,
+} from '../../lib/constants.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import {
   createRegistrationPaymentIndex,
@@ -33,6 +37,9 @@ export default function AthletesSection({
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [registrationStatus, setRegistrationStatus] = useState('all')
+  const [gym, setGym] = useState('all')
+  const [division, setDivision] = useState('all')
+  const [registeredRange, setRegisteredRange] = useState({ from: '', to: '' })
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const { startTour } = useAdminTour()
   const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('athletes')
@@ -63,6 +70,47 @@ export default function AthletesSection({
       ]),
     [athletes.length, statusCounts, t],
   )
+
+  const gymOptions = useMemo(() => {
+    const unique = new Set()
+    for (const athlete of athletes) {
+      const trimmed = athlete.gym?.trim()
+      if (trimmed) unique.add(trimmed)
+    }
+    return [
+      ['all', t('admin.filters.allGyms')],
+      ...[...unique].sort((a, b) => a.localeCompare(b, 'es')).map((value) => [value, value]),
+    ]
+  }, [athletes, t])
+
+  const divisionCounts = useMemo(() => {
+    const counts = Object.create(null)
+    for (const athlete of athletes) {
+      counts[athlete.division] = (counts[athlete.division] ?? 0) + 1
+    }
+    return counts
+  }, [athletes])
+
+  const divisionOptions = useMemo(
+    () => [
+      ['all', t('admin.filters.allDivisions'), athletes.length],
+      ...FORM_OPTIONS.division.map((value) => [value, value, divisionCounts[value] ?? 0]),
+    ],
+    [athletes.length, divisionCounts, t],
+  )
+
+  function matchesRegisteredRange(createdAt, range) {
+    if (!range.from && !range.to) return true
+    if (!createdAt) return false
+    const createdDate = createdAt.slice(0, 10)
+    if (range.from && createdDate < range.from) return false
+    if (range.to && createdDate > range.to) return false
+    return true
+  }
+
+  function formatDateForSummary(isoDate) {
+    return new Date(`${isoDate}T00:00:00`).toLocaleDateString('es-AR')
+  }
 
   // Índice de pagos + inscripciones por atleta, una sola pasada cada uno
   // (mismo patrón que RegistrationsSection): "¿este atleta tiene alguna
@@ -109,14 +157,21 @@ export default function AthletesSection({
   )
 
   const savedViewSnapshot = useMemo(
-    () => ({ query, status, registrationStatus }),
-    [query, status, registrationStatus],
+    () => ({ query, status, registrationStatus, gym, division, registeredRange }),
+    [query, status, registrationStatus, gym, division, registeredRange],
   )
   const activeSavedView = useMemo(
     () => findMatchingView(savedViews, savedViewSnapshot),
     [savedViews, savedViewSnapshot],
   )
-  const hasFiltersToSave = query.trim() !== '' || status !== 'all' || registrationStatus !== 'all'
+  const hasFiltersToSave =
+    query.trim() !== '' ||
+    status !== 'all' ||
+    registrationStatus !== 'all' ||
+    gym !== 'all' ||
+    division !== 'all' ||
+    Boolean(registeredRange.from) ||
+    Boolean(registeredRange.to)
 
   // Resumen legible de los filtros activos para el popover
   const filterSummary = useMemo(() => {
@@ -130,19 +185,54 @@ export default function AthletesSection({
       const opt = registrationStatusOptions.find(([v]) => v === registrationStatus)
       if (opt) items.push({ label: t('admin.filters.registrationStatus'), value: opt[1] })
     }
+    if (gym !== 'all') {
+      const opt = gymOptions.find(([v]) => v === gym)
+      if (opt) items.push({ label: t('admin.filters.gym'), value: opt[1] })
+    }
+    if (division !== 'all') {
+      const opt = divisionOptions.find(([v]) => v === division)
+      if (opt) items.push({ label: t('admin.filters.division'), value: opt[1] })
+    }
+    if (registeredRange.from || registeredRange.to) {
+      const value =
+        registeredRange.from && registeredRange.to
+          ? `${formatDateForSummary(registeredRange.from)} – ${formatDateForSummary(registeredRange.to)}`
+          : registeredRange.from
+            ? t('admin.filters.registeredAtFrom', { date: formatDateForSummary(registeredRange.from) })
+            : t('admin.filters.registeredAtTo', { date: formatDateForSummary(registeredRange.to) })
+      items.push({ label: t('admin.filters.registeredAt'), value })
+    }
     return items
-  }, [query, status, registrationStatus, statusOptions, registrationStatusOptions, t])
+  }, [
+    query,
+    status,
+    registrationStatus,
+    gym,
+    division,
+    registeredRange,
+    statusOptions,
+    registrationStatusOptions,
+    gymOptions,
+    divisionOptions,
+    t,
+  ])
 
   function applySavedView(view) {
     setQuery(view.snapshot.query ?? '')
     setStatus(view.snapshot.status ?? 'all')
     setRegistrationStatus(view.snapshot.registrationStatus ?? 'all')
+    setGym(view.snapshot.gym ?? 'all')
+    setDivision(view.snapshot.division ?? 'all')
+    setRegisteredRange(view.snapshot.registeredRange ?? { from: '', to: '' })
   }
 
   function clearSavedView() {
     setQuery('')
     setStatus('all')
     setRegistrationStatus('all')
+    setGym('all')
+    setDivision('all')
+    setRegisteredRange({ from: '', to: '' })
   }
 
   const rows = useMemo(() => {
@@ -152,21 +242,29 @@ export default function AthletesSection({
       .filter((athlete) => {
         const statusMatch = status === 'all' || athlete.status === status
         const registrationMatch = athleteMatchesRegistrationFilter(athlete.id, registrationStatus)
+        const gymMatch = gym === 'all' || athlete.gym === gym
+        const divisionMatch = division === 'all' || athlete.division === division
+        const dateMatch = matchesRegisteredRange(athlete.createdAt, registeredRange)
         const queryMatch =
           !normalizedQuery ||
           athlete.fullName.toLowerCase().includes(normalizedQuery) ||
           athlete.documentId.includes(normalizedQuery) ||
           athlete.email.toLowerCase().includes(normalizedQuery) ||
           athlete.gym?.toLowerCase().includes(normalizedQuery)
-        return statusMatch && registrationMatch && queryMatch
+        return (
+          statusMatch && registrationMatch && gymMatch && divisionMatch && dateMatch && queryMatch
+        )
       })
       .map((athlete) => ({ ...athlete, id: athlete.id }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- athleteMatchesRegistrationFilter depende de paymentIndex/registrationsByAthlete/gatePendingIds, ya listados
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- athleteMatchesRegistrationFilter/matchesRegisteredRange dependen de paymentIndex/registrationsByAthlete/gatePendingIds, ya listados
   }, [
     athletes,
     query,
     status,
     registrationStatus,
+    gym,
+    division,
+    registeredRange,
     paymentIndex,
     registrationsByAthlete,
     gatePendingIds,
@@ -198,7 +296,29 @@ export default function AthletesSection({
           value: registrationStatus,
           onChange: setRegistrationStatus,
           options: registrationStatusOptions,
-          advanced: true,
+        },
+        {
+          id: 'gym',
+          label: t('admin.filters.gym'),
+          value: gym,
+          onChange: setGym,
+          options: gymOptions,
+          variant: 'select',
+        },
+        {
+          id: 'division',
+          label: t('admin.filters.division'),
+          value: division,
+          onChange: setDivision,
+          options: divisionOptions,
+        },
+        {
+          id: 'registeredAt',
+          label: t('admin.filters.registeredAt'),
+          value: registeredRange,
+          onChange: setRegisteredRange,
+          variant: 'dateRange',
+          defaultValue: { from: '', to: '' },
         },
       ]}
       onQueryChange={setQuery}

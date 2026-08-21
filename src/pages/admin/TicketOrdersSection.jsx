@@ -128,13 +128,19 @@ export default function TicketOrdersSection({
   )
 
   return (
-    <section id="admin-ticket-orders" className="admin-orders-block">
-      <header className="admin-orders-block__header">
-        <div>
-          <h2 className="admin-orders-block__title">{t('admin.ticketOrders.title')}</h2>
-          <p className="admin-orders-block__lead">{t('admin.ticketOrders.subtitle')}</p>
+    <section id="admin-ticket-orders" className="admin-orders-block" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+          <AdminFilterBar
+            className="admin-filters--external"
+            compact
+            inline
+            placeholder={t('admin.ticketOrders.search')}
+            query={query}
+            onQueryChange={setQuery}
+          />
         </div>
-        <div className="admin-orders-block__actions">
+        <div className="admin-orders-block__actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span className="admin-orders-block__amount">
             {withProofCount} {t('admin.ticketOrders.statsWithProof')}
           </span>
@@ -146,16 +152,7 @@ export default function TicketOrdersSection({
             {t('common.retry')}
           </button>
         </div>
-      </header>
-
-      <AdminFilterBar
-        className="admin-filters--external"
-        compact
-        inline
-        placeholder={t('admin.ticketOrders.search')}
-        query={query}
-        onQueryChange={setQuery}
-      />
+      </div>
 
       {actionError && <p className="form-submit-error">{actionError}</p>}
       {isLoading && rows.length === 0 ? (

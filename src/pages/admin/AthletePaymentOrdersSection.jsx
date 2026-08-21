@@ -320,14 +320,22 @@ export default function AthletePaymentOrdersSection({
   }
 
   return (
-    <section id="admin-athlete-payments" className="admin-orders-block">
-      <header className="admin-orders-block__header">
-        <div>
-          <span className="admin-orders-block__eyebrow">{t('admin.athletePayments.eyebrow')}</span>
-          <h2 className="admin-orders-block__title">{t('admin.athletePayments.title')}</h2>
-          <p className="admin-orders-block__lead">{t('admin.athletePayments.subtitle')}</p>
-        </div>
-        <div className="admin-orders-block__actions">
+    <section id="admin-athlete-payments" className="admin-orders-block" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+        <AdminFilterChipGroup
+          id="athlete-orders-status"
+          label={t('admin.filters.status')}
+          value={status}
+          onChange={setStatus}
+          compact
+          defaultValue="all"
+          omitNeutral
+          allLabel={t('admin.filters.showingAll')}
+          clearable
+          hideEmpty
+          options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
+        />
+        <div className="admin-orders-block__actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <span className="admin-orders-block__amount">
             {t('admin.athletePayments.openAmount', { amount: money(counts.openAmount, locale) })}
           </span>
@@ -340,21 +348,9 @@ export default function AthletePaymentOrdersSection({
             {t('admin.athletePayments.refresh')}
           </button>
         </div>
-      </header>
+      </div>
 
-      <AdminFilterChipGroup
-        id="athlete-orders-status"
-        label={t('admin.filters.status')}
-        value={status}
-        onChange={setStatus}
-        compact
-        defaultValue="all"
-        omitNeutral
-        allLabel={t('admin.filters.showingAll')}
-        clearable
-        hideEmpty
-        options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
-      />
+
 
       {error ? (
         <ErrorState
