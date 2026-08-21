@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildOfferResumeOrder,
   checkoutMethodForChannel,
+  getActionableOffers,
   getOfferState,
   isOfferUnlockKind,
   pickPrimaryOffer,
@@ -155,6 +156,61 @@ describe('getOfferState', () => {
     expect(buildOfferResumeOrder({ ...buildOffer(), purchase: state.purchase })).toBe(null)
   })
 
+  it('FIAR deja de sostener la ficha cuando ya otorgó ambos derechos', () => {
+    const financed = buildOffer({
+      redeemed: true,
+      purchase: {
+        orderId: 'ord-fiar',
+        status: 'validacion_manual',
+        amount: 120000,
+        method: 'manual_link',
+        financingAllowed: true,
+        manualPaymentDeclaredAt: '2026-09-02T12:30:00Z',
+        financedEntitlementsAt: '2026-09-02T12:30:00Z',
+      },
+    })
+
+    const state = getOfferState(financed, { now })
+    expect(state).toMatchObject({ available: false, reason: 'financed' })
+    expect(state.resumable).toBeUndefined()
+    expect(state.purchase.financed).toBe(true)
+  })
+
+  it('la aprobación final gana sobre el estado provisional de FIAR', () => {
+    const approved = buildOffer({
+      redeemed: true,
+      purchase: {
+        orderId: 'ord-fiar-paid',
+        status: 'aprobado',
+        amount: 120000,
+        method: 'manual_link',
+        financingAllowed: true,
+        financedEntitlementsAt: '2026-09-02T12:30:00Z',
+      },
+    })
+
+    expect(getOfferState(approved, { now })).toMatchObject({ reason: 'redeemed' })
+  })
+
+  it('una transferencia sin FIAR sigue visible hasta la revisión administrativa', () => {
+    const awaitingReview = buildOffer({
+      redeemed: true,
+      purchase: {
+        orderId: 'ord-manual',
+        status: 'validacion_manual',
+        amount: 120000,
+        method: 'manual_link',
+        financingAllowed: false,
+        manualPaymentDeclaredAt: '2026-09-02T12:30:00Z',
+      },
+    })
+
+    expect(getOfferState(awaitingReview, { now })).toMatchObject({
+      resumable: true,
+      reason: 'pending_payment',
+    })
+  })
+
   it('respeta la ventana del código', () => {
     expect(getOfferState(buildOffer({ expiresAt: '2026-09-01T00:00:00Z' }), { now }).reason).toBe(
       'expired',
@@ -202,11 +258,24 @@ describe('pickPrimaryOffer', () => {
     expect(pickPrimaryOffer([redeemed, live], { now }).code).toBe('ONLY-PITBULL')
   })
 
-  // Si no queda ninguna comprable, la ficha no puede aparecer vacía después de
-  // haber anunciado un canje.
-  it('cae a la primera si ninguna es comprable', () => {
+  it('una compra aprobada deja de sostener la ficha secreta', () => {
     const redeemed = buildOffer({ code: 'VIEJA', redeemed: true })
-    expect(pickPrimaryOffer([redeemed], { now }).code).toBe('VIEJA')
+    expect(pickPrimaryOffer([redeemed], { now })).toBe(null)
+    expect(getActionableOffers([redeemed], { now })).toEqual([])
+  })
+
+  it('una compra financiada deja de sostener la ficha secreta', () => {
+    const financed = buildOffer({
+      redeemed: true,
+      purchase: {
+        orderId: 'ord-fiar',
+        status: 'validacion_manual',
+        method: 'manual_link',
+        financingAllowed: true,
+        financedEntitlementsAt: '2026-09-02T12:30:00Z',
+      },
+    })
+    expect(pickPrimaryOffer([financed], { now })).toBe(null)
   })
 
   it('sin ofertas devuelve null', () => {
@@ -305,9 +374,9 @@ describe('resolveManualSettlement', () => {
       paymentMethod: 'manual_link',
       manualPaymentChannel: 'cash_pitbull',
     }
-    expect(resolveManualSettlement(buildOffer({ purchase: manualPurchase }), created)).toMatchObject(
-      { channel: 'cash_pitbull', orderId: 'order-nueva', amount: 95000 },
-    )
+    expect(
+      resolveManualSettlement(buildOffer({ purchase: manualPurchase }), created),
+    ).toMatchObject({ channel: 'cash_pitbull', orderId: 'order-nueva', amount: 95000 })
   })
 
   it('Mercado Pago no se liquida a mano: eso lo cobra el brick', () => {

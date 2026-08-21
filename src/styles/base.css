@@ -202,6 +202,8 @@ button:disabled {
     .account-nav__viewport,
     .account-nav__inner,
     .account-section,
+    .secret-code-redeemer__resolved,
+    .promotion-benefits__type-icon,
     .account-credential__flip,
     .admin-metric,
     .admin-shell__sidebar,

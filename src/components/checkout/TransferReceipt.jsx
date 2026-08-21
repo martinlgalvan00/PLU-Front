@@ -73,6 +73,7 @@ export default function TransferReceipt({
   financingAllowed = false,
   manualPaymentDeclaredAt = null,
   financedEntitlementsAt = null,
+  onConfirmed,
 }) {
   const { t } = useI18n()
   const [notes, setNotes] = useState('')
@@ -186,6 +187,7 @@ export default function TransferReceipt({
               financingAllowed={financingAllowed}
               manualPaymentDeclaredAt={manualPaymentDeclaredAt}
               orderId={orderId}
+              onConfirmed={onConfirmed}
             />
           ) : null}
         </>

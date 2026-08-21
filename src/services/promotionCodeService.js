@@ -99,4 +99,37 @@ export function promotionDestination(result) {
   return null
 }
 
+/**
+ * Traduce la respuesta del resolvedor a una descripciÃ³n presentacional estable.
+ * La UI no vuelve a inferir el contrato econÃ³mico desde nombres de campaÃ±a:
+ * usa los campos autoritativos que devolviÃ³ el servidor.
+ */
+export function promotionBenefitPresentation(result) {
+  const percentOff = Number(result?.benefit?.percentOff)
+  if (Number.isFinite(percentOff) && percentOff > 0) {
+    return { type: 'percent', percent: percentOff }
+  }
+  if (['fixed_price'].includes(result?.kind)) return { type: 'fixedPrice' }
+  if (result?.kind === 'offer' || result?.campaign?.objective === 'exclusive_offer') {
+    return { type: 'exclusiveOffer' }
+  }
+  if (result?.kind === 'access' || result?.campaign?.objective === 'access') {
+    return { type: 'access' }
+  }
+  return { type: 'discount' }
+}
+
+export function promotionDestinationType(result) {
+  const destination = promotionDestination(result)
+  if (!destination) return null
+  if (destination.view === 'profile' && destination.options?.tab === 'account-membership') {
+    return 'membership'
+  }
+  if (destination.view === 'competition') return 'registration'
+  if (destination.view === 'profile' && destination.options?.tab === 'account-offer') {
+    return 'exclusiveOffer'
+  }
+  return 'checkout'
+}
+
 export const PENDING_PROMOTION_STORAGE_KEY = PENDING_PROMOTION_KEY

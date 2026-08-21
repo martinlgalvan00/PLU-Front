@@ -472,7 +472,12 @@ export default function PricingSection({
   }, [events, selectedEventSlug])
 
   useEffect(() => {
-    if (!selectedEvent) return
+    // La configuración se sincroniza periódicamente para reflejar canjes y
+    // cambios de otros operadores. Mientras se edita, esa respuesta no puede
+    // reemplazar el borrador local: cada refresh vaciaba los campos que el
+    // operador estaba completando. Al cerrar el editor sí lo rehidratamos con
+    // la versión vigente, igual que al elegir otro evento.
+    if (!selectedEvent || comboEditorOpen) return
     const offer = selectedEvent.comboOffer
     setComboDraft({
       membershipPlanId: offer?.membershipPlanId ?? oneTimePlans[0]?.id ?? '',
@@ -486,7 +491,7 @@ export default function PricingSection({
       financed: offer?.financed === true,
     })
     setComboError('')
-  }, [oneTimePlans, selectedEvent])
+  }, [comboEditorOpen, oneTimePlans, selectedEvent])
 
   // Dependemos de si el formulario está abierto, no del draft entero: el
   // draft cambia en cada tecla y antes reenfocaba el primer campo en cada

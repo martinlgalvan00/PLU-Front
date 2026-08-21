@@ -282,6 +282,8 @@ export default {
     moreFilters: 'Más filtros',
     fewerFilters: 'Menos filtros',
     advancedLabel: 'Filtros avanzados',
+    searchFilters: 'Buscar filtro…',
+    noMatchingFilters: 'Ningún filtro coincide con la búsqueda',
   },
   stats: {
     total: 'Total',
@@ -451,9 +453,6 @@ export default {
       title: 'Atletas',
       subtitle: 'Identidad, estado deportivo y trazabilidad del plantel',
       empty: 'No hay atletas que coincidan con la búsqueda',
-      statActive: 'Activos',
-      statExpired: 'Vencidos',
-      statBlocked: 'Bloqueados',
       bulk: {
         label: 'Acciones en bloque',
         selectedCount: '{{count}} atletas seleccionados',
@@ -484,12 +483,6 @@ export default {
       title: 'Afiliaciones',
       subtitle: 'Vigencias, códigos y renovaciones de la federación',
       empty: 'No hay afiliaciones que coincidan con los filtros',
-      statActive: 'Activas',
-      statExpired: 'Vencidas',
-      statCancelled: 'Canceladas',
-      statNewThisMonth: 'Altas del mes',
-      statExpiringSoon: 'Vencen en 30 días',
-      statPendingPayment: 'Esperando pago',
       viewCredential: 'Credencial',
       credentialTitle: 'Credencial del socio',
       credentialLead: 'QR de puerta y datos de la afiliación emitida.',
@@ -666,7 +659,7 @@ export default {
       exclusiveFlowEyebrow: 'Flujo secreto',
       exclusiveFlowTitle: 'Página privada de la oferta',
       exclusiveFlowLead:
-        'Se puede canjear desde Afiliación o Inscripción: revela el paquete y lleva a su página privada de pago sin publicarlo.',
+        'Se canjea desde Mi cuenta > Beneficios o durante el pago: revela el paquete y lleva a su página privada sin publicarlo.',
       exclusiveFlowCode: 'Llave',
       exclusiveFlowBenefit: 'Beneficio',
       exclusiveFlowDestination: 'Destino',
@@ -1082,14 +1075,6 @@ export default {
       statRegistrations: 'Inscripciones confirmadas',
       export: 'Descargar reporte',
       empty: 'No hay afiliaciones que coincidan con los filtros',
-    },
-  },
-  registrations: {
-    stats: {
-      total: 'Total',
-      pending: 'Pendiente de pago',
-      manual: 'Validación manual',
-      confirmed: 'Confirmadas',
     },
   },
   board: {
@@ -1978,6 +1963,9 @@ export default {
     title: 'Operación y conciliación de pagos',
     subtitle:
       'Webhooks, reintentos, suscripciones y conciliaciones de Mercado Pago en un solo lugar.',
+    tabAthletes: 'Atletas',
+    tabTickets: 'Entradas',
+    tabLedger: 'Sistema',
     workerActive: 'Recuperación automática activa',
     workerInactive: 'Recuperación automática desactivada',
     refresh: 'Actualizar',

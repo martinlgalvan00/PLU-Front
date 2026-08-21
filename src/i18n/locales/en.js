@@ -113,6 +113,20 @@ export default {
     redirectingLead: 'Redirecting you to your secret tab…',
     acceptedTitle: 'Code ready',
     acceptedLead: 'We will apply it automatically when you open a compatible checkout.',
+    anotherCode: 'Redeem another code',
+    benefit: {
+      percent: '{{percent}}% discount ready to use.',
+      fixedPrice: 'You unlocked a promotional price.',
+      access: 'You unlocked access to a reserved option.',
+      exclusiveOffer: 'You unlocked an exclusive offer in your account.',
+      discount: 'The benefit is ready for the compatible checkout.',
+    },
+    continue: {
+      membership: 'Use on Membership',
+      registration: 'Use on registration',
+      exclusiveOffer: 'View my offer',
+      checkout: 'Go to checkout',
+    },
     loginRequired: 'Sign in with your athlete account to save this offer.',
     loginAction: 'Sign in',
     error: {
@@ -1010,6 +1024,7 @@ export default {
     navAria: 'Account sections',
     nav: {
       qr: 'Credential',
+      benefits: 'Benefits',
       offer: 'Exclusive offer',
       events: 'Events',
       history: 'History',
@@ -1017,6 +1032,29 @@ export default {
       payments: 'Payments',
       personalData: 'My details',
       security: 'Security',
+    },
+    benefits: {
+      eyebrow: 'Codes and promotions',
+      title: 'Your benefits',
+      lead: 'Enter or scan your code once. We show what it unlocks and keep it ready for the corresponding payment.',
+      safeNote:
+        'Redeeming does not create a charge or use the quota. The benefit is confirmed only when you create the order.',
+      openOffer: 'View my unlocked exclusive offer',
+      typesTitle: 'What a code may unlock',
+      types: {
+        discount: {
+          title: 'Discount or special price',
+          lead: 'It applies to the total when you open the compatible checkout.',
+        },
+        access: {
+          title: 'Reserved access',
+          lead: 'It unlocks a registration or package that is not shown in the public catalogue.',
+        },
+        offer: {
+          title: 'Exclusive offer',
+          lead: 'It saves a private offer in your account so you can return without entering the code again.',
+        },
+      },
     },
     payments: {
       eyebrow: 'Charges',
@@ -1154,6 +1192,8 @@ export default {
       profileIncompleteAction: 'Complete my details',
       state: {
         redeemed: 'You already bought this offer. Your membership and registration are on file.',
+        financed:
+          'Financing already enabled your membership and registration. The balance remains under Payments until Finance reviews it.',
         expired: 'This offer has closed.',
         not_started: 'This offer is not open yet.',
         offer_unavailable:
@@ -2425,19 +2465,21 @@ export default {
       credentialStoryHint: '9:16 format with entry QR · generated automatically on confirmation',
       categoriesEyebrow: 'Categories',
       categoriesIndex: '04',
-      categoriesListAria: 'Event categories and divisions',
+      categoriesListAria: 'Event modalities, equipment and divisions',
       categoriesTitle: 'Modalities and divisions',
       categoriesDesc: 'Subject to final confirmation in the official PLU ARG rulebook.',
       categoriesPendingLabel: 'Pending confirmation',
       categoriesSummary: '{{count}} categories · {{categories}} · {{divisions}}',
       categoriesCount: '{{count}} categories',
-      categoriesTotals: '{{modalities}} modalities · {{divisions}} divisions',
-      categoriesGroupCount: '{{count}}',
+      categoriesTotals:
+        '{{modalities}} modalities · {{equipment}} equipment · {{divisions}} divisions',
       categoriesModalities: 'Modalities',
-      categoriesModalitiesHint: 'Equipment',
+      categoriesModalitiesHint: 'Recognized lifts',
+      categoriesEquipment: 'Equipment',
+      categoriesEquipmentHint: 'Equipment class',
       categoriesDivisions: 'Divisions',
       categoriesDivisionsHint: 'Age class',
-      categoriesToggle: 'View event categories and divisions',
+      categoriesToggle: 'View event modalities, equipment and divisions',
       viewFullRulebook: 'View full rulebook',
       ticketsTitle: 'Want to watch the meet?',
       ticketsLead:
@@ -2473,6 +2515,7 @@ export default {
       weighInsFridayNote: 'Early weigh-in. Optional for all categories.',
       weighInsSaturdayNote:
         'Last call. Only for athletes competing who did not weigh in on Friday.',
+      normativeDividerLabel: 'PLU ARG · Pitbull Classic 2026',
       ticketsFormTitle: 'Get your entry',
       ticketPassCta: 'Get your entry',
       resourcesIndex: '08',

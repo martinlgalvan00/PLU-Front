@@ -6,8 +6,7 @@ import '../../styles/pages/account.css'
 import SecretOfferCodeRedeemer from './SecretOfferCodeRedeemer.jsx'
 
 /**
- * Canje universal de código: el mismo widget en Mi cuenta, Eventos, Pitbull y
- * Entradas.
+ * Canje universal de código dentro de Mi cuenta > Beneficios.
  *
  * Lleva el registro de la credencial (`code-band.css`): sello con filo de oro,
  * el código en el mono espaciado del número de socio, chip metálico como única

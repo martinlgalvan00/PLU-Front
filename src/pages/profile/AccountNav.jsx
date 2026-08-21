@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
+  BadgePercent,
   History,
   KeyRound,
   QrCode,
@@ -22,6 +23,7 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
  */
 const ITEM_CHROME = {
   'account-qr': { icon: QrCode, labelKey: 'qr' },
+  'account-benefits': { icon: BadgePercent, labelKey: 'benefits' },
   'account-offer': { icon: Sparkles, labelKey: 'offer' },
   'account-events': { icon: Trophy, labelKey: 'events' },
   'account-history': { icon: History, labelKey: 'history' },
