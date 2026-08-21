@@ -1338,6 +1338,11 @@
   color-scheme: dark;
 }
 
+.admin-pricing__form select option {
+  background-color: var(--color-bg-surface, #1e1e1e);
+  color: var(--color-text-primary, #ffffff);
+}
+
 .admin-pricing__form input:hover:not(:disabled),
 .admin-pricing__form select:hover:not(:disabled),
 .admin-pricing__form textarea:hover:not(:disabled) {

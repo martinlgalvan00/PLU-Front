@@ -77,6 +77,8 @@ const PROMO_STATES = ['off', 'code', 'public']
 const EMPTY_DISCOUNT_CODE = {
   id: undefined,
   code: '',
+  batchQuantity: 1,
+  batchPrefix: '',
   description: '',
   // Quién accede: 'code' hay que tipearla, 'public' se aplica sola a todos.
   audience: 'code',
@@ -105,6 +107,9 @@ const EMPTY_DISCOUNT_CODE = {
   // La otra mitad de la matriz: apagarlo cierra Mercado Pago para este código.
   // Nace abierto, que es el comportamiento histórico de todos los códigos.
   mercadoPagoEnabled: true,
+  // En una oferta exclusiva, habilita los derechos en forma provisoria cuando
+  // el atleta declara un pago manual; Finanzas conserva la validación final.
+  financed: false,
   // Exclusividad nominal, un email por línea. Vacío = promo abierta.
   inviteesText: '',
 }
@@ -622,6 +627,8 @@ export default function PricingSection({
         ? {
             id: source.id,
             code: source.code,
+            batchQuantity: 1,
+            batchPrefix: '',
             description: source.description,
             kind: source.kind ?? 'percent',
             audience: source.audience === 'public' ? 'public' : 'code',
@@ -636,6 +643,11 @@ export default function PricingSection({
             active: source.active,
             manualChannels: source.manualChannels ?? [],
             mercadoPagoEnabled: source.mercadoPagoEnabled !== false,
+            financed:
+              source.kind === 'offer' && source.eventId
+                ? configuration.events?.find((event) => event.id === source.eventId)?.comboOffer
+                    ?.financed === true
+                : false,
             inviteesText: (source.invitees ?? []).join('\n'),
           }
         : { ...EMPTY_DISCOUNT_CODE },
@@ -651,8 +663,17 @@ export default function PricingSection({
     const isFixedPrice = codeDraft.kind === 'fixed_price' || isOffer
     const isAccess = codeDraft.kind === 'access'
     const percentOff = Number(codeDraft.percentOff)
-    const fixedPrice = Number(codeDraft.fixedPrice)
-    if (!/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(codeDraft.code.toUpperCase())) {
+    
+    // Si Mercado Pago está desactivado, tomamos el precio manual como base
+    // para cumplir con la validación de la base de datos (que exige > 0).
+    const effectiveFixedPrice = isFixedPrice && codeDraft.mercadoPagoEnabled === false 
+      ? Number(codeDraft.fixedPriceManual)
+      : Number(codeDraft.fixedPrice)
+
+    if (
+      invitees.length <= 1 && 
+      !/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test((codeDraft.code || '').toUpperCase())
+    ) {
       setCodeError(t('admin.sections.pricing.codeFormatHint'))
       return
     }
@@ -664,8 +685,10 @@ export default function PricingSection({
       setCodeError(t('admin.sections.pricing.percentOffInvalid'))
       return
     }
-    if (isFixedPrice && (!Number.isInteger(fixedPrice) || fixedPrice < 1)) {
-      setCodeError(t('admin.sections.pricing.fixedPriceInvalid'))
+    if (isFixedPrice && (!Number.isInteger(effectiveFixedPrice) || effectiveFixedPrice < 1)) {
+      setCodeError(codeDraft.mercadoPagoEnabled === false 
+        ? t('admin.sections.pricing.fixedPriceManualInvalid')
+        : t('admin.sections.pricing.fixedPriceInvalid'))
       return
     }
     // A propósito sin comparar contra `fixedPrice`: el precio del canal manual
@@ -736,7 +759,7 @@ export default function PricingSection({
         setCodeError(t('admin.sections.pricing.offerComboVisibilityRequired'))
         return
       }
-      if (fixedPrice >= Number(offerEvent.comboOffer.price)) {
+      if (effectiveFixedPrice >= Number(offerEvent.comboOffer.price)) {
         setCodeError(
           t('admin.sections.pricing.offerPriceTooHigh', {
             price: money(offerEvent.comboOffer.price, locale),
@@ -747,26 +770,61 @@ export default function PricingSection({
     }
 
     setPendingAction('code')
-    const result = await onUpsertDiscountCode?.({
-      ...codeDraft,
-      code: codeDraft.code.toUpperCase(),
-      percentOff: isFixedPrice || isAccess ? undefined : percentOff,
-      fixedPrice: isFixedPrice ? fixedPrice : undefined,
-      fixedPriceManual: isFixedPrice ? fixedPriceManual : undefined,
-      // Sólo una inscripción o un combo pueden limitarse a un evento; el resto
-      // manda el campo vacío para que el servidor lo descarte.
-      eventId:
-        codeDraft.eventId && ['registration', 'combo'].includes(codeDraft.appliesTo)
-          ? codeDraft.eventId
-          : undefined,
-      maxRedemptions:
-        codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
-      invitees,
-    })
+    
+    const prefix = (codeDraft.batchPrefix || '').toUpperCase().replace(/[^A-Z0-9-]/g, '')
+    const targetQuantity = invitees.length > 1 ? invitees.length : 1
+    
+    let lastError = null
+    for (let i = 0; i < targetQuantity; i++) {
+      const generatedCode = invitees.length > 1 
+        ? `${prefix ? prefix + '-' : ''}${Math.random().toString(36).substring(2, 6).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+        : codeDraft.code.toUpperCase()
+
+      const currentInvitees = invitees.length > 1 ? [invitees[i]] : invitees
+
+      const result = await onUpsertDiscountCode?.({
+        ...codeDraft,
+        code: generatedCode,
+        percentOff: isFixedPrice || isAccess ? undefined : percentOff,
+        fixedPrice: isFixedPrice ? effectiveFixedPrice : undefined,
+        fixedPriceManual: isFixedPrice ? fixedPriceManual : undefined,
+        // Sólo una inscripción o un combo pueden limitarse a un evento; el resto
+        // manda el campo vacío para que el servidor lo descarte.
+        eventId:
+          codeDraft.eventId && ['registration', 'combo'].includes(codeDraft.appliesTo)
+            ? codeDraft.eventId
+            : undefined,
+        maxRedemptions:
+          codeDraft.maxRedemptions === '' ? undefined : Number(codeDraft.maxRedemptions),
+        invitees: currentInvitees,
+      })
+      if (result?.error) {
+        lastError = result.error
+        break
+      }
+    }
+    
     setPendingAction('')
-    if (result?.error) {
-      setCodeError(result.error)
+    if (lastError) {
+      setCodeError(lastError)
       return
+    }
+    // El derecho financiado pertenece al paquete que entrega afiliación e
+    // inscripción. Se edita desde este código, pero se conserva en el contrato
+    // de la oferta para que la orden lo fotografíe al iniciar el checkout.
+    if (isOffer) {
+      const offerEvent = configuration.events?.find((item) => item.id === codeDraft.eventId)
+      const currentOffer = offerEvent?.comboOffer
+      if (currentOffer && currentOffer.financed !== codeDraft.financed) {
+        const financingResult = await onSaveComboOffer?.(offerEvent.slug, {
+          ...currentOffer,
+          financed: codeDraft.financed,
+        })
+        if (financingResult?.error) {
+          setCodeError(financingResult.error)
+          return
+        }
+      }
     }
     setCodeDraft(null)
     setNotice(t('admin.sections.pricing.saved'))
@@ -839,74 +897,9 @@ export default function PricingSection({
     setNotice(t('admin.sections.pricing.deleted'))
   }
 
-  async function submitCombo(event) {
-    event.preventDefault()
-    setComboError('')
-    setNotice('')
-    const price = Number(comboDraft.price)
-    const manualPrice = comboDraft.manualPrice === '' ? undefined : Number(comboDraft.manualPrice)
-    const separatePrice =
-      Number(selectedPlan?.price ?? 0) + Number(selectedEvent?.registrationPrice ?? 0)
-    if (!selectedEvent || !selectedPlan || !Number.isInteger(price) || price <= 0) {
-      setComboError(t('admin.sections.pricing.loadError'))
-      return
-    }
-    if (price > separatePrice) {
-      setComboError(t('admin.eventEditor.validation.comboTooHigh'))
-      return
-    }
-    if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
-      setComboError(t('admin.sections.pricing.loadError'))
-      return
-    }
-    if (manualPrice !== undefined && manualPrice > separateManualPrice) {
-      setComboError(t('admin.eventEditor.validation.comboTooHigh'))
-      return
-    }
-    if (comboDraft.startsAt && comboDraft.endsAt && comboDraft.endsAt < comboDraft.startsAt) {
-      setComboError(t('admin.eventEditor.validation.registrationWindowInvalid'))
-      return
-    }
-    // Un combo restringido sin código no lo puede comprar nadie. El servidor lo
-    // rechaza igual; adelantarlo evita el viaje y lo explica en el formulario.
-    if (
-      comboDraft.audience === 'code' &&
-      !/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(comboDraft.accessCode.trim().toUpperCase())
-    ) {
-      setComboError(t('admin.sections.pricing.comboAccessCodeInvalid'))
-      return
-    }
-
-    setPendingAction('combo')
-    const result = await onSaveComboOffer?.(selectedEvent.slug, {
-      ...comboDraft,
-      price,
-      manualPrice,
-    })
-    setPendingAction('')
-    if (result?.error) setComboError(result.error)
-    else {
-      setNotice(t('admin.sections.pricing.saved'))
-      setComboEditorOpen(false)
-    }
-  }
-
-  async function confirmDeleteCombo() {
-    if (!comboToDelete) return
-    setPendingAction('delete-combo')
-    setComboError('')
-    setNotice('')
-    const result = await onDeleteComboOffer?.(comboToDelete.slug)
-    setPendingAction('')
-    if (result?.error) {
-      setComboError(result.error)
-      setComboToDelete(null)
-      return
-    }
-    setComboToDelete(null)
-    setComboEditorOpen(false)
-    setNotice(t('admin.sections.pricing.comboDeleted'))
-  }
+  // Compatibilidad transitoria de la vista retirada; no se invocan desde Tarifas.
+  async function submitCombo() {}
+  async function confirmDeleteCombo() {}
 
   return (
     <section className="admin-pricing" aria-labelledby="admin-pricing-title">
@@ -1317,6 +1310,7 @@ export default function PricingSection({
         />
       ) : null}
 
+      {false ? (
       <section
         className="admin-pricing__block admin-pricing__block--combo"
         aria-labelledby="pricing-combo-title"
@@ -1696,6 +1690,7 @@ export default function PricingSection({
           </>
         )}
       </section>
+      ) : null}
 
       <section className="admin-pricing__block" aria-labelledby="pricing-codes-title">
         <header className="admin-pricing__block-head">
@@ -2048,19 +2043,37 @@ export default function PricingSection({
               </h3>
             </header>
             <fieldset disabled={locked || pendingAction === 'code'}>
-              <label>
-                <span>{t('admin.sections.pricing.code')}</span>
-                <input
-                  name="code"
-                  value={codeDraft.code}
-                  onChange={(event) =>
-                    setCodeDraft({ ...codeDraft, code: event.target.value.toUpperCase() })
-                  }
-                  required
-                />
-                <small>{t('admin.sections.pricing.codeFormatHint')}</small>
-              </label>
-              <label>
+              <div className="admin-pricing__batch-group" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.85rem' }}>
+                {draftInviteeCount > 1 ? (
+                  <label title={t('admin.sections.pricing.batchPrefixHint', { defaultValue: 'Prefijo opcional para los códigos (ej: PROMO)' })}>
+                    <span>{t('admin.sections.pricing.batchPrefix', { defaultValue: 'Prefijo (Opcional)' })}</span>
+                    <input
+                      name="batchPrefix"
+                      value={codeDraft.batchPrefix || ''}
+                      onChange={(event) =>
+                        setCodeDraft({ ...codeDraft, batchPrefix: event.target.value.toUpperCase() })
+                      }
+                      style={{ marginBottom: '0.25rem' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }}>
+                      Se generarán {draftInviteeCount} códigos individuales (Ejemplo: {codeDraft.batchPrefix ? `${codeDraft.batchPrefix}-A1B2` : 'A1B2C3D4'}).
+                    </span>
+                  </label>
+                ) : (
+                  <label title={t('admin.sections.pricing.codeFormatHint')}>
+                    <span>{t('admin.sections.pricing.code')}</span>
+                    <input
+                      name="code"
+                      value={codeDraft.code}
+                      onChange={(event) =>
+                        setCodeDraft({ ...codeDraft, code: event.target.value.toUpperCase() })
+                      }
+                      required
+                    />
+                  </label>
+                )}
+              </div>
+              <label title={t('admin.sections.pricing.codeKindHint')}>
                 <span>{t('admin.sections.pricing.codeKindLabel')}</span>
                 <select
                   value={codeDraft.kind}
@@ -2094,10 +2107,9 @@ export default function PricingSection({
                   <option value="access">{t('admin.sections.pricing.codeKind.access')}</option>
                   <option value="offer">{t('admin.sections.pricing.codeKind.offer')}</option>
                 </select>
-                <small>{t('admin.sections.pricing.codeKindHint')}</small>
               </label>
-              {['fixed_price', 'offer'].includes(codeDraft.kind) ? (
-                <label>
+              {['fixed_price', 'offer'].includes(codeDraft.kind) && codeDraft.mercadoPagoEnabled !== false ? (
+                <label title={t('admin.sections.pricing.fixedPriceHint')}>
                   <span>
                     {codeDraft.kind === 'offer'
                       ? t('admin.sections.pricing.offerPrice')
@@ -2113,11 +2125,10 @@ export default function PricingSection({
                     }
                     required
                   />
-                  <small>{t('admin.sections.pricing.fixedPriceHint')}</small>
                 </label>
               ) : null}
               {['fixed_price', 'offer'].includes(codeDraft.kind) ? (
-                <label>
+                <label title={t('admin.sections.pricing.fixedPriceManualHint')}>
                   <span>{t('admin.sections.pricing.fixedPriceManual')}</span>
                   <input
                     type="number"
@@ -2129,7 +2140,6 @@ export default function PricingSection({
                       setCodeDraft({ ...codeDraft, fixedPriceManual: event.target.value })
                     }
                   />
-                  <small>{t('admin.sections.pricing.fixedPriceManualHint')}</small>
                 </label>
               ) : null}
               {['fixed_price', 'access', 'offer'].includes(codeDraft.kind) ? null : (
@@ -2224,15 +2234,17 @@ export default function PricingSection({
                 <aside
                   className="admin-pricing__exclusive-flow admin-pricing__wide"
                   aria-labelledby="pricing-exclusive-flow-title"
+                  style={{
+                    padding: '1rem',
+                    gap: '1rem',
+                  }}
                 >
-                  <div className="admin-pricing__exclusive-flow-intro">
-                    <span>{t('admin.sections.pricing.exclusiveFlowEyebrow')}</span>
-                    <h4 id="pricing-exclusive-flow-title">
+                  <div className="admin-pricing__exclusive-flow-intro" style={{ marginBottom: 0 }}>
+                    <h4 id="pricing-exclusive-flow-title" style={{ margin: 0, fontSize: '0.85rem' }}>
                       {t('admin.sections.pricing.exclusiveFlowTitle')}
                     </h4>
-                    <p>{t('admin.sections.pricing.exclusiveFlowLead')}</p>
                   </div>
-                  <dl>
+                  <dl style={{ margin: 0 }}>
                     <div>
                       <dt>{t('admin.sections.pricing.exclusiveFlowCode')}</dt>
                       <dd>
@@ -2255,9 +2267,25 @@ export default function PricingSection({
                       <dd>{t('admin.sections.pricing.exclusiveFlowDestinationValue')}</dd>
                     </div>
                   </dl>
+                  <label 
+                    className="admin-pricing__toggle" 
+                    title={t('admin.sections.pricing.comboFinancedHint')}
+                    style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent)' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={codeDraft.financed === true}
+                      onChange={(event) =>
+                        setCodeDraft({ ...codeDraft, financed: event.target.checked })
+                      }
+                    />
+                    <span style={{ textTransform: 'none', letterSpacing: 'normal' }}>
+                      {t('admin.sections.pricing.comboFinanced')}
+                    </span>
+                  </label>
                 </aside>
               ) : null}
-              <label>
+              <label title={t('admin.sections.pricing.maxRedemptionsHint')}>
                 <span>{t('admin.sections.pricing.maxRedemptions')}</span>
                 <input
                   type="number"
@@ -2269,18 +2297,16 @@ export default function PricingSection({
                     setCodeDraft({ ...codeDraft, maxRedemptions: event.target.value })
                   }
                 />
-                <small>{t('admin.sections.pricing.maxRedemptionsHint')}</small>
               </label>
-              <label>
+              <label title={t('admin.sections.pricing.startsAtHint')}>
                 <span>{t('admin.sections.pricing.startsAt')}</span>
                 <input
                   type="datetime-local"
                   value={codeDraft.startsAt}
                   onChange={(event) => setCodeDraft({ ...codeDraft, startsAt: event.target.value })}
                 />
-                <small>{t('admin.sections.pricing.startsAtHint')}</small>
               </label>
-              <label>
+              <label title={t('admin.sections.pricing.expiresAtHint')}>
                 <span>{t('admin.sections.pricing.expiresAt')}</span>
                 <input
                   type="datetime-local"
@@ -2289,7 +2315,6 @@ export default function PricingSection({
                     setCodeDraft({ ...codeDraft, expiresAt: event.target.value })
                   }
                 />
-                <small>{t('admin.sections.pricing.expiresAtHint')}</small>
               </label>
               <label className="admin-pricing__wide">
                 <span>{t('admin.sections.pricing.description')}</span>
@@ -2300,7 +2325,7 @@ export default function PricingSection({
                   }
                 />
               </label>
-              <label>
+              <label title={t('admin.sections.pricing.audienceHint')}>
                 <span>{t('admin.sections.pricing.audienceLabel')}</span>
                 <select
                   value={codeDraft.audience}
@@ -2321,7 +2346,6 @@ export default function PricingSection({
                     <option value="public">{t('admin.sections.pricing.audience.public')}</option>
                   )}
                 </select>
-                <small>{t('admin.sections.pricing.audienceHint')}</small>
               </label>
               {/* Los tres medios en una sola matriz, en el orden en el que los
                   ve el atleta. Mercado Pago se puede desmarcar: es lo que
@@ -2331,62 +2355,76 @@ export default function PricingSection({
               <fieldset
                 className="admin-pricing__channels admin-pricing__wide"
                 disabled={codeDraft.audience === 'public'}
-              >
-                <legend>{t('admin.sections.pricing.codeChannelsLegend')}</legend>
-                <label className="admin-pricing__toggle">
-                  <input
-                    type="checkbox"
-                    checked={codeDraft.mercadoPagoEnabled !== false}
-                    onChange={(event) =>
-                      setCodeDraft({ ...codeDraft, mercadoPagoEnabled: event.target.checked })
-                    }
-                  />
-                  <span>{t('admin.sections.pricing.manualChannel.mercado_pago')}</span>
-                </label>
-                {MANUAL_PAYMENT_CHANNELS.map((channel) => (
-                  <label className="admin-pricing__toggle" key={channel}>
-                    <input
-                      type="checkbox"
-                      checked={(codeDraft.manualChannels ?? []).includes(channel)}
-                      onChange={(event) =>
-                        setCodeDraft({
-                          ...codeDraft,
-                          manualChannels: event.target.checked
-                            ? [...new Set([...(codeDraft.manualChannels ?? []), channel])]
-                            : (codeDraft.manualChannels ?? []).filter((item) => item !== channel),
-                        })
-                      }
-                    />
-                    <span>{t(`admin.sections.pricing.manualChannel.${channel}`)}</span>
-                  </label>
-                ))}
-                <small>
-                  {codeDraft.audience === 'public'
+                title={
+                  codeDraft.audience === 'public'
                     ? t('admin.sections.pricing.manualChannelsPublicHint')
                     : draftHasNoChannel
                       ? t('admin.sections.pricing.codeChannelsEmpty')
                       : codeDraft.mercadoPagoEnabled === false
                         ? t('admin.sections.pricing.codeChannelsWithoutGateway')
-                        : t('admin.sections.pricing.manualChannelsHint')}
-                </small>
+                        : t('admin.sections.pricing.manualChannelsHint')
+                }
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem',
+                  borderTop: '1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent)',
+                  paddingTop: '1rem',
+                  marginTop: '0.5rem',
+                }}
+              >
+                <legend style={{ fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.08em', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  {t('admin.sections.pricing.codeChannelsLegend')}
+                </legend>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                  <label className="admin-pricing__toggle">
+                    <input
+                      type="checkbox"
+                      checked={codeDraft.mercadoPagoEnabled !== false}
+                      onChange={(event) =>
+                        setCodeDraft({ ...codeDraft, mercadoPagoEnabled: event.target.checked })
+                      }
+                    />
+                    <span>{t('admin.sections.pricing.manualChannel.mercado_pago')}</span>
+                  </label>
+                  {MANUAL_PAYMENT_CHANNELS.map((channel) => (
+                    <label className="admin-pricing__toggle" key={channel}>
+                      <input
+                        type="checkbox"
+                        checked={(codeDraft.manualChannels ?? []).includes(channel)}
+                        onChange={(event) =>
+                          setCodeDraft({
+                            ...codeDraft,
+                            manualChannels: event.target.checked
+                              ? [...new Set([...(codeDraft.manualChannels ?? []), channel])]
+                              : (codeDraft.manualChannels ?? []).filter((item) => item !== channel),
+                          })
+                        }
+                      />
+                      <span>{t(`admin.sections.pricing.manualChannel.${channel}`)}</span>
+                    </label>
+                  ))}
+                </div>
               </fieldset>
-              <label className="admin-pricing__wide">
+              <label 
+                className="admin-pricing__wide" 
+                title={
+                  draftInviteeCount > 0
+                    ? draftInviteeCount === 1
+                      ? t('admin.sections.pricing.personalCodeHint')
+                      : t('admin.sections.pricing.inviteesCountHint', { count: draftInviteeCount })
+                    : t('admin.sections.pricing.inviteesHint')
+                }
+              >
                 <span>{t('admin.sections.pricing.invitees')}</span>
                 <textarea
-                  rows={4}
+                  rows={2}
                   placeholder={t('admin.sections.pricing.inviteesPlaceholder')}
                   value={codeDraft.inviteesText}
                   onChange={(event) =>
                     setCodeDraft({ ...codeDraft, inviteesText: event.target.value })
                   }
                 />
-                <small>
-                  {draftInviteeCount > 0
-                    ? draftInviteeCount === 1
-                      ? t('admin.sections.pricing.personalCodeHint')
-                      : t('admin.sections.pricing.inviteesCountHint', { count: draftInviteeCount })
-                    : t('admin.sections.pricing.inviteesHint')}
-                </small>
               </label>
             </fieldset>
             {codeError ? (

@@ -370,13 +370,14 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .email-verification-notice .status-pill,
   .session-notice__card {
-    animation: session-notice-in var(--motion-cinematic, 700ms)
+    animation: session-notice-in var(--motion-slow, 480ms)
       var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
   }
 
   .session-notice.is-leaving .session-notice__card {
-    animation: session-notice-out var(--motion-slow, 480ms) var(--ease-standard, ease) both;
+    animation: session-notice-out var(--motion-base, 240ms) var(--ease-standard, ease) both;
   }
 
   /* Con cuenta regresiva visible, el filete de base pasa a ser el riel. */
@@ -408,8 +409,8 @@
 @keyframes session-notice-in {
   0% {
     opacity: 0;
-    transform: translateY(-24px) scale(0.95);
-    filter: blur(4px);
+    transform: translateY(-12px) scale(0.985);
+    filter: blur(var(--motion-blur-sm, 2px));
   }
   100% {
     opacity: 1;
@@ -421,8 +422,8 @@
 @keyframes session-notice-out {
   to {
     opacity: 0;
-    transform: translateY(-12px) scale(0.98);
-    filter: blur(2px);
+    transform: translateY(-8px) scale(0.99);
+    filter: blur(var(--motion-blur-sm, 2px));
   }
 }
 

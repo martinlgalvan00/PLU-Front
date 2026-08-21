@@ -22,6 +22,17 @@ import {
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
 
+function normalizeGymName(name) {
+  if (!name) return ''
+  return String(name)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+}
+
 const EMPTY_GATE_PENDING_IDS = new Set()
 
 export default function AthletesSection({
@@ -72,14 +83,27 @@ export default function AthletesSection({
   )
 
   const gymOptions = useMemo(() => {
-    const unique = new Set()
+    const map = new Map()
     for (const athlete of athletes) {
-      const trimmed = athlete.gym?.trim()
-      if (trimmed) unique.add(trimmed)
+      const original = athlete.gym?.trim()
+      if (original) {
+        const normalized = normalizeGymName(original)
+        if (!map.has(normalized)) {
+          map.set(normalized, original)
+        } else {
+          // Preferir versiones con mayúsculas sobre minúsculas puras
+          const current = map.get(normalized)
+          if (original !== current && original.charAt(0) === original.charAt(0).toUpperCase() && current.charAt(0) === current.charAt(0).toLowerCase()) {
+            map.set(normalized, original)
+          }
+        }
+      }
     }
     return [
       ['all', t('admin.filters.allGyms')],
-      ...[...unique].sort((a, b) => a.localeCompare(b, 'es')).map((value) => [value, value]),
+      ...Array.from(map.entries())
+        .sort((a, b) => a[1].localeCompare(b[1], 'es'))
+        .map(([norm, original]) => [norm, original]),
     ]
   }, [athletes, t])
 
@@ -242,7 +266,7 @@ export default function AthletesSection({
       .filter((athlete) => {
         const statusMatch = status === 'all' || athlete.status === status
         const registrationMatch = athleteMatchesRegistrationFilter(athlete.id, registrationStatus)
-        const gymMatch = gym === 'all' || athlete.gym === gym
+        const gymMatch = gym === 'all' || normalizeGymName(athlete.gym) === gym
         const divisionMatch = division === 'all' || athlete.division === division
         const dateMatch = matchesRegisteredRange(athlete.createdAt, registeredRange)
         const queryMatch =
