@@ -19358,3 +19358,354 @@ button.action-queue__proof:focus-visible {
 }
 .admin-payment-ops__tabs { margin-bottom: 1.5rem; }
 
+/* ── Barra de filtros — pills + popover (AdminFilterBar layout="popover") ──
+   Search + una fila de pills que abren un popover con el control real
+   (chips, combobox con búsqueda o rango de fechas) en vez del panel
+   apilado. Ver AdminFilterPillRow.jsx — hoy solo la usa Atletas. */
+
+.admin-filter-popoverbar {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.admin-filter-popoverbar__row1 {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.admin-filter-popoverbar__row1 .admin-filters__search {
+  flex: 1 1 320px;
+  max-width: 440px;
+}
+
+.admin-filter-popoverbar__spacer {
+  flex: 1;
+}
+
+.admin-filter-popoverbar__clear {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  padding: 6px 14px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.admin-filter-popoverbar__clear:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .admin-filter-popoverbar__clear:hover {
+  background: rgba(15, 17, 23, 0.06);
+}
+
+.admin-filter-popoverbar__clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-popoverbar__count {
+  color: var(--color-text-muted);
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.admin-filter-pillrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-filter-pill {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  display: inline-flex;
+  position: relative;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+[data-theme='light'] .admin-filter-pill {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+.admin-filter-pill:hover {
+  border-color: var(--color-border-light);
+}
+
+.admin-filter-pill.is-active {
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.admin-filter-pill.is-open {
+  border-color: var(--color-accent-celeste-border-strong);
+}
+
+.admin-filter-pill__trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 8px;
+  padding: 9px 14px;
+}
+
+.admin-filter-pill.is-active .admin-filter-pill__trigger {
+  padding-right: 8px;
+}
+
+.admin-filter-pill__trigger:focus-visible {
+  border-radius: var(--border-radius-pill);
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-pill__icon {
+  color: var(--color-text-muted);
+  flex: none;
+}
+
+.admin-filter-pill__divider {
+  background: var(--color-border-light);
+  flex: none;
+  height: 11px;
+  width: 1px;
+}
+
+.admin-filter-pill__value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.admin-filter-pill__chevron {
+  color: var(--color-text-muted);
+  flex: none;
+  transition: transform var(--transition-fast);
+}
+
+.admin-filter-pill.is-open .admin-filter-pill__chevron {
+  color: var(--color-brand-celeste);
+  transform: rotate(180deg);
+}
+
+.admin-filter-pill__clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 20px;
+  justify-content: center;
+  margin-right: 8px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  width: 20px;
+}
+
+.admin-filter-pill__clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .admin-filter-pill__clear:hover {
+  background: rgba(15, 17, 23, 0.08);
+}
+
+.admin-filter-pill__clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-popover {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  left: 0;
+  max-width: min(320px, 92vw);
+  min-width: 220px;
+  padding: 10px;
+  position: absolute;
+  top: calc(100% + 8px);
+  width: max-content;
+  z-index: var(--z-dropdown);
+}
+
+.admin-filter-popover .admin-filter-chips {
+  max-width: 280px;
+}
+
+.admin-filter-popover__combobox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 260px;
+}
+
+.admin-filter-popover__search {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  display: flex;
+  gap: 9px;
+  height: 36px;
+  padding: 0 12px;
+  transition: border-color var(--transition-fast);
+}
+
+[data-theme='light'] .admin-filter-popover__search {
+  background: rgba(15, 17, 23, 0.04);
+}
+
+.admin-filter-popover__search:focus-within {
+  border-color: var(--color-accent-celeste-border-strong);
+}
+
+.admin-filter-popover__search svg {
+  color: var(--color-text-muted);
+  flex: none;
+}
+
+.admin-filter-popover__search input {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  min-width: 0;
+  outline: none;
+}
+
+.admin-filter-popover__search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.admin-filter-popover__options {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.admin-filter-popover__option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.admin-filter-popover__option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='light'] .admin-filter-popover__option:hover {
+  background: rgba(15, 17, 23, 0.05);
+}
+
+.admin-filter-popover__option.is-selected {
+  background: var(--color-accent-celeste-border-subtle);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.admin-filter-popover__option svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.admin-filter-popover__option-spacer {
+  flex: none;
+  width: 13px;
+}
+
+.admin-filter-popover__empty {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  margin: 0;
+  padding: 10px;
+  text-align: center;
+}
+
+/* @container, no @media: el "angosto" real de este panel es el ancho del
+   propio .admin-list-section (lo squeeza el sidebar en notebook), no el
+   viewport -- mismo criterio que el resto de admin.css (admin-panel). */
+@container admin-panel (max-width: 640px) {
+  .admin-filter-popoverbar__row1 .admin-filters__search {
+    max-width: none;
+  }
+
+  .admin-filter-popoverbar__count {
+    order: 3;
+    width: 100%;
+  }
+
+  .admin-filter-pillrow {
+    flex-wrap: nowrap;
+    margin: 0 -20px;
+    overflow-x: auto;
+    padding: 2px 20px;
+    scrollbar-width: none;
+  }
+
+  .admin-filter-pillrow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-filter-pill {
+    flex: none;
+  }
+
+  .admin-filter-pill__trigger {
+    min-height: 44px;
+  }
+
+  .admin-filter-popover {
+    max-width: min(320px, calc(100vw - 40px));
+  }
+}
+

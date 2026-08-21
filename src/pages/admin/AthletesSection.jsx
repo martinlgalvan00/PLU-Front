@@ -306,6 +306,7 @@ export default function AthletesSection({
       title={t('admin.sections.athletes.title')}
       subtitle={t('admin.sections.athletes.subtitle')}
       totalCount={athletes.length}
+      filterLayout="popover"
       filters={[
         {
           id: 'status',
