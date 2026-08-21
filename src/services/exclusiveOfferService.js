@@ -111,6 +111,28 @@ export function resolveOfferChannels(offer, { conceptsOpen = true } = {}) {
   return channels
 }
 
+/** Canales que se liquidan a mano: los únicos sobre los que se puede delegar. */
+const DECLARABLE_CHANNELS = ['bank_transfer', 'cash_pitbull']
+
+/**
+ * ¿Este código deja delegar el pago por el canal que se está mirando?
+ *
+ * Financiar es avisar que se pagó y quedar habilitado mientras Finanzas valida
+ * (`athlete_confirm_manual_payment`), así que sólo existe sobre transferencia y
+ * efectivo: Mercado Pago acredita solo y no hay nada que avisar.
+ *
+ * Se lee del código (`financed`, 20260912100000) o del combo restringido del
+ * evento, que puede financiar sin código propio (20260828110000) — las mismas
+ * dos fuentes que consulta `plu_private.settle_order_financing` al crear la
+ * orden. Sirve para ANUNCIARLO en la ficha antes de crear la orden: antes el
+ * atleta descubría que podía delegar recién después de elegir el canal y
+ * confirmar la compra.
+ */
+export function offerFinancingAvailable(offer, { channel = null } = {}) {
+  if (!offer || !DECLARABLE_CHANNELS.includes(channel)) return false
+  return offer.financed === true || offer.comboOffer?.financed === true
+}
+
 /**
  * Canal de la ficha -> medio de pago del checkout. La API llama `manual_link` a
  * la transferencia; el efectivo viaja con su propio nombre y el backend lo

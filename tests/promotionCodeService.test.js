@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  buildPromotionCodeUrl,
   clearPendingPromotionCode,
-  matchPromotionCodeRoute,
+  extractPromotionCodeFromScan,
   promotionDestination,
   promotionBenefitPresentation,
   promotionDestinationType,
+  promotionPaymentPresentation,
   readPendingPromotionCode,
   redeemPromotionCode,
   savePendingPromotionCode,
@@ -16,12 +16,21 @@ afterEach(() => {
 })
 
 describe('servicio universal de códigos', () => {
-  it('normaliza el enlace directo y reconoce su ruta', () => {
-    expect(buildPromotionCodeUrl(' only-pitbull ', 'https://plu.test/')).toBe(
-      'https://plu.test/canjear/ONLY-PITBULL',
+  it('lee del escaneo el código pelado, que es lo que codifica el QR', () => {
+    // No hay página pública de canje: el QR de Precios lleva el código y se
+    // escanea desde el campo de Afiliación o Inscripción.
+    expect(extractPromotionCodeFromScan(' only-pitbull ')).toBe('ONLY-PITBULL')
+    expect(extractPromotionCodeFromScan('no es un código')).toBeNull()
+    expect(extractPromotionCodeFromScan('')).toBeNull()
+  })
+
+  it('todavía rescata los QR viejos que traían una URL', () => {
+    // Se repartieron con `/canjear/:code` cuando esa ruta existía. Reconocer el
+    // texto no da ningún privilegio: el canje lo resuelve el servidor igual.
+    expect(extractPromotionCodeFromScan('https://plu.test/canjear/only-pitbull')).toBe(
+      'ONLY-PITBULL',
     )
-    expect(matchPromotionCodeRoute('/canjear/only-pitbull')).toEqual({ code: 'ONLY-PITBULL' })
-    expect(matchPromotionCodeRoute('/canjear/%E0%A4%A')).toBeNull()
+    expect(extractPromotionCodeFromScan('https://plu.test/canjear/%E0%A4%A')).toBeNull()
   })
 
   it('preserva código y contexto durante el login', () => {
@@ -67,5 +76,57 @@ describe('servicio universal de códigos', () => {
 
     expect(promotionBenefitPresentation(result)).toEqual({ type: 'percent', percent: 15 })
     expect(promotionDestinationType(result)).toBe('membership')
+  })
+
+  it('dice con qué se paga el código recién canjeado', () => {
+    // El canje devolvía el beneficio y callaba el medio: el atleta descubría
+    // que su código sólo se cobra en efectivo recién dentro del checkout.
+    const soloEfectivo = promotionPaymentPresentation({
+      accepted: true,
+      kind: 'fixed_price',
+      benefit: {
+        fixedPrice: 90000,
+        manualChannels: ['cash_pitbull'],
+        mercadoPagoEnabled: false,
+        financed: false,
+      },
+    })
+
+    expect(soloEfectivo).toEqual({
+      channels: ['cash_pitbull'],
+      financed: false,
+      gatewayClosed: true,
+    })
+  })
+
+  it('anuncia el pago delegable sólo sobre un canal que se cobra a mano', () => {
+    const financiado = promotionPaymentPresentation({
+      accepted: true,
+      kind: 'offer',
+      benefit: {
+        manualChannels: ['bank_transfer', 'cash_pitbull'],
+        mercadoPagoEnabled: true,
+        financed: true,
+      },
+    })
+    expect(financiado).toEqual({
+      channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull'],
+      financed: true,
+      gatewayClosed: false,
+    })
+
+    // Financiado sin canal manual es el interruptor inerte que la migración
+    // 20260912100000 prohíbe: si igual llegara desde un código viejo, la UI no
+    // promete una delegación que el checkout no va a poder ofrecer.
+    expect(
+      promotionPaymentPresentation({
+        accepted: true,
+        benefit: { manualChannels: [], mercadoPagoEnabled: true, financed: true },
+      }),
+    ).toEqual({ channels: ['mercado_pago'], financed: false, gatewayClosed: false })
+  })
+
+  it('no dice nada del cobro cuando el canje fue rechazado', () => {
+    expect(promotionPaymentPresentation({ accepted: false, reason: 'expired' })).toBeNull()
   })
 })

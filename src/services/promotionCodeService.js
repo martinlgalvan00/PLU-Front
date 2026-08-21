@@ -1,4 +1,5 @@
 import { redeemPromotionCodeRequest } from './athleteApi.js'
+import { resolveOfferChannels } from './exclusiveOfferService.js'
 
 const PENDING_PROMOTION_KEY = 'plu:pending-promotion-code'
 const CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/
@@ -9,43 +10,34 @@ export function normalizePromotionCode(value) {
     .toUpperCase()
 }
 
-export function buildPromotionCodeUrl(code, origin) {
-  const normalized = normalizePromotionCode(code)
-  const base =
-    origin ?? (typeof window !== 'undefined' ? window.location.origin : 'https://pluarg.com')
-  return `${String(base).replace(/\/$/, '')}/canjear/${encodeURIComponent(normalized)}`
-}
-
-export function matchPromotionCodeRoute(pathname = globalThis.location?.pathname ?? '') {
-  const match = String(pathname).match(/^\/canjear\/([^/]+)\/?$/i)
-  if (!match) return null
-  try {
-    const code = normalizePromotionCode(decodeURIComponent(match[1]))
-    return CODE_PATTERN.test(code) ? { code } : null
-  } catch {
-    return null
-  }
-}
-
 /**
- * El QR que se descarga desde Precios codifica la URL `/canjear/:code`
- * (`buildPromotionCodeUrl`), no el código pelado — así también sirve para
- * cualquier lector de QR ajeno a la app. Un escaneo dentro de la app puede
- * traer esa URL completa o, si alguien pega el texto de otro QR, el código
- * suelto: se soportan las dos formas.
+ * Lo que trae un escaneo, normalizado al código.
+ *
+ * No hay página pública de canje: el código se canjea únicamente dentro del
+ * checkout de Afiliación o de Inscripción, así que el QR que reparte Precios
+ * codifica el **código pelado** y se lee con el botón de escaneo de esos
+ * campos. Un QR con URL no abriría nada.
+ *
+ * Se sigue tolerando una URL por los QR que ya se repartieron cuando existía
+ * `/canjear/:code`: se toma su último segmento. El escaneo pasa igual por el
+ * resolvedor del servidor, así que reconocer el texto no da ningún privilegio.
  */
 export function extractPromotionCodeFromScan(rawValue) {
   const value = String(rawValue ?? '').trim()
   if (!value) return null
+  const candidates = [value]
   try {
     const url = new URL(value)
-    const matched = matchPromotionCodeRoute(url.pathname)
-    if (matched) return matched.code
+    const lastSegment = url.pathname.split('/').filter(Boolean).at(-1)
+    if (lastSegment) candidates.push(decodeURIComponent(lastSegment))
   } catch {
-    // No es una URL absoluta — puede ser el código pelado.
+    // No es una URL absoluta — es el código pelado, el caso normal.
   }
-  const normalized = normalizePromotionCode(value)
-  return CODE_PATTERN.test(normalized) ? normalized : null
+  for (const candidate of candidates) {
+    const normalized = normalizePromotionCode(candidate)
+    if (CODE_PATTERN.test(normalized)) return normalized
+  }
+  return null
 }
 
 export function savePendingPromotionCode(code, context = {}) {
@@ -117,6 +109,34 @@ export function promotionBenefitPresentation(result) {
     return { type: 'access' }
   }
   return { type: 'discount' }
+}
+
+/**
+ * Con qué se paga lo que se acaba de canjear, y si el pago se puede delegar.
+ *
+ * El canje devolvía el beneficio y callaba el medio: el atleta descubría que su
+ * código sólo se cobra en efectivo —o que puede avisar el pago y quedar
+ * habilitado— recién dentro del checkout, dos pantallas después. La matriz de
+ * canales del código viaja en `benefit` (20260912100000) y es el mismo objeto
+ * que interpreta la ficha secreta, así que se reusa su resolvedor en vez de
+ * repetir el orden de lectura de los canales.
+ *
+ * `financed` se cruza contra los canales manuales a propósito: delegar existe
+ * sobre transferencia o efectivo, nunca sobre la pasarela, que acredita sola.
+ */
+export function promotionPaymentPresentation(result) {
+  if (!result?.accepted) return null
+  const benefit = result.benefit ?? {}
+  const manual = Array.isArray(benefit.manualChannels) ? benefit.manualChannels : []
+  const channels = resolveOfferChannels(benefit)
+  if (!channels.length) return null
+  return {
+    channels,
+    financed: benefit.financed === true && manual.length > 0,
+    // Un código que cerró la pasarela cambia la operación: no es "además
+    // podés", es "sólo así".
+    gatewayClosed: benefit.mercadoPagoEnabled === false,
+  }
 }
 
 export function promotionDestinationType(result) {

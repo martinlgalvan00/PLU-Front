@@ -25,9 +25,9 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     // dejaría el panel entrando por el lado contrario al del tab que lo abrió.
     expect(ACCOUNT_TAB_IDS).toEqual([
       'account-qr',
-      // El canje es una ficha estable del perfil. La oferta que pueda resultar
-      // sigue siendo condicional y aparece inmediatamente después.
-      'account-benefits',
+      // Sin ficha de canje suelta: Beneficios se retiró de la cinta y el código
+      // se canjea dentro del checkout de Afiliación o de Inscripción, que es
+      // también donde se escanea su QR. No hay ruta pública de canje.
       // Ficha condicional: sólo se dibuja para quien canjeó un código secreto
       // de oferta exclusiva, pero su posición vive acá igual — la dirección de
       // la transición se lee del orden completo, no del filtrado.
@@ -127,7 +127,8 @@ describe('AccountNav sigue anunciando el tab activo', () => {
       'true',
     )
 
-    expect(screen.getByRole('tab', { name: 'Beneficios' })).toBeTruthy()
+    // Beneficios ya no es un tab: su canje se hace desde Afiliación.
+    expect(screen.queryByRole('tab', { name: 'Beneficios' })).toBe(null)
 
     fireEvent.click(screen.getByRole('tab', { name: 'Seguridad' }))
     expect(active).toBe('account-security')

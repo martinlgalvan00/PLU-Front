@@ -120,6 +120,10 @@ export const discountCodeSchema = z
     // cierra por transferencia o en efectivo. Default true = comportamiento
     // histórico.
     mercadoPagoEnabled: z.boolean().default(true),
+    // Financiamiento por código (20260912100000): el atleta declara que pagó y
+    // queda habilitado en forma provisional mientras Finanzas valida el saldo.
+    // No acredita nada: la deuda sigue abierta y auditable.
+    financed: z.boolean().default(false),
   })
   .superRefine((code, context) => {
     // Una promo que corre para todos y ademas abre transferencia o efectivo es
@@ -152,6 +156,28 @@ export const discountCodeSchema = z
         code: z.ZodIssueCode.custom,
         path: ['manualChannels'],
         message: 'Si el codigo no acepta Mercado Pago, habilita al menos transferencia o efectivo.',
+      })
+    }
+    // Financiar es delegar la liquidacion a un canal que se cobra a mano: la
+    // pasarela acredita sola y no hay nada que declarar. Sin transferencia ni
+    // efectivo el atleta solo ve Mercado Pago y el financiamiento queda inerte
+    // -- el agujero que 20260912100000 cierra tambien con un check.
+    if (code.financed && code.manualChannels.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['financed'],
+        message:
+          'Para financiar el codigo habilita transferencia o efectivo: son los canales que el atleta puede declarar.',
+      })
+    }
+    // Una promo publica se aplica sola a todas las compras del concepto:
+    // financiarla seria abrir deuda para cualquiera que pase por el checkout.
+    if (code.financed && code.audience === 'public') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['financed'],
+        message:
+          'Una promocion publica no puede financiar: el financiamiento se pacta con quien recibe el codigo.',
       })
     }
     // Mismo check que la RPC: una ventana que cierra antes de abrir es una

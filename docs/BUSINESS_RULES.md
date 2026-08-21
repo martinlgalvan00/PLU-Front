@@ -86,12 +86,16 @@ no lleva importe y no entra en los reportes de Finanzas. `discount_code_redempti
 sigue siendo el registro contable y es lo que consume `max_redemptions`, escrito
 recién dentro de la transacción que crea la orden. El unlock es lo que sostiene la
 ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos. El canje
-se ofrece únicamente en **Mi cuenta > Beneficios** y dentro del checkout de
-Afiliación o Inscripción, donde además puede recalcular el precio. Calendario,
-ficha del evento, Pitbull Classic y Entradas no muestran un formulario de canje.
-Los enlaces y QR `/canjear/:code` conservan el código durante el login y abren
-Beneficios para que el atleta lo confirme; no canjean automáticamente desde una
-página pública. Luego de confirmarlo, la interfaz muestra qué habilitó y abre el
+se ofrece dentro del checkout de **Afiliación** o **Inscripción**, donde además
+puede recalcular el precio. Calendario, ficha del evento, Pitbull Classic y
+Entradas no muestran un formulario de canje.
+**No hay página pública de canje.** Un código no se abre desde ninguna URL propia:
+se tipea —o se escanea con el botón de cámara del mismo campo— dentro del checkout
+que lo va a cobrar, y el campo nace plegado detrás de "Tengo un código". Desde ahí
+el resolvedor manda a donde corresponda: aplica el descuento si el código es del
+concepto que se está pagando, desbloquea la oferta secreta y salta a su pestaña, o
+abre el checkout del torneo cuando pertenece a una inscripción. El QR que reparte
+Precios codifica el código pelado, porque su destino es ese botón de escaneo. Luego de confirmarlo, la interfaz muestra qué habilitó y abre el
 checkout o la pestaña privada correspondiente. Conocer el código no vuelve
 pública la oferta en ningún catálogo.
 
@@ -219,10 +223,21 @@ En transferencia y efectivo el atleta puede declarar que realizó la entrega.
 La declaración cambia la orden a `validacion_manual`, evita su vencimiento
 automático y genera auditoría, pero **no acredita el pago** ni crea un asiento
 en `athlete_payments`: la aprobación sigue siendo exclusiva de Finanzas. Si la
-orden fotografió `financing_allowed = true` al comprar un combo restringido
-por código, esa declaración habilita provisionalmente afiliación e inscripción
-mientras la deuda permanece abierta. Un rechazo de Finanzas revoca ambos
-derechos provisionales.
+orden fotografió `financing_allowed = true`, esa declaración habilita
+provisionalmente afiliación e inscripción mientras la deuda permanece abierta.
+Un rechazo de Finanzas revoca ambos derechos provisionales.
+
+El financiamiento es una condición **del código** (`discount_codes.financed`) y,
+para el combo restringido, también de la oferta (`event_combo_offers.financed`).
+`plu_private.settle_order_financing` es la única regla que lo decide, y corre en
+los tres checkouts —afiliación, inscripción y combo— después de que el canal
+quedó escrito: sólo fotografía `financing_allowed` sobre transferencia o efectivo,
+porque son los únicos canales donde existe una declaración del atleta. Mercado
+Pago acredita solo y Wise tiene su propia validación en USD. Un código no puede
+financiar sin declarar al menos un canal manual —sería un interruptor inerte— ni
+siendo una promo pública, que se aplica sola a todas las compras del concepto. La
+bandera nunca se apaga sola: habilitar es automático, revocar es una decisión de
+Finanzas al rechazar.
 
 Un `external_payment_id` de un proveedor pertenece a una única orden en todo el
 sistema, incluso entre entradas y afiliaciones. Una suscripción queda ligada al

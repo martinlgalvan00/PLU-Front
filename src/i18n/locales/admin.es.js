@@ -754,6 +754,14 @@ export default {
         'Sin Mercado Pago: quien use este código sólo va a poder pagar por los canales marcados, y el cobro lo valida el equipo a mano.',
       codeChannelsEmpty:
         'Elegí al menos un medio de pago. Sin ninguno, el código se canjea y no hay forma de pagarlo.',
+      codeFinancing: 'Permitir delegar el pago',
+      codeFinancingHint:
+        'Quien use el código puede avisar que transfirió o que entrega el efectivo, y queda habilitado en el momento. La deuda sigue abierta hasta que Finanzas la valide.',
+      codeFinancingChannelRequired:
+        'Para delegar el pago hace falta transferencia o efectivo: es lo único que el atleta puede avisar. Con sólo Mercado Pago, el cobro se acredita solo.',
+      codeFinancingPublicInvalid:
+        'Una promo pública no puede delegar el pago: se aplica sola a todas las compras. Repartila como código.',
+      codeFinancedBadge: 'Pago delegable',
       manualChannel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Transferencia bancaria',
@@ -848,9 +856,6 @@ export default {
       copyDiscountCode: 'Copiar código {{code}}',
       discountCodeCopied: 'Copiado',
       copyDiscountCodeError: 'No pudimos copiar el código. Seleccionalo y copialo manualmente.',
-      copyPromotionLink: 'Copiar enlace',
-      promotionLinkCopied: 'Enlace copiado',
-      copyPromotionLinkError: 'No pudimos copiar el enlace directo de canje.',
       downloadPromotionQr: 'Descargar QR',
       promotionQrDownloaded: 'QR descargado',
       downloadPromotionQrError: 'No pudimos generar el QR de canje.',
@@ -860,13 +865,15 @@ export default {
       simulationDestination: 'Destino: {{destination}}',
       simulationEmpty: 'La validación no devolvió un resultado.',
       simulationError: 'No pudimos validar el recorrido del código.',
-      openPromotionLink: 'Abrir canje en otra pestaña',
+      simulationRedeemHint: 'Se canjea desde el campo de código de Afiliación o Inscripción.',
       simulationCheck: {
         active: 'El código está activo',
         withinWindow: 'Está dentro de su vigencia',
         restrictedCombo: 'El combo está restringido por código',
         hasEvent: 'Tiene una inscripción asociada',
         hasPrice: 'Tiene un precio final configurado',
+        payable: 'Tiene al menos un medio de pago',
+        financingDeclarable: 'Si delega el pago, hay un canal para avisarlo',
       },
       campaignMetric: {
         resolvedCount: 'Validaron',

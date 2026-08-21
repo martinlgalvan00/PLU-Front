@@ -76,8 +76,12 @@ const ACCOUNT_TAB_BY_SECTION = Object.freeze({
   payments: ACCOUNT_PAYMENTS_TAB,
   membership: ACCOUNT_MEMBERSHIP_TAB,
   events: ACCOUNT_EVENTS_TAB,
-  benefits: ACCOUNT_BENEFITS_TAB,
-  beneficios: ACCOUNT_BENEFITS_TAB,
+  // Beneficios salió de la cinta: los links que ya se repartieron con
+  // `?section=benefits` aterrizan donde hoy se canjea un código —Afiliación—,
+  // en vez de resolver a una ficha que no se renderiza y caer en la credencial
+  // sin ninguna pista.
+  benefits: ACCOUNT_MEMBERSHIP_TAB,
+  beneficios: ACCOUNT_MEMBERSHIP_TAB,
   offer: ACCOUNT_OFFER_TAB,
   history: 'account-history',
   security: 'account-security',

@@ -46,12 +46,6 @@ import {
 import { UPCOMING_EVENTS } from './lib/events.js'
 import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
-  matchPromotionCodeRoute,
-  readPendingPromotionCode,
-  savePendingPromotionCode,
-} from './services/promotionCodeService.js'
-import {
-  ACCOUNT_BENEFITS_TAB,
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
   DEFAULT_ACCOUNT_TAB,
@@ -128,7 +122,6 @@ const PUBLIC_VIEWS = {
 export default function App() {
   const [view, setView] = useState(() => {
     if (readPasswordResetToken()) return 'login'
-    if (matchPromotionCodeRoute()) return 'home'
     return resolvePathnamePublicView()
   })
   const [transitionDirection, setTransitionDirection] = useState('forward')
@@ -147,7 +140,6 @@ export default function App() {
     matchTicketsRoute() ? null : (matchEventPageRoute()?.eventSlug ?? null),
   )
   const paymentReturnInFlightRef = useRef(null)
-  const directPromotionCapturedRef = useRef(null)
   const app = useAppData()
   const getSession = app.getSession
   const publicEvents = getPublicCatalogEvents(
@@ -236,12 +228,6 @@ export default function App() {
 
   useEffect(() => {
     function onPopState() {
-      const promotionRoute = matchPromotionCodeRoute()
-      if (promotionRoute) {
-        savePendingPromotionCode(promotionRoute.code, { surface: 'direct' })
-        setView(getSession()?.role === 'athlete_plu' ? 'home' : 'login')
-        return
-      }
       if (matchTicketsRoute()) {
         setTicketEventSlug(getTicketsRouteEventSlug())
         setView('tickets')
@@ -378,29 +364,6 @@ export default function App() {
     },
     [publicEvents, getSession, pendingAthleteDestination, view],
   )
-
-  useEffect(() => {
-    const directPromotion = matchPromotionCodeRoute()
-    if (directPromotion && directPromotionCapturedRef.current !== directPromotion.code) {
-      directPromotionCapturedRef.current = directPromotion.code
-      savePendingPromotionCode(directPromotion.code, { surface: 'direct' })
-    }
-
-    if (app.sessionPending) return
-
-    const pending = readPendingPromotionCode()
-    if (!pending || pending.context?.surface !== 'direct' || pending.context?.presented) return
-
-    // Los links y QR promocionales aterrizan en la ficha privada: el atleta
-    // ve el código y confirma el canje, en lugar de aplicarlo automáticamente
-    // desde una página pública. `navigate` conserva este destino durante login.
-    savePendingPromotionCode(pending.code, {
-      ...pending.context,
-      surface: 'direct',
-      presented: true,
-    })
-    navigate('profile', { tab: ACCOUNT_BENEFITS_TAB })
-  }, [app.session, app.sessionPending, navigate])
 
   function selectEvent(event) {
     setSelectedEvent(event)

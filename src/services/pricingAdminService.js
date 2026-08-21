@@ -72,6 +72,10 @@ export function mapDiscountCode(row) {
     // Mercado Pago para este código. `false` lo cierra (20260908100000);
     // ausente = abierto, que es como se comportaban todos los códigos antes.
     mercadoPagoEnabled: (row.mercado_pago_enabled ?? row.mercadoPagoEnabled) !== false,
+    // Financiamiento del código (20260912100000): quien lo canjea puede declarar
+    // el pago manual y queda habilitado mientras Finanzas valida. Antes era una
+    // condición del combo del evento, compartida por todos sus códigos.
+    financed: (row.financed ?? false) === true,
     redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
     // Cuánta gente canjeó la llave, contra `redeemedCount`, que es cuánta la
     // usó para comprar. Son dos números distintos en una oferta secreta.
@@ -247,6 +251,14 @@ export async function upsertDiscountCodeRequest(code) {
     // formulario la reabre al pasar a publica en vez de mandar un payload que
     // el servidor rebota.
     mercadoPagoEnabled: audience === 'public' ? true : code.mercadoPagoEnabled !== false,
+    // El financiamiento vive sobre un canal que se liquida a mano: sin
+    // transferencia ni efectivo declarados no hay nada que el atleta pueda
+    // declarar, así que no viaja prendido. Lo mismo para una promo pública.
+    // Mismo criterio que el schema, la RPC y el check de la tabla.
+    financed:
+      code.financed === true &&
+      audience === 'code' &&
+      (code.manualChannels ?? []).length > 0,
     // Cada modalidad manda sólo su campo: el schema del servidor descarta el
     // otro, y un string vacío haría fallar la coerción numérica.
     percentOff: kind === 'percent' ? code.percentOff : undefined,

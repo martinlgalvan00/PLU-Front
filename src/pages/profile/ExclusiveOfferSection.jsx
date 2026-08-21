@@ -9,6 +9,7 @@ import {
   buildOfferResumeOrder,
   checkoutMethodForChannel,
   getOfferState,
+  offerFinancingAvailable,
   resolveManualSettlement,
   resolveOfferChannels,
   resolveOfferPricing,
@@ -117,6 +118,14 @@ export default function ExclusiveOfferSection({
   // Con el cobro cerrado no hay canal activo, pero el copy igual tiene que
   // resolver a una clave existente: la pasarela es el caso por defecto.
   const copyChannel = activeChannel ?? 'mercado_pago'
+
+  // Si el código deja delegar el pago, hay que decirlo ANTES de comprar: es lo
+  // que cambia la decisión del atleta que todavía no tiene la plata junta. Se
+  // anuncia en el mismo lugar donde ya se dice con qué se paga.
+  const financingAvailable = useMemo(
+    () => offerFinancingAvailable(offer, { channel: activeChannel }),
+    [activeChannel, offer],
+  )
 
   const pricing = useMemo(
     () => resolveOfferPricing(offer, { paymentMethod }),
@@ -526,9 +535,21 @@ export default function ExclusiveOfferSection({
                   se leen como una repetición. */}
               {checkoutOpen ? (
                 state.resumable ? null : (
-                  <p className="account-offer__checkout-note">
-                    {t(`account.offer.checkoutNote.${copyChannel}`)}
-                  </p>
+                  <>
+                    <p className="account-offer__checkout-note">
+                      {t(
+                        financingAvailable
+                          ? `account.offer.checkoutNoteFinanced.${copyChannel}`
+                          : `account.offer.checkoutNote.${copyChannel}`,
+                      )}
+                    </p>
+                    {/* La letra chica del financiamiento no es decorativa: avisar
+                        el pago habilita, no acredita, y eso se dice donde se
+                        promete la habilitación. */}
+                    {financingAvailable ? (
+                      <p className="account-offer__fine">{t('account.offer.financingLegal')}</p>
+                    ) : null}
+                  </>
                 )
               ) : (
                 <p className="account-offer__checkout-note" role="status">

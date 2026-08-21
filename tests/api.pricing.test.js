@@ -431,6 +431,48 @@ describe('configuración económica administrativa', () => {
     ).toBe(false)
   })
 
+  it('deja financiar un código restringido con canal manual declarado', () => {
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        audience: 'code',
+        financed: true,
+        manualChannels: ['bank_transfer', 'cash_pitbull'],
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.financed).toBe(true)
+  })
+
+  it('nace sin financiamiento si el payload no dice nada', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.financed).toBe(false)
+  })
+
+  it('no deja financiar sin un canal que el atleta pueda declarar', () => {
+    // Financiado + sólo Mercado Pago es el interruptor inerte: la pasarela
+    // acredita sola y no hay nada que avisar. Mismo check en la RPC y en el
+    // constraint discount_codes_financed_channel_check.
+    expect(
+      discountCodeSchema.safeParse(discountCodePayload({ financed: true, manualChannels: [] }))
+        .success,
+    ).toBe(false)
+  })
+
+  it('no deja que una promoción pública financie', () => {
+    // Se aplica sola a todas las compras: financiarla sería abrir deuda para
+    // cualquiera que pase por el checkout.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({
+          audience: 'public',
+          financed: true,
+          manualChannels: ['bank_transfer'],
+        }),
+      ).success,
+    ).toBe(false)
+  })
+
   it('cambia estado y audiencia de una promoción en una sola llamada', async () => {
     const { cookie, rpc, target } = await setup()
     try {

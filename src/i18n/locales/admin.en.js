@@ -748,6 +748,14 @@ export default {
         'Without Mercado Pago: whoever uses this code can only pay through the checked channels, and the team validates the payment by hand.',
       codeChannelsEmpty:
         'Pick at least one payment method. With none, the code is redeemed and there is no way to pay for it.',
+      codeFinancing: 'Let the payment be reported later',
+      codeFinancingHint:
+        'Whoever uses this code can report the transfer or the cash handoff and is enabled right away. The balance stays open until Finance validates it.',
+      codeFinancingChannelRequired:
+        'Reporting a payment needs transfer or cash: it is the only thing the athlete can report. With Mercado Pago alone the payment settles on its own.',
+      codeFinancingPublicInvalid:
+        'A public promo cannot defer payment: it applies to every purchase on its own. Hand it out as a code instead.',
+      codeFinancedBadge: 'Deferred payment',
       manualChannel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
@@ -839,9 +847,6 @@ export default {
       copyDiscountCode: 'Copy code {{code}}',
       discountCodeCopied: 'Copied',
       copyDiscountCodeError: 'We could not copy the code. Select it and copy it manually.',
-      copyPromotionLink: 'Copy link',
-      promotionLinkCopied: 'Link copied',
-      copyPromotionLinkError: 'We could not copy the direct redemption link.',
       downloadPromotionQr: 'Download QR',
       promotionQrDownloaded: 'QR downloaded',
       downloadPromotionQrError: 'We could not generate the redemption QR.',
@@ -851,13 +856,15 @@ export default {
       simulationDestination: 'Destination: {{destination}}',
       simulationEmpty: 'The validation did not return a result.',
       simulationError: 'We could not validate the code journey.',
-      openPromotionLink: 'Open redemption in a new tab',
+      simulationRedeemHint: 'Redeemed from the code field in Membership or Registration.',
       simulationCheck: {
         active: 'The code is active',
         withinWindow: 'It is within its validity window',
         restrictedCombo: 'The combo is code-restricted',
         hasEvent: 'It has a linked registration',
         hasPrice: 'It has a configured final price',
+        payable: 'It has at least one payment method',
+        financingDeclarable: 'If payment is deferred, there is a channel to report it',
       },
       campaignMetric: {
         resolvedCount: 'Validated',

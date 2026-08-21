@@ -8,7 +8,6 @@ import {
   CirclePlus,
   Copy,
   FlaskConical,
-  Link2,
   Pencil,
   QrCode,
   RefreshCw,
@@ -26,7 +25,6 @@ import { getPricingTourSteps } from '../../lib/adminTourSteps.js'
 import { money } from '../../lib/format.js'
 import { generateCredentialQr } from '../../lib/credentialQr.js'
 import { getDiscountCodeAvailability } from '../../services/pricingAdminService.js'
-import { buildPromotionCodeUrl } from '../../services/promotionCodeService.js'
 import { COMBO_VISIBILITY_STATES } from '../../services/comboOfferService.js'
 
 const EMPTY_PLAN = {
@@ -107,8 +105,10 @@ const EMPTY_DISCOUNT_CODE = {
   // La otra mitad de la matriz: apagarlo cierra Mercado Pago para este código.
   // Nace abierto, que es el comportamiento histórico de todos los códigos.
   mercadoPagoEnabled: true,
-  // En una oferta exclusiva, habilita los derechos en forma provisoria cuando
-  // el atleta declara un pago manual; Finanzas conserva la validación final.
+  // Financiamiento del código: quien lo canjea puede declarar que pagó por
+  // transferencia o en efectivo y queda habilitado en forma provisoria; Finanzas
+  // conserva la validación final y la deuda queda abierta. Exige al menos un
+  // canal manual, porque es lo único que el atleta puede declarar.
   financed: false,
   // Exclusividad nominal, un email por línea. Vacío = promo abierta.
   inviteesText: '',
@@ -244,8 +244,11 @@ export default function PricingSection({
   onCreatePlanVersion,
   onDeletePlan,
   onRefresh,
-  onSaveComboOffer,
-  onDeleteComboOffer,
+  // Del bloque de combo retirado de Tarifas (ver `submitCombo`). Se conserva el
+  // contrato con AdminPage mientras la vista termina de mudarse; el
+  // financiamiento ya no pasa por acá: vive en el código (20260912100000).
+  onSaveComboOffer: _onSaveComboOffer,
+  onDeleteComboOffer: _onDeleteComboOffer,
   onSetPlanActive,
   onSetPlanRetirement,
   onUpsertDiscountCode,
@@ -302,7 +305,6 @@ export default function PricingSection({
   // quedaba invisible y el control volvía solo a su lugar sin explicar nada.
   const [codeStateError, setCodeStateError] = useState({ id: null, message: '' })
   const [copiedCodeId, setCopiedCodeId] = useState(null)
-  const [copiedLinkCodeId, setCopiedLinkCodeId] = useState(null)
   const [downloadedQrCodeId, setDownloadedQrCodeId] = useState(null)
   const [simulationState, setSimulationState] = useState({ id: null, loading: false, data: null })
   const [codeToDelete, setCodeToDelete] = useState(null)
@@ -359,22 +361,12 @@ export default function PricingSection({
     }
   }
 
-  async function copyPromotionLink(code) {
-    try {
-      await copyText(buildPromotionCodeUrl(code.code))
-      setCopiedLinkCodeId(code.id)
-      window.clearTimeout(copyFeedbackTimeoutRef.current)
-      copyFeedbackTimeoutRef.current = window.setTimeout(() => {
-        setCopiedLinkCodeId(null)
-      }, COPY_FEEDBACK_MS)
-    } catch {
-      setNotice(t('admin.sections.pricing.copyPromotionLinkError'))
-    }
-  }
-
   async function downloadPromotionQr(code) {
     try {
-      const qr = await generateCredentialQr(buildPromotionCodeUrl(code.code))
+      // El QR codifica el código pelado, no una URL: no hay página pública que
+      // canjearlo, y el destino del escaneo es el botón de la lupa que vive en
+      // el campo de código de Afiliación e Inscripción.
+      const qr = await generateCredentialQr(code.code)
       downloadDataUrl(qr, `${code.code}-canje.png`)
       setDownloadedQrCodeId(code.id)
       window.clearTimeout(copyFeedbackTimeoutRef.current)
@@ -526,6 +518,13 @@ export default function PricingSection({
     codeDraft.mercadoPagoEnabled === false &&
     (codeDraft.manualChannels ?? []).length === 0,
   )
+  // El financiamiento se declara sobre transferencia o efectivo: sin ninguno de
+  // los dos, el atleta sólo ve la pasarela —que acredita sola— y el interruptor
+  // no significa nada. El formulario prende los canales al marcarlo, así que
+  // esto sólo aparece si el operador los desmarcó después.
+  const draftFinancingInert = Boolean(
+    codeDraft && codeDraft.financed === true && (codeDraft.manualChannels ?? []).length === 0,
+  )
   useEffect(() => {
     if (!codeFormOpen) return undefined
     const form = codeFormRef.current
@@ -643,11 +642,10 @@ export default function PricingSection({
             active: source.active,
             manualChannels: source.manualChannels ?? [],
             mercadoPagoEnabled: source.mercadoPagoEnabled !== false,
-            financed:
-              source.kind === 'offer' && source.eventId
-                ? configuration.events?.find((event) => event.id === source.eventId)?.comboOffer
-                    ?.financed === true
-                : false,
+            // Del código, no del combo del evento (20260912100000): antes dos
+            // códigos del mismo torneo compartían un único interruptor, así que
+            // editar uno reescribía el contrato del otro.
+            financed: source.financed === true,
             inviteesText: (source.invitees ?? []).join('\n'),
           }
         : { ...EMPTY_DISCOUNT_CODE },
@@ -666,12 +664,18 @@ export default function PricingSection({
     
     // Si Mercado Pago está desactivado, tomamos el precio manual como base
     // para cumplir con la validación de la base de datos (que exige > 0).
-    const effectiveFixedPrice = isFixedPrice && codeDraft.mercadoPagoEnabled === false 
+    const effectiveFixedPrice = isFixedPrice && codeDraft.mercadoPagoEnabled === false
       ? Number(codeDraft.fixedPriceManual)
       : Number(codeDraft.fixedPrice)
 
+    // Se lee acá arriba y no junto a su validación: con más de un invitado el
+    // código de cada uno se genera solo, así que el formato del que se tipeó
+    // sólo aplica al caso de uno. Declararlo después dejaba ese `if` en la zona
+    // muerta del `const` y guardar un código tiraba ReferenceError.
+    const invitees = parseInvitees(codeDraft.inviteesText)
+
     if (
-      invitees.length <= 1 && 
+      invitees.length <= 1 &&
       !/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test((codeDraft.code || '').toUpperCase())
     ) {
       setCodeError(t('admin.sections.pricing.codeFormatHint'))
@@ -713,7 +717,6 @@ export default function PricingSection({
       setCodeError(t('admin.sections.pricing.promoWindowInvalid'))
       return
     }
-    const invitees = parseInvitees(codeDraft.inviteesText)
     const invalidEmail = invitees.find((email) => !EMAIL_PATTERN.test(email))
     if (invalidEmail) {
       setCodeError(t('admin.sections.pricing.inviteesInvalid', { email: invalidEmail }))
@@ -741,6 +744,14 @@ export default function PricingSection({
     }
     if (draftHasNoChannel) {
       setCodeError(t('admin.sections.pricing.codeChannelsEmpty'))
+      return
+    }
+    if (draftFinancingInert) {
+      setCodeError(t('admin.sections.pricing.codeFinancingChannelRequired'))
+      return
+    }
+    if (codeDraft.financed && codeDraft.audience === 'public') {
+      setCodeError(t('admin.sections.pricing.codeFinancingPublicInvalid'))
       return
     }
     if (isOffer) {
@@ -808,23 +819,6 @@ export default function PricingSection({
     if (lastError) {
       setCodeError(lastError)
       return
-    }
-    // El derecho financiado pertenece al paquete que entrega afiliación e
-    // inscripción. Se edita desde este código, pero se conserva en el contrato
-    // de la oferta para que la orden lo fotografíe al iniciar el checkout.
-    if (isOffer) {
-      const offerEvent = configuration.events?.find((item) => item.id === codeDraft.eventId)
-      const currentOffer = offerEvent?.comboOffer
-      if (currentOffer && currentOffer.financed !== codeDraft.financed) {
-        const financingResult = await onSaveComboOffer?.(offerEvent.slug, {
-          ...currentOffer,
-          financed: codeDraft.financed,
-        })
-        if (financingResult?.error) {
-          setCodeError(financingResult.error)
-          return
-        }
-      }
     }
     setCodeDraft(null)
     setNotice(t('admin.sections.pricing.saved'))
@@ -1788,6 +1782,14 @@ export default function PricingSection({
                         {t('admin.sections.pricing.offerBadge')}
                       </span>
                     ) : null}
+                    {/* Quién puede delegar el pago cambia la operación: a ese
+                        atleta hay que cobrarle a mano y la deuda queda abierta
+                        hasta que Finanzas la valide. */}
+                    {code.financed ? (
+                      <span className="admin-pricing__status admin-pricing__status--financed">
+                        {t('admin.sections.pricing.codeFinancedBadge')}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="admin-pricing__plan-meta">
                     <span>{t(`admin.sections.pricing.appliesTo.${code.appliesTo}`)}</span>
@@ -1886,16 +1888,9 @@ export default function PricingSection({
                 )}
 
                 <div className="admin-pricing__plan-actions">
-                  <button
-                    type="button"
-                    className="admin-pricing__btn admin-pricing__btn--quiet"
-                    onClick={() => copyPromotionLink(code)}
-                  >
-                    <Link2 size={14} aria-hidden />
-                    {copiedLinkCodeId === code.id
-                      ? t('admin.sections.pricing.promotionLinkCopied')
-                      : t('admin.sections.pricing.copyPromotionLink')}
-                  </button>
+                  {/* Sin enlace de canje: no existe una página pública que abra
+                      un código. Lo que se reparte es el código —y su QR, que lo
+                      codifica pelado para el botón de escaneo de los checkouts. */}
                   <button
                     type="button"
                     className="admin-pricing__btn admin-pricing__btn--quiet"
@@ -2002,15 +1997,12 @@ export default function PricingSection({
                             destination: simulationState.data.destination?.kind ?? 'stay',
                           })}
                         </span>
-                        <a
-                          className="admin-pricing__simulation-link"
-                          href={buildPromotionCodeUrl(code.code)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <Link2 size={13} aria-hidden />
-                          {t('admin.sections.pricing.openPromotionLink')}
-                        </a>
+                        {/* El recorrido se verifica contra el checkout donde el
+                            código se canjea de verdad: no hay una URL de canje
+                            que abrir en otra pestaña. */}
+                        <span className="admin-pricing__simulation-link">
+                          {t('admin.sections.pricing.simulationRedeemHint')}
+                        </span>
                         <ul>
                           {Object.entries(simulationState.data.checks ?? {}).map(
                             ([check, passed]) => (
@@ -2234,17 +2226,13 @@ export default function PricingSection({
                 <aside
                   className="admin-pricing__exclusive-flow admin-pricing__wide"
                   aria-labelledby="pricing-exclusive-flow-title"
-                  style={{
-                    padding: '1rem',
-                    gap: '1rem',
-                  }}
                 >
-                  <div className="admin-pricing__exclusive-flow-intro" style={{ marginBottom: 0 }}>
-                    <h4 id="pricing-exclusive-flow-title" style={{ margin: 0, fontSize: '0.85rem' }}>
+                  <div className="admin-pricing__exclusive-flow-intro">
+                    <h4 id="pricing-exclusive-flow-title">
                       {t('admin.sections.pricing.exclusiveFlowTitle')}
                     </h4>
                   </div>
-                  <dl style={{ margin: 0 }}>
+                  <dl>
                     <div>
                       <dt>{t('admin.sections.pricing.exclusiveFlowCode')}</dt>
                       <dd>
@@ -2267,22 +2255,6 @@ export default function PricingSection({
                       <dd>{t('admin.sections.pricing.exclusiveFlowDestinationValue')}</dd>
                     </div>
                   </dl>
-                  <label 
-                    className="admin-pricing__toggle" 
-                    title={t('admin.sections.pricing.comboFinancedHint')}
-                    style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent)' }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={codeDraft.financed === true}
-                      onChange={(event) =>
-                        setCodeDraft({ ...codeDraft, financed: event.target.checked })
-                      }
-                    />
-                    <span style={{ textTransform: 'none', letterSpacing: 'normal' }}>
-                      {t('admin.sections.pricing.comboFinanced')}
-                    </span>
-                  </label>
                 </aside>
               ) : null}
               <label title={t('admin.sections.pricing.maxRedemptionsHint')}>
@@ -2336,8 +2308,11 @@ export default function PricingSection({
                       audience,
                       // Una promo pública no destraba canales manuales: pasar a
                       // pública limpia la selección en vez de mandar un payload
-                      // que el servidor va a rechazar.
+                      // que el servidor va a rechazar. Sin canal manual tampoco
+                      // hay financiamiento posible —y una promo que se aplica
+                      // sola nunca financia—, así que cae con ellos.
                       manualChannels: audience === 'public' ? [] : (codeDraft.manualChannels ?? []),
+                      financed: audience === 'public' ? false : codeDraft.financed,
                     })
                   }}
                 >
@@ -2364,19 +2339,9 @@ export default function PricingSection({
                         ? t('admin.sections.pricing.codeChannelsWithoutGateway')
                         : t('admin.sections.pricing.manualChannelsHint')
                 }
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.85rem',
-                  borderTop: '1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent)',
-                  paddingTop: '1rem',
-                  marginTop: '0.5rem',
-                }}
               >
-                <legend style={{ fontSize: '0.7rem', fontWeight: 650, letterSpacing: '0.08em', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                  {t('admin.sections.pricing.codeChannelsLegend')}
-                </legend>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                <legend>{t('admin.sections.pricing.codeChannelsLegend')}</legend>
+                <div className="admin-pricing__channels-grid">
                   <label className="admin-pricing__toggle">
                     <input
                       type="checkbox"
@@ -2392,19 +2357,63 @@ export default function PricingSection({
                       <input
                         type="checkbox"
                         checked={(codeDraft.manualChannels ?? []).includes(channel)}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const manualChannels = event.target.checked
+                            ? [...new Set([...(codeDraft.manualChannels ?? []), channel])]
+                            : (codeDraft.manualChannels ?? []).filter((item) => item !== channel)
                           setCodeDraft({
                             ...codeDraft,
-                            manualChannels: event.target.checked
-                              ? [...new Set([...(codeDraft.manualChannels ?? []), channel])]
-                              : (codeDraft.manualChannels ?? []).filter((item) => item !== channel),
+                            manualChannels,
+                            // Sin canal manual no queda nada que el atleta pueda
+                            // declarar: quitar el último apaga el financiamiento
+                            // en vez de dejarlo guardado sin efecto.
+                            financed: manualChannels.length === 0 ? false : codeDraft.financed,
                           })
-                        }
+                        }}
                       />
                       <span>{t(`admin.sections.pricing.manualChannel.${channel}`)}</span>
                     </label>
                   ))}
                 </div>
+                {/* El financiamiento cuelga de esta matriz porque es lo que el
+                    atleta declara sobre un canal manual, no un eje aparte.
+                    Marcarlo abre transferencia y efectivo cuando no había
+                    ninguno: es la única forma de que no se guarde inerte. */}
+                <label className="admin-pricing__toggle admin-pricing__toggle--financing">
+                  <input
+                    type="checkbox"
+                    checked={codeDraft.financed === true}
+                    onChange={(event) => {
+                      const financed = event.target.checked
+                      setCodeDraft({
+                        ...codeDraft,
+                        financed,
+                        manualChannels:
+                          financed && (codeDraft.manualChannels ?? []).length === 0
+                            ? [...MANUAL_PAYMENT_CHANNELS]
+                            : (codeDraft.manualChannels ?? []),
+                      })
+                    }}
+                  />
+                  <span>
+                    {t('admin.sections.pricing.codeFinancing')}
+                    <small>{t('admin.sections.pricing.codeFinancingHint')}</small>
+                  </span>
+                </label>
+                {/* Los dos callejones sin salida se avisan en el mismo fieldset
+                    y antes de enviar: un código sin ningún medio no se puede
+                    pagar, y un financiamiento sin canal manual no se puede
+                    declarar. */}
+                {draftHasNoChannel ? (
+                  <p className="admin-pricing__channels-warning" role="alert">
+                    {t('admin.sections.pricing.codeChannelsEmpty')}
+                  </p>
+                ) : null}
+                {draftFinancingInert ? (
+                  <p className="admin-pricing__channels-warning" role="alert">
+                    {t('admin.sections.pricing.codeFinancingChannelRequired')}
+                  </p>
+                ) : null}
               </fieldset>
               <label 
                 className="admin-pricing__wide" 

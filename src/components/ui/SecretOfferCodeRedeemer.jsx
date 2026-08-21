@@ -7,6 +7,7 @@ import {
   promotionBenefitPresentation,
   promotionDestination,
   promotionDestinationType,
+  promotionPaymentPresentation,
   redeemPromotionCode,
   savePendingPromotionCode,
 } from '../../services/promotionCodeService.js'
@@ -123,6 +124,10 @@ export default function SecretOfferCodeRedeemer({
         ? t('codeBand.statusError')
         : t('codeBand.statusIdle')
   const benefit = resolvedPromotion ? promotionBenefitPresentation(resolvedPromotion) : null
+  // Con qué se paga el código que se acaba de canjear. Es parte del canje, no
+  // del checkout: un código que sólo se cobra en efectivo, o que deja avisar el
+  // pago, cambia lo que el atleta tiene que hacer a continuación.
+  const payment = resolvedPromotion ? promotionPaymentPresentation(resolvedPromotion) : null
   const destination = resolvedPromotion ? promotionDestination(resolvedPromotion) : null
   const destinationType = resolvedPromotion ? promotionDestinationType(resolvedPromotion) : null
 
@@ -244,6 +249,26 @@ export default function SecretOfferCodeRedeemer({
                           : 'secretOfferRedeemer.redirectingLead',
                       )}
                 </span>
+                {/* Los medios van antes de la descripción de la campaña: es lo
+                    que el atleta necesita para el paso siguiente, no el relato
+                    de la promo. */}
+                {state === 'accepted' && payment ? (
+                  <small>
+                    {t(
+                      payment.gatewayClosed
+                        ? 'secretOfferRedeemer.payment.only'
+                        : 'secretOfferRedeemer.payment.with',
+                      {
+                        channels: payment.channels
+                          .map((channel) => t(`secretOfferRedeemer.payment.channel.${channel}`))
+                          .join(' · '),
+                      },
+                    )}
+                  </small>
+                ) : null}
+                {state === 'accepted' && payment?.financed ? (
+                  <small>{t('secretOfferRedeemer.payment.financed')}</small>
+                ) : null}
                 {resolvedPromotion?.campaign?.description ? (
                   <small>{resolvedPromotion.campaign.description}</small>
                 ) : null}

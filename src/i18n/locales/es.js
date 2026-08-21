@@ -122,6 +122,19 @@ export default {
       exclusiveOffer: 'Desbloqueaste una oferta exclusiva en tu cuenta.',
       discount: 'El beneficio quedó listo para el checkout compatible.',
     },
+    // Con qué se paga el código recién canjeado. `only` es un código que cerró
+    // la pasarela: no es "además podés", es "sólo así".
+    payment: {
+      with: 'Se paga con {{channels}}.',
+      only: 'Se paga únicamente con {{channels}}.',
+      financed:
+        'Podés avisarnos el pago y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'transferencia',
+        cash_pitbull: 'efectivo',
+      },
+    },
     continue: {
       membership: 'Usar en Afiliación',
       registration: 'Usar en la inscripción',
@@ -1164,6 +1177,17 @@ export default {
         cash_pitbull:
           'Reservás la oferta ahora y pagás en efectivo el día del evento, con la referencia que te damos acá.',
       },
+      // Mismo lugar que la nota de canal, otra frase: cuando el código deja
+      // avisar el pago, eso es lo que hay que decir antes de comprar, no
+      // después. Sólo aplica a los canales que se cobran a mano.
+      checkoutNoteFinanced: {
+        bank_transfer:
+          'Te damos los datos para transferir y podés avisarnos el pago: quedás habilitado en el momento y Finanzas valida el comprobante después.',
+        cash_pitbull:
+          'Reservás la oferta ahora y pagás en efectivo el día del evento. Si avisás que arreglaste el pago, quedás habilitado en el momento.',
+      },
+      financingLegal:
+        'Avisar el pago no lo acredita: el saldo queda abierto hasta que Finanzas lo valide.',
       checkoutClosed: 'El cobro está cerrado por ahora. Tu oferta queda reservada.',
       checkoutUnavailable: 'No pudimos abrir el cobro. Volvé a intentar en un momento.',
       payTitle: {
@@ -1383,6 +1407,10 @@ export default {
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
+      // Delegar el pago: la promesa es habilitacion inmediata, no
+      // acreditacion. La deuda sigue abierta hasta que Finanzas valide.
+      discountFinanced:
+        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -3089,6 +3117,10 @@ export default {
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
+      // Misma promesa que en Afiliacion: habilitacion inmediata contra una
+      // deuda abierta, nunca acreditacion.
+      discountFinanced:
+        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',

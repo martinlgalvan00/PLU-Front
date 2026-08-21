@@ -5,6 +5,7 @@ import {
   getActionableOffers,
   getOfferState,
   isOfferUnlockKind,
+  offerFinancingAvailable,
   pickPrimaryOffer,
   previewUnlocksOffer,
   resolveManualSettlement,
@@ -388,5 +389,31 @@ describe('resolveManualSettlement', () => {
     const paid = { ...manualPurchase, status: 'aprobado' }
     expect(resolveManualSettlement(buildOffer({ purchase: paid }))).toBe(null)
     expect(resolveManualSettlement(buildOffer())).toBe(null)
+  })
+})
+
+describe('pago delegable de la oferta', () => {
+  it('lo anuncia sobre transferencia y efectivo, nunca sobre la pasarela', () => {
+    // Delegar es avisar que se pagó y quedar habilitado mientras Finanzas
+    // valida: Mercado Pago acredita solo, así que no hay nada que avisar.
+    const offer = buildOffer({ financed: true })
+    expect(offerFinancingAvailable(offer, { channel: 'bank_transfer' })).toBe(true)
+    expect(offerFinancingAvailable(offer, { channel: 'cash_pitbull' })).toBe(true)
+    expect(offerFinancingAvailable(offer, { channel: 'mercado_pago' })).toBe(false)
+    expect(offerFinancingAvailable(offer, { channel: 'wise_transfer' })).toBe(false)
+    expect(offerFinancingAvailable(offer)).toBe(false)
+  })
+
+  it('lee las dos fuentes que consulta la orden: el código y el combo', () => {
+    // `plu_private.settle_order_financing` toma el código (20260912100000) o el
+    // combo restringido del evento (20260828110000). La ficha anuncia lo mismo
+    // que la orden va a fotografiar.
+    expect(
+      offerFinancingAvailable(buildOffer({ comboOffer: { active: true, financed: true } }), {
+        channel: 'bank_transfer',
+      }),
+    ).toBe(true)
+    expect(offerFinancingAvailable(buildOffer(), { channel: 'bank_transfer' })).toBe(false)
+    expect(offerFinancingAvailable(null, { channel: 'bank_transfer' })).toBe(false)
   })
 })
