@@ -49,6 +49,9 @@ export default function AdminListSection({
   filteredCount,
   filterActions = null,
   filters = [],
+  /** `'popover'`: pasa a `AdminFilterBar` el layout de pills + popover en vez
+   * del panel apilado (ver AdminFilterBar / AdminFilterPillRow). */
+  filterLayout,
   meta,
   onQueryChange,
   placeholder,
@@ -144,6 +147,7 @@ export default function AdminListSection({
       inline
       count={filterCount}
       filters={filters}
+      layout={filterLayout}
       placeholder={searchPlaceholder}
       query={query}
       onQueryChange={onQueryChange}

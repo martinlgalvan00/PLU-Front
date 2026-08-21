@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterDateRange from './AdminFilterDateRange.jsx'
+import AdminFilterPillRow from './AdminFilterPillRow.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminFilterSelect from './AdminFilterSelect.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -95,6 +96,9 @@ export default function AdminFilterBar({
   onQueryChange,
   filters = [],
   placeholder = 'Buscar…',
+  /** `'popover'`: search + una fila de pills que abren un popover por filtro,
+   * en vez del panel apilado de abajo. Ver AdminFilterPillRow. */
+  layout,
 }) {
   const { t } = useI18n()
   const panelId = useId()
@@ -277,6 +281,41 @@ export default function AdminFilterBar({
         clearable
         hideEmpty
       />
+    )
+  }
+
+  if (layout === 'popover') {
+    const popoverRootClassName = [
+      'admin-filters',
+      'admin-filters--popover',
+      className,
+      filters.some(isFilterActive) ? 'admin-filters--has-active' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    return (
+      <div ref={rootRef} className={popoverRootClassName}>
+        <div className="admin-filter-popoverbar">
+          <div className="admin-filter-popoverbar__row1">
+            <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+            <div className="admin-filter-popoverbar__spacer" />
+            {activeCount > 0 ? (
+              <button type="button" className="admin-filter-popoverbar__clear" onClick={clearAll}>
+                <X size={12} aria-hidden />
+                <span>{t('admin.filters.clearActive', { count: activeCount })}</span>
+              </button>
+            ) : null}
+            {actions ? <div className="admin-filters__actions">{actions}</div> : null}
+            {count ? (
+              <span className="admin-filter-popoverbar__count" aria-live="polite">
+                {count}
+              </span>
+            ) : null}
+          </div>
+          {filters.length > 0 ? <AdminFilterPillRow filters={filters} /> : null}
+        </div>
+      </div>
     )
   }
 

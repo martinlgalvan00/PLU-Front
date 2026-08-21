@@ -293,6 +293,8 @@ export default {
     advancedLabel: 'Filtros avanzados',
     searchFilters: 'Buscar filtro…',
     noMatchingFilters: 'Ningún filtro coincide con la búsqueda',
+    searchOptions: 'Buscar…',
+    noMatchingOptions: 'Sin resultados',
   },
   stats: {
     total: 'Total',
