@@ -49,6 +49,9 @@ export function mapDiscountCode(row) {
     // sola. Las promos anteriores a la audiencia eran todas por codigo.
     audience: row.audience === 'public' ? 'public' : 'code',
     appliesTo: row.applies_to ?? row.appliesTo ?? 'membership',
+    // Afiliación que empaqueta la oferta. Null en el resto de las modalidades:
+    // el paquete sale del combo del evento (20260913100000).
+    membershipPlanId: row.membership_plan_id ?? row.membershipPlanId ?? null,
     // Inscripción a la que está atado el código. Null = cualquiera, que es como
     // se comportaban todos los códigos antes de 20260902100000.
     eventId: row.event_id ?? row.eventId ?? null,
@@ -279,6 +282,10 @@ export async function upsertDiscountCodeRequest(code) {
       code.eventId && audience === 'code' && ['registration', 'combo'].includes(code.appliesTo)
         ? code.eventId
         : undefined,
+    // Qué afiliación empaqueta la oferta. Vacío la resuelve la RPC —el plan del
+    // combo, o la única de pago único vigente—, así que el formulario sólo lo
+    // manda cuando hay una elección real que hacer.
+    membershipPlanId: kind === 'offer' ? code.membershipPlanId || undefined : undefined,
     startsAt: dateTimeToIso(code.startsAt),
     expiresAt: dateTimeToIso(code.expiresAt),
     // Siempre se manda la lista completa: el array presente reemplaza la

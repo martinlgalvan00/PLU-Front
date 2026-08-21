@@ -406,7 +406,14 @@ export function createSupabaseAthleteRepository(
     // cupón: mismo criterio de vigencia (active + ventana starts/ends) que ya
     // aplica create_membership_registration_combo_order_core al validar la
     // oferta antes de crear la orden.
-    async findEventComboOffer(eventSlug) {
+    //
+    // Con `athleteId` cae en el paquete de la oferta que ese atleta ya canjeó
+    // cuando el evento no tiene combo vigente: una oferta autosuficiente trae
+    // su propia afiliación y se cotiza contra la suma de las partes
+    // (`athlete_event_offer_bundle`, 20260913100000). Sin `athleteId` el
+    // comportamiento es el de siempre — null y 404 — porque el paquete depende
+    // de quién tiene la llave.
+    async findEventComboOffer(eventSlug, { athleteId = null } = {}) {
       const event = assertSupabaseResult(
         await client
           .from('events')
@@ -419,13 +426,38 @@ export function createSupabaseAthleteRepository(
         'No se pudo validar el combo del evento.',
       )
       const offer = Array.isArray(event?.comboOffer) ? event.comboOffer[0] : event?.comboOffer
-      if (!offer || !offer.active) return null
       // Privado significa habilitado para administración, pero fuera de todo
-      // canal comercial. Ni un request directo al checkout puede comprarlo.
-      if (offer.audience === 'private') return null
+      // canal comercial. Ni un request directo al checkout puede comprarlo, y
+      // ninguna llave lo reabre: es una decisión explícita del panel.
+      if (offer?.audience === 'private') return null
       const now = new Date()
-      if (offer.starts_at && new Date(offer.starts_at) > now) return null
-      if (offer.ends_at && new Date(offer.ends_at) < now) return null
+      const usable =
+        Boolean(offer?.active) &&
+        !(offer.starts_at && new Date(offer.starts_at) > now) &&
+        !(offer.ends_at && new Date(offer.ends_at) < now)
+      if (!usable) {
+        if (!athleteId) return null
+        const bundle = await rpc(
+          'athlete_event_offer_bundle',
+          {
+            p_organization_id: organizationId,
+            p_athlete_id: athleteId,
+            p_event_slug: eventSlug,
+          },
+          'No se pudo validar el paquete de la oferta.',
+        )
+        if (!bundle) return null
+        return {
+          price: bundle.price,
+          manualPrice: bundle.manualPrice ?? null,
+          currency: bundle.currency,
+          // El paquete existe sólo detrás de la llave, y la llave es el propio
+          // código de descuento: no hay `access_code` de combo que comparar.
+          audience: 'code',
+          accessCode: null,
+          financed: bundle.financed === true,
+        }
+      }
       return {
         price: offer.price,
         manualPrice: offer.manual_price,

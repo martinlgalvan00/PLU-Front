@@ -693,20 +693,24 @@ export default {
       offerPrice: 'Precio de la oferta por Mercado Pago (ARS)',
       offerPricePlaceholder: 'Precio del combo',
       offerPriceHint:
-        'Lo que paga por Mercado Pago quien canjea la oferta. Vacío = cobra lo que ya cuesta el combo de ese torneo.',
+        'Lo que paga por Mercado Pago quien canjea la oferta. Con un importe acá el código es la oferta y no hace falta cargar ningún combo; vacío cobra lo que ya cuesta el combo de ese torneo.',
       offerPriceOptional: 'Opcional. Vacío cobra el precio del combo del torneo.',
+      offerPriceCeiling: 'Tiene que ser menor a {{price}}, que es lo que se paga hoy sin el código.',
+      offerPlanLabel: 'Afiliación que empaqueta',
+      offerPlanPlaceholder: 'Elegí la afiliación',
+      offerPlanHint:
+        'La afiliación que entra en el paquete junto con la inscripción. Se pregunta porque hay más de una vigente.',
       offerEventLabel: 'Inscripción de la oferta',
       offerEventPlaceholder: 'Elegí la inscripción',
       offerEventComboPrice: 'combo {{price}}',
       offerEventHint:
-        'La oferta reemplaza el precio del combo sólo para quien canjea el código. Se listan únicamente torneos con combo habilitado y Restringido.',
+        'La inscripción que entra en el paquete. La oferta vale sólo para quien canjea el código: si el torneo ya tiene combo, lo reemplaza para esa persona.',
       offerEventRequired: 'Elegí a qué inscripción aplica la oferta exclusiva.',
-      offerComboMissing:
-        'Esa inscripción todavía no tiene combo de afiliación e inscripción configurado. Cargalo arriba antes de crear la oferta.',
-      offerComboVisibilityRequired:
-        'La oferta exclusiva necesita que ese combo esté habilitado y en estado Restringido.',
+      offerComboRequiredWithoutPrice:
+        'Sin precio propio la oferta cobra el combo de ese torneo, y ese torneo no tiene combo habilitado. Poné un precio o cargá el combo.',
+      offerPlanRequired: 'Elegí qué afiliación empaqueta la oferta.',
       offerPriceTooHigh:
-        'El precio de la oferta tiene que ser menor al del combo de esa inscripción ({{price}}).',
+        'El precio de la oferta tiene que ser menor a lo que ya se paga sin el código ({{price}}).',
       exclusiveFlowEyebrow: 'Flujo secreto',
       exclusiveFlowTitle: 'Página privada de la oferta',
       exclusiveFlowLead:

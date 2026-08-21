@@ -1448,7 +1448,12 @@ export function createAthleteRoutes({
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
-        const comboOffer = await repo().findEventComboOffer(eventSlug)
+        // Sin combo vigente el paquete puede ser el de una oferta que este
+        // atleta ya canjeó: la llave trae su propia afiliación y se cotiza
+        // contra la suma de las partes. Es la misma regla que aplica la RPC.
+        const comboOffer = await repo().findEventComboOffer(eventSlug, {
+          athleteId: auth.athleteId,
+        })
         if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
         // Acepta el access_code del evento o un discount_code kind='access':
         // el atleta puede haber pegado el código secreto en cualquiera de los
@@ -1533,7 +1538,9 @@ export function createAthleteRoutes({
           manualPrice = plan.manual_price
         } else if (appliesTo === 'combo') {
           if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
-          const offer = await repo().findEventComboOffer(eventSlug)
+          // Igual que el alta: sin combo vigente cotiza el paquete de la oferta
+          // desbloqueada, para que el ahorro que se anuncia sea el que se cobra.
+          const offer = await repo().findEventComboOffer(eventSlug, { athleteId: auth.athleteId })
           if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
           baseAmount = offer.price
           manualPrice = offer.manualPrice

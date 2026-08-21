@@ -83,8 +83,13 @@ export const discountCodeSchema = z
     appliesTo: z.enum(['membership', 'registration', 'combo', 'both']),
     // A qué inscripción aplica el código. Vacío = cualquiera, que es como se
     // comportaban todos los códigos antes de 20260902100000. Obligatorio en
-    // 'offer': la oferta se cotiza contra el combo de ese evento.
+    // 'offer': la oferta empaqueta la afiliación con ESA inscripción.
     eventId: z.string().uuid().optional(),
+    // Qué afiliación empaqueta la oferta (20260913100000). Vacío = lo resuelve
+    // la RPC: el plan del combo del evento si hay combo, o la única afiliación
+    // de pago único vigente. Sólo hace falta elegirlo cuando hay más de una, y
+    // es lo que permitió que crear una oferta no exija cargar un combo antes.
+    membershipPlanId: z.string().uuid().optional(),
     maxRedemptions: z.coerce.number().int().positive().optional(),
     // Ventana de la promo. `startsAt` vacío = vigente desde que se enciende,
     // que es como se comportaban todas las promos antes de tener apertura.
@@ -293,12 +298,31 @@ export const discountCodeSchema = z
     // editar un cupón de porcentaje a precio fijo (o al revés) no deja el valor
     // viejo colgado en la fila.
     if (code.kind === 'percent') {
-      return { ...code, fixedPrice: undefined, fixedPriceManual: undefined }
+      return {
+        ...code,
+        fixedPrice: undefined,
+        fixedPriceManual: undefined,
+        membershipPlanId: undefined,
+      }
     }
     if (code.kind === 'access') {
-      return { ...code, percentOff: undefined, fixedPrice: undefined, fixedPriceManual: undefined }
+      return {
+        ...code,
+        percentOff: undefined,
+        fixedPrice: undefined,
+        fixedPriceManual: undefined,
+        // Sin precio propio la oferta cobra el del combo: el paquete lo define
+        // ese combo, no el código.
+        membershipPlanId: undefined,
+      }
     }
-    return { ...code, percentOff: undefined }
+    return {
+      ...code,
+      percentOff: undefined,
+      // Sólo una oferta instancia un paquete. Un precio promocional a secas no
+      // empaqueta nada, aunque el formulario venga del mismo tipo del panel.
+      membershipPlanId: code.kind === 'offer' ? code.membershipPlanId : undefined,
+    }
   })
 
 /**
