@@ -681,6 +681,19 @@
   display: none;
 }
 
+/* Atletas rompe esa premisa: son 3 grupos de chips (afiliación, inscripción,
+   división) uno al lado del otro, todos con el mismo chip neutro "Todos" —
+   sin la etiqueta arriba de cada riel no se distingue qué filtra cada uno
+   (quedan 3 "Todos" pegados sin contexto). Mismo criterio que ya usa
+   Inscripciones para el mismo problema: la etiqueta vuelve. */
+.admin-shell
+  .admin-filters--athletes.admin-filters--inline
+  .admin-filters__groups
+  .admin-filter-group--inline
+  > .admin-filter-group__label {
+  display: block;
+}
+
 /* Fila que une los chips principales con el toggle de avanzados.
    Los chips se expanden y el toggle queda pegado a la derecha. */
 .admin-shell .admin-filters__chips-row {
@@ -3280,7 +3293,6 @@
 .admin-shell .admin-filter-chip:focus-visible,
 .admin-shell .admin-filters__toggle:focus-visible,
 .admin-shell .admin-filters__search-clear:focus-visible,
-.admin-shell .admin-filters__select select:focus-visible,
 .admin-shell .admin-filters__date-range-input:focus-visible {
   box-shadow: 0 0 0 3px var(--admin-focus-soft);
   outline: 1px solid var(--admin-focus);
@@ -3306,6 +3318,15 @@
   min-width: 0;
   padding: 0 6px 0 0;
   width: 100%;
+}
+
+.admin-shell .admin-filters__select select:focus {
+  outline: none;
+}
+
+.admin-shell .admin-filters__select select option {
+  background-color: var(--admin-surface);
+  color: var(--admin-ink);
 }
 
 .admin-shell .admin-filters__select-icon {
@@ -3339,45 +3360,39 @@
   white-space: nowrap;
 }
 
+/* Un solo control -- no dos cajas por separado -- con los dos inputs y un
+   separador adentro, del mismo alto y lenguaje visual que `.admin-filters__select`.
+   Sin el texto "Desde"/"Hasta" ocupando su propia caja, el control entero pesa
+   lo que pesa un select, no el doble. */
 .admin-shell .admin-filters__date-range-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.admin-shell .admin-filters__date-range-field {
   align-items: center;
   background: color-mix(in srgb, var(--admin-control-bg) 78%, transparent);
   border: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
   border-radius: 11px;
   display: flex;
-  flex: 1 1 130px;
   gap: 6px;
   min-height: 42px;
-  min-width: 0;
-  padding: 0 10px;
+  padding: 0 12px;
   transition:
     border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
     background var(--motion-fast, 160ms) var(--ease-standard, ease),
     box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
-.admin-shell .admin-filters__date-range-field:hover {
+.admin-shell .admin-filters__date-range-fields:hover {
   border-color: color-mix(in srgb, var(--admin-brand) 28%, var(--admin-hairline));
 }
 
-.admin-shell .admin-filters__date-range-field:focus-within {
+.admin-shell .admin-filters__date-range-fields:focus-within {
   background: var(--admin-surface-raised);
   border-color: var(--admin-brand-border);
   box-shadow: 0 0 0 3px var(--admin-focus-soft);
 }
 
-.admin-shell .admin-filters__date-range-field span {
+.admin-shell .admin-filters__date-range-sep {
   color: var(--admin-muted);
   flex-shrink: 0;
-  font-size: 11px;
   font-weight: 600;
-  white-space: nowrap;
 }
 
 .admin-shell .admin-filters__date-range-input {
@@ -3386,12 +3401,12 @@
   color: var(--admin-ink);
   color-scheme: dark;
   cursor: pointer;
+  flex: 1 1 0;
   font-size: 13px;
   font-weight: 550;
   min-height: 40px;
   min-width: 0;
   padding: 0;
-  width: 100%;
 }
 
 .admin-shell .admin-filters__date-range-input::-webkit-calendar-picker-indicator {
@@ -3419,9 +3434,48 @@
   color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--admin-muted));
 }
 
-.admin-shell .admin-filters__date-range.is-active .admin-filters__date-range-field {
+.admin-shell .admin-filters__date-range.is-active .admin-filters__date-range-fields {
   background: color-mix(in oklab, var(--plu-gold-500) 8%, transparent);
   border-color: color-mix(in oklab, var(--plu-gold-500) 36%, var(--admin-hairline));
+}
+
+/* Atletas, piso incondicional: el rango de fecha comparte fila con gimnasio
+   bajo la regla genérica `flex: 1 1 160px` (línea ~555), que a anchos
+   intermedios (ni la rama ≥720px ni la @container angosta de abajo tienen
+   la última palabra) solo le deja ~220px repartidos entre dos inputs de
+   fecha -- ~88px cada uno, insuficiente para "dd/mm/aaaa" antes del ícono
+   del calendario. Este piso no depende de qué breakpoint termine activo. */
+.admin-shell
+  .admin-filters--athletes.admin-filters--inline
+  .admin-filters__groups
+  .admin-filters__date-range {
+  flex-basis: 240px;
+  min-width: 240px;
+}
+
+/* Atletas: gimnasio y fecha de alta comparten fila con grupos de chips más
+   angostos, pero el flex-grow del riel (línea ~555, pensado para que un
+   único select llene la fila) los estira al ancho que sobre -- terminan
+   desproporcionados frente al resto. Un tope de ancho los deja compactos,
+   del tamaño real que pide su contenido, en vez de una barra inflada.
+   Solo desde 720px: por debajo, el bloque mobile (línea ~4109) los quiere
+   a `width: 100%` apilados en columna, y un `max-width` acá se lo pisaría. */
+@media (min-width: 720px) {
+  .admin-shell
+    .admin-filters--athletes.admin-filters--inline
+    .admin-filters__panel
+    .admin-filters__select {
+    flex: 0 1 232px;
+    max-width: 232px;
+  }
+
+  .admin-shell
+    .admin-filters--athletes.admin-filters--inline
+    .admin-filters__panel
+    .admin-filters__date-range {
+    flex: 0 1 240px;
+    max-width: 240px;
+  }
 }
 
 /* Tabla: jerarquía tipográfica, densidad, columnas semánticas. */
@@ -6918,7 +6972,7 @@
   .admin-shell .admin-filters__primary .admin-filters__clear,
   .admin-shell .admin-filters__advanced-toggle,
   .admin-shell .admin-filters__select-control,
-  .admin-shell .admin-filters__date-range-field,
+  .admin-shell .admin-filters__date-range-fields,
   .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip,
   .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
     min-height: 44px;
@@ -7609,6 +7663,15 @@
       gap: 8px 10px;
     }
 
+    /* Atletas: 5 grupos no entran en una sola fila nowrap ni con los topes
+       de ancho de abajo -- necesitan poder saltar a una segunda línea acá
+       también (mismo criterio que la rama ancha, arriba en el archivo). */
+    .admin-shell
+      .admin-filters--athletes.admin-filters--inline
+      .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
+      flex-wrap: wrap;
+    }
+
     .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
     .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
       flex: 1 1 auto;
@@ -7629,6 +7692,31 @@
       flex: none;
       min-width: 0;
       width: 100%;
+    }
+
+    /* Atletas repite acá el mismo problema que en el @media (min-width:720px)
+       de arriba, pero por la rama angosta de esta @container: gimnasio y
+       fecha de alta no deberían mandarse a `width: 100%` -- ese ancho
+       completo estaba pensado para un único control por fila, no para dos
+       filtros compactos que pueden convivir en la misma línea. Mismo tope
+       que usa la rama ancha, para que el resultado sea igual no importa
+       cuál de las dos reglas termine activa. */
+    .admin-shell
+      .admin-filters--athletes.admin-filters--inline
+      .admin-filters__groups--multi
+      .admin-filters__select {
+      flex: 1 1 200px;
+      max-width: 232px;
+      width: auto;
+    }
+
+    .admin-shell
+      .admin-filters--athletes.admin-filters--inline
+      .admin-filters__groups--multi
+      .admin-filters__date-range {
+      flex: 1 1 200px;
+      max-width: 240px;
+      width: auto;
     }
 
     .admin-shell .data-table-card--admin.data-table-card--compact {

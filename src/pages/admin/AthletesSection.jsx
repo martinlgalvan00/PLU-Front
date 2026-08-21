@@ -289,6 +289,7 @@ export default function AthletesSection({
           value: status,
           onChange: setStatus,
           options: statusOptions,
+          showLabel: true,
         },
         {
           id: 'registrationStatus',
@@ -296,6 +297,7 @@ export default function AthletesSection({
           value: registrationStatus,
           onChange: setRegistrationStatus,
           options: registrationStatusOptions,
+          showLabel: true,
         },
         {
           id: 'gym',
@@ -311,6 +313,7 @@ export default function AthletesSection({
           value: division,
           onChange: setDivision,
           options: divisionOptions,
+          showLabel: true,
         },
         {
           id: 'registeredAt',
