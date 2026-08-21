@@ -273,7 +273,6 @@ export default function AdminFilterBar({
                 .join(' ')}
             >
               {visibleFilters.map(renderFilter)}
-              {advancedOpen ? advancedFilters.map(renderFilter) : null}
               {advancedFilters.length > 0 ? (
                 <button
                   type="button"
@@ -304,6 +303,21 @@ export default function AdminFilterBar({
                 </button>
               ) : null}
             </div>
+
+            {/* Panel propio y recesado para los avanzados: antes se sumaban a
+                `.admin-filters__groups`, la misma fila que Fuente/Estado, y una
+                vez expandidos no había forma de distinguir "filtro principal"
+                de "raramente usado" -- todo se leía como una sola pared de chips. */}
+            {advancedOpen && advancedFilters.length > 0 ? (
+              <div className="admin-filters__advanced-panel">
+                <span className="admin-filters__advanced-label">
+                  {t('admin.filters.advancedLabel')}
+                </span>
+                <div className="admin-filters__advanced-groups">
+                  {advancedFilters.map(renderFilter)}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

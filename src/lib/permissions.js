@@ -406,6 +406,11 @@ export const ACCESS_ROLE_TEMPLATES = Object.freeze([
 
 export const ADMIN_SECTION_PERMISSIONS = Object.freeze({
   dashboard: ['admin.dashboard.read'],
+  // "Personas" es el ítem de menú único para Atletas/Afiliaciones/
+  // Inscripciones: visible si el rol puede leer al menos una de las tres
+  // (cada pestaña interna sigue gateada por su propio permiso específico,
+  // ver `handleSectionChange`/`PeopleSection` en AdminPage).
+  people: ['admin.athletes.read', 'admin.memberships.read', 'admin.registrations.read'],
   athletes: ['admin.athletes.read'],
   memberships: ['admin.memberships.read'],
   events: ['admin.events.read'],

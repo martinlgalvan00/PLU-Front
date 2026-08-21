@@ -12,6 +12,7 @@ import {
   applyCanonicalPayment,
 } from './paymentWorkflow.js'
 import { selectCanonicalProviderPayment } from './providerPaymentSelection.js'
+import { diagnosePaymentFailure } from './paymentFailureCatalog.js'
 
 function isProviderPaymentNotFound(error) {
   if (Number(error?.provider?.apiResponseStatus) === 404) return true
@@ -130,10 +131,21 @@ export async function reconcileClaimedPaymentAttempt(attempt, options = {}) {
     })
     return applied.result
   } catch (error) {
-    await repository.completeEmbeddedReconciliation(attempt.id, {
-      succeeded: false,
-      error: summarizeFailure(error, { stage: 'reconciliation' }),
-    })
+    const persistedError = summarizeFailure(error, { stage: 'reconciliation' })
+    const diagnosis = diagnosePaymentFailure(error)
+
+    // Un 404 definitivo o una cuenta cobradora distinta no mejoran con el
+    // backoff. Dejarlos en el worker genera la misma alerta una y otra vez y
+    // no acerca el pago a una conciliacion. Quedan preservados como evidencia
+    // y requieren una intervencion explicita despues de corregir el entorno.
+    if (diagnosis.retryable === false && typeof repository.stopEmbeddedReconciliation === 'function') {
+      await repository.stopEmbeddedReconciliation(attempt.id, { error: persistedError })
+    } else {
+      await repository.completeEmbeddedReconciliation(attempt.id, {
+        succeeded: false,
+        error: persistedError,
+      })
+    }
     await auditTrail?.recordFailure({
       action: PAYMENT_TRAIL_ACTIONS.reconciliationFailed,
       stage: 'reconciliation',

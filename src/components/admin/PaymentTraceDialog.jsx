@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, Clock3, Copy, Info, X } from 'lucide-react
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { getPaymentOrderAudit } from '../../services/paymentService.js'
+import { operatorFailureMessage } from '../../lib/auditPresentation.js'
 
 /**
  * PaymentTraceDialog — PLU ARG
@@ -34,9 +35,24 @@ function formatWhen(value, locale) {
 }
 
 function TraceFailure({ failure, t }) {
+  const operatorMessage = operatorFailureMessage(
+    failure.message,
+    failure.code ?? failure.provider?.code,
+    failure.statusDetail,
+  )
   return (
     <div className="payment-trace__failure">
-      {failure.message ? <p className="payment-trace__failure-message">{failure.message}</p> : null}
+      {failure.message ? (
+        <>
+          <p className="payment-trace__failure-message">{operatorMessage ?? failure.message}</p>
+          {operatorMessage && operatorMessage !== failure.message ? (
+            <details className="payment-trace__failure-technical">
+              <summary>Mensaje técnico original</summary>
+              <p>{failure.message}</p>
+            </details>
+          ) : null}
+        </>
+      ) : null}
       <dl className="payment-trace__failure-meta">
         {failure.origin ? (
           <div>

@@ -1,9 +1,10 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Copy, FileCode2, History, Info, TriangleAlert, X } from 'lucide-react'
 import Button from '../ui/Button.jsx'
-import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { auditLabels } from '../../i18n/adminHelpers.js'
+import es from '../../i18n/locales/es.js'
+import { translate } from '../../i18n/translate.js'
 import { fetchAuditEventContext, residualMetadata } from '../../services/auditService.js'
 
 /**
@@ -25,11 +26,11 @@ import { fetchAuditEventContext, residualMetadata } from '../../services/auditSe
  * parece una cadena de causas sin serlo, que es peor que no mostrar nada.
  */
 
-function formatDateTime(value, locale) {
+function formatDateTime(value) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(locale === 'en' ? 'en-US' : 'es-AR', {
+  return date.toLocaleString('es-AR', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -66,13 +67,13 @@ function OriginLine({ origin }) {
 }
 
 /** Lista compacta de eventos correlacionados. */
-function ContextList({ entries, emptyLabel, labels, locale, onOpen, currentId }) {
+function ContextList({ entries, emptyLabel, labels, onOpen, currentId }) {
   if (!entries.length) return <p className="audit-detail__empty">{emptyLabel}</p>
   return (
     <ol className="audit-detail__timeline">
       {entries.map((entry) => (
         <li key={entry.id} className={entry.id === currentId ? 'is-current' : ''}>
-          <time dateTime={entry.createdAt}>{formatDateTime(entry.createdAt, locale)}</time>
+          <time dateTime={entry.createdAt}>{formatDateTime(entry.createdAt)}</time>
           <span
             className={`status-pill status-pill--${entry.tone === 'default' ? 'neutral' : entry.tone}`}
           >
@@ -83,7 +84,9 @@ function ContextList({ entries, emptyLabel, labels, locale, onOpen, currentId })
             {entry.status ? ` · ${labels.status(entry.status)}` : ''}
           </span>
           {entry.errorDetail?.message ? (
-            <span className="audit-detail__timeline-error">{entry.errorDetail.message}</span>
+            <span className="audit-detail__timeline-error">
+              {entry.errorDetail.operatorMessage ?? entry.errorDetail.message}
+            </span>
           ) : null}
           {entry.id === currentId ? null : (
             <button type="button" onClick={() => onOpen(entry.id)}>
@@ -97,7 +100,7 @@ function ContextList({ entries, emptyLabel, labels, locale, onOpen, currentId })
 }
 
 export default function AuditEventDialog({ eventId, onClose }) {
-  const { locale, messages, t } = useI18n()
+  const t = useCallback((key, vars) => translate(es, key, vars), [])
   const titleId = useId()
   const panelRef = useRef(null)
   const closeRef = useRef(onClose)
@@ -156,7 +159,7 @@ export default function AuditEventDialog({ eventId, onClose }) {
     }
   }, [currentId, t])
 
-  const labels = auditLabels(messages)
+  const labels = auditLabels(es)
   const contextLabels = { ...labels, openLabel: t('admin.auditDetail.open') }
   const event = data?.event
   const failure = event?.errorDetail
@@ -201,7 +204,7 @@ export default function AuditEventDialog({ eventId, onClose }) {
               {[
                 labels.source(event.source),
                 event.status ? labels.status(event.status) : null,
-                formatDateTime(event.createdAt, locale),
+                formatDateTime(event.createdAt),
               ]
                 .filter(Boolean)
                 .join(' · ')}
@@ -247,7 +250,17 @@ export default function AuditEventDialog({ eventId, onClose }) {
                 </h3>
 
                 {failure.message ? (
-                  <p className="audit-detail__message">{failure.message}</p>
+                  <>
+                    <p className="audit-detail__message">
+                      {failure.operatorMessage ?? failure.diagnosis?.title ?? failure.message}
+                    </p>
+                    {failure.operatorMessage && failure.operatorMessage !== failure.message ? (
+                      <details className="audit-detail__provider-message">
+                        <summary>Mensaje técnico original</summary>
+                        <p>{failure.message}</p>
+                      </details>
+                    ) : null}
+                  </>
                 ) : null}
 
                 <dl className="audit-detail__facts">
@@ -352,7 +365,6 @@ export default function AuditEventDialog({ eventId, onClose }) {
                     entries={context.request}
                     emptyLabel={t('admin.auditDetail.axisEmpty')}
                     labels={contextLabels}
-                    locale={locale}
                     currentId={event.id}
                     onOpen={setCurrentId}
                   />
@@ -366,7 +378,6 @@ export default function AuditEventDialog({ eventId, onClose }) {
                   entries={context.actorBefore}
                   emptyLabel={t('admin.auditDetail.axisBeforeEmpty')}
                   labels={contextLabels}
-                  locale={locale}
                   currentId={event.id}
                   onOpen={setCurrentId}
                 />
@@ -379,7 +390,6 @@ export default function AuditEventDialog({ eventId, onClose }) {
                     entries={context.actorAfter}
                     emptyLabel={t('admin.auditDetail.axisEmpty')}
                     labels={contextLabels}
-                    locale={locale}
                     currentId={event.id}
                     onOpen={setCurrentId}
                   />
@@ -393,7 +403,6 @@ export default function AuditEventDialog({ eventId, onClose }) {
                   entries={context.entity}
                   emptyLabel={t('admin.auditDetail.axisEmpty')}
                   labels={contextLabels}
-                  locale={locale}
                   currentId={event.id}
                   onOpen={setCurrentId}
                 />

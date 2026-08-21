@@ -51,6 +51,14 @@ export default {
       title: 'Buscador global',
       body: 'Buscá un atleta, un DNI o un evento sin cambiar de sección. Enter te lleva directo al resultado.',
     },
+    globalSearch: {
+      title: 'Acceso rápido a un atleta (Ctrl K)',
+      body: 'Desde cualquier sección del panel, buscá por nombre, DNI, email o gimnasio y saltá directo a la ficha del atleta, sin pasar por Atletas.',
+    },
+    savedViews: {
+      title: 'Vistas guardadas',
+      body: 'Guardá una combinación de búsqueda y filtros con un nombre para volver a aplicarla en un clic, sin rearmarla cada vez.',
+    },
     kpis: {
       title: 'Estado operativo',
       body: 'Estos números resumen atletas, afiliaciones, inscripciones y pagos pendientes en tiempo real. Tocá una tarjeta para ir directo a esa sección.',
@@ -123,6 +131,24 @@ export default {
       table: {
         title: 'Validar y gestionar',
         body: 'Aprobar pago manual, mostrar/ocultar del padrón público, cambiar estado o eliminar -- todo desde la fila, sin salir de la lista.',
+      },
+    },
+    audit: {
+      guide: {
+        title: 'Cómo leer esta sección',
+        body: 'Primero el estado general, después encontrás el hecho puntual con los filtros y por último abrís el contexto completo del evento.',
+      },
+      health: {
+        title: 'Salud de la operación',
+        body: 'Eventos, emails entregados, reintentos e incidentes de las últimas 24 horas -- tocá el número de incidentes para filtrar solo esos.',
+      },
+      filters: {
+        title: 'Filtrar la bitácora',
+        body: 'Combiná fuente, estado, categoría, acción, actor y entidad para llegar al hecho puntual que estás buscando.',
+      },
+      table: {
+        title: 'Detalle de cada evento',
+        body: 'Tocá cualquier fila para ver el detalle completo -- incluye la traza del pago cuando el hecho está atado a una orden de cobro.',
       },
     },
     events: {
@@ -208,6 +234,7 @@ export default {
       pluUsa: 'Convenio',
     },
     dashboard: 'Resumen',
+    people: 'Personas',
     athletes: 'Atletas',
     memberships: 'Afiliaciones',
     events: 'Eventos',
@@ -254,6 +281,7 @@ export default {
     showingAll: 'Todos',
     moreFilters: 'Más filtros',
     fewerFilters: 'Menos filtros',
+    advancedLabel: 'Filtros avanzados',
   },
   stats: {
     total: 'Total',
@@ -323,6 +351,17 @@ export default {
     dashboard: 'Buscar atleta, DNI o evento',
     submit: 'Buscar en inscripciones',
     users: 'Buscar por nombre o email',
+    global: 'Buscar atleta, DNI, socio, evento…',
+    globalAria: 'Buscador global de atletas',
+    globalEmpty: 'Sin coincidencias',
+    globalHint: 'Ver ficha',
+  },
+  savedViews: {
+    caption: 'Vistas guardadas',
+    all: 'Todos',
+    add: 'Guardar filtros actuales',
+    namePlaceholder: 'Nombre de la vista',
+    remove: 'Eliminar vista {{label}}',
   },
   table: {
     sortLabel: 'Ordenar',
@@ -1069,7 +1108,7 @@ export default {
     withoutSession: 'Con día, sin tanda',
     toggleAll: 'Seleccionar todos',
     selectAthlete: 'Seleccionar a {{name}}',
-    checkedIn: 'Ya registró ingreso',
+    checkedIn: 'Ya registr\u00f3 ingreso',
     moveBarLabel: 'Mover atletas seleccionados',
     selectedCount: '{{count}} seleccionados',
     moveTo: 'Mover a',
@@ -1114,7 +1153,7 @@ export default {
     scheduledNote:
       'La inscripción abre el {{date}}. Editá la ventana en “Ventas y cupos” si necesitás adelantarla.',
     closedWindowNote:
-      'La ventana de inscripción ya venció. Editá “Ventas y cupos” antes de volver a habilitarla.',
+      'La ventana de inscripción ya venci\u00f3. Editá “Ventas y cupos” antes de volver a habilitarla.',
     published: 'Publicado',
     hidden: 'Oculto',
     statusSaved: 'Estado actualizado.',
@@ -1783,15 +1822,15 @@ export default {
     copyError: 'No se pudo copiar el informe.',
     cancellation: {
       checkoutOpened: 'Checkout abierto',
-      cancelledAt: 'Cancelada automÃ¡ticamente',
+      cancelledAt: 'Cancelada automáticamente',
       paymentEvidence: 'Evidencia de pago',
       paymentEvidencePresent: 'Hay actividad de pago; revisala antes de crear otra orden.',
-      paymentEvidenceAbsent: 'No se registrÃ³ intento ni cobro.',
+      paymentEvidenceAbsent: 'No se registró intento ni cobro.',
       expiredWithoutPayment: {
-        title: 'Vencimiento automÃ¡tico sin pago',
-        summary: 'La ventana de pago venciÃ³ el {{expiresAt}}.',
+        title: 'Vencimiento automático sin pago',
+        summary: 'La ventana de pago venció el {{expiresAt}}.',
         action:
-          'No acreditar manualmente. Pedile a la persona que genere una nueva orden. Si informa un dÃ©bito, revalidÃ¡ primero contra Mercado Pago.',
+          'No acreditar manualmente. Pedile a la persona que genere una nueva orden. Si informa un débito, revalidá primero contra Mercado Pago.',
       },
     },
   },
@@ -2536,6 +2575,8 @@ export default {
     columnEntity: 'Entidad',
     columnActor: 'Actor',
     columnDetail: 'Detalle',
+    mobileListLabel: 'Registros de auditoría',
+    openDetail: 'Ver detalle y contexto',
     technicalDetails: 'Referencias técnicas',
     empty: 'No hay registros que coincidan con los filtros',
     loading: 'Cargando auditoría...',
@@ -2546,8 +2587,21 @@ export default {
     onlyIncidentsEmpty: 'No hay eventos con error entre los registros cargados.',
     loadError: 'No se pudo leer la auditoría.',
     loadErrorTitle: 'No pudimos cargar la auditoría',
+    flowEyebrow: 'Cómo leer este registro',
+    flowTitle: 'Seguimiento completo de cada operación',
+    flowLead:
+      'La bitácora conserva hechos del sistema. Consultala de arriba hacia abajo: primero el estado general, después el evento y por último su contexto verificable.',
+    flowStepHealthTitle: '1. Revisá el estado general',
+    flowStepHealthBody:
+      'Las métricas muestran actividad reciente, entregas de correo, reintentos e incidencias que requieren revisión.',
+    flowStepFilterTitle: '2. Encontrá el hecho',
+    flowStepFilterBody:
+      'Usá la búsqueda y los filtros por fuente, estado o categoría. “Solo errores” acota únicamente los registros ya cargados.',
+    flowStepDetailTitle: '3. Abrí el contexto',
+    flowStepDetailBody:
+      'Al abrir un registro vas a ver qué pasó, el motivo si falló y los eventos relacionados. La misma operación es evidencia causal; los demás son antecedentes o continuidad.',
     healthEyebrow: 'Control automático',
-    healthTitle: 'Salud del flujo de afiliación',
+    healthTitle: 'Salud de la operación',
     healthHealthy: 'Sin incidencias',
     healthAttention: 'Requiere revisión',
     healthUnknown: 'Estado no disponible',

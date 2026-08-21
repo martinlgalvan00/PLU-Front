@@ -51,6 +51,14 @@ export default {
       title: 'Global search',
       body: 'Search an athlete, a document ID, or an event without switching sections. Enter takes you straight to the result.',
     },
+    globalSearch: {
+      title: 'Jump to an athlete (Ctrl K)',
+      body: 'From any section of the panel, search by name, document ID, email, or gym and jump straight to the athlete file, without going through Athletes.',
+    },
+    savedViews: {
+      title: 'Saved views',
+      body: 'Save a search-and-filter combination under a name to reapply it in one click, instead of rebuilding it every time.',
+    },
     kpis: {
       title: 'Operational status',
       body: 'These numbers summarize athletes, memberships, registrations, and pending payments in real time. Tap a card to jump straight to that section.',
@@ -123,6 +131,24 @@ export default {
       table: {
         title: 'Validate and manage',
         body: 'Approve a manual payment, show/hide from the public roster, change status, or delete -- all from the row, without leaving the list.',
+      },
+    },
+    audit: {
+      guide: {
+        title: 'How to read this section',
+        body: 'Start with the overall status, then find the specific event with the filters, and finally open its full context.',
+      },
+      health: {
+        title: 'Operational health',
+        body: 'Events, delivered emails, retries, and incidents from the last 24 hours -- tap the incident count to filter down to just those.',
+      },
+      filters: {
+        title: 'Filter the log',
+        body: 'Combine source, status, category, action, actor, and entity to reach the specific event you are looking for.',
+      },
+      table: {
+        title: 'Each event in detail',
+        body: "Tap any row to see the full detail -- including the payment trace when the event is tied to a payment order.",
       },
     },
     events: {
@@ -208,6 +234,7 @@ export default {
       pluUsa: 'Partner',
     },
     dashboard: 'Overview',
+    people: 'People',
     athletes: 'Athletes',
     memberships: 'Memberships',
     events: 'Events',
@@ -254,6 +281,7 @@ export default {
     showingAll: 'All',
     moreFilters: 'More filters',
     fewerFilters: 'Fewer filters',
+    advancedLabel: 'Advanced filters',
   },
   stats: {
     total: 'Total',
@@ -323,6 +351,17 @@ export default {
     dashboard: 'Search athlete, ID or event',
     submit: 'Search registrations',
     users: 'Search by name or email',
+    global: 'Search athlete, ID, member, event…',
+    globalAria: 'Global athlete search',
+    globalEmpty: 'No matches',
+    globalHint: 'Open profile',
+  },
+  savedViews: {
+    caption: 'Saved views',
+    all: 'All',
+    add: 'Save current filters',
+    namePlaceholder: 'View name',
+    remove: 'Remove view {{label}}',
   },
   table: {
     sortLabel: 'Sort',

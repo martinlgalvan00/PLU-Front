@@ -23,9 +23,11 @@ import ErrorState from '../components/ui/ErrorState.jsx'
 import DashboardSection from './admin/DashboardSection.jsx'
 import { hasAnyPermission, hasPermission } from '../lib/permissions.js'
 import { findUnreconciledApprovedPayments } from '../services/paymentReconciliationService.js'
+import { useI18n } from '../i18n/I18nProvider.jsx'
 
 const AthleteDetailSection = lazy(() => import('./admin/AthleteDetailSection.jsx'))
 const AthletesSection = lazy(() => import('./admin/AthletesSection.jsx'))
+const PeopleSection = lazy(() => import('./admin/PeopleSection.jsx'))
 const AuditSection = lazy(() => import('./admin/AuditSection.jsx'))
 const AnalyticsSection = lazy(() => import('./admin/AnalyticsSection.jsx'))
 const EventsSection = lazy(() => import('./admin/EventsSection.jsx'))
@@ -159,6 +161,7 @@ export default function AdminPage({
   onResetStaffPassword,
   onExit,
 }) {
+  const { t } = useI18n()
   const [accountOpen, setAccountOpen] = useState(false)
   const preferredSection = isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard'
   const [section, setSection] = useState(() =>
@@ -168,6 +171,13 @@ export default function AdminPage({
   )
   const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
+  // "Personas" (nav.people) reemplaza los antiguos ítems de menú Atletas /
+  // Afiliaciones / Inscripciones por uno solo con pestañas internas. Todo
+  // código que todavía navega con esas tres claves (Dashboard, EventsSection,
+  // el buscador del resumen) sigue funcionando sin tocarlo: handleSectionChange
+  // las normaliza a section='people' + la pestaña correspondiente.
+  const PEOPLE_TABS = ['athletes', 'memberships', 'registrations']
+  const [peopleTab, setPeopleTab] = useState('athletes')
   const [paymentEventScope, setPaymentEventScope] = useState('')
   const [paymentFocusId, setPaymentFocusId] = useState(null)
 
@@ -207,10 +217,16 @@ export default function AdminPage({
 
   function handleSectionChange(nextSection, focusId = null) {
     if (!allowedSections.includes(nextSection)) return
+    // Deep links viejos (Dashboard, EventsSection) todavía piden 'athletes' /
+    // 'memberships' / 'registrations' directamente -- se resuelven a la
+    // pestaña correspondiente de 'people' en vez de tocar cada llamador.
+    const isPeopleTab = PEOPLE_TABS.includes(nextSection)
+    const targetSection = isPeopleTab ? 'people' : nextSection
+    if (isPeopleTab) setPeopleTab(nextSection)
     if (nextSection === 'payments') setPaymentEventScope('')
     setPaymentFocusId(nextSection === 'payments' ? focusId : null)
-    setSection(nextSection)
-    if (nextSection !== 'athletes') {
+    setSection(targetSection)
+    if (targetSection !== 'people') {
       setSelectedAthleteId(null)
     }
   }
@@ -218,7 +234,10 @@ export default function AdminPage({
   function handleSelectAthlete(athleteId) {
     if (!allowedSections.includes('athletes')) return
     setSelectedAthleteId(athleteId)
-    setSection('athletes')
+    // Igual que antes de unificar el menú: cerrar la ficha siempre vuelve al
+    // listado de Atletas, sin importar desde qué pestaña se abrió.
+    setPeopleTab('athletes')
+    setSection('people')
   }
 
   function handleDashboardSearchSubmit(query) {
@@ -231,7 +250,8 @@ export default function AdminPage({
       query: normalizedQuery,
       status: 'all',
     }))
-    setSection('registrations')
+    setPeopleTab('registrations')
+    setSection('people')
   }
 
   function handleManageEventRegistrations(event) {
@@ -242,7 +262,8 @@ export default function AdminPage({
       query: '',
       status: 'all',
     }))
-    setSection('registrations')
+    setPeopleTab('registrations')
+    setSection('people')
   }
 
   function handleManageEventPayments(event) {
@@ -257,7 +278,7 @@ export default function AdminPage({
   }
 
   function renderSection() {
-    const athleteDataSections = ['dashboard', 'athletes', 'memberships', 'registrations', 'plu-usa']
+    const athleteDataSections = ['dashboard', 'people', 'plu-usa']
     if (athleteDataSections.includes(section)) {
       if (athleteDataLoading) return <LoadingState />
       if (athleteDataError) {
@@ -292,7 +313,7 @@ export default function AdminPage({
       )
     }
 
-    if (section === 'athletes') {
+    if (section === 'people') {
       if (selectedAthleteId) {
         return (
           <AthleteDetailSection
@@ -311,65 +332,78 @@ export default function AdminPage({
         )
       }
 
-      return (
-        <AthletesSection
-          athletes={athletes}
-          registrations={registrations}
-          payments={payments}
-          gatePendingIds={gatePendingIds}
-          onSelectAthlete={handleSelectAthlete}
-          canEdit={hasPermission(authorization, 'admin.athletes.write')}
-          onBulkUpdate={onBulkUpdateAthletes}
-        />
-      )
-    }
+      const peopleTabs = [
+        allowedSections.includes('athletes') && { id: 'athletes', label: t('admin.nav.athletes') },
+        allowedSections.includes('memberships') && {
+          id: 'memberships',
+          label: t('admin.nav.memberships'),
+        },
+        allowedSections.includes('registrations') && {
+          id: 'registrations',
+          label: t('admin.nav.registrations'),
+        },
+      ].filter(Boolean)
+      const activePeopleTab = peopleTabs.some((tab) => tab.id === peopleTab)
+        ? peopleTab
+        : (peopleTabs[0]?.id ?? 'athletes')
 
-    if (section === 'memberships') {
       return (
-        <MembershipsSection
-          memberships={enrichedMemberships}
-          registrations={registrations}
-          unreconciledPayments={unreconciledMembershipPayments}
-          onSelectAthlete={handleSelectAthlete}
-          onSetMembershipStatus={onSetMembershipStatus}
-          canManage={hasPermission(authorization, 'admin.memberships.write')}
-          canDelete={canDeleteMemberships && Boolean(onDeleteMembership)}
-          onDelete={onDeleteMembership}
-        />
-      )
-    }
-
-    if (section === 'registrations') {
-      return (
-        <RegistrationsSection
-          canAssignSchedule={hasPermission(authorization, 'admin.registrations.write')}
-          canEdit={hasAnyPermission(authorization, [
-            'admin.registrations.write',
-            'admin.payments.approve',
-          ])}
-          filters={filters}
-          filteredRegistrations={filteredRegistrations}
-          gatePendingIds={gatePendingIds}
-          payments={payments}
-          registrations={registrations}
-          registrationsCount={registrations.length}
-          unreconciledPayments={unreconciledRegistrationPayments}
-          onApprovePayment={onApprovePayment}
-          onForceSettlePayment={onForceSettlePayment}
-          onSetRegistrationStatus={onSetRegistrationStatus}
-          canSetStatus={hasPermission(authorization, 'admin.registrations.write')}
-          canForceSettle={hasPermission(authorization, 'admin.payments.approve')}
-          canDelete={canDeleteRegistrations && Boolean(onDeleteRegistration)}
-          onDelete={onDeleteRegistration}
-          canManageVisibility={hasPermission(authorization, 'admin.registrations.write')}
-          onSetPublicVisibility={onSetRegistrationPublicVisibility}
-          onExportAdmin={onExportAdmin}
-          onExportPluUsa={onExportPluUsa}
-          onGoToEvents={() => setSection('events')}
-          onScheduleAssigned={onScheduleAssigned}
-          onSelectAthlete={handleSelectAthlete}
-          onSetFilters={onSetFilters}
-        />
+        <PeopleSection activeTab={activePeopleTab} onTabChange={setPeopleTab} tabs={peopleTabs}>
+          {activePeopleTab === 'athletes' && (
+            <AthletesSection
+              athletes={athletes}
+              registrations={registrations}
+              payments={payments}
+              gatePendingIds={gatePendingIds}
+              onSelectAthlete={handleSelectAthlete}
+              canEdit={hasPermission(authorization, 'admin.athletes.write')}
+              onBulkUpdate={onBulkUpdateAthletes}
+            />
+          )}
+          {activePeopleTab === 'memberships' && (
+            <MembershipsSection
+              memberships={enrichedMemberships}
+              registrations={registrations}
+              unreconciledPayments={unreconciledMembershipPayments}
+              onSelectAthlete={handleSelectAthlete}
+              onSetMembershipStatus={onSetMembershipStatus}
+              canManage={hasPermission(authorization, 'admin.memberships.write')}
+              canDelete={canDeleteMemberships && Boolean(onDeleteMembership)}
+              onDelete={onDeleteMembership}
+            />
+          )}
+          {activePeopleTab === 'registrations' && (
+            <RegistrationsSection
+              canAssignSchedule={hasPermission(authorization, 'admin.registrations.write')}
+              canEdit={hasAnyPermission(authorization, [
+                'admin.registrations.write',
+                'admin.payments.approve',
+              ])}
+              filters={filters}
+              filteredRegistrations={filteredRegistrations}
+              gatePendingIds={gatePendingIds}
+              payments={payments}
+              registrations={registrations}
+              registrationsCount={registrations.length}
+              unreconciledPayments={unreconciledRegistrationPayments}
+              onApprovePayment={onApprovePayment}
+              onForceSettlePayment={onForceSettlePayment}
+              onSetRegistrationStatus={onSetRegistrationStatus}
+              canSetStatus={hasPermission(authorization, 'admin.registrations.write')}
+              canForceSettle={hasPermission(authorization, 'admin.payments.approve')}
+              canDelete={canDeleteRegistrations && Boolean(onDeleteRegistration)}
+              onDelete={onDeleteRegistration}
+              canManageVisibility={hasPermission(authorization, 'admin.registrations.write')}
+              onSetPublicVisibility={onSetRegistrationPublicVisibility}
+              onExportAdmin={onExportAdmin}
+              onExportPluUsa={onExportPluUsa}
+              onGoToEvents={() => setSection('events')}
+              onScheduleAssigned={onScheduleAssigned}
+              onSelectAthlete={handleSelectAthlete}
+              onSetFilters={onSetFilters}
+            />
+          )}
+        </PeopleSection>
       )
     }
 
@@ -581,6 +615,8 @@ export default function AdminPage({
       allowedSections={allowedSections}
       onOpenAccount={onRequestEmailChange ? () => setAccountOpen(true) : undefined}
       restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}
+      athletes={athletes}
+      onSelectAthlete={handleSelectAthlete}
     >
       {accountOpen ? (
         <AccountDialog
@@ -592,7 +628,7 @@ export default function AdminPage({
       <AdminLiveSyncBadge refreshing={athleteDataRefreshing} syncedAt={athleteDataSyncedAt} />
       <div
         className="admin-page admin-section-enter"
-        key={`${section}-${selectedAthleteId ?? 'list'}`}
+        key={`${section}-${section === 'people' ? peopleTab : ''}-${selectedAthleteId ?? 'list'}`}
       >
         <Suspense fallback={<PageLoadFallback />}>{renderSection()}</Suspense>
       </div>

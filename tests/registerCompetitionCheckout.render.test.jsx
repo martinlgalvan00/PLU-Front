@@ -203,9 +203,9 @@ describe('RegisterPage competition profile summary', () => {
       onUpdateForm,
     })
 
-    expect(screen.getByText(/peso declarados.*asentados/i)).toBeTruthy()
+    expect(screen.getByText(/modalidad y categoría declaradas.*asentadas/i)).toBeTruthy()
     expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(true)
-    expect(screen.getByLabelText(/peso corporal/i).disabled).toBe(true)
+    expect(screen.getByLabelText(/^categoría$/i).disabled).toBe(true)
     expect(onUpdateForm).toHaveBeenCalledWith({ target: { name: 'estimatedWeight', value: '74.5' } })
   })
 })

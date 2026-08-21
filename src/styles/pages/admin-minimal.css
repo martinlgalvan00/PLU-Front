@@ -2453,6 +2453,52 @@
   transform: rotate(180deg);
 }
 
+/* Panel recesado para "Más filtros": separado de `.admin-filters__groups`
+   para que los avanzados se lean como un nivel propio (raramente usado),
+   no como una extensión de los chips principales. */
+.admin-shell .admin-filters__advanced-panel {
+  background: var(--admin-surface-muted);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px 16px;
+}
+
+.admin-shell .admin-filters__advanced-label {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-filters__advanced-groups {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.admin-shell .admin-filters__advanced-groups .admin-filter-group {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+}
+
+.admin-shell .admin-filters__advanced-groups .admin-filters__select {
+  flex: 1 1 160px;
+  min-width: min(100%, 160px);
+  width: auto;
+}
+
+@media (min-width: 720px) {
+  .admin-shell .admin-filters__advanced-groups {
+    flex-wrap: nowrap;
+  }
+}
+
 .admin-shell .admin-filters__panel .admin-filter-group--rail {
   align-items: stretch;
   display: flex;
@@ -2646,6 +2692,145 @@
   .admin-filter-chip:focus-visible {
   outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
   outline-offset: 2px;
+}
+
+/* "Personas": pestañas del ítem de menú único que reemplaza Atletas /
+   Afiliaciones / Inscripciones. Segmented control, mismo lenguaje visual
+   que el resto de los controles compactos del admin. */
+.admin-people-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-people-section__tabs {
+  align-items: center;
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  width: fit-content;
+}
+
+.admin-people-section__tab {
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 18px;
+  transition:
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    color var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.admin-people-section__tab:hover {
+  color: var(--admin-ink);
+}
+
+.admin-people-section__tab.is-active {
+  background: var(--admin-premium, var(--color-brand-gold));
+  color: var(--admin-on-brand, #14181f);
+  font-weight: 600;
+}
+
+.admin-people-section__tab:focus-visible {
+  outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+/* Vistas guardadas: fila de combinaciones de filtro con nombre, arriba de la
+   barra de filtros. Reutiliza `.admin-filter-chip` vía `admin-filter-group--compact`
+   para heredar el estilo de los chips de la barra sin duplicar reglas. */
+.admin-saved-views {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-saved-views__caption {
+  color: var(--admin-muted);
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-filter-group--compact.admin-saved-views .admin-filter-chips {
+  flex-wrap: wrap;
+  overflow: visible;
+  width: auto;
+}
+
+.admin-saved-views__item {
+  align-items: center;
+  display: inline-flex;
+  position: relative;
+}
+
+.admin-shell .admin-saved-views .admin-filter-chip.admin-saved-views__chip {
+  padding-right: 26px;
+}
+
+.admin-saved-views__remove {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: flex;
+  height: 18px;
+  justify-content: center;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+}
+
+.admin-saved-views__remove:hover {
+  background: color-mix(in srgb, var(--admin-ink) 10%, transparent);
+  color: var(--admin-ink);
+}
+
+.admin-saved-views__add {
+  align-items: center;
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--admin-hairline) 160%, transparent);
+  border-radius: 9px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 12.5px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+
+.admin-saved-views__add:hover {
+  border-color: var(--admin-brand);
+  color: var(--admin-ink);
+}
+
+.admin-saved-views__input {
+  background: var(--admin-control-bg);
+  border: 1px solid var(--admin-brand);
+  border-radius: 9px;
+  color: var(--admin-ink);
+  font: inherit;
+  font-size: 12.5px;
+  min-height: 36px;
+  padding: 7px 12px;
+  width: 180px;
 }
 
 /* Toggle: misma familia, compacto, nunca a todo el ancho. */

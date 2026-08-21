@@ -307,6 +307,16 @@ export function createSupabasePaymentRepository(
       )
     },
 
+    async stopEmbeddedReconciliation(attemptId, { error }) {
+      return assertResult(
+        await client.rpc('stop_embedded_payment_reconciliation', {
+          p_attempt_id: attemptId,
+          p_error: error ?? 'Conciliación detenida por una falla no reintentable.',
+        }),
+        'No se pudo detener la conciliación.',
+      )
+    },
+
     async getOperationsSummary() {
       const [summaryResult, healthResult] = await Promise.all([
         client.rpc('get_payment_operations_summary'),

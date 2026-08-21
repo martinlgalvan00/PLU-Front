@@ -151,6 +151,7 @@ describe('payment recovery workflow', () => {
       getOrder: vi.fn(async () => order),
       applyPayment: vi.fn(),
       completeEmbeddedReconciliation: vi.fn(),
+      stopEmbeddedReconciliation: vi.fn(),
     }
     const mercadoPago = {
       getAccountIdentity: vi.fn(async () => ({ id: '3601496880' })),
@@ -161,9 +162,10 @@ describe('payment recovery workflow', () => {
 
     expect(mercadoPago.getPayment).not.toHaveBeenCalled()
     expect(repository.applyPayment).not.toHaveBeenCalled()
-    expect(repository.completeEmbeddedReconciliation).toHaveBeenCalledWith(
+    expect(repository.completeEmbeddedReconciliation).not.toHaveBeenCalled()
+    expect(repository.stopEmbeddedReconciliation).toHaveBeenCalledWith(
       'attempt-other-collector',
-      expect.objectContaining({ succeeded: false, error: expect.stringContaining('MP_ACCOUNT_MISMATCH') }),
+      expect.objectContaining({ error: expect.stringContaining('MP_ACCOUNT_MISMATCH') }),
     )
     expect(result.reconciliations).toMatchObject({ claimed: 1, processed: 0, failed: 1 })
   })
@@ -185,6 +187,7 @@ describe('payment recovery workflow', () => {
       getOrder: vi.fn(async () => order),
       applyPayment: vi.fn(),
       completeEmbeddedReconciliation: vi.fn(),
+      stopEmbeddedReconciliation: vi.fn(),
     }
     const mercadoPago = {
       getPayment: vi.fn(async () => {
@@ -196,9 +199,10 @@ describe('payment recovery workflow', () => {
     const result = await recoverPaymentOperations({ repository, mercadoPago })
 
     expect(repository.applyPayment).not.toHaveBeenCalled()
-    expect(repository.completeEmbeddedReconciliation).toHaveBeenCalledWith(
+    expect(repository.completeEmbeddedReconciliation).not.toHaveBeenCalled()
+    expect(repository.stopEmbeddedReconciliation).toHaveBeenCalledWith(
       'attempt-unresolved',
-      expect.objectContaining({ succeeded: false }),
+      expect.objectContaining({ error: expect.stringContaining('PROVIDER_PAYMENT_NOT_FOUND') }),
     )
     expect(result.reconciliations).toMatchObject({ claimed: 1, processed: 0, failed: 1 })
   })

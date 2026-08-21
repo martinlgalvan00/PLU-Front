@@ -7,6 +7,96 @@
 
 /* ---------- Auditoría ---------- */
 
+/* Guía de lectura: separa con claridad el método de investigación de la
+   bitácora en sí. Es flujo editorial, no una tarjeta dentro de otra tarjeta. */
+.audit-flow-guide {
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin: 0 0 var(--space-lg);
+  padding: 0 0 var(--space-sm);
+}
+
+.audit-flow-guide summary {
+  align-items: baseline;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-sm);
+  list-style: none;
+  min-height: 40px;
+  padding: var(--space-xs) 0;
+}
+
+.audit-flow-guide summary::-webkit-details-marker {
+  display: none;
+}
+
+.audit-flow-guide summary::before {
+  color: var(--color-brand-celeste);
+  content: '›';
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.audit-flow-guide[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.audit-flow-guide summary span {
+  color: var(--color-brand-celeste);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.audit-flow-guide summary strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.audit-flow-guide__content {
+  display: grid;
+  gap: var(--space-md) var(--space-xl);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+  padding: var(--space-xs) 0 var(--space-lg);
+}
+
+.audit-flow-guide__content > p,
+.audit-flow-guide__steps span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.audit-flow-guide__steps {
+  counter-reset: audit-flow;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.audit-flow-guide__steps li {
+  border-left: 2px solid color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  counter-increment: audit-flow;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding-left: var(--space-sm);
+}
+
+.audit-flow-guide__steps strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .audit-health-bento {
   display: grid;
   gap: 16px;
@@ -16,6 +106,12 @@
   padding: var(--space-md) var(--space-lg);
 }
 
+@media (max-width: 900px) {
+  .audit-flow-guide__content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 1024px) {
   .audit-health-bento {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -23,6 +119,15 @@
 }
 
 @media (max-width: 640px) {
+  .audit-flow-guide__content,
+  .audit-flow-guide__steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .audit-flow-guide__content {
+    gap: var(--space-lg);
+  }
+
   .audit-health-bento {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -609,42 +714,158 @@
   padding: var(--space-md) 0 var(--space-xs);
 }
 
-/* El patrón "rails" (admin-minimal.css) fija todo el shell a 100dvh con
-   overflow:hidden y espera que solo `.admin-list-shell__body` scrollee: le
-   funciona a Atletas/Afiliaciones porque su chrome (buscador + filtros) es
-   corto y predecible. En Auditoría el chrome incluye el health card, que es
-   alto y de altura variable (crece con la fila de incidentes y su desglose):
-   en viewports bajos -- laptop chico, ventana no maximizada, no solo mobile
-   -- se comía la altura disponible y no dejaba scrollear ni ver el resto de
-   la tabla (ni la página ni el body interno respondían al gesto). Auditoría
-   vuelve al scroll de documento normal en todos los tamaños: salud, filtros
-   y tabla fluyen en una sola columna scrolleable, sin depender de que el
-   chrome quepa en un alto fijo. */
-.admin-shell:has(.admin-page > .admin-list-section--audit) {
-  height: auto;
-  max-height: none;
-  overflow: visible;
+/* La tabla sirve para comparar muchas filas en desktop. En pantallas chicas
+   se reemplaza por fichas: no se encogen columnas ni se obliga a desplazar la
+   pantalla en horizontal para leer un hecho sensible. */
+.audit-mobile-list {
+  display: none;
 }
 
-.admin-shell:has(.admin-page > .admin-list-section--audit) .admin-shell__main {
-  overflow: visible;
+.audit-mobile-list__empty {
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: var(--space-lg) 0;
+  text-align: center;
 }
 
-.admin-shell .admin-page:has(> .admin-list-section--audit) {
-  overflow: visible;
+@media (max-width: 768px) {
+  .admin-shell .audit-desktop-table {
+    display: none;
+  }
+
+  .audit-mobile-list {
+    display: grid;
+    gap: 12px;
+    padding: 0 0 12px;
+  }
+
+  .audit-mobile-entry {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--border-radius-md);
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+  }
+
+  .audit-mobile-entry__head {
+    align-items: flex-start;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .audit-mobile-entry__action {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .audit-mobile-entry__action > span:last-child,
+  .audit-mobile-entry time {
+    color: var(--color-text-muted);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .audit-mobile-entry time {
+    flex: 0 1 8.5rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .audit-mobile-entry__facts {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .audit-mobile-entry__facts > div {
+    min-width: 0;
+  }
+
+  .audit-mobile-entry__facts dt {
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .audit-mobile-entry__facts dd {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    margin: 3px 0 0;
+    overflow-wrap: anywhere;
+  }
+
+  .audit-mobile-entry .audit-event {
+    border-top: 1px solid var(--color-border-subtle);
+    padding-top: 10px;
+  }
+
+  .audit-mobile-entry .audit-event__technical {
+    display: none;
+  }
+
+  .audit-mobile-entry__footer {
+    align-items: center;
+    border-top: 1px solid var(--color-border-subtle);
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    padding-top: 10px;
+  }
+
+  .audit-mobile-entry__detail {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--color-brand-celeste);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 4px;
+    text-align: left;
+  }
+
+  .audit-mobile-entry__detail:focus-visible {
+    outline: 2px solid var(--color-brand-celeste);
+    outline-offset: 2px;
+  }
 }
 
-.admin-shell .admin-page > .admin-list-section--audit {
-  overflow: visible;
+@media (max-width: 430px) {
+  .audit-mobile-entry__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .audit-mobile-entry time {
+    flex-basis: auto;
+    text-align: left;
+  }
+
+  .audit-mobile-entry__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.admin-shell .admin-page > .admin-list-section--audit > .admin-list-shell {
-  overflow: visible;
-}
-
-.admin-shell .admin-page > .admin-list-section--audit .admin-list-shell__body {
-  flex: none;
-  overflow: visible;
+/* Auditoría vuelve a usar el rail del panel: cabecera estable y una sola
+   superficie de resultados que se desplaza. La guía es desplegable para que
+   no consuma el alto de la tabla antes de empezar a investigar. */
+.admin-shell .admin-list-section--audit > .admin-list-section__chrome {
+  max-height: min(54dvh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 /* Mobile: cards operativas a ancho completo.
@@ -1519,6 +1740,21 @@
 .audit-detail__block--failure .audit-detail__message {
   border-left: 2px solid var(--color-brand-red);
   padding-left: var(--space-sm);
+}
+
+.audit-detail__provider-message {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: calc(var(--space-sm) * -0.5) 0 var(--space-md);
+}
+
+.audit-detail__provider-message summary {
+  cursor: pointer;
+}
+
+.audit-detail__provider-message p {
+  margin: var(--space-xs) 0 0;
+  overflow-wrap: anywhere;
 }
 
 .audit-detail__why p,
