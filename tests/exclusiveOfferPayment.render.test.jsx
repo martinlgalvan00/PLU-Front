@@ -268,3 +268,38 @@ describe('compra iniciada y sin pagar', () => {
     expect(screen.getByRole('status').textContent).toContain('Ya compraste esta oferta')
   })
 })
+
+describe('la ficha anuncia el pago delegable antes de crear la orden', () => {
+  /**
+   * El caso reportado: ONLY-PITBULL-GOLD financiado. Antes el atleta descubria
+   * que podia avisar el pago DESPUES de elegir el canal y confirmar la compra;
+   * es justamente el dato que decide si compra hoy o espera a juntar la plata.
+   */
+  const FINANCED = {
+    ...OFFER,
+    code: 'ONLY-PITBULL-GOLD',
+    financed: true,
+    manualChannels: ['bank_transfer', 'cash_pitbull'],
+    mercadoPagoEnabled: false,
+  }
+
+  it('lo dice sobre transferencia, en el mismo lugar donde dice con qué se paga', () => {
+    renderSection({ offer: FINANCED, offers: [FINANCED] })
+    expect(screen.getByText(/podés avisarnos el pago/i)).toBeTruthy()
+    // Habilitar no es acreditar: la letra chica lo dice donde se promete.
+    expect(screen.getByText(/no lo acredita/i)).toBeTruthy()
+  })
+
+  it('no lo promete sobre la pasarela, que acredita sola', () => {
+    const gateway = { ...FINANCED, manualChannels: [], mercadoPagoEnabled: true }
+    renderSection({ offer: gateway, offers: [gateway] })
+    expect(screen.queryByText(/podés avisarnos el pago/i)).toBe(null)
+  })
+
+  it('un código sin financiamiento conserva la nota de canal de siempre', () => {
+    const plain = { ...OFFER, manualChannels: ['bank_transfer'], mercadoPagoEnabled: false }
+    renderSection({ offer: plain, offers: [plain] })
+    expect(screen.getByText(/subís el comprobante sin salir de esta página/i)).toBeTruthy()
+    expect(screen.queryByText(/podés avisarnos el pago/i)).toBe(null)
+  })
+})

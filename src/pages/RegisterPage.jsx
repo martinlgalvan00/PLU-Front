@@ -2609,6 +2609,18 @@ export default function RegisterPage({
                               </div>
                             </div>
                           </div>
+                          {/* El código deja delegar el pago: se dice con el
+                              código ya aplicado y antes de elegir el medio,
+                              porque es lo que cambia la decisión de quien
+                              todavía no juntó la plata. Sólo si además hay un
+                              canal manual que el atleta pueda declarar. */}
+                          {discountPreview.financed &&
+                          (codeChannels.includes('bank_transfer') ||
+                            codeChannels.includes('cash_pitbull')) ? (
+                            <p className="code-band-hint">
+                              {t('pages.register.discountFinanced')}
+                            </p>
+                          ) : null}
                           <button
                             type="button"
                             className="code-band-drop"
@@ -2699,7 +2711,14 @@ export default function RegisterPage({
                           type="button"
                           className="code-band-toggle account-discount__toggle"
                           disabled={submitting}
-                          onClick={openDiscountField}
+                          // `openDiscountField` no existía: el botón que abre el
+                          // campo tiraba ReferenceError al primer click, así que
+                          // en el checkout de inscripción no había forma de
+                          // tipear un código.
+                          onClick={() => {
+                            setDiscountOpen(true)
+                            setDiscountError('')
+                          }}
                         >
                           <span className="code-band-toggle__seal" aria-hidden>
                             <KeyRound size={13} />

@@ -72,9 +72,12 @@ describe('estado de la compra en el payload (migración)', () => {
    * `mercadoPagoEnabled` —los medios que habilita el código— conservando el
    * cuerpo de este archivo. 20260909100000 vuelve a definirlo para sumar la
    * condicion financiada y el aviso manual sin perder los campos anteriores.
+   * 20260912100000 lo redefine para exponer `financed` del propio código: la
+   * ficha necesita anunciar el pago delegable ANTES de crear la orden, y hasta
+   * ahí sólo llegaba la condición del combo del evento.
    */
   it('es esta migración la que está vigente', () => {
-    expect(lastPayloadMigration()).toBe('20260909100000_financed_manual_confirmation.sql')
+    expect(lastPayloadMigration()).toBe('20260912100000_promo_code_financing.sql')
   })
 
   it('la definición vigente también dice qué medios habilita el código', () => {

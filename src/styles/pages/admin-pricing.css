@@ -877,6 +877,13 @@
   color: var(--color-text-secondary);
 }
 
+/* Financiado no compite por el oro: no es una distinción del código, es una
+   condición operativa —a este atleta se le cobra a mano y la deuda queda
+   abierta—, así que se dice en el color de texto con la marca de la fila. */
+.admin-pricing__status--financed {
+  color: var(--color-text-secondary);
+}
+
 /* Una promo de precio fijo puede cotizar distinto por canal: el importe de
    Mercado Pago manda y el manual se anota abajo, sin robarle jerarquía. */
 .admin-pricing__plan-amount-stack {
@@ -1390,6 +1397,42 @@
   accent-color: var(--color-brand-gold);
   min-height: 18px;
   width: 18px;
+}
+
+/* Matriz de medios de pago del código: los tres canales y, colgando de ellos,
+   el financiamiento. Es un bloque propio dentro del formulario —regla arriba,
+   nombre en versalitas— porque responde una pregunta distinta del resto de los
+   campos: no cuánto cobra el código, sino por dónde se cobra. */
+.admin-pricing__channels {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 0.85rem;
+  margin: 0.5rem 0 0;
+  min-width: 0;
+  padding: 1rem 0 0;
+}
+
+.admin-pricing__channels > legend {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.admin-pricing__channels-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.admin-pricing__channels-warning {
+  color: var(--color-danger-text, var(--color-brand-red));
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .admin-pricing__toggle--financing {

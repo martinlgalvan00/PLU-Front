@@ -579,6 +579,10 @@ export async function previewDiscountCode({
     // (20260908100000). Ausente = abierta, que es lo que valía para todos los
     // códigos anteriores y también lo que responde una API sin la migración.
     mercadoPagoEnabled: preview.mercadoPagoEnabled !== false,
+    // El código deja delegar el pago: avisar la transferencia o el efectivo
+    // habilita en el momento y deja la deuda abierta (20260912100000). Ausente
+    // = no financia, que es lo que valía antes de la migración.
+    financed: preview.financed === true,
   }
 }
 

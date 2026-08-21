@@ -17,7 +17,7 @@ beforeAll(() => {
   })
 })
 
-it('copia el enlace con fallback, descarga el QR y expone un canje real tras validar', async () => {
+it('copia el código con fallback, descarga su QR y expone un canje real tras validar', async () => {
   const writeText = vi.fn(async () => {
     throw new Error('Clipboard permission denied')
   })
@@ -53,25 +53,29 @@ it('copia el enlace con fallback, descarga el QR y expone un canje real tras val
     },
   })
 
-  fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }))
-  expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/canjear/ONLY-PITBULL`)
-  expect(await screen.findByText('Enlace copiado')).toBeTruthy()
+  // Lo que se reparte es el código, no un enlace: no existe una página pública
+  // que abra un canje. Se canjea desde el campo de Afiliación o Inscripción.
+  expect(screen.queryByRole('button', { name: 'Copiar enlace' })).toBe(null)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Copiar código ONLY-PITBULL' }))
+  expect(writeText).toHaveBeenCalledWith('ONLY-PITBULL')
+  expect(await screen.findByText('Copiado')).toBeTruthy()
   expect(execCommand).toHaveBeenCalledWith('copy')
 
+  // Y el QR codifica el código pelado, porque su destino es el botón de escaneo
+  // de esos campos.
   fireEvent.click(screen.getByRole('button', { name: 'Descargar QR' }))
-  expect(generateCredentialQr).toHaveBeenCalledWith(
-    `${window.location.origin}/canjear/ONLY-PITBULL`,
-  )
+  expect(generateCredentialQr).toHaveBeenCalledWith('ONLY-PITBULL')
   expect(await screen.findByText('QR descargado')).toBeTruthy()
   expect(anchorClick).toHaveBeenCalled()
 
   fireEvent.click(screen.getByRole('button', { name: 'Probar flujo' }))
   expect(onSimulatePromotionCode).toHaveBeenCalledWith('coupon-actions')
   expect(await screen.findByText('Recorrido verificado')).toBeTruthy()
-  expect(screen.getByRole('link', { name: 'Abrir canje en otra pestaña' })).toHaveProperty(
-    'href',
-    `${window.location.origin}/canjear/ONLY-PITBULL`,
-  )
+  expect(screen.queryByRole('link', { name: 'Abrir canje en otra pestaña' })).toBe(null)
+  expect(
+    screen.getByText('Se canjea desde el campo de código de Afiliación o Inscripción.'),
+  ).toBeTruthy()
   anchorClick.mockRestore()
 })
 
@@ -610,6 +614,54 @@ describe('Tarifas — alta de planes y combo', () => {
         manualChannels: ['cash_pitbull'],
         mercadoPagoEnabled: true,
       }),
+    )
+  })
+
+  it('financiar un código abre los canales que el atleta puede declarar', async () => {
+    // El agujero que reportó Precios: se podía marcar financiamiento con sólo
+    // Mercado Pago, y el atleta canjeaba, pagaba con la pasarela —que acredita
+    // sola— y nunca delegaba nada. Marcarlo ahora abre transferencia y efectivo.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'only-pitbull-gold' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Permitir delegar el pago/ }))
+
+    expect(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }).checked).toBe(true)
+    expect(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }).checked).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'ONLY-PITBULL-GOLD',
+        financed: true,
+        manualChannels: ['bank_transfer', 'cash_pitbull'],
+      }),
+    )
+  })
+
+  it('quitar el último canal manual apaga el financiamiento en vez de dejarlo inerte', async () => {
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'sin-delegar' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    const financing = screen.getByRole('checkbox', { name: /Permitir delegar el pago/ })
+    fireEvent.click(financing)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+
+    expect(financing.checked).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'SIN-DELEGAR', financed: false, manualChannels: [] }),
     )
   })
 

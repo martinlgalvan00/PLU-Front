@@ -461,6 +461,9 @@ export default function MembershipPurchaseSection({
     const pending = readPendingPromotionCode()
     if (!pending || pendingPromotionAppliedRef.current === pending.code) return
     const destination = pending.context?.destination
+    // El pendiente sólo se aplica solo cuando el resolvedor ya dijo que esta
+    // ficha es su destino: el código no se canjea desde ninguna página pública,
+    // así que llegó de otro checkout que lo resolvió antes de mandarlo acá.
     if (destination?.view !== 'profile' || destination?.tab !== 'account-membership') return
     pendingPromotionAppliedRef.current = pending.code
     setDiscountCodeInput(pending.code)
@@ -989,6 +992,16 @@ export default function MembershipPurchaseSection({
                           </div>
                         </div>
                       </div>
+                      {/* El código deja delegar el pago: se dice acá, con el
+                          código ya aplicado y antes de elegir el medio, porque
+                          es lo que cambia la decisión de quien todavía no juntó
+                          la plata. Sólo aparece si además hay un canal manual
+                          que el atleta pueda declarar. */}
+                      {discountPreview.financed && (transferSelectable || cashSelectable) ? (
+                        <p className="code-band-hint">
+                          {t('account.membership.discountFinanced')}
+                        </p>
+                      ) : null}
                       <button
                         type="button"
                         className="code-band-drop"

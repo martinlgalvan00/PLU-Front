@@ -121,6 +121,19 @@ export default {
       exclusiveOffer: 'You unlocked an exclusive offer in your account.',
       discount: 'The benefit is ready for the compatible checkout.',
     },
+    // How the code that was just redeemed gets paid. `only` is a code that
+    // closed the gateway: it is not "you can also", it is "this way only".
+    payment: {
+      with: 'Paid with {{channels}}.',
+      only: 'Paid only with {{channels}}.',
+      financed:
+        'You can report the payment and be enabled right away, while Finance validates the balance.',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'bank transfer',
+        cash_pitbull: 'cash',
+      },
+    },
     continue: {
       membership: 'Use on Membership',
       registration: 'Use on registration',
@@ -1165,6 +1178,17 @@ export default {
         cash_pitbull:
           'You reserve the offer now and pay in cash on event day, with the reference we give you here.',
       },
+      // Same slot as the channel note, different sentence: when the code lets
+      // you report the payment, that is what has to be said before buying, not
+      // after. Only applies to the channels settled by hand.
+      checkoutNoteFinanced: {
+        bank_transfer:
+          'We give you the transfer details and you can report the payment: you are enabled right away and Finance validates the receipt afterwards.',
+        cash_pitbull:
+          'You reserve the offer now and pay in cash on event day. If you report the payment is arranged, you are enabled right away.',
+      },
+      financingLegal:
+        'Reporting a payment does not settle it: the balance stays open until Finance validates it.',
       checkoutClosed: 'Payment is closed for now. Your offer stays reserved.',
       checkoutUnavailable: 'We could not open the payment. Please try again in a moment.',
       payTitle: {
@@ -1381,6 +1405,10 @@ export default {
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
       discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountAppliedAccess: 'Code {{code}} applied · combo unlocked',
+      // Deferred payment: the promise is immediate access, not settlement.
+      // The balance stays open until Finance validates it.
+      discountFinanced:
+        'This code lets you report the payment: pick transfer or cash and you are enabled right away, while Finance validates the balance.',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -3076,6 +3104,10 @@ export default {
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
       discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountAppliedAccess: 'Code {{code}} applied · combo unlocked',
+      // Same promise as Membership: immediate access against an open
+      // balance, never settlement.
+      discountFinanced:
+        'This code lets you report the payment: pick transfer or cash and you are enabled right away, while Finance validates the balance.',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',

@@ -207,6 +207,16 @@ function previewByScope() {
   })
 }
 
+/**
+ * El campo de codigo nace plegado detras de "Tengo un codigo": el checkout no le
+ * pone un input a quien no tiene ninguno. Se abre antes de tipear; es idempotente
+ * porque el boton desaparece una vez abierto.
+ */
+function openDiscountField() {
+  const toggle = screen.queryByRole('button', { name: /^Tengo un código$/i })
+  if (toggle) fireEvent.click(toggle)
+}
+
 afterEach(cleanup)
 
 beforeEach(() => {
@@ -226,6 +236,7 @@ describe('checkout abierto desde la pestaña secreta', () => {
     previewByScope()
     const { container, onNavigate } = renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
     // El precio promocional queda anunciado: es lo que se va a cobrar.
@@ -240,6 +251,7 @@ describe('checkout abierto desde la pestaña secreta', () => {
     previewByScope()
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
 
     // El auto-canje sólo cotiza el combo: ni resolvedor (que registraría un
@@ -258,6 +270,7 @@ describe('checkout abierto desde la pestaña secreta', () => {
     previewByScope()
     const { onSubmit } = renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
 
     fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
@@ -278,6 +291,7 @@ describe('checkout abierto desde la pestaña secreta', () => {
     previewByScope()
     const { container, onNavigate, update } = renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
     await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
 
     // El importe depende del canal, así que cambiar de medio recotiza el
@@ -300,6 +314,7 @@ describe('código tipeado en el checkout con el resolvedor disponible', () => {
     previewByScope()
     const { container, onNavigate } = renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     fireEvent.change(await screen.findByLabelText(/^Código$/i), {
       target: { value: 'only-pitbull' },
@@ -331,6 +346,7 @@ describe('código tipeado en el checkout con el resolvedor disponible', () => {
     previewByScope()
     const { onNavigate } = renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     fireEvent.change(await screen.findByLabelText(/^Código$/i), {
       target: { value: 'ONLY-NORTE' },

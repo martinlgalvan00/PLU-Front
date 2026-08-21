@@ -7,11 +7,11 @@ import '../../styles/components/code-scan.css'
 
 /**
  * Botón que abre un panel de cámara chico al lado de cualquier campo de
- * código. El QR que se reparte para un código (ver "Descargar QR" en
- * Precios) codifica la URL `/canjear/:code`, así que lo que se lee de la
- * cámara pasa por `extractPromotionCodeFromScan` antes de llegar a
- * `onScan` — soporta esa URL y, por si alguien apunta a un QR ajeno con
- * texto plano, el código pelado.
+ * código. Es el destino del QR que se reparte desde Precios: no hay página
+ * pública de canje, así que ese QR codifica el código pelado y se escanea
+ * acá, dentro del checkout que lo va a cobrar. Lo que lee la cámara pasa por
+ * `extractPromotionCodeFromScan` antes de llegar a `onScan`, que además
+ * tolera los QR viejos que traían una URL.
  */
 export default function CodeScanButton({ onScan, disabled = false, className = '' }) {
   const { t } = useI18n()

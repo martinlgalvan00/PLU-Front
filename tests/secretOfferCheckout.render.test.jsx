@@ -184,6 +184,16 @@ function isAutomatic(call) {
   return !call?.[0]?.code
 }
 
+/**
+ * El campo de codigo nace plegado detras de "Tengo un codigo": el checkout no le
+ * pone un input a quien no tiene ninguno. Se abre antes de tipear; es idempotente
+ * porque el boton desaparece una vez abierto.
+ */
+function openDiscountField() {
+  const toggle = screen.queryByRole('button', { name: /^Tengo un código$/i })
+  if (toggle) fireEvent.click(toggle)
+}
+
 afterEach(cleanup)
 
 beforeEach(() => {
@@ -199,6 +209,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     expect(screen.queryByText(/Este paquete es cerrado/i)).toBe(null)
     expect(screen.queryByLabelText(/Código del combo/i)).toBe(null)
@@ -217,6 +228,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     const input = await screen.findByLabelText(/^Código$/i)
     fireEvent.change(input, { target: { value: 'only-pitbull' } })
@@ -248,6 +260,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition({ event: { ...RESTRICTED_EVENT, comboOffer: null } })
     await waitForAccessValidation()
+    openDiscountField()
 
     fireEvent.change(await screen.findByLabelText(/^Código$/i), {
       target: { value: 'ONLY-PITBULL' },
@@ -266,6 +279,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     const input = await screen.findByLabelText(/^Código$/i)
     fireEvent.change(input, { target: { value: 'ONLY-PITBULL' } })
@@ -297,6 +311,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     fireEvent.change(await screen.findByLabelText(/^Código$/i), { target: { value: 'pactado' } })
     fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
@@ -323,6 +338,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     const input = await screen.findByLabelText(/^Código$/i)
     fireEvent.change(input, { target: { value: 'SOLO-AFILIACION' } })
@@ -346,6 +362,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     const input = await screen.findByLabelText(/^Código$/i)
     fireEvent.change(input, { target: { value: 'ONLY-NORTE' } })
@@ -365,6 +382,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     // Sin tipear nada: entrar desde la ficha no puede obligar a volver a
     // escribir el código que ya se canjeó.
@@ -377,6 +395,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
@@ -389,6 +408,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)

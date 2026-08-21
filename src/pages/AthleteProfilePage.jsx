@@ -7,7 +7,6 @@ import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
 import { hasPlayedCredentialMerge } from '../lib/credentialMerge.js'
 import {
-  ACCOUNT_BENEFITS_TAB,
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
   ACCOUNT_OFFER_TAB,
@@ -32,7 +31,6 @@ import MembershipPurchaseSection from './profile/MembershipPurchaseSection.jsx'
 import PaymentsSection from './profile/PaymentsSection.jsx'
 import PersonalDataSection from './profile/PersonalDataSection.jsx'
 import SecuritySection from './profile/SecuritySection.jsx'
-import PromotionBenefitsSection from './profile/PromotionBenefitsSection.jsx'
 
 export default function AthleteProfilePage({
   athlete,
