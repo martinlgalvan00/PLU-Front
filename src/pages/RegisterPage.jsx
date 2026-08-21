@@ -1161,14 +1161,21 @@ export default function RegisterPage({
   /**
    * Mercado Pago dejó de ser incondicional: se cierra por concepto desde
    * Administración igual que los canales manuales. El combo necesita la
-   * pasarela abierta en los dos conceptos. Un cupón no la reabre —sólo destraba
-   * canales manuales—, así que acá no interviene `codeChannels`.
+   * pasarela abierta en los dos conceptos.
+   *
+   * Un cupón no la reabre —para eso sólo sirven los canales manuales—, pero sí
+   * la puede cerrar: un código pactado a un precio que sólo cierra por
+   * transferencia o en efectivo viaja con `mercadoPagoEnabled: false`
+   * (20260908100000) y la RPC rechaza la orden con PLU28. Ofrecer la pasarela
+   * ahí sería mandar al atleta contra un 409.
    *
    * Default abierto (`!== false`) a propósito: mientras la disponibilidad no
    * resolvió, cerrar la pasarela dejaría la pantalla sin ningún medio, y el 409
    * del backend sigue siendo la última palabra.
    */
+  const codeClosesMercadoPago = discountPreview?.valid && discountPreview.mercadoPagoEnabled === false
   const mercadoPagoEnabled =
+    !codeClosesMercadoPago &&
     channelOpen(checkoutAvailability, 'membership', 'mercado_pago') &&
     (flow !== 'competition' || channelOpen(checkoutAvailability, 'registration', 'mercado_pago'))
   // Wise tiene interruptor propio, independiente de los canales manuales
@@ -1762,6 +1769,12 @@ export default function RegisterPage({
       <p className="register-intro__desc">{content[1]}</p>
     </header>
   )
+
+  // Un código que cerró la pasarela cambia el escritorio de cobro sin que el
+  // atleta haya tocado nada: hay que decir por qué desapareció Mercado Pago.
+  const codeChannelHint = codeClosesMercadoPago
+    ? t('pages.register.paymentCodeWithoutGatewayHint')
+    : ''
 
   const membershipPaymentHint =
     flow === 'membership' && !visibleOrder
@@ -2364,6 +2377,7 @@ export default function RegisterPage({
                       onPaymentBlur={blurField}
                       onPaymentChange={changeField}
                       paymentError={errors.paymentMethod}
+                      paymentHint={codeChannelHint}
                       paymentMethod={form.paymentMethod}
                       showPayment
                     />
@@ -2480,6 +2494,7 @@ export default function RegisterPage({
                       onPaymentChange={changeField}
                       onPurchaseTypeChange={setPurchaseType}
                       paymentError={errors.paymentMethod}
+                      paymentHint={codeChannelHint}
                       paymentMethod={form.paymentMethod}
                       purchaseType={effectivePurchaseType}
                       registrationPrice={registrationListPrice}
@@ -2704,7 +2719,7 @@ export default function RegisterPage({
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
                     paymentError={errors.paymentMethod}
-                    paymentHint={membershipPaymentHint}
+                    paymentHint={codeChannelHint || membershipPaymentHint}
                     paymentMethod={form.paymentMethod}
                     showPayment
                   />

@@ -278,6 +278,36 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy()
   })
 
+  it('un código que cierra Mercado Pago lo saca del selector y explica por qué', async () => {
+    // 20260908100000: el cupón puede cerrar la pasarela para una oferta pactada
+    // a un precio que sólo cierra por transferencia. Ofrecerla igual mandaba al
+    // atleta contra el PLU28 de la RPC al enviar la orden.
+    vi.mocked(previewDiscountCode).mockImplementation(async ({ code }) => {
+      if (!code) return { valid: false, reason: 'no_public_promo' }
+      return {
+        valid: true,
+        kind: 'fixed_price',
+        code: 'PACTADO',
+        discountAmount: 20000,
+        finalAmount: 45000,
+        manualChannels: ['bank_transfer'],
+        mercadoPagoEnabled: false,
+        eventSlug: 'pitbull-classic-2026',
+      }
+    })
+    renderCompetition()
+    await waitForAccessValidation()
+
+    fireEvent.change(await screen.findByLabelText(/^Código$/i), { target: { value: 'pactado' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: /Transferencia bancaria/ })).toBeTruthy(),
+    )
+    expect(screen.queryByRole('radio', { name: /Mercado Pago/ })).toBe(null)
+    expect(screen.getByText(/Tu código no se paga con Mercado Pago/)).toBeTruthy()
+  })
+
   it('un código que de verdad no aplica sigue mostrando el error', async () => {
     vi.mocked(previewDiscountCode).mockImplementation(async ({ code, appliesTo }) => {
       if (!code) return { valid: false, reason: 'no_public_promo' }

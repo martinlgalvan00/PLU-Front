@@ -712,12 +712,20 @@ export default {
         'Agotó su cupo y se cerró sola. Ampliá el límite de canjes para volver a habilitarla.',
       publicPromoChannelsInvalid:
         'Una promoción pública no puede habilitar medios de pago manuales. Abrilos desde Acceso y habilitación.',
+      publicPromoGatewayInvalid:
+        'Una promoción pública no puede cerrar Mercado Pago: se aplica sola a todas las compras. Cerralo desde Acceso y habilitación.',
       manualChannelsPublicHint:
-        'Sin uso en una promoción pública: abrir un canal para todo el mundo se hace desde Acceso y habilitación, no desde acá.',
+        'Sin uso en una promoción pública: abrir o cerrar un canal para todo el mundo se hace desde Acceso y habilitación, no desde acá.',
       manualChannelsLegend: 'Medios de pago que habilita',
+      codeChannelsLegend: 'Medios de pago del código',
       manualChannelsHint:
-        'Mercado Pago siempre está disponible. Marcá un canal para que este código lo destrabe sólo para quien lo use, aunque esté apagado en general. Sin marcar nada, la compra va únicamente por Mercado Pago.',
+        'Marcá con qué se puede pagar este código. Transferencia y efectivo se destraban sólo para quien lo use, aunque estén apagados en general.',
+      codeChannelsWithoutGateway:
+        'Sin Mercado Pago: quien use este código sólo va a poder pagar por los canales marcados, y el cobro lo valida el equipo a mano.',
+      codeChannelsEmpty:
+        'Elegí al menos un medio de pago. Sin ninguno, el código se canjea y no hay forma de pagarlo.',
       manualChannel: {
+        mercado_pago: 'Mercado Pago',
         bank_transfer: 'Transferencia bancaria',
         cash_pitbull: 'Efectivo en Pitbull',
       },
@@ -725,6 +733,11 @@ export default {
         bank_transfer: 'Habilita transferencia',
         cash_pitbull: 'Habilita efectivo',
         'bank_transfer+cash_pitbull': 'Habilita transferencia y efectivo',
+      },
+      codeChannelsOnlyBadge: {
+        bank_transfer: 'Sólo transferencia',
+        cash_pitbull: 'Sólo efectivo',
+        'bank_transfer+cash_pitbull': 'Sin Mercado Pago',
       },
       comboAudienceLabel: 'Quién ve el combo',
       comboAudience: {
