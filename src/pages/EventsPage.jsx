@@ -39,7 +39,6 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
 import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
-import SecretOfferCodeRedeemer from '../components/ui/SecretOfferCodeRedeemer.jsx'
 
 function EventStatusBadge({ status, t }) {
   const { label, tone } = getStatusMeta(status, t)
@@ -588,12 +587,6 @@ export default function EventsPage({
             </span>
           </span>
         </div>
-
-        <SecretOfferCodeRedeemer
-          className="events-page__secret-code"
-          session={session}
-          onNavigate={onNavigate}
-        />
 
         <MotionContentSwap swapKey={filter} className="events-main-column">
           {listEvents.length > 0 ? (

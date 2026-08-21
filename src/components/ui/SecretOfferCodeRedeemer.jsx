@@ -1,10 +1,12 @@
-import { useId, useState } from 'react'
-import { Check, KeyRound, LoaderCircle } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
+import { ArrowRight, Check, KeyRound, LoaderCircle } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   clearPendingPromotionCode,
   normalizePromotionCode,
+  promotionBenefitPresentation,
   promotionDestination,
+  promotionDestinationType,
   redeemPromotionCode,
   savePendingPromotionCode,
 } from '../../services/promotionCodeService.js'
@@ -14,7 +16,8 @@ import '../../styles/components/secret-code-redeemer.css'
 import '../../styles/components/code-band.css'
 
 /**
- * Canje universal de códigos. Vive en Mi cuenta, Eventos, Pitbull y Entradas.
+ * Canje universal de códigos. La UI general vive en Mi cuenta > Beneficios;
+ * los checkouts de afiliación e inscripción conservan sus campos contextuales.
  *
  * Se presenta con el registro de la credencial (ver `code-band.css`): sello,
  * filo de oro, y el código en el mismo mono espaciado que el número de socio. El
@@ -29,13 +32,24 @@ export default function SecretOfferCodeRedeemer({
   onNavigate,
   onOfferUnlocked,
   className = '',
+  defaultOpen = false,
+  initialCode = '',
 }) {
   const { t } = useI18n()
   const inputId = useId()
-  const [open, setOpen] = useState(false)
-  const [code, setCode] = useState('')
+  const normalizedInitialCode = normalizePromotionCode(initialCode)
+  const [open, setOpen] = useState(defaultOpen || Boolean(normalizedInitialCode))
+  const [code, setCode] = useState(normalizedInitialCode)
   const [state, setState] = useState('idle')
   const [reason, setReason] = useState('')
+  const [resolvedPromotion, setResolvedPromotion] = useState(null)
+
+  useEffect(() => {
+    const nextCode = normalizePromotionCode(initialCode)
+    if (!nextCode) return
+    setCode(nextCode)
+    setOpen(true)
+  }, [initialCode])
 
   async function redeem(event) {
     event.preventDefault()
@@ -62,6 +76,7 @@ export default function SecretOfferCodeRedeemer({
         return
       }
       setCode(result.code)
+      setResolvedPromotion(result)
       const destination = promotionDestination(result)
       if (result.action !== 'open_exclusive_offer') {
         savePendingPromotionCode(result.code, {
@@ -71,7 +86,7 @@ export default function SecretOfferCodeRedeemer({
       } else {
         clearPendingPromotionCode()
       }
-      if (!destination) {
+      if (!destination || result.action !== 'open_exclusive_offer') {
         setState('accepted')
         return
       }
@@ -107,6 +122,17 @@ export default function SecretOfferCodeRedeemer({
       : state === 'error'
         ? t('codeBand.statusError')
         : t('codeBand.statusIdle')
+  const benefit = resolvedPromotion ? promotionBenefitPresentation(resolvedPromotion) : null
+  const destination = resolvedPromotion ? promotionDestination(resolvedPromotion) : null
+  const destinationType = resolvedPromotion ? promotionDestinationType(resolvedPromotion) : null
+
+  function resetRedeemer() {
+    clearPendingPromotionCode()
+    setCode('')
+    setState('idle')
+    setReason('')
+    setResolvedPromotion(null)
+  }
 
   return (
     <aside className={classes} aria-label={t('secretOfferRedeemer.ariaLabel')}>
@@ -162,6 +188,7 @@ export default function SecretOfferCodeRedeemer({
                     setCode(event.target.value.toUpperCase())
                     if (state !== 'idle') setState('idle')
                     setReason('')
+                    setResolvedPromotion(null)
                   }}
                 />
                 {settled ? (
@@ -195,25 +222,54 @@ export default function SecretOfferCodeRedeemer({
           </div>
 
           {state === 'redirecting' || state === 'accepted' ? (
-            <div className="code-band-done" role="status" aria-live="polite">
-              <strong>
-                {t(
-                  state === 'accepted'
-                    ? 'secretOfferRedeemer.acceptedTitle'
-                    : 'secretOfferRedeemer.redirectingTitle',
-                )}
-              </strong>
-              <span>
-                {t(
-                  state === 'accepted'
-                    ? 'secretOfferRedeemer.acceptedLead'
-                    : 'secretOfferRedeemer.redirectingLead',
-                )}
+            <div className="secret-code-redeemer__resolved" role="status" aria-live="polite">
+              <span className="secret-code-redeemer__resolved-icon" aria-hidden>
+                <Check size={16} />
+              </span>
+              <span className="code-band-done">
+                <strong>
+                  {resolvedPromotion?.campaign?.name ||
+                    t(
+                      state === 'accepted'
+                        ? 'secretOfferRedeemer.acceptedTitle'
+                        : 'secretOfferRedeemer.redirectingTitle',
+                    )}
+                </strong>
+                <span>
+                  {state === 'accepted' && benefit
+                    ? t(`secretOfferRedeemer.benefit.${benefit.type}`, benefit)
+                    : t(
+                        state === 'accepted'
+                          ? 'secretOfferRedeemer.acceptedLead'
+                          : 'secretOfferRedeemer.redirectingLead',
+                      )}
+                </span>
+                {resolvedPromotion?.campaign?.description ? (
+                  <small>{resolvedPromotion.campaign.description}</small>
+                ) : null}
               </span>
             </div>
           ) : (
             <p className="code-band-hint">{t('secretOfferRedeemer.hint')}</p>
           )}
+
+          {state === 'accepted' ? (
+            <div className="secret-code-redeemer__resolved-actions">
+              {destination ? (
+                <button
+                  type="button"
+                  className="secret-code-redeemer__continue"
+                  onClick={() => onNavigate?.(destination.view, destination.options)}
+                >
+                  {t(`secretOfferRedeemer.continue.${destinationType ?? 'checkout'}`)}
+                  <ArrowRight size={14} aria-hidden />
+                </button>
+              ) : null}
+              <button type="button" className="code-band-drop" onClick={resetRedeemer}>
+                {t('secretOfferRedeemer.anotherCode')}
+              </button>
+            </div>
+          ) : null}
 
           {state === 'login' ? (
             <p className="secret-code-redeemer__message" role="status">

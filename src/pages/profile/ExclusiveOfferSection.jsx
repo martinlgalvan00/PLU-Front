@@ -415,6 +415,7 @@ export default function ExclusiveOfferSection({
                       financingAllowed={manualSettlement.financingAllowed}
                       manualPaymentDeclaredAt={manualSettlement.manualPaymentDeclaredAt}
                       financedEntitlementsAt={manualSettlement.financedEntitlementsAt}
+                      onConfirmed={() => void onOfferRefresh?.()}
                     />
                   </div>
                 )

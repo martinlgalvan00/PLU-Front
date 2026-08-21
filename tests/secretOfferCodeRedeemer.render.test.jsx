@@ -60,45 +60,41 @@ describe('canje secreto reutilizable', () => {
     )
   })
 
-  it(
-    'espera a que se refresquen las ofertas antes de redirigir a la ficha secreta',
-    async () => {
-      vi.mocked(redeemPromotionCodeRequest).mockResolvedValue({
-        status: 'accepted',
-        accepted: true,
-        action: 'open_exclusive_offer',
-        code: 'ONLY-PITBULL',
-        offer: { code: 'ONLY-PITBULL' },
-      })
-      const onNavigate = vi.fn()
-      let resolveUnlocked
-      const onOfferUnlocked = vi.fn(
-        () =>
-          new Promise((resolve) => {
-            resolveUnlocked = resolve
-          }),
-      )
-      renderRedeemer({ onNavigate, onOfferUnlocked })
+  it('espera a que se refresquen las ofertas antes de redirigir a la ficha secreta', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue({
+      status: 'accepted',
+      accepted: true,
+      action: 'open_exclusive_offer',
+      code: 'ONLY-PITBULL',
+      offer: { code: 'ONLY-PITBULL' },
+    })
+    const onNavigate = vi.fn()
+    let resolveUnlocked
+    const onOfferUnlocked = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveUnlocked = resolve
+        }),
+    )
+    renderRedeemer({ onNavigate, onOfferUnlocked })
 
-      await openAndSubmit()
-      await waitFor(() => expect(onOfferUnlocked).toHaveBeenCalledTimes(1))
+    await openAndSubmit()
+    await waitFor(() => expect(onOfferUnlocked).toHaveBeenCalledTimes(1))
 
-      // Pasa de sobra el delay fijo de redirección (700ms) sin que
-      // `onOfferUnlocked` resuelva: si `onNavigate` se disparara acá sería la
-      // regresión original — el widget vive dentro de AthleteProfilePage, que
-      // no se remonta al cambiar de tab, así que sin esperar el refresh la
-      // ficha sigue viendo la lista de ofertas vieja y el salto no lleva a
-      // ningún lado.
-      await new Promise((resolve) => setTimeout(resolve, 850))
-      expect(onNavigate).not.toHaveBeenCalled()
+    // Pasa de sobra el delay fijo de redirección (700ms) sin que
+    // `onOfferUnlocked` resuelva: si `onNavigate` se disparara acá sería la
+    // regresión original — el widget vive dentro de AthleteProfilePage, que
+    // no se remonta al cambiar de tab, así que sin esperar el refresh la
+    // ficha sigue viendo la lista de ofertas vieja y el salto no lleva a
+    // ningún lado.
+    await new Promise((resolve) => setTimeout(resolve, 850))
+    expect(onNavigate).not.toHaveBeenCalled()
 
-      resolveUnlocked()
-      await waitFor(() =>
-        expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-offer' }),
-      )
-    },
-    10000,
-  )
+    resolveUnlocked()
+    await waitFor(() =>
+      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-offer' }),
+    )
+  }, 10000)
 
   it('pide iniciar sesión si todavía no hay un atleta autenticado', async () => {
     renderRedeemer({ session: null })
@@ -122,5 +118,28 @@ describe('canje secreto reutilizable', () => {
 
     expect((await screen.findByRole('alert')).textContent).toMatch(/no existe/i)
     expect(onNavigate).not.toHaveBeenCalled()
+  })
+
+  it('abre con el código del QR listo y explica el beneficio antes del checkout', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue({
+      status: 'accepted',
+      accepted: true,
+      action: 'apply_to_checkout',
+      code: 'AFILIACION-15',
+      kind: 'percent',
+      benefit: { percentOff: 15 },
+      campaign: { name: 'Beneficio anual' },
+      destination: { view: 'profile', tab: 'account-membership' },
+    })
+    const onNavigate = vi.fn()
+    renderRedeemer({ defaultOpen: true, initialCode: 'afiliacion-15', onNavigate })
+
+    expect(screen.getByLabelText(/^Código$/i).value).toBe('AFILIACION-15')
+    fireEvent.click(screen.getByRole('button', { name: /Canjear/i }))
+
+    expect(await screen.findByText('15% de descuento listo para usar.')).toBeTruthy()
+    expect(onNavigate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /Usar en Afiliación/i }))
+    expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-membership' })
   })
 })

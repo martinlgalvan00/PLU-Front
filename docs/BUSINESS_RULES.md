@@ -85,11 +85,24 @@ Canjear el código y comprar con él son dos hechos distintos.
 no lleva importe y no entra en los reportes de Finanzas. `discount_code_redemptions`
 sigue siendo el registro contable y es lo que consume `max_redemptions`, escrito
 recién dentro de la transacción que crea la orden. El unlock es lo que sostiene la
-ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos. La misma
-llave se puede canjear desde cualquier superficie habilitada para códigos:
-Afiliación, calendario o ficha del evento, checkout de inscripción y Entradas.
-Luego de confirmarla, la interfaz anuncia la redirección y abre la pestaña
-privada; conocer el código no vuelve pública la oferta en ningún catálogo.
+ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos. El canje
+se ofrece únicamente en **Mi cuenta > Beneficios** y dentro del checkout de
+Afiliación o Inscripción, donde además puede recalcular el precio. Calendario,
+ficha del evento, Pitbull Classic y Entradas no muestran un formulario de canje.
+Los enlaces y QR `/canjear/:code` conservan el código durante el login y abren
+Beneficios para que el atleta lo confirme; no canjean automáticamente desde una
+página pública. Luego de confirmarlo, la interfaz muestra qué habilitó y abre el
+checkout o la pestaña privada correspondiente. Conocer el código no vuelve
+pública la oferta en ningún catálogo.
+
+La ficha **Oferta exclusiva** es transitoria: se muestra sólo mientras el
+atleta pueda iniciar la compra o retomar una orden que todavía requiere una
+acción. Desaparece cuando Finanzas aprueba la orden. Si una orden manual tiene
+`financing_allowed = true`, desaparece apenas la declaración de transferencia
+otorga provisionalmente afiliación e inscripción; la deuda y su validación
+continúan visibles en Pagos, mientras los derechos se consultan en Afiliación y
+Torneos. Una transferencia sin FIAR puede conservar la ficha durante la espera
+de validación, pero deja de mostrarla cuando la orden se acredita.
 
 La experiencia promocional se modela como campaña: `promotion_campaigns`
 define nombre, visibilidad y destino; `promotion_campaign_benefits` describe el

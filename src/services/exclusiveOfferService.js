@@ -165,11 +165,16 @@ export function getOfferPurchase(offer) {
   const purchase = offer?.purchase
   if (!purchase?.orderId) return null
   const status = String(purchase.status ?? '')
+  const financed =
+    purchase.financingAllowed === true &&
+    Boolean(purchase.financedEntitlementsAt) &&
+    !purchase.financedEntitlementsRevokedAt
   return {
     ...purchase,
     status,
     open: OPEN_PURCHASE_STATUSES.includes(status),
     paid: status === 'aprobado',
+    financed,
     // Transferencia, efectivo y Wise comparten `manual_link` y no se cobran con
     // el brick: se resuelven con comprobante y validación de staff.
     embeddable: purchase.method === 'mercado_pago' && OPEN_PURCHASE_STATUSES.includes(status),
@@ -217,6 +222,12 @@ export function getOfferState(offer, { now = new Date() } = {}) {
   if (!offer) return { available: false, reason: 'missing' }
   if (offer.redeemed) {
     const purchase = getOfferPurchase(offer)
+    if (purchase?.paid) {
+      return { available: false, reason: 'redeemed', purchase }
+    }
+    if (purchase?.financed) {
+      return { available: false, reason: 'financed', purchase }
+    }
     if (purchase?.open) {
       return { available: false, resumable: true, reason: 'pending_payment', purchase }
     }
@@ -241,17 +252,23 @@ export function getOfferState(offer, { now = new Date() } = {}) {
 }
 
 /**
- * La oferta que la ficha muestra primero: la comprable más reciente; si no
- * quedó ninguna, la que tiene un pago abierto —es la que reclama una acción—;
- * y en última instancia la última canjeada, para que la ficha nunca aparezca
- * vacía después de haber anunciado un canje.
+ * La oferta que la ficha muestra primero: la comprable más reciente; si no,
+ * la que tiene un pago abierto y todavía reclama una acción. Una compra
+ * aprobada o ya habilitada por FIAR deja de ser una promoción activa.
  */
 export function pickPrimaryOffer(offers = [], options = {}) {
   const list = Array.isArray(offers) ? offers.filter(Boolean) : []
   return (
     list.find((offer) => getOfferState(offer, options).available) ??
     list.find((offer) => getOfferState(offer, options).resumable) ??
-    list[0] ??
     null
   )
+}
+
+export function getActionableOffers(offers = [], options = {}) {
+  const list = Array.isArray(offers) ? offers.filter(Boolean) : []
+  return list.filter((offer) => {
+    const state = getOfferState(offer, options)
+    return state.available || state.resumable
+  })
 }

@@ -25,6 +25,9 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     // dejaría el panel entrando por el lado contrario al del tab que lo abrió.
     expect(ACCOUNT_TAB_IDS).toEqual([
       'account-qr',
+      // El canje es una ficha estable del perfil. La oferta que pueda resultar
+      // sigue siendo condicional y aparece inmediatamente después.
+      'account-benefits',
       // Ficha condicional: sólo se dibuja para quien canjeó un código secreto
       // de oferta exclusiva, pero su posición vive acá igual — la dirección de
       // la transición se lee del orden completo, no del filtrado.
@@ -46,7 +49,9 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     // Lo que se está resguardando es de dónde sale el orden, no cómo quedó
     // formateada la línea de import: la lista de constantes crece y Prettier la
     // parte en varias líneas.
-    expect(page).toMatch(/import \{[^}]*\bACCOUNT_TAB_IDS\b[^}]*\} from '\.\.\/lib\/navigation\.js'/s)
+    expect(page).toMatch(
+      /import \{[^}]*\bACCOUNT_TAB_IDS\b[^}]*\} from '\.\.\/lib\/navigation\.js'/s,
+    )
     expect(page).toContain('ACCOUNT_TAB_IDS.indexOf(activeTab)')
     // `sync` y no `wait`: con `wait` el contenedor colapsa un frame entre el
     // panel que sale y el que entra, y la página da un salto de scroll.
@@ -77,9 +82,7 @@ describe('CSS del panel de la cuenta', () => {
   it('los dos paneles comparten celda durante la transición', () => {
     // Sin esto la grilla le da una fila a cada panel montado y la página se
     // estira al doble a mitad del cambio de tab.
-    expect(css).toMatch(
-      /\.account-sections > \.account-tab-panel \{[^}]*grid-area: 1 \/ 1;[^}]*\}/,
-    )
+    expect(css).toMatch(/\.account-sections > \.account-tab-panel \{[^}]*grid-area: 1 \/ 1;[^}]*\}/)
   })
 
   it('ya no queda el fade sin dirección que manejaba el cambio de tab', () => {
@@ -90,9 +93,9 @@ describe('CSS del panel de la cuenta', () => {
   it('el settle interno respeta reduced motion', () => {
     expect(css).toContain('@keyframes account-panel-settle')
     const reducedBlocks = css.match(/@media \(prefers-reduced-motion: reduce\) \{[^}]*\}[^}]*\}/g)
-    expect(
-      (reducedBlocks ?? []).some((block) => block.includes('account-section__heading')),
-    ).toBe(true)
+    expect((reducedBlocks ?? []).some((block) => block.includes('account-section__heading'))).toBe(
+      true,
+    )
   })
 
   it('anima sólo transform y opacity, sin transition: all', () => {
@@ -123,6 +126,8 @@ describe('AccountNav sigue anunciando el tab activo', () => {
     expect(screen.getByRole('tab', { name: 'Credencial' }).getAttribute('aria-selected')).toBe(
       'true',
     )
+
+    expect(screen.getByRole('tab', { name: 'Beneficios' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Seguridad' }))
     expect(active).toBe('account-security')

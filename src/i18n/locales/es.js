@@ -114,6 +114,20 @@ export default {
     redirectingLead: 'Redirigiéndote a tu pestaña secreta…',
     acceptedTitle: 'Código listo',
     acceptedLead: 'Lo vamos a aplicar automáticamente cuando abras el checkout compatible.',
+    anotherCode: 'Canjear otro código',
+    benefit: {
+      percent: '{{percent}}% de descuento listo para usar.',
+      fixedPrice: 'Desbloqueaste un precio promocional.',
+      access: 'Desbloqueaste el acceso a una opción reservada.',
+      exclusiveOffer: 'Desbloqueaste una oferta exclusiva en tu cuenta.',
+      discount: 'El beneficio quedó listo para el checkout compatible.',
+    },
+    continue: {
+      membership: 'Usar en Afiliación',
+      registration: 'Usar en la inscripción',
+      exclusiveOffer: 'Ver mi oferta',
+      checkout: 'Ir al checkout',
+    },
     loginRequired: 'Necesitás ingresar con tu cuenta de atleta para guardar la oferta.',
     loginAction: 'Ingresar',
     error: {
@@ -1008,6 +1022,7 @@ export default {
     navAria: 'Secciones de tu cuenta',
     nav: {
       qr: 'Credencial',
+      benefits: 'Beneficios',
       offer: 'Oferta exclusiva',
       events: 'Torneos',
       history: 'Historial',
@@ -1015,6 +1030,29 @@ export default {
       payments: 'Pagos',
       personalData: 'Mis datos',
       security: 'Seguridad',
+    },
+    benefits: {
+      eyebrow: 'Códigos y promociones',
+      title: 'Tus beneficios',
+      lead: 'Ingresá o escaneá tu código una sola vez. Te mostramos qué habilita y lo dejamos listo para usar en el pago correspondiente.',
+      safeNote:
+        'Canjear no genera un cobro ni consume el cupo. El beneficio se confirma recién cuando creás la orden.',
+      openOffer: 'Ver mi oferta exclusiva desbloqueada',
+      typesTitle: 'Qué puede habilitar un código',
+      types: {
+        discount: {
+          title: 'Descuento o precio especial',
+          lead: 'Se aplica al total cuando abrís el checkout compatible.',
+        },
+        access: {
+          title: 'Acceso reservado',
+          lead: 'Habilita una inscripción o paquete que no aparece en el catálogo público.',
+        },
+        offer: {
+          title: 'Oferta exclusiva',
+          lead: 'Guarda una propuesta privada en tu cuenta para retomarla sin volver a ingresar el código.',
+        },
+      },
     },
     payments: {
       eyebrow: 'Cobros',
@@ -1153,6 +1191,8 @@ export default {
       profileIncompleteAction: 'Completar mis datos',
       state: {
         redeemed: 'Ya compraste esta oferta. Tu afiliación y tu inscripción quedaron registradas.',
+        financed:
+          'FIAR ya habilitó tu afiliación y tu inscripción. El saldo continúa en Pagos hasta que Finanzas lo revise.',
         expired: 'Esta oferta se cerró.',
         not_started: 'Esta oferta todavía no está abierta.',
         offer_unavailable:
@@ -1501,8 +1541,8 @@ export default {
       errorEmergencyPhone: 'Ingresá un teléfono de emergencia válido.',
       errorInstagram: 'Ingresá sólo tu usuario de Instagram, sin enlace ni espacios.',
       errorBestTotal: 'Ingresá un total entre 10 y 2.000 kg.',
-      errorFullName: 'IngresÃ¡ tu nombre completo.',
-      errorBirthDate: 'IngresÃ¡ tu fecha de nacimiento.',
+      errorFullName: 'Ingresá tu nombre completo.',
+      errorBirthDate: 'Ingresá tu fecha de nacimiento.',
       errorCountry: 'Seleccioná tu país.',
       profileComplete: 'Perfil completo',
       profileIncomplete_one: '{{count}} campo pendiente',
@@ -2438,19 +2478,21 @@ export default {
         'Formato 9:16 con QR de ingreso · se genera automáticamente al confirmar',
       categoriesEyebrow: 'Categorías',
       categoriesIndex: '04',
-      categoriesListAria: 'Categorías y divisiones del evento',
+      categoriesListAria: 'Modalidades, equipamiento y divisiones del evento',
       categoriesTitle: 'Modalidades y divisiones',
       categoriesDesc: 'Sujetas a confirmación del reglamento oficial PLU ARG.',
       categoriesPendingLabel: 'Pendiente de confirmación',
       categoriesSummary: '{{count}} categorías · {{categories}} · {{divisions}}',
       categoriesCount: '{{count}} categorías',
-      categoriesTotals: '{{modalities}} modalidades · {{divisions}} divisiones',
-      categoriesGroupCount: '{{count}}',
+      categoriesTotals:
+        '{{modalities}} modalidades · {{equipment}} equipamiento · {{divisions}} divisiones',
       categoriesModalities: 'Modalidades',
-      categoriesModalitiesHint: 'Equipamiento',
+      categoriesModalitiesHint: 'Levantamientos reconocidos',
+      categoriesEquipment: 'Equipamiento',
+      categoriesEquipmentHint: 'Categoría de equipo',
       categoriesDivisions: 'Divisiones',
       categoriesDivisionsHint: 'Clase de edad',
-      categoriesToggle: 'Ver categorías y divisiones del evento',
+      categoriesToggle: 'Ver modalidades, equipamiento y divisiones del evento',
       viewFullRulebook: 'Ver reglamento completo',
       ticketsTitle: '¿Querés mirar el evento?',
       ticketsLead:
@@ -2486,6 +2528,7 @@ export default {
       weighInsFridayNote: 'Pesaje adelantado. Opcional para todas las categorías.',
       weighInsSaturdayNote:
         'Último llamado. Exclusivo para atletas que compiten y no se pesaron el viernes.',
+      normativeDividerLabel: 'PLU ARG · Pitbull Classic 2026',
       ticketsFormTitle: 'Conseguir entrada',
       ticketPassCta: 'Conseguir entrada',
       resourcesIndex: '08',

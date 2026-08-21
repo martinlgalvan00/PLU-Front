@@ -117,7 +117,8 @@
   flex-shrink: 0;
   height: auto;
   line-height: normal;
-  padding: 0 16px;
+  padding: 12px 24px;
+  gap: 24px;
 }
 
 .admin-shell__header-copy {
@@ -139,14 +140,14 @@
 .admin-shell__header-actions {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 12px;
   margin-left: auto;
 }
 
 .admin-shell__header-search {
-  flex: 1 1 200px;
-  margin: 0 20px;
-  max-width: 380px;
+  flex: 1 1 300px;
+  margin: 0 0 0 32px;
+  max-width: 640px;
   min-width: 0;
 }
 

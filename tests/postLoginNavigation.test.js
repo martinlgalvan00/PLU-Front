@@ -3,6 +3,7 @@ import {
   resolveAfterLoginDestination,
   resolveMembershipCheckout,
   ACCOUNT_MEMBERSHIP_TAB,
+  ACCOUNT_BENEFITS_TAB,
 } from '../src/lib/navigation.js'
 
 describe('continuidad después del login', () => {
@@ -22,6 +23,15 @@ describe('continuidad después del login', () => {
         options: {},
       }),
     ).toEqual({ view: 'membership', options: {} })
+  })
+
+  it('retoma Beneficios después del login desde un QR promocional', () => {
+    expect(
+      resolveAfterLoginDestination('profile', 'athlete_plu', {
+        view: 'profile',
+        options: { tab: ACCOUNT_BENEFITS_TAB },
+      }),
+    ).toEqual({ view: 'profile', options: { tab: ACCOUNT_BENEFITS_TAB } })
   })
 
   it('traduce la afiliación al tab único de cobro de la cuenta', () => {

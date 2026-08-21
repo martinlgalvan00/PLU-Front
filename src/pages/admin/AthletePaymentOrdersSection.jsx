@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BadgeCheck, HandCoins, RefreshCw, Route, ScanSearch } from 'lucide-react'
+import { BadgeCheck, HandCoins, Paperclip, RefreshCw, Route, ScanSearch } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
@@ -21,6 +21,10 @@ import {
   buildPaymentValidationItem,
   canValidateConcept,
   canValidateManualOrder,
+  hasPaymentProof,
+  isCashOrder,
+  isManualOrder,
+  isOpenOrder,
 } from '../../services/paymentValidationService.js'
 import { VALIDATION_DISABLED_CODES } from '../../services/platformSettingsAdminService.js'
 import { revalidatePaymentOrder } from '../../services/paymentService.js'
@@ -513,9 +517,22 @@ export default function AthletePaymentOrdersSection({
                   )
                 }
                 return (
-                  <span className="admin-orders-block__proof">
+                  // El comprobante se abre desde la fecha: era la única forma de
+                  // verlo y no estaba a la vista. `mode: 'view'` abre el diálogo
+                  // en modo lectura, sin ofrecer acreditar.
+                  //
+                  // Sin `style` inline: `.admin-orders-block__proof` ya está
+                  // estilada como botón (borde, celeste del panel, 32px de alto
+                  // táctil, hover y disabled). El inline la pisaba con
+                  // `padding: 0` y `height: auto`, que además rompía el target.
+                  <button
+                    type="button"
+                    className="admin-orders-block__proof"
+                    onClick={() => openReview(row, 'view')}
+                  >
+                    <Paperclip size={14} aria-hidden />
                     {formatDateTime(row.paymentProofUploadedAt, locale)}
-                  </span>
+                  </button>
                 )
               },
             },
@@ -596,24 +613,43 @@ export default function AthletePaymentOrdersSection({
                       variant="ghost"
                     />
                   ) : null}
-                  <AdminIconButton
-                    disabled={
-                      !canEdit ||
-                      !row.validatable ||
-                      !canValidateManualOrder(row) ||
-                      approvingId === row.id
-                    }
-                    icon={BadgeCheck}
-                    label={
-                      row.method === 'mercado_pago'
-                        ? t('admin.athletePayments.webhookOnly')
-                        : row.validatable
-                          ? t('admin.actions.validate')
-                          : t('admin.athletePayments.validationPaused')
-                    }
-                    onClick={() => openReview(row)}
-                    variant="celeste"
-                  />
+                  {/* Falta el comprobante y la orden todavía espera decisión:
+                      se dice, en vez de dejar un botón deshabilitado sin motivo.
+                      Es la mitad que aportaba el otro lado del merge.
+
+                      La condición sale de `paymentValidationService` y no de una
+                      lista de estados escrita acá: la regla completa (Mercado
+                      Pago nunca, estado abierto, comprobante salvo efectivo) ya
+                      vive ahí, es la que aplica el backend, y duplicarla inline
+                      es cómo empezaron a divergir las tres pantallas que ese
+                      servicio unificó. */}
+                  {isManualOrder(row) &&
+                  isOpenOrder(row) &&
+                  !isCashOrder(row) &&
+                  !hasPaymentProof(row) ? (
+                    <span className="status-pill status-pill--warning">
+                      {t('admin.athletePayments.proofMissing')}
+                    </span>
+                  ) : (
+                    <AdminIconButton
+                      disabled={
+                        !canEdit ||
+                        !row.validatable ||
+                        !canValidateManualOrder(row) ||
+                        approvingId === row.id
+                      }
+                      icon={BadgeCheck}
+                      label={
+                        row.method === 'mercado_pago'
+                          ? t('admin.athletePayments.webhookOnly')
+                          : row.validatable
+                            ? t('admin.actions.validate')
+                            : t('admin.athletePayments.validationPaused')
+                      }
+                      onClick={() => openReview(row)}
+                      variant="celeste"
+                    />
+                  )}
                   {/* Vía de excepción: sólo aparece en las órdenes que el botón
                       de validar no puede tocar (Mercado Pago, o rechazadas),
                       para que no compita con el flujo normal. */}
