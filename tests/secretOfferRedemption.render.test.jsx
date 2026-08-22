@@ -5,16 +5,16 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 /**
  * secretOfferRedemption.render.test.jsx — PLU ARG
  *
- * El canje del código secreto DESDE LA PANTALLA DE AFILIACIÓN, que es el caso
- * que no funcionaba antes de 20260902100000: el código de una oferta de combo
- * no aplica a una afiliación suelta, así que el preview lo rechazaba con
- * `not_applicable` y el atleta leía "ese código no aplica a este pago" — un
- * error, cuando ese es justamente el código que se le repartió.
+ * Códigos promocionales DESDE LA PANTALLA DE AFILIACIÓN, después del retiro de
+ * las ofertas exclusivas por código (20260915100000).
  *
- * Lo que se verifica acá es la conclusión que espera la persona: que la
- * pantalla diga que canjeó el código secreto, lo nombre, y le dé la puerta a su
- * ficha de oferta exclusiva. El cobro no pasa por acá: la oferta se compra en el
- * checkout del torneo.
+ * La pantalla ya no intenta ningún unlock ni redirige a ninguna ficha secreta:
+ * un descuento de afiliación se aplica acá, y un código de otro alcance
+ * muestra el error del preview tal cual. El resolvedor universal (cuando está
+ * disponible) es el que deriva un código de inscripción/combo a su checkout —
+ * eso se cubre en los tests del resolvedor, no acá: este archivo mockea
+ * `athleteApi` sin `redeemPromotionCodeRequest`, así que el resolvedor falla y
+ * la pantalla cae al camino del preview.
  */
 
 beforeAll(() => {
@@ -102,16 +102,9 @@ const ATHLETE = {
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
 }
 
-const OFFER_PAYLOAD = {
-  code: 'ONLY-PITBULL',
-  kind: 'offer',
-  fixedPrice: 120000,
-  event: { slug: 'pitbull-classic', title: 'Pitbull Classic' },
-}
-
-// Lo que devuelve la RPC cuando el código es de una oferta de combo y se lo
-// previsualiza contra una afiliación suelta.
-const NOT_APPLICABLE_OFFER = {
+// Lo que devuelve la RPC cuando el código es de otro alcance (inscripción o
+// combo) y se lo previsualiza contra una afiliación suelta.
+const NOT_APPLICABLE = {
   valid: false,
   reason: 'not_applicable',
 }
@@ -151,79 +144,45 @@ beforeEach(() => {
   vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
 })
 
-describe('canje del código secreto desde Afiliación', () => {
-  it('anuncia el canje nombrando el código y ofrece la ficha de la oferta', async () => {
-    vi.mocked(previewDiscountCode).mockResolvedValue(NOT_APPLICABLE_OFFER)
-    vi.mocked(unlockOfferCode).mockResolvedValue({
-      unlocked: true,
-      alreadyUnlocked: false,
-      offer: OFFER_PAYLOAD,
-    })
-    const onNavigateSection = vi.fn()
-    const onOfferUnlocked = vi.fn()
-    renderSection({ onNavigateSection, onOfferUnlocked })
+describe('códigos promocionales desde Afiliación', () => {
+  it('un código de otro alcance muestra el error del preview, sin unlock ni redirección', async () => {
+    vi.mocked(previewDiscountCode).mockResolvedValue(NOT_APPLICABLE)
+    renderSection()
 
     await typeCode('only-pitbull')
 
-    expect(await screen.findByText('Redirigiéndote a tu pestaña secreta…')).toBeTruthy()
-    // Lo que la persona vino a leer: que canjeó, y qué.
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
-    expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
-    expect(screen.getByText(/Pitbull Classic/)).toBeTruthy()
-
-    // El código viaja normalizado a mayúsculas.
-    expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'ONLY-PITBULL' })
-    // La cuenta recarga sus ofertas para que la ficha aparezca en la cinta y
-    // el canje termina directamente en esa ficha secreta.
-    expect(onOfferUnlocked).toHaveBeenCalled()
-    expect(onNavigateSection).toHaveBeenCalledWith('account-offer')
-
-    fireEvent.click(screen.getByRole('button', { name: /Ver mi oferta/i }))
-    expect(onNavigateSection).toHaveBeenCalledWith('account-offer')
+    await waitFor(() => expect(screen.getByText('Ese código no aplica a este pago.')).toBeTruthy())
+    // Las ofertas exclusivas están retiradas: nada intenta canjear una llave
+    // ni anunciar una pestaña secreta.
+    expect(unlockOfferCode).not.toHaveBeenCalled()
+    expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
+    expect(screen.queryByText('Redirigiéndote a tu pestaña secreta…')).toBe(null)
   })
 
-  it('no muestra el error "no aplica" cuando el código sí desbloquea una oferta', async () => {
-    vi.mocked(previewDiscountCode).mockResolvedValue(NOT_APPLICABLE_OFFER)
-    vi.mocked(unlockOfferCode).mockResolvedValue({ unlocked: true, offer: OFFER_PAYLOAD })
-    renderSection({ onNavigateSection: vi.fn(), onOfferUnlocked: vi.fn() })
-
-    await typeCode('ONLY-PITBULL')
-
-    expect(await screen.findByText('Redirigiéndote a tu pestaña secreta…')).toBeTruthy()
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
-    expect(screen.queryByText('Ese código no aplica a este pago.')).toBe(null)
-  })
-
-  // Un cupón de precio fijo para el combo tampoco aplica a la afiliación, pero
-  // no desbloquea ninguna pantalla: ahí el error seco es la respuesta correcta.
-  it('un código que no desbloquea nada sigue mostrando el error del preview', async () => {
+  it('un código de combo tampoco desbloquea nada: el error seco es la respuesta', async () => {
     vi.mocked(previewDiscountCode).mockResolvedValue({
       valid: false,
       reason: 'not_applicable',
       kind: 'fixed_price',
       appliesTo: 'combo',
     })
-    vi.mocked(unlockOfferCode).mockResolvedValue({
-      unlocked: false,
-      reason: 'not_applicable',
-    })
-    renderSection({ onNavigateSection: vi.fn(), onOfferUnlocked: vi.fn() })
+    renderSection()
 
     await typeCode('COMBO150')
 
     await waitFor(() => expect(screen.getByText('Ese código no aplica a este pago.')).toBeTruthy())
-    expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'COMBO150' })
-    expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
+    expect(unlockOfferCode).not.toHaveBeenCalled()
   })
 
-  it('un canje rechazado explica el motivo en vez de anunciar la oferta', async () => {
-    vi.mocked(previewDiscountCode).mockResolvedValue(NOT_APPLICABLE_OFFER)
-    vi.mocked(unlockOfferCode).mockResolvedValue({ unlocked: false, reason: 'limit_reached' })
-    renderSection({ onNavigateSection: vi.fn(), onOfferUnlocked: vi.fn() })
+  it('un código retirado se rechaza con el motivo del preview', async () => {
+    // El servidor colapsa `inactive` en `not_found`: un código apagado es,
+    // para el público, indistinguible de uno que nunca existió.
+    vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'not_found' })
+    renderSection()
 
     await typeCode('ONLY-PITBULL')
 
-    await waitFor(() => expect(screen.getByText('Esa oferta agotó su cupo.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Ese código no existe.')).toBeTruthy())
     expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
   })
 
@@ -236,7 +195,7 @@ describe('canje del código secreto desde Afiliación', () => {
       finalAmount: 76500,
       manualChannels: [],
     })
-    renderSection({ onNavigateSection: vi.fn(), onOfferUnlocked: vi.fn() })
+    renderSection()
 
     await typeCode('DESC10')
 

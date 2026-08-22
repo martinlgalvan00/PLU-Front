@@ -5,17 +5,21 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 /**
  * secretOfferCheckout.render.test.jsx — PLU ARG
  *
- * El canje del código secreto DESDE EL CHECKOUT DE INSCRIPCIÓN, y en particular
- * el caso que estaba roto: **combo restringido todavía sin destrabar**.
+ * El canje de un código de COMBO desde el checkout de inscripción, sin el
+ * resolvedor universal disponible (el mock de athleteApi no lo trae, así que
+ * el checkout cae al camino del preview). El caso central: **combo restringido
+ * todavía sin destrabar**.
  *
  * Ahí `effectivePurchaseType` es 'registration' (el paquete no es accesible
  * hasta que hay código), así que el preview del código —que es de alcance
  * 'combo'— volvía con `not_applicable` y la pantalla mostraba "ese código no
  * aplica a este pago": exactamente el código que venía a destrabar el paquete.
- * Ahora se reintenta contra el combo antes de dar el error por bueno.
+ * Se reintenta contra el combo antes de dar el error por bueno.
  *
- * También cubre que el cambio de paquete no borre el código que causó ese
- * cambio, y el auto-canje al entrar desde la ficha "Oferta exclusiva".
+ * Las ofertas exclusivas por código ('offer'/'access') están retiradas
+ * (20260915100000): acá no hay unlock del lado del servidor, ni banner de
+ * canje, ni pestaña secreta. El código de combo vigente es un `fixed_price`
+ * con alcance 'combo' que se aplica y se cobra en este mismo checkout.
  */
 
 beforeAll(() => {
@@ -123,18 +127,9 @@ const RESTRICTED_EVENT = {
   },
 }
 
-const OFFER_PAYLOAD = {
-  code: 'ONLY-PITBULL',
-  kind: 'offer',
-  fixedPrice: 120000,
-  redeemed: false,
-  event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026' },
-  comboOffer: { ...RESTRICTED_EVENT.comboOffer },
-}
-
 const COMBO_PREVIEW = {
   valid: true,
-  kind: 'offer',
+  kind: 'fixed_price',
   code: 'ONLY-PITBULL',
   discountAmount: 30000,
   finalAmount: 120000,
@@ -194,6 +189,11 @@ function openDiscountField() {
   if (toggle) fireEvent.click(toggle)
 }
 
+/** El renglon que anuncia el codigo aplicado y el importe que se va a cobrar. */
+function appliedDiscount(container) {
+  return container.querySelector('.register-discount__applied')?.textContent ?? ''
+}
+
 afterEach(cleanup)
 
 beforeEach(() => {
@@ -201,7 +201,6 @@ beforeEach(() => {
   vi.mocked(unlockOfferCode).mockReset()
   vi.mocked(fetchOfferUnlocks).mockReset()
   vi.mocked(fetchOfferUnlocks).mockResolvedValue([])
-  vi.mocked(unlockOfferCode).mockResolvedValue({ unlocked: true, offer: OFFER_PAYLOAD })
 })
 
 describe('canje del código secreto en el checkout de inscripción', () => {
@@ -226,7 +225,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
       if (appliesTo === 'combo') return COMBO_PREVIEW
       return NOT_APPLICABLE
     })
-    renderCompetition()
+    const { container } = renderCompetition()
     await waitForAccessValidation()
     openDiscountField()
 
@@ -234,11 +233,11 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     fireEvent.change(input, { target: { value: 'only-pitbull' } })
     fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
-    expect(await screen.findByText('Redirigiéndote a tu pestaña secreta…')).toBeTruthy()
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
+    // El código queda aplicado en este mismo checkout, con el importe pactado.
+    await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
+    expect(appliedDiscount(container)).toContain('120.000')
     // El error de alcance NO se muestra: fue un paso intermedio, no el resultado.
     expect(screen.queryByText('Ese código no aplica a este pago.')).toBe(null)
-    expect(screen.getAllByText('ONLY-PITBULL').length).toBeGreaterThan(0)
 
     // Se consultaron los dos alcances, en ese orden.
     const scopes = vi
@@ -247,37 +246,18 @@ describe('canje del código secreto en el checkout de inscripción', () => {
       .map((call) => call[0].appliesTo)
     expect(scopes).toEqual(['registration', 'combo'])
 
-    // El canje quedó registrado del lado del servidor: es lo que sostiene la
-    // ficha de Mi cuenta después de un refresh.
-    expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'ONLY-PITBULL' })
+    // Sin ofertas exclusivas no hay unlock que registrar: la única redención
+    // ocurre dentro de la transacción que crea la orden.
+    expect(unlockOfferCode).not.toHaveBeenCalled()
   })
 
-  it('revela el combo desde el canje aunque el catalogo publico no lo incluya', async () => {
+  it('el código de combo sobrevive al cambio de paquete que él mismo provoca', async () => {
     vi.mocked(previewDiscountCode).mockImplementation(async ({ code, appliesTo }) => {
       if (!code) return { valid: false, reason: 'no_public_promo' }
       if (appliesTo === 'combo') return COMBO_PREVIEW
       return NOT_APPLICABLE
     })
-    renderCompetition({ event: { ...RESTRICTED_EVENT, comboOffer: null } })
-    await waitForAccessValidation()
-    openDiscountField()
-
-    fireEvent.change(await screen.findByLabelText(/^Código$/i), {
-      target: { value: 'ONLY-PITBULL' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
-
-    await waitFor(() => expect(screen.getByText(/secreto/i)).toBeTruthy())
-    expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'ONLY-PITBULL' })
-  })
-
-  it('el código de desbloqueo sobrevive al cambio de paquete que él mismo provoca', async () => {
-    vi.mocked(previewDiscountCode).mockImplementation(async ({ code, appliesTo }) => {
-      if (!code) return { valid: false, reason: 'no_public_promo' }
-      if (appliesTo === 'combo') return COMBO_PREVIEW
-      return NOT_APPLICABLE
-    })
-    renderCompetition()
+    const { container } = renderCompetition()
     await waitForAccessValidation()
     openDiscountField()
 
@@ -285,11 +265,12 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     fireEvent.change(input, { target: { value: 'ONLY-PITBULL' } })
     fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
-    // Si el efecto de `purchaseType` lo hubiera limpiado, el anuncio y el
-    // aplicado desaparecerían en el render siguiente.
+    await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
+    // Aplicar el código cambia `purchaseType` a 'combo'; si el efecto de
+    // limpieza por cambio de paquete no lo exceptuara, el aplicado
+    // desaparecería en el render siguiente.
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy()
+    expect(appliedDiscount(container)).toContain('ONLY-PITBULL')
   })
 
   it('un código que cierra Mercado Pago lo saca del selector y explica por qué', async () => {
@@ -373,44 +354,17 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     )
   })
 
-  it('auto-canje: la oferta ya desbloqueada se aplica sola al abrir el checkout', async () => {
-    vi.mocked(fetchOfferUnlocks).mockResolvedValue([OFFER_PAYLOAD])
-    vi.mocked(previewDiscountCode).mockImplementation(async ({ code, appliesTo }) => {
-      if (!code) return { valid: false, reason: 'no_public_promo' }
-      if (appliesTo === 'combo') return COMBO_PREVIEW
-      return NOT_APPLICABLE
-    })
-    renderCompetition()
-    await waitForAccessValidation()
-    openDiscountField()
-
-    // Sin tipear nada: entrar desde la ficha no puede obligar a volver a
-    // escribir el código que ya se canjeó.
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
-    expect(screen.getAllByText('ONLY-PITBULL').length).toBeGreaterThan(0)
-  })
-
-  it('una oferta ya comprada no se auto-aplica', async () => {
-    vi.mocked(fetchOfferUnlocks).mockResolvedValue([{ ...OFFER_PAYLOAD, redeemed: true }])
+  it('el checkout no consulta ofertas desbloqueadas al abrirse', async () => {
+    // El auto-canje de la ficha "Oferta exclusiva" se retiró junto con las
+    // ofertas por código: abrir el checkout no dispara ninguna consulta de
+    // unlocks ni aplica nada solo.
     vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
     renderCompetition()
     await waitForAccessValidation()
     openDiscountField()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
-  })
-
-  it('una oferta de otro torneo no se auto-aplica en este checkout', async () => {
-    vi.mocked(fetchOfferUnlocks).mockResolvedValue([
-      { ...OFFER_PAYLOAD, event: { slug: 'copa-norte', title: 'Copa Norte' } },
-    ])
-    vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
-    renderCompetition()
-    await waitForAccessValidation()
-    openDiscountField()
-    await new Promise((resolve) => setTimeout(resolve, 0))
-
-    expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
+    expect(fetchOfferUnlocks).not.toHaveBeenCalled()
+    expect(unlockOfferCode).not.toHaveBeenCalled()
   })
 })

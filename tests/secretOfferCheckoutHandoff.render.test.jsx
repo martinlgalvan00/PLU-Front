@@ -5,18 +5,19 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 /**
  * secretOfferCheckoutHandoff.render.test.jsx — PLU ARG
  *
- * El traspaso entre la pestaña secreta y el checkout, con el **resolvedor
- * universal disponible** (`athlete_redeem_promotion_code`, 20260905100000).
+ * El código de COMBO tipeado en el checkout de inscripción, con el
+ * **resolvedor universal disponible** (`athlete_redeem_promotion_code`,
+ * 20260905100000).
  *
  * Por qué en un archivo aparte de `secretOfferCheckout.render.test.jsx`: ese
  * mockea `athleteApi` sin `redeemPromotionCodeRequest`, así que el resolvedor
- * explota y el checkout cae al camino del preview. Eso cubre el despliegue en
- * el que la RPC todavía no está, pero tapaba el bug real del camino nuevo: el
- * resolvedor responde `open_exclusive_offer` TAMBIÉN para un código ya
- * canjeado (`athlete_unlock_offer_code` es idempotente y devuelve
- * `unlocked: true`), así que el checkout que se abría desde la ficha rebotaba
- * de vuelta a la ficha y el atleta nunca llegaba a pagar el precio de la
- * promoción — ni, por lo tanto, a recibir afiliación e inscripción.
+ * explota y el checkout cae al camino del preview. Acá el resolvedor responde,
+ * y lo que se fija es que el código de combo (`fixed_price` con alcance
+ * 'combo') se aplica, se cobra y se recotiza en ESTE checkout, sin navegar a
+ * ninguna otra pantalla. El segundo bloque cubre la defensa contra un backend
+ * sin migrar que todavía conteste `open_exclusive_offer`: las ofertas por
+ * código están retiradas (20260915100000) y el cliente las rechaza antes de
+ * que el checkout las vea.
  */
 
 beforeAll(() => {
@@ -134,7 +135,7 @@ const OFFER_PAYLOAD = {
 
 const COMBO_PREVIEW = {
   valid: true,
-  kind: 'offer',
+  kind: 'fixed_price',
   code: 'ONLY-PITBULL',
   discountAmount: 30000,
   finalAmount: 120000,
@@ -142,7 +143,20 @@ const COMBO_PREVIEW = {
   eventSlug: 'pitbull-classic-2026',
 }
 
-/** Lo que responde `athlete_redeem_promotion_code` para un código de oferta. */
+/** Lo que responde `athlete_redeem_promotion_code` para un código de combo. */
+const RESOLVED_COMBO = {
+  status: 'accepted',
+  accepted: true,
+  action: 'apply_to_checkout',
+  code: 'ONLY-PITBULL',
+  kind: 'fixed_price',
+  appliesTo: 'combo',
+  destination: { view: 'competition', eventSlug: 'pitbull-classic-2026' },
+  campaign: { name: 'Solo Pitbull', objective: 'discount' },
+  benefit: { fixedPrice: 120000, manualChannels: [], mercadoPagoEnabled: true },
+}
+
+/** Un backend sin migrar todavía puede contestar con la oferta retirada. */
 const RESOLVED_OFFER = {
   status: 'accepted',
   accepted: true,
@@ -225,59 +239,46 @@ beforeEach(() => {
   vi.mocked(fetchOfferUnlocks).mockReset()
   vi.mocked(redeemPromotionCodeRequest).mockReset()
   vi.mocked(fetchOfferUnlocks).mockResolvedValue([])
-  vi.mocked(unlockOfferCode).mockResolvedValue({ unlocked: true, offer: OFFER_PAYLOAD })
-  vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_OFFER)
+  vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_COMBO)
   sessionStorage.clear()
 })
 
-describe('checkout abierto desde la pestaña secreta', () => {
-  it('aplica la oferta en vez de rebotar de vuelta a la pestaña', async () => {
-    vi.mocked(fetchOfferUnlocks).mockResolvedValue([OFFER_PAYLOAD])
+/** Tipea el código y lo canjea, como lo hace el atleta. */
+async function typeAndRedeem(code) {
+  fireEvent.change(await screen.findByLabelText(/^Código$/i), { target: { value: code } })
+  fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+}
+
+describe('código de combo tipeado en el checkout', () => {
+  it('se aplica en este checkout sin navegar a ninguna otra pantalla', async () => {
     previewByScope()
     const { container, onNavigate } = renderCompetition()
     await waitForAccessValidation()
     openDiscountField()
+    await typeAndRedeem('only-pitbull')
 
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
     // El precio promocional queda anunciado: es lo que se va a cobrar.
-    expect(appliedDiscount(container)).toContain('ONLY-PITBULL')
+    await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
     expect(appliedDiscount(container)).toContain('120.000')
-    // Y sobre todo: nadie volvió a mandar al atleta a la pestaña secreta.
-    expect(onNavigate.mock.calls.filter(([view]) => view === 'profile')).toEqual([])
-  })
-
-  it('no vuelve a canjear un código que ya estaba desbloqueado', async () => {
-    vi.mocked(fetchOfferUnlocks).mockResolvedValue([OFFER_PAYLOAD])
-    previewByScope()
-    renderCompetition()
-    await waitForAccessValidation()
-    openDiscountField()
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
-
-    // El auto-canje sólo cotiza el combo: ni resolvedor (que registraría un
-    // evento de embudo por cada apertura del checkout) ni unlock nuevo.
-    expect(redeemPromotionCodeRequest).not.toHaveBeenCalled()
+    // El destino del resolvedor es este mismo torneo: no hay navegación.
+    expect(onNavigate.mock.calls).toEqual([])
+    // Sin ofertas exclusivas no hay unlock que registrar.
     expect(unlockOfferCode).not.toHaveBeenCalled()
-    const scopes = vi
-      .mocked(previewDiscountCode)
-      .mock.calls.filter((call) => call[0]?.code)
-      .map((call) => call[0].appliesTo)
-    expect(scopes).toEqual(['combo'])
   })
 
-  it('cobra el combo con el código de la oferta y crea afiliación + inscripción', async () => {
-    vi.mocked(fetchOfferUnlocks).mockResolvedValue([OFFER_PAYLOAD])
+  it('cobra el combo con el código y crea afiliación + inscripción', async () => {
     previewByScope()
-    const { onSubmit } = renderCompetition()
+    const { onSubmit, container } = renderCompetition()
     await waitForAccessValidation()
     openDiscountField()
-    await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
+    await typeAndRedeem('ONLY-PITBULL')
+    await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
 
     fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
 
     // `combo` es lo que crea afiliación e inscripción en la misma orden; el
-    // `discountCode` es lo que la cobra al precio de la oferta y el
+    // `discountCode` es lo que la cobra al precio pactado y el
     // `comboAccessCode` lo que destraba el paquete del lado del servidor.
     expect(onSubmit.mock.calls[0][2]).toMatchObject({
       purchaseType: 'combo',
@@ -287,15 +288,17 @@ describe('checkout abierto desde la pestaña secreta', () => {
   })
 
   it('recotiza al cambiar de medio de pago sin salir del checkout', async () => {
-    vi.mocked(fetchOfferUnlocks).mockResolvedValue([OFFER_PAYLOAD])
     previewByScope()
     const { container, onNavigate, update } = renderCompetition()
     await waitForAccessValidation()
     openDiscountField()
+    await typeAndRedeem('ONLY-PITBULL')
     await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
 
     // El importe depende del canal, así que cambiar de medio recotiza el
-    // código. Eso no puede volver a mandar al atleta a la pestaña secreta.
+    // código — sólo el preview: el resolvedor ya hizo su trabajo y repetirlo
+    // sería otro evento de embudo por cada cambio de medio.
+    const resolverCalls = vi.mocked(redeemPromotionCodeRequest).mock.calls.length
     const before = vi.mocked(previewDiscountCode).mock.calls.length
     update({ form: { ...FORM, paymentMethod: 'manual_link' } })
     await waitFor(() =>
@@ -304,8 +307,8 @@ describe('checkout abierto desde la pestaña secreta', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(appliedDiscount(container)).toContain('ONLY-PITBULL')
-    expect(onNavigate.mock.calls.filter(([view]) => view === 'profile')).toEqual([])
-    expect(redeemPromotionCodeRequest).not.toHaveBeenCalled()
+    expect(onNavigate.mock.calls).toEqual([])
+    expect(vi.mocked(redeemPromotionCodeRequest).mock.calls.length).toBe(resolverCalls)
   })
 })
 
@@ -317,6 +320,7 @@ describe('código tipeado en el checkout con el resolvedor disponible', () => {
   // a ninguna pestaña secreta: el código sigue el camino normal de un cupón
   // y, al estar desactivado, termina en el error de siempre.
   it('nunca revela ni navega a la pestaña secreta: el código retirado sigue el camino normal', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_OFFER)
     // Un código 'offer' desactivado (20260915100000) ya no cotiza en ningún
     // alcance: `athlete_preview_discount_code` lo rechaza por `inactive` sea
     // cual sea el `appliesTo`, así que ni el alcance normal ni el reintento
