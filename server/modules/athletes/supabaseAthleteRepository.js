@@ -1258,7 +1258,20 @@ export function createSupabaseAthleteRepository(
               }
             : null,
         })),
-        paymentOrders: assertSupabaseResult(paymentOrders, 'No se pudieron leer los pagos.'),
+        // El código promocional viaja enmascarado ('ONL…'): este snapshot se
+        // sirve con cualquiera de cinco permisos de lectura (incluido
+        // admin.dashboard.read), mientras que la lista de códigos está detrás
+        // de admin.pricing.read. Nada del panel muestra el string completo, y
+        // un código con cupo remanente sigue siendo canjeable por otros: no
+        // hay motivo para regalarlo por una frontera más ancha.
+        paymentOrders: assertSupabaseResult(
+          paymentOrders,
+          'No se pudieron leer los pagos.',
+        ).map((order) =>
+          order.discount_code
+            ? { ...order, discount_code: `${String(order.discount_code).slice(0, 3)}…` }
+            : order,
+        ),
       }
 
       // Libro de intentos por orden. Va en una consulta aparte y acotada a las
