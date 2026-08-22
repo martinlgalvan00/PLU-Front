@@ -28,10 +28,8 @@ describe('cinta de la cuenta como fuente única del orden', () => {
       // Sin ficha de canje suelta: Beneficios se retiró de la cinta y el código
       // se canjea dentro del checkout de Afiliación o de Inscripción, que es
       // también donde se escanea su QR. No hay ruta pública de canje.
-      // Ficha condicional: sólo se dibuja para quien canjeó un código secreto
-      // de oferta exclusiva, pero su posición vive acá igual — la dirección de
-      // la transición se lee del orden completo, no del filtrado.
-      'account-offer',
+      // Sin "Oferta exclusiva": las ofertas generadas por código quedaron
+      // retiradas (20260915100000) y ya no hay ficha que abrir.
       'account-events',
       'account-history',
       'account-membership',

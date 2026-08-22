@@ -159,7 +159,11 @@ export function mapPricingConfiguration(payload = {}) {
           }
         : null,
     })),
-    discountCodes: (payload.discountCodes ?? []).map((row) => {
+    // Las filas históricas de ofertas por código no forman parte del catálogo:
+    // nunca se exponen en el panel, aunque un entorno aún las conserve.
+    discountCodes: (payload.discountCodes ?? [])
+      .filter((row) => !['offer', 'access'].includes(row.kind))
+      .map((row) => {
       const code = mapDiscountCode(row)
       const metrics = campaignMetricsByCode.get(code.id)
       return {
@@ -175,7 +179,7 @@ export function mapPricingConfiguration(payload = {}) {
             }
           : null,
       }
-    }),
+      }),
     campaignAnalytics,
     availability: payload.availability ?? { editable: true, reason: null },
   }
@@ -377,7 +381,7 @@ export async function mapWithConcurrency(items, task, { limit = 6 } = {}) {
   return results
 }
 
-const DISCOUNT_CODE_KINDS = ['percent', 'fixed_price', 'access', 'offer']
+const DISCOUNT_CODE_KINDS = ['percent', 'fixed_price']
 
 export async function upsertDiscountCodeRequest(code) {
   // Lista blanca y no un ternario: colapsar a 'percent'/'fixed_price' convertía
@@ -387,7 +391,7 @@ export async function upsertDiscountCodeRequest(code) {
   const kind = DISCOUNT_CODE_KINDS.includes(code.kind) ? code.kind : 'percent'
   // Una oferta exclusiva no puede ser pública: si se aplicara sola, no sería un
   // secreto. Mismo criterio que la RPC y el schema.
-  const audience = code.audience === 'public' && kind !== 'offer' ? 'public' : 'code'
+  const audience = code.audience === 'public' ? 'public' : 'code'
   const result = await apiPost('/api/pricing/discount-codes', {
     ...code,
     kind,
@@ -413,11 +417,11 @@ export async function upsertDiscountCodeRequest(code) {
     percentOff: kind === 'percent' ? code.percentOff : undefined,
     // 'offer' comparte el importe con 'fixed_price': es un precio promocional
     // que además desbloquea el combo.
-    fixedPrice: ['fixed_price', 'offer'].includes(kind) ? code.fixedPrice : undefined,
+    fixedPrice: kind === 'fixed_price' ? code.fixedPrice : undefined,
     // Vacío = los canales manuales cobran lo mismo que Mercado Pago. Se manda
     // `undefined` y no 0 para que el schema lo lea como "sin precio manual".
     fixedPriceManual:
-      ['fixed_price', 'offer'].includes(kind) &&
+      kind === 'fixed_price' &&
       code.fixedPriceManual !== '' &&
       code.fixedPriceManual != null
         ? Number(code.fixedPriceManual)
@@ -431,7 +435,6 @@ export async function upsertDiscountCodeRequest(code) {
     // Qué afiliación empaqueta la oferta. Vacío la resuelve la RPC —el plan del
     // combo, o la única de pago único vigente—, así que el formulario sólo lo
     // manda cuando hay una elección real que hacer.
-    membershipPlanId: kind === 'offer' ? code.membershipPlanId || undefined : undefined,
     startsAt: dateTimeToIso(code.startsAt),
     expiresAt: dateTimeToIso(code.expiresAt),
     // Siempre se manda la lista completa: el array presente reemplaza la

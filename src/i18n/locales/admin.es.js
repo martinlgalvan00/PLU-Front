@@ -1200,8 +1200,9 @@ export default {
     advanced: 'Necesito cargar precios y ventanas: abrir el editor completo',
   },
 
-  // Consola del evento: estado, acceso y entrada a cada sección, sin modal.
+  // Consola del evento: estado, acceso y entrada a cada sección.
   eventConsole: {
+    close: 'Cerrar',
     configLabel: 'Configuración del evento',
     activityLabel: 'Actividad',
     back: 'Volver a la lista de eventos',
@@ -1919,6 +1920,7 @@ export default {
     },
   },
   registrationStatus: {
+    reasonHint: 'Para guardar el cambio, elegí un estado y escribí un motivo de al menos 3 caracteres.',
     title: 'Corregir estado de la inscripción',
     lead: 'Cambia el estado sin borrar la inscripción: se conservan división, categoría y horario asignado.',
     athlete: 'Atleta',
@@ -2846,6 +2848,10 @@ export default {
     },
   },
   athletePayments: {
+    lookupPayment: 'Validar N.º de operación',
+    lookupPaymentHint: 'Pegá el N.º de operación de Mercado Pago. Solo se acredita si coincide con esta orden.',
+    lookupPaymentLabel: 'N.º de operación de Mercado Pago',
+    lookupPaymentSubmit: 'Validar operación',
     eyebrow: 'Afiliaciones e inscripciones',
     title: 'Órdenes de atleta',
     subtitle: 'Transferencias por validar y acreditaciones de Mercado Pago',
@@ -2856,6 +2862,7 @@ export default {
     filterPending: 'Por validar',
     filterManual: 'En revisión',
     filterFinanced: 'Financiadas',
+    filterRejected: 'Rechazadas',
     filterApproved: 'Aprobadas',
     filterAll: 'Todas',
     rejectedBy: 'Rechazada por {{actor}}',

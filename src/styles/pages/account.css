@@ -1496,6 +1496,12 @@
   justify-items: start;
 }
 
+.account-discount > div {
+  grid-area: 1 / 1;
+  min-width: 0;
+  width: 100%;
+}
+
 /* El aspecto del canje —sello, filo de oro, código en mono, chip metálico— lo
    define components/code-band.css, compartido con el canje universal y con el
    campo de inscripción. Acá queda sólo el sitio que ocupa en la ficha. */

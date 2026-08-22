@@ -38,6 +38,7 @@ import {
   isMembershipCurrent,
   MEMBERSHIP_LIFECYCLE,
 } from '../../services/membershipService.js'
+import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
 import CheckoutDesk, { CheckoutBar } from '../../components/checkout/CheckoutDesk.jsx'
 import CodeScanButton from '../../components/ui/CodeScanButton.jsx'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
@@ -1036,95 +1037,99 @@ export default function MembershipPurchaseSection({
                         {t('account.membership.discountRemove')}
                       </button>
                     </div>
-                  ) : discountOpen ? (
-                    <div className="account-discount__field">
-                      <label className="visually-hidden" htmlFor="membership-discount-code">
-                        {t('account.membership.discountLabel')}
-                      </label>
-                      <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
-                        <span className="code-band__grain" aria-hidden />
-                        <div className="code-band__frame">
-                          <div className="code-band__head">
-                            <span className="code-band__mark">{t('codeBand.markCode')}</span>
-                            <span
-                              className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
-                            >
-                              {t(
-                                discountChecking
-                                  ? 'codeBand.statusChecking'
-                                  : discountError
-                                    ? 'codeBand.statusError'
-                                    : 'codeBand.statusIdle',
-                              )}
-                            </span>
-                          </div>
-                          <div className="code-band__row">
-                            <input
-                              ref={discountInputRef}
-                              id="membership-discount-code"
-                              className="code-band__input"
-                              type="text"
-                              autoComplete="off"
-                              spellCheck={false}
-                              placeholder={t('account.membership.discountPlaceholder')}
-                              value={discountCodeInput}
-                              disabled={checkoutLocked || discountChecking}
-                              onChange={(event) =>
-                                setDiscountCodeInput(event.target.value.toUpperCase())
-                              }
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault()
-                                  void applyDiscountCode()
-                                  return
-                                }
-                                if (event.key === 'Escape') {
-                                  event.preventDefault()
-                                  clearDiscountCode()
-                                }
-                              }}
-                            />
-                            <CodeScanButton
-                              disabled={checkoutLocked || discountChecking}
-                              onScan={(scanned) => {
-                                setDiscountCodeInput(scanned)
-                                void applyDiscountCode(scanned)
-                              }}
-                            />
-                            <button
-                              type="button"
-                              className="code-band__chip"
-                              disabled={
-                                checkoutLocked || discountChecking || !discountCodeInput.trim()
-                              }
-                              onClick={applyDiscountCode}
-                            >
-                              {discountChecking
-                                ? t('account.membership.discountChecking')
-                                : t('account.membership.discountApply')}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="code-band-hint">{t('account.membership.discountHint')}</p>
-                      {discountError ? (
-                        <p className="code-band-error" role="alert">
-                          {discountError}
-                        </p>
-                      ) : null}
-                    </div>
                   ) : (
-                    <button
-                      type="button"
-                      className="code-band-toggle account-discount__toggle"
-                      disabled={checkoutLocked}
-                      onClick={openDiscountField}
-                    >
-                      <span className="code-band-toggle__seal" aria-hidden>
-                        <KeyRound size={13} />
-                      </span>
-                      {t('account.membership.discountToggle')}
-                    </button>
+                    <MotionContentSwap swapKey={discountOpen ? 'field' : 'button'} mode="sync">
+                      {discountOpen ? (
+                        <div className="account-discount__field">
+                          <label className="visually-hidden" htmlFor="membership-discount-code">
+                            {t('account.membership.discountLabel')}
+                          </label>
+                          <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
+                            <span className="code-band__grain" aria-hidden />
+                            <div className="code-band__frame">
+                              <div className="code-band__head">
+                                <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                                <span
+                                  className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
+                                >
+                                  {t(
+                                    discountChecking
+                                      ? 'codeBand.statusChecking'
+                                      : discountError
+                                        ? 'codeBand.statusError'
+                                        : 'codeBand.statusIdle',
+                                  )}
+                                </span>
+                              </div>
+                              <div className="code-band__row">
+                                <input
+                                  ref={discountInputRef}
+                                  id="membership-discount-code"
+                                  className="code-band__input"
+                                  type="text"
+                                  autoComplete="off"
+                                  spellCheck={false}
+                                  placeholder={t('account.membership.discountPlaceholder')}
+                                  value={discountCodeInput}
+                                  disabled={checkoutLocked || discountChecking}
+                                  onChange={(event) =>
+                                    setDiscountCodeInput(event.target.value.toUpperCase())
+                                  }
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault()
+                                      void applyDiscountCode()
+                                      return
+                                    }
+                                    if (event.key === 'Escape') {
+                                      event.preventDefault()
+                                      clearDiscountCode()
+                                    }
+                                  }}
+                                />
+                                <CodeScanButton
+                                  disabled={checkoutLocked || discountChecking}
+                                  onScan={(scanned) => {
+                                    setDiscountCodeInput(scanned)
+                                    void applyDiscountCode(scanned)
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="code-band__chip"
+                                  disabled={
+                                    checkoutLocked || discountChecking || !discountCodeInput.trim()
+                                  }
+                                  onClick={applyDiscountCode}
+                                >
+                                  {discountChecking
+                                    ? t('account.membership.discountChecking')
+                                    : t('account.membership.discountApply')}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="code-band-hint">{t('account.membership.discountHint')}</p>
+                          {discountError ? (
+                            <p className="code-band-error" role="alert">
+                              {discountError}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="code-band-toggle account-discount__toggle"
+                          disabled={checkoutLocked}
+                          onClick={openDiscountField}
+                        >
+                          <span className="code-band-toggle__seal" aria-hidden>
+                            <KeyRound size={13} />
+                          </span>
+                          {t('account.membership.discountToggle')}
+                        </button>
+                      )}
+                    </MotionContentSwap>
                   )}
                 </div>
               ) : null}

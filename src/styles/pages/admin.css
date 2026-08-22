@@ -2828,6 +2828,7 @@
 
 .admin-event-form__field.is-invalid input,
 .admin-event-form__field.is-invalid select,
+.admin-event-form__field.is-invalid textarea,
 .admin-event-form__rate-card.is-invalid input {
   border-color: color-mix(in oklab, #e35d5d 55%, var(--color-border-subtle));
 }
@@ -2979,7 +2980,8 @@
   }
 
   .admin-event-form input:not([type='checkbox']),
-  .admin-event-form select {
+  .admin-event-form select,
+  .admin-event-form textarea {
     min-height: 44px;
   }
 
@@ -3684,7 +3686,8 @@
 }
 
 .admin-event-form input:not([type='checkbox']),
-.admin-event-form select {
+.admin-event-form select,
+.admin-event-form textarea {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
@@ -3701,14 +3704,25 @@
   width: 100%;
 }
 
+/* La descripción es multilinea: hereda la paleta del input pero con el ritmo
+   de lectura de un textarea (antes quedaba con el default del navegador). */
+.admin-event-form textarea {
+  line-height: 1.55;
+  min-height: 104px;
+  padding: 9px 11px;
+  resize: vertical;
+}
+
 .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
-.admin-event-form select:hover:not(:disabled) {
+.admin-event-form select:hover:not(:disabled),
+.admin-event-form textarea:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.18);
 }
 
 .admin-event-form input:not([type='checkbox']):focus,
-.admin-event-form select:focus {
+.admin-event-form select:focus,
+.admin-event-form textarea:focus {
   background: rgba(116, 172, 223, 0.04);
   border-color: rgba(116, 172, 223, 0.5);
   box-shadow: 0 0 0 3px rgba(116, 172, 223, 0.12);
@@ -3716,24 +3730,28 @@
 }
 
 .admin-event-form input:disabled,
-.admin-event-form select:disabled {
+.admin-event-form select:disabled,
+.admin-event-form textarea:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 [data-theme='light'] .admin-event-form input:not([type='checkbox']),
-[data-theme='light'] .admin-event-form select {
+[data-theme='light'] .admin-event-form select,
+[data-theme='light'] .admin-event-form textarea {
   background: #fff;
   border-color: rgba(15, 17, 23, 0.12);
 }
 
 [data-theme='light'] .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
-[data-theme='light'] .admin-event-form select:hover:not(:disabled) {
+[data-theme='light'] .admin-event-form select:hover:not(:disabled),
+[data-theme='light'] .admin-event-form textarea:hover:not(:disabled) {
   border-color: rgba(15, 17, 23, 0.22);
 }
 
 [data-theme='light'] .admin-event-form input:not([type='checkbox']):focus,
-[data-theme='light'] .admin-event-form select:focus {
+[data-theme='light'] .admin-event-form select:focus,
+[data-theme='light'] .admin-event-form textarea:focus {
   background: rgba(116, 172, 223, 0.04);
   border-color: rgba(116, 172, 223, 0.5);
 }
@@ -3951,14 +3969,8 @@
   color: var(--admin-status-success);
 }
 
-.admin-event-preview--panel {
-  border-radius: 0;
-  border-bottom: none;
-  border-left: 1px solid var(--color-border-subtle);
-  border-right: none;
-  border-top: none;
-  min-height: 100%;
-}
+/* (Retirado el wrapper del panel lateral: la consola del evento vive en el
+   modal .admin-event-console-modal, admin-event-console.css §6.) */
 
 .admin-event-preview__head {
   align-items: center;
@@ -4544,22 +4556,6 @@
   background: rgba(15, 17, 23, 0.08);
 }
 
-.admin-event-preview--panel .admin-event-preview__head {
-  align-items: flex-start;
-  background: transparent;
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 0;
-  color: var(--admin-muted, var(--color-text-muted));
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 16px;
-  justify-content: space-between;
-  letter-spacing: 0;
-  margin: 0;
-  padding: 16px var(--admin-events-gutter, 18px) 14px;
-  text-transform: none;
-}
-
 .admin-event-preview__title-row {
   align-items: center;
   display: flex;
@@ -4629,25 +4625,10 @@
   transition: transform var(--motion-fast, 0.16s) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-.admin-event-preview--panel.is-expanded .admin-event-preview__expand-icon {
-  transform: rotate(180deg);
-}
-
 .admin-event-preview__detail {
   display: grid;
   gap: 18px;
   min-width: 0;
-}
-
-.admin-event-preview--panel {
-  background: transparent;
-  border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  gap: 0;
-  padding: 0 0 18px;
-}
-
-.admin-event-preview--panel .admin-event-preview__label {
-  display: none;
 }
 
 .admin-event-preview__command-bar {
@@ -4708,98 +4689,11 @@
   margin-left: auto;
 }
 
-.admin-event-preview--panel .admin-event-preview__card {
-  background: var(--admin-surface-raised, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 14px;
-  box-shadow: var(--admin-shadow-soft, none);
-  overflow: hidden;
-  padding: 4px;
-}
-
-.admin-event-preview--panel .admin-event-preview__card .event-card {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  margin: 0;
-}
-
-.admin-event-preview--panel .admin-event-preview__footer {
-  display: grid;
-  gap: 12px;
-}
-
-.admin-event-preview--panel .admin-event-preview--embedded .admin-event-preview__meta,
-.admin-event-preview--panel .admin-event-preview--embedded .admin-event-preview__capacity {
-  background: var(--admin-surface-raised, transparent);
-  border-color: var(--admin-hairline, var(--color-border-subtle));
-}
-
-.admin-event-preview--panel .admin-event-ticket-insights,
-.admin-event-preview--panel .admin-event-addon-report {
-  margin-top: 0;
-}
-
-@media (min-width: 900px) {
-  @container admin-panel (min-width: 900px) {
-    .admin-events-workspace:has(.admin-event-preview--panel) {
-      grid-template-columns: minmax(0, 1fr) clamp(288px, 26vw, 340px);
-    }
-
-    .admin-event-preview--panel {
-      align-self: start;
-      border-bottom: none;
-      border-right: none;
-      border-top: none;
-      max-height: calc(100vh - var(--header-height) - 48px);
-      overflow: auto;
-      position: sticky;
-      top: calc(var(--header-height) + 12px);
-    }
-
-    .admin-event-preview__expand-toggle {
-      display: none;
-    }
-
-    .admin-event-preview__selected-title {
-      display: block;
-    }
-
-    .admin-events-workspace__main .admin-event-list {
-      max-height: min(68vh, 720px);
-      overflow: auto;
-      overscroll-behavior: contain;
-      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-      scrollbar-width: thin;
-    }
-  }
-}
-
-@container admin-panel (max-width: 899px) {
-  .admin-events-workspace:has(.admin-event-preview--panel) {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-event-preview--panel {
-    background: transparent;
-    border-left: none;
-    border-top: 1px solid var(--color-border-subtle);
-    max-height: none;
-    position: static;
-  }
-
-  .admin-event-preview__expand-toggle {
-    display: inline-flex;
-  }
-
-  .admin-event-preview__detail {
-    display: none;
-  }
-
-  .admin-event-preview--panel.is-expanded .admin-event-preview__detail {
-    display: grid;
-  }
-}
+/* El split de dos columnas fue retirado con el panel lateral: la lista ocupa
+   el ancho completo y la consola se abre como modal (admin-event-console.css).
+   Los refinamientos del preview embebido, las métricas de entradas y el
+   reporte de adicionales viven ahora bajo .admin-event-console-modal en
+   admin-minimal.css. */
 
 @media (max-width: 959px) {
   .admin-event-editor {
@@ -6516,7 +6410,12 @@
   white-space: nowrap;
 }
 
-.admin-filters label:not(.admin-filters__select) {
+/* `:not(.admin-filters__select)` no excluía nada -- esa clase vive en el
+   DIV contenedor, no en este `<label>` (que lleva `admin-filters__select-label`),
+   así que el label de un filtro `select` (ej. Gimnasio) heredaba el mismo
+   tratamiento de tarjeta que el buscador y quedaba como una caja vacía de
+   220px flotando sobre el pill real. */
+.admin-filters label:not(.admin-filters__select-label) {
   align-items: center;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
@@ -6530,7 +6429,7 @@
   transition: border-color var(--transition-fast);
 }
 
-.admin-filters label:not(.admin-filters__select):focus-within {
+.admin-filters label:not(.admin-filters__select-label):focus-within {
   border-color: var(--color-border-light);
 }
 
@@ -8447,6 +8346,41 @@
   color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.admin-status-dialog__hint {
+  color: var(--color-text-secondary);
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: var(--space-xs);
+}
+
+.payment-recovery-action__lookup {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  width: min(100%, 440px);
+}
+
+.payment-recovery-action__lookup label {
+  color: var(--color-text-secondary);
+  display: grid;
+  flex: 1 1 220px;
+  font-size: 12px;
+  gap: var(--space-2xs);
+}
+
+.payment-recovery-action__lookup input {
+  min-height: 40px;
+}
+
+.payment-recovery-action__lookup small {
+  color: var(--color-text-secondary);
+  flex-basis: 100%;
+  font-size: 12px;
 }
 
 .admin-status-dialog__field {
@@ -11331,67 +11265,12 @@
   padding: 0 12px;
 }
 
-.admin-filters--registrations .admin-filters__groups,
-.admin-filters--registrations .admin-filters__groups--multi {
-  align-items: center;
-  display: flex;
-  flex: none;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 8px 10px;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  width: 100%;
-  -webkit-overflow-scrolling: touch;
-}
-
-.admin-filters--registrations .admin-filters__groups::-webkit-scrollbar,
-.admin-filters--registrations .admin-filters__groups--multi::-webkit-scrollbar {
-  display: none;
-}
-
-.admin-filters--registrations .admin-filters__groups--multi .admin-filter-group,
-.admin-filters--registrations .admin-filter-group--inline {
-  align-items: center;
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: row;
-  gap: 8px;
-  min-width: 0;
-  width: auto;
-}
-
-.admin-filters--registrations .admin-filter-group__label {
-  display: none;
-}
-
-.admin-filters--registrations .admin-filter-chips {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  margin: 0;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding: 2px 0 4px;
-  scrollbar-width: none;
-  width: 100%;
-  -webkit-overflow-scrolling: touch;
-}
-
-.admin-filters--registrations .admin-filter-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.admin-filters--registrations .admin-filter-chip {
-  flex: none;
-  font-size: 12px;
-  min-height: 32px;
-  padding: 6px 11px;
-}
+/* Grupos, labels y chips de Inscripciones ya NO tienen tratamiento propio --
+   forzaban una sola fila sin labels (`display:none` en `.admin-filter-group__label`),
+   que con 3 facetas (Evento/Estado/Afiliación) se leía como "Todos Todos Todos"
+   sin forma de saber a qué grupo pertenecía cada chip. Heredan el mismo
+   layout apilado con label que ya usan Atletas y Afiliaciones -- misma
+   familia visual en las tres pantallas, ver AdminFilterBar.jsx. */
 
 @media (max-width: 720px) {
   .admin-filters--registrations.admin-filters--inline.admin-filters--compact {
@@ -11407,25 +11286,6 @@
   .admin-filters--registrations .admin-filters__actions .export-btn {
     min-height: 44px;
   }
-
-  .admin-filters--registrations .admin-filter-chips {
-    flex-wrap: nowrap;
-    margin: 0;
-    overflow-x: auto;
-    padding: 2px 0 4px;
-  }
-
-  .admin-filters--registrations .admin-filter-chip {
-    font-size: 11px;
-    min-height: 40px;
-    padding: 4px 10px;
-  }
-}
-
-.admin-filters--registrations .admin-filter-chip__count {
-  font-size: 11px;
-  min-width: 0;
-  padding: 0;
 }
 
 .admin-list-shell--registrations .data-table--admin table {
@@ -16600,62 +16460,9 @@ button.action-queue__proof:focus-visible {
    A ese ancho el panel es ~280px; 3-col tarjetas quedarían de ~79px cada una.
    Usamos 1-col con layout flex horizontal (etiqueta izq. | valor der.).
    Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
-@media (min-width: 960px) {
-  .admin-event-preview--panel .admin-event-ticket-insights__metrics {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__metric {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    padding: 8px 10px 8px 12px;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__metric dt {
-    flex: 1 1 auto;
-    font-size: 9px;
-    min-width: 0;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__metric dd {
-    flex: 0 0 auto;
-    margin-left: auto;
-    text-align: right;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__value {
-    font-size: 15px;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__sub {
-    font-size: 9px;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown li {
-    align-items: center;
-    border-left: none;
-    border-top: 1px solid var(--color-border-subtle);
-    flex-direction: row;
-    font-size: 10.5px;
-    justify-content: space-between;
-    padding: 7px 10px;
-    text-align: left;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown li:first-child {
-    border-top: none;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown strong {
-    font-size: 12.5px;
-  }
-}
+/* (Retirado: ticket insights compacto del panel lateral. La consola vive en
+   el modal y sus métricas están bajo .admin-event-console-modal en
+   admin-minimal.css.) */
 
 .admin-event-addon-report {
   border-top: 1px solid var(--color-border-subtle);
@@ -17853,31 +17660,8 @@ button.action-queue__proof:focus-visible {
   overflow: visible;
 }
 
-@media (min-width: 901px) {
-  @container admin-panel (min-width: 900px) {
-    .admin-events-workspace:has(.admin-event-preview--panel) {
-      grid-template-columns: minmax(320px, 1.05fr) minmax(300px, 0.95fr);
-      height: min(820px, calc(100dvh - 168px));
-    }
-
-    .admin-events-workspace__main {
-      border-right: 1px solid var(--admin-hairline, var(--color-border-subtle));
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow-y: auto;
-      scrollbar-width: thin;
-    }
-
-    .admin-event-preview--panel {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow-y: auto;
-      scrollbar-width: thin;
-    }
-  }
-}
+/* El scroll interno de las columnas del split fue retirado con el panel:
+   la lista scrollea con la página y el modal tiene su propio scroll. */
 
 .admin-event-preview__command-bar {
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -19361,12 +19145,19 @@ button.action-queue__proof:focus-visible {
 /* ── Barra de filtros — pills + popover (AdminFilterBar layout="popover") ──
    Search + una fila de pills que abren un popover con el control real
    (chips, combobox con búsqueda o rango de fechas) en vez del panel
-   apilado. Ver AdminFilterPillRow.jsx — hoy solo la usa Atletas. */
+   apilado. Ver AdminFilterPillRow.jsx — ninguna pantalla la usa hoy
+   (Atletas volvió al layout apilado, igual que Afiliaciones/Inscripciones);
+   queda disponible para una sección con muchos filtros que lo necesite. */
 
+/* Transparente, sin caja propia -- misma idea que ya usa el layout
+   apilado (`.admin-filters--registrations`/`--inline`, más abajo en el
+   archivo): un hairline inferior en vez de una tarjeta rellena, para que
+   los tres patrones de filtro (panel único, chips siempre visibles, pills)
+   se sientan de la misma familia en vez de uno destacándose con más peso
+   visual que el resto. */
 .admin-filter-popoverbar {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
+  background: transparent;
+  border-bottom: 1px solid var(--color-border-subtle);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -19675,13 +19466,9 @@ button.action-queue__proof:focus-visible {
    Search + un solo botón "Filtros" que abre un panel con todos los grupos
    juntos, en vez de un pill por filtro (ver AdminFilterPillRow arriba). Lo
    aplicado queda como chips removibles debajo del buscador, visibles aunque
-   el panel esté cerrado. Ver AdminFilterPanel.jsx -- hoy solo Atletas. */
-
-.admin-filter-panel-anchor {
-  display: inline-flex;
-  flex: none;
-  position: relative;
-}
+   el panel esté cerrado. Ver AdminFilterPanel.jsx -- ninguna pantalla la usa
+   hoy (Atletas volvió al layout apilado); queda para una sección con más
+   filtros de los que entran cómodos siempre a la vista. */
 
 .admin-filter-panel-trigger {
   align-items: center;
@@ -19691,6 +19478,7 @@ button.action-queue__proof:focus-visible {
   color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
+  flex: none;
   font-family: var(--font-family);
   font-size: 13px;
   font-weight: 600;
@@ -19752,24 +19540,44 @@ button.action-queue__proof:focus-visible {
   transform: rotate(180deg);
 }
 
+/* En flujo normal, no `position: absolute`: la tarjeta entera (.admin-filter-popoverbar)
+   crece hacia abajo cuando el panel se abre, en vez de un dropdown flotando
+   sobre lo que sigue debajo (la tabla). Los márgenes negativos cancelan el
+   padding de la tarjeta para que el panel llegue a sus bordes -- `overflow:
+   hidden` en `.admin-filters--panel .admin-filter-popoverbar` (abajo) es lo
+   que deja que sus esquinas inferiores respeten el radio de la tarjeta. */
 .admin-filter-panel {
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--elevation-lg);
-  left: 0;
-  max-width: min(620px, 92vw);
-  padding: 18px;
-  position: absolute;
-  top: calc(100% + 9px);
-  width: max-content;
-  z-index: var(--z-dropdown);
+  animation: admin-filter-panel-open 200ms var(--ease-out, ease) both;
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 0 -20px -18px;
+  padding: 22px 20px;
+}
+
+@keyframes admin-filter-panel-open {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-filter-panel {
+    animation: none;
+  }
+}
+
+.admin-filters--panel .admin-filter-popoverbar {
+  overflow: hidden;
 }
 
 .admin-filter-panel__grid {
   display: grid;
   gap: 20px 28px;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
 }
 
 .admin-filter-panel__field {
@@ -19777,6 +19585,15 @@ button.action-queue__proof:focus-visible {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+}
+
+/* El combobox buscable (ej. Gimnasio) es mucho más alto que un chip group o
+   un rango de fechas -- sin esto, al compartir fila de grid con campos
+   cortos, esos campos se estiran (align-items: stretch) hasta su altura y
+   dejan un hueco vacío debajo. Ocupar 2 filas deja que cada fila corta mida
+   según su propio contenido. */
+.admin-filter-panel__field--select {
+  grid-row: span 2;
 }
 
 .admin-filter-panel__field-label {
@@ -19924,14 +19741,11 @@ button.action-queue__proof:focus-visible {
     padding: 0 14px;
   }
 
-  .admin-filter-panel {
-    left: auto;
-    max-width: min(340px, calc(100vw - 40px));
-    right: 0;
-  }
-
   .admin-filter-panel__grid {
     grid-template-columns: 1fr;
   }
-}
 
+  .admin-filter-panel__field--select {
+    grid-row: auto;
+  }
+}

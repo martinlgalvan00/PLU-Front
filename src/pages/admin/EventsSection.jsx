@@ -2,38 +2,24 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
-  ArrowUp,
   CalendarDays,
-  ChevronDown,
-  ChevronRight,
-  ClipboardList,
-  CreditCard,
   EyeOff,
-  Layers,
   MapPin,
-  Pencil,
   Plus,
   RefreshCw,
-  ScanLine,
-  ShieldCheck,
   Star,
-  Ticket,
-  Trash2,
   Unlock,
   Users,
 } from 'lucide-react'
-import AdminCopyLinkMenu from '../../components/admin/AdminCopyLinkMenu.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
-import AdminEventEditor, {
-  AdminEventLivePreview,
-} from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventConsoleModal, {
+  formatEventVenueLine,
+} from '../../components/admin/AdminEventConsoleModal.jsx'
+import AdminEventEditor from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
 import AdminEventSessionsEditor from '../../components/admin/AdminEventSessionsEditor.jsx'
-import AdminEventStateControl from '../../components/admin/AdminEventStateControl.jsx'
 import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
-import AdminEventTicketAddonReport from '../../components/admin/AdminEventTicketAddonReport.jsx'
-import AdminEventTicketInsights from '../../components/admin/AdminEventTicketInsights.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -43,10 +29,7 @@ import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getEventsTourSteps } from '../../lib/adminTourSteps.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
-import { buildEventPagePath } from '../../lib/eventPageRoute.js'
-import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { getStatusMeta } from '../../lib/status.js'
-import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
   buildAdminEventDraft,
@@ -54,27 +37,8 @@ import {
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
 
-function countGridColumns(value) {
-  return String(value || '')
-    .replace(/minmax\([^)]*\)/g, 'minmax')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length
-}
-
 function isFinishedEvent(event) {
   return event?.status === 'finalizado'
-}
-
-function formatEventVenueLine(venue, location) {
-  const parts = [venue, location].map((value) => String(value ?? '').trim()).filter(Boolean)
-  if (
-    parts.length === 2 &&
-    parts[0].localeCompare(parts[1], undefined, { sensitivity: 'accent' }) === 0
-  ) {
-    return parts[0]
-  }
-  return parts.join(', ')
 }
 
 function sortByDate(list, direction) {
@@ -95,7 +59,7 @@ function groupByMonthKey(list) {
   return byMonth
 }
 
-function EventListRow({ row, selected, canEdit, links, locale, onSelect, onEdit, t }) {
+function EventListRow({ row, selected, locale, onSelect, t }) {
   const rawFill = row.slots > 0 ? Math.round((row.registered / row.slots) * 100) : 0
   const fill = Math.min(rawFill, 100)
   const capacityTone = rawFill >= 100 ? 'full' : rawFill >= 80 ? 'high' : 'available'
@@ -247,6 +211,8 @@ export default function EventsSection({
   // Alta rápida y editor completo son dos superficies distintas: crear no pide
   // las mismas decisiones que editar (ver AdminEventQuickCreate).
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  /** Consola del evento seleccionado, abierta como modal al tocar la fila. */
+  const [consoleOpen, setConsoleOpen] = useState(false)
   /**
    * Vista de la consola del evento. La configuración que se guarda sola --
    * grilla y zonas -- se abre acá, a ancho completo y sin modal: el editor
@@ -257,7 +223,6 @@ export default function EventsSection({
   const [zonesReloadToken, setZonesReloadToken] = useState(0)
   const [draft, setDraft] = useState(createAdminEventDraft)
   const [editorFocus, setEditorFocus] = useState('details')
-  const [previewExpanded, setPreviewExpanded] = useState(false)
   const [message, setMessage] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [deleteImpact, setDeleteImpact] = useState(null)
@@ -267,40 +232,27 @@ export default function EventsSection({
   // Slug del diálogo abierto: el impacto llega por red y no puede pisar el
   // estado si mientras tanto se cerró o se abrió el de otro evento.
   const deleteTargetRef = useRef(null)
-  const previewRef = useRef(null)
-  const pendingPreviewScrollRef = useRef(false)
 
   function handleSelectEvent(id) {
-    if (id !== selectedId) pendingPreviewScrollRef.current = true
     setSelectedId(id)
+    setConsoleOpen(true)
+  }
+
+  function closeEventConsole() {
+    setConsoleOpen(false)
+  }
+
+  /** Grilla y zonas reemplazan al listado: la consola se cierra para dejar
+   *  el ancho completo a la tabla de operación. */
+  function openDrillFromConsole(view) {
+    setConsoleOpen(false)
+    setConsoleView(view)
   }
 
   useEffect(() => {
-    setPreviewExpanded(false)
     // Cambiar de evento vuelve a la lista: quedarse en "Zonas" mostrando otro
     // meet es la forma más rápida de asignar gente al operativo equivocado.
     setConsoleView('list')
-  }, [selectedId])
-
-  function handleBackToList() {
-    const listNode = document.querySelector('.admin-events-workspace__main')
-    if (listNode) {
-      listNode.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }
-
-  useEffect(() => {
-    if (!pendingPreviewScrollRef.current) return
-    pendingPreviewScrollRef.current = false
-    const node = previewRef.current
-    if (!node) return
-    const workspace = node.parentElement
-    const columnCount = workspace
-      ? countGridColumns(getComputedStyle(workspace).gridTemplateColumns)
-      : 1
-    if (columnCount >= 2) return
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' })
   }, [selectedId])
 
   useEffect(() => {
@@ -374,8 +326,6 @@ export default function EventsSection({
   }, [locale, rows, t])
 
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
-  const activeTicketTypeCount =
-    selectedEvent?.ticketTypes?.filter((ticketType) => ticketType.active !== false).length ?? 0
   const editingSource = draft.id
     ? (adminEvents.find((event) => event.id === draft.id) ?? selectedEvent)
     : null
@@ -441,6 +391,7 @@ export default function EventsSection({
     setQuickCreateOpen(false)
     if (saved?.event?.id) setSelectedId(saved.event.id)
     setConsoleView('list')
+    setConsoleOpen(true)
     setMessage({ tone: 'success', text: t('admin.sections.events.created') })
     return saved
   }
@@ -521,28 +472,6 @@ export default function EventsSection({
     }
   }
 
-  function buildEventLinks(row) {
-    if (!row?.slug) return []
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    return [
-      {
-        id: 'public',
-        label: t('admin.copyLinkMenu.public'),
-        url: `${origin}${buildEventPagePath(row.slug)}`,
-      },
-      {
-        id: 'tickets',
-        label: t('admin.copyLinkMenu.tickets'),
-        url: `${origin}${TICKETS_PATH}?evento=${encodeURIComponent(row.slug)}`,
-      },
-      {
-        id: 'security',
-        label: t('admin.copyLinkMenu.security'),
-        url: `${origin}${buildSecurityGatePath(row.slug)}`,
-      },
-    ]
-  }
-
   function renderEventGroup(group) {
     const isFinishedGroup = group.tone === 'finished'
     return (
@@ -562,11 +491,8 @@ export default function EventsSection({
               key={row.id}
               row={row}
               selected={row.id === selectedEvent?.id}
-              canEdit={canEdit}
-              links={buildEventLinks(row)}
               locale={locale}
               onSelect={handleSelectEvent}
-              onEdit={openEditForm}
               t={t}
             />
           ))}
@@ -738,247 +664,62 @@ export default function EventsSection({
           ) : null}
         </div>
       ) : (
-      <div className="admin-events-workspace">
-        <div className="admin-events-workspace__main">
-          {isLoading && adminEvents.length === 0 ? (
-            <div className="admin-events__loading" role="status">
-              <span className="plu-spinner plu-spinner--lg" aria-hidden="true" />
-              <p>{t('admin.sections.events.loading')}</p>
-            </div>
-          ) : rows.length === 0 ? (
-            <div className="data-table__empty-wrap data-table__empty-wrap--admin">
-              <span className="data-table__empty-icon" aria-hidden>
-                <CalendarDays size={20} strokeWidth={1.5} />
-              </span>
-              <p className="data-table__empty data-table__empty--admin admin-event-list__empty">
-                {t('admin.sections.events.empty')}
-              </p>
-              {canEdit && adminEvents.length === 0 ? (
-                <Button
-                  type="button"
-                  variant="gold"
-                  className="btn--small"
-                  onClick={openCreateForm}
-                >
-                  <Plus size={14} aria-hidden />
-                  {t('admin.sections.events.createFirst')}
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
-              {eventGroups.map(renderEventGroup)}
-            </ul>
-          )}
-        </div>
-
-        {selectedEvent && (
-          <aside
-            ref={previewRef}
-            className={[
-              'admin-event-preview',
-              'admin-event-preview--panel',
-              previewExpanded ? 'is-expanded' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            aria-label={t('admin.sections.events.panelLabel')}
-          >
-            <div className="admin-event-preview__head">
-              <button
-                type="button"
-                className="admin-event-preview__back-btn"
-                onClick={handleBackToList}
-                aria-label={t('admin.sections.events.backToList', 'Volver a la lista')}
-              >
-                <ArrowUp size={16} aria-hidden />
-              </button>
-              <div className="admin-event-preview__head-copy">
-                <div className="admin-event-preview__title-row">
-                  <p className="admin-event-preview__selected-title">{selectedEvent.title}</p>
-                  <StatusPill value={selectedEvent.status} />
-                </div>
-                {(selectedDateLabel || selectedVenueLine) && (
-                  <p className="admin-event-preview__meta-line">
-                    {selectedDateLabel ? <span>{selectedDateLabel}</span> : null}
-                    {selectedDateLabel && selectedVenueLine ? (
-                      <span className="admin-event-preview__meta-sep" aria-hidden>
-                        ·
-                      </span>
-                    ) : null}
-                    {selectedVenueLine ? <span>{selectedVenueLine}</span> : null}
-                  </p>
-                )}
+        <div className="admin-events-workspace">
+          <div className="admin-events-workspace__main">
+            {isLoading && adminEvents.length === 0 ? (
+              <div className="admin-events__loading" role="status">
+                <span className="plu-spinner plu-spinner--lg" aria-hidden="true" />
+                <p>{t('admin.sections.events.loading')}</p>
               </div>
-              <div className="admin-event-preview__head-actions">
-                <AdminCopyLinkMenu links={buildEventLinks(selectedEvent)} />
-                {canEdit ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="btn--small admin-event-preview__edit-btn"
-                      onClick={() => openEditForm(selectedEvent)}
-                    >
-                      <Pencil size={14} aria-hidden />
-                      {t('admin.sections.events.editEvent')}
-                    </Button>
-                  </>
-                ) : null}
-                {canDeleteEvents && onDeleteEvent ? (
-                  <AdminIconButton
-                    icon={Trash2}
-                    label={t('admin.sections.events.delete.action')}
-                    onClick={() => openDeleteDialog(selectedEvent)}
-                    variant="danger"
-                  />
-                ) : null}
-              </div>
-            </div>
-
-            {/* Abrir, cerrar y publicar son la operación diaria del evento:
-                van antes que los accesos a entradas y pagos, y sin pasar por
-                el editor -- que reescribe días y tipos de entrada enteros. */}
-            {onSetEventState ? (
-              <AdminEventStateControl
-                canEdit={canEdit}
-                event={selectedEvent}
-                onSetState={onSetEventState}
-              />
-            ) : null}
-
-            {/* Configuración y actividad del evento como filas, no como bento de
-                cards: cada una abre su sección: la que se guarda sola (grilla,
-                zonas) acá mismo a ancho completo, y la que vive en otra parte
-                del panel (inscripciones, pagos, check-in) en su sección.
-
-                Antes las tres primeras eran pestañas del editor, que reescribe
-                el evento entero al guardar: agregar una tanda o mover a alguien
-                de zona costaba recrear días, tandas y tipos de entrada de un
-                evento que podía tener atletas ya asignados. */}
-            <div className="admin-event-console__sections">
-              <span className="admin-event-console__group-label">
-                {t('admin.eventConsole.configLabel')}
-              </span>
-
-              {canEdit ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => openEditForm(selectedEvent, 'tickets')}
-                >
-                  <Ticket size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.tickets')}</strong>
-                  <em>
-                    {t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount })}
-                  </em>
-                  <ChevronRight size={14} aria-hidden />
-                </button>
-              ) : null}
-
-              <button
-                type="button"
-                className="admin-event-console__row"
-                onClick={() => setConsoleView('structure')}
-              >
-                <Layers size={17} aria-hidden />
-                <strong>{t('admin.eventConsole.structure')}</strong>
-                <em>
-                  {t('admin.eventConsole.structureValue', {
-                    count: selectedEvent.eventDays?.length ?? 0,
-                  })}
-                </em>
-                <ChevronRight size={14} aria-hidden />
-              </button>
-
-              {canManageUsers ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => setConsoleView('zones')}
-                >
-                  <ShieldCheck size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.zones')}</strong>
-                  <em>{t('admin.eventConsole.zonesValue')}</em>
-                  <ChevronRight size={14} aria-hidden />
-                </button>
-              ) : null}
-
-              {onManageRegistrations || onManagePayments || onManageCheckin ? (
-                <span className="admin-event-console__group-label">
-                  {t('admin.eventConsole.activityLabel')}
+            ) : rows.length === 0 ? (
+              <div className="data-table__empty-wrap data-table__empty-wrap--admin">
+                <span className="data-table__empty-icon" aria-hidden>
+                  <CalendarDays size={20} strokeWidth={1.5} />
                 </span>
-              ) : null}
-
-              {onManageRegistrations ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => onManageRegistrations(selectedEvent)}
-                >
-                  <ClipboardList size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.registrations')}</strong>
-                  <em>
-                    {t('admin.eventConsole.registrationsValue', {
-                      count: selectedEvent.registered ?? 0,
-                      slots: selectedEvent.slots ?? 0,
-                    })}
-                  </em>
-                  <ChevronRight size={14} aria-hidden />
-                </button>
-              ) : null}
-
-              {onManagePayments ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => onManagePayments(selectedEvent)}
-                >
-                  <CreditCard size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.payments')}</strong>
-                  <ChevronRight size={14} aria-hidden />
-                </button>
-              ) : null}
-
-              {onManageCheckin ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => onManageCheckin(selectedEvent)}
-                >
-                  <ScanLine size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.checkin')}</strong>
-                  <ChevronRight size={14} aria-hidden />
-                </button>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              className="admin-event-preview__expand-toggle"
-              aria-expanded={previewExpanded}
-              onClick={() => setPreviewExpanded((current) => !current)}
-            >
-              <span>
-                {previewExpanded
-                  ? t('admin.sections.events.previewHide')
-                  : t('admin.sections.events.previewShow')}
-              </span>
-              <ChevronDown size={14} aria-hidden className="admin-event-preview__expand-icon" />
-            </button>
-
-            <div className="admin-event-preview__detail">
-              <p className="admin-event-preview__detail-label">
-                {t('admin.sections.events.publicPreviewLabel')}
-              </p>
-              <AdminEventLivePreview embedded draft={selectedEvent} sourceEvent={selectedEvent} />
-              <AdminEventTicketInsights event={selectedEvent} tickets={tickets} />
-              <AdminEventTicketAddonReport event={selectedEvent} tickets={tickets} />
-            </div>
-          </aside>
-        )}
-      </div>
+                <p className="data-table__empty data-table__empty--admin admin-event-list__empty">
+                  {t('admin.sections.events.empty')}
+                </p>
+                {canEdit && adminEvents.length === 0 ? (
+                  <Button
+                    type="button"
+                    variant="gold"
+                    className="btn--small"
+                    onClick={openCreateForm}
+                  >
+                    <Plus size={14} aria-hidden />
+                    {t('admin.sections.events.createFirst')}
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <ul className="admin-event-list" aria-label={t('admin.columns.event')}>
+                {eventGroups.map(renderEventGroup)}
+              </ul>
+            )}
+          </div>
+        </div>
       )}
+
+      {/* La consola del evento se abre al tocar la fila: el listado es la
+          única superficie de la sección y respira a ancho completo. Editar y
+          borrar se abren encima de la consola, no en lugar de ella. */}
+      <AdminEventConsoleModal
+        canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
+        canEdit={canEdit}
+        canManageUsers={canManageUsers}
+        event={selectedEvent}
+        open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent)}
+        tickets={tickets}
+        onClose={closeEventConsole}
+        onDelete={openDeleteDialog}
+        onEdit={openEditForm}
+        onManageCheckin={onManageCheckin}
+        onManagePayments={onManagePayments}
+        onManageRegistrations={onManageRegistrations}
+        onOpenStructure={() => openDrillFromConsole('structure')}
+        onOpenZones={() => openDrillFromConsole('zones')}
+        onSetEventState={onSetEventState}
+      />
 
       {quickCreateOpen ? (
         <AdminEventQuickCreate

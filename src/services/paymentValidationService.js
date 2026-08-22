@@ -63,6 +63,18 @@ export function canValidateManualOrder(order) {
 }
 
 /**
+ * Órdenes que el flujo normal de validación ya no puede tocar pero todavía
+ * tienen arreglo: un cobro de Mercado Pago que quedó rechazado o cancelado, o
+ * una transferencia rechazada cuyo dinero terminó entrando igual. Son las
+ * candidatas a acreditación manual — mismo criterio en Finanzas, Inscripciones
+ * y Afiliaciones, para no ofrecer el botón donde el backend lo va a negar.
+ */
+export function canForceSettleOrder(order) {
+  if (!order || order.status === 'aprobado') return false
+  return order.method === 'mercado_pago' || order.status === 'rechazado'
+}
+
+/**
  * Con el interruptor de validación del concepto apagado no se acredita ni se
  * rechaza esa orden. El combo pesa en los dos: acredita afiliación e
  * inscripción en la misma transacción, así que alcanza uno congelado.

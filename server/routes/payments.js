@@ -177,6 +177,11 @@ const revalidationSweepSchema = z.object({
 
 const revalidateOrderSchema = z.object({
   apply: z.boolean().optional().default(true),
+  // El número de operación que muestra Mercado Pago permite diagnosticar una
+  // orden puntual incluso si el webhook nunca llegó a crear un intento local.
+  // Sigue siendo sólo una pista: el workflow verifica referencia, monto y
+  // moneda contra la orden antes de aplicar cualquier cambio.
+  providerPaymentId: z.coerce.string().trim().regex(/^\d+$/).optional(),
 })
 
 const mockNotifySchema = z.object({
@@ -713,6 +718,7 @@ export function createPaymentRoutes(deps = {}) {
         const result = await revalidatePaymentOrder(orderId, {
           ...services({ notifications: true }),
           apply: req.validatedBody.apply,
+          providerPaymentId: req.validatedBody.providerPaymentId,
           actor: `${req.auth.user.id}:${req.auth.user.email}`,
         })
         res.json(result)

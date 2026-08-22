@@ -58,11 +58,12 @@ function providerPayment(overrides = {}) {
   }
 }
 
-function createRepositoryDouble(order, { onApply } = {}) {
+function createRepositoryDouble(order, { onApply, attempts = [] } = {}) {
   const applied = []
   return {
     applied,
     getOrder: async () => order,
+    listOrderPayments: async () => attempts,
     applyPayment: async (payment) => {
       applied.push(payment)
       const result = onApply?.(payment) ?? {
@@ -160,6 +161,46 @@ describe('revalidatePaymentOrder', () => {
       amount: 85000,
       orderKind: 'athlete',
     })
+  })
+
+  it('relee por ID un intento ya conocido si la búsqueda por referencia vuelve vacía', async () => {
+    const order = baseOrder({ status: 'rechazado' })
+    const repository = createRepositoryDouble(order, {
+      attempts: [{ external_payment_id: 'mp-1', status: 'rechazado' }],
+      onApply: (payment) => ({ order: { ...order, status: 'aprobado' }, payment }),
+    })
+    const mercadoPago = {
+      searchPaymentsForOrder: async () => [],
+      getPayment: async (id) => (id === 'mp-1' ? providerPayment() : null),
+    }
+
+    const result = await revalidatePaymentOrder(ORDER_ID, { repository, mercadoPago })
+
+    expect(result.outcome).toBe('corrected')
+    expect(result.providerStatus).toBe('aprobado')
+    expect(repository.applied[0]).toMatchObject({ externalPaymentId: 'mp-1', status: 'aprobado' })
+  })
+
+  it('puede diagnosticar y corregir por el número de operación de Mercado Pago', async () => {
+    const order = baseOrder({ status: 'cancelado' })
+    const repository = createRepositoryDouble(order, {
+      onApply: (payment) => ({ order: { ...order, status: 'aprobado' }, payment }),
+    })
+    const mercadoPago = {
+      searchPaymentsForOrder: async () => {
+        throw new Error('No debe buscar por referencia al recibir un ID explícito.')
+      },
+      getPayment: async (id) => (id === '174125987189' ? providerPayment({ id }) : null),
+    }
+
+    const result = await revalidatePaymentOrder(ORDER_ID, {
+      repository,
+      mercadoPago,
+      providerPaymentId: '174125987189',
+    })
+
+    expect(result.outcome).toBe('corrected')
+    expect(repository.applied[0]).toMatchObject({ externalPaymentId: '174125987189' })
   })
 
   it('en modo diagnostico no escribe nada', async () => {

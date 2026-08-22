@@ -48,7 +48,10 @@ describe('servicio universal de códigos', () => {
     )
   })
 
-  it('delega una vez al resolvedor y traduce la pestaña secreta', async () => {
+  it('delega una vez al resolvedor, pero una oferta exclusiva ya no abre nada (20260915100000)', async () => {
+    // Las ofertas generadas por código quedaron retiradas: aunque un backend
+    // viejo todavía conteste `open_exclusive_offer`, el servicio la rechaza en
+    // vez de traducirla a una pestaña que ya no existe.
     const redeem = vi.fn().mockResolvedValue({
       accepted: true,
       action: 'open_exclusive_offer',
@@ -60,10 +63,8 @@ describe('servicio universal de códigos', () => {
       code: 'ONLY-PITBULL',
       context: { surface: 'membership' },
     })
-    expect(promotionDestination(result)).toEqual({
-      view: 'profile',
-      options: { tab: 'account-offer' },
-    })
+    expect(result).toMatchObject({ accepted: false, status: 'rejected', reason: 'offer_unavailable' })
+    expect(promotionDestination(result)).toBeNull()
   })
 
   it('describe el beneficio y el checkout sin inferirlos desde el copy', () => {

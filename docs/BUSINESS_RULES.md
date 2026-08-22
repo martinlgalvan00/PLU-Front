@@ -27,6 +27,14 @@
 
 ## Precios
 
+### Política vigente sobre códigos
+
+Los códigos sólo pueden aplicar descuentos porcentuales o precios fijos. Queda
+prohibido crear, activar, canjear, comprar o mostrar una oferta exclusiva
+generada mediante un código. Las filas históricas `kind='offer'` y
+`kind='access'` se conservan únicamente para auditoría: se desactivan y no se
+incluyen en catálogos, cuentas, checkouts ni paneles.
+
 Los planes de afiliación se leen de `membership_plans`. Cada cambio económico
 publica una fila versionada (`family_code`, `version`, `effective_from` y
 `retired_at`); nunca modifica el monto de una versión usada por una orden o

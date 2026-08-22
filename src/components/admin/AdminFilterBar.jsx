@@ -93,7 +93,9 @@ export default function AdminFilterBar({
 }) {
   const { t } = useI18n()
   const panelId = useId()
+  const filterPanelId = useId()
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false)
   const rootRef = useRef(null)
   const hasMountedFilters = useRef(false)
   /** En listados (inline), los chips van siempre a la vista: el toggle suma un click de más. */
@@ -196,6 +198,25 @@ export default function AdminFilterBar({
     }
   }, [advancedOpen, showAdvancedSearch])
 
+  // El panel único (`layout="panel"`) vive en flujo normal dentro de la
+  // tarjeta -- no flota -- pero sigue cerrando al click afuera o con Escape,
+  // igual que el resto de los desplegables de esta barra.
+  useEffect(() => {
+    if (layout !== 'panel' || !filterPanelOpen) return undefined
+    function handlePointerDown(event) {
+      if (rootRef.current && !rootRef.current.contains(event.target)) setFilterPanelOpen(false)
+    }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setFilterPanelOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [layout, filterPanelOpen])
+
   function clearAll() {
     activeFilters.forEach((filter) => filter.onChange(neutralValue(filter)))
     if (hasQuery) onQueryChange('')
@@ -285,6 +306,13 @@ export default function AdminFilterBar({
       .filter(Boolean)
       .join(' ')
     const panelActiveFilters = filters.filter(isFilterActive)
+    const filterPanelTriggerClassName = [
+      'admin-filter-panel-trigger',
+      filterPanelOpen ? 'is-open' : '',
+      panelActiveFilters.length > 0 ? 'has-active' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
 
     return (
       <div ref={rootRef} className={panelRootClassName}>
@@ -292,7 +320,25 @@ export default function AdminFilterBar({
           <div className="admin-filter-popoverbar__row1">
             <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
             {filters.length > 0 ? (
-              <AdminFilterPanel filters={filters} activeCount={panelActiveFilters.length} />
+              <button
+                type="button"
+                className={filterPanelTriggerClassName}
+                aria-expanded={filterPanelOpen}
+                aria-controls={filterPanelId}
+                onClick={() => setFilterPanelOpen((current) => !current)}
+              >
+                <SlidersHorizontal size={15} aria-hidden />
+                <span className="admin-filter-panel-trigger__label">{t('admin.filters.toggle')}</span>
+                {panelActiveFilters.length > 0 ? (
+                  <span
+                    className="admin-filter-panel-trigger__badge"
+                    aria-label={t('admin.filters.activeCount', { count: panelActiveFilters.length })}
+                  >
+                    {panelActiveFilters.length}
+                  </span>
+                ) : null}
+                <ChevronDown className="admin-filter-panel-trigger__chevron" size={13} aria-hidden />
+              </button>
             ) : null}
             <div className="admin-filter-popoverbar__spacer" />
             {actions ? <div className="admin-filters__actions">{actions}</div> : null}
@@ -329,6 +375,10 @@ export default function AdminFilterBar({
                 {t('admin.filters.clearActive', { count: panelActiveFilters.length })}
               </button>
             </div>
+          ) : null}
+
+          {filterPanelOpen && filters.length > 0 ? (
+            <AdminFilterPanel id={filterPanelId} filters={filters} />
           ) : null}
         </div>
       </div>

@@ -146,6 +146,29 @@ describe('adaptador de Mercado Pago', () => {
     expect(mpMocks.preferenceCreate).not.toHaveBeenCalled()
   })
 
+  it('no informa un falso “sin pagos” al revalidar con un token de otra cuenta', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ id: 999, nickname: 'cuenta-ajena' }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_COLLECTOR_ID: '111',
+        MERCADO_PAGO_ENV: 'sandbox',
+      },
+    })
+
+    await expect(adapter.searchPaymentsForOrder(order)).rejects.toMatchObject({
+      status: 503,
+      provider: { code: 'MP_ACCOUNT_MISMATCH', expectedCollectorId: '111' },
+    })
+    // Primero se valida /users/me; no se consulta el search de una cuenta que
+    // no es la cobradora, porque su lista vacía sería un falso negativo.
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls[0][0]).toContain('/users/me')
+  })
+
   it('redirige las inscripciones de atleta al perfil', async () => {
     mpMocks.preferenceCreate.mockResolvedValueOnce({
       id: 'pref-registration',

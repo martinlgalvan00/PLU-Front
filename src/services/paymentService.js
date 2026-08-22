@@ -219,8 +219,11 @@ export async function recoverPaymentOperations() {
  *
  * `apply: false` devuelve el diagnóstico sin escribir.
  */
-export async function revalidatePaymentOrder(orderId, { apply = true } = {}) {
-  return apiPost(`/api/payments/orders/${encodeURIComponent(orderId)}/revalidate`, { apply })
+export async function revalidatePaymentOrder(orderId, { apply = true, providerPaymentId } = {}) {
+  return apiPost(`/api/payments/orders/${encodeURIComponent(orderId)}/revalidate`, {
+    apply,
+    ...(providerPaymentId ? { providerPaymentId: String(providerPaymentId) } : {}),
+  })
 }
 
 /** Barrido de órdenes no aprobadas contra el proveedor. Sin `apply` no toca nada. */

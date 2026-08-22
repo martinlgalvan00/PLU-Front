@@ -206,6 +206,24 @@ describe('eventAdminService', () => {
     })
   })
 
+  it('omite de la proyeccion publica un combo archivado aunque siga active=true', () => {
+    // `fetchPublishedEvents` cae a Supabase directo cuando la API falla, y ese
+    // camino no pasa por `sanitizePublicCatalogEvent` (20260914100000 archiva
+    // los combos sin tocar `active`). `mapPublishedEventRow` es la unica red
+    // que queda: tiene que ocultarlo igual, con precio congelado y todo.
+    const row = {
+      slug: 'pitbull-classic-2026',
+      price: 75000,
+      rules: {},
+      eventDays: [],
+      ticketTypes: [],
+      comboOffer: { price: 120000, active: true, audience: 'public', archived_at: '2026-09-14T10:00:00Z' },
+    }
+
+    expect(mapSupabaseEventRow(row).comboOffer).toMatchObject({ archivedAt: '2026-09-14T10:00:00Z' })
+    expect(mapPublishedEventRow(row)).toMatchObject({ comboOffer: null, pricing: { combo: 0 } })
+  })
+
   it('filtra sin romperse ante datos parciales del backend', () => {
     const events = [
       { id: 'one', title: 'Open', venue: null, location: null, slug: null, status: 'proximamente' },

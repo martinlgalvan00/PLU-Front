@@ -537,9 +537,13 @@ export async function previewDiscountCode({
     paymentMethod: paymentMethod || undefined,
   })
   const preview = result.preview ?? {}
+  const disabledOffer = ['offer', 'access'].includes(preview.kind)
   return {
-    valid: preview.valid === true,
-    reason: preview.reason ?? null,
+    // Un backend durante un despliegue escalonado puede seguir resolviendo una
+    // modalidad histórica. Se la trata como no disponible antes de que cualquier
+    // checkout llegue a construir una tarjeta, precio o redirección.
+    valid: preview.valid === true && !disabledOffer,
+    reason: disabledOffer ? 'offer_unavailable' : (preview.reason ?? null),
     code: preview.code ?? null,
     // 'code' lo tipeó el atleta; 'public_promo' se aplica sola.
     source: preview.source === 'public_promo' ? 'public_promo' : 'code',
@@ -550,7 +554,7 @@ export async function previewDiscountCode({
     // Un rechazo de una RPC anterior puede no incluir modalidad. No se lo
     // inventa como porcentaje: las pantallas deben consultar el alcance combo
     // o el endpoint de canje antes de concluir que no aplica.
-    kind: preview.kind ?? null,
+    kind: disabledOffer ? null : (preview.kind ?? null),
     // Alcance del código: viaja también con `reason: 'not_applicable'` y con
     // `reason: 'other_event'`, para poder decir de qué inscripción es en vez de
     // un "no aplica" seco.
@@ -628,8 +632,9 @@ export async function redeemPromotionCodeRequest({ code, context = {} }) {
 
 /** Ofertas exclusivas que este atleta ya canjeó. Sostiene la ficha de Mi cuenta. */
 export async function fetchOfferUnlocks() {
-  const result = await apiGet('/api/athletes/me/offer-unlocks')
-  return Array.isArray(result?.offers) ? result.offers : []
+  // Las ofertas exclusivas por código están retiradas: no consultar ni
+  // transportar datos que puedan terminar renderizados por accidente.
+  return []
 }
 
 export async function createCompetitionRegistrationCombo({

@@ -520,10 +520,15 @@
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
+/* Piso de ancho (mismo valor que ya usan select/date-range, línea ~555): sin
+   él, `flex: 1 1 0` deja que 2+ grupos de chips se repartan el espacio y se
+   encojan hasta ilegibles en vez de bajar a su propia línea -- el
+   `flex-wrap: wrap` de arriba nunca tiene motivo para activarse si nada
+   fuerza un mínimo. Con el piso, cuando no entran, saltan de línea solos. */
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 160px;
+  min-width: min(100%, 160px);
   width: auto;
 }
 
@@ -564,31 +569,11 @@
   width: auto;
 }
 
-.admin-shell .admin-filters--registrations .admin-filters__groups,
-.admin-shell .admin-filters--registrations .admin-filters__groups--multi {
-  align-items: center;
-  display: flex !important;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  min-width: 0;
-  width: 100%;
-}
-
-.admin-shell .admin-filters--registrations .admin-filters__groups--multi .admin-filter-group,
-.admin-shell .admin-filters--registrations .admin-filter-group--rail,
-.admin-shell .admin-filters--registrations .admin-filter-group--inline {
-  align-items: center;
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: row;
-  min-width: 0;
-  width: auto;
-}
-
-.admin-shell .admin-filters--registrations .admin-filter-group__label {
-  display: none;
-}
+/* Los grupos de Inscripciones (Evento/Estado/Afiliación) ya no fuerzan fila
+   única sin label: con 3 facetas compartiendo el mismo "Todos" neutro, sin
+   encabezado no había forma de saber a cuál pertenecía cada chip. Heredan el
+   layout apilado con label de `.admin-filters--inline .admin-filter-group--inline`
+   (admin.css) -- misma familia visual que Atletas y Afiliaciones. */
 
 .admin-shell .admin-filters__actions .export-btn {
   font-size: 12px;
@@ -671,27 +656,20 @@
   display: block;
 }
 
-/* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice.
-   Lo ocultamos siempre en la variante inline compact — los chips son autodescriptivos. */
+/* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice
+   -- los chips son autodescriptivos. Con 2+ grupos (`.admin-filters__groups--multi`, ver
+   AdminFilterBar.jsx) varios chips comparten el mismo neutro "Todos" y sin la etiqueta
+   arriba de cada riel no se distingue qué filtra cada uno. Antes esto solo se resolvía
+   para Atletas con un opt-in por variante (`.admin-filters--athletes`); ahora es el
+   criterio general -- mismo lenguaje visual en Atletas, Afiliaciones e Inscripciones en
+   vez de una lista de variantes que hay que recordar actualizar cada vez que un filtro
+   nuevo empuja a una pantalla de 1 a 2+ grupos. */
 .admin-shell
   .admin-filters--inline
-  .admin-filters__groups
+  .admin-filters__groups:not(.admin-filters__groups--multi)
   .admin-filter-group--inline
   > .admin-filter-group__label {
   display: none;
-}
-
-/* Atletas rompe esa premisa: son 3 grupos de chips (afiliación, inscripción,
-   división) uno al lado del otro, todos con el mismo chip neutro "Todos" —
-   sin la etiqueta arriba de cada riel no se distingue qué filtra cada uno
-   (quedan 3 "Todos" pegados sin contexto). Mismo criterio que ya usa
-   Inscripciones para el mismo problema: la etiqueta vuelve. */
-.admin-shell
-  .admin-filters--athletes.admin-filters--inline
-  .admin-filters__groups
-  .admin-filter-group--inline
-  > .admin-filter-group__label {
-  display: block;
 }
 
 /* Fila que une los chips principales con el toggle de avanzados.
@@ -1121,10 +1099,7 @@
   background: var(--admin-status-danger);
 }
 
-.admin-shell .admin-event-preview--panel {
-  background: transparent;
-  border-color: var(--admin-hairline);
-}
+/* (Retirado el wrapper del panel lateral: la consola vive en el modal.) */
 
 .admin-shell .admin-event-preview__label {
   display: none;
@@ -1581,42 +1556,32 @@
   }
 }
 
-/* ---- Tablet / desktop: el split responde al ancho útil, no al viewport ---- */
-
-@container admin-panel (min-width: 900px) {
-  .admin-shell .admin-list-shell--events .admin-events-workspace:has(.admin-event-preview--panel) {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.58fr);
-    height: min(820px, calc(100dvh - 168px));
-    overflow: hidden;
-  }
-}
+/* ---- El listado es la única superficie: la consola del evento se abre como
+   modal al tocar una fila (admin-event-console.css §6). El split de dos
+   columnas y su altura fija fueron retirados con el panel lateral. ---- */
 
 @media (min-width: 1200px) {
-  .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) .admin-event-row__slug {
-    display: none;
-  }
-
-  .admin-shell .admin-event-preview--panel .admin-event-ticket-insights__metrics {
+  .admin-event-console-modal .admin-event-ticket-insights__metrics {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .admin-shell .admin-event-preview--panel .admin-event-ticket-insights__metric {
+  .admin-event-console-modal .admin-event-ticket-insights__metric {
     align-items: start;
     display: grid;
     gap: 6px;
     padding: 10px;
   }
 
-  .admin-shell .admin-event-preview--panel .admin-event-ticket-insights__metric dd {
+  .admin-event-console-modal .admin-event-ticket-insights__metric dd {
     margin-left: 0;
     text-align: left;
   }
 
-  .admin-shell .admin-event-preview--panel .admin-event-ticket-insights__breakdown {
+  .admin-event-console-modal .admin-event-ticket-insights__breakdown {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .admin-shell .admin-event-preview--panel .admin-event-ticket-insights__breakdown li {
+  .admin-event-console-modal .admin-event-ticket-insights__breakdown li {
     align-items: center;
     border-left: 1px solid var(--admin-hairline);
     border-top: 0;
@@ -1625,7 +1590,7 @@
     text-align: center;
   }
 
-  .admin-shell .admin-event-preview--panel .admin-event-ticket-insights__breakdown li:first-child {
+  .admin-event-console-modal .admin-event-ticket-insights__breakdown li:first-child {
     border-left: 0;
   }
 }
@@ -1635,25 +1600,10 @@
     gap: 10px;
   }
 
-  .admin-shell .admin-event-row {
-    grid-template-columns: 46px minmax(200px, 1fr) auto auto auto;
-  }
-
-  .admin-shell .admin-event-row__capacity-bar {
-    display: none;
-  }
-
-  .admin-shell .admin-event-row__capacity {
-    align-items: center;
-    display: inline-flex;
-    gap: 4px;
-    min-width: 0;
-  }
-
-  .admin-shell .admin-event-row__capacity-label {
-    font-size: 11px;
-    white-space: nowrap;
-  }
+  /* Las filas de evento ya no se compactan por viewport: en notebooks con
+     escala de pantalla (1093px efectivos) esto escondía la barra de capacidad
+     y pisaba el template mientras el split de la consola seguía activo. El
+     régimen angosto real lo define `admin-panel (max-width: 899px)`. */
 }
 
 @media (max-width: 960px) {
@@ -1831,32 +1781,21 @@
     min-height: 44px;
   }
 
-  .admin-shell
-    .admin-filters--inline
-    .admin-filters__groups:not(.admin-filters__groups--multi)
-    .admin-filter-group--inline
-    > .admin-filter-group__label {
-    display: none;
-  }
-
+  /* Grid de una columna en vez de fila flex: con `min-width: 0` el flex-wrap
+     encoge las columnas en vez de bajarlas de línea salvo que algún campo
+     traiga un piso de ancho propio (Atletas: gimnasio y fecha de alta), así
+     que Afiliaciones/Inscripciones (solo chips, sin ese piso) quedaban con
+     2-3 columnas angostas ilegibles en vez de un grupo por fila. */
   .admin-shell
     .admin-filters--inline
     .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
-    align-items: center;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 8px 10px;
-  }
-
-  .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: auto;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle {
-    flex: 0 0 auto;
-    width: auto;
+    width: fit-content;
   }
 
   .admin-shell
@@ -1864,8 +1803,8 @@
     .admin-filters__groups--multi
     .admin-filter-group
     + .admin-filter-group--toggle {
-    border-left: 1px solid var(--admin-hairline);
-    padding-left: 10px;
+    border-left: 0;
+    padding-left: 0;
   }
 
   .admin-shell .admin-filters--inline .admin-filter-chips {
@@ -2448,8 +2387,8 @@
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 160px;
+  min-width: min(100%, 160px);
   width: auto;
 }
 
@@ -2759,21 +2698,20 @@
   color: var(--admin-ink);
 }
 
-/* Chip activo: underline sutil + texto oscuro. Sin caja, sin sombra.
-   La jerarquía se lee por tipografía, no por fondos rellenos. */
+/* Chip activo: cápsula rellena, sin subrayado. Un solo tono neutro (el
+   mismo `--admin-ink` de la tipografía, no el celeste de marca) para que
+   la cápsula no compita como segundo acento dentro del mismo bloque. */
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip.is-active,
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true'] {
-  background: transparent !important;
-  border: 0;
-  border-bottom: 2px solid var(--admin-brand);
-  border-radius: 0;
+  background: color-mix(in srgb, var(--admin-ink) 9%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
   box-shadow: none;
   color: var(--admin-ink);
-  font-weight: 700;
+  font-weight: 650;
   transform: none;
 }
 
@@ -2811,7 +2749,7 @@
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true']
   .admin-filter-chip__count {
-  background: color-mix(in srgb, var(--admin-brand) 14%, transparent);
+  background: color-mix(in srgb, var(--admin-ink) 16%, transparent);
   color: var(--admin-ink);
   opacity: 1;
 }
@@ -4152,12 +4090,26 @@
     overflow: visible;
   }
 
+  /* `flex-wrap` con `min-width: 0` no fuerza salto de línea por sí solo --
+     encoge las columnas en vez de bajarlas de fila, salvo que algún campo
+     traiga un piso de ancho propio (Atletas: gimnasio y fecha de alta, línea
+     ~555). Con 2+ grupos y ninguno de esos campos (Afiliaciones,
+     Inscripciones) esa combinación dejaba columnas angostas ilegibles en vez
+     de una por fila. Un grid de una sola columna apila cualquier cantidad de
+     grupos sin depender de qué contenido traiga cada uno -- mismo criterio
+     que ya usa `.admin-filters__groups` (no-multi) arriba. */
   .admin-shell .admin-filters__panel .admin-filters__groups--multi {
-    align-items: center;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 8px 10px;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* El divisor vertical entre chips y toggles (línea ~537) da por sentado la
+     fila horizontal de escritorio; apilados uno debajo del otro no hay nada
+     a la izquierda que separar. */
+  .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group + .admin-filter-group--toggle {
+    border-left: 0;
+    padding-left: 0;
   }
 
   .admin-shell .admin-filters__panel .admin-filter-group--inline {
@@ -4165,29 +4117,6 @@
     display: grid;
     gap: 7px;
     width: 100%;
-  }
-
-  /* Atletas: 5 grupos (afiliación, inscripción, gimnasio, división, fecha de
-     alta). La fila `nowrap` de arriba (pensada para 1-2 grupos + un select)
-     ahoga a los grupos de chips -- gimnasio y fecha de alta ya imponen un
-     piso de 160px cada uno (línea ~555) y no dejan margen, así que los
-     grupos de chips terminan en 0 de ancho. Acá el wrap a varias líneas
-     evita esa pelea por espacio. Selector con un nivel extra de anidamiento
-     (`.admin-filters__panel` explícito) a propósito: misma especificidad que
-     la regla de arriba (3 clases) perdía el empate por orden; con 4 clases
-     gana sin depender del orden de las reglas. */
-  .admin-shell .admin-filters--athletes .admin-filters__panel .admin-filters__groups--multi {
-    flex-wrap: wrap;
-  }
-
-  .admin-shell
-    .admin-filters--athletes
-    .admin-filters__panel
-    .admin-filters__groups--multi
-    .admin-filter-group {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: auto;
   }
 
   .admin-shell
@@ -5824,7 +5753,9 @@
   border-bottom-color: color-mix(in srgb, var(--admin-hairline) 70%, transparent);
   border-radius: 0;
   gap: 4px 16px;
-  grid-template-columns: 52px minmax(0, 1fr) minmax(64px, 96px) auto auto;
+  /* La fila no tiene columna de acciones desde que el panel tomó esa función:
+   quedaba un `auto` fantasma al final. */
+  grid-template-columns: 52px minmax(0, 1fr) minmax(64px, 96px) auto;
   min-height: 0;
   padding: 12px 12px;
   transition:
@@ -6033,96 +5964,10 @@
   }
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel {
-  background: var(--admin-glass-bg);
-  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  border: 1px solid var(--admin-glass-border);
-  border-radius: 16px;
-  box-shadow:
-    inset 0 1px 0 var(--admin-glass-highlight),
-    var(--admin-glass-shadow);
-  gap: 0;
-  overflow: hidden;
-  padding: 0 0 12px;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
-  align-items: flex-start;
-  border-bottom-color: var(--admin-hairline);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  justify-content: space-between;
-  letter-spacing: 0;
-  margin: 0;
-  padding: 4px 0 14px 18px;
-  text-transform: none;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__label {
-  display: none;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__title-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__selected-title {
-  color: var(--admin-ink);
-  display: block;
-  font-size: clamp(16px, 1.8vw, 19px);
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__meta-line {
-  color: var(--admin-muted);
-  display: block;
-  font-size: 12px;
-  margin: 4px 0 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__head-actions {
-  align-items: center;
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
-  min-height: 36px;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__detail {
-  padding-inline: 18px 0;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__detail-label {
-  color: var(--admin-muted);
-  font-size: 10.5px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  margin: 16px 0 0;
-  text-transform: uppercase;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview__detail {
-  gap: 0;
-}
-
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview--embedded {
+/* Contenido de la consola dentro del modal: el embedded preview, la card y
+   las métricas de entradas se leen en flujo abierto (reglas heredadas del
+   panel lateral, rescoped al modal). */
+.admin-event-console-modal .admin-event-preview--embedded {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -6131,14 +5976,11 @@
   padding: 0;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-preview--embedded::before {
+.admin-event-console-modal .admin-event-preview--embedded::before {
   display: none;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__card {
+.admin-event-console-modal .admin-event-preview__card {
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--admin-hairline);
@@ -6147,57 +5989,41 @@
   padding: 18px 0;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-preview__card
-  .event-card {
+.admin-event-console-modal .admin-event-preview__card .event-card {
   background: transparent;
   border: 0;
   padding: 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__date-block {
+.admin-event-console-modal .event-card__date-block {
   background: var(--admin-surface-raised);
   border-color: var(--admin-hairline);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__day,
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__title {
+.admin-event-console-modal .event-card__day,
+.admin-event-console-modal .event-card__title {
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__month,
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__meta,
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .event-card__status {
+.admin-event-console-modal .event-card__month,
+.admin-event-console-modal .event-card__meta,
+.admin-event-console-modal .event-card__status {
   color: var(--admin-muted);
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .event-card__status[data-tone='success'] {
+.admin-event-console-modal .event-card__status[data-tone='success'] {
   color: var(--admin-status-success);
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .event-card__status[data-tone='warning'] {
+.admin-event-console-modal .event-card__status[data-tone='warning'] {
   color: var(--admin-status-warning);
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .event-card__status[data-tone='danger'] {
+.admin-event-console-modal .event-card__status[data-tone='danger'] {
   color: var(--admin-status-danger);
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-preview__publication {
+.admin-event-console-modal .admin-event-preview__publication {
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--admin-hairline);
@@ -6206,13 +6032,13 @@
   padding: 12px 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__footer {
+.admin-event-console-modal .admin-event-preview__footer {
   border: 0;
   gap: 0;
   padding: 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__capacity {
+.admin-event-console-modal .admin-event-preview__capacity {
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--admin-hairline);
@@ -6221,19 +6047,19 @@
   padding: 16px 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__meta {
+.admin-event-console-modal .admin-event-preview__meta {
   background: transparent;
   border: 0;
   border-radius: 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__meta li {
+.admin-event-console-modal .admin-event-preview__meta li {
   background: transparent;
   border-bottom-color: var(--admin-hairline);
   padding: 13px 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-ticket-insights {
+.admin-event-console-modal .admin-event-ticket-insights {
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--admin-hairline);
@@ -6243,34 +6069,22 @@
   padding: 18px 0;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__head {
+.admin-event-console-modal .admin-event-ticket-insights__head {
   margin-bottom: 13px;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__stripe {
+.admin-event-console-modal .admin-event-ticket-insights__stripe {
   background: var(--admin-brand);
   height: 12px;
   opacity: 0.82;
   width: 1px;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__metrics {
+.admin-event-console-modal .admin-event-ticket-insights__metrics {
   gap: 0;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__metric {
+.admin-event-console-modal .admin-event-ticket-insights__metric {
   background: transparent;
   border: 0;
   border-left: 1px solid var(--admin-hairline);
@@ -6279,32 +6093,20 @@
   padding: 4px 12px;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__metric:first-child {
+.admin-event-console-modal .admin-event-ticket-insights__metric:first-child {
   border-left: 0;
   padding-left: 0;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__metric:last-child {
+.admin-event-console-modal .admin-event-ticket-insights__metric:last-child {
   padding-right: 0;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__metric::before {
+.admin-event-console-modal .admin-event-ticket-insights__metric::before {
   display: none;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__icon {
+.admin-event-console-modal .admin-event-ticket-insights__icon {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -6312,18 +6114,11 @@
   width: auto;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__metric
-  .admin-event-ticket-insights__value {
+.admin-event-console-modal .admin-event-ticket-insights__metric .admin-event-ticket-insights__value {
   color: var(--admin-ink);
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__breakdown {
+.admin-event-console-modal .admin-event-ticket-insights__breakdown {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -6331,32 +6126,22 @@
   margin-top: 14px;
 }
 
-.admin-shell
-  .admin-list-shell--events
-  .admin-event-preview--panel
-  .admin-event-ticket-insights__breakdown
-  li {
+.admin-event-console-modal .admin-event-ticket-insights__breakdown li {
   border-color: var(--admin-hairline);
   padding-block: 9px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-addon-report {
+.admin-event-console-modal .admin-event-addon-report {
   border-top: 0;
   margin-top: 0;
   padding-top: 18px;
 }
 
 @media (max-width: 1100px) {
-  .admin-shell .admin-list-shell--events .admin-event-row {
-    grid-template-columns: 52px minmax(160px, 1fr) 58px 134px auto;
-  }
-
-  /* Ancho fijo: con ancho automático el contador variaba de fila en fila y
-     las pastillas de estado quedaban desalineadas. */
-  .admin-shell .admin-list-shell--events .admin-event-row__capacity {
-    justify-content: flex-end;
-    width: 58px;
-  }
+  /* Las filas ya no se compactan por viewport: en notebooks con escala de
+     pantalla (1093px efectivos) esto pisaba el split de la consola con un
+     template pensado para layout colapsado. El régimen angosto real lo
+     define el container query `admin-panel (max-width: 899px)`. */
 
   /* Fade de overflow vive en .admin-filter-chips-rail (sistema compartido). */
   .admin-shell .admin-list-section--events .admin-filters__groups {
@@ -6453,64 +6238,9 @@
     transform: none;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-preview--panel {
-    background: var(--admin-surface);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    border: 1px solid var(--admin-hairline);
-    border-radius: 16px;
-    box-shadow: none;
-    margin-top: 12px;
-    overflow: visible;
-    padding: 0 0 12px;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 12px;
-    margin: 0;
-    padding: 14px 16px 12px;
-  }
-
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-preview--panel
-    .admin-event-preview__head-copy {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-preview--panel
-    .admin-event-preview__meta-line {
-    display: block;
-  }
-
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-preview--panel
-    .admin-event-preview__head-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    width: 100%;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
-    min-height: 44px;
-  }
-
-  .admin-shell
-    .admin-list-shell--events
-    .admin-event-preview--panel
-    .admin-event-preview__expand-toggle {
-    border: 0;
-    border-radius: 0;
-    margin-top: 0;
-  }
+  /* (Las reglas del panel lateral apilado bajo 900px fueron retiradas con el
+     panel: la consola se abre como modal y trae sus propios estilos en
+     admin-event-console.css §6.) */
 
   .admin-shell .admin-list-shell--events .admin-event-preview__command-bar {
     display: grid;
@@ -6520,10 +6250,6 @@
 
   .admin-shell .admin-list-shell--events .admin-event-preview__command-bar button {
     min-height: 44px;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-preview__detail {
-    padding-inline: 16px;
   }
 
   .admin-shell .admin-list-shell--events .admin-event-state {
@@ -6743,10 +6469,6 @@
 
   .admin-shell .admin-list-shell--events .admin-event-state {
     padding: 8px 12px;
-  }
-
-  .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
-    padding: 12px 12px 10px;
   }
 }
 
@@ -7663,19 +7385,24 @@
       gap: 8px 10px;
     }
 
-    /* Atletas: 5 grupos no entran en una sola fila nowrap ni con los topes
-       de ancho de abajo -- necesitan poder saltar a una segunda línea acá
-       también (mismo criterio que la rama ancha, arriba en el archivo). */
+    /* Sin piso de ancho el `nowrap` de arriba nunca cede: 2+ grupos de chips
+       se encogen hasta ilegibles en vez de saltar de línea (mismo criterio
+       que la rama ancha, arriba en el archivo). El piso hace innecesario un
+       `flex-wrap: wrap` aparte por variante -- cualquier pantalla con
+       suficientes grupos salta de línea sola. */
     .admin-shell
-      .admin-filters--athletes.admin-filters--inline
+      .admin-filters--inline
+      .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only),
+    .admin-shell
+      .admin-filters__panel
       .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
       flex-wrap: wrap;
     }
 
     .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
     .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-      flex: 1 1 auto;
-      min-width: 0;
+      flex: 1 1 160px;
+      min-width: min(100%, 160px);
       width: auto;
     }
 
@@ -8061,64 +7788,8 @@
       min-height: 44px;
     }
 
-    .admin-shell .admin-events-workspace:has(.admin-event-preview--panel) {
-      grid-template-columns: 1fr;
-      height: auto;
-      overflow: visible;
-    }
-
-    .admin-shell .admin-list-shell--events .admin-event-preview--panel {
-      background: var(--admin-surface);
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
-      border: 1px solid var(--admin-hairline);
-      border-radius: 16px;
-      box-shadow: none;
-      margin-top: 12px;
-      max-height: none;
-      overflow: visible;
-      padding: 0 0 12px;
-      position: static;
-    }
-
-    .admin-shell .admin-list-shell--events .admin-event-preview--panel .admin-event-preview__head {
-      align-items: stretch;
-      background: transparent;
-      flex-direction: column;
-      gap: 12px;
-      padding: 14px 16px 12px;
-      position: static;
-    }
-
-    .admin-shell
-      .admin-list-shell--events
-      .admin-event-preview--panel
-      .admin-event-preview__head-copy {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-
-    .admin-shell
-      .admin-list-shell--events
-      .admin-event-preview--panel
-      .admin-event-preview__meta-line {
-      display: block;
-    }
-
-    .admin-shell
-      .admin-list-shell--events
-      .admin-event-preview--panel
-      .admin-event-preview__head-actions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-start;
-      width: 100%;
-    }
-
-    .admin-shell .admin-list-shell--events .admin-event-preview__edit-btn {
-      min-height: 44px;
-    }
+    /* (El panel apilado bajo 899px de container fue retirado: la consola se
+       abre como modal desde cualquier ancho.) */
 
     .admin-shell .admin-list-shell--events .admin-event-state {
       padding: 10px 16px;
@@ -8309,33 +7980,6 @@
      (evento / estado) baja a su propio riel con etiqueta, en vez de dos
      chips "Todos" sin contexto compitiendo por el mismo scroll. */
   @container admin-panel (max-width: 899px) {
-    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filters__groups,
-    .admin-shell
-      .admin-filters--registrations.admin-filters--inline
-      .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
-      align-items: stretch;
-      flex-direction: column;
-      gap: 10px;
-      overflow-x: visible;
-    }
-
-    .admin-shell
-      .admin-filters--registrations.admin-filters--inline
-      .admin-filters__groups--multi
-      .admin-filter-group,
-    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group--rail,
-    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group--inline {
-      align-items: flex-start;
-      flex: none;
-      flex-direction: column;
-      gap: 5px;
-      width: 100%;
-    }
-
-    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group__label {
-      display: block;
-    }
-
     .admin-shell
       .admin-filters--registrations.admin-filters--inline
       .admin-filters__actions
@@ -8352,14 +7996,6 @@
       .admin-filters--registrations.admin-filters--inline
       .admin-filters__actions
       .export-btn__label {
-      display: none;
-    }
-  }
-
-  /* Con el panel ancho vuelve la fila densa: los chips alcanzan y la etiqueta
-     duplicaría lo que el propio riel ya dice. */
-  @container admin-panel (min-width: 900px) {
-    .admin-shell .admin-filters--registrations.admin-filters--inline .admin-filter-group__label {
       display: none;
     }
   }

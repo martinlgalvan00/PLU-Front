@@ -58,4 +58,12 @@ describe('resolveLiveComboOffer', () => {
       resolveLiveComboOffer({ comboOffer: offer }, new Date(), { includeRestricted: true }),
     ).toBeNull()
   })
+
+  it('no publica un combo archivado aunque siga con active=true (20260914100000)', () => {
+    // El fallback de `fetchPublishedEvents` a Supabase directo no pasa por
+    // `sanitizePublicCatalogEvent`: sin este chequeo, un combo archivado con
+    // su precio congelado volvía a anunciarse a cualquier visitante.
+    const offer = { active: true, audience: 'public', price: 120000, archivedAt: '2026-09-14T10:00:00Z' }
+    expect(resolveLiveComboOffer({ comboOffer: offer })).toBeNull()
+  })
 })

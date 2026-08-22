@@ -40,14 +40,17 @@ export default function MembershipManualStatusDialog({
   error = '',
   onCancel,
   onConfirm,
-  status,
+  currentStatus,
+  statusOptions = [],
 }) {
   const { t } = useI18n()
   const titleId = useId()
   const descriptionId = useId()
   const channelId = useId()
   const reasonId = useId()
+  const statusId = useId()
   const panelRef = useRef(null)
+  const [status, setStatus] = useState(() => statusOptions[0] ?? 'activa')
   const [channel, setChannel] = useState('')
   const [reason, setReason] = useState('')
 
@@ -140,6 +143,24 @@ export default function MembershipManualStatusDialog({
             )}
           </p>
 
+          {statusOptions.length > 1 ? (
+            <div className="membership-manual-dialog__field">
+              <label htmlFor={statusId}>{t('admin.registrationStatus.newStatus')}</label>
+              <select
+                id={statusId}
+                value={status}
+                disabled={busy}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                {statusOptions.map((option) => (
+                  <option key={option} value={option} disabled={option === currentStatus}>
+                    {t(`admin.sections.memberships.${option === 'activa' ? 'activate' : 'cancel'}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           {activating ? (
             <div className="membership-manual-dialog__field">
               <label htmlFor={channelId}>
@@ -202,7 +223,7 @@ export default function MembershipManualStatusDialog({
           <Button
             type="button"
             disabled={busy || !canConfirm}
-            onClick={() => onConfirm({ reason: trimmedReason, channel: channel || null })}
+            onClick={() => onConfirm({ status, reason: trimmedReason, channel: channel || null })}
           >
             {busy ? (
               <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
