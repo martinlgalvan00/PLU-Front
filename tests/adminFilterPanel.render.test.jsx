@@ -54,37 +54,43 @@ function renderAthletes(props = {}) {
   )
 }
 
-describe('Atletas — barra de filtros (pills + popover)', () => {
-  it('renderiza los 5 pills en una sola fila, sin caja de gimnasio rota', () => {
+function openFiltersPanel() {
+  fireEvent.click(screen.getByRole('button', { name: /^Filtros/ }))
+  return screen.getByRole('dialog', { name: 'Filtros' })
+}
+
+describe('Atletas — barra de filtros (panel único)', () => {
+  it('renderiza un solo botón "Filtros" con las 5 facetas agrupadas adentro, sin caja de gimnasio rota', () => {
     const { container } = renderAthletes()
 
-    const row = container.querySelector('.admin-filter-pillrow')
-    expect(row).toBeTruthy()
-    expect(row.querySelectorAll(':scope > .admin-filter-pill')).toHaveLength(5)
+    // Un solo trigger, no un pill por filtro.
+    expect(screen.getAllByRole('button', { name: /^Filtros/ })).toHaveLength(1)
+    expect(container.querySelector('.admin-filter-pillrow')).toBeNull()
+
+    const panel = openFiltersPanel()
+
     // El bug original: el filtro de gimnasio se renderizaba como un <select>
-    // nativo suelto en el panel. Ahora vive detrás de un pill + popover.
-    expect(container.querySelector('.admin-filter-pillrow select')).toBeNull()
+    // nativo suelto en el panel. Ahora es un combobox con búsqueda.
+    expect(within(panel).queryByRole('combobox')).toBeNull()
+    expect(within(panel).getByRole('listbox')).toBeTruthy()
 
     for (const label of ['Afiliación', 'Inscripción', 'Gimnasio', 'División', 'Fecha de alta']) {
-      expect(screen.getByRole('button', { name: new RegExp(label) })).toBeTruthy()
+      expect(within(panel).getByText(label)).toBeTruthy()
     }
   })
 
-  it('abre el combobox de Gimnasio con búsqueda y filtra la tabla al elegir uno', () => {
+  it('busca y elige un gimnasio en el panel, y filtra la tabla sin cerrar el panel', () => {
     renderAthletes()
+    const panel = openFiltersPanel()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Gimnasio' }))
+    expect(within(panel).getByText('Maximal Power')).toBeTruthy()
+    expect(within(panel).getByText('Pitbull Barbell')).toBeTruthy()
 
-    const popover = screen.getByRole('dialog', { name: 'Gimnasio' })
-    expect(within(popover).getByPlaceholderText('Buscar…')).toBeTruthy()
-    expect(within(popover).getByText('Maximal Power')).toBeTruthy()
-    expect(within(popover).getByText('Pitbull Barbell')).toBeTruthy()
+    fireEvent.click(within(panel).getByText('Pitbull Barbell'))
 
-    fireEvent.click(within(popover).getByText('Pitbull Barbell'))
-
-    // El popover se cierra solo al elegir, y el pill queda activo con clear.
-    expect(screen.queryByRole('dialog', { name: 'Gimnasio' })).toBeNull()
-    expect(screen.getByRole('button', { name: /Gimnasio.*Pitbull Barbell/ })).toBeTruthy()
+    // Agrupa varios filtros: elegir uno no cierra el panel (a diferencia del
+    // popover por pill, donde cada uno cerraba al elegir).
+    expect(screen.getByRole('dialog', { name: 'Filtros' })).toBeTruthy()
     expect(screen.getAllByRole('button', { name: 'Quitar filtro' })).toHaveLength(1)
 
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
@@ -94,24 +100,22 @@ describe('Atletas — barra de filtros (pills + popover)', () => {
 
   it('el combobox de Gimnasio filtra la lista al tipear', () => {
     renderAthletes()
+    const panel = openFiltersPanel()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Gimnasio' }))
-    const popover = screen.getByRole('dialog', { name: 'Gimnasio' })
-    fireEvent.change(within(popover).getByPlaceholderText('Buscar…'), {
+    fireEvent.change(within(panel).getByPlaceholderText('Buscar…'), {
       target: { value: 'iron' },
     })
 
-    expect(within(popover).getByText('Iron Temple')).toBeTruthy()
-    expect(within(popover).queryByText('Maximal Power')).toBeNull()
-    expect(within(popover).queryByText('Pitbull Barbell')).toBeNull()
+    expect(within(panel).getByText('Iron Temple')).toBeTruthy()
+    expect(within(panel).queryByText('Maximal Power')).toBeNull()
+    expect(within(panel).queryByText('Pitbull Barbell')).toBeNull()
   })
 
-  it('abre el popover de Afiliación, aplica un chip y lo puede limpiar', () => {
+  it('elige un chip de Afiliación y lo puede limpiar desde el resumen', () => {
     renderAthletes()
+    const panel = openFiltersPanel()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Afiliación' }))
-    const popover = screen.getByRole('dialog', { name: 'Afiliación' })
-    fireEvent.click(within(popover).getByText('Afiliado activo'))
+    fireEvent.click(within(panel).getByText('Afiliado activo'))
 
     expect(screen.getByText('Martina Rivas')).toBeTruthy()
     expect(screen.queryByText('Nicolás Aguirre')).toBeNull()
@@ -120,13 +124,12 @@ describe('Atletas — barra de filtros (pills + popover)', () => {
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
   })
 
-  it('cierra el popover abierto con Escape', () => {
+  it('cierra el panel abierto con Escape', () => {
     renderAthletes()
-
-    fireEvent.click(screen.getByRole('button', { name: 'División' }))
-    expect(screen.getByRole('dialog', { name: 'División' })).toBeTruthy()
+    openFiltersPanel()
+    expect(screen.getByRole('dialog', { name: 'Filtros' })).toBeTruthy()
 
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog', { name: 'División' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Filtros' })).toBeNull()
   })
 })
