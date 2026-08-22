@@ -2,10 +2,12 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterDateRange from './AdminFilterDateRange.jsx'
+import AdminFilterPanel from './AdminFilterPanel.jsx'
 import AdminFilterPillRow from './AdminFilterPillRow.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminFilterSelect from './AdminFilterSelect.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { filterValueText, filterValueTone, isFilterActive, neutralValue } from '../../lib/adminFilterValue.js'
 
 /**
  * @typedef {Object} AdminFilterGroup
@@ -22,17 +24,6 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  * @property {boolean} [advanced] Si es true, queda detrás de «Más filtros».
  * @property {string} [allLabel] Etiqueta corta del valor neutro cuando el grupo es de chips.
  */
-
-function neutralValue(filter) {
-  return filter.defaultValue ?? filter.options?.[0]?.[0]
-}
-
-function isFilterActive(filter) {
-  if (filter.variant === 'dateRange') {
-    return Boolean(filter.value?.from) || Boolean(filter.value?.to)
-  }
-  return filter.value !== neutralValue(filter)
-}
 
 /** Toggle binario: una sola opción no-neutra que se prende/apaga. */
 function AdminFilterToggle({
@@ -281,6 +272,66 @@ export default function AdminFilterBar({
         clearable
         hideEmpty
       />
+    )
+  }
+
+  if (layout === 'panel') {
+    const panelRootClassName = [
+      'admin-filters',
+      'admin-filters--panel',
+      className,
+      filters.some(isFilterActive) ? 'admin-filters--has-active' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    const panelActiveFilters = filters.filter(isFilterActive)
+
+    return (
+      <div ref={rootRef} className={panelRootClassName}>
+        <div className="admin-filter-popoverbar">
+          <div className="admin-filter-popoverbar__row1">
+            <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+            {filters.length > 0 ? (
+              <AdminFilterPanel filters={filters} activeCount={panelActiveFilters.length} />
+            ) : null}
+            <div className="admin-filter-popoverbar__spacer" />
+            {actions ? <div className="admin-filters__actions">{actions}</div> : null}
+            {count ? (
+              <span className="admin-filter-popoverbar__count" aria-live="polite">
+                {count}
+              </span>
+            ) : null}
+          </div>
+
+          {panelActiveFilters.length > 0 ? (
+            <div className="admin-filter-panel-chips">
+              {panelActiveFilters.map((filter) => {
+                const tone = filterValueTone(filter)
+                return (
+                  <span
+                    key={filter.id}
+                    className={['admin-filter-panel-chip', tone ? `admin-filter-panel-chip--tone-${tone}` : '']
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {filterValueText(filter, t)}
+                    <button
+                      type="button"
+                      aria-label={t('admin.filters.clearFilter')}
+                      onClick={() => filter.onChange(neutralValue(filter))}
+                    >
+                      <X size={10} aria-hidden />
+                    </button>
+                  </span>
+                )
+              })}
+              <button type="button" className="admin-filter-panel-chips__clear" onClick={clearAll}>
+                {t('admin.filters.clearActive', { count: panelActiveFilters.length })}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
     )
   }
 
