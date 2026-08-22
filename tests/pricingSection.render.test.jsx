@@ -137,7 +137,6 @@ function renderPricing(props = {}) {
         configuration={configuration}
         onCreatePlanVersion={vi.fn(async () => ({}))}
         onRefresh={vi.fn()}
-        onSaveComboOffer={vi.fn(async () => ({}))}
         onSetPlanActive={vi.fn(async () => ({}))}
         {...props}
       />
@@ -163,141 +162,7 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByLabelText(/Familia del plan/).disabled).toBe(true)
   })
 
-  it('resume la oferta combo y abre su edición bajo demanda', () => {
-    renderPricing()
-    expect(screen.getAllByText('Activo').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Cancelado').length).toBeGreaterThan(0)
-    expect(screen.getByRole('heading', { name: 'Oferta combo' })).toBeTruthy()
-    expect(screen.getByText('Pitbull Classic')).toBeTruthy()
-    expect(screen.queryByLabelText('Evento')).toBeNull()
-
-    const disclosure = screen.getByRole('button', { name: /Editar oferta/ })
-    expect(disclosure.getAttribute('aria-expanded')).toBe('false')
-    fireEvent.click(disclosure)
-
-    expect(disclosure.getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getByLabelText('Evento')).toBeTruthy()
-    expect(screen.getByLabelText('Plan incluido')).toBeTruthy()
-    expect(screen.getByLabelText('Precio combo')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Guardar oferta' })).toBeTruthy()
-  })
-
-  it('conserva el borrador del combo ante una sincronización mientras se edita', () => {
-    const view = renderPricing({
-      configuration: {
-        ...configuration,
-        events: [
-          {
-            ...configuration.events[0],
-            comboOffer: { membershipPlanId: 'plan-active', price: 1, active: true },
-          },
-        ],
-      },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /Editar oferta/ }))
-    const price = screen.getByLabelText('Precio combo')
-    fireEvent.change(price, { target: { value: '999' } })
-
-    // La API entrega objetos nuevos en cada refresh, aun sin cambios para este
-    // combo. Esa actualización no debe pisar el trabajo sin guardar.
-    view.rerender(
-      <I18nProvider>
-        <PricingSection
-          canEdit
-          configuration={{
-            ...configuration,
-            events: [
-              {
-                ...configuration.events[0],
-                comboOffer: { membershipPlanId: 'plan-active', price: 1, active: true },
-              },
-            ],
-          }}
-          onCreatePlanVersion={vi.fn(async () => ({}))}
-          onRefresh={vi.fn()}
-          onSaveComboOffer={vi.fn(async () => ({}))}
-          onSetPlanActive={vi.fn(async () => ({}))}
-          onSetPlanRetirement={vi.fn(async () => ({}))}
-        />
-      </I18nProvider>,
-    )
-
-    expect(screen.getByLabelText('Precio combo')).toHaveProperty('value', '999')
-  })
-
-  it('separa habilitación de los tres estados de visibilidad del combo', () => {
-    renderPricing({
-      configuration: {
-        ...configuration,
-        events: [
-          {
-            ...configuration.events[0],
-            comboOffer: {
-              membershipPlanId: 'plan-active',
-              price: 1,
-              active: true,
-              audience: 'code',
-              accessCode: 'ONLY-PITBULL',
-            },
-          },
-        ],
-      },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /Editar oferta/ }))
-    const visibility = screen.getByRole('group', { name: 'Visibilidad comercial' })
-    expect(within(visibility).getByRole('radio', { name: /Pública/ })).toBeTruthy()
-    expect(within(visibility).getByRole('radio', { name: /Restringida/ }).checked).toBe(true)
-    expect(within(visibility).getByRole('radio', { name: /Privada/ })).toBeTruthy()
-
-    fireEvent.click(within(visibility).getByRole('radio', { name: /Privada/ }))
-    expect(screen.queryByLabelText('Código de acceso')).toBeNull()
-    expect(screen.getByText(/Al guardar como privada/)).toBeTruthy()
-  })
-
-  it('expone financiamiento solo para un combo con codigo y lo envia al guardar', async () => {
-    const onSaveComboOffer = vi.fn(async () => ({}))
-    renderPricing({
-      onSaveComboOffer,
-      configuration: {
-        ...configuration,
-        events: [
-          {
-            ...configuration.events[0],
-            comboOffer: {
-              membershipPlanId: 'plan-active',
-              price: 1,
-              active: true,
-              audience: 'code',
-              accessCode: 'ONLY-PITBULL',
-              financed: false,
-            },
-          },
-        ],
-      },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /Editar oferta/ }))
-    const financing = screen.getByRole('checkbox', {
-      name: /Permitir financiamiento con este código/,
-    })
-    fireEvent.click(financing)
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar oferta' }))
-
-    expect(onSaveComboOffer).toHaveBeenCalledWith(
-      'pitbull-classic',
-      expect.objectContaining({ audience: 'code', financed: true }),
-    )
-
-    const visibility = screen.getByRole('group', { name: 'Visibilidad comercial' })
-    fireEvent.click(within(visibility).getByRole('radio', { name: /Pública/ }))
-    expect(
-      screen.queryByRole('checkbox', { name: /Permitir financiamiento con este código/ }),
-    ).toBeNull()
-  })
-
-  it('explica el recorrido secreto y sólo lista combos restringidos', async () => {
+  it('explica el recorrido secreto y acepta cualquier torneo', async () => {
     renderPricing({
       configuration: {
         ...configuration,
@@ -315,11 +180,11 @@ describe('Tarifas — alta de planes y combo', () => {
             },
           },
           {
-            id: 'event-private',
-            slug: 'evento-privado',
-            title: 'Evento privado',
+            id: 'event-sin-combo',
+            slug: 'torneo-nuevo',
+            title: 'Torneo nuevo',
             registrationPrice: 75000,
-            comboOffer: { price: 130000, active: true, audience: 'private' },
+            comboOffer: null,
           },
         ],
       },
@@ -333,7 +198,9 @@ describe('Tarifas — alta de planes y combo', () => {
       target: { value: 'offer_access' },
     })
     expect(screen.getByLabelText(/^Tipo de código/).value).toBe('offer_access')
-    expect(screen.getByRole('option', { name: 'Acceso a una oferta' })).toBeTruthy()
+    expect(
+      screen.getByRole('option', { name: 'Combo u oferta (afiliación + inscripción)' }),
+    ).toBeTruthy()
     expect(screen.queryByRole('option', { name: /Oferta exclusiva/ })).toBeNull()
     // Y la oferta se instancia: se nombra el paquete que abre.
     expect(screen.getByLabelText(/Oferta que abre/).value).toBe('membership_registration')
@@ -359,7 +226,9 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
     expect(screen.getAllByText(/Pitbull Classic ·/).length).toBeGreaterThan(0)
     expect(screen.getByText('Mi cuenta · Oferta exclusiva · Procesar pago')).toBeTruthy()
-    expect(screen.queryByRole('option', { name: /Evento privado/ })).toBeNull()
+    // Y no hay torneos de segunda: el que no tiene nada cargado también sirve,
+    // porque el código trae el paquete entero.
+    expect(screen.getByRole('option', { name: /Torneo nuevo/ })).toBeTruthy()
   })
 
   it('permite crear un código que aplique a afiliaciones e inscripciones', async () => {
@@ -582,7 +451,9 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(first.invitees).toEqual(['ana@plu.ar'])
     expect(second.invitees).toEqual(['bruno@plu.ar'])
     for (const payload of [first, second]) {
-      expect(payload.code).toMatch(/^CLUB-[A-Z0-9]+$/)
+      // Dos bloques de cuatro, sin caracteres que se confundan al dictarlo, y
+      // sorteados con `crypto`: el código ES el secreto de la oferta.
+      expect(payload.code).toMatch(/^CLUB-[ABCDEFGHJKMNPQRTUVWXY2346789]{4}-[ABCDEFGHJKMNPQRTUVWXY2346789]{4}$/)
     }
     expect(first.code).not.toBe(second.code)
   })
@@ -611,39 +482,27 @@ describe('Tarifas — alta de planes y combo', () => {
     ],
   }
 
-  it('una oferta sin precio propio cobra el combo del torneo', async () => {
+  it('el importe de la oferta es obligatorio: es todo su contrato', async () => {
+    // Antes una oferta sin importe cobraba el precio del combo del torneo. Sin
+    // combo como objeto aparte, un código sin precio no dice qué cobra.
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode, configuration: restrictedComboConfiguration })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
     fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
-      target: { value: 'combo-secreto' },
+      target: { value: 'sin-precio' },
     })
     fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
       target: { value: 'offer_access' },
     })
-
-    // Sin porcentaje: una oferta no descuenta sobre un precio publicado, abre
-    // un paquete que no está publicado.
-    expect(screen.queryByLabelText('Descuento (%)')).toBeNull()
-    // El precio es opcional y su ausencia es el contrato: cobra el combo.
-    expect(screen.getByLabelText(/Precio de la oferta por Mercado Pago/).required).toBe(false)
-
     fireEvent.change(screen.getByLabelText(/Inscripción de la oferta/), {
       target: { value: 'event-1' },
     })
+    expect(screen.getByLabelText(/Precio de la oferta por Mercado Pago/).required).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
-    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
-      expect.objectContaining({
-        code: 'COMBO-SECRETO',
-        kind: 'access',
-        percentOff: undefined,
-        fixedPrice: undefined,
-        appliesTo: 'combo',
-        eventId: 'event-1',
-      }),
-    )
+    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
+    expect(screen.getByText(/El precio promocional tiene que ser un número entero/)).toBeTruthy()
   })
 
   it('poner un precio convierte la misma oferta en una con importe propio', async () => {
@@ -748,34 +607,6 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByText(/tiene que ser menor a lo que ya se paga sin el código/)).toBeTruthy()
   })
 
-  it('sin precio propio la oferta sigue necesitando el combo del torneo', async () => {
-    // Es la contracara: lo que se cobra es el precio del combo, así que sin
-    // combo no hay importe que cobrar.
-    const onUpsertDiscountCode = vi.fn(async () => ({}))
-    renderPricing({
-      onUpsertDiscountCode,
-      configuration: {
-        ...configuration,
-        events: [{ ...configuration.events[0], comboOffer: null }],
-      },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
-    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
-      target: { value: 'sin-precio' },
-    })
-    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
-      target: { value: 'offer_access' },
-    })
-    fireEvent.change(screen.getByLabelText(/Inscripción de la oferta/), {
-      target: { value: 'event-1' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
-
-    expect(onUpsertDiscountCode).not.toHaveBeenCalled()
-    expect(screen.getByText(/Poné un precio o cargá el combo/)).toBeTruthy()
-  })
-
   it('con dos afiliaciones vigentes pregunta cuál se empaqueta y la manda', async () => {
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({
@@ -842,6 +673,9 @@ describe('Tarifas — alta de planes y combo', () => {
     fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
       target: { value: 'offer_access' },
     })
+    fireEvent.change(screen.getByLabelText(/Precio de la oferta por Mercado Pago/), {
+      target: { value: '120000' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).not.toHaveBeenCalled()
@@ -861,34 +695,69 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByRole('option', { name: 'Combo (afiliación + inscripción)' })).toBeTruthy()
   })
 
-  it('deja elegir qué canales manuales habilita el código', async () => {
+  it('el modo de cobro es una sola decisión: sin canales sueltos que contradecirla', async () => {
+    // Antes eran cuatro casillas cuya validez dependía entre sí. El modo por
+    // defecto es la pasarela, y en ese modo no hay ningún canal manual que
+    // elegir: no hay forma de guardar un contrato a medio armar.
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
     fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
-      target: { value: 'solo-efectivo' },
+      target: { value: 'solo-mercado-pago' },
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
-    // Mercado Pago ahora se lista y viene marcado: es el default histórico,
-    // pero se puede apagar (ver 20260908100000).
-    expect(screen.getByRole('checkbox', { name: 'Mercado Pago' }).checked).toBe(true)
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
+    expect(screen.getByLabelText(/Cómo se cobra/).value).toBe('mercado_pago')
+    expect(screen.queryByRole('checkbox', { name: 'Efectivo en Pitbull' })).toBeNull()
+    expect(screen.queryByRole('checkbox', { name: /Permitir delegar el pago/ })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
       expect.objectContaining({
-        code: 'SOLO-EFECTIVO',
-        manualChannels: ['cash_pitbull'],
+        code: 'SOLO-MERCADO-PAGO',
+        manualChannels: [],
         mercadoPagoEnabled: true,
+        financed: false,
       }),
     )
   })
 
-  it('financiar un código abre los canales que el atleta puede declarar', async () => {
+  it('cobrar sí o sí a mano cierra la pasarela y abre los dos canales', async () => {
+    // El caso que antes había que armar a mano destildando Mercado Pago y
+    // marcando canales: ahora es una opción del selector.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'pactado-a-mano' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    fireEvent.change(screen.getByLabelText(/Cómo se cobra/), { target: { value: 'manual' } })
+
+    expect(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }).checked).toBe(true)
+    expect(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }).checked).toBe(true)
+    expect(screen.getByRole('checkbox', { name: /Aceptar también Mercado Pago/ }).checked).toBe(
+      false,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'PACTADO-A-MANO',
+        manualChannels: ['bank_transfer', 'cash_pitbull'],
+        mercadoPagoEnabled: false,
+        financed: false,
+      }),
+    )
+  })
+
+  it('el modo que habilita al avisar el pago no puede quedar inerte', async () => {
     // El agujero que reportó Precios: se podía marcar financiamiento con sólo
     // Mercado Pago, y el atleta canjeaba, pagaba con la pasarela —que acredita
-    // sola— y nunca delegaba nada. Marcarlo ahora abre transferencia y efectivo.
+    // sola— y nunca delegaba nada. Ahora el financiamiento ES un modo de cobro
+    // manual: elegirlo abre los canales que el atleta puede declarar.
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })
 
@@ -897,10 +766,14 @@ describe('Tarifas — alta de planes y combo', () => {
       target: { value: 'only-pitbull-gold' },
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /Permitir delegar el pago/ }))
+    fireEvent.change(screen.getByLabelText(/Cómo se cobra/), {
+      target: { value: 'manual_financed' },
+    })
 
     expect(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }).checked).toBe(true)
     expect(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }).checked).toBe(true)
+    // Y lo que hace queda dicho en el formulario, no en un tooltip.
+    expect(screen.getByText(/queda habilitado en afiliación e inscripción/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
@@ -908,11 +781,12 @@ describe('Tarifas — alta de planes y combo', () => {
         code: 'ONLY-PITBULL-GOLD',
         financed: true,
         manualChannels: ['bank_transfer', 'cash_pitbull'],
+        mercadoPagoEnabled: false,
       }),
     )
   })
 
-  it('quitar el último canal manual apaga el financiamiento en vez de dejarlo inerte', async () => {
+  it('volver a Mercado Pago limpia el financiamiento en vez de dejarlo guardado', async () => {
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })
 
@@ -921,15 +795,44 @@ describe('Tarifas — alta de planes y combo', () => {
       target: { value: 'sin-delegar' },
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
-    const financing = screen.getByRole('checkbox', { name: /Permitir delegar el pago/ })
-    fireEvent.click(financing)
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+    fireEvent.change(screen.getByLabelText(/Cómo se cobra/), {
+      target: { value: 'manual_financed' },
+    })
+    fireEvent.change(screen.getByLabelText(/Cómo se cobra/), { target: { value: 'mercado_pago' } })
 
-    expect(financing.checked).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'SIN-DELEGAR', financed: false, manualChannels: [] }),
+      expect.objectContaining({
+        code: 'SIN-DELEGAR',
+        financed: false,
+        manualChannels: [],
+        mercadoPagoEnabled: true,
+      }),
+    )
+  })
+
+  it('un código pactado a mano puede además aceptar la pasarela', async () => {
+    // Es la excepción, no el punto de partida: la reapertura vive dentro del
+    // modo manual y no como una casilla suelta que contradice al selector.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'como-quiera' },
+    })
+    fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
+    fireEvent.change(screen.getByLabelText(/Cómo se cobra/), { target: { value: 'manual' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: /Aceptar también Mercado Pago/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'COMO-QUIERA',
+        manualChannels: ['cash_pitbull'],
+        mercadoPagoEnabled: true,
+      }),
     )
   })
 
@@ -949,9 +852,9 @@ describe('Tarifas — alta de planes y combo', () => {
     )
   })
 
-  it('deja cerrar Mercado Pago para un código pactado en efectivo', async () => {
-    // El caso que no se podía cargar: una oferta a un precio que sólo cierra
-    // cobrada en efectivo, y que no debe poder pagarse con la pasarela.
+  it('sólo en efectivo: se estrecha el canal sin tocar la pasarela', async () => {
+    // El caso que no se podía cargar sin armar la matriz a mano: una oferta que
+    // sólo cierra cobrada en efectivo y que no debe poder pagarse online.
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })
 
@@ -960,8 +863,8 @@ describe('Tarifas — alta de planes y combo', () => {
       target: { value: 'pactado-efectivo' },
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
+    fireEvent.change(screen.getByLabelText(/Cómo se cobra/), { target: { value: 'manual' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
 
     expect(onUpsertDiscountCode).toHaveBeenCalledWith(
@@ -974,6 +877,8 @@ describe('Tarifas — alta de planes y combo', () => {
   })
 
   it('no guarda un código sin ningún medio de pago', async () => {
+    // El único callejón que queda alcanzable: modo manual y los dos canales
+    // destildados, con la pasarela cerrada. Se avisa en el mismo fieldset.
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })
 
@@ -982,8 +887,9 @@ describe('Tarifas — alta de planes y combo', () => {
       target: { value: 'sin-medios' },
     })
     fireEvent.change(screen.getByLabelText('Descuento (%)'), { target: { value: '10' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
-    // El aviso aparece en el mismo fieldset, antes de intentar enviar.
+    fireEvent.change(screen.getByLabelText(/Cómo se cobra/), { target: { value: 'manual' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
     expect(screen.getByText(/Elegí al menos un medio de pago/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))

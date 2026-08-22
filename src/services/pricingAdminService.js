@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
+import { apiDelete, apiGet, apiPatch, apiPost } from '../lib/api.js'
 
 function dateTimeToIso(value) {
   if (!value) return ''
@@ -212,23 +212,169 @@ export async function deleteMembershipPlanRequest(planId) {
   return apiDelete(`/api/pricing/membership-plans/${encodeURIComponent(planId)}`)
 }
 
-export async function saveEventComboOfferRequest(eventSlug, offer) {
-  return apiRequest(`/api/pricing/events/${encodeURIComponent(eventSlug)}/combo`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      ...offer,
-      startsAt: dateTimeToIso(offer.startsAt),
-      endsAt: dateTimeToIso(offer.endsAt),
-    }),
-  })
-}
-
 export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
   const result = await apiPatch(
     `/api/pricing/membership-plans/${encodeURIComponent(planId)}/retirement`,
     { retiresAt: dateTimeToIso(retiresAt) },
   )
   return mapMembershipPlan(result.plan)
+}
+
+/** Canales que se liquidan a mano, en el orden en que los ve el atleta. */
+export const MANUAL_PAYMENT_CHANNELS = ['bank_transfer', 'cash_pitbull']
+
+/**
+ * Cómo se cobra un código, como UNA decisión en vez de tres interruptores.
+ *
+ * En la base son tres columnas independientes —`mercado_pago_enabled`,
+ * `manual_channels`, `financed`— y el panel las mostraba como cuatro casillas
+ * cuya validez dependía entre sí: financiar sin canal manual quedaba inerte,
+ * destildar las tres dejaba un código que nadie podía pagar. El operador tenía
+ * que reconstruir el contrato en la cabeza.
+ *
+ * Son tres intenciones, y ninguna combinación inválida es alcanzable:
+ *
+ *   * 'mercado_pago'    — la pasarela acredita sola. Es el caso por defecto.
+ *   * 'manual'          — se cobra a mano; Finanzas valida antes de habilitar.
+ *   * 'manual_financed' — se cobra a mano y el atleta queda habilitado en
+ *                         afiliación e inscripción cuando avisa que pagó. La
+ *                         deuda sigue abierta (`financing_allowed`).
+ *
+ * `mercadoPagoEnabled` sobrevive como refinamiento de los dos modos manuales
+ * ("aceptar también Mercado Pago"): es lo que permite leer sin pérdida los
+ * códigos que ya existen con la pasarela abierta y canales manuales.
+ */
+export const CODE_PAYMENT_MODES = ['mercado_pago', 'manual', 'manual_financed']
+
+/** El modo de un código guardado. Cualquier fila vieja cae en uno de los tres. */
+export function codePaymentModeOf(code) {
+  const manual = Array.isArray(code?.manualChannels) ? code.manualChannels : []
+  if (manual.length === 0) return 'mercado_pago'
+  return code?.financed === true ? 'manual_financed' : 'manual'
+}
+
+/**
+ * Las tres columnas que corresponden al modo elegido.
+ *
+ * Elegir un modo manual abre los dos canales cuando no había ninguno —sin canal
+ * no hay nada que cobrar ni que declarar— y conserva la selección cuando el
+ * operador ya la ajustó. Volver a Mercado Pago limpia todo: un código de
+ * pasarela con financiamiento guardado es la contradicción que la base rechaza.
+ */
+export function applyCodePaymentMode(code, mode) {
+  const current = Array.isArray(code?.manualChannels) ? code.manualChannels : []
+  const filled = (value) => String(value ?? '').trim() !== ''
+  if (mode === 'mercado_pago') {
+    return {
+      ...code,
+      manualChannels: [],
+      mercadoPagoEnabled: true,
+      financed: false,
+      // El importe pactado no se pierde al reabrir la pasarela: el campo de
+      // Mercado Pago vuelve a aparecer y quedaba vacío aunque el precio ya
+      // estuviera acordado para el canal manual.
+      fixedPrice: filled(code?.fixedPrice) ? code.fixedPrice : (code?.fixedPriceManual ?? ''),
+    }
+  }
+  // Ya estaba en un modo manual: se conserva lo que el operador ajustó —los
+  // canales y una reapertura deliberada de la pasarela—, así moverse entre
+  // "cobra a mano" y "habilita al avisar" no pierde nada.
+  const wasManual = current.length > 0
+  return {
+    ...code,
+    manualChannels: wasManual ? current : [...MANUAL_PAYMENT_CHANNELS],
+    // Viniendo de la pasarela, un modo manual la cierra: es exactamente lo que
+    // significa "sí o sí efectivo o transferencia". Se puede reabrir a mano.
+    mercadoPagoEnabled: wasManual ? code?.mercadoPagoEnabled === true : false,
+    financed: mode === 'manual_financed',
+    // Con la pasarela cerrada, el importe que se cobra es el del canal manual
+    // (`effective_fixed_price`) y el campo de Mercado Pago desaparece. Si el
+    // operador ya había puesto el precio ahí, se traslada: antes el formulario
+    // rechazaba el alta pidiendo un importe que la persona creía haber escrito.
+    fixedPriceManual: filled(code?.fixedPriceManual)
+      ? code.fixedPriceManual
+      : (code?.fixedPrice ?? ''),
+  }
+}
+
+/**
+ * Alfabeto sin caracteres que se confunden al dictar o tipear un código:
+ * afuera 0/O, 1/I/L y el 5/S. Un código secreto se pasa por WhatsApp y se
+ * escribe a mano en el checkout.
+ */
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRTUVWXY2346789'
+const CODE_BLOCK = 4
+const CODE_BLOCKS = 2
+
+function randomCodeBody() {
+  const size = CODE_BLOCK * CODE_BLOCKS
+  const bytes = new Uint8Array(size)
+  // `crypto` y no `Math.random`: el código ES el secreto de la oferta, y una
+  // secuencia predecible deja adivinar el de otra persona. Además el generador
+  // anterior podía devolver menos caracteres de los pedidos
+  // (`Math.random().toString(36)` no siempre trae 4 dígitos después del punto),
+  // así que había códigos de dos letras conviviendo con los de ocho.
+  globalThis.crypto.getRandomValues(bytes)
+  const letters = Array.from(bytes, (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length])
+  return Array.from({ length: CODE_BLOCKS }, (_, block) =>
+    letters.slice(block * CODE_BLOCK, (block + 1) * CODE_BLOCK).join(''),
+  ).join('-')
+}
+
+/** Prefijo normalizado al formato que acepta la base: mayúsculas y guiones. */
+export function normalizeCodePrefix(value) {
+  return String(value ?? '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 20)
+}
+
+/**
+ * Un código nuevo, único contra los que ya existen y los del mismo lote.
+ *
+ * `taken` es un Set de códigos en mayúsculas: la lista del panel más lo
+ * generado hasta ahora. El servidor tiene la última palabra (índice único), pero
+ * chocar acá cuesta un reintento local en vez de un 409 a mitad de un lote de
+ * 300.
+ */
+export function generateDiscountCode({ prefix = '', taken = new Set() } = {}) {
+  const head = normalizeCodePrefix(prefix)
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const candidate = head ? `${head}-${randomCodeBody()}` : randomCodeBody()
+    if (!taken.has(candidate)) return candidate
+  }
+  // 28^8 combinaciones: 50 choques seguidos no es mala suerte, es un `taken`
+  // gigante. Se devuelve con sufijo para no entrar en un bucle infinito.
+  return `${head ? `${head}-` : ''}${randomCodeBody()}-${randomCodeBody()}`
+}
+
+/**
+ * Corre `task` sobre cada item con concurrencia acotada y NO corta en el primer
+ * error: un lote de 200 códigos que falla en el 3º dejaba 2 creados y ningún
+ * reporte de cuáles. Devuelve el resultado de cada uno en orden.
+ *
+ * El límite es 6 por dos motivos: `staffLimiter` permite 900 requests cada 5
+ * minutos (un lote de 500 entra), y el alta escribe en una tabla con índice
+ * único —serializar de más sólo alarga el trámite, y de menos sube los choques.
+ */
+export async function mapWithConcurrency(items, task, { limit = 6 } = {}) {
+  const results = new Array(items.length)
+  let cursor = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor
+      cursor += 1
+      try {
+        results[index] = { ok: true, value: await task(items[index], index) }
+      } catch (error) {
+        results[index] = { ok: false, error }
+      }
+    }
+  })
+  await Promise.all(workers)
+  return results
 }
 
 const DISCOUNT_CODE_KINDS = ['percent', 'fixed_price', 'access', 'offer']
@@ -315,10 +461,6 @@ export function discountCodeStatePayload(state) {
 
 export async function deleteDiscountCodeRequest(codeId) {
   return apiDelete(`/api/pricing/discount-codes/${encodeURIComponent(codeId)}`)
-}
-
-export async function deleteEventComboOfferRequest(eventSlug) {
-  return apiDelete(`/api/pricing/events/${encodeURIComponent(eventSlug)}/combo`)
 }
 
 export async function fetchBillingSubscriptionsRequest(filters = {}) {

@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { assertComboAccessCode } from '../server/services/registrationAccessService.js'
-import { comboOfferSchema } from '../server/routes/pricing.js'
 import { getEventComboAvailability } from '../src/services/comboOfferService.js'
 
 const migration = readFileSync(
@@ -47,25 +46,10 @@ describe('combo restringido por código', () => {
 
   it('borra el código al volver el combo a público', () => {
     // Si lo conservara, restringirlo de nuevo reviviría en silencio un código
-    // que ya se repartió.
+    // que ya se repartió. La guarda quedó en la RPC: el panel ya no configura
+    // combos —el paquete vive dentro del código de oferta (20260914100000)— así
+    // que el schema HTTP que la duplicaba se fue con su sección.
     expect(migration).toContain('v_access_code := null')
-    const parsed = comboOfferSchema.safeParse(
-      comboPayload({ audience: 'public', accessCode: 'COMBO-VIEJO' }),
-    )
-    expect(parsed.success).toBe(true)
-    expect(parsed.data.accessCode).toBe('')
-  })
-
-  it('exige un código válido cuando el combo es restringido', () => {
-    expect(comboOfferSchema.safeParse(comboPayload({ audience: 'code' })).success).toBe(false)
-    expect(
-      comboOfferSchema.safeParse(comboPayload({ audience: 'code', accessCode: 'ma l' })).success,
-    ).toBe(false)
-    const ok = comboOfferSchema.safeParse(
-      comboPayload({ audience: 'code', accessCode: 'combo-pitbull' }),
-    )
-    expect(ok.success).toBe(true)
-    expect(ok.data.accessCode).toBe('COMBO-PITBULL')
   })
 
   it('mantiene el código fuera de la bitácora', () => {
@@ -113,12 +97,9 @@ describe('combo restringido por código', () => {
   })
 
   it('trata privado como un tercer estado y no como restringido', () => {
-    const parsed = comboOfferSchema.safeParse(
-      comboPayload({ audience: 'private', accessCode: 'NO-DEBE-PERSISTIR' }),
-    )
-    expect(parsed.success).toBe(true)
-    expect(parsed.data.accessCode).toBe('')
-
+    // Lo que sigue importando es cómo lo lee el checkout de un combo que ya
+    // existe: privado no es "restringido y hay que canjear", es "fuera de todo
+    // canal", ni siquiera con la llave en la mano.
     const availability = getEventComboAvailability(
       {
         comboOffer: { price: 120000, active: true, audience: 'private' },

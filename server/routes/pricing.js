@@ -59,14 +59,15 @@ export const discountCodeSchema = z
       .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Usá letras mayúsculas, números y guiones.'),
     description: z.string().trim().max(200).optional().default(''),
     // 'percent' descuenta sobre el precio vigente; 'fixed_price' fija el
-    // importe final de la compra; 'access' no toca el precio y sólo destraba el
-    // combo restringido; 'offer' hace las dos cosas — es la oferta exclusiva
-    // detrás de un código secreto ("afiliación + inscripción a $120.000").
+    // importe final de la compra; 'offer' es la oferta exclusiva detrás de un
+    // código secreto: el paquete de afiliación + inscripción con su propio
+    // importe ("afiliación + inscripción a $120.000").
     //
-    // 'access' estaba implementado en la RPC y ofrecido en el panel desde
-    // 20260901100000, pero este enum nunca lo incluyó: guardar un código de
-    // acceso desde Administración fallaba con 400 antes de llegar a la base.
-    kind: z.enum(['percent', 'fixed_price', 'access', 'offer']).default('percent'),
+    // 'access' —la oferta sin precio propio, que cobraba el del combo del
+    // evento— ya no se puede crear: el paquete y su importe viven en el código,
+    // no en un objeto aparte. La base conserva la modalidad para las filas
+    // históricas; editarlas desde el panel las guarda como 'offer'.
+    kind: z.enum(['percent', 'fixed_price', 'offer']).default('percent'),
     // Tope en 99: un cupón nunca puede dejar una orden en $0 — Mercado Pago no
     // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
     // gratuita. Ver apply_discount_code_to_order (rechaza descuento == importe).
@@ -217,8 +218,8 @@ export const discountCodeSchema = z
           'Una promoción pública no puede limitarse a una inscripción. Repartila como código.',
       })
     }
-    // 'percent' y 'access' no llevan importe: el precio manual sólo significa
-    // algo cuando hay un precio promocional que desdoblar por canal.
+    // Un porcentaje no lleva importe: el precio manual sólo significa algo
+    // cuando hay un precio promocional que desdoblar por canal.
     if (code.fixedPriceManual != null && !['fixed_price', 'offer'].includes(code.kind)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -233,18 +234,6 @@ export const discountCodeSchema = z
           code: z.ZodIssueCode.custom,
           path: ['percentOff'],
           message: 'Indicá el porcentaje de descuento.',
-        })
-      }
-      return
-    }
-    // Un código de acceso no descuenta: sólo destraba el combo restringido, y
-    // no hay nada que destrabar en una afiliación o una inscripción sueltas.
-    if (code.kind === 'access') {
-      if (code.appliesTo !== 'combo') {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['appliesTo'],
-          message: 'Un código de acceso sólo puede aplicarse al combo.',
         })
       }
       return
@@ -305,17 +294,6 @@ export const discountCodeSchema = z
         membershipPlanId: undefined,
       }
     }
-    if (code.kind === 'access') {
-      return {
-        ...code,
-        percentOff: undefined,
-        fixedPrice: undefined,
-        fixedPriceManual: undefined,
-        // Sin precio propio la oferta cobra el del combo: el paquete lo define
-        // ese combo, no el código.
-        membershipPlanId: undefined,
-      }
-    }
     return {
       ...code,
       percentOff: undefined,
@@ -334,60 +312,6 @@ const discountCodeStateSchema = z.object({
   active: z.boolean(),
   audience: z.enum(['public', 'code']).optional(),
 })
-
-export const comboOfferSchema = z
-  .object({
-    membershipPlanId: z.string().uuid(),
-    price: money,
-    manualPrice: money.optional(),
-    active: z.boolean().default(false),
-    financed: z.boolean().default(false),
-    startsAt: optionalDateTime,
-    endsAt: optionalDateTime,
-    // Mismo eje que las promociones: 'public' lo ve cualquiera, 'code' sólo
-    // quien tipea el código de acceso. Apagado sigue siendo `active: false`.
-    audience: z.enum(['public', 'code', 'private']).default('public'),
-    accessCode: z
-      .string()
-      .trim()
-      .toUpperCase()
-      .max(32)
-      .optional()
-      .default('')
-      .refine(
-        (value) => !value || /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value),
-        'Usá mayúsculas, números y guiones.',
-      ),
-  })
-  .superRefine((offer, context) => {
-    if (offer.startsAt && offer.endsAt && new Date(offer.endsAt) < new Date(offer.startsAt)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['endsAt'],
-        message: 'El cierre debe ser posterior a la apertura.',
-      })
-    }
-    // Un combo restringido sin código es un combo que nadie puede comprar.
-    if (offer.audience === 'code' && offer.accessCode.length < 3) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['accessCode'],
-        message: 'Definí el código de acceso al combo (mínimo 3 caracteres).',
-      })
-    }
-    if (offer.financed && offer.audience !== 'code') {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['financed'],
-        message: 'El financiamiento sólo puede habilitarse en un combo con código.',
-      })
-    }
-  })
-  // Un combo público no conserva el código: volver a restringirlo tiene que
-  // obligar a elegir uno nuevo en vez de revivir el que ya se repartió.
-  .transform((offer) =>
-    offer.audience === 'code' ? offer : { ...offer, accessCode: '', financed: false },
-  )
 
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`
@@ -503,47 +427,6 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
       }
     },
   )
-
-  router.put(
-    '/events/:eventSlug/combo',
-    ...writeGuard,
-    staffLimiter,
-    validateBody(comboOfferSchema),
-    async (req, res, next) => {
-      try {
-        assertPricingWritesEnabled(env)
-        const eventSlug = parseRouteParam(
-          z
-            .string()
-            .trim()
-            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-          req.params.eventSlug,
-          'El identificador del evento es inválido.',
-        )
-        const offer = await repository().upsertComboOffer(eventSlug, req.validatedBody, actor(req))
-        res.json({ offer })
-      } catch (error) {
-        next(error)
-      }
-    },
-  )
-
-  router.delete('/events/:eventSlug/combo', ...writeGuard, staffLimiter, async (req, res, next) => {
-    try {
-      assertPricingWritesEnabled(env)
-      const eventSlug = parseRouteParam(
-        z
-          .string()
-          .trim()
-          .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-        req.params.eventSlug,
-        'El identificador del evento es inválido.',
-      )
-      res.json(await repository().deleteComboOffer(eventSlug, actor(req)))
-    } catch (error) {
-      next(error)
-    }
-  })
 
   router.patch(
     '/membership-plans/:planId/retirement',

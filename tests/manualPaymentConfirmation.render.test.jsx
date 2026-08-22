@@ -84,8 +84,15 @@ describe('ManualPaymentConfirmation', () => {
       await act(async () => {
         vi.advanceTimersByTime(700)
       })
-      const burst = document.body.querySelector('.celebration-burst')
-      expect(burst).not.toBeNull()
+      // Se espera la ráfaga en vez de asumir que un solo avance alcanza: el
+      // temporizador arranca cuando el sello termina de montarse, y con la
+      // suite entera en paralelo ese montaje puede caer después del avance.
+      // Un `advanceTimersByTime` seco fallaba sólo bajo carga.
+      const burst = await waitFor(() => {
+        const node = document.body.querySelector('.celebration-burst')
+        expect(node).not.toBeNull()
+        return node
+      })
       expect(burst.querySelectorAll('.celebration-burst__piece').length).toBeGreaterThan(0)
       // Y no aporta nada al árbol accesible: la confirmación vive en el texto.
       expect(burst.getAttribute('aria-hidden')).toBe('true')

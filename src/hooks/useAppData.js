@@ -154,11 +154,9 @@ import {
   createMembershipPlanVersionRequest,
   fetchBillingSubscriptionsRequest,
   deleteDiscountCodeRequest,
-  deleteEventComboOfferRequest,
   deleteMembershipPlanRequest,
   discountCodeStatePayload,
   fetchPricingConfigurationRequest,
-  saveEventComboOfferRequest,
   simulatePromotionCodeRequest,
   setDiscountCodeStateRequest,
   setMembershipPlanActiveRequest,
@@ -2766,70 +2764,6 @@ export function useAppData() {
     [refreshPricingConfiguration, session],
   )
 
-  const deleteEventComboOffer = useCallback(
-    async (eventSlug) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
-        return { error: 'La configuración económica está disponible próximamente.' }
-      }
-      try {
-        const result = await deleteEventComboOfferRequest(eventSlug)
-        setAdminEvents((current) =>
-          current.map((event) =>
-            event.slug === eventSlug
-              ? {
-                  ...event,
-                  comboOffer: null,
-                  pricing: { ...event.pricing, combo: 0 },
-                }
-              : event,
-          ),
-        )
-        await refreshPricingConfiguration()
-        return result
-      } catch (error) {
-        return { error: error?.message ?? 'No se pudo eliminar la oferta combo.' }
-      }
-    },
-    [refreshPricingConfiguration, session],
-  )
-
-  const saveEventComboOffer = useCallback(
-    async (eventSlug, offer) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
-        return { error: 'La configuración económica está disponible próximamente.' }
-      }
-      try {
-        const result = await saveEventComboOfferRequest(eventSlug, offer)
-        // La coleccion tambien alimenta las superficies publicas de esta misma
-        // pestaña. Un combo apagado/restringido desaparece de ellas en el acto.
-        if (offer.active !== true || offer.audience === 'code') {
-          setAdminEvents((current) =>
-            current.map((event) =>
-              event.slug === eventSlug
-                ? {
-                    ...event,
-                    comboOffer: null,
-                    pricing: { ...event.pricing, combo: 0 },
-                  }
-                : event,
-            ),
-          )
-        }
-        await refreshPricingConfiguration()
-        return result
-      } catch (error) {
-        return { error: error?.message ?? 'No se pudo guardar la oferta combo.' }
-      }
-    },
-    [refreshPricingConfiguration, session],
-  )
-
   const setMembershipPlanRetirement = useCallback(
     async (planId, retiresAt) => {
       if (
@@ -3140,11 +3074,9 @@ export function useAppData() {
     createMembershipPlanVersion,
     setMembershipPlanActive,
     deleteMembershipPlan,
-    saveEventComboOffer,
     setMembershipPlanRetirement,
     upsertDiscountCode,
     setDiscountCodeState,
-    deleteEventComboOffer,
     deleteDiscountCode,
     simulatePromotionCode,
     billingSubscriptions,

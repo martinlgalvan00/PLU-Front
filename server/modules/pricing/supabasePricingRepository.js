@@ -41,13 +41,6 @@ export function createSupabasePricingRepository(client) {
         'No se pudo eliminar el plan.',
       ),
 
-    upsertComboOffer: (eventSlug, offer, actor) =>
-      rpc(
-        'staff_save_event_combo_offer',
-        { p_event_slug: eventSlug, p_offer: offer, p_actor: actor },
-        'No se pudo guardar la oferta combo.',
-      ),
-
     setPlanRetirement: (planId, retiresAt, actor) =>
       rpc(
         'staff_set_membership_plan_retirement',
@@ -78,11 +71,5 @@ export function createSupabasePricingRepository(client) {
         'No se pudo eliminar el código de descuento.',
       ),
 
-    deleteComboOffer: (eventSlug, actor) =>
-      rpc(
-        'staff_delete_event_combo_offer',
-        { p_event_slug: eventSlug, p_actor: actor },
-        'No se pudo eliminar la oferta combo.',
-      ),
   }
 }

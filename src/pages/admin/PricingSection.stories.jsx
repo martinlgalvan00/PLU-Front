@@ -157,7 +157,6 @@ export default {
     isLoading: false,
     onCreatePlanVersion: async () => ({}),
     onRefresh: () => {},
-    onSaveComboOffer: async () => ({}),
     onSetPlanActive: async () => ({}),
     onUpsertDiscountCode: async () => ({}),
     onSetDiscountCodeState: async () => ({}),

@@ -595,9 +595,6 @@ export default {
         'Solo se puede eliminar si no tiene afiliaciones, órdenes o suscripciones asociadas.',
       deleteConfirmCancel: 'Conservar plan',
       deleteConfirmConfirm: 'Eliminar plan',
-      comboTitle: 'Oferta combo',
-      comboLead:
-        'Combiná una afiliación y una inscripción. El precio final debe ser menor al total por separado.',
       event: 'Evento',
       membershipPlan: 'Plan incluido',
       membershipAmount: 'Afiliación',
@@ -605,48 +602,8 @@ export default {
       comboPrice: 'Precio combo',
       comboStarts: 'Desde',
       comboEnds: 'Hasta',
-      comboActive: 'Oferta habilitada',
-      saveCombo: 'Guardar oferta',
       noEvents: 'No hay eventos para configurar.',
-      noOneTimePlans: 'Necesitás al menos un plan activo de pago único.',
       saved: 'Configuración actualizada.',
-      separateTotal: 'Por separado',
-      comboSavings: 'Ahorro',
-      comboOverLimit: 'Supera el máximo',
-      comboMax: 'Máximo {{amount}}',
-      comboOfferOn: 'Habilitada',
-      comboOfferStatus: 'Habilitada · {{visibility}}',
-      comboOfferOff: 'Apagada',
-      comboVisibilityLabel: 'Visibilidad comercial',
-      comboEntitlementLabel: 'Habilitación',
-      comboEntitlementFinanced: 'Automática al declarar el pago',
-      comboEntitlementOnApproval: 'Cuando Finanzas valida el cobro',
-      comboVisibilityShort: {
-        public: 'Pública',
-        code: 'Restringida',
-        private: 'Privada',
-      },
-      comboVisibility: {
-        public: {
-          title: 'Pública',
-          description: 'Se muestra en el catálogo y cualquiera puede comprarla.',
-        },
-        code: {
-          title: 'Restringida',
-          description: 'No se anuncia. Un código válido desbloquea la página secreta.',
-        },
-        private: {
-          title: 'Privada',
-          description: 'Queda configurada, pero nadie puede verla, canjearla ni comprarla.',
-        },
-      },
-      comboPrivateNote:
-        'Al guardar como privada se pausan los códigos secretos activos de este combo. Las compras anteriores conservan su historial.',
-      editCombo: 'Editar oferta',
-      closeComboEditor: 'Cerrar edición',
-      comboNotConfigured: 'Sin configurar',
-      comboPlus: '+',
-      comboEquals: '=',
       colPlan: 'Plan',
       colPrice: 'Precio',
       colEffective: 'Vigencia',
@@ -658,7 +615,7 @@ export default {
       scheduleRetirement: 'Programar vigencia',
       discountCodesTitle: 'Códigos de descuento y promoción',
       discountCodesLead:
-        'Tres tipos: un descuento por porcentaje, un precio fijo promocional, o el acceso a una oferta que no está publicada.',
+        'Tres tipos: un descuento por porcentaje, un precio fijo promocional, o un combo —afiliación + inscripción— con su propio precio. Todo se carga acá: no hay nada que configurar antes.',
       discountCodesEmpty: 'Todavía no hay códigos cargados.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
@@ -666,8 +623,6 @@ export default {
       formTitleEditCode: 'Editar {{code}}',
       code: 'Código',
       codeFormatHint: 'Mayúsculas, números y guiones.',
-      batchQuantity: 'Cantidad',
-      batchQuantityHint: 'Cantidad de códigos a generar (1 para manual, >1 para automáticos).',
       batchPrefix: 'Prefijo (Opcional)',
       batchPrefixHint: 'Prefijo base para códigos automáticos (ej: PROMO).',
       batchPreview:
@@ -680,7 +635,7 @@ export default {
       codeKind: {
         percent: 'Descuento por porcentaje',
         fixed_price: 'Precio fijo promocional',
-        offer_access: 'Acceso a una oferta',
+        offer_access: 'Combo u oferta (afiliación + inscripción)',
       },
       // Qué oferta instancia el código. Hoy hay una sola; el select existe
       // igual porque nombrar el paquete es lo que hace legible al código.
@@ -693,10 +648,8 @@ export default {
       offerKindOnlyOne: 'Es la única oferta disponible por ahora.',
       offerBadge: 'Oferta exclusiva',
       offerPrice: 'Precio de la oferta por Mercado Pago (ARS)',
-      offerPricePlaceholder: 'Precio del combo',
       offerPriceHint:
         'Lo que paga por Mercado Pago quien canjea la oferta. Con un importe acá el código es la oferta y no hace falta cargar ningún combo; vacío cobra lo que ya cuesta el combo de ese torneo.',
-      offerPriceOptional: 'Opcional. Vacío cobra el precio del combo del torneo.',
       offerPriceCeiling: 'Tiene que ser menor a {{price}}, que es lo que se paga hoy sin el código.',
       offerPlanLabel: 'Afiliación que empaqueta',
       offerPlanPlaceholder: 'Elegí la afiliación',
@@ -704,12 +657,9 @@ export default {
         'La afiliación que entra en el paquete junto con la inscripción. Se pregunta porque hay más de una vigente.',
       offerEventLabel: 'Inscripción de la oferta',
       offerEventPlaceholder: 'Elegí la inscripción',
-      offerEventComboPrice: 'combo {{price}}',
       offerEventHint:
         'La inscripción que entra en el paquete. La oferta vale sólo para quien canjea el código: si el torneo ya tiene combo, lo reemplaza para esa persona.',
       offerEventRequired: 'Elegí a qué inscripción aplica la oferta exclusiva.',
-      offerComboRequiredWithoutPrice:
-        'Sin precio propio la oferta cobra el combo de ese torneo, y ese torneo no tiene combo habilitado. Poné un precio o cargá el combo.',
       offerPlanRequired: 'Elegí qué afiliación empaqueta la oferta.',
       offerPriceTooHigh:
         'El precio de la oferta tiene que ser menor a lo que ya se paga sin el código ({{price}}).',
@@ -722,7 +672,6 @@ export default {
       exclusiveFlowDestination: 'Destino',
       exclusiveFlowCodePending: 'Definí el código',
       exclusiveFlowBenefitPending: 'Elegí el torneo',
-      exclusiveFlowBenefitCombo: 'al precio del combo ({{price}})',
       exclusiveFlowDestinationValue: 'Mi cuenta · Oferta exclusiva · Procesar pago',
       codeEventLabel: 'Limitar a una inscripción',
       codeEventAny: 'Cualquier inscripción',
@@ -768,16 +717,26 @@ export default {
       manualChannelsPublicHint:
         'Sin uso en una promoción pública: abrir o cerrar un canal para todo el mundo se hace desde Acceso y habilitación, no desde acá.',
       manualChannelsLegend: 'Medios de pago que habilita',
-      codeChannelsLegend: 'Medios de pago del código',
-      manualChannelsHint:
-        'Marcá con qué se puede pagar este código. Transferencia y efectivo se destraban sólo para quien lo use, aunque estén apagados en general.',
-      codeChannelsWithoutGateway:
-        'Sin Mercado Pago: quien use este código sólo va a poder pagar por los canales marcados, y el cobro lo valida el equipo a mano.',
+      codeChannelsLegend: 'Cobro y habilitación',
+      codePaymentModeLabel: 'Cómo se cobra',
+      codePaymentMode: {
+        mercado_pago: 'Mercado Pago',
+        manual: 'Sólo efectivo o transferencia',
+        manual_financed: 'Efectivo o transferencia, habilita al avisar el pago',
+      },
+      codePaymentModeHint: {
+        mercado_pago:
+          'Se paga online y acredita solo. Es el caso normal: nadie del equipo tiene que validar nada.',
+        manual:
+          'Quien use el código paga por transferencia o en efectivo, y queda habilitado cuando Finanzas confirma el cobro. Los canales se destraban sólo para este código, aunque estén apagados en general.',
+        manual_financed:
+          'Quien use el código avisa que transfirió o que entrega el efectivo y en ese momento queda habilitado en afiliación e inscripción. La deuda sigue abierta hasta que Finanzas la valide.',
+      },
+      codeAlsoMercadoPago: 'Aceptar también Mercado Pago',
+      batchPartialError:
+        'Se crearon {{created}} de {{total}} códigos. Los que faltan no entraron: {{reason}}',
       codeChannelsEmpty:
         'Elegí al menos un medio de pago. Sin ninguno, el código se canjea y no hay forma de pagarlo.',
-      codeFinancing: 'Permitir delegar el pago',
-      codeFinancingHint:
-        'Quien use el código puede avisar que transfirió o que entrega el efectivo, y queda habilitado en el momento. La deuda sigue abierta hasta que Finanzas la valide.',
       codeFinancingChannelRequired:
         'Para delegar el pago hace falta transferencia o efectivo: es lo único que el atleta puede avisar. Con sólo Mercado Pago, el cobro se acredita solo.',
       codeFinancingPublicInvalid:
@@ -798,31 +757,6 @@ export default {
         cash_pitbull: 'Sólo efectivo',
         'bank_transfer+cash_pitbull': 'Sin Mercado Pago',
       },
-      comboAudienceLabel: 'Quién ve el combo',
-      comboAudience: {
-        public: 'Público — lo ve cualquiera',
-        code: 'Restringido — con código de acceso',
-      },
-      comboAudienceHint:
-        'Restringido: el paquete no se ofrece y sólo lo compra quien tipea el código. No cambia el precio, habilita el acceso.',
-      comboAccessCode: 'Código de acceso al combo',
-      comboAccessCodePlaceholder: 'Ej: COMBO-PITBULL',
-      comboAccessCodeHint:
-        'Mayúsculas, números y guiones. Es el que repartís: pasar el combo a público lo borra.',
-      comboFinanced: 'Permitir financiamiento con este código',
-      comboFinancedHint:
-        'Cuando el atleta avisa que transfirió o entregó efectivo, se habilitan afiliación e inscripción; la deuda sigue abierta para Finanzas.',
-      comboAccessCodeInvalid:
-        'El código de acceso al combo tiene que ser mayúsculas, números y guiones.',
-      deleteCombo: 'Eliminar combo',
-      comboDeleted: 'Oferta combo eliminada.',
-      deleteComboConfirmTitle: 'Eliminar el combo de {{event}}',
-      deleteComboConfirmDescription:
-        'Vas a borrar la oferta combo de {{event}} del catálogo. La afiliación y la inscripción sueltas no se tocan.',
-      deleteComboConfirmWarning:
-        'Solo se puede eliminar si nadie compró el combo de este torneo. Si ya hay órdenes, desactivalo en su lugar.',
-      deleteComboConfirmCancel: 'Conservar combo',
-      deleteComboConfirmConfirm: 'Eliminar combo',
       deleteDiscountCode: 'Eliminar',
       deleteDiscountCodeAria: 'Eliminar código {{code}}',
       deleteCodeConfirmTitle: 'Eliminar {{code}}',
@@ -2276,7 +2210,6 @@ export default {
     priceRegistration: 'Inscripción',
     priceRegistrationManual: 'Inscripción · transferencia/efectivo',
     priceRegistrationManualPlaceholder: 'Igual que el precio de Mercado Pago',
-    priceCombo: 'Combo afiliación + meet',
     pricingCatalogHint:
       'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
     priceCurrency: 'ARS',
