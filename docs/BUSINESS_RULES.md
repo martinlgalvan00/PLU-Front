@@ -38,8 +38,12 @@ precio propio de inscripción. Las afiliaciones y las ofertas conjuntas se
 administran desde **Tarifas**, para evitar dos valores distintos para el mismo
 concepto. El frontend nunca puede enviar el monto autoritativo de una orden.
 
-Una oferta conjunta vive en `event_combo_offers`, referencia una versión de
-afiliación de pago único y no puede superar la suma del plan más la inscripción.
+Una oferta conjunta —afiliación + inscripción— **se configura dentro de su código**
+(`discount_codes`: `membership_plan_id` + `fixed_price` + `event_id`). No hay una
+segunda pantalla ni un objeto aparte que haya que cargar antes: el código es la
+oferta. `event_combo_offers` sobrevive como historia de las órdenes que se
+cobraron con esos precios y su escritura está revocada desde 20260914100000; el
+checkout la sigue leyendo cuando una orden vieja la referencia.
 La compra se crea con `create_membership_registration_combo_order`: bajo una
 misma transacción bloquea atleta, evento, oferta —si existe— y plan; reserva el cupo; crea
 una sola `athlete_payment_order` con `concept=combo`; y vincula a esa orden la
@@ -57,25 +61,21 @@ una con su propio interruptor. La fecha **Abre la inscripción** del panel
 administración del catálogo económico conserva su política de escritura
 separada.
 
-La visibilidad del combo es un eje separado de su activación y tiene tres
-estados. **Público** aparece en el catálogo y puede comprarse sin llave.
-**Restringido** (`audience='code'`) no aparece en ninguna landing o dashboard
-del atleta hasta que canjea un código válido; el canje abre la ficha privada y
-el checkout vuelve a validar precio y alcance en el servidor. **Privado**
-(`audience='private'`) queda disponible sólo para administración: no se publica,
-no se desbloquea y no admite compra directa. Al pasar un combo a Privado se
-pausan sus códigos secretos activos sin borrar compras ni redenciones históricas.
+Una oferta conjunta es siempre **secreta**: se reparte como código
+(`audience='code'`), no aparece en ninguna landing ni dashboard hasta que el
+atleta lo canjea, y el canje abre su ficha privada en Mi cuenta. El checkout
+vuelve a validar precio, alcance, cupo y ventana en el servidor. Ya no existe un
+paquete "público" ni uno "privado": esos eran estados de visibilidad del combo
+como objeto, y el objeto dejó de configurarse. Un combo histórico marcado privado
+sigue pausando los códigos secretos que lo referencian.
 
-El panel ofrece **tres tipos de código**: descuento por porcentaje
-(`kind='percent'`), precio fijo promocional (`fixed_price`) y acceso a una oferta.
-El tercero tiene dos caras en la base y una sola decisión en pantalla: con importe
-propio se guarda como `offer` y cobra ese importe; sin importe se guarda como
-`access` y cobra lo que ya cuesta el combo del evento. En los dos casos hay que
-instanciar qué oferta se abre —hoy la única es el paquete de afiliación +
-inscripción de un evento— y el evento es obligatorio: un código de acceso sin
-evento no desbloquea nada. Con importe propio el paquete lo define el código
-(`discount_codes.membership_plan_id`); sin importe, el combo del evento
-(`event_combo_offers`), que ahí pasa a ser obligatorio.
+El panel ofrece **tres tipos de código**, y son los tres únicos: descuento por
+porcentaje (`kind='percent'`), precio fijo promocional (`fixed_price`) y combo u
+oferta (`offer`) —el paquete de afiliación + inscripción con su propio importe—.
+El tercero exige evento, afiliación empaquetada e importe: es todo su contrato.
+`kind='access'` —la oferta sin precio propio, que cobraba el del combo— ya no se
+puede crear ni viaja en el contrato de la API; las filas históricas siguen siendo
+válidas y, editadas desde el panel, se guardan como `offer`.
 
 Una **oferta exclusiva** es un `discount_codes` con `kind='offer'`: un código
 secreto que no descuenta sino que vende el paquete de afiliación + inscripción a
@@ -85,18 +85,12 @@ qué inscripción aplica), `membership_plan_id` (qué afiliación empaqueta) y u
 combo si el evento tiene uno encendido, o la suma del plan más la inscripción si
 no lo tiene.
 
-**No hace falta cargar un combo para crear una oferta.** El código se sostiene
-solo: trae su paquete, su precio y su ventana. Si el evento no tiene combo
-vigente, el checkout resuelve el paquete con la llave que el atleta ya canjeó
-(`discount_code_unlocks`), crea la orden al precio de lista y el código la baja
-al importe pactado —la orden nunca nace por debajo del catálogo sin un código
-que la baje—. El combo del evento sigue existiendo como producto público, con su
-precio y su visibilidad, y borrar la afiliación que una oferta empaqueta queda
-bloqueado mientras esa oferta exista.
-
-`kind='access'` sigue siendo el desbloqueo sin precio, y es el único caso que
-todavía exige el combo cargado: sin importe propio, lo que se cobra es
-exactamente el precio de ese combo.
+**No hay nada que cargar antes de crear una oferta.** El código se sostiene solo:
+trae su paquete, su precio y su ventana. El checkout resuelve el paquete con la
+llave que el atleta ya canjeó (`discount_code_unlocks`), crea la orden al precio
+de lista y el código la baja al importe pactado —la orden nunca nace por debajo
+del catálogo sin un código que la baje—. Borrar la afiliación que una oferta
+empaqueta queda bloqueado mientras esa oferta exista.
 
 El alcance por inscripción (`discount_codes.event_id`, opcional para el resto de
 las modalidades) se verifica en el canje contra el evento **real** de la orden
@@ -262,6 +256,15 @@ financiar sin declarar al menos un canal manual —sería un interruptor inerte�
 siendo una promo pública, que se aplica sola a todas las compras del concepto. La
 bandera nunca se apaga sola: habilitar es automático, revocar es una decisión de
 Finanzas al rechazar.
+
+En el panel esas tres columnas —`mercado_pago_enabled`, `manual_channels`,
+`financed`— se cargan como **una sola decisión**, "cómo se cobra", con tres
+modos: *Mercado Pago* (la pasarela acredita sola), *sólo efectivo o
+transferencia* (Finanzas valida antes de habilitar) y *efectivo o transferencia
+que habilita al avisar el pago* (el financiamiento). Elegir un modo manual abre
+los canales y cierra la pasarela; se puede reabrir y estrechar los canales dentro
+del modo. Ninguna combinación que la base rechaza es alcanzable desde el
+formulario: el financiamiento no puede quedar inerte ni existir sin canal manual.
 
 Un `external_payment_id` de un proveedor pertenece a una única orden en todo el
 sistema, incluso entre entradas y afiliaciones. Una suscripción queda ligada al

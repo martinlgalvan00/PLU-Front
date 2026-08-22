@@ -590,9 +590,6 @@ export default {
         'A plan can only be deleted when it has no memberships, orders or subscriptions attached.',
       deleteConfirmCancel: 'Keep plan',
       deleteConfirmConfirm: 'Delete plan',
-      comboTitle: 'Combo offer',
-      comboLead:
-        'Combine a membership and a registration. The final price must stay below the separate total.',
       event: 'Event',
       membershipPlan: 'Included plan',
       membershipAmount: 'Membership',
@@ -600,48 +597,8 @@ export default {
       comboPrice: 'Combo price',
       comboStarts: 'From',
       comboEnds: 'Until',
-      comboActive: 'Offer enabled',
-      saveCombo: 'Save offer',
       noEvents: 'There are no events to configure.',
-      noOneTimePlans: 'At least one active one-time plan is required.',
       saved: 'Configuration updated.',
-      separateTotal: 'Bought separately',
-      comboSavings: 'Savings',
-      comboOverLimit: 'Over the maximum',
-      comboMax: 'Max {{amount}}',
-      comboOfferOn: 'Enabled',
-      comboOfferStatus: 'Enabled · {{visibility}}',
-      comboOfferOff: 'Off',
-      comboVisibilityLabel: 'Commercial visibility',
-      comboEntitlementLabel: 'Access',
-      comboEntitlementFinanced: 'Granted when the athlete declares payment',
-      comboEntitlementOnApproval: 'Granted when Finance approves the payment',
-      comboVisibilityShort: {
-        public: 'Public',
-        code: 'Restricted',
-        private: 'Private',
-      },
-      comboVisibility: {
-        public: {
-          title: 'Public',
-          description: 'Listed in the catalog and available for anyone to purchase.',
-        },
-        code: {
-          title: 'Restricted',
-          description: 'Not advertised. A valid code unlocks the secret page.',
-        },
-        private: {
-          title: 'Private',
-          description: 'Stays configured, but nobody can view, redeem, or purchase it.',
-        },
-      },
-      comboPrivateNote:
-        'Saving as private pauses active secret codes for this combo. Previous purchases keep their history.',
-      editCombo: 'Edit offer',
-      closeComboEditor: 'Close editor',
-      comboNotConfigured: 'Not configured',
-      comboPlus: '+',
-      comboEquals: '=',
       colPlan: 'Plan',
       colPrice: 'Price',
       colEffective: 'Effective',
@@ -653,7 +610,7 @@ export default {
       scheduleRetirement: 'Schedule retirement',
       discountCodesTitle: 'Discount and promo codes',
       discountCodesLead:
-        'Three types: a percentage discount, a fixed promotional price, or access to an offer that is not published.',
+        'Three types: a percentage discount, a fixed promotional price, or a combo — membership + registration — with its own price. Everything is set here: nothing to configure beforehand.',
       discountCodesEmpty: 'No codes yet.',
       newDiscountCode: 'New code',
       publishDiscountCode: 'Publish code',
@@ -661,8 +618,6 @@ export default {
       formTitleEditCode: 'Edit {{code}}',
       code: 'Code',
       codeFormatHint: 'Uppercase letters, numbers and dashes.',
-      batchQuantity: 'Quantity',
-      batchQuantityHint: 'Number of codes to generate (1 for manual, >1 for automatic).',
       batchPrefix: 'Prefix (Optional)',
       batchPrefixHint: 'Base prefix for automatic codes (e.g., PROMO).',
       batchPreview:
@@ -675,7 +630,7 @@ export default {
       codeKind: {
         percent: 'Percentage discount',
         fixed_price: 'Fixed promotional price',
-        offer_access: 'Access to an offer',
+        offer_access: 'Combo or offer (membership + registration)',
       },
       // Which offer the code instantiates. There is only one today; the select
       // exists anyway because naming the package is what makes the code legible.
@@ -688,10 +643,8 @@ export default {
       offerKindOnlyOne: 'It is the only offer available for now.',
       offerBadge: 'Exclusive offer',
       offerPrice: 'Offer price via Mercado Pago (ARS)',
-      offerPricePlaceholder: 'Combo price',
       offerPriceHint:
         'What whoever redeems the offer pays via Mercado Pago. With an amount here the code is the offer and no combo needs to exist; empty charges what that event combo already costs.',
-      offerPriceOptional: 'Optional. Empty charges the event combo price.',
       offerPriceCeiling: 'It must be lower than {{price}}, which is what is paid today without the code.',
       offerPlanLabel: 'Membership in the package',
       offerPlanPlaceholder: 'Choose the membership',
@@ -699,12 +652,9 @@ export default {
         'The membership bundled together with the registration. You are asked because more than one is current.',
       offerEventLabel: 'Offer registration',
       offerEventPlaceholder: 'Choose the registration',
-      offerEventComboPrice: 'combo {{price}}',
       offerEventHint:
         'The registration bundled in the package. The offer only applies to whoever redeems the code: if the tournament already has a combo, it replaces it for that person.',
       offerEventRequired: 'Choose which registration the exclusive offer applies to.',
-      offerComboRequiredWithoutPrice:
-        'Without its own price the offer charges that tournament’s combo, and that tournament has no enabled combo. Set a price or load the combo.',
       offerPlanRequired: 'Choose which membership the offer bundles.',
       offerPriceTooHigh:
         'The offer price must be lower than what is already paid without the code ({{price}}).',
@@ -717,7 +667,6 @@ export default {
       exclusiveFlowDestination: 'Destination',
       exclusiveFlowCodePending: 'Define the code',
       exclusiveFlowBenefitPending: 'Choose the event',
-      exclusiveFlowBenefitCombo: 'at the combo price ({{price}})',
       exclusiveFlowDestinationValue: 'My account · Exclusive offer · Process payment',
       codeEventLabel: 'Limit to one registration',
       codeEventAny: 'Any registration',
@@ -762,16 +711,26 @@ export default {
       manualChannelsPublicHint:
         'Not used on a public promotion: opening or closing a channel for everyone is done from Access and availability, not here.',
       manualChannelsLegend: 'Payment methods it unlocks',
-      codeChannelsLegend: 'Payment methods for this code',
-      manualChannelsHint:
-        'Check how this code can be paid. Transfer and cash are unlocked only for whoever uses it, even if they are off globally.',
-      codeChannelsWithoutGateway:
-        'Without Mercado Pago: whoever uses this code can only pay through the checked channels, and the team validates the payment by hand.',
+      codeChannelsLegend: 'Payment and entitlement',
+      codePaymentModeLabel: 'How it is paid',
+      codePaymentMode: {
+        mercado_pago: 'Mercado Pago',
+        manual: 'Cash or transfer only',
+        manual_financed: 'Cash or transfer, enabled when they report the payment',
+      },
+      codePaymentModeHint: {
+        mercado_pago:
+          'Paid online and credited automatically. The normal case: nobody on the team has to validate anything.',
+        manual:
+          'Whoever uses the code pays by transfer or in cash, and is enabled once Finance confirms the payment. The channels are unlocked for this code only, even if they are off globally.',
+        manual_financed:
+          'Whoever uses the code reports the transfer or the cash handover and is enabled right then, for both membership and registration. The debt stays open until Finance validates it.',
+      },
+      codeAlsoMercadoPago: 'Also accept Mercado Pago',
+      batchPartialError:
+        '{{created}} of {{total}} codes were created. The rest did not go through: {{reason}}',
       codeChannelsEmpty:
         'Pick at least one payment method. With none, the code is redeemed and there is no way to pay for it.',
-      codeFinancing: 'Let the payment be reported later',
-      codeFinancingHint:
-        'Whoever uses this code can report the transfer or the cash handoff and is enabled right away. The balance stays open until Finance validates it.',
       codeFinancingChannelRequired:
         'Reporting a payment needs transfer or cash: it is the only thing the athlete can report. With Mercado Pago alone the payment settles on its own.',
       codeFinancingPublicInvalid:
@@ -792,30 +751,6 @@ export default {
         cash_pitbull: 'Cash only',
         'bank_transfer+cash_pitbull': 'No Mercado Pago',
       },
-      comboAudienceLabel: 'Who sees the combo',
-      comboAudience: {
-        public: 'Public — anyone sees it',
-        code: 'Restricted — with access code',
-      },
-      comboAudienceHint:
-        'Restricted: the package is not offered and only whoever types the code can buy it. It gates access, not price.',
-      comboAccessCode: 'Combo access code',
-      comboAccessCodePlaceholder: 'e.g. COMBO-PITBULL',
-      comboAccessCodeHint:
-        'Uppercase, numbers and hyphens. This is what you hand out: switching the combo to public clears it.',
-      comboFinanced: 'Allow financing with this code',
-      comboFinancedHint:
-        'When the athlete reports a transfer or cash handoff, membership and registration are enabled while Finance keeps the balance open.',
-      comboAccessCodeInvalid: 'The combo access code must be uppercase, numbers and hyphens.',
-      deleteCombo: 'Delete combo',
-      comboDeleted: 'Combo offer deleted.',
-      deleteComboConfirmTitle: 'Delete the {{event}} combo',
-      deleteComboConfirmDescription:
-        'You are about to remove the {{event}} combo offer from the catalog. Standalone membership and registration are untouched.',
-      deleteComboConfirmWarning:
-        'It can only be deleted if nobody bought this event combo. If there are orders already, deactivate it instead.',
-      deleteComboConfirmCancel: 'Keep combo',
-      deleteComboConfirmConfirm: 'Delete combo',
       deleteDiscountCode: 'Delete',
       deleteDiscountCodeAria: 'Delete code {{code}}',
       deleteCodeConfirmTitle: 'Delete {{code}}',
@@ -2246,7 +2181,6 @@ export default {
     priceRegistration: 'Registration',
     priceRegistrationManual: 'Registration · bank transfer/cash',
     priceRegistrationManualPlaceholder: 'Same as the Mercado Pago price',
-    priceCombo: 'Membership + meet combo',
     pricingCatalogHint:
       'Membership and combo offers are managed from Pricing to keep a single source of truth.',
     priceCurrency: 'ARS',

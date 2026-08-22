@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
 import {
-  comboOfferSchema,
   discountCodeSchema,
   membershipPlanVersionSchema,
 } from '../server/routes/pricing.js'
@@ -165,28 +164,6 @@ describe('configuración económica administrativa', () => {
     expect(membershipPlanVersionSchema.safeParse(planPayload({ currency: 'USD' })).success).toBe(
       false,
     )
-    expect(
-      comboOfferSchema.safeParse({
-        membershipPlanId: PLAN_ID,
-        price: 60000,
-        active: true,
-        startsAt: '2026-08-20T12:00:00Z',
-        endsAt: '2026-08-19T12:00:00Z',
-      }).success,
-    ).toBe(false)
-  })
-
-  it('solo permite financiamiento en combos restringidos por codigo', () => {
-    const base = {
-      membershipPlanId: PLAN_ID,
-      price: 60000,
-      active: true,
-      accessCode: 'CLUB-PLU',
-      financed: true,
-    }
-    expect(comboOfferSchema.safeParse({ ...base, audience: 'code' }).success).toBe(true)
-    expect(comboOfferSchema.safeParse({ ...base, audience: 'public' }).success).toBe(false)
-    expect(comboOfferSchema.safeParse({ ...base, audience: 'private' }).success).toBe(false)
   })
 
   it('crea cupones para afiliaciones e inscripciones y conserva sus límites', async () => {
@@ -517,19 +494,22 @@ describe('configuración económica administrativa', () => {
     }
   })
 
-  it('permite dar de baja la oferta combo de un torneo', async () => {
+  it('ya no expone la oferta combo como objeto aparte', async () => {
+    // El paquete se carga entero dentro del código: no hay endpoint que pueda
+    // volver a partir la configuración en dos objetos.
     const { cookie, rpc, target } = await setup()
     try {
-      const response = await fetch(`${target.url}/api/pricing/events/pitbull-classic-2026/combo`, {
-        method: 'DELETE',
-        headers: authHeaders(cookie),
-      })
-
-      expect(response.status).toBe(200)
-      expect(rpc).toHaveBeenCalledWith('staff_delete_event_combo_offer', {
-        p_event_slug: 'pitbull-classic-2026',
-        p_actor: expect.stringContaining('pricing-admin@plu.test'),
-      })
+      for (const method of ['PUT', 'DELETE']) {
+        const response = await fetch(
+          `${target.url}/api/pricing/events/pitbull-classic-2026/combo`,
+          { method, headers: authHeaders(cookie), body: method === 'PUT' ? '{}' : undefined },
+        )
+        expect(response.status, method).toBe(404)
+      }
+      expect(rpc).not.toHaveBeenCalledWith(
+        'staff_save_event_combo_offer',
+        expect.anything(),
+      )
     } finally {
       await target.close()
     }

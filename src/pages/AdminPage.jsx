@@ -93,8 +93,6 @@ export default function AdminPage({
   onCreateMembershipPlanVersion,
   onDeleteMembershipPlan,
   onSetMembershipPlanActive,
-  onSaveEventComboOffer,
-  onDeleteEventComboOffer,
   onSetMembershipPlanRetirement,
   onUpsertDiscountCode,
   onSetDiscountCodeState,
@@ -555,8 +553,6 @@ export default function AdminPage({
           onCreatePlanVersion={onCreateMembershipPlanVersion}
           onDeletePlan={onDeleteMembershipPlan}
           onRefresh={onRefreshPricing}
-          onSaveComboOffer={onSaveEventComboOffer}
-          onDeleteComboOffer={onDeleteEventComboOffer}
           onSetPlanActive={onSetMembershipPlanActive}
           onSetPlanRetirement={onSetMembershipPlanRetirement}
           onUpsertDiscountCode={onUpsertDiscountCode}
