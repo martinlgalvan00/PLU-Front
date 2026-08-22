@@ -1,0 +1,74 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Nuevas direcciones" },
+    { "id": "page-2", "name": "Descartadas" }
+  ],
+  "artboards": [
+    { "file": "Hoy.dc.html", "x": 0, "y": 0, "w": 620, "h": 1180, "page": "page-1" },
+    { "file": "Sello.dc.html", "x": 700, "y": 0, "w": 620, "h": 1180, "page": "page-1" },
+    { "file": "Cifra.dc.html", "x": 1400, "y": 0, "w": 620, "h": 1180, "page": "page-1" },
+    { "file": "Umbral.dc.html", "x": 2100, "y": 0, "w": 620, "h": 1180, "page": "page-1" },
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 620, "h": 1180, "page": "page-2" },
+    { "file": "Ceremonia.dc.html", "x": 700, "y": 0, "w": 620, "h": 1180, "page": "page-2" },
+    { "file": "Placa.dc.html", "x": 1400, "y": 0, "w": 620, "h": 1180, "page": "page-2" }
+  ],
+  "annotations": [
+    {
+      "id": "base-hoy",
+      "x": 0,
+      "y": -190,
+      "w": 620,
+      "page": "page-1",
+      "text": "Base de comparación.\nEl canje tal como está hoy, reproducido valor por valor desde secret-code-redeemer.css y register.css: la caja rellena, el oro macizo en la acción y la entrada en celeste, que en PLU es navegación."
+    },
+    {
+      "id": "dir-d-sello",
+      "x": 700,
+      "y": -190,
+      "w": 620,
+      "page": "page-1",
+      "text": "D · Sello — el registro de la credencial.\nPor qué: la app ya tiene una pieza lujosa y es la credencial. Esta le presta su filo de oro, su marco interior, su grano y su mono espaciado al canje, así que el lujo no se inventa: se hereda.\nContra: es la más cargada de las seis, y conviene no ponerla al lado de la credencial de verdad (tab QR) para que no compitan."
+    },
+    {
+      "id": "dir-e-cifra",
+      "x": 1400,
+      "y": -190,
+      "w": 620,
+      "page": "page-1",
+      "text": "E · Cifra — escala y vacío.\nPor qué: el código pasa a ser el titular del bloque. Es el mismo recurso con el que la ficha muestra «Tu precio», y en el checkout la jerarquía se invierte hacia el importe.\nContra: necesita alto y una columna ancha; en mobile la cifra baja un escalón y el efecto se atenúa."
+    },
+    {
+      "id": "dir-f-umbral",
+      "x": 2100,
+      "y": -190,
+      "w": 620,
+      "page": "page-1",
+      "text": "F · Umbral — un lugar, no un objeto.\nPor qué: al abrirse, el ancho completo se vuelve una cámara de aire con reglas arriba y abajo. Cero ornamento, simetría total: la versión más radical de «minimalista».\nContra: al ser de ancho completo puede leerse como separador de sección en Eventos y Entradas, y pide que el host permita el sangrado."
+    },
+    {
+      "id": "dir-a-grabado",
+      "x": 0,
+      "y": -190,
+      "w": 620,
+      "page": "page-2",
+      "text": "A · Grabado — descartada.\nEl código sobre un renglón, sin caja. Quedó demasiado discreta: minimalista sin llegar a lujosa."
+    },
+    {
+      "id": "dir-b-ceremonia",
+      "x": 700,
+      "y": -190,
+      "w": 620,
+      "page": "page-2",
+      "text": "B · Ceremonia — descartada.\nComposición centrada con sello y marco. Pedía mucho lugar y su recuadro dentro de una tarjeta era una card anidada."
+    },
+    {
+      "id": "dir-c-placa",
+      "x": 1400,
+      "y": -190,
+      "w": 620,
+      "page": "page-2",
+      "text": "C · Placa — descartada.\nPieza embutida en grafito y oro. Sumaba un nivel de superficie y sobre el fondo casi negro de Pitbull se perdía."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

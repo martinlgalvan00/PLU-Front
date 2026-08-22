@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
+import { sanitizePublicCatalogEvent } from '../server/services/publicEventCatalogService.js'
 import {
   authHeaders,
   buildStaffUser,
@@ -184,7 +185,7 @@ describe('API administrativa de eventos', () => {
         'pagada',
         'confirmada',
       ])
-      expect(response.headers.get('cache-control')).toContain('s-maxage=30')
+      expect(response.headers.get('cache-control')).toBe('no-store')
       expect(body.events[0]).toMatchObject({
         id: EVENT_ID,
         registration_opens_at: '2026-08-20T10:00:00-03:00',
@@ -193,6 +194,26 @@ describe('API administrativa de eventos', () => {
     } finally {
       await target.close()
     }
+  })
+
+  it.each([
+    ['apagado', { active: false, audience: 'public' }],
+    ['restringido', { active: true, audience: 'code' }],
+    ['privado', { active: true, audience: 'private' }],
+    ['archivado', { active: true, audience: 'public', archived_at: '2026-08-20T12:00:00Z' }],
+  ])('elimina del catalogo publico el combo %s y su precio legacy', (_label, combo) => {
+    const event = sanitizePublicCatalogEvent({
+      rules: { featured: true, comboPrice: 120000 },
+      comboOffer: [{ price: 120000, ...combo }],
+    })
+
+    expect(event.comboOffer).toBeNull()
+    expect(event.rules).toEqual({ featured: true })
+  })
+
+  it('mantiene solamente un combo publico y vigente', () => {
+    const combo = { price: 120000, active: true, audience: 'public' }
+    expect(sanitizePublicCatalogEvent({ comboOffer: [combo] }).comboOffer).toEqual(combo)
   })
 
   /**

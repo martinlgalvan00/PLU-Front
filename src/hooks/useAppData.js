@@ -154,11 +154,10 @@ import {
   createMembershipPlanVersionRequest,
   fetchBillingSubscriptionsRequest,
   deleteDiscountCodeRequest,
-  deleteEventComboOfferRequest,
   deleteMembershipPlanRequest,
   discountCodeStatePayload,
   fetchPricingConfigurationRequest,
-  saveEventComboOfferRequest,
+  simulatePromotionCodeRequest,
   setDiscountCodeStateRequest,
   setMembershipPlanActiveRequest,
   setMembershipPlanRetirementRequest,
@@ -233,8 +232,8 @@ export function useAppData() {
   const [athleteDataRefreshing, setAthleteDataRefreshing] = useState(false)
   const [athleteDataSyncedAt, setAthleteDataSyncedAt] = useState(null)
   const [athleteDataError, setAthleteDataError] = useState(null)
-  // Las entradas viven en Postgres, no en localStorage â€” este estado es
-  // solo un cache de lo Ãºltimo que se creÃ³/consultÃ³ vÃ­a la API real.
+  // Las entradas viven en Postgres, no en localStorage — este estado es
+  // solo un cache de lo último que se creó/consultó vía la API real.
   const [tickets, setTickets] = useState([])
   const [pendingTicketOrders, setPendingTicketOrders] = useState([])
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
@@ -915,6 +914,7 @@ export function useAppData() {
           name: athlete.fullName,
           email: athlete.email,
         })
+        markSignedIn(sessionDisplayName({ role: 'athlete_plu', name: athlete.fullName }, { short: true }))
         return { athlete, confirmation, emailVerification }
       } catch (error) {
         if (error instanceof ApiError) {
@@ -975,6 +975,10 @@ export function useAppData() {
           method: order.method,
           status: order.status,
           reference: order.reference,
+          manualPaymentChannel: order.manualPaymentChannel,
+          financingAllowed: order.financingAllowed === true,
+          manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
+          financedEntitlementsAt: order.financedEntitlementsAt ?? null,
           createdAt: order.createdAt,
         }
         setPayments((current) => [payment, ...current])
@@ -1082,12 +1086,25 @@ export function useAppData() {
       try {
         const purchaseType = options.purchaseType === 'combo' ? 'combo' : 'registration'
         const paymentMethod = options.paymentMethod ?? form.paymentMethod
+        // La ficha de oferta exclusiva cobra desde Mi cuenta, donde el
+        // formulario del checkout no existe: manda sus propios datos de
+        // inscripción. Sin override, sigue mandando el formulario global.
+        const competition = {
+          division: options.competition?.division ?? form.division,
+          category: options.competition?.category ?? form.category,
+          bodyweightKg:
+            options.competition?.bodyweightKg !== undefined
+              ? options.competition.bodyweightKg
+              : form.estimatedWeight
+                ? Number(String(form.estimatedWeight).replace(',', '.'))
+                : null,
+        }
         const attemptFingerprint = JSON.stringify([
           athlete.id,
           selectedEvent.slug,
-          form.division,
-          form.category,
-          form.estimatedWeight,
+          competition.division,
+          competition.category,
+          competition.bodyweightKg,
           paymentMethod,
           purchaseType,
         ])
@@ -1107,11 +1124,9 @@ export function useAppData() {
           await createRegistrationRequest({
             athleteId: athlete.id,
             eventSlug: selectedEvent.slug,
-            division: form.division,
-            category: form.category,
-            bodyweightKg: form.estimatedWeight
-              ? Number(String(form.estimatedWeight).replace(',', '.'))
-              : null,
+            division: competition.division,
+            category: competition.category,
+            bodyweightKg: competition.bodyweightKg,
             paymentMethod,
             idempotencyKey: registrationAttemptRef.current.idempotencyKey,
             ...(purchaseType === 'combo'
@@ -1158,6 +1173,10 @@ export function useAppData() {
           method: order.method,
           status: order.status,
           reference: order.reference,
+          manualPaymentChannel: order.manualPaymentChannel,
+          financingAllowed: order.financingAllowed === true,
+          manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
+          financedEntitlementsAt: order.financedEntitlementsAt ?? null,
           createdAt: order.createdAt,
         }
         setPayments((current) => [payment, ...current])
@@ -1229,22 +1248,54 @@ export function useAppData() {
     [athletes, form, payments, registrations, session],
   )
 
-  // Compra pÃºblica de entradas â€” no requiere cuenta ni sesiÃ³n: cualquiera
+  /**
+   * Cobro de una oferta exclusiva desde su propia pestaña.
+   *
+   * Es el mismo alta que el checkout de inscripción —misma RPC, mismas guardas,
+   * misma idempotencia— con el paquete y el código ya decididos por la oferta:
+   * lo único que aporta el atleta son los datos de su inscripción. El código
+   * viaja en los dos campos porque cumple los dos roles: destraba el combo
+   * restringido y fija el importe promocional.
+   */
+  const startOfferPayment = useCallback(
+    ({ offer, event, paymentMethod = 'mercado_pago', division, category, bodyweightKg }) => {
+      if (!offer?.code || !event?.slug) {
+        return Promise.resolve({ error: 'No se pudo resolver la oferta.' })
+      }
+      return submitCompetition({ preventDefault() {} }, event, {
+        purchaseType: 'combo',
+        paymentMethod,
+        discountCode: offer.code,
+        comboAccessCode: offer.code,
+        competition: { division, category, bodyweightKg },
+      })
+    },
+    [submitCompetition],
+  )
+
+  // Compra pública de entradas — no requiere cuenta ni sesión: cualquiera
   // puede comprar para un evento dando el DNI de cada asistente. A
   // diferencia del resto del dominio, esto habla con el backend real
-  // (Postgres): es la parte del sistema que necesita la garantÃ­a dura de
-  // "no se puede duplicar/reusar", y esa garantÃ­a no existe sin una base
+  // (Postgres): es la parte del sistema que necesita la garantía dura de
+  // "no se puede duplicar/reusar", y esa garantía no existe sin una base
   // de datos real arbitrando el check-in.
   const submitTicketPurchase = useCallback(
     async (event, purchaseEvent, attendees, paymentMethod) => {
       event.preventDefault()
       const provider =
-        paymentMethod === 'transferencia' || paymentMethod === 'manual_link' || paymentMethod === 'wise_transfer'
+        paymentMethod === 'transferencia' ||
+        paymentMethod === 'manual_link' ||
+        paymentMethod === 'wise_transfer'
           ? 'manual'
           : paymentMethod
       const manualPaymentChannel = paymentMethod === 'wise_transfer' ? 'wise_transfer' : undefined
       try {
-        const attemptFingerprint = JSON.stringify([purchaseEvent.slug, attendees, provider, manualPaymentChannel])
+        const attemptFingerprint = JSON.stringify([
+          purchaseEvent.slug,
+          attendees,
+          provider,
+          manualPaymentChannel,
+        ])
         if (ticketAttemptRef.current?.fingerprint !== attemptFingerprint) {
           ticketAttemptRef.current = {
             fingerprint: attemptFingerprint,
@@ -1406,14 +1457,14 @@ export function useAppData() {
       setPendingTicketOrders(orders)
     } catch (error) {
       console.error('refreshPendingTicketOrders:', error)
-      setPendingTicketOrdersError(error.message ?? 'No se pudieron cargar las Ã³rdenes pendientes.')
+      setPendingTicketOrdersError(error.message ?? 'No se pudieron cargar las órdenes pendientes.')
     } finally {
       setPendingTicketOrdersLoading(false)
     }
   }, [session])
 
   // Check-in en la puerta: el backend valida el qrToken y lo marca como
-  // usado de forma atÃ³mica â€” dos escaneos simultÃ¡neos del mismo QR no
+  // usado de forma atómica — dos escaneos simultáneos del mismo QR no
   // pueden dejar pasar a las dos personas (ver server/modules/ticketing).
   useEffect(() => {
     if (!hasPermission(session, 'admin.payments.read')) return undefined
@@ -1461,9 +1512,9 @@ export function useAppData() {
     }
   }, [])
 
-  // Refresca la lista de entradas de un evento desde el backend real â€”
+  // Refresca la lista de entradas de un evento desde el backend real —
   // la usa el panel de Seguridad, que necesita ver compras hechas desde
-  // cualquier dispositivo, no solo las de esta pestaÃ±a.
+  // cualquier dispositivo, no solo las de esta pestaña.
   const refreshTickets = useCallback(async (eventSlug) => {
     try {
       const { tickets: apiTickets } = await listTicketsForEventRequest(eventSlug)
@@ -1473,7 +1524,7 @@ export function useAppData() {
     }
   }, [])
 
-  // Check-in en la puerta para un atleta inscripto (competidor) â€” separado
+  // Check-in en la puerta para un atleta inscripto (competidor) — separado
   // del check-in de entradas porque los atletas no tienen ticketCode/QR de
   // entrada, se buscan directo por su fila en el panel de seguridad.
   const checkInRegistrationAction = useCallback(
@@ -2080,7 +2131,7 @@ export function useAppData() {
         }
 
         // La cuenta de seguridad SÃ pasa por el backend real (mÃ¡s abajo, loginRequest):
-        // necesita una sesiÃ³n de verdad porque el check-in muta datos reales en Postgres,
+        // necesita una sesión de verdad porque el check-in muta datos reales en Postgres,
         // a diferencia del resto de la demo que vive en localStorage.
       }
 
@@ -2276,6 +2327,9 @@ export function useAppData() {
             ),
           )
         }
+        // Releer el snapshot evita que la tabla quede mostrando el estado
+        // anterior cuando la RPC aplicó efectos vinculados al pago.
+        void refreshAthleteData({ silent: true })
         publishAthleteSnapshotInvalidation()
         return { registration, duplicate }
       } catch (error) {
@@ -2283,19 +2337,22 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo cambiar el estado de la inscripción.' }
       }
     },
-    [session],
+    [refreshAthleteData, session],
   )
 
   // Activación/baja manual desde el panel. El servidor vuelve a validar el
   // permiso y audita al responsable; este chequeo solo evita ofrecer una
   // acción que iba a rebotar.
   const setMembershipStatusAction = useCallback(
-    async (membershipId, status) => {
+    async (membershipId, status, { reason, channel } = {}) => {
       if (!hasPermission(session, 'admin.memberships.write')) {
         return { error: 'Sin permisos para editar afiliaciones.' }
       }
       try {
-        const { membership } = await setMembershipStatusRequest(membershipId, status)
+        const { membership } = await setMembershipStatusRequest(membershipId, status, {
+          reason,
+          channel,
+        })
         setMemberships((current) =>
           current.map((item) => (item.id === membership.id ? { ...item, ...membership } : item)),
         )
@@ -2710,44 +2767,6 @@ export function useAppData() {
     [refreshPricingConfiguration, session],
   )
 
-  const deleteEventComboOffer = useCallback(
-    async (eventSlug) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
-        return { error: 'La configuración económica está disponible próximamente.' }
-      }
-      try {
-        const result = await deleteEventComboOfferRequest(eventSlug)
-        await refreshPricingConfiguration()
-        return result
-      } catch (error) {
-        return { error: error?.message ?? 'No se pudo eliminar la oferta combo.' }
-      }
-    },
-    [refreshPricingConfiguration, session],
-  )
-
-  const saveEventComboOffer = useCallback(
-    async (eventSlug, offer) => {
-      if (
-        !hasPermission(session, 'admin.pricing.write') ||
-        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
-      ) {
-        return { error: 'La configuración económica está disponible próximamente.' }
-      }
-      try {
-        const result = await saveEventComboOfferRequest(eventSlug, offer)
-        await refreshPricingConfiguration()
-        return result
-      } catch (error) {
-        return { error: error?.message ?? 'No se pudo guardar la oferta combo.' }
-      }
-    },
-    [refreshPricingConfiguration, session],
-  )
-
   const setMembershipPlanRetirement = useCallback(
     async (planId, retiresAt) => {
       if (
@@ -2933,6 +2952,20 @@ export function useAppData() {
     [refreshPricingConfiguration, session],
   )
 
+  const simulatePromotionCode = useCallback(
+    async (codeId) => {
+      if (!hasPermission(session, 'admin.pricing.read')) {
+        return { error: 'Sin permisos para probar este código.' }
+      }
+      try {
+        return { simulation: await simulatePromotionCodeRequest(codeId) }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo probar el recorrido del código.' }
+      }
+    },
+    [session],
+  )
+
   const refreshBillingSubscriptions = useCallback(async (filters = {}) => {
     const currentSession = sessionRef.current
     if (!currentSession || !hasPermission(currentSession, 'admin.payments.read')) return null
@@ -3044,12 +3077,11 @@ export function useAppData() {
     createMembershipPlanVersion,
     setMembershipPlanActive,
     deleteMembershipPlan,
-    saveEventComboOffer,
     setMembershipPlanRetirement,
     upsertDiscountCode,
     setDiscountCodeState,
-    deleteEventComboOffer,
     deleteDiscountCode,
+    simulatePromotionCode,
     billingSubscriptions,
     billingSubscriptionsLoading,
     billingSubscriptionsError,
@@ -3077,6 +3109,7 @@ export function useAppData() {
     submitMembership,
     startMembershipPayment,
     submitCompetition,
+    startOfferPayment,
     activateDemoMembership,
     cancelDemoMembership,
     setMembershipStatusAction,

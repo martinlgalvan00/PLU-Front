@@ -97,7 +97,7 @@ const COMPLETE_COMPETITION_PROFILE = {
   province: 'Buenos Aires',
 }
 
-function buildApp({ toggles = {} } = {}) {
+function buildApp({ toggles = {}, channelPolicy = null } = {}) {
   const createMembershipOrder = vi.fn().mockResolvedValue({ order: { id: 'order-membership' } })
   const createRegistration = vi.fn().mockResolvedValue({ order: { id: 'order-registration' } })
   const createRegistrationCombo = vi.fn().mockResolvedValue({ order: { id: 'order-combo' } })
@@ -131,6 +131,12 @@ function buildApp({ toggles = {} } = {}) {
         manualPrice: COMBO_MANUAL_PRICE,
       }),
       discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
+      // Estado neutro por defecto: sin cupón que abra ni cierre nada.
+      discountCodeChannelPolicy: vi
+        .fn()
+        .mockResolvedValue(
+          channelPolicy ?? { found: false, manualChannels: [], mercadoPagoEnabled: true },
+        ),
       createMembershipOrder,
       createRegistration,
       createRegistrationCombo,
@@ -605,6 +611,95 @@ describe('requisitos previos comunes a todos los medios de pago', () => {
       } finally {
         await target.close()
       }
+    }
+  })
+})
+
+/**
+ * El eje inverso del override: un código que CIERRA Mercado Pago
+ * (`mercado_pago_enabled = false`, 20260908100000).
+ *
+ * La guarda que no se puede eludir vive en `apply_discount_code_to_order`
+ * (PLU28) y voltea la orden entera. Lo que aporta esta capa es el mensaje: sin
+ * ella el atleta recibía "no se pudo crear la orden" en vez de saber que ese
+ * código no se paga con la pasarela.
+ */
+describe('un código puede cerrar Mercado Pago', () => {
+  const CASH_ONLY_CODE = {
+    found: true,
+    manualChannels: ['cash_pitbull'],
+    mercadoPagoEnabled: false,
+  }
+
+  it.each([
+    ['afiliación', '/api/athletes/me/membership-orders', 'createMembershipOrder'],
+    ['inscripción', '/api/athletes/me/registrations', 'createRegistration'],
+    ['combo', '/api/athletes/me/registration-combos', 'createRegistrationCombo'],
+  ])('%s: rechaza Mercado Pago con el motivo real', async (_label, path, spyName) => {
+    const app = buildApp({ channelPolicy: CASH_ONLY_CODE })
+    try {
+      const body =
+        path === '/api/athletes/me/membership-orders'
+          ? membershipBody('mercado_pago', { discountCode: 'SOLO-EFECTIVO' })
+          : registrationBody('mercado_pago', { discountCode: 'SOLO-EFECTIVO' })
+      const response = await post(app.target, path, body)
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: 'PLU28' })
+      expect(app[spyName]).not.toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+
+  it('el canal que el código sí habilita pasa', async () => {
+    // El mismo código que cierra la pasarela abre el efectivo: el override de
+    // canal manual y el cierre de la pasarela son la misma lectura.
+    const { target, createRegistrationCombo } = buildApp({
+      channelPolicy: CASH_ONLY_CODE,
+      toggles: { membershipManualEnabled: true, registrationManualEnabled: true },
+    })
+    try {
+      const response = await post(
+        target,
+        '/api/athletes/me/registration-combos',
+        registrationBody('cash_pitbull', { discountCode: 'SOLO-EFECTIVO' }),
+      )
+      expect(response.status, JSON.stringify(await response.clone().json())).toBe(201)
+      expect(createRegistrationCombo).toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('sin código no consulta la política del cupón', async () => {
+    const { target, createMembershipOrder } = buildApp({ channelPolicy: CASH_ONLY_CODE })
+    try {
+      const response = await post(
+        target,
+        '/api/athletes/me/membership-orders',
+        membershipBody('mercado_pago'),
+      )
+      expect(response.status).toBe(201)
+      expect(createMembershipOrder).toHaveBeenCalled()
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('un código que acepta la pasarela no la cierra', async () => {
+    const { target, createRegistration } = buildApp({
+      channelPolicy: { found: true, manualChannels: ['bank_transfer'], mercadoPagoEnabled: true },
+    })
+    try {
+      const response = await post(
+        target,
+        '/api/athletes/me/registrations',
+        registrationBody('mercado_pago', { discountCode: 'PLU10' }),
+      )
+      expect(response.status).toBe(201)
+      expect(createRegistration).toHaveBeenCalled()
+    } finally {
+      await target.close()
     }
   })
 })

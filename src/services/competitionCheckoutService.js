@@ -59,6 +59,11 @@ export function buildCompetitionCreatedOrder({
     method: payment.method,
     status: payment.status,
     reference: payment.reference,
+    manualPaymentChannel: payment.manualPaymentChannel,
+    financingAllowed: payment.financingAllowed === true,
+    manualPaymentDeclaredAt: payment.manualPaymentDeclaredAt ?? null,
+    financedEntitlementsAt: payment.financedEntitlementsAt ?? null,
+    financedEntitlementsRevokedAt: payment.financedEntitlementsRevokedAt ?? null,
     createdAt: payment.createdAt,
   }
 }

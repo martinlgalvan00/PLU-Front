@@ -1,6 +1,8 @@
 import { callRpc } from '../lib/rpcErrors.js'
 import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
 import { toCamelSchedule } from '../lib/eventSchedule.js'
+import { describePaymentConcept } from '../lib/paymentConcept.js'
+import { derivePaymentProgress } from '../lib/paymentProgress.js'
 
 /**
  * athleteApi.js — PLU ARG
@@ -54,6 +56,31 @@ function toCamelAthlete(row) {
   }
 }
 
+/**
+ * Procedencia de un estado que puso una persona y no un cobro
+ * (`manual_override_*`, ver 20260910100000).
+ *
+ * Vive acá y no en cada mapper porque la pregunta que contesta es idéntica para
+ * afiliaciones e inscripciones: "¿este estado lo decidió alguien, y por qué?".
+ * Sin esto, una afiliación activa sobre una orden cancelada se lee como un bug
+ * del sistema en vez de como la decisión operativa que fue.
+ *
+ * Devuelve `null` -- y no un objeto con todo en null -- cuando el estado salió
+ * del cobro: así la UI pregunta `if (manualOverride)` en vez de tener que
+ * chequear campo por campo.
+ */
+function toCamelManualOverride(row) {
+  const at = row?.manual_override_at ?? row?.manualOverrideAt ?? null
+  if (!at) return null
+  return {
+    status: row.manual_override_status ?? row.manualOverrideStatus ?? null,
+    channel: row.manual_override_channel ?? row.manualOverrideChannel ?? null,
+    reason: row.manual_override_reason ?? row.manualOverrideReason ?? null,
+    by: row.manual_override_by ?? row.manualOverrideBy ?? null,
+    at,
+  }
+}
+
 function toCamelMembership(row) {
   if (!row) return row
   return {
@@ -68,6 +95,7 @@ function toCamelMembership(row) {
     paymentOrderId: row.payment_order_id,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: row.updated_at ?? row.updatedAt ?? null,
+    manualOverride: toCamelManualOverride(row),
   }
 }
 
@@ -86,8 +114,20 @@ function toCamelPaymentOrder(row) {
     rejectedBy: row.rejected_by ?? row.rejectedBy ?? null,
     rejectionReason: row.rejection_reason ?? row.rejectionReason ?? null,
     rejectedAt: row.rejected_at ?? row.rejectedAt ?? null,
+    // Motivo de cierre sellado por la base (20260910100000): toda orden cerrada
+    // dice por qué. Sin esto, una fila cancelada llega al panel sin nada que
+    // distinguir un checkout abandonado de un cobro resuelto por transferencia.
+    cancellationCode: row.cancellation_code ?? row.cancellationCode ?? null,
+    cancellationReason: row.cancellation_reason ?? row.cancellationReason ?? null,
+    cancelledAt: row.cancelled_at ?? row.cancelledAt ?? null,
+    cancelledBy: row.cancelled_by ?? row.cancelledBy ?? null,
     paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
     paymentProofUploadedAt: row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
+    financingAllowed: row.financing_allowed ?? row.financingAllowed ?? false,
+    manualPaymentDeclaredAt: row.manual_payment_declared_at ?? row.manualPaymentDeclaredAt ?? null,
+    financedEntitlementsAt: row.financed_entitlements_at ?? row.financedEntitlementsAt ?? null,
+    financedEntitlementsRevokedAt:
+      row.financed_entitlements_revoked_at ?? row.financedEntitlementsRevokedAt ?? null,
     discountCode: row.discount_code ?? row.discountCode ?? null,
     discountAmount: Number(row.discount_amount ?? row.discountAmount) || 0,
     notes: row.notes ?? null,
@@ -126,6 +166,7 @@ function toCamelRegistrationEntry({ registration, event, checkIn, schedule }) {
       event?.requires_membership ??
       event?.requiresMembership ??
       null,
+    manualOverride: toCamelManualOverride(registration),
     notes: '',
   }
 }
@@ -148,22 +189,60 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
   const registrationRows = (registrations ?? []).map(toCamelRegistrationEntry)
   const orders = paymentOrders ?? []
 
-  const registrationEventByOrderId = new Map(
+  const registrationByOrderId = new Map(
     registrationRows
       .filter((item) => item.paymentOrderId)
-      .map((item) => [item.paymentOrderId, item.event]),
+      .map((item) => [item.paymentOrderId, item]),
+  )
+  const membershipByOrderId = new Map(
+    membershipRows.filter((item) => item.paymentOrderId).map((item) => [item.paymentOrderId, item]),
   )
 
   const paymentRows = orders.map((order) => {
-    const eventTitle =
-      order.concept === 'registration' ? registrationEventByOrderId.get(order.id) : null
+    const registration = registrationByOrderId.get(order.id) ?? null
+    const membership = membershipByOrderId.get(order.id) ?? null
     const paymentProofPath = order.payment_proof_path ?? order.paymentProofPath ?? null
+    // La descripción declarada sale del mismo módulo que arma el título que
+    // viaja a Mercado Pago: lo que ve el atleta en la app y lo que le llega al
+    // resumen de la tarjeta dicen lo mismo.
+    const described = describePaymentConcept({
+      concept: order.concept,
+      membershipYear: membership?.year ?? null,
+      fallbackYear: String(order.created_at ?? order.createdAt ?? '').slice(0, 4) || null,
+      eventTitle: registration?.event ?? null,
+      division: registration?.division ?? null,
+      category: registration?.category ?? null,
+    })
+    const normalizedOrder = {
+      status: order.status,
+      method: order.method,
+      manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,
+      expiresAt: order.expires_at ?? order.expiresAt ?? null,
+      updatedAt: order.updated_at ?? order.updatedAt ?? null,
+      rejectionReason: order.rejection_reason ?? order.rejectionReason ?? null,
+      // Motivo de cierre sellado por la base (20260910100000). Va al progreso
+      // para que el estado que se muestra traiga siempre su explicación:
+      // "Cancelado" sin motivo es la mitad de un hecho.
+      cancellationCode: order.cancellation_code ?? order.cancellationCode ?? null,
+      cancellationReason: order.cancellation_reason ?? order.cancellationReason ?? null,
+      cancelledAt: order.cancelled_at ?? order.cancelledAt ?? null,
+      cancelledBy: order.cancelled_by ?? order.cancelledBy ?? null,
+      paymentProofUploadedAt:
+        order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
+      financingAllowed: order.financing_allowed ?? order.financingAllowed ?? false,
+      manualPaymentDeclaredAt:
+        order.manual_payment_declared_at ?? order.manualPaymentDeclaredAt ?? null,
+      financedEntitlementsAt:
+        order.financed_entitlements_at ?? order.financedEntitlementsAt ?? null,
+      financedEntitlementsRevokedAt:
+        order.financed_entitlements_revoked_at ?? order.financedEntitlementsRevokedAt ?? null,
+    }
+
     return {
       id: order.id,
       athleteId: order.athlete_id,
-      concept: eventTitle
-        ? `Inscripción ${eventTitle}`
-        : (CONCEPT_LABELS[order.concept] ?? order.concept),
+      concept: described.title,
+      conceptDetail: described.detail,
       // Valor crudo ('membership' | 'registration' | 'combo'), distinto de
       // `concept` (la etiqueta ya formateada arriba) -- lo necesita
       // paymentReconciliationService para saber qué entitlement debería
@@ -171,14 +250,50 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       conceptType: order.concept,
       amount: order.amount,
       method: order.method,
-      manualPaymentChannel: order.manual_payment_channel ?? order.manualPaymentChannel ?? null,
+      manualPaymentChannel: normalizedOrder.manualPaymentChannel,
       status: order.status,
       reference: order.reference,
+      rejectionReason: normalizedOrder.rejectionReason,
+      cancellationCode: normalizedOrder.cancellationCode,
+      cancellationReason: normalizedOrder.cancellationReason,
+      cancelledAt: normalizedOrder.cancelledAt,
+      cancelledBy: normalizedOrder.cancelledBy,
+      expiresAt: normalizedOrder.expiresAt,
+      updatedAt: normalizedOrder.updatedAt,
       paymentProofPath:
         typeof paymentProofPath === 'string' ? paymentProofPath.trim() || null : paymentProofPath,
-      paymentProofUploadedAt:
-        order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
+      paymentProofUploadedAt: normalizedOrder.paymentProofUploadedAt,
+      financingAllowed: normalizedOrder.financingAllowed,
+      manualPaymentDeclaredAt: normalizedOrder.manualPaymentDeclaredAt,
+      financedEntitlementsAt: normalizedOrder.financedEntitlementsAt,
+      financedEntitlementsRevokedAt: normalizedOrder.financedEntitlementsRevokedAt,
       createdAt: order.created_at ?? order.createdAt ?? null,
+      // Estado real derivado del agregado + el libro de intentos, no del último
+      // intento aplicado. `outcome` es el derecho que este cobro pagaba: si el
+      // cobro murió y el derecho igual quedó otorgado (activación manual desde
+      // el panel), la fila lo dice en vez de contradecir a la sección de
+      // Afiliación.
+      progress: derivePaymentProgress({
+        order: normalizedOrder,
+        attempts: order.attempts ?? [],
+        // `manualOverride` viaja con el resultado: cuando el cobro murió y el
+        // derecho quedó otorgado igual, es lo único que convierte una
+        // contradicción aparente ("Afiliación activa" / "Pago cancelado") en un
+        // hecho explicable -- quién lo decidió, cuándo y por qué.
+        outcome: membership
+          ? {
+              kind: 'membership',
+              status: membership.status,
+              manualOverride: membership.manualOverride ?? null,
+            }
+          : registration
+            ? {
+                kind: 'registration',
+                status: registration.status,
+                manualOverride: registration.manualOverride ?? null,
+              }
+            : null,
+      }),
     }
   })
 
@@ -422,9 +537,13 @@ export async function previewDiscountCode({
     paymentMethod: paymentMethod || undefined,
   })
   const preview = result.preview ?? {}
+  const disabledOffer = ['offer', 'access'].includes(preview.kind)
   return {
-    valid: preview.valid === true,
-    reason: preview.reason ?? null,
+    // Un backend durante un despliegue escalonado puede seguir resolviendo una
+    // modalidad histórica. Se la trata como no disponible antes de que cualquier
+    // checkout llegue a construir una tarjeta, precio o redirección.
+    valid: preview.valid === true && !disabledOffer,
+    reason: disabledOffer ? 'offer_unavailable' : (preview.reason ?? null),
     code: preview.code ?? null,
     // 'code' lo tipeó el atleta; 'public_promo' se aplica sola.
     source: preview.source === 'public_promo' ? 'public_promo' : 'code',
@@ -432,7 +551,10 @@ export async function previewDiscountCode({
     // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final;
     // 'access' no descuenta nada, sólo desbloquea el combo; 'offer' desbloquea
     // y además fija el importe — es la oferta exclusiva de un código secreto.
-    kind: preview.kind ?? 'percent',
+    // Un rechazo de una RPC anterior puede no incluir modalidad. No se lo
+    // inventa como porcentaje: las pantallas deben consultar el alcance combo
+    // o el endpoint de canje antes de concluir que no aplica.
+    kind: disabledOffer ? null : (preview.kind ?? null),
     // Alcance del código: viaja también con `reason: 'not_applicable'` y con
     // `reason: 'other_event'`, para poder decir de qué inscripción es en vez de
     // un "no aplica" seco.
@@ -450,13 +572,21 @@ export async function previewDiscountCode({
     expiresAt: preview.expiresAt ?? null,
     discountAmount: preview.discountAmount ?? null,
     finalAmount: preview.finalAmount ?? null,
-    // Canales manuales que este código destraba (Mercado Pago siempre está
-    // disponible). Un código anterior a la lista sólo trae el booleano.
+    // Canales manuales que este código destraba además de la pasarela. Un
+    // código anterior a la lista sólo trae el booleano.
     manualChannels: Array.isArray(preview.manualChannels)
       ? preview.manualChannels
       : preview.enablesManualPayment
         ? ['bank_transfer', 'cash_pitbull']
         : [],
+    // La otra mitad de la matriz: `false` cierra Mercado Pago para este código
+    // (20260908100000). Ausente = abierta, que es lo que valía para todos los
+    // códigos anteriores y también lo que responde una API sin la migración.
+    mercadoPagoEnabled: preview.mercadoPagoEnabled !== false,
+    // El código deja delegar el pago: avisar la transferencia o el efectivo
+    // habilita en el momento y deja la deuda abierta (20260912100000). Ausente
+    // = no financia, que es lo que valía antes de la migración.
+    financed: preview.financed === true,
   }
 }
 
@@ -481,10 +611,30 @@ export async function unlockOfferCode({ code }) {
   }
 }
 
+/** Resolvedor universal: el servidor decide beneficio, alcance y destino. */
+export async function redeemPromotionCodeRequest({ code, context = {} }) {
+  const result = await apiPost('/api/athletes/me/codes/redeem', { code, context })
+  return {
+    status: result?.status === 'accepted' ? 'accepted' : 'rejected',
+    accepted: result?.status === 'accepted',
+    reason: result?.reason ?? null,
+    action: result?.action ?? null,
+    code: result?.code ?? code,
+    kind: result?.kind ?? null,
+    appliesTo: result?.appliesTo ?? null,
+    destination: result?.destination ?? null,
+    campaign: result?.campaign ?? null,
+    benefit: result?.benefit ?? null,
+    offer: result?.offer ?? null,
+    startsAt: result?.startsAt ?? null,
+  }
+}
+
 /** Ofertas exclusivas que este atleta ya canjeó. Sostiene la ficha de Mi cuenta. */
 export async function fetchOfferUnlocks() {
-  const result = await apiGet('/api/athletes/me/offer-unlocks')
-  return Array.isArray(result?.offers) ? result.offers : []
+  // Las ofertas exclusivas por código están retiradas: no consultar ni
+  // transportar datos que puedan terminar renderizados por accidente.
+  return []
 }
 
 export async function createCompetitionRegistrationCombo({
@@ -522,11 +672,15 @@ export async function createCompetitionRegistrationCombo({
     comboOffer: result.comboOffer
       ? {
           id: result.comboOffer.id,
-          membershipPlanId: result.comboOffer.membership_plan_id,
+          membershipPlanId:
+            result.comboOffer.membership_plan_id ?? result.comboOffer.membershipPlanId ?? null,
           price: result.comboOffer.price,
+          manualPrice: result.comboOffer.manual_price ?? result.comboOffer.manualPrice ?? null,
           currency: result.comboOffer.currency,
-          startsAt: result.comboOffer.starts_at,
-          endsAt: result.comboOffer.ends_at,
+          audience: result.comboOffer.audience,
+          financed: result.comboOffer.financed === true,
+          startsAt: result.comboOffer.starts_at ?? result.comboOffer.startsAt ?? null,
+          endsAt: result.comboOffer.ends_at ?? result.comboOffer.endsAt ?? null,
         }
       : null,
   }
@@ -665,34 +819,65 @@ export async function getStaffMembershipCredential(code, eventSlug) {
   return toCredentialResult(result, eventSlug)
 }
 
-/** Órdenes de afiliación/inscripción para la bandeja de Finanzas. */
+/**
+ * Órdenes de afiliación/inscripción para la bandeja de Finanzas.
+ *
+ * Devuelve `{ orders, counts }`: los contadores de los chips los calcula la
+ * base sobre la tabla entera. Antes salían de contar las filas traídas, así que
+ * pasada la orden 200 el panel mostraba números que no eran los reales.
+ * `counts` es `null` si no se pidieron.
+ */
 export async function listAthletePaymentOrders(filters = {}) {
   const params = new URLSearchParams()
   if (filters.status) params.set('status', filters.status)
+  if (Array.isArray(filters.statuses) && filters.statuses.length > 0) {
+    params.set('statuses', filters.statuses.join(','))
+  }
   if (filters.method) params.set('method', filters.method)
   if (filters.concept) params.set('concept', filters.concept)
+  if (filters.financed) params.set('financed', 'true')
   if (filters.limit) params.set('limit', String(filters.limit))
+  if (filters.withCounts) params.set('withCounts', 'true')
   const query = params.toString()
-  const { orders } = await apiGet(`/api/athletes/admin/payment-orders${query ? `?${query}` : ''}`)
+  const { orders, counts } = await apiGet(
+    `/api/athletes/admin/payment-orders${query ? `?${query}` : ''}`,
+  )
 
-  return orders.map((row) => ({
-    ...toCamelPaymentOrder(row),
-    concept: row.concept,
-    conceptLabel: CONCEPT_LABELS[row.concept] ?? row.concept,
-    athlete: row.athlete
-      ? {
-          id: row.athlete.id,
-          fullName: row.athlete.full_name,
-          documentId: row.athlete.document_id,
-          email: row.athlete.email,
-        }
-      : null,
-  }))
+  return {
+    orders: (orders ?? []).map((row) => ({
+      ...toCamelPaymentOrder(row),
+      concept: row.concept,
+      conceptLabel: CONCEPT_LABELS[row.concept] ?? row.concept,
+      athlete: row.athlete
+        ? {
+            id: row.athlete.id,
+            fullName: row.athlete.full_name,
+            documentId: row.athlete.document_id,
+            email: row.athlete.email,
+          }
+        : null,
+    })),
+    counts: counts ?? null,
+  }
 }
 
 export async function getAthletePaymentProofUrl(orderId) {
   const { url } = await apiGet(`/api/athletes/admin/payment-orders/${orderId}/proof-url`)
   return url
+}
+
+/**
+ * Comprobantes de varias órdenes en una sola llamada, para que el diálogo de
+ * validación no espere a firmar la URL recién cuando se abre. Devuelve un mapa
+ * `{ [orderId]: url }` y omite las órdenes sin comprobante.
+ */
+export async function getAthletePaymentProofUrls(orderIds = []) {
+  const ids = [...new Set(orderIds.filter(Boolean))]
+  if (ids.length === 0) return {}
+  const { urls } = await apiPost('/api/athletes/admin/payment-orders/proof-urls', {
+    orderIds: ids,
+  })
+  return urls ?? {}
 }
 
 export async function registerAthletePaymentProof(orderId, proofPath, notes) {
@@ -701,6 +886,20 @@ export async function registerAthletePaymentProof(orderId, proofPath, notes) {
     notes,
   })
   return { order: toCamelPaymentOrder(order) }
+}
+
+export async function confirmAthleteManualPayment(orderId) {
+  const result = await apiPost(`/api/athletes/me/payment-orders/${orderId}/manual-confirmation`, {})
+  return {
+    order: toCamelPaymentOrder(result.order),
+    membership: result.membership ? toCamelMembership(result.membership) : null,
+    registration: result.registration
+      ? toCamelRegistrationEntry({ registration: result.registration })
+      : null,
+    financed: result.financed === true,
+    entitlementsGranted: result.entitlementsGranted === true,
+    duplicate: result.duplicate === true,
+  }
 }
 
 /** Credencial emitida de un socio, para verla y reemitirla desde el panel. */
@@ -728,10 +927,19 @@ export async function rotateMembershipQrToken(membershipId) {
   return { membership: toCamelMembership(membership) }
 }
 
-/** Activa o da de baja una afiliación a mano. Queda auditada con el actor. */
-export async function setMembershipStatus(membershipId, status) {
+/**
+ * Activa o da de baja una afiliación a mano. Queda auditada con el actor, el
+ * motivo y -- al activar -- el canal por el que se resolvió.
+ *
+ * `reason` es obligatorio y `channel` lo es al activar: los valida el backend y
+ * la RPC. Es lo que evita el estado que originó esto -- una afiliación activa
+ * sobre un cobro cancelado, sin nada que explique la diferencia.
+ */
+export async function setMembershipStatus(membershipId, status, { reason, channel } = {}) {
   const { membership } = await apiPost(`/api/athletes/admin/memberships/${membershipId}/status`, {
     status,
+    reason,
+    channel: channel ?? null,
   })
   return { membership: toCamelMembership(membership) }
 }

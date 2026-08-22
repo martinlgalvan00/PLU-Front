@@ -5143,103 +5143,28 @@
 
 .register-discount {
   display: grid;
-  gap: 6px;
+  gap: 10px;
+  justify-items: start;
 }
 
-.register-discount__label {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.register-discount__row {
-  display: flex;
-  gap: 8px;
-}
-
-.register-discount__row input {
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 10px;
-  color: var(--color-text-primary);
-  flex: 1;
-  font: inherit;
-  letter-spacing: 0.04em;
-  min-height: 44px;
-  padding: 0 14px;
-  text-transform: uppercase;
-  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
-}
-
-.register-discount__row input:focus-visible {
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
-  outline: none;
-}
-
-.register-discount__row button {
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 10px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  flex: none;
-  font: inherit;
-  font-weight: 600;
-  min-height: 44px;
-  padding: 0 16px;
-  transition:
-    border-color var(--motion-fast, 160ms) var(--ease-out, ease),
-    color var(--motion-fast, 160ms) var(--ease-out, ease);
-}
-
-.register-discount__row button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
-  color: var(--color-brand-gold);
-}
-
-.register-discount__row button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.register-discount__error {
-  color: var(--color-brand-red);
-  font-size: 12px;
-  margin: 0;
-}
-
+/* Aplicado: la banda del sello más la salida para quitarlo. Era un <p> en fila
+   con el texto compuesto; ahora el código y el importe son piezas separadas
+   dentro de la banda (ver code-band.css). */
 .register-discount__applied {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  width: 100%;
+}
+
+.register-discount__applied--public {
   align-items: center;
-  color: var(--color-brand-gold);
   display: flex;
   font-size: 13px;
   font-weight: 600;
   gap: 8px;
-}
-
-/* Promo que corre para todos: no la trajo el atleta con un codigo, asi que
-   se lee como informacion del catalogo (celeste) y no como un logro suyo
-   (oro), y no ofrece "quitar" porque no hay nada que quitar. */
-.register-discount__applied--public {
+  margin: 0;
   color: var(--color-brand-celeste);
-}
-
-.register-discount__applied button {
-  background: transparent;
-  border: 0;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 500;
-  margin-left: auto;
-  padding: 4px;
-  text-decoration: underline;
-}
-
-.register-discount__applied button:hover:not(:disabled) {
-  color: var(--color-text-secondary);
 }
 
 /* Combo cerrado: el paquete existe pero pide su codigo. Se lee como la puerta

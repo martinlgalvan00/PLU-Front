@@ -3,6 +3,7 @@ import { HttpError } from '../../lib/errors.js'
 import { logger } from '../../lib/logger.js'
 import { normalizeOfficialHost, resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 import { selectCanonicalProviderPayment } from './providerPaymentSelection.js'
+import { withTransientRetry } from './providerRetry.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -66,11 +67,35 @@ function normalizeProviderError(error, context = {}) {
   return httpError
 }
 
-/** Ejecuta una llamada al proveedor midiendo latencia y normalizando la falla. */
-async function callProvider(operation, context, run) {
+/**
+ * Ejecuta una llamada al proveedor midiendo latencia y normalizando la falla.
+ *
+ * `idempotent: true` marca lecturas seguras de repetir: ante red/timeout/5xx/429
+ * se reintenta in-process con backoff corto (ver providerRetry.js). Las
+ * escrituras quedan en el default: solo 429 —la única falla que garantiza que
+ * el proveedor no procesó nada— se reintenta; un timeout o 5xx sobre un POST
+ * de cobro cae al camino de reconciliación, que pregunta antes de repetir.
+ * `retry: false` apaga el reintento cuando el `run` ya reintenta por dentro.
+ */
+async function callProvider(operation, context, run, options = {}) {
+  const { idempotent = false, retry = true, retryOptions } = options
   const startedAt = process.hrtime.bigint()
   try {
-    const result = await run()
+    const result = retry
+      ? await withTransientRetry(run, {
+          idempotent,
+          ...retryOptions,
+          onRetry: ({ attempt, delayMs, reason, status }) =>
+            logger.warn('mercadopago.retry', {
+              operation,
+              ...context,
+              attempt,
+              delayMs,
+              reason,
+              apiResponseStatus: status,
+            }),
+        })
+      : await run()
     logger.info('mercadopago.request', {
       operation,
       ...context,
@@ -161,15 +186,25 @@ function assertProviderRequest(order, idempotencyKey) {
   }
 }
 
-export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_TIMEOUT_MS } = {}) {
+export function createMercadoPagoAdapter({
+  env = process.env,
+  timeout = DEFAULT_TIMEOUT_MS,
+  // Solo para tests: acorta las esperas del reintento transitorio.
+  retryOptions,
+} = {}) {
   const accessToken = requireAccessToken(env)
+  const expectedCollectorId = String(env.MERCADO_PAGO_COLLECTOR_ID ?? '').trim() || null
+  if (expectedCollectorId && !/^\d+$/.test(expectedCollectorId)) {
+    throw new HttpError(503, 'MERCADO_PAGO_COLLECTOR_ID debe ser el id numerico de la cuenta cobradora.')
+  }
   const client = new MercadoPagoConfig({ accessToken, options: { timeout } })
   const preferenceClient = new Preference(client)
   const paymentClient = new Payment(client)
   const subscriptionClient = new PreApproval(client)
   const subscriptionPlanClient = new PreApprovalPlan(client)
+  let accountIdentityPromise = null
 
-  async function getJson(path) {
+  async function getJsonOnce(path) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeout)
     try {
@@ -191,6 +226,9 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
           causes: Array.isArray(body?.cause) ? body.cause.slice(0, 5) : [],
           apiResponseStatus: response.status,
           providerRequestId: response.headers.get('x-request-id'),
+          // Con un 429, la espera que pide el proveedor manda sobre el backoff
+          // propio (ver providerRetry.js).
+          retryAfterSeconds: Number(response.headers.get('retry-after')) || null,
         }
         logger.error('mercadopago.request_failed', {
           operation: 'getJson',
@@ -209,14 +247,88 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     }
   }
 
+  // Todas las rutas que pasan por aca son GETs (identidad de cuenta, pago por
+  // id, search por referencia): repetirlas es seguro, asi que un blip de red o
+  // un 5xx puntual se reintenta en el momento en vez de escalar como falla.
+  async function getJson(path) {
+    return withTransientRetry(() => getJsonOnce(path), {
+      idempotent: true,
+      ...retryOptions,
+      onRetry: ({ attempt, delayMs, reason, status }) =>
+        logger.warn('mercadopago.retry', {
+          operation: 'getJson',
+          path,
+          attempt,
+          delayMs,
+          reason,
+          apiResponseStatus: status,
+        }),
+    })
+  }
+
+  /**
+   * La cuenta cobradora es parte del contrato del entorno, igual que el token.
+   * Se consulta una vez por proceso y nunca se expone el token ni datos del
+   * pagador. Esto evita que un worker con credenciales de otra aplicacion
+   * intente recuperar pagos que no puede ver.
+   */
+  async function getAccountIdentity() {
+    if (!accountIdentityPromise) {
+      // retry: false — getJson ya reintenta por dentro; anidar duplicaria las
+      // esperas sin sumar resiliencia.
+      accountIdentityPromise = callProvider(
+        'getAccountIdentity',
+        {},
+        async () => {
+          const account = await getJson('/users/me')
+          if (!account?.id) throw new HttpError(502, 'Mercado Pago no devolvio la identidad de la cuenta.')
+          return {
+            id: String(account.id),
+            nickname: account.nickname ?? null,
+          }
+        },
+        { retry: false },
+      ).catch((error) => {
+        accountIdentityPromise = null
+        throw error
+      })
+    }
+    return accountIdentityPromise
+  }
+
+  async function assertConfiguredCollector() {
+    if (!expectedCollectorId) return
+    const account = await getAccountIdentity()
+    if (account.id === expectedCollectorId) return
+
+    const error = new HttpError(
+      503,
+      'El Access Token de Mercado Pago no pertenece a la cuenta cobradora configurada.',
+      { code: 'MP_ACCOUNT_MISMATCH' },
+    )
+    error.provider = {
+      code: 'MP_ACCOUNT_MISMATCH',
+      expectedCollectorId,
+      currentCollectorId: account.id,
+      apiResponseStatus: null,
+    }
+    throw error
+  }
+
   /**
    * Todos los pagos que Mercado Pago tiene registrados contra esta orden.
    * `external_reference` es el id de la orden y viaja en la preferencia, en el
    * pago embebido y en la suscripcion, asi que es la unica clave que permite
    * reconstruir la verdad del proveedor sin depender de que el webhook haya
    * llegado.
-   */
+  */
   async function searchPaymentsForOrder(order) {
+    // Sin esta guarda una revalidación con un token de otra cuenta devolvía
+    // simplemente una lista vacía. Para Finanzas eso se veía como "Mercado
+    // Pago no tiene el pago", aunque el cobro estuviera acreditado en la cuenta
+    // correcta. La búsqueda también es una operación sobre dinero: tiene que
+    // usar la misma cuenta cobradora que crea el checkout.
+    await assertConfiguredCollector()
     const response = await getJson(
       `/v1/payments/search?external_reference=${encodeURIComponent(String(order.id))}&sort=date_created&criteria=desc`,
     )
@@ -229,6 +341,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
   return {
     async createPreference({ order, appUrl, apiUrl, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
+      await assertConfiguredCollector()
       const returnBase = resolveIntegrationUrl({
         explicit: appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
         label: 'APP_URL',
@@ -281,6 +394,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         'createPreference',
         { orderId: order.id, orderKind: order.kind, amount: order.amount },
         () => preferenceClient.create({ body, requestOptions: { idempotencyKey } }),
+        { retryOptions },
       )
       return {
         id: result.id,
@@ -293,10 +407,15 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     },
 
     async getPayment(id) {
-      return callProvider('getPayment', { externalPaymentId: String(id) }, () =>
-        paymentClient.get({ id: String(id) }),
+      return callProvider(
+        'getPayment',
+        { externalPaymentId: String(id) },
+        () => paymentClient.get({ id: String(id) }),
+        { idempotent: true, retryOptions },
       )
     },
+
+    getAccountIdentity,
 
     searchPaymentsForOrder,
 
@@ -308,6 +427,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
 
     async createPayment({ order, formData, idempotencyKey }) {
       assertProviderRequest(order, idempotencyKey)
+      await assertConfiguredCollector()
       const webhookBase = requireIntegrationUrl(resolveApiUrl({ env }), 'API_URL o APP_URL', env)
       const payer = {
         email: formData.payer?.email ?? order.payerEmail,
@@ -348,11 +468,13 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
             },
             requestOptions: { idempotencyKey },
           }),
+        { retryOptions },
       )
     },
 
     async createSubscriptionPlan({ plan, appUrl, idempotencyKey }) {
       assertProviderRequest({ amount: plan.price, currency: plan.currency }, idempotencyKey)
+      await assertConfiguredCollector()
       const backUrl = requireIntegrationUrl(
         appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
         'APP_URL',
@@ -389,6 +511,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
       cardToken,
     }) {
       assertProviderRequest({ amount: plan.price, currency: plan.currency }, idempotencyKey)
+      await assertConfiguredCollector()
       const backUrl = requireIntegrationUrl(
         appUrl ?? env.APP_URL ?? env.VITE_APP_URL,
         'APP_URL',
@@ -425,8 +548,11 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     },
 
     async getSubscription(id) {
-      return callProvider('getSubscription', { subscriptionId: String(id) }, () =>
-        subscriptionClient.get({ id: String(id) }),
+      return callProvider(
+        'getSubscription',
+        { subscriptionId: String(id) },
+        () => subscriptionClient.get({ id: String(id) }),
+        { idempotent: true, retryOptions },
       )
     },
 

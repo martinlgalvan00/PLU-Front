@@ -83,16 +83,178 @@ export function resolveOfferPricing(offer, { paymentMethod = 'mercado_pago' } = 
   }
 }
 
+/** Órdenes que todavía se pueden pagar. Espejo de OPEN_PAYMENT_STATUSES. */
+const OPEN_PURCHASE_STATUSES = ['pendiente', 'validacion_manual', 'creado']
+
+/**
+ * Medios de pago que habilita el código de la oferta, en el orden en que se
+ * leen: primero la pasarela, después los canales que se cobran a mano.
+ *
+ * Las dos celdas del código no son simétricas (ver la cabecera de
+ * 20260908100000): `manualChannels` ABRE transferencia y/o efectivo aunque
+ * Administración los tenga cerrados —el override viaja al gate de Express—, y
+ * `mercadoPagoEnabled: false` CIERRA la pasarela para este código. Por eso los
+ * canales manuales se ofrecen sólo cuando el código los declara: es lo único
+ * que garantiza que la orden no se caiga con un 409.
+ *
+ * `conceptsOpen` es el interruptor de concepto: el combo acredita afiliación e
+ * inscripción, así que con cualquiera de los dos cerrado no hay nada que cobrar
+ * por ningún canal.
+ */
+export function resolveOfferChannels(offer, { conceptsOpen = true } = {}) {
+  if (!offer || !conceptsOpen) return []
+  const manual = Array.isArray(offer.manualChannels) ? offer.manualChannels : []
+  const channels = []
+  if (offer.mercadoPagoEnabled !== false) channels.push('mercado_pago')
+  if (manual.includes('bank_transfer')) channels.push('bank_transfer')
+  if (manual.includes('cash_pitbull')) channels.push('cash_pitbull')
+  return channels
+}
+
+/** Canales que se liquidan a mano: los únicos sobre los que se puede delegar. */
+const DECLARABLE_CHANNELS = ['bank_transfer', 'cash_pitbull']
+
+/**
+ * ¿Este código deja delegar el pago por el canal que se está mirando?
+ *
+ * Financiar es avisar que se pagó y quedar habilitado mientras Finanzas valida
+ * (`athlete_confirm_manual_payment`), así que sólo existe sobre transferencia y
+ * efectivo: Mercado Pago acredita solo y no hay nada que avisar.
+ *
+ * Se lee del código (`financed`, 20260912100000) o del combo restringido del
+ * evento, que puede financiar sin código propio (20260828110000) — las mismas
+ * dos fuentes que consulta `plu_private.settle_order_financing` al crear la
+ * orden. Sirve para ANUNCIARLO en la ficha antes de crear la orden: antes el
+ * atleta descubría que podía delegar recién después de elegir el canal y
+ * confirmar la compra.
+ */
+export function offerFinancingAvailable(offer, { channel = null } = {}) {
+  if (!offer || !DECLARABLE_CHANNELS.includes(channel)) return false
+  return offer.financed === true || offer.comboOffer?.financed === true
+}
+
+/**
+ * Canal de la ficha -> medio de pago del checkout. La API llama `manual_link` a
+ * la transferencia; el efectivo viaja con su propio nombre y el backend lo
+ * guarda como `manual_link` + `manual_payment_channel`.
+ */
+export function checkoutMethodForChannel(channel) {
+  if (channel === 'bank_transfer') return 'manual_link'
+  if (channel === 'cash_pitbull') return 'cash_pitbull'
+  return 'mercado_pago'
+}
+
+/**
+ * Transferencia y efectivo no se cobran con el brick: la primera se liquida con
+ * los datos bancarios y un comprobante, el segundo con la referencia que el
+ * atleta muestra el día del evento. Esto devuelve la orden manual que hay que
+ * liquidar —la que se acaba de crear o la que quedó abierta de un intento
+ * anterior— y por qué canal.
+ *
+ * Devuelve null cuando no hay nada manual pendiente: sin orden, con una orden de
+ * Mercado Pago (esa la cobra el brick) o con la compra ya cerrada.
+ */
+export function resolveManualSettlement(offer, createdOrder = null) {
+  const candidate = createdOrder ?? getOfferPurchase(offer)
+  if (!candidate) return null
+  const method = candidate.method ?? candidate.paymentMethod ?? null
+  if (method !== 'manual_link') return null
+  const status = String(candidate.status ?? '')
+  if (status && !OPEN_PURCHASE_STATUSES.includes(status)) return null
+  return {
+    // Una orden manual vieja puede no tener canal guardado: transferencia es el
+    // default histórico de `manual_link`.
+    channel: candidate.manualPaymentChannel ?? 'bank_transfer',
+    orderId: candidate.orderId ?? candidate.paymentId ?? candidate.id ?? null,
+    amount: Number(candidate.amount) || 0,
+    currency: candidate.currency ?? 'ARS',
+    reference: candidate.reference ?? null,
+    financingAllowed: candidate.financingAllowed === true,
+    manualPaymentDeclaredAt: candidate.manualPaymentDeclaredAt ?? null,
+    financedEntitlementsAt: candidate.financedEntitlementsAt ?? null,
+  }
+}
+
+/**
+ * La compra que ocupó el canje, normalizada (`plu_private.offer_code_payload`).
+ *
+ * `redeemed` se escribe al CREAR la orden, no al cobrarla: sin mirar el estado
+ * de esa orden la ficha declaraba "ya compraste" a quien todavía no había
+ * pagado. `open` es lo que habilita retomar el pago; `paid` es lo que convierte
+ * la ficha en recibo.
+ */
+export function getOfferPurchase(offer) {
+  const purchase = offer?.purchase
+  if (!purchase?.orderId) return null
+  const status = String(purchase.status ?? '')
+  const financed =
+    purchase.financingAllowed === true &&
+    Boolean(purchase.financedEntitlementsAt) &&
+    !purchase.financedEntitlementsRevokedAt
+  return {
+    ...purchase,
+    status,
+    open: OPEN_PURCHASE_STATUSES.includes(status),
+    paid: status === 'aprobado',
+    financed,
+    // Transferencia, efectivo y Wise comparten `manual_link` y no se cobran con
+    // el brick: se resuelven con comprobante y validación de staff.
+    embeddable: purchase.method === 'mercado_pago' && OPEN_PURCHASE_STATUSES.includes(status),
+  }
+}
+
+/**
+ * Orden mínima que `MercadoPagoEmbeddedCheckout` necesita para retomar un cobro
+ * ya creado. La preferencia la resuelve el propio brick si la orden no la tiene.
+ *
+ * No inventa importes: el que se cobra es el que quedó en la orden cuando se
+ * aplicó el código, que es también el único que el servidor va a aceptar.
+ */
+export function buildOfferResumeOrder(offer, { athlete = null, concept = '' } = {}) {
+  const purchase = getOfferPurchase(offer)
+  if (!purchase?.embeddable) return null
+  return {
+    type: 'competition',
+    purchaseType: 'combo',
+    paymentId: purchase.orderId,
+    id: purchase.orderId,
+    amount: purchase.amount,
+    currency: purchase.currency ?? 'ARS',
+    concept: concept || purchase.concept,
+    method: purchase.method,
+    status: purchase.status,
+    paymentMode: 'payment',
+    athleteId: athlete?.id ?? null,
+    athleteName: athlete?.fullName ?? null,
+    athleteDocument: athlete?.documentId ?? null,
+    payerEmail: athlete?.email ?? null,
+  }
+}
+
 /**
  * ¿La oferta se puede comprar ahora?
  *
- * `redeemed` la cierra: la compra ya se hizo y la ficha pasa a ser el registro
- * de lo que se canjeó. El resto son las mismas condiciones que evalúa el
- * checkout — se replican para no ofrecer un botón que termina en error.
+ * `redeemed` cierra la compra de cero, pero no siempre significa "comprada":
+ * si la orden que ocupó el canje sigue impaga, la ficha tiene que poder
+ * terminar de pagarla (`resumable`). El resto son las mismas condiciones que
+ * evalúa el checkout — se replican para no ofrecer un botón que termina en
+ * error.
  */
 export function getOfferState(offer, { now = new Date() } = {}) {
   if (!offer) return { available: false, reason: 'missing' }
-  if (offer.redeemed) return { available: false, reason: 'redeemed' }
+  if (offer.redeemed) {
+    const purchase = getOfferPurchase(offer)
+    if (purchase?.paid) {
+      return { available: false, reason: 'redeemed', purchase }
+    }
+    if (purchase?.financed) {
+      return { available: false, reason: 'financed', purchase }
+    }
+    if (purchase?.open) {
+      return { available: false, resumable: true, reason: 'pending_payment', purchase }
+    }
+    return { available: false, reason: 'redeemed', purchase }
+  }
 
   const expiresAt = offer.expiresAt ? new Date(offer.expiresAt) : null
   if (expiresAt && expiresAt < now) return { available: false, reason: 'expired' }
@@ -112,11 +274,23 @@ export function getOfferState(offer, { now = new Date() } = {}) {
 }
 
 /**
- * La oferta que la ficha muestra primero: la comprable más reciente y, si no
- * quedó ninguna, la última canjeada — para que la ficha nunca aparezca vacía
- * después de haber anunciado un canje.
+ * La oferta que la ficha muestra primero: la comprable más reciente; si no,
+ * la que tiene un pago abierto y todavía reclama una acción. Una compra
+ * aprobada o ya habilitada por FIAR deja de ser una promoción activa.
  */
 export function pickPrimaryOffer(offers = [], options = {}) {
   const list = Array.isArray(offers) ? offers.filter(Boolean) : []
-  return list.find((offer) => getOfferState(offer, options).available) ?? list[0] ?? null
+  return (
+    list.find((offer) => getOfferState(offer, options).available) ??
+    list.find((offer) => getOfferState(offer, options).resumable) ??
+    null
+  )
+}
+
+export function getActionableOffers(offers = [], options = {}) {
+  const list = Array.isArray(offers) ? offers.filter(Boolean) : []
+  return list.filter((offer) => {
+    const state = getOfferState(offer, options)
+    return state.available || state.resumable
+  })
 }

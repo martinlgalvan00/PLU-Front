@@ -167,7 +167,7 @@
   gap: 10px;
 }
 
-/* â”€â”€ Luxury dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Luxury dashboard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-dashboard--luxury {
   gap: 14px;
@@ -310,13 +310,13 @@
 
   .admin-kpi-more__summary::after {
     color: var(--color-text-muted);
-    content: 'â–¾';
+    content: '▾';
     flex: 0 0 auto;
     font-size: 11px;
   }
 
   .admin-kpi-more[open] .admin-kpi-more__summary::after {
-    content: 'â–´';
+    content: '▴';
   }
 
   .admin-kpi-more__count {
@@ -1897,7 +1897,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-/* â”€â”€ Dashboard spotlight + finance v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Dashboard spotlight + finance v2 Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-spotlight {
   display: grid;
@@ -2622,7 +2622,7 @@
   color: var(--color-brand-celeste);
 }
 
-/* â”€â”€ Admin events module â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Admin events module Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-form {
   border-radius: 12px;
@@ -2688,10 +2688,10 @@
   gap: 0;
   margin-inline: -24px;
   /* `overflow-x: auto` fuerza a `overflow-y` a `auto` por spec (CSS Overflow
-     Â§3), y eso resetea el alto mÃ­nimo automÃ¡tico del Ã­tem a 0 dentro del grid
+     §3), y eso resetea el alto mínimo automático del ítem a 0 dentro del grid
      de `.admin-event-form` -- la fila colapsaba a los 2px del borde y el nav
-     de 40px quedaba invisible, aunque funcional (por eso nadie lo veÃ­a ni
-     saltaba de secciÃ³n; el editor se sentÃ­a como un scroll largo sin salida). */
+     de 40px quedaba invisible, aunque funcional (por eso nadie lo veía ni
+     saltaba de sección; el editor se sentía como un scroll largo sin salida). */
   min-height: min-content;
   overflow-x: auto;
   padding: 0 18px;
@@ -2828,6 +2828,7 @@
 
 .admin-event-form__field.is-invalid input,
 .admin-event-form__field.is-invalid select,
+.admin-event-form__field.is-invalid textarea,
 .admin-event-form__rate-card.is-invalid input {
   border-color: color-mix(in oklab, #e35d5d 55%, var(--color-border-subtle));
 }
@@ -2849,8 +2850,8 @@
   border-color: color-mix(in oklab, #e35d5d 32%, transparent);
 }
 
-/* Carriles de "Ventas y cupos": inscripciÃ³n de atletas y entradas de pÃºblico
-   son dos vÃ­as simÃ©tricas de ingreso al evento, asÃ­ que se leen como dos
+/* Carriles de "Ventas y cupos": inscripción de atletas y entradas de público
+   son dos vías simétricas de ingreso al evento, así que se leen como dos
    bloques equivalentes en vez de dos secciones separadas del editor. */
 .admin-event-form__lane {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 1.8%, transparent);
@@ -2979,7 +2980,8 @@
   }
 
   .admin-event-form input:not([type='checkbox']),
-  .admin-event-form select {
+  .admin-event-form select,
+  .admin-event-form textarea {
     min-height: 44px;
   }
 
@@ -3001,7 +3003,7 @@
   }
 }
 
-/* Contradicciones entre el estado pÃºblico elegido a mano y la configuraciÃ³n
+/* Contradicciones entre el estado público elegido a mano y la configuración
    real. Advierte, no bloquea: el guardado sigue disponible. */
 .admin-event-form__consistency {
   background: var(--admin-status-warning-bg);
@@ -3684,7 +3686,8 @@
 }
 
 .admin-event-form input:not([type='checkbox']),
-.admin-event-form select {
+.admin-event-form select,
+.admin-event-form textarea {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
@@ -3701,14 +3704,25 @@
   width: 100%;
 }
 
+/* La descripción es multilinea: hereda la paleta del input pero con el ritmo
+   de lectura de un textarea (antes quedaba con el default del navegador). */
+.admin-event-form textarea {
+  line-height: 1.55;
+  min-height: 104px;
+  padding: 9px 11px;
+  resize: vertical;
+}
+
 .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
-.admin-event-form select:hover:not(:disabled) {
+.admin-event-form select:hover:not(:disabled),
+.admin-event-form textarea:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.18);
 }
 
 .admin-event-form input:not([type='checkbox']):focus,
-.admin-event-form select:focus {
+.admin-event-form select:focus,
+.admin-event-form textarea:focus {
   background: rgba(116, 172, 223, 0.04);
   border-color: rgba(116, 172, 223, 0.5);
   box-shadow: 0 0 0 3px rgba(116, 172, 223, 0.12);
@@ -3716,24 +3730,28 @@
 }
 
 .admin-event-form input:disabled,
-.admin-event-form select:disabled {
+.admin-event-form select:disabled,
+.admin-event-form textarea:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
 [data-theme='light'] .admin-event-form input:not([type='checkbox']),
-[data-theme='light'] .admin-event-form select {
+[data-theme='light'] .admin-event-form select,
+[data-theme='light'] .admin-event-form textarea {
   background: #fff;
   border-color: rgba(15, 17, 23, 0.12);
 }
 
 [data-theme='light'] .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
-[data-theme='light'] .admin-event-form select:hover:not(:disabled) {
+[data-theme='light'] .admin-event-form select:hover:not(:disabled),
+[data-theme='light'] .admin-event-form textarea:hover:not(:disabled) {
   border-color: rgba(15, 17, 23, 0.22);
 }
 
 [data-theme='light'] .admin-event-form input:not([type='checkbox']):focus,
-[data-theme='light'] .admin-event-form select:focus {
+[data-theme='light'] .admin-event-form select:focus,
+[data-theme='light'] .admin-event-form textarea:focus {
   background: rgba(116, 172, 223, 0.04);
   border-color: rgba(116, 172, 223, 0.5);
 }
@@ -3951,14 +3969,8 @@
   color: var(--admin-status-success);
 }
 
-.admin-event-preview--panel {
-  border-radius: 0;
-  border-bottom: none;
-  border-left: 1px solid var(--color-border-subtle);
-  border-right: none;
-  border-top: none;
-  min-height: 100%;
-}
+/* (Retirado el wrapper del panel lateral: la consola del evento vive en el
+   modal .admin-event-console-modal, admin-event-console.css §6.) */
 
 .admin-event-preview__head {
   align-items: center;
@@ -3984,7 +3996,7 @@
   gap: 4px;
 }
 
-/* â”€â”€ Events workspace â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Events workspace Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-events-workspace {
   container-name: admin-events;
@@ -4057,7 +4069,7 @@
   margin: 0;
 }
 
-/* â”€â”€ Events toolbar & filter bar overrides â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Events toolbar & filter bar overrides Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-list-section--events {
   --admin-events-gutter: clamp(14px, 2.4vw, 22px);
@@ -4240,7 +4252,7 @@
   color: var(--plu-ink-900, var(--color-text-primary));
 }
 
-/* â”€â”€ Event list â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Event list Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-group {
   display: grid;
@@ -4304,7 +4316,7 @@
   text-align: center;
 }
 
-/* â”€â”€ Event row â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Event row Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-row {
   align-items: center;
@@ -4372,7 +4384,7 @@
   outline-offset: -2px;
 }
 
-/* Selected: single quiet celeste rail on the left â€” status itself is
+/* Selected: single quiet celeste rail on the left Ã¢â‚¬â€ status itself is
    already conveyed by the pill, so no per-row color coding. */
 .admin-event-row--selected {
   background: color-mix(in srgb, var(--color-brand-celeste) 7%, transparent);
@@ -4544,22 +4556,6 @@
   background: rgba(15, 17, 23, 0.08);
 }
 
-.admin-event-preview--panel .admin-event-preview__head {
-  align-items: flex-start;
-  background: transparent;
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 0;
-  color: var(--admin-muted, var(--color-text-muted));
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 16px;
-  justify-content: space-between;
-  letter-spacing: 0;
-  margin: 0;
-  padding: 16px var(--admin-events-gutter, 18px) 14px;
-  text-transform: none;
-}
-
 .admin-event-preview__title-row {
   align-items: center;
   display: flex;
@@ -4629,25 +4625,10 @@
   transition: transform var(--motion-fast, 0.16s) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-.admin-event-preview--panel.is-expanded .admin-event-preview__expand-icon {
-  transform: rotate(180deg);
-}
-
 .admin-event-preview__detail {
   display: grid;
   gap: 18px;
   min-width: 0;
-}
-
-.admin-event-preview--panel {
-  background: transparent;
-  border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  gap: 0;
-  padding: 0 0 18px;
-}
-
-.admin-event-preview--panel .admin-event-preview__label {
-  display: none;
 }
 
 .admin-event-preview__command-bar {
@@ -4708,98 +4689,11 @@
   margin-left: auto;
 }
 
-.admin-event-preview--panel .admin-event-preview__card {
-  background: var(--admin-surface-raised, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 14px;
-  box-shadow: var(--admin-shadow-soft, none);
-  overflow: hidden;
-  padding: 4px;
-}
-
-.admin-event-preview--panel .admin-event-preview__card .event-card {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  margin: 0;
-}
-
-.admin-event-preview--panel .admin-event-preview__footer {
-  display: grid;
-  gap: 12px;
-}
-
-.admin-event-preview--panel .admin-event-preview--embedded .admin-event-preview__meta,
-.admin-event-preview--panel .admin-event-preview--embedded .admin-event-preview__capacity {
-  background: var(--admin-surface-raised, transparent);
-  border-color: var(--admin-hairline, var(--color-border-subtle));
-}
-
-.admin-event-preview--panel .admin-event-ticket-insights,
-.admin-event-preview--panel .admin-event-addon-report {
-  margin-top: 0;
-}
-
-@media (min-width: 900px) {
-  @container admin-panel (min-width: 900px) {
-    .admin-events-workspace:has(.admin-event-preview--panel) {
-      grid-template-columns: minmax(0, 1fr) clamp(288px, 26vw, 340px);
-    }
-
-    .admin-event-preview--panel {
-      align-self: start;
-      border-bottom: none;
-      border-right: none;
-      border-top: none;
-      max-height: calc(100vh - var(--header-height) - 48px);
-      overflow: auto;
-      position: sticky;
-      top: calc(var(--header-height) + 12px);
-    }
-
-    .admin-event-preview__expand-toggle {
-      display: none;
-    }
-
-    .admin-event-preview__selected-title {
-      display: block;
-    }
-
-    .admin-events-workspace__main .admin-event-list {
-      max-height: min(68vh, 720px);
-      overflow: auto;
-      overscroll-behavior: contain;
-      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-      scrollbar-width: thin;
-    }
-  }
-}
-
-@container admin-panel (max-width: 899px) {
-  .admin-events-workspace:has(.admin-event-preview--panel) {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-event-preview--panel {
-    background: transparent;
-    border-left: none;
-    border-top: 1px solid var(--color-border-subtle);
-    max-height: none;
-    position: static;
-  }
-
-  .admin-event-preview__expand-toggle {
-    display: inline-flex;
-  }
-
-  .admin-event-preview__detail {
-    display: none;
-  }
-
-  .admin-event-preview--panel.is-expanded .admin-event-preview__detail {
-    display: grid;
-  }
-}
+/* El split de dos columnas fue retirado con el panel lateral: la lista ocupa
+   el ancho completo y la consola se abre como modal (admin-event-console.css).
+   Los refinamientos del preview embebido, las métricas de entradas y el
+   reporte de adicionales viven ahora bajo .admin-event-console-modal en
+   admin-minimal.css. */
 
 @media (max-width: 959px) {
   .admin-event-editor {
@@ -5239,7 +5133,7 @@
 }
 
 /* =============================================
-   ADMIN WELCOME BANNER â€” glassmorphism premium
+   ADMIN WELCOME BANNER Ã¢â‚¬â€ glassmorphism premium
    ============================================= */
 
 .admin-welcome {
@@ -5346,17 +5240,15 @@
 
 /* Strip operativo siempre visible */
 .admin-payments-ops-strip {
-  align-items: stretch;
-  background: color-mix(in srgb, var(--admin-surface, var(--color-bg-surface)) 92%, transparent);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 14px;
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 12;
+  align-items: center;
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  margin-bottom: 2rem;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
@@ -5366,55 +5258,30 @@
 }
 
 .admin-payments-ops-strip__kpis {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
 }
 
 .admin-payments-ops-strip__kpi {
   align-items: flex-start;
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 2.5%, transparent);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 12px;
+  background: transparent;
+  border: none;
   color: inherit;
   cursor: pointer;
   display: flex;
-  gap: 10px;
-  min-height: 72px;
-  padding: 12px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  margin: -8px -12px;
+  border-radius: 8px;
   position: relative;
   text-align: left;
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast);
-}
-
-.admin-payments-ops-strip__kpi::before {
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 20%, transparent);
-  border-radius: 3px 0 0 3px;
-  bottom: 10px;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 10px;
-  width: 2px;
-}
-
-.admin-payments-ops-strip__kpi--warning::before {
-  background: var(--admin-status-warning, var(--color-warning, #c9a227));
-}
-
-.admin-payments-ops-strip__kpi--danger::before {
-  background: var(--admin-status-danger, var(--color-danger, #c0392b));
-}
-
-.admin-payments-ops-strip__kpi--success::before {
-  background: var(--color-success-text, #3d9a5f);
+  transition: background 0.2s ease;
 }
 
 .admin-payments-ops-strip__kpi:hover {
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4.5%, transparent);
-  border-color: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 16%, transparent);
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
 }
 
 .admin-payments-ops-strip__kpi:focus-visible {
@@ -5423,25 +5290,7 @@
 }
 
 .admin-payments-ops-strip__kpi-icon {
-  align-items: center;
-  color: var(--admin-muted, var(--color-text-muted));
-  display: inline-flex;
-  flex-shrink: 0;
-  height: 28px;
-  justify-content: center;
-  width: 28px;
-}
-
-.admin-payments-ops-strip__kpi--warning .admin-payments-ops-strip__kpi-icon {
-  color: var(--admin-status-warning, var(--color-warning));
-}
-
-.admin-payments-ops-strip__kpi--danger .admin-payments-ops-strip__kpi-icon {
-  color: var(--admin-status-danger, var(--color-danger));
-}
-
-.admin-payments-ops-strip__kpi--success .admin-payments-ops-strip__kpi-icon {
-  color: var(--color-success-text, #3d9a5f);
+  display: none;
 }
 
 .admin-payments-ops-strip__kpi-body {
@@ -5451,19 +5300,19 @@
 }
 
 .admin-payments-ops-strip__kpi-value {
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .admin-payments-ops-strip__kpi--warning .admin-payments-ops-strip__kpi-value {
-  color: var(--admin-status-warning, var(--color-warning));
+  color: var(--admin-status-warning, var(--color-warning, #c9a227));
 }
 
 .admin-payments-ops-strip__kpi--danger .admin-payments-ops-strip__kpi-value {
-  color: var(--admin-status-danger, var(--color-danger));
+  color: var(--admin-status-danger, var(--color-danger, #c0392b));
 }
 
 .admin-payments-ops-strip__kpi--success .admin-payments-ops-strip__kpi-value {
@@ -6246,7 +6095,7 @@
 }
 
 /* =============================================
-   ADMIN METRIC CARD â€” premium rediseÃ±o
+   ADMIN METRIC CARD Ã¢â‚¬â€ premium rediseÃƒÂ±o
    ============================================= */
 
 .admin-metric {
@@ -6318,12 +6167,12 @@
   opacity: 1;
 }
 
-/* â”€â”€ Tone: default â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: default Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--default::before {
   background: var(--color-border-light);
 }
 
-/* â”€â”€ Tone: celeste â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: celeste Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--celeste {
   background:
     linear-gradient(145deg, rgba(116, 172, 223, 0.06) 0%, transparent 60%), var(--color-bg-surface);
@@ -6340,7 +6189,7 @@
     0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-/* â”€â”€ Tone: gold â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: gold Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--gold {
   background:
     linear-gradient(145deg, rgba(242, 183, 5, 0.06) 0%, transparent 60%), var(--color-bg-surface);
@@ -6357,7 +6206,7 @@
     0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-/* â”€â”€ Tone: alert/red â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Tone: alert/red Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric--alert {
   background:
     linear-gradient(145deg, rgba(225, 6, 0, 0.06) 0%, transparent 60%), var(--color-bg-surface);
@@ -6374,7 +6223,7 @@
     0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-/* â”€â”€ Icon â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Icon Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric__icon {
   align-items: center;
   background: rgba(255, 255, 255, 0.05);
@@ -6420,7 +6269,7 @@
   box-shadow: 0 4px 14px rgba(225, 6, 0, 0.3);
 }
 
-/* â”€â”€ Value â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Value Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric__value {
   color: var(--color-text-primary);
   display: block;
@@ -6435,7 +6284,7 @@
   color: var(--color-brand-red);
 }
 
-/* â”€â”€ Label â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Label Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-metric__label {
   color: var(--color-text-muted);
   font-size: 12px;
@@ -6445,7 +6294,7 @@
   text-transform: uppercase;
 }
 
-/* â”€â”€ Compact metric (dashboard) â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Compact metric (dashboard) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-metric--compact {
   align-items: center;
@@ -6523,8 +6372,8 @@
 .admin-filters__clear {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-muted);
   cursor: pointer;
   display: inline-flex;
@@ -6533,7 +6382,7 @@
   font-size: 12px;
   font-weight: 500;
   gap: 6px;
-  padding: 6px 11px;
+  padding: 6px 14px;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
@@ -6561,7 +6410,12 @@
   white-space: nowrap;
 }
 
-.admin-filters label:not(.admin-filters__select) {
+/* `:not(.admin-filters__select)` no excluía nada -- esa clase vive en el
+   DIV contenedor, no en este `<label>` (que lleva `admin-filters__select-label`),
+   así que el label de un filtro `select` (ej. Gimnasio) heredaba el mismo
+   tratamiento de tarjeta que el buscador y quedaba como una caja vacía de
+   220px flotando sobre el pill real. */
+.admin-filters label:not(.admin-filters__select-label) {
   align-items: center;
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
@@ -6575,7 +6429,7 @@
   transition: border-color var(--transition-fast);
 }
 
-.admin-filters label:not(.admin-filters__select):focus-within {
+.admin-filters label:not(.admin-filters__select-label):focus-within {
   border-color: var(--color-border-light);
 }
 
@@ -6618,7 +6472,7 @@
   outline: none;
 }
 
-/* â”€â”€ Admin list sections (Atletas, Afiliaciones) â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Admin list sections (Atletas, Afiliaciones) Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-page:has(.admin-list-section) {
   gap: 0;
@@ -7047,8 +6901,8 @@
 .admin-filter-chip {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
@@ -7058,11 +6912,12 @@
   gap: 6px;
   letter-spacing: 0;
   line-height: 1.2;
-  padding: 6px 11px;
+  padding: 6px 14px;
+  position: relative;
   transition:
     background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
+    color var(--transition-fast),
+    transform var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -7087,21 +6942,18 @@
 }
 
 .admin-filter-chip:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--color-border-light);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--color-text-primary);
 }
 
 .admin-filter-chip.is-active {
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 34%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   color: var(--color-text-primary);
   font-weight: 600;
 }
 
 .admin-filter-chip.is-active:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, transparent);
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
 }
 
 .admin-filter-chip:disabled {
@@ -7116,23 +6968,20 @@
 
 [data-theme='light'] .admin-filter-chip {
   background: transparent;
-  border-color: rgba(15, 17, 23, 0.12);
+  border-color: transparent;
 }
 
 [data-theme='light'] .admin-filter-chip:hover {
-  background: rgba(15, 17, 23, 0.04);
-  border-color: rgba(15, 17, 23, 0.2);
+  background: rgba(15, 17, 23, 0.06);
 }
 
 [data-theme='light'] .admin-filter-chip.is-active {
-  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
-  border-color: rgba(26, 107, 176, 0.32);
+  background: rgba(15, 17, 23, 0.08);
   color: var(--plu-ink-900);
 }
 
 [data-theme='light'] .admin-filter-chip.is-active:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
-  border-color: rgba(26, 107, 176, 0.4);
+  background: rgba(15, 17, 23, 0.12);
 }
 
 /* Tono opcional del chip activo — mapea al mismo color que ya usa el
@@ -7172,20 +7021,22 @@
 .admin-filters--compact .admin-filters__search {
   align-items: center;
   background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   color: var(--color-text-muted);
   display: flex;
   flex: 1 1 100%;
   gap: 8px;
   min-height: 34px;
   min-width: 0;
-  padding: 0 10px;
-  transition: border-color var(--transition-fast);
+  padding: 0 14px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  background-color: rgba(255, 255, 255, 0.03);
 }
 
 .admin-filters--compact .admin-filters__search:focus-within {
-  border-color: rgba(116, 172, 223, 0.38);
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(116, 172, 223, 0.2);
 }
 
 .admin-filters--compact .admin-filters__search input {
@@ -7194,11 +7045,16 @@
   color: var(--color-text-primary);
   flex: 1 1 auto;
   font: inherit;
+  font-size: 13px;
   min-height: 32px;
   min-width: 0;
   outline: none;
   padding: 0;
   width: 100%;
+}
+
+.admin-filters--compact .admin-filters__search input::placeholder {
+  color: var(--color-text-muted);
 }
 
 .admin-filters--compact .admin-filters__selects {
@@ -7209,15 +7065,15 @@
 
 .admin-filters--compact .admin-filters__select {
   align-items: stretch;
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
   cursor: pointer;
   display: grid;
   flex: 0 1 auto;
   gap: 1px;
   min-width: min(100%, 148px);
-  padding: 5px 10px 6px;
+  padding: 5px 12px 6px;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast);
@@ -7225,12 +7081,12 @@
 }
 
 .admin-filters--compact .admin-filters__select:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--color-border-light);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .admin-filters--compact .admin-filters__select:focus-within {
-  border-color: rgba(116, 172, 223, 0.38);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(116, 172, 223, 0.2);
 }
 
 .admin-filters__select-label {
@@ -7255,18 +7111,26 @@
   padding: 1px 4px 1px 0;
 }
 
+[data-theme='light'] .admin-filters--compact .admin-filters__search {
+  background-color: rgba(15, 17, 23, 0.04);
+}
+
+[data-theme='light'] .admin-filters--compact .admin-filters__search:focus-within {
+  background-color: rgba(15, 17, 23, 0.06);
+  border-color: rgba(26, 107, 176, 0.2);
+}
+
 [data-theme='light'] .admin-filters--compact .admin-filters__select {
-  background: transparent;
-  border-color: rgba(15, 17, 23, 0.12);
+  background: rgba(15, 17, 23, 0.04);
 }
 
 [data-theme='light'] .admin-filters--compact .admin-filters__select:hover {
-  background: rgba(15, 17, 23, 0.04);
-  border-color: rgba(15, 17, 23, 0.2);
+  background: rgba(15, 17, 23, 0.06);
 }
 
 [data-theme='light'] .admin-filters--compact .admin-filters__select:focus-within {
-  border-color: rgba(26, 107, 176, 0.38);
+  background: rgba(15, 17, 23, 0.06);
+  border-color: rgba(26, 107, 176, 0.2);
 }
 
 [data-theme='light'] .admin-filters--compact .admin-filters__select select {
@@ -7281,7 +7145,7 @@
   overscroll-behavior-x: contain;
 }
 
-/* â”€â”€â”€ Usuarios: alta rÃ¡pida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Usuarios: alta rÃƒÂ¡pida Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-users__add-form {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--color-border-subtle);
@@ -7576,6 +7440,61 @@
     justify-content: center;
     width: 100%;
   }
+}
+
+/* Activación / baja manual de una afiliación. Reusa el shell del diálogo de
+   borrado -- es el mismo objeto: una decisión irreversible que se confirma --
+   y sólo agrega los dos campos que ahora son obligatorios.
+
+   El foco NO usa el rojo del diálogo de borrado: acá la acción principal es
+   activar, que no es destructiva. Va el celeste de foco del resto del panel. */
+.membership-manual-dialog__field {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.membership-manual-dialog__field label {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.membership-manual-dialog__field select,
+.membership-manual-dialog__field textarea {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  padding: var(--space-xs) var(--space-sm);
+  width: 100%;
+}
+
+/* 44px de alto mínimo: es un control táctil y se opera desde el celular en la
+   mesa de acreditación. */
+.membership-manual-dialog__field select {
+  min-height: 44px;
+}
+
+.membership-manual-dialog__field textarea {
+  line-height: 1.5;
+  min-height: 76px;
+  resize: vertical;
+}
+
+.membership-manual-dialog__field select:focus-visible,
+.membership-manual-dialog__field textarea:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.membership-manual-dialog__field small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 /* Revisión de comprobante desde la cola operativa (Validar → Confirmar). */
@@ -8429,6 +8348,41 @@
   line-height: 1.45;
 }
 
+.admin-status-dialog__hint {
+  color: var(--color-text-secondary);
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: var(--space-xs);
+}
+
+.payment-recovery-action__lookup {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  width: min(100%, 440px);
+}
+
+.payment-recovery-action__lookup label {
+  color: var(--color-text-secondary);
+  display: grid;
+  flex: 1 1 220px;
+  font-size: 12px;
+  gap: var(--space-2xs);
+}
+
+.payment-recovery-action__lookup input {
+  min-height: 40px;
+}
+
+.payment-recovery-action__lookup small {
+  color: var(--color-text-secondary);
+  flex-basis: 100%;
+  font-size: 12px;
+}
+
 .admin-status-dialog__field {
   display: grid;
   gap: var(--space-sm);
@@ -8878,7 +8832,7 @@
   border-color: color-mix(in srgb, var(--color-brand-celeste) 48%, rgba(15, 17, 23, 0.16));
 }
 
-/* â”€â”€â”€ Roles y permisos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Roles y permisos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-roles {
   display: grid;
   gap: 14px;
@@ -9016,9 +8970,9 @@
   white-space: nowrap;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SIDEBAR: lista de roles, plana, sin ningÃºn adorno
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   SIDEBAR: lista de roles, plana, sin ningún adorno
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* Sidebar: misma superficie que la matriz (sin tarjeta aparte) */
 .admin-roles__list {
   background: transparent;
@@ -9049,7 +9003,7 @@
   text-transform: uppercase;
 }
 
-/* BotÃ³n "Nuevo rol" â€” solo texto celeste, cero adornos */
+/* BotÃƒÂ³n "Nuevo rol" Ã¢â‚¬â€ solo texto celeste, cero adornos */
 .admin-roles__add {
   align-items: center;
   background: transparent;
@@ -9258,7 +9212,7 @@
   }
 }
 
-/* â”€â”€ NotificaciÃ³n / mensaje â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ NotificaciÃƒÂ³n / mensaje Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-roles__message {
   border-radius: 10px;
   font-size: 12.5px;
@@ -9281,9 +9235,9 @@
   color: var(--admin-ink, var(--color-text-primary));
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    PANEL DERECHO: header + matriz de permisos
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* PANEL: superficie plana (sin card) — head + activity + tabla + footer */
 .admin-roles__matrix-panel {
   background: transparent;
@@ -9415,9 +9369,9 @@
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   ÃREA DE SCROLL
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   ÃƒÂREA DE SCROLL
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__matrix-scroll {
   flex: 0 0 auto;
   min-height: 0;
@@ -9431,7 +9385,7 @@
   outline: none;
 }
 
-/* ═══ Tabla de permisos: módulo × acciones ═══ */
+/* â•â•â• Tabla de permisos: mÃ³dulo Ã— acciones â•â•â• */
 .admin-roles__perm-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -9639,16 +9593,16 @@
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TABLA PLANA â€” sin ninguna card, solo hairlines
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   TABLA PLANA Ã¢â‚¬â€ sin ninguna card, solo hairlines
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__matrix {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
 }
 
-/* ═══ TABLA COMPARATIVA: roles como columnas, permisos como filas ═══ */
+/* â•â•â• TABLA COMPARATIVA: roles como columnas, permisos como filas â•â•â• */
 
 /* Override base: la tabla comparativa usa layout de tabla real */
 .admin-roles__matrix--compare {
@@ -9877,14 +9831,14 @@
   border: 0;
   border-radius: 0;
   display: block;
-  margin-bottom: 28px; /* Espacio entre secciones / mÃ³dulos */
+  margin-bottom: 28px; /* Espacio entre secciones / módulos */
 }
 
 .admin-roles__matrix tbody tr:last-child {
   margin-bottom: 0;
 }
 
-/* Nombre del mÃ³dulo: etiqueta flotante, 100% plana */
+/* Nombre del módulo: etiqueta flotante, 100% plana */
 .admin-roles__matrix tbody th {
   background: transparent;
   border: 0;
@@ -9916,16 +9870,16 @@
     color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
 }
 
-/* Celda vacÃ­a: invisible */
+/* Celda vacía: invisible */
 .admin-roles__matrix .admin-roles__empty-cell {
   display: none;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    TOGGLE DE PERMISO
    Fila: [etiqueta izq] [switch der]
-   El switch es puro CSS â€” ningÃºn Ã­cono dentro del span
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   El switch es puro CSS Ã¢â‚¬â€ ningÃƒÂºn ÃƒÂ­cono dentro del span
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__permission {
   align-items: center;
   background: transparent;
@@ -9967,7 +9921,7 @@
   outline-offset: -2px;
 }
 
-/* Nombre de la acciÃ³n â€” tipografÃ­a limpia */
+/* Nombre de la acciÃƒÂ³n Ã¢â‚¬â€ tipografÃƒÂ­a limpia */
 .admin-roles__permission em {
   color: var(--admin-ink, var(--color-text-primary));
   display: block;
@@ -9983,8 +9937,8 @@
   font-weight: 500;
 }
 
-/* â”€â”€â”€ El switch iOS puro CSS â”€â”€â”€ */
-/* El span es el track (la pÃ­ldora) */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ El switch iOS puro CSS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* El span es el track (la píldora) */
 .admin-roles__permission > span {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 18%, transparent);
   border-radius: 999px;
@@ -10028,14 +9982,14 @@
   background: var(--color-brand-gold);
 }
 
-/* Modo claro: el track OFF es un gris cÃ¡lido */
+/* Modo claro: el track OFF es un gris cálido */
 [data-theme='light'] .admin-roles__permission > span {
   background: rgba(0, 0, 0, 0.14);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    FOOTER DEL PANEL: barra de guardado
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 .admin-roles__matrix-footer {
   border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
@@ -10189,9 +10143,9 @@
   background: var(--color-brand-action-hover);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SECCIÃ“N DE ACTIVIDAD
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+   SECCIÓN DE ACTIVIDAD
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* Actividad: franja mínima bajo el header */
 .admin-roles__activity {
   background: transparent;
@@ -10314,9 +10268,9 @@
   text-align: center;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    CONTAINER QUERIES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* Angosto: meta debajo del título (cubre sidebar colapsado ~650–780px). */
 @container roles-matrix (max-width: 780px) {
   .admin-roles__matrix-head {
@@ -10378,9 +10332,9 @@
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    RESPONSIVE
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 @media (min-width: 721px) and (max-width: 1279px) {
   .admin-roles__matrix-head {
     gap: 6px 14px;
@@ -10568,7 +10522,7 @@
   }
 }
 
-/* â”€â”€â”€ Check-in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Check-in Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-list-section--checkin {
   --admin-checkin-gutter: clamp(12px, 2.2vw, 18px);
 }
@@ -11092,7 +11046,7 @@
   }
 }
 
-/* â”€â”€â”€ Registrations list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Registrations list Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-list-section--registrations {
   --admin-registrations-gutter: clamp(14px, 2.4vw, 20px);
   min-width: 0;
@@ -11311,67 +11265,12 @@
   padding: 0 12px;
 }
 
-.admin-filters--registrations .admin-filters__groups,
-.admin-filters--registrations .admin-filters__groups--multi {
-  align-items: center;
-  display: flex;
-  flex: none;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 8px 10px;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  width: 100%;
-  -webkit-overflow-scrolling: touch;
-}
-
-.admin-filters--registrations .admin-filters__groups::-webkit-scrollbar,
-.admin-filters--registrations .admin-filters__groups--multi::-webkit-scrollbar {
-  display: none;
-}
-
-.admin-filters--registrations .admin-filters__groups--multi .admin-filter-group,
-.admin-filters--registrations .admin-filter-group--inline {
-  align-items: center;
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: row;
-  gap: 8px;
-  min-width: 0;
-  width: auto;
-}
-
-.admin-filters--registrations .admin-filter-group__label {
-  display: none;
-}
-
-.admin-filters--registrations .admin-filter-chips {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 6px;
-  margin: 0;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding: 2px 0 4px;
-  scrollbar-width: none;
-  width: 100%;
-  -webkit-overflow-scrolling: touch;
-}
-
-.admin-filters--registrations .admin-filter-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.admin-filters--registrations .admin-filter-chip {
-  flex: none;
-  font-size: 12px;
-  min-height: 32px;
-  padding: 6px 11px;
-}
+/* Grupos, labels y chips de Inscripciones ya NO tienen tratamiento propio --
+   forzaban una sola fila sin labels (`display:none` en `.admin-filter-group__label`),
+   que con 3 facetas (Evento/Estado/Afiliación) se leía como "Todos Todos Todos"
+   sin forma de saber a qué grupo pertenecía cada chip. Heredan el mismo
+   layout apilado con label que ya usan Atletas y Afiliaciones -- misma
+   familia visual en las tres pantallas, ver AdminFilterBar.jsx. */
 
 @media (max-width: 720px) {
   .admin-filters--registrations.admin-filters--inline.admin-filters--compact {
@@ -11387,25 +11286,6 @@
   .admin-filters--registrations .admin-filters__actions .export-btn {
     min-height: 44px;
   }
-
-  .admin-filters--registrations .admin-filter-chips {
-    flex-wrap: nowrap;
-    margin: 0;
-    overflow-x: auto;
-    padding: 2px 0 4px;
-  }
-
-  .admin-filters--registrations .admin-filter-chip {
-    font-size: 11px;
-    min-height: 40px;
-    padding: 4px 10px;
-  }
-}
-
-.admin-filters--registrations .admin-filter-chip__count {
-  font-size: 11px;
-  min-width: 0;
-  padding: 0;
 }
 
 .admin-list-shell--registrations .data-table--admin table {
@@ -12283,8 +12163,8 @@
 }
 
 /* =============================================
-   COPY LINK MENU â€” links de un evento (pÃºblico,
-   entradas, seguridad) copiables desde un solo Ã­cono
+   COPY LINK MENU Ã¢â‚¬â€ links de un evento (pÃƒÂºblico,
+   entradas, seguridad) copiables desde un solo ícono
    ============================================= */
 
 .admin-copy-menu {
@@ -12990,7 +12870,7 @@
   background: var(--plu-warm-100);
 }
 
-/* Notebook + tablet: resumen compacto en una fila (colapsable vÃ­a AdminListSection). */
+/* Notebook + tablet: resumen compacto en una fila (colapsable vía AdminListSection). */
 @media (max-width: 1100px) {
   .admin-list-shell__stats-strip {
     align-items: stretch;
@@ -13194,7 +13074,7 @@
 }
 
 /* =============================================
-   ACTION QUEUE â€” mejorado
+   ACTION QUEUE Ã¢â‚¬â€ mejorado
    ============================================= */
 
 .admin-action-drawer__backdrop {
@@ -14120,7 +14000,7 @@ button.action-queue__proof:focus-visible {
 }
 
 /* =============================================
-   DASHBOARD PANELS â€” action queue + activity
+   DASHBOARD PANELS Ã¢â‚¬â€ action queue + activity
    ============================================= */
 
 .admin-dashboard__panels {
@@ -14441,7 +14321,7 @@ button.action-queue__proof:focus-visible {
   width: 6px;
 }
 
-/* Editorial â€” underline luxury tabs */
+/* Editorial Ã¢â‚¬â€ underline luxury tabs */
 .detail-tabs--editorial {
   background: transparent;
   border: 0;
@@ -14837,7 +14717,7 @@ button.action-queue__proof:focus-visible {
   color: var(--admin-on-action, var(--plu-ink-inverse));
 }
 
-/* Competencia: filas simples, jerarquÃ­a por color (sin negrita) */
+/* Competencia: filas simples, jerarquía por color (sin negrita) */
 .athlete-detail__group--competition .athlete-detail__rows {
   gap: 0;
   grid-template-columns: 1fr;
@@ -14957,6 +14837,143 @@ button.action-queue__proof:focus-visible {
   padding: 28px 16px;
 }
 
+/* =============================================
+   ESTADO CON MOTIVO
+   =============================================
+
+   Un estado sin su motivo es la mitad de un hecho. La celda apila badge y
+   explicación en vez de esconder el motivo en un tooltip: dentro de una tabla
+   operativa tiene que poder leerse de corrido y encontrarse con Ctrl+F, y en
+   mobile el hover no existe.
+
+   El ancho de lectura se corta en 46ch. Sin tope, el motivo estira la columna
+   de estado y le come el espacio a monto y método, que son las dos que el
+   operador compara entre filas. */
+.admin-state-cell {
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  min-width: 0;
+}
+
+/* La columna de estado se auto-dimensionaba por su contenido más ancho, que era
+   un badge de ocho caracteres. Con el motivo adentro y envolviendo, colapsaba a
+   ~130px y la frase caía en una cinta de dos palabras por línea: la fila crecía
+   a diez renglones y la tabla dejaba de poder leerse comparando filas.
+
+   El piso le da al motivo una medida de lectura (~30 caracteres) sin fijarle un
+   ancho, así que la columna sigue cediendo espacio a monto y método cuando la
+   fila no tiene motivo que mostrar. */
+.athlete-detail__panel .data-table__column--status {
+  min-width: 244px;
+}
+
+@media (max-width: 1024px) {
+  .athlete-detail__panel .data-table__column--status {
+    min-width: 200px;
+  }
+}
+
+.admin-state-cell__reason,
+.admin-state-cell__note {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 46ch;
+  /* Sin esto una referencia larga o un mail de operador desbordan la celda en
+     lugar de cortar. */
+  overflow-wrap: anywhere;
+  text-transform: none;
+  /* La celda de estado de la tabla del panel es `white-space: nowrap` -- es lo
+     correcto para un badge, que nunca debe partirse en dos líneas. Un motivo de
+     una frase hereda eso y no envuelve: con `max-width` puesto igual se sale de
+     la celda y termina pintado debajo de la columna FECHA, que es sticky y tiene
+     fondo propio. El texto se leía cortado al medio ("el derecho se otorgó a
+     man…ta orden"). Recupera el flujo normal sólo el párrafo; el badge sigue en
+     una línea. */
+  white-space: normal;
+}
+
+.admin-state-cell__note {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+
+/* El hueco que dejó el backfill: es un pendiente, no una explicación, y se
+   distingue del motivo que alguien sí escribió. */
+.admin-state-cell__note--gap {
+  color: var(--color-warning-text);
+}
+
+/* En la tarjeta mobile la celda de estado vive en una fila angosta: el motivo
+   pasa a ocupar el ancho completo en vez de competir con el badge. */
+@media (max-width: 768px) {
+  .admin-state-cell__reason,
+  .admin-state-cell__note {
+    max-width: none;
+  }
+}
+
+/* =============================================
+   AVISO DE DIVERGENCIA
+   =============================================
+
+   Derecho otorgado sobre un cobro que no lo respalda. Va antes de los tabs
+   porque es lo primero que hay que saber al abrir la ficha.
+
+   Tono `warning` y nunca `danger`: en la mayoría de los casos no es una falla
+   sino una decisión operativa (la plata entró por transferencia y alguien
+   activó a mano). El rojo está reservado para error real -- gastarlo acá lo
+   volvería ruido en la pantalla donde más importa. La barra lateral, y no un
+   fondo pleno, mantiene el presupuesto de superficies: la ficha ya tiene canvas
+   y surface, y esto no es una tercera caja. */
+.athlete-detail__divergence {
+  border-left: 2px solid color-mix(in srgb, var(--color-warning-text) 45%, transparent);
+  display: grid;
+  gap: 6px;
+  padding: 2px 0 2px 14px;
+}
+
+.athlete-detail__divergence-title {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* Sin explicación es lo único accionable del bloque, y se marca en el título
+   -- no con un icono extra ni un segundo acento. */
+.athlete-detail__divergence[data-unexplained='true'] {
+  border-left-color: var(--color-warning-text);
+}
+
+.athlete-detail__divergence[data-unexplained='true'] .athlete-detail__divergence-title {
+  color: var(--color-warning-text);
+}
+
+.athlete-detail__divergence-list {
+  display: grid;
+  gap: 5px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.athlete-detail__divergence-item {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 78ch;
+  white-space: normal;
+}
+
+.athlete-detail__divergence-what {
+  color: var(--color-text-primary);
+  font-weight: 550;
+}
+
 .athlete-detail__timeline {
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -15029,7 +15046,7 @@ button.action-queue__proof:focus-visible {
 }
 
 /* =============================================
-   DATA TABLE ROW â€” clickable
+   DATA TABLE ROW Ã¢â‚¬â€ clickable
    ============================================= */
 
 .data-table__row--clickable {
@@ -15125,7 +15142,7 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* â”€â”€ Event editor Â· pricing & ticket insights â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Event editor Ã‚Â· pricing & ticket insights Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .admin-event-form__pricing {
   background: var(--admin-surface-muted, rgba(255, 255, 255, 0.02));
@@ -15897,7 +15914,7 @@ button.action-queue__proof:focus-visible {
   justify-content: flex-end;
 }
 
-/* â”€â”€ Credencial de acceso (modal) â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Credencial de acceso (modal) Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .security-credential-modal {
   align-items: center;
@@ -16050,7 +16067,7 @@ button.action-queue__proof:focus-visible {
   background: #ffffff;
 }
 
-/* â”€â”€ Puerta: validando credencial â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Puerta: validando credencial Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 .security-gate-loading {
   align-items: center;
@@ -16439,66 +16456,13 @@ button.action-queue__proof:focus-visible {
   border-left-color: rgba(15, 17, 23, 0.06);
 }
 
-/* â”€â”€ Ticket insights dentro del panel lateral (â‰¥960px): horizontal compacto â”€â”€
-   A ese ancho el panel es ~280px; 3-col tarjetas quedarÃ­an de ~79px cada una.
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Ticket insights dentro del panel lateral (Ã¢â€°Â¥960px): horizontal compacto Ã¢â€â‚¬Ã¢â€â‚¬
+   A ese ancho el panel es ~280px; 3-col tarjetas quedarían de ~79px cada una.
    Usamos 1-col con layout flex horizontal (etiqueta izq. | valor der.).
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-@media (min-width: 960px) {
-  .admin-event-preview--panel .admin-event-ticket-insights__metrics {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__metric {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    padding: 8px 10px 8px 12px;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__metric dt {
-    flex: 1 1 auto;
-    font-size: 9px;
-    min-width: 0;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__metric dd {
-    flex: 0 0 auto;
-    margin-left: auto;
-    text-align: right;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__value {
-    font-size: 15px;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__sub {
-    font-size: 9px;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown li {
-    align-items: center;
-    border-left: none;
-    border-top: 1px solid var(--color-border-subtle);
-    flex-direction: row;
-    font-size: 10.5px;
-    justify-content: space-between;
-    padding: 7px 10px;
-    text-align: left;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown li:first-child {
-    border-top: none;
-  }
-
-  .admin-event-preview--panel .admin-event-ticket-insights__breakdown strong {
-    font-size: 12.5px;
-  }
-}
+   Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* (Retirado: ticket insights compacto del panel lateral. La consola vive en
+   el modal y sus métricas están bajo .admin-event-console-modal en
+   admin-minimal.css.) */
 
 .admin-event-addon-report {
   border-top: 1px solid var(--color-border-subtle);
@@ -17637,13 +17601,13 @@ button.action-queue__proof:focus-visible {
     transition: none;
   }
 }
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN EVENTOS: KPIs + workspace
    KPIs viven fuera del shell (AdminListSection beforeShell).
    Tipografía/dossier: admin-minimal.css
    (.admin-list-section--events .admin-events-kpis).
    Acá solo layout base del strip y del split.
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-events-kpis {
   align-items: stretch;
@@ -17696,31 +17660,8 @@ button.action-queue__proof:focus-visible {
   overflow: visible;
 }
 
-@media (min-width: 901px) {
-  @container admin-panel (min-width: 900px) {
-    .admin-events-workspace:has(.admin-event-preview--panel) {
-      grid-template-columns: minmax(320px, 1.05fr) minmax(300px, 0.95fr);
-      height: min(820px, calc(100dvh - 168px));
-    }
-
-    .admin-events-workspace__main {
-      border-right: 1px solid var(--admin-hairline, var(--color-border-subtle));
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow-y: auto;
-      scrollbar-width: thin;
-    }
-
-    .admin-event-preview--panel {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow-y: auto;
-      scrollbar-width: thin;
-    }
-  }
-}
+/* El scroll interno de las columnas del split fue retirado con el panel:
+   la lista scrollea con la página y el modal tiene su propio scroll. */
 
 .admin-event-preview__command-bar {
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -17778,9 +17719,9 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN ROLES: TOOLBAR + BUSCADOR + PRESETS (fuera del card)
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .admin-roles__toolbar {
   align-items: center;
   border-bottom: 0;
@@ -17914,9 +17855,9 @@ button.action-queue__proof:focus-visible {
   margin: 8px 0 14px;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN ROLES: macOS CONTROL CENTER (SECCIONES POR MÓDULO)
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-roles__control-center {
   display: grid;
@@ -18124,9 +18065,9 @@ button.action-queue__proof:focus-visible {
   opacity: 0.65;
 }
 
-/* ═══════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ADMIN ROLES: macOS CONTROL CENTER (PREMIUM HIGH CONTRAST)
-   ═══════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-roles__control-center {
   display: flex;
@@ -18317,10 +18258,10 @@ button.action-queue__proof:focus-visible {
 /* Search Box & Presets Toolbar High Contrast — removido:
    pisaba tokens y rompía light mode. Estilos canónicos arriba. */
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Asignación masiva de grilla (AdminScheduleAssigner)
    Aparece sobre la tabla cuando hay inscripciones seleccionadas.
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-schedule-assigner {
   position: relative;
@@ -18746,6 +18687,15 @@ button.action-queue__proof:focus-visible {
   border-color: var(--color-brand-gold);
   color: var(--color-brand-action-text);
 }
+.admin-payment-ops__tabs { 
+  margin: 2rem auto 2.5rem; 
+  display: flex;
+  justify-content: center;
+}
+.admin-payment-ops__tabs .segmented-switch {
+  width: auto;
+  min-width: 400px;
+}
 
 .admin-shell .btn.admin-athletes-bulk__block-confirm:hover:not(:disabled) {
   background: var(--color-brand-gold-light, var(--color-brand-gold));
@@ -18765,65 +18715,6 @@ button.action-queue__proof:focus-visible {
   .admin-athletes-bulk__actions {
     width: 100%;
   }
-}
-
-/* ---- AthletesSection — filtros en píldora + tabla separada del bloque
-   de filtros (dos superficies en vez de una sola card continua). ---- */
-
-/* admin-minimal.css importa después de este archivo y ya trae, con la
-   misma especificidad, un fondo/reset propios para estas dos superficies
-   (`.admin-shell .admin-list-section__chrome` y el reset a transparente
-   de `.admin-shell .admin-list-shell`) — hace falta una clase extra de
-   especificidad para ganarles, no alcanza con el orden. */
-.admin-shell .admin-list-section--athletes > .admin-list-section__chrome {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--elevation-sm);
-  margin-bottom: var(--space-lg);
-  overflow: hidden;
-}
-
-/* El glifo mayúscula del eyebrow ("PERSONAS") queda pegado al límite
-   superior del padding-box; sin este aire, el overflow:hidden de arriba
-   (necesario para las esquinas redondeadas) le corta la "P". El layout
-   "rails" (admin-minimal.css) ya fija padding-top:2px acá con 4 clases —
-   hace falta una quinta para ganarle. */
-.admin-shell
-  .admin-list-section--athletes.admin-list-section--rails
-  > .admin-list-section__chrome
-  > .admin-list-shell__header {
-  padding-top: 18px;
-}
-
-.admin-shell .admin-list-section--athletes .admin-list-shell--athletes {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--elevation-sm);
-  overflow: hidden;
-}
-
-/* El resumen (Activos/Vencidos/Bloqueados) quedaba pegado a la tabla con
-   solo una línea fina — un tinte propio lo lee como su propia franja en
-   vez de la primera fila más de la tabla, sin llegar a ser una card
-   anidada adentro de la card de la tabla. */
-.admin-shell
-  .admin-list-section--athletes
-  .admin-list-shell--athletes
-  .admin-list-shell__stats-panel {
-  background: var(--color-bg-elevated);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-/* Divisores más discretos entre stats — la separación ya la da el fondo
-   de la franja de arriba; una línea fuerte adentro suma ruido de más. */
-.admin-shell
-  .admin-list-shell--athletes
-  .admin-list-shell__stats-strip
-  .admin-list-stat {
-  border-right-color: color-mix(in srgb, var(--color-border-subtle) 45%, transparent);
-  padding: 16px 20px;
 }
 
 /* ---- Selección de filas — un único tratamiento para cualquier tabla
@@ -18917,27 +18808,16 @@ button.action-queue__proof:focus-visible {
   }
 }
 
-/* admin-minimal.css importa después y pinta estos radios con selectores
-   .admin-shell-prefixed (3 clases) — hace falta esa misma raíz + el
-   variant para ganarles, ver nota más arriba sobre el tono de los chips. */
-.admin-shell .admin-filters--athletes.admin-filters--compact .admin-filters__search {
-  border-radius: var(--border-radius-pill);
-}
-
-.admin-shell .admin-filters--athletes.admin-filters--compact .admin-filter-chip {
-  border-radius: var(--border-radius-pill);
-}
-
 /* Valor ausente en una celda de tabla (ej. inscripción sin grilla asignada):
    se dice, en el tono de un dato pendiente y no de uno firme. */
 .admin-muted-text {
   color: var(--admin-muted, var(--color-text-muted));
 }
 
-/* ═══════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    Editor de tandas (AdminEventSessionsEditor)
    Pestaña "Grilla" del editor de eventos.
-   ═══════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .admin-event-sessions {
   display: flex;
@@ -19259,4 +19139,613 @@ button.action-queue__proof:focus-visible {
   min-height: 36px !important;
   padding: 0 12px !important;
   font-size: 12px !important;
+}
+.admin-payment-ops__tabs { margin-bottom: 1.5rem; }
+
+/* ── Barra de filtros — pills + popover (AdminFilterBar layout="popover") ──
+   Search + una fila de pills que abren un popover con el control real
+   (chips, combobox con búsqueda o rango de fechas) en vez del panel
+   apilado. Ver AdminFilterPillRow.jsx — ninguna pantalla la usa hoy
+   (Atletas volvió al layout apilado, igual que Afiliaciones/Inscripciones);
+   queda disponible para una sección con muchos filtros que lo necesite. */
+
+/* Transparente, sin caja propia -- misma idea que ya usa el layout
+   apilado (`.admin-filters--registrations`/`--inline`, más abajo en el
+   archivo): un hairline inferior en vez de una tarjeta rellena, para que
+   los tres patrones de filtro (panel único, chips siempre visibles, pills)
+   se sientan de la misma familia en vez de uno destacándose con más peso
+   visual que el resto. */
+.admin-filter-popoverbar {
+  background: transparent;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.admin-filter-popoverbar__row1 {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.admin-filter-popoverbar__row1 .admin-filters__search {
+  flex: 1 1 320px;
+  max-width: 440px;
+}
+
+.admin-filter-popoverbar__spacer {
+  flex: 1;
+}
+
+.admin-filter-popoverbar__clear {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  padding: 6px 14px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.admin-filter-popoverbar__clear:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .admin-filter-popoverbar__clear:hover {
+  background: rgba(15, 17, 23, 0.06);
+}
+
+.admin-filter-popoverbar__clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-popoverbar__count {
+  color: var(--color-text-muted);
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.admin-filter-pillrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-filter-pill {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  display: inline-flex;
+  position: relative;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+[data-theme='light'] .admin-filter-pill {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+.admin-filter-pill:hover {
+  border-color: var(--color-border-light);
+}
+
+.admin-filter-pill.is-active {
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.admin-filter-pill.is-open {
+  border-color: var(--color-accent-celeste-border-strong);
+}
+
+.admin-filter-pill__trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 8px;
+  padding: 9px 14px;
+}
+
+.admin-filter-pill.is-active .admin-filter-pill__trigger {
+  padding-right: 8px;
+}
+
+.admin-filter-pill__trigger:focus-visible {
+  border-radius: var(--border-radius-pill);
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-pill__icon {
+  color: var(--color-text-muted);
+  flex: none;
+}
+
+.admin-filter-pill__divider {
+  background: var(--color-border-light);
+  flex: none;
+  height: 11px;
+  width: 1px;
+}
+
+.admin-filter-pill__value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.admin-filter-pill__chevron {
+  color: var(--color-text-muted);
+  flex: none;
+  transition: transform var(--transition-fast);
+}
+
+.admin-filter-pill.is-open .admin-filter-pill__chevron {
+  color: var(--color-brand-celeste);
+  transform: rotate(180deg);
+}
+
+.admin-filter-pill__clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 20px;
+  justify-content: center;
+  margin-right: 8px;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+  width: 20px;
+}
+
+.admin-filter-pill__clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .admin-filter-pill__clear:hover {
+  background: rgba(15, 17, 23, 0.08);
+}
+
+.admin-filter-pill__clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-popover {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  left: 0;
+  max-width: min(320px, 92vw);
+  min-width: 220px;
+  padding: 10px;
+  position: absolute;
+  top: calc(100% + 8px);
+  width: max-content;
+  z-index: var(--z-dropdown);
+}
+
+.admin-filter-popover .admin-filter-chips {
+  max-width: 280px;
+}
+
+.admin-filter-popover__combobox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 260px;
+}
+
+.admin-filter-popover__search {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-pill);
+  display: flex;
+  gap: 9px;
+  height: 36px;
+  padding: 0 12px;
+  transition: border-color var(--transition-fast);
+}
+
+[data-theme='light'] .admin-filter-popover__search {
+  background: rgba(15, 17, 23, 0.04);
+}
+
+.admin-filter-popover__search:focus-within {
+  border-color: var(--color-accent-celeste-border-strong);
+}
+
+.admin-filter-popover__search svg {
+  color: var(--color-text-muted);
+  flex: none;
+}
+
+.admin-filter-popover__search input {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  min-width: 0;
+  outline: none;
+}
+
+.admin-filter-popover__search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.admin-filter-popover__options {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.admin-filter-popover__option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.admin-filter-popover__option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='light'] .admin-filter-popover__option:hover {
+  background: rgba(15, 17, 23, 0.05);
+}
+
+.admin-filter-popover__option.is-selected {
+  background: var(--color-accent-celeste-border-subtle);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.admin-filter-popover__option svg {
+  color: var(--color-brand-celeste);
+  flex: none;
+}
+
+.admin-filter-popover__option-spacer {
+  flex: none;
+  width: 13px;
+}
+
+.admin-filter-popover__empty {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  margin: 0;
+  padding: 10px;
+  text-align: center;
+}
+
+/* ── Barra de filtros — panel único (AdminFilterBar layout="panel") ──
+   Search + un solo botón "Filtros" que abre un panel con todos los grupos
+   juntos, en vez de un pill por filtro (ver AdminFilterPillRow arriba). Lo
+   aplicado queda como chips removibles debajo del buscador, visibles aunque
+   el panel esté cerrado. Ver AdminFilterPanel.jsx -- ninguna pantalla la usa
+   hoy (Atletas volvió al layout apilado); queda para una sección con más
+   filtros de los que entran cómodos siempre a la vista. */
+
+.admin-filter-panel-trigger {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 9px;
+  height: 52px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.admin-filter-panel-trigger:hover {
+  border-color: var(--color-border-light);
+}
+
+.admin-filter-panel-trigger:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-panel-trigger.is-open {
+  border-color: var(--color-accent-celeste-border-strong);
+}
+
+.admin-filter-panel-trigger.has-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border-color: var(--color-accent-celeste-border-strong);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .admin-filter-panel-trigger {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+.admin-filter-panel-trigger__badge {
+  align-items: center;
+  background: var(--color-brand-celeste);
+  border-radius: 50%;
+  color: #0a0b0d;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  height: 19px;
+  justify-content: center;
+  width: 19px;
+}
+
+.admin-filter-panel-trigger__chevron {
+  color: var(--color-text-muted);
+  flex: none;
+  transition: transform var(--transition-fast);
+}
+
+.admin-filter-panel-trigger.is-open .admin-filter-panel-trigger__chevron {
+  color: var(--color-brand-celeste);
+  transform: rotate(180deg);
+}
+
+/* En flujo normal, no `position: absolute`: la tarjeta entera (.admin-filter-popoverbar)
+   crece hacia abajo cuando el panel se abre, en vez de un dropdown flotando
+   sobre lo que sigue debajo (la tabla). Los márgenes negativos cancelan el
+   padding de la tarjeta para que el panel llegue a sus bordes -- `overflow:
+   hidden` en `.admin-filters--panel .admin-filter-popoverbar` (abajo) es lo
+   que deja que sus esquinas inferiores respeten el radio de la tarjeta. */
+.admin-filter-panel {
+  animation: admin-filter-panel-open 200ms var(--ease-out, ease) both;
+  border-top: 1px solid var(--color-border-subtle);
+  margin: 0 -20px -18px;
+  padding: 22px 20px;
+}
+
+@keyframes admin-filter-panel-open {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-filter-panel {
+    animation: none;
+  }
+}
+
+.admin-filters--panel .admin-filter-popoverbar {
+  overflow: hidden;
+}
+
+.admin-filter-panel__grid {
+  display: grid;
+  gap: 20px 28px;
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
+}
+
+.admin-filter-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* El combobox buscable (ej. Gimnasio) es mucho más alto que un chip group o
+   un rango de fechas -- sin esto, al compartir fila de grid con campos
+   cortos, esos campos se estiran (align-items: stretch) hasta su altura y
+   dejan un hueco vacío debajo. Ocupar 2 filas deja que cada fila corta mida
+   según su propio contenido. */
+.admin-filter-panel__field--select {
+  grid-row: span 2;
+}
+
+.admin-filter-panel__field-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-filter-panel-chips {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.admin-filter-panel-chip {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border: 1px solid var(--color-accent-celeste-border-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  padding: 6px 8px 6px 12px;
+}
+
+.admin-filter-panel-chip button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 16px;
+  justify-content: center;
+  opacity: 0.75;
+  transition:
+    background var(--transition-fast),
+    opacity var(--transition-fast);
+  width: 16px;
+}
+
+.admin-filter-panel-chip button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  opacity: 1;
+}
+
+.admin-filter-panel-chip button:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Tono opcional del chip -- mismo criterio y mismos tokens que ya usa el
+   chip activo de AdminFilterChipGroup (admin-filter-chip--tone-*): el color
+   del filtro predice el color del resultado en vez de un celeste genérico. */
+.admin-filter-panel-chip--tone-success {
+  background: var(--admin-status-success-bg);
+  border-color: var(--admin-status-success-border);
+  color: var(--admin-status-success);
+}
+
+.admin-filter-panel-chip--tone-danger {
+  background: var(--admin-status-danger-bg);
+  border-color: var(--admin-status-danger-border);
+  color: var(--admin-status-danger);
+}
+
+.admin-filter-panel-chip--tone-info {
+  background: var(--admin-status-info-bg);
+  border-color: var(--admin-status-info-border);
+  color: var(--admin-status-info);
+}
+
+.admin-filter-panel-chips__clear {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  transition: color var(--transition-fast);
+}
+
+.admin-filter-panel-chips__clear:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-filter-panel-chips__clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* @container, no @media: el "angosto" real de este panel es el ancho del
+   propio .admin-list-section (lo squeeza el sidebar en notebook), no el
+   viewport -- mismo criterio que el resto de admin.css (admin-panel). */
+@container admin-panel (max-width: 640px) {
+  .admin-filter-popoverbar__row1 .admin-filters__search {
+    max-width: none;
+  }
+
+  .admin-filter-popoverbar__count {
+    order: 3;
+    width: 100%;
+  }
+
+  .admin-filter-pillrow {
+    flex-wrap: nowrap;
+    margin: 0 -20px;
+    overflow-x: auto;
+    padding: 2px 20px;
+    scrollbar-width: none;
+  }
+
+  .admin-filter-pillrow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-filter-pill {
+    flex: none;
+  }
+
+  .admin-filter-pill__trigger {
+    min-height: 44px;
+  }
+
+  .admin-filter-popover {
+    max-width: min(320px, calc(100vw - 40px));
+  }
+
+  .admin-filter-panel-trigger__label {
+    display: none;
+  }
+
+  .admin-filter-panel-trigger {
+    padding: 0 14px;
+  }
+
+  .admin-filter-panel__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filter-panel__field--select {
+    grid-row: auto;
+  }
 }

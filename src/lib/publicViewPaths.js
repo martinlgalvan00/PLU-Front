@@ -23,9 +23,25 @@ const PUBLIC_VIEW_PATHS = Object.freeze({
   profile: '/perfil',
 })
 
-const PATH_TO_VIEW = Object.freeze(
-  Object.fromEntries(Object.entries(PUBLIC_VIEW_PATHS).map(([view, path]) => [path, view])),
-)
+/**
+ * Rutas que resuelven a una vista pero no son su forma canónica: se reconocen
+ * al entrar, y `buildPublicViewPath` sigue devolviendo la canónica.
+ *
+ * `/mi-cuenta` es la que mandan los emails transaccionales desde que existen
+ * (`payment_pending`, `payment_rejected`, `affiliation_cancelled`, el aviso de
+ * renovación). Nunca fue una ruta de la app —el perfil vive en `/perfil`— así
+ * que "revisá el estado de tu pago" caía en la pantalla de 404. Se resuelve
+ * como alias y no renombrando la ruta porque los emails ya entregados no se
+ * pueden cambiar.
+ */
+const PATH_ALIASES = Object.freeze({
+  '/mi-cuenta': 'profile',
+})
+
+const PATH_TO_VIEW = Object.freeze({
+  ...Object.fromEntries(Object.entries(PUBLIC_VIEW_PATHS).map(([view, path]) => [path, view])),
+  ...PATH_ALIASES,
+})
 
 function normalizePathname(pathname) {
   if (!pathname || pathname === '/') return '/'

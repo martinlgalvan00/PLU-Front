@@ -63,7 +63,9 @@ function renderEvents(overrides = {}) {
 }
 
 function consolePanel() {
-  return screen.getByRole('complementary', { name: 'Evento seleccionado' })
+  // La consola es un modal que se abre al tocar la fila del evento.
+  fireEvent.click(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/))
+  return screen.getByRole('dialog', { name: 'Evento seleccionado' })
 }
 
 describe('EventsSection — filas de sección de la consola', () => {
@@ -91,10 +93,11 @@ describe('EventsSection — filas de sección de la consola', () => {
 
   it('abre la grilla a ancho completo, sin el editor modal', async () => {
     renderEvents()
-    fireEvent.click(within(consolePanel()).getByRole('button', { name: /estructura/i }))
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
 
     await waitFor(() => {
-      expect(screen.queryByRole('complementary', { name: 'Evento seleccionado' })).toBeNull()
+      expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
     })
     // El editor reescribe el evento entero al guardar: la grilla no pasa por ahí.
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -103,19 +106,25 @@ describe('EventsSection — filas de sección de la consola', () => {
 
   it('vuelve a la lista desde la vista de detalle', async () => {
     renderEvents()
-    fireEvent.click(within(consolePanel()).getByRole('button', { name: /estructura/i }))
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
     await waitFor(() => expect(document.querySelector('.admin-event-drill')).not.toBeNull())
 
     fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
 
     await waitFor(() => {
-      expect(screen.getByRole('complementary', { name: 'Evento seleccionado' })).toBeTruthy()
+      expect(document.querySelector('.admin-event-drill')).toBeNull()
     })
+    // Al volver, la consola vuelve a estar a un toque de la fila.
+    expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
+    fireEvent.click(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/))
+    expect(screen.getByRole('dialog', { name: 'Evento seleccionado' })).toBeTruthy()
   })
 
   it('abre zonas a ancho completo, sin el editor modal', async () => {
     renderEvents()
-    fireEvent.click(within(consolePanel()).getByRole('button', { name: /zonas y seguridad/i }))
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /zonas y seguridad/i }))
 
     await waitFor(() => expect(document.querySelector('.admin-event-drill')).not.toBeNull())
     expect(screen.queryByRole('dialog')).toBeNull()

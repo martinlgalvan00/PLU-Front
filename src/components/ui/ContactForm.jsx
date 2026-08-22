@@ -1,20 +1,35 @@
 import { useState } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { submitContactMessage } from '../../services/contactService.js'
 
 const MOTIVES = ['atleta', 'gimnasio', 'organizacion', 'pluusa']
 
 export default function ContactForm() {
   const { t } = useI18n()
   const [motive, setMotive] = useState('atleta')
-  const [sent, setSent] = useState(false)
+  const [status, setStatus] = useState('idle') // idle | submitting | sent | error
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    setSent(true)
+    if (status === 'submitting') return
+    const data = new FormData(event.currentTarget)
+    setStatus('submitting')
+    try {
+      await submitContactMessage({
+        name: data.get('name')?.toString().trim() ?? '',
+        email: data.get('email')?.toString().trim() ?? '',
+        message: data.get('message')?.toString().trim() ?? '',
+        motive,
+      })
+      setStatus('sent')
+    } catch (error) {
+      console.error(error)
+      setStatus('error')
+    }
   }
 
-  if (sent) {
+  if (status === 'sent') {
     return (
       <div className="contact-success" role="status" aria-live="polite">
         <div className="contact-success__icon" aria-hidden>
@@ -56,6 +71,7 @@ export default function ContactForm() {
               role="radio"
               aria-checked={motive === key}
               className={`contact-form__motive${motive === key ? ' is-active' : ''}`}
+              disabled={status === 'submitting'}
               onClick={() => setMotive(key)}
             >
               <span className="contact-form__motive-label">{t(`contact.motive.${key}`)}</span>
@@ -86,6 +102,7 @@ export default function ContactForm() {
                 type="text"
                 name="name"
                 required
+                disabled={status === 'submitting'}
                 placeholder={t('contact.namePlaceholder')}
               />
             </label>
@@ -96,6 +113,7 @@ export default function ContactForm() {
                 type="email"
                 name="email"
                 required
+                disabled={status === 'submitting'}
                 placeholder="nombre@pluarg.com.ar"
               />
             </label>
@@ -106,6 +124,7 @@ export default function ContactForm() {
               name="message"
               rows={4}
               required
+              disabled={status === 'submitting'}
               placeholder={t('contact.messagePlaceholder')}
             />
           </label>
@@ -115,11 +134,25 @@ export default function ContactForm() {
       <input type="hidden" name="motive" value={motive} />
 
       <div className="contact-form__actions">
-        <button type="submit" className="contact-form__submit">
-          <span>{t('contact.submit')}</span>
-          <ArrowRight size={15} strokeWidth={1.25} aria-hidden />
+        <button
+          type="submit"
+          className="contact-form__submit"
+          disabled={status === 'submitting'}
+        >
+          <span>{status === 'submitting' ? t('contact.submitting') : t('contact.submit')}</span>
+          {status === 'submitting' ? (
+            <span className="plu-spinner" aria-hidden />
+          ) : (
+            <ArrowRight size={15} strokeWidth={1.25} aria-hidden />
+          )}
         </button>
         <p className="contact-form__note">{t('contact.submitNote')}</p>
+        {status === 'error' ? (
+          <p className="contact-form__error" role="alert">
+            <strong>{t('contact.errorTitle')}</strong>{' '}
+            {t('contact.errorDesc', { email: t('contact.sidebarEmail') })}
+          </p>
+        ) : null}
       </div>
     </form>
   )

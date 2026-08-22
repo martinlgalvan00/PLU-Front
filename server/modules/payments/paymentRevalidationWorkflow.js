@@ -62,11 +62,54 @@ function summarizeProviderPayment(payment) {
   }
 }
 
-async function listProviderPayments(mercadoPago, order) {
-  if (typeof mercadoPago.searchPaymentsForOrder === 'function') {
-    return (await mercadoPago.searchPaymentsForOrder(order)) ?? []
+async function listProviderPayments(mercadoPago, repository, order, providerPaymentId = null) {
+  if (providerPaymentId) {
+    const payment = await mercadoPago.getPayment?.(String(providerPaymentId))
+    return payment ? [payment] : []
   }
-  // Adaptadores viejos o dobles de test que solo exponen el canonico.
+  const searched =
+    typeof mercadoPago.searchPaymentsForOrder === 'function'
+      ? (await mercadoPago.searchPaymentsForOrder(order)) ?? []
+      : []
+
+  // La búsqueda por external_reference es el camino normal. Como respaldo,
+  // releemos también los IDs de intentos que ya quedaron en nuestro ledger:
+  // una respuesta vacía del endpoint de búsqueda no puede ocultar un pago cuyo
+  // ID ya conocemos. `applyCanonicalPayment` conserva las guardas duras de
+  // referencia, monto y moneda antes de acreditar, así que este fallback no
+  // permite asociar un cobro ajeno a la orden.
+  let knownAttempts = []
+  if (typeof repository?.listOrderPayments === 'function') {
+    try {
+      knownAttempts = (await repository.listOrderPayments(order.id, order.kind)) ?? []
+    } catch {
+      // La consulta auxiliar no puede impedir la revalidación normal por
+      // external_reference; simplemente se omite este respaldo puntual.
+      knownAttempts = []
+    }
+  }
+  const knownIds = [
+    ...new Set(
+      knownAttempts
+        .map((attempt) => attempt?.external_payment_id ?? attempt?.externalPaymentId)
+        .filter((id) => id && !String(id).startsWith('manual-settlement:'))
+        .map(String),
+    ),
+  ]
+  const searchedIds = new Set(searched.map((payment) => String(payment?.id ?? '')))
+  const missingIds = knownIds.filter((id) => !searchedIds.has(id))
+  const direct = await Promise.allSettled(
+    missingIds.map((id) => mercadoPago.getPayment?.(id)),
+  )
+  const directPayments = direct
+    .filter((result) => result.status === 'fulfilled' && result.value)
+    .map((result) => result.value)
+
+  if (searched.length > 0 || directPayments.length > 0) {
+    return [...searched, ...directPayments]
+  }
+
+  // Adaptadores viejos o dobles de test que solo exponen el canónico.
   const canonical = await mercadoPago.findPaymentForOrder?.(order)
   return canonical ? [canonical] : []
 }
@@ -99,6 +142,7 @@ export async function revalidatePaymentOrder(target, options = {}) {
     notifyPaymentApplied,
     auditTrail,
     apply = true,
+    providerPaymentId = null,
     actor = null,
   } = options
   if (!repository || !mercadoPago) {
@@ -121,13 +165,13 @@ export async function revalidatePaymentOrder(target, options = {}) {
 
   let providerPayments
   try {
-    providerPayments = await listProviderPayments(mercadoPago, order)
+    providerPayments = await listProviderPayments(mercadoPago, repository, order, providerPaymentId)
   } catch (error) {
     await auditTrail?.recordFailure({
       stage: 'revalidation',
       order,
       error,
-      metadata: { actor, localStatus },
+    metadata: { actor, localStatus, providerPaymentId },
     })
     throw error
   }

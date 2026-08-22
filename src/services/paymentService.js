@@ -47,9 +47,20 @@ export function reconcileCreatedOrder(createdOrder, payments = []) {
   if (!createdOrder?.paymentId) return createdOrder
 
   const order = payments.find((payment) => payment.id === createdOrder.paymentId)
-  if (!order || order.status === createdOrder.status) return createdOrder
+  if (!order) return createdOrder
 
-  return { ...createdOrder, status: order.status }
+  const patch = { status: order.status }
+  for (const key of [
+    'manualPaymentChannel',
+    'financingAllowed',
+    'manualPaymentDeclaredAt',
+    'financedEntitlementsAt',
+    'financedEntitlementsRevokedAt',
+  ]) {
+    if (order[key] !== undefined) patch[key] = order[key]
+  }
+  const changed = Object.entries(patch).some(([key, value]) => createdOrder[key] !== value)
+  return changed ? { ...createdOrder, ...patch } : createdOrder
 }
 
 export function paymentUpdateStatus(status) {
@@ -57,6 +68,7 @@ export function paymentUpdateStatus(status) {
   if (status === 'rejected' || status === 'rechazado') return 'rechazado'
   if (status === 'cancelled' || status === 'cancelado') return 'cancelado'
   if (status === 'refunded' || status === 'reembolsado') return 'reembolsado'
+  if (status === 'validacion_manual') return 'validacion_manual'
   return 'pendiente'
 }
 
@@ -66,7 +78,21 @@ export function applyPaymentUpdate(createdOrder, tickets = [], detail = {}) {
 
   const status = paymentUpdateStatus(detail.status)
   const matchesOrder = createdOrder?.paymentId === orderId || createdOrder?.orderId === orderId
-  const nextOrder = matchesOrder ? { ...createdOrder, status } : createdOrder
+  const nextOrder = matchesOrder
+    ? {
+        ...createdOrder,
+        status,
+        ...(detail.manualPaymentDeclaredAt
+          ? { manualPaymentDeclaredAt: detail.manualPaymentDeclaredAt }
+          : {}),
+        ...(detail.financingAllowed !== undefined
+          ? { financingAllowed: detail.financingAllowed === true }
+          : {}),
+        ...(detail.financedEntitlementsAt
+          ? { financedEntitlementsAt: detail.financedEntitlementsAt }
+          : {}),
+      }
+    : createdOrder
   const nextTickets =
     status === 'aprobado'
       ? tickets.map((ticket) =>
@@ -193,8 +219,11 @@ export async function recoverPaymentOperations() {
  *
  * `apply: false` devuelve el diagnóstico sin escribir.
  */
-export async function revalidatePaymentOrder(orderId, { apply = true } = {}) {
-  return apiPost(`/api/payments/orders/${encodeURIComponent(orderId)}/revalidate`, { apply })
+export async function revalidatePaymentOrder(orderId, { apply = true, providerPaymentId } = {}) {
+  return apiPost(`/api/payments/orders/${encodeURIComponent(orderId)}/revalidate`, {
+    apply,
+    ...(providerPaymentId ? { providerPaymentId: String(providerPaymentId) } : {}),
+  })
 }
 
 /** Barrido de órdenes no aprobadas contra el proveedor. Sin `apply` no toca nada. */

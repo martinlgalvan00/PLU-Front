@@ -1,8 +1,31 @@
 import { Table } from 'antd'
 import { StatusBadge } from '../ui/DataTable.jsx'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useHorizontalScroll } from '../../hooks/useHorizontalScroll'
+
+const DESKTOP_BREAKPOINT = 768
+
+// `window.innerWidth` leído una sola vez al montar no reacciona a un resize o
+// a rotar un tablet -- las columnas `mobile: 'hidden'` quedaban congeladas
+// con el ancho que tenía la ventana en el primer render. Se escucha `resize`
+// en vez de `matchMedia` a propósito: es el mismo umbral que ya usaba el
+// código viejo, sin depender de una media query que los mocks de test de
+// otras pantallas no simulan.
+function useIsDesktopViewport() {
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth > DESKTOP_BREAKPOINT,
+  )
+
+  useEffect(() => {
+    const sync = () => setIsDesktop(window.innerWidth > DESKTOP_BREAKPOINT)
+    sync()
+    window.addEventListener('resize', sync)
+    return () => window.removeEventListener('resize', sync)
+  }, [])
+
+  return isDesktop
+}
 
 // antd solo acepta 'left' | 'right' | 'center' en `align` — los column defs
 // del admin usan el vocabulario semántico de DataTable.jsx ('end'/'start'),
@@ -54,10 +77,11 @@ export default function AdminDataTable({
 }) {
   const scrollRef = useHorizontalScroll()
   const selectedCount = rowSelection?.selectedRowKeys?.length ?? 0
+  const isDesktopViewport = useIsDesktopViewport()
 
   const antdColumns = useMemo(() => {
     return columns
-      .filter((col) => col.mobile !== 'hidden' || window.innerWidth > 768) // Simplificación rápida para responsive
+      .filter((col) => col.mobile !== 'hidden' || isDesktopViewport)
       .map((col, index) => ({
         title: col.label,
         dataIndex: col.key,
@@ -81,7 +105,7 @@ export default function AdminDataTable({
         },
         align: resolveAntdAlign(col.align),
       }))
-  }, [columns])
+  }, [columns, isDesktopViewport])
 
   const dataSource = useMemo(() => {
     return rows.map((row) => ({ ...row, key: row.id ?? JSON.stringify(row) }))

@@ -243,6 +243,6 @@ describe('vigencia de las órdenes en efectivo', () => {
       p_reason: 'Sin comprobante.',
       p_actor: 'cash-expiry-integration',
     })
-    expect(rejected.error?.message).toContain('No hay comprobante para rechazar.')
+    expect(rejected.error?.message).toContain('No hay comprobante ni declaracion para rechazar.')
   })
 })

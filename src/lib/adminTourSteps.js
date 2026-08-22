@@ -20,6 +20,12 @@ export function getAdminIntroTourSteps(t) {
       body: t('admin.tour.nav.body'),
     },
     {
+      target: '[data-tour="admin-global-search"]',
+      placement: 'bottom',
+      title: t('admin.tour.globalSearch.title'),
+      body: t('admin.tour.globalSearch.body'),
+    },
+    {
       target: '[data-tour="dashboard-search"]',
       placement: 'bottom',
       title: t('admin.tour.search.title'),
@@ -67,6 +73,12 @@ export function getAthletesTourSteps(t) {
       body: t('admin.tour.athletes.filters.body'),
     },
     {
+      target: '.admin-saved-views',
+      placement: 'bottom',
+      title: t('admin.tour.savedViews.title'),
+      body: t('admin.tour.savedViews.body'),
+    },
+    {
       target: '.admin-list-shell__stats-strip',
       placement: 'bottom',
       title: t('admin.tour.athletes.stats.title'),
@@ -94,6 +106,12 @@ export function getMembershipsTourSteps(t) {
       placement: 'bottom',
       title: t('admin.tour.memberships.filters.title'),
       body: t('admin.tour.memberships.filters.body'),
+    },
+    {
+      target: '.admin-saved-views',
+      placement: 'bottom',
+      title: t('admin.tour.savedViews.title'),
+      body: t('admin.tour.savedViews.body'),
     },
     {
       target: '.admin-list-shell__stats-strip',
@@ -125,6 +143,12 @@ export function getRegistrationsTourSteps(t) {
       body: t('admin.tour.registrations.filters.body'),
     },
     {
+      target: '.admin-saved-views',
+      placement: 'bottom',
+      title: t('admin.tour.savedViews.title'),
+      body: t('admin.tour.savedViews.body'),
+    },
+    {
       target: '.admin-list-shell__actions',
       placement: 'left',
       title: t('admin.tour.registrations.exports.title'),
@@ -141,6 +165,41 @@ export function getRegistrationsTourSteps(t) {
       placement: 'top',
       title: t('admin.tour.registrations.table.title'),
       body: t('admin.tour.registrations.table.body'),
+    },
+  ]
+}
+
+export function getAuditTourSteps(t) {
+  return [
+    {
+      target: '.audit-flow-guide',
+      placement: 'bottom',
+      title: t('admin.tour.audit.guide.title'),
+      body: t('admin.tour.audit.guide.body'),
+    },
+    {
+      target: '.audit-health-bento',
+      placement: 'bottom',
+      title: t('admin.tour.audit.health.title'),
+      body: t('admin.tour.audit.health.body'),
+    },
+    {
+      target: '.admin-filter-chips',
+      placement: 'bottom',
+      title: t('admin.tour.audit.filters.title'),
+      body: t('admin.tour.audit.filters.body'),
+    },
+    {
+      target: '.admin-saved-views',
+      placement: 'bottom',
+      title: t('admin.tour.savedViews.title'),
+      body: t('admin.tour.savedViews.body'),
+    },
+    {
+      target: '.admin-list-shell__body',
+      placement: 'top',
+      title: t('admin.tour.audit.table.title'),
+      body: t('admin.tour.audit.table.body'),
     },
   ]
 }
@@ -265,9 +324,13 @@ export function getAccessGatesTourSteps(t) {
  * el botón de ayuda del shell para repetir el tour de lo que se está viendo. */
 export const ADMIN_SECTION_TOURS = {
   dashboard: { id: 'admin-intro', getSteps: getAdminIntroTourSteps },
+  // "Personas" no sabe qué pestaña interna está activa (el shell solo conoce
+  // la sección) -- ofrece el recorrido de Atletas, la pestaña por defecto.
+  people: { id: 'admin-athletes', getSteps: getAthletesTourSteps },
   athletes: { id: 'admin-athletes', getSteps: getAthletesTourSteps },
   memberships: { id: 'admin-memberships', getSteps: getMembershipsTourSteps },
   registrations: { id: 'admin-registrations', getSteps: getRegistrationsTourSteps },
+  audit: { id: 'admin-audit', getSteps: getAuditTourSteps },
   events: { id: 'admin-events', getSteps: getEventsTourSteps },
   payments: { id: 'admin-payments', getSteps: getPaymentsTourSteps },
   pricing: { id: 'admin-pricing', getSteps: getPricingTourSteps },

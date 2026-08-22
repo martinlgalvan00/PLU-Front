@@ -118,12 +118,13 @@
 
 .account-payment-modal--transfer .account-payment-modal__close:focus-visible,
 .account-payment-modal--transfer .account-secondary-action:focus-visible,
-.account-payment-modal--transfer .account-transfer-data__copy:focus-visible {
+:is(.account-payment-modal--transfer, .account-offer__manual)
+  .account-transfer-data__copy:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 3px;
 }
 
-.account-payment-modal--transfer .account-payment-modal__footnote {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-payment-modal__footnote {
   color: var(--color-text-muted);
   font-size: 12.5px;
   line-height: 1.45;
@@ -133,10 +134,10 @@
 
 .account-payment-modal--transfer .account-secondary-action {
   align-items: center;
-  background: var(--color-brand-action);
-  border: 1px solid var(--color-brand-action);
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  color: var(--color-brand-action-text);
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
   font-size: 14px;
@@ -148,22 +149,22 @@
 }
 
 .account-payment-modal--transfer .account-secondary-action:hover {
-  background: var(--color-brand-action-hover, var(--color-brand-action));
-  color: var(--color-brand-action-text);
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  color: var(--color-text-primary);
 }
 
-.account-payment-modal--transfer .account-transfer-receipt {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-receipt {
   display: grid;
   gap: 0;
 }
 
-.account-payment-modal--transfer .account-transfer-data {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data {
   display: grid;
   gap: 0;
   margin: 0;
 }
 
-.account-payment-modal--transfer .account-transfer-data div {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data div {
   align-items: center;
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
@@ -172,7 +173,7 @@
   padding: 8px 0;
 }
 
-.account-payment-modal--transfer .account-transfer-data dt {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data dt {
   color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
@@ -180,7 +181,7 @@
   text-transform: none;
 }
 
-.account-payment-modal--transfer .account-transfer-data dd {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data dd {
   color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 600;
@@ -188,14 +189,16 @@
   overflow-wrap: anywhere;
 }
 
-.account-payment-modal--transfer .account-transfer-data__row--alias .account-transfer-data__text {
+:is(.account-payment-modal--transfer, .account-offer__manual)
+  .account-transfer-data__row--alias
+  .account-transfer-data__text {
   font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-.account-payment-modal--transfer .account-transfer-data__value {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__value {
   align-items: center;
   display: flex;
   gap: 10px;
@@ -203,13 +206,13 @@
   min-width: 0;
 }
 
-.account-payment-modal--transfer .account-transfer-data__text {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__text {
   display: grid;
   gap: 1px;
   min-width: 0;
 }
 
-.account-payment-modal--transfer .account-transfer-data__meta {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__meta {
   color: var(--color-text-muted);
   font-family: var(--font-family);
   font-size: 11px;
@@ -217,7 +220,7 @@
   letter-spacing: 0;
 }
 
-.account-payment-modal--transfer .account-transfer-data__copy {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy {
   align-items: center;
   background: transparent;
   border: 0;
@@ -232,13 +235,13 @@
   width: 28px;
 }
 
-.account-payment-modal--transfer .account-transfer-data__copy::after {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy::after {
   content: '';
   inset: -8px;
   position: absolute;
 }
 
-.account-payment-modal--transfer .account-transfer-data__copy::before {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy::before {
   background: var(--color-bg-elevated, var(--color-bg-surface));
   border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
@@ -259,22 +262,25 @@
   z-index: 2;
 }
 
-.account-payment-modal--transfer .account-transfer-data__copy:hover,
-.account-payment-modal--transfer .account-transfer-data__copy:focus-visible {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy:hover,
+:is(.account-payment-modal--transfer, .account-offer__manual)
+  .account-transfer-data__copy:focus-visible {
   color: var(--color-brand-celeste);
 }
 
-.account-payment-modal--transfer .account-transfer-data__copy:focus-visible::before {
+:is(.account-payment-modal--transfer, .account-offer__manual)
+  .account-transfer-data__copy:focus-visible::before {
   opacity: 1;
 }
 
 @media (hover: hover) {
-  .account-payment-modal--transfer .account-transfer-data__copy:hover::before {
+  :is(.account-payment-modal--transfer, .account-offer__manual)
+    .account-transfer-data__copy:hover::before {
     opacity: 1;
   }
 }
 
-.account-payment-modal--transfer .account-transfer-warning {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-warning {
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
   font-size: 12.5px;
@@ -284,18 +290,18 @@
   padding: 10px 0 0;
 }
 
-.account-payment-modal--transfer .account-transfer-notes {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-notes {
   display: grid;
   gap: 6px;
 }
 
-.account-payment-modal--transfer .account-transfer-notes span {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-notes span {
   color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
 }
 
-.account-payment-modal--transfer .account-transfer-notes textarea {
+:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-notes textarea {
   background: var(--color-bg-inset, var(--color-bg-surface));
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
@@ -307,7 +313,9 @@
   resize: vertical;
 }
 
-.account-payment-modal--transfer .account-transfer-notes textarea:focus-visible {
+:is(.account-payment-modal--transfer, .account-offer__manual)
+  .account-transfer-notes
+  textarea:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
@@ -316,8 +324,107 @@
   color: var(--plu-gold-600);
 }
 
-[data-theme='light'] .account-payment-modal--transfer .account-transfer-data__copy {
+[data-theme='light']
+  :is(.account-payment-modal--transfer, .account-offer__manual)
+  .account-transfer-data__copy {
   color: var(--color-brand-celeste);
+}
+
+.manual-payment-confirmation {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 12px;
+}
+
+.manual-payment-confirmation__financing {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.manual-payment-confirmation__action {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 10px;
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: 650 14px/1 var(--font-family);
+  gap: 9px;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  width: 100%;
+}
+
+.manual-payment-confirmation__action:hover:not(:disabled) {
+  background: var(--color-brand-action-hover, var(--color-brand-action));
+}
+
+.manual-payment-confirmation__action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.manual-payment-confirmation__action:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.manual-payment-confirmation__legal,
+.manual-payment-confirmation__error,
+.manual-payment-confirmation--done p {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.manual-payment-confirmation__error {
+  color: var(--color-danger, #e57373);
+}
+
+.manual-payment-confirmation--done {
+  align-items: start;
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, transparent);
+  border-radius: 10px;
+  color: var(--color-brand-celeste);
+  gap: 10px;
+  grid-template-columns: auto 1fr;
+  margin-top: 2px;
+  padding: 12px;
+}
+
+.manual-payment-confirmation--done strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+/* El sello del cierre financiado hereda su propio bloque (confirmation-seal.css)
+   y sólo necesita separarse del recibo con la misma regla que el resto de los
+   estados de este panel. Sin borde ni fondo propios: dos superficies encimadas
+   dentro del recibo se leerían como una card anidada. */
+.manual-payment-confirmation__seal {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: 2px;
+  padding-top: 14px;
+}
+
+.manual-payment-confirmation__spinner {
+  animation: manual-payment-confirmation-spin 0.8s linear infinite;
+}
+
+@keyframes manual-payment-confirmation-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes account-payment-modal-fade {
@@ -343,11 +450,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .account-payment-modal__overlay,
-  .account-payment-modal {
+  .account-payment-modal,
+  .manual-payment-confirmation__spinner {
     animation: none;
   }
 
-  .account-payment-modal--transfer .account-transfer-data__copy::before {
+  :is(.account-payment-modal--transfer, .account-offer__manual)
+    .account-transfer-data__copy::before {
     transition: none;
   }
 }

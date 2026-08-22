@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
 import {
-  comboOfferSchema,
   discountCodeSchema,
   membershipPlanVersionSchema,
 } from '../server/routes/pricing.js'
@@ -51,6 +50,20 @@ async function setup() {
     if (name === 'staff_get_pricing_configuration') {
       return { data: { plans: [], events: [] }, error: null }
     }
+    if (name === 'staff_get_promotion_campaign_analytics') {
+      return { data: [], error: null }
+    }
+    if (name === 'staff_simulate_promotion_code') {
+      return {
+        data: {
+          status: 'ready',
+          code: 'ONLY-PITBULL',
+          destination: { kind: 'account_offer' },
+          checks: { active: true },
+        },
+        error: null,
+      }
+    }
     return { data: { id: PLAN_ID }, error: null }
   })
   const target = listen(
@@ -78,9 +91,33 @@ describe('configuración económica administrativa', () => {
       expect(await response.json()).toEqual({
         plans: [],
         events: [],
+        campaignAnalytics: [],
         availability: { editable: true, reason: null },
       })
       expect(rpc).toHaveBeenCalledWith('staff_get_pricing_configuration', {})
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('simula el recorrido de un código sin canjearlo ni consumir cupo', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(
+        `${target.url}/api/pricing/discount-codes/${PLAN_ID}/simulation`,
+        { headers: { Cookie: cookie } },
+      )
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        simulation: expect.objectContaining({
+          status: 'ready',
+          code: 'ONLY-PITBULL',
+        }),
+      })
+      expect(rpc).toHaveBeenCalledWith('staff_simulate_promotion_code', {
+        p_code_id: PLAN_ID,
+      })
     } finally {
       await target.close()
     }
@@ -127,15 +164,6 @@ describe('configuración económica administrativa', () => {
     expect(membershipPlanVersionSchema.safeParse(planPayload({ currency: 'USD' })).success).toBe(
       false,
     )
-    expect(
-      comboOfferSchema.safeParse({
-        membershipPlanId: PLAN_ID,
-        price: 60000,
-        active: true,
-        startsAt: '2026-08-20T12:00:00Z',
-        endsAt: '2026-08-19T12:00:00Z',
-      }).success,
-    ).toBe(false)
   })
 
   it('crea cupones para afiliaciones e inscripciones y conserva sus límites', async () => {
@@ -340,6 +368,88 @@ describe('configuración económica administrativa', () => {
     ).toBe(true)
   })
 
+  it('deja cerrar Mercado Pago para un código restringido', () => {
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        audience: 'code',
+        mercadoPagoEnabled: false,
+        manualChannels: ['cash_pitbull'],
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.mercadoPagoEnabled).toBe(false)
+  })
+
+  it('la pasarela queda abierta si el payload no dice nada', () => {
+    // Comportamiento histórico: es lo que valía para todos los códigos antes de
+    // 20260908100000, y lo que manda un panel desplegado sin el campo.
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.mercadoPagoEnabled).toBe(true)
+  })
+
+  it('no deja un código sin ningún medio de pago', () => {
+    // Se canjea y no hay forma de pagarlo. Mismo check en la RPC y en el
+    // constraint discount_codes_any_channel_check.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ mercadoPagoEnabled: false, manualChannels: [] }),
+      ).success,
+    ).toBe(false)
+  })
+
+  it('no deja que una promoción pública cierre Mercado Pago', () => {
+    // Se aplica sola a todas las compras: cerrarle la pasarela desde acá sería
+    // cerrar el checkout entero desde la pantalla de precios.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ audience: 'public', mercadoPagoEnabled: false }),
+      ).success,
+    ).toBe(false)
+  })
+
+  it('deja financiar un código restringido con canal manual declarado', () => {
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        audience: 'code',
+        financed: true,
+        manualChannels: ['bank_transfer', 'cash_pitbull'],
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.financed).toBe(true)
+  })
+
+  it('nace sin financiamiento si el payload no dice nada', () => {
+    const parsed = discountCodeSchema.safeParse(discountCodePayload())
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.financed).toBe(false)
+  })
+
+  it('no deja financiar sin un canal que el atleta pueda declarar', () => {
+    // Financiado + sólo Mercado Pago es el interruptor inerte: la pasarela
+    // acredita sola y no hay nada que avisar. Mismo check en la RPC y en el
+    // constraint discount_codes_financed_channel_check.
+    expect(
+      discountCodeSchema.safeParse(discountCodePayload({ financed: true, manualChannels: [] }))
+        .success,
+    ).toBe(false)
+  })
+
+  it('no deja que una promoción pública financie', () => {
+    // Se aplica sola a todas las compras: financiarla sería abrir deuda para
+    // cualquiera que pase por el checkout.
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({
+          audience: 'public',
+          financed: true,
+          manualChannels: ['bank_transfer'],
+        }),
+      ).success,
+    ).toBe(false)
+  })
+
   it('cambia estado y audiencia de una promoción en una sola llamada', async () => {
     const { cookie, rpc, target } = await setup()
     try {
@@ -384,19 +494,22 @@ describe('configuración económica administrativa', () => {
     }
   })
 
-  it('permite dar de baja la oferta combo de un torneo', async () => {
+  it('ya no expone la oferta combo como objeto aparte', async () => {
+    // El paquete se carga entero dentro del código: no hay endpoint que pueda
+    // volver a partir la configuración en dos objetos.
     const { cookie, rpc, target } = await setup()
     try {
-      const response = await fetch(`${target.url}/api/pricing/events/pitbull-classic-2026/combo`, {
-        method: 'DELETE',
-        headers: authHeaders(cookie),
-      })
-
-      expect(response.status).toBe(200)
-      expect(rpc).toHaveBeenCalledWith('staff_delete_event_combo_offer', {
-        p_event_slug: 'pitbull-classic-2026',
-        p_actor: expect.stringContaining('pricing-admin@plu.test'),
-      })
+      for (const method of ['PUT', 'DELETE']) {
+        const response = await fetch(
+          `${target.url}/api/pricing/events/pitbull-classic-2026/combo`,
+          { method, headers: authHeaders(cookie), body: method === 'PUT' ? '{}' : undefined },
+        )
+        expect(response.status, method).toBe(404)
+      }
+      expect(rpc).not.toHaveBeenCalledWith(
+        'staff_save_event_combo_offer',
+        expect.anything(),
+      )
     } finally {
       await target.close()
     }

@@ -10,6 +10,16 @@ export function createSupabasePricingRepository(client) {
     getConfiguration: () =>
       rpc('staff_get_pricing_configuration', {}, 'No se pudo leer la configuración económica.'),
 
+    getCampaignAnalytics: () =>
+      rpc(
+        'staff_get_promotion_campaign_analytics',
+        {},
+        'No se pudo leer el rendimiento de las campañas.',
+      ),
+
+    simulatePromotionCode: (codeId) =>
+      rpc('staff_simulate_promotion_code', { p_code_id: codeId }, 'No se pudo simular el código.'),
+
     createPlanVersion: (plan, actor) =>
       rpc(
         'staff_create_membership_plan_version',
@@ -29,13 +39,6 @@ export function createSupabasePricingRepository(client) {
         'staff_delete_membership_plan',
         { p_plan_id: planId, p_actor: actor },
         'No se pudo eliminar el plan.',
-      ),
-
-    upsertComboOffer: (eventSlug, offer, actor) =>
-      rpc(
-        'staff_save_event_combo_offer',
-        { p_event_slug: eventSlug, p_offer: offer, p_actor: actor },
-        'No se pudo guardar la oferta combo.',
       ),
 
     setPlanRetirement: (planId, retiresAt, actor) =>
@@ -68,11 +71,5 @@ export function createSupabasePricingRepository(client) {
         'No se pudo eliminar el código de descuento.',
       ),
 
-    deleteComboOffer: (eventSlug, actor) =>
-      rpc(
-        'staff_delete_event_combo_offer',
-        { p_event_slug: eventSlug, p_actor: actor },
-        'No se pudo eliminar la oferta combo.',
-      ),
   }
 }

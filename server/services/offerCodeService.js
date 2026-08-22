@@ -18,6 +18,25 @@ export function isOfferUnlockKind(kind) {
 }
 
 /**
+ * Colapsa el motivo público de un código apagado al de uno inexistente.
+ *
+ * Distinguir `inactive` de `not_found` convertía el preview y el canje en un
+ * oráculo de enumeración: cualquier respuesta distinta de "no existe" confirma
+ * que el string probado es un código real. Un código pausado por el panel es,
+ * para el público, indistinguible de uno que nunca existió; el motivo real
+ * queda en la RPC y su auditoría, no en la respuesta.
+ *
+ * Los demás motivos (`expired`, `already_used`, `limit_reached`, …) se
+ * conservan a propósito: exigen tener el código real en la mano y su valor de
+ * UX es alto. Contra el barrido de diccionario alcanza con cerrar esta puerta
+ * más el balde por IP (`promotionCodeLimiter`) y el corte por cuenta.
+ */
+export function concealInactiveReason(result) {
+  if (result?.reason !== 'inactive') return result
+  return { ...result, reason: 'not_found' }
+}
+
+/**
  * Alcance por inscripción sobre un preview.
  *
  * `athlete_preview_discount_code` no valida el alcance: no recibe el evento, y

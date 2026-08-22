@@ -94,19 +94,15 @@ export default function UpcomingEventsSection({
 
       {/* Banner global de perfil incompleto (aparece cuando se toca inscribirse sin perfil completo) */}
       {incompleteWarningEvent && (
-        <div className="account-incomplete-banner" role="alert">
-          <div className="account-incomplete-banner__icon">
+        <div className="account-inline-alert" role="alert">
+          <div className="account-inline-alert__icon">
             <AlertTriangle size={18} aria-hidden />
           </div>
-          <div className="account-incomplete-banner__body">
+          <div className="account-inline-alert__body">
             <strong>{t('account.events.profileIncompleteTitle')}</strong>
             <p>{t('account.events.profileIncompleteBody', { fields: getMissingFieldsLabel() })}</p>
           </div>
-          <button
-            type="button"
-            className="account-incomplete-banner__action"
-            onClick={handleGoToProfile}
-          >
+          <button type="button" className="account-inline-alert__action" onClick={handleGoToProfile}>
             {t('account.events.profileIncompleteAction')}
             <ArrowRight size={14} aria-hidden />
           </button>

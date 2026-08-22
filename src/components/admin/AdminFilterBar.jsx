@@ -1,32 +1,29 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ChevronDown, SlidersHorizontal, X } from 'lucide-react'
+import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
+import AdminFilterDateRange from './AdminFilterDateRange.jsx'
+import AdminFilterPanel from './AdminFilterPanel.jsx'
+import AdminFilterPillRow from './AdminFilterPillRow.jsx'
 import AdminFilterSearch from './AdminFilterSearch.jsx'
 import AdminFilterSelect from './AdminFilterSelect.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { filterValueText, filterValueTone, isFilterActive, neutralValue } from '../../lib/adminFilterValue.js'
 
 /**
  * @typedef {Object} AdminFilterGroup
  * @property {string} id
  * @property {string} [label]
- * @property {string} value
- * @property {(value: string) => void} onChange
- * @property {[string, string, (string|number)?, ('success'|'danger'|'info')?][]} options
- * @property {'chips' | 'select' | 'toggle'} [variant]
- * @property {string} [defaultValue] Valor sin filtro; por convención, la primera opción.
+ * @property {string|{from: string, to: string}} value Objeto `{from, to}` solo para `variant: 'dateRange'`.
+ * @property {(value: string|{from: string, to: string}) => void} onChange
+ * @property {[string, string, (string|number)?, ('success'|'danger'|'info')?][]} [options] No aplica a `dateRange`.
+ * @property {'chips' | 'select' | 'toggle' | 'dateRange'} [variant]
+ * @property {string|{from: string, to: string}} [defaultValue] Valor sin filtro; por convención, la primera opción.
+ *   Obligatorio en `dateRange` (no tiene `options` del que inferirlo): usar `{ from: '', to: '' }`.
  * @property {boolean} [showLabel] Forzá label visible (inline suele ocultarlo si hay un solo grupo).
  * @property {string} [ariaLabel] Nombre accesible cuando el label visual está oculto.
  * @property {boolean} [advanced] Si es true, queda detrás de «Más filtros».
  * @property {string} [allLabel] Etiqueta corta del valor neutro cuando el grupo es de chips.
  */
-
-function neutralValue(filter) {
-  return filter.defaultValue ?? filter.options?.[0]?.[0]
-}
-
-function isFilterActive(filter) {
-  return filter.value !== neutralValue(filter)
-}
 
 /** Toggle binario: una sola opción no-neutra que se prende/apaga. */
 function AdminFilterToggle({
@@ -90,10 +87,15 @@ export default function AdminFilterBar({
   onQueryChange,
   filters = [],
   placeholder = 'Buscar…',
+  /** `'popover'`: search + una fila de pills que abren un popover por filtro,
+   * en vez del panel apilado de abajo. Ver AdminFilterPillRow. */
+  layout,
 }) {
   const { t } = useI18n()
   const panelId = useId()
+  const filterPanelId = useId()
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false)
   const rootRef = useRef(null)
   const hasMountedFilters = useRef(false)
   /** En listados (inline), los chips van siempre a la vista: el toggle suma un click de más. */
@@ -102,13 +104,28 @@ export default function AdminFilterBar({
   const advancedFilters = filters.filter((filter) => filter.advanced)
   const advancedActiveCount = advancedFilters.filter(isFilterActive).length
   const [advancedOpen, setAdvancedOpen] = useState(() => advancedActiveCount > 0)
+  const [advancedQuery, setAdvancedQuery] = useState('')
+  const advancedToggleRef = useRef(null)
+  const advancedPopoverRef = useRef(null)
+  const advancedSearchInputRef = useRef(null)
+  // Buscar entre 1-2 filtros no ahorra nada — el cuadro solo gana su lugar
+  // cuando hay más avanzados de los que se leen de un vistazo (ej. Auditoría).
+  const showAdvancedSearch = advancedFilters.length > 2
+  const filteredAdvancedFilters = useMemo(() => {
+    const normalizedQuery = advancedQuery.trim().toLowerCase()
+    if (!normalizedQuery) return advancedFilters
+    return advancedFilters.filter((filter) =>
+      (filter.ariaLabel ?? filter.label ?? '').toLowerCase().includes(normalizedQuery),
+    )
+  }, [advancedFilters, advancedQuery])
   const shownFilters = advancedOpen ? filters : visibleFilters
   const activeFilters = filters.filter(isFilterActive)
   const hasQuery = Boolean(query && query.trim())
   const activeCount = activeFilters.length + (hasQuery ? 1 : 0)
   const panelOpen = alwaysShowFilters || filtersOpen
   const chipGroupCount = shownFilters.filter(
-    (filter) => filter.variant !== 'select' && filter.variant !== 'toggle',
+    (filter) =>
+      filter.variant !== 'select' && filter.variant !== 'toggle' && filter.variant !== 'dateRange',
   ).length
   const isMultiGroup = shownFilters.length > 1 || advancedFilters.length > 0
   const rootClassName = [
@@ -125,7 +142,8 @@ export default function AdminFilterBar({
     .filter(Boolean)
     .join(' ')
   const filterSignature = useMemo(
-    () => `${query ?? ''}|${filters.map((filter) => `${filter.id}:${filter.value}`).join('|')}`,
+    () =>
+      `${query ?? ''}|${filters.map((filter) => `${filter.id}:${JSON.stringify(filter.value)}`).join('|')}`,
     [filters, query],
   )
 
@@ -147,6 +165,58 @@ export default function AdminFilterBar({
     if (advancedActiveCount > 0) setAdvancedOpen(true)
   }, [advancedActiveCount])
 
+  // El panel de avanzados ahora flota (popover): cerrar al click afuera o con
+  // Escape, mismo patrón que el popover de AdminSavedViews.
+  useEffect(() => {
+    if (!advancedOpen) return undefined
+    function handlePointerDown(event) {
+      if (
+        advancedPopoverRef.current &&
+        !advancedPopoverRef.current.contains(event.target) &&
+        advancedToggleRef.current &&
+        !advancedToggleRef.current.contains(event.target)
+      ) {
+        setAdvancedOpen(false)
+      }
+    }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setAdvancedOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [advancedOpen])
+
+  useEffect(() => {
+    if (advancedOpen && showAdvancedSearch) {
+      requestAnimationFrame(() => advancedSearchInputRef.current?.focus())
+    } else if (!advancedOpen) {
+      setAdvancedQuery('')
+    }
+  }, [advancedOpen, showAdvancedSearch])
+
+  // El panel único (`layout="panel"`) vive en flujo normal dentro de la
+  // tarjeta -- no flota -- pero sigue cerrando al click afuera o con Escape,
+  // igual que el resto de los desplegables de esta barra.
+  useEffect(() => {
+    if (layout !== 'panel' || !filterPanelOpen) return undefined
+    function handlePointerDown(event) {
+      if (rootRef.current && !rootRef.current.contains(event.target)) setFilterPanelOpen(false)
+    }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setFilterPanelOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [layout, filterPanelOpen])
+
   function clearAll() {
     activeFilters.forEach((filter) => filter.onChange(neutralValue(filter)))
     if (hasQuery) onQueryChange('')
@@ -158,9 +228,22 @@ export default function AdminFilterBar({
     const sharedLabel =
       filter.showLabel === false
         ? undefined
-        : filter.showLabel === true || filter.variant === 'select'
+        : filter.showLabel === true || filter.variant === 'select' || filter.variant === 'dateRange'
           ? filter.label
           : undefined
+
+    if (filter.variant === 'dateRange') {
+      return (
+        <AdminFilterDateRange
+          key={filter.id}
+          id={filter.id}
+          label={sharedLabel}
+          value={filter.value}
+          onChange={filter.onChange}
+          disabled={filter.disabled}
+        />
+      )
+    }
 
     if (filter.variant === 'select') {
       return (
@@ -213,8 +296,233 @@ export default function AdminFilterBar({
     )
   }
 
+  if (layout === 'panel') {
+    const panelRootClassName = [
+      'admin-filters',
+      'admin-filters--panel',
+      className,
+      filters.some(isFilterActive) ? 'admin-filters--has-active' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    const panelActiveFilters = filters.filter(isFilterActive)
+    const filterPanelTriggerClassName = [
+      'admin-filter-panel-trigger',
+      filterPanelOpen ? 'is-open' : '',
+      panelActiveFilters.length > 0 ? 'has-active' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    return (
+      <div ref={rootRef} className={panelRootClassName}>
+        <div className="admin-filter-popoverbar">
+          <div className="admin-filter-popoverbar__row1">
+            <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+            {filters.length > 0 ? (
+              <button
+                type="button"
+                className={filterPanelTriggerClassName}
+                aria-expanded={filterPanelOpen}
+                aria-controls={filterPanelId}
+                onClick={() => setFilterPanelOpen((current) => !current)}
+              >
+                <SlidersHorizontal size={15} aria-hidden />
+                <span className="admin-filter-panel-trigger__label">{t('admin.filters.toggle')}</span>
+                {panelActiveFilters.length > 0 ? (
+                  <span
+                    className="admin-filter-panel-trigger__badge"
+                    aria-label={t('admin.filters.activeCount', { count: panelActiveFilters.length })}
+                  >
+                    {panelActiveFilters.length}
+                  </span>
+                ) : null}
+                <ChevronDown className="admin-filter-panel-trigger__chevron" size={13} aria-hidden />
+              </button>
+            ) : null}
+            <div className="admin-filter-popoverbar__spacer" />
+            {actions ? <div className="admin-filters__actions">{actions}</div> : null}
+            {count ? (
+              <span className="admin-filter-popoverbar__count" aria-live="polite">
+                {count}
+              </span>
+            ) : null}
+          </div>
+
+          {panelActiveFilters.length > 0 ? (
+            <div className="admin-filter-panel-chips">
+              {panelActiveFilters.map((filter) => {
+                const tone = filterValueTone(filter)
+                return (
+                  <span
+                    key={filter.id}
+                    className={['admin-filter-panel-chip', tone ? `admin-filter-panel-chip--tone-${tone}` : '']
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {filterValueText(filter, t)}
+                    <button
+                      type="button"
+                      aria-label={t('admin.filters.clearFilter')}
+                      onClick={() => filter.onChange(neutralValue(filter))}
+                    >
+                      <X size={10} aria-hidden />
+                    </button>
+                  </span>
+                )
+              })}
+              <button type="button" className="admin-filter-panel-chips__clear" onClick={clearAll}>
+                {t('admin.filters.clearActive', { count: panelActiveFilters.length })}
+              </button>
+            </div>
+          ) : null}
+
+          {filterPanelOpen && filters.length > 0 ? (
+            <AdminFilterPanel id={filterPanelId} filters={filters} />
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  if (layout === 'popover') {
+    const popoverRootClassName = [
+      'admin-filters',
+      'admin-filters--popover',
+      className,
+      filters.some(isFilterActive) ? 'admin-filters--has-active' : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+
+    return (
+      <div ref={rootRef} className={popoverRootClassName}>
+        <div className="admin-filter-popoverbar">
+          <div className="admin-filter-popoverbar__row1">
+            <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+            <div className="admin-filter-popoverbar__spacer" />
+            {activeCount > 0 ? (
+              <button type="button" className="admin-filter-popoverbar__clear" onClick={clearAll}>
+                <X size={12} aria-hidden />
+                <span>{t('admin.filters.clearActive', { count: activeCount })}</span>
+              </button>
+            ) : null}
+            {actions ? <div className="admin-filters__actions">{actions}</div> : null}
+            {count ? (
+              <span className="admin-filter-popoverbar__count" aria-live="polite">
+                {count}
+              </span>
+            ) : null}
+          </div>
+          {filters.length > 0 ? <AdminFilterPillRow filters={filters} /> : null}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div ref={rootRef} className={rootClassName}>
+      {filters.length > 0 ? (
+        <div
+          id={panelId}
+          className={`admin-filters__panel${panelOpen ? ' is-open' : ''}`}
+          hidden={panelOpen ? undefined : true}
+        >
+          <div className="admin-filters__panel-inner">
+            <div className="admin-filters__chips-row">
+              <div
+                className={[
+                  'admin-filters__groups',
+                  isMultiGroup ? 'admin-filters__groups--multi' : '',
+                  chipGroupCount === 0 ? 'admin-filters__groups--secondary-only' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {visibleFilters.map(renderFilter)}
+              </div>
+
+              {/* Advanced toggle inline — vive en la misma fila que los chips
+                  para que el usuario lo perciba como "ver más opciones de esta barra"
+                  y no como un bloque separado. */}
+              {advancedFilters.length > 0 ? (
+                <button
+                  ref={advancedToggleRef}
+                  type="button"
+                  className={[
+                    'admin-filters__advanced-toggle',
+                    advancedOpen ? 'is-open' : '',
+                    advancedActiveCount > 0 ? 'is-active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-expanded={advancedOpen}
+                  aria-haspopup="dialog"
+                  onClick={() => setAdvancedOpen((current) => !current)}
+                >
+                  <span>
+                    {advancedOpen
+                      ? t('admin.filters.fewerFilters')
+                      : t('admin.filters.moreFilters')}
+                  </span>
+                  {!advancedOpen && advancedActiveCount > 0 ? (
+                    <span
+                      className="admin-filters__active-count"
+                      aria-label={t('admin.filters.activeCount', { count: advancedActiveCount })}
+                    >
+                      {advancedActiveCount}
+                    </span>
+                  ) : null}
+                  <ChevronDown className="admin-filters__toggle-icon" size={12} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Fuera de `.admin-filters__panel-inner` a propósito: en mobile ese
+              contenedor recorta overflow para la animación de alto del
+              acordeón, y se comía el popover. Como sibling de `panel-inner`
+              (hijo directo de `.admin-filters__panel`, que sí es su ancla
+              posicionada) el popover flota libre sin ese recorte. */}
+          {advancedOpen && advancedFilters.length > 0 ? (
+            <div
+              ref={advancedPopoverRef}
+              className="admin-filters__advanced-popover"
+              role="dialog"
+              aria-label={t('admin.filters.advancedLabel')}
+            >
+              <span className="admin-filters__advanced-label">
+                {t('admin.filters.advancedLabel')}
+              </span>
+
+              {showAdvancedSearch ? (
+                <div className="admin-filters__advanced-search">
+                  <Search size={13} aria-hidden />
+                  <input
+                    ref={advancedSearchInputRef}
+                    type="text"
+                    className="admin-filters__advanced-search-input"
+                    value={advancedQuery}
+                    onChange={(event) => setAdvancedQuery(event.target.value)}
+                    placeholder={t('admin.filters.searchFilters')}
+                  />
+                </div>
+              ) : null}
+
+              <div className="admin-filters__advanced-groups">
+                {filteredAdvancedFilters.length > 0 ? (
+                  filteredAdvancedFilters.map(renderFilter)
+                ) : (
+                  <p className="admin-filters__advanced-empty">
+                    {t('admin.filters.noMatchingFilters')}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="admin-filters__primary">
         <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
 
@@ -255,58 +563,6 @@ export default function AdminFilterBar({
           </span>
         ) : null}
       </div>
-
-      {filters.length > 0 ? (
-        <div
-          id={panelId}
-          className={`admin-filters__panel${panelOpen ? ' is-open' : ''}`}
-          hidden={panelOpen ? undefined : true}
-        >
-          <div className="admin-filters__panel-inner">
-            <div
-              className={[
-                'admin-filters__groups',
-                isMultiGroup ? 'admin-filters__groups--multi' : '',
-                chipGroupCount === 0 ? 'admin-filters__groups--secondary-only' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {visibleFilters.map(renderFilter)}
-              {advancedOpen ? advancedFilters.map(renderFilter) : null}
-              {advancedFilters.length > 0 ? (
-                <button
-                  type="button"
-                  className={[
-                    'admin-filters__advanced-toggle',
-                    advancedOpen ? 'is-open' : '',
-                    advancedActiveCount > 0 ? 'is-active' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  aria-expanded={advancedOpen}
-                  onClick={() => setAdvancedOpen((current) => !current)}
-                >
-                  <span>
-                    {advancedOpen
-                      ? t('admin.filters.fewerFilters')
-                      : t('admin.filters.moreFilters')}
-                  </span>
-                  {!advancedOpen && advancedActiveCount > 0 ? (
-                    <span
-                      className="admin-filters__active-count"
-                      aria-label={t('admin.filters.activeCount', { count: advancedActiveCount })}
-                    >
-                      {advancedActiveCount}
-                    </span>
-                  ) : null}
-                  <ChevronDown className="admin-filters__toggle-icon" size={13} aria-hidden />
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   )
 }

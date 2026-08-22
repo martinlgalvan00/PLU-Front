@@ -45,6 +45,44 @@ describe('assertSupabaseResult', () => {
       expect(error.message).toBe('no table')
     }
   })
+
+  // El checkout de Pitbull le mostro a un atleta `duplicate key value violates
+  // unique constraint "event_registrations_event_id_athlete_id_key"`. El
+  // mensaje de una violacion de integridad nombra el constraint: no es texto
+  // de producto.
+  it('no filtra el nombre del constraint en una violacion de integridad', () => {
+    try {
+      assertSupabaseResult(
+        {
+          error: {
+            code: '23505',
+            message:
+              'duplicate key value violates unique constraint "event_registrations_event_id_athlete_id_key"',
+          },
+        },
+        'No se pudo crear la inscripcion.',
+      )
+      throw new Error('deberia haber lanzado')
+    } catch (error) {
+      expect(error.status).toBe(409)
+      expect(error.message).toBe('No se pudo crear la inscripcion.')
+      expect(error.message).not.toContain('constraint')
+      // El texto crudo sigue disponible para el log del errorHandler.
+      expect(error.details.raw).toContain('event_registrations_event_id_athlete_id_key')
+    }
+  })
+
+  it('conserva el mensaje de negocio de los PLU, que si esta escrito para el atleta', () => {
+    try {
+      assertSupabaseResult(
+        { error: { code: 'PLU08', message: 'Ya estas inscripto en este evento.' } },
+        'No se pudo crear la inscripcion.',
+      )
+    } catch (error) {
+      expect(error.message).toBe('Ya estas inscripto en este evento.')
+      expect(error.details.raw).toBeUndefined()
+    }
+  })
 })
 
 describe('requireSupabaseClient', () => {

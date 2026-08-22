@@ -25,6 +25,7 @@ import { requirePermission } from '../middleware/auth.js'
 import {
   athleteAuthLimiter,
   athleteWriteLimiter,
+  promotionCodeLimiter,
   publicReadLimiter,
   publicWriteLimiter,
   registrationAccessCodeLimiter,
@@ -96,6 +97,7 @@ import {
 import {
   assertDiscountCodeEventScope,
   assertPreviewEventScope,
+  concealInactiveReason,
 } from '../services/offerCodeService.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
@@ -342,7 +344,9 @@ const discountPreviewSchema = z.object({
   // que Mercado Pago). Sin este dato el preview calculaba el ahorro sobre el
   // precio de catálogo y le mostraba al atleta un número que no era el que
   // terminaba pagando.
-  paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']).optional(),
+  paymentMethod: z
+    .enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer'])
+    .optional(),
 })
 /**
  * Canje de un código secreto de oferta exclusiva. A diferencia del preview, no
@@ -352,6 +356,18 @@ const discountPreviewSchema = z.object({
  */
 const offerUnlockSchema = z.object({
   code: z.string().trim().toUpperCase().min(3).max(32),
+})
+const promotionCodeRedeemSchema = z.object({
+  code: z.string().trim().toUpperCase().min(3).max(32),
+  context: z
+    .object({
+      surface: z
+        .enum(['global', 'direct', 'membership', 'registration', 'event', 'tickets'])
+        .optional(),
+      eventSlug: z.string().trim().min(1).max(120).optional(),
+    })
+    .optional()
+    .default({}),
 })
 const uploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
@@ -387,13 +403,48 @@ const registrationStatusSchema = z.object({
   status: z.enum(['confirmada', 'observada', 'cancelada']),
   reason: z.string().trim().min(3).max(500),
 })
+const proofUrlsSchema = z.object({
+  orderIds: z.array(z.string().uuid()).min(1).max(60),
+})
+const paymentOrderStatusEnum = z.enum([
+  'pendiente',
+  'validacion_manual',
+  'aprobado',
+  'rechazado',
+  'cancelado',
+  'reembolsado',
+])
 const paymentOrdersQuerySchema = z.object({
-  status: z
-    .enum(['pendiente', 'validacion_manual', 'aprobado', 'rechazado', 'cancelado', 'reembolsado'])
+  status: paymentOrderStatusEnum.optional(),
+  // Un estado del filtro de la bandeja puede ser más de un estado de la base
+  // ("pendientes" son dos): se filtra en la base en vez de traer todo y
+  // descartar en el navegador. Llega como lista o como CSV en la query string,
+  // y en los dos casos termina validado contra el mismo enum.
+  statuses: z
+    .union([
+      z.array(paymentOrderStatusEnum),
+      z
+        .string()
+        .transform((value) =>
+          value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean),
+        )
+        .pipe(z.array(paymentOrderStatusEnum).min(1).max(6)),
+    ])
     .optional(),
   method: z.enum(['mercado_pago', 'manual_link']).optional(),
   concept: z.enum(['membership', 'registration', 'combo']).optional(),
+  // Sólo las que ya habilitaron derechos sin cobrar (combo financiado).
+  financed: z
+    .union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')])
+    .optional(),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+  withCounts: z
+    .union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')])
+    .optional()
+    .default(false),
 })
 /**
  * Filtros/paginación opcionales del snapshot admin. Sin query params el
@@ -498,6 +549,28 @@ export function createAthleteRoutes({
       scope,
       manualPaymentChannel(body.paymentMethod),
     )
+  }
+  /**
+   * El otro sentido del mismo dato: un código que CIERRA la pasarela
+   * (`mercado_pago_enabled = false`, ver 20260908100000) no se puede pagar con
+   * Mercado Pago aunque Administración la tenga abierta. Sólo se consulta para
+   * Mercado Pago; los canales manuales los decide `manualChannelOverride`.
+   *
+   * El mensaje es lo único que aporta: la guarda dura está en
+   * `apply_discount_code_to_order` (PLU28) y voltea la orden entera. Si el
+   * repositorio no expone la lectura —un doble de test viejo—, no bloquea:
+   * dejar caer el checkout por una lectura ausente sería peor que un 409 con el
+   * mensaje de la RPC.
+   */
+  const assertCodeAcceptsMercadoPago = async (body, scope) => {
+    if (isManualPaymentMethod(body?.paymentMethod)) return
+    if (!body?.discountCode || typeof repo().discountCodeChannelPolicy !== 'function') return
+    const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
+    if (!policy?.found || policy.mercadoPagoEnabled !== false) return
+    throw new HttpError(409, 'Ese código no se puede pagar con Mercado Pago.', {
+      code: 'PLU28',
+      manualChannels: policy.manualChannels,
+    })
   }
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
@@ -1232,6 +1305,7 @@ export function createAthleteRoutes({
         assertPaymentChannelEnabled(toggles, 'membership', membershipChannel, {
           override: await manualChannelOverride(req.validatedBody, 'membership'),
         })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'membership')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         const plan = await repo().findMembershipPlan(req.validatedBody.planCode)
@@ -1293,6 +1367,7 @@ export function createAthleteRoutes({
         assertPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
           override: await manualChannelOverride(req.validatedBody, 'registration'),
         })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'registration')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
@@ -1371,10 +1446,16 @@ export function createAthleteRoutes({
         assertPaymentChannelEnabled(toggles, 'registration', comboChannel, {
           override: comboOverride,
         })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'combo')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
-        const comboOffer = await repo().findEventComboOffer(eventSlug)
+        // Sin combo vigente el paquete puede ser el de una oferta que este
+        // atleta ya canjeó: la llave trae su propia afiliación y se cotiza
+        // contra la suma de las partes. Es la misma regla que aplica la RPC.
+        const comboOffer = await repo().findEventComboOffer(eventSlug, {
+          athleteId: auth.athleteId,
+        })
         if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
         // Acepta el access_code del evento o un discount_code kind='access':
         // el atleta puede haber pegado el código secreto en cualquiera de los
@@ -1407,7 +1488,8 @@ export function createAthleteRoutes({
           eventSlug,
           code: req.validatedBody.registrationAccessCode,
         })
-        const comboWisePrice = comboChannel === 'wise_transfer' ? wisePriceFor({ concept: 'combo' }) : null
+        const comboWisePrice =
+          comboChannel === 'wise_transfer' ? wisePriceFor({ concept: 'combo' }) : null
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
@@ -1435,6 +1517,28 @@ export function createAthleteRoutes({
     },
   )
   /**
+   * Corte por cuenta para las superficies que prueban códigos promocionales,
+   * complementario al balde por IP (`promotionCodeLimiter`): un pool de IPs
+   * rotando sobre la misma sesión no ve el límite por IP, y acá cada intento
+   * que ni siquiera acierta un código real suma al contador del atleta.
+   *
+   * Sólo cuentan los motivos de enumeración (`not_found`/`inactive`): un
+   * código real vencido o ya usado prueba que el atleta lo tiene en la mano,
+   * y castigarlo bloquearía reintentos legítimos. Cualquier resultado sobre
+   * un código real limpia el contador, igual que un login correcto.
+   */
+  const promotionCodeIdentity = (athleteId) => ({
+    scope: IDENTITY_SCOPES.accessCode,
+    identity: athleteId,
+    deps: { supabaseAdmin: client() },
+    env,
+    threshold: 8,
+  })
+  const settlePromotionCodeAttempt = async (identity, reason) => {
+    if (reason === 'not_found' || reason === 'inactive') await registerIdentityFailure(identity)
+    else await clearIdentityFailures(identity)
+  }
+  /**
    * Preview de solo lectura de un código de descuento: valida y calcula sin
    * redimir, para que el checkout muestre "ahorrás $X" antes de confirmar. El
    * monto real que se cobra sale únicamente de la respuesta del POST que crea
@@ -1442,11 +1546,13 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/discount-preview',
-    publicWriteLimiter,
+    promotionCodeLimiter,
     validateBody(discountPreviewSchema),
     async (req, res, next) => {
       try {
         const auth = await athlete(req)
+        const codeGuard = promotionCodeIdentity(auth.athleteId)
+        await assertIdentityNotLocked(codeGuard)
         const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
         let baseAmount
         let manualPrice
@@ -1458,7 +1564,9 @@ export function createAthleteRoutes({
           manualPrice = plan.manual_price
         } else if (appliesTo === 'combo') {
           if (!eventSlug) throw new HttpError(400, 'Falta el evento.')
-          const offer = await repo().findEventComboOffer(eventSlug)
+          // Igual que el alta: sin combo vigente cotiza el paquete de la oferta
+          // desbloqueada, para que el ahorro que se anuncia sea el que se cobra.
+          const offer = await repo().findEventComboOffer(eventSlug, { athleteId: auth.athleteId })
           if (!offer) throw new HttpError(404, 'El combo no está disponible para este evento.')
           baseAmount = offer.price
           manualPrice = offer.manualPrice
@@ -1475,17 +1583,50 @@ export function createAthleteRoutes({
         if (paymentMethod && isManualPaymentMethod(paymentMethod) && manualPrice != null) {
           baseAmount = manualPrice
         }
-        const preview = await repo().previewDiscountCode(auth.athleteId, {
-          code,
-          appliesTo,
-          baseAmount,
-          // El mismo `method` con el que se guardaría la orden: la RPC lo usa
-          // para elegir el precio promocional del canal (`fixed_price` vs
-          // `fixed_price_manual`). Sin esto, una promo con precio manual
-          // anunciaba el importe de Mercado Pago y cobraba el otro.
-          paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
-        })
-        res.json({ preview: assertPreviewEventScope(preview, eventSlug) })
+        const preview = assertPreviewEventScope(
+          await repo().previewDiscountCode(auth.athleteId, {
+            code,
+            appliesTo,
+            baseAmount,
+            // El mismo `method` con el que se guardaría la orden: la RPC lo usa
+            // para elegir el precio promocional del canal (`fixed_price` vs
+            // `fixed_price_manual`). Sin esto, una promo con precio manual
+            // anunciaba el importe de Mercado Pago y cobraba el otro.
+            paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
+          }),
+          eventSlug,
+        )
+        await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        res.json({ preview: concealInactiveReason(preview) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Canje universal. Clasifica cualquier código sin obligar al navegador a
+   * conocer su alcance. Las ofertas secretas quedan desbloqueadas; descuentos
+   * y precios promocionales vuelven con el checkout al que pertenecen.
+   */
+  router.post(
+    '/me/codes/redeem',
+    promotionCodeLimiter,
+    validateBody(promotionCodeRedeemSchema),
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const codeGuard = promotionCodeIdentity(auth.athleteId)
+        await assertIdentityNotLocked(codeGuard)
+        const result =
+          (await repo().redeemPromotionCode(auth.athleteId, req.validatedBody)) ?? {
+            status: 'rejected',
+            reason: 'not_found',
+          }
+        await settlePromotionCodeAttempt(
+          codeGuard,
+          result.status === 'rejected' ? result.reason : 'valid',
+        )
+        res.json(concealInactiveReason(result))
       } catch (error) {
         next(error)
       }
@@ -1506,13 +1647,19 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/offer-unlocks',
-    publicWriteLimiter,
+    promotionCodeLimiter,
     validateBody(offerUnlockSchema),
     async (req, res, next) => {
       try {
         const auth = await athlete(req)
-        const result = await repo().unlockOfferCode(auth.athleteId, req.validatedBody.code)
-        res.json(result ?? { unlocked: false, reason: 'not_found' })
+        const codeGuard = promotionCodeIdentity(auth.athleteId)
+        await assertIdentityNotLocked(codeGuard)
+        const result = (await repo().unlockOfferCode(auth.athleteId, req.validatedBody.code)) ?? {
+          unlocked: false,
+          reason: 'not_found',
+        }
+        await settlePromotionCodeAttempt(codeGuard, result.unlocked ? 'valid' : result.reason)
+        res.json(concealInactiveReason(result))
       } catch (error) {
         next(error)
       }
@@ -1532,6 +1679,20 @@ export function createAthleteRoutes({
    * columnas en la tabla desde la fase 2 pero nada que las escribiera, así que
    * Finanzas aprobaba sin evidencia adjunta.
    */
+  router.post(
+    '/me/payment-orders/:orderId/manual-confirmation',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(await repo().confirmManualPayment(auth.athleteId, orderId.data))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.post(
     '/me/payment-orders/:orderId/proof-upload',
     athleteWriteLimiter,
@@ -1825,11 +1986,39 @@ export function createAthleteRoutes({
     try {
       const parsed = paymentOrdersQuerySchema.safeParse(req.query)
       if (!parsed.success) throw new HttpError(400, 'Filtros de pago inválidos.')
-      res.json({ orders: await repo().listPaymentOrders(parsed.data) })
+      const { withCounts, ...filters } = parsed.data
+      // Los contadores viajan sólo si se piden: el listado se relee en cada
+      // aprobación y los cuatro `count` de la bandeja no cambian por eso.
+      const [orders, counts] = await Promise.all([
+        repo().listPaymentOrders(filters),
+        withCounts ? repo().paymentOrderCounts() : Promise.resolve(null),
+      ])
+      res.json(counts ? { orders, counts } : { orders })
     } catch (error) {
       next(error)
     }
   })
+  /**
+   * Comprobantes de varias órdenes de una vez. La bandeja de validación los
+   * pide para las filas abiertas al cargar, así que el diálogo abre con la
+   * imagen ya resuelta en vez de dispararle dos llamadas por cada revisión.
+   *
+   * Es una lectura, pero va por POST: la lista de ids no entra cómoda en una
+   * query string y el límite lo fija el schema, no el largo de la URL.
+   */
+  router.post(
+    '/admin/payment-orders/proof-urls',
+    ...financeReadGuard,
+    staffLimiter,
+    validateBody(proofUrlsSchema),
+    async (req, res, next) => {
+      try {
+        res.json({ urls: await repo().paymentProofUrls(req.validatedBody.orderIds) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.get(
     '/admin/payment-orders/:orderId/proof-url',
     ...financeReadGuard,
@@ -2007,7 +2196,34 @@ export function createAthleteRoutes({
     '/admin/memberships/:membershipId/status',
     ...membershipWriteGuard,
     staffLimiter,
-    validateBody(z.object({ status: z.enum(['activa', 'cancelada']) })),
+    // El motivo y el canal son obligatorios del lado del servidor, no sólo en
+    // el formulario: una afiliación activada a mano sobre una orden cancelada es
+    // la divergencia que el panel mostraba sin explicación, y el único momento
+    // en que el motivo se puede capturar es cuando alguien toma la decisión.
+    // `channel` sólo se exige al activar -- dar de baja no atribuye plata a
+    // ningún canal, ahí alcanza con el motivo escrito.
+    validateBody(
+      z
+        .object({
+          status: z.enum(['activa', 'cancelada']),
+          reason: z.string().trim().min(3, 'Indicá el motivo del cambio manual.').max(500),
+          channel: z
+            .enum([
+              'bank_transfer',
+              'wise_transfer',
+              'cash',
+              'courtesy',
+              'error_correction',
+              'sponsor',
+              'other',
+            ])
+            .nullish(),
+        })
+        .refine((value) => value.status !== 'activa' || Boolean(value.channel), {
+          message: 'Al activar a mano hay que declarar por qué canal se resolvió.',
+          path: ['channel'],
+        }),
+    ),
     async (req, res, next) => {
       try {
         const membershipId = z.string().uuid().safeParse(req.params.membershipId)
@@ -2020,6 +2236,8 @@ export function createAthleteRoutes({
           membershipId.data,
           req.validatedBody.status,
           actorLabel(req),
+          req.validatedBody.reason,
+          req.validatedBody.channel ?? null,
         )
 
         const membership = result?.membership

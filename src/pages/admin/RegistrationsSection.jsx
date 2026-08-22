@@ -1,19 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  AlertTriangle,
-  BadgeCheck,
-  ClipboardList,
-  Eye,
-  EyeOff,
-  PencilLine,
-  Trash2,
-} from 'lucide-react'
+import { AlertTriangle, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
+import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
+import PaymentRecoveryAction from '../../components/admin/PaymentRecoveryAction.jsx'
+import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
 import {
   AdminIdentityCell,
   AdminPaymentCell,
@@ -37,10 +32,16 @@ import {
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
 import {
+  canForceSettleOrder,
+  canValidateManualOrder,
+  isManualOrder,
+  isOpenOrder,
+} from '../../services/paymentValidationService.js'
+import {
   fetchPlatformFeatureToggles,
   VALIDATION_DISABLED_CODES,
 } from '../../services/platformSettingsAdminService.js'
-import { notifyError } from '../../lib/adminToast.js'
+import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
@@ -56,13 +57,28 @@ function formatRegistrationWeight(registration) {
   return /kg/i.test(label) ? label : `${label} kg`
 }
 
-function canValidateRegistrationPayment(row, canEdit) {
-  return Boolean(
-    canEdit &&
-    row.paymentId &&
-    row.paymentMethod !== 'mercado_pago' &&
-    row.paymentStatus !== 'aprobado',
-  )
+/**
+ * `canEdit` acá es la unión de inscripciones y pagos, así que no alcanza:
+ * acreditar exige `admin.payments.approve`. Antes el botón salía habilitado
+ * para quien sólo podía escribir inscripciones y la acción moría en un 403 que
+ * la pantalla descartaba.
+ *
+ * La orden aparece mientras siga abierta y sea manual; que tenga comprobante
+ * decide si el botón está habilitado, no si existe — mismo criterio que
+ * Finanzas, para que no se lea como que la acción desapareció.
+ */
+function canValidateRegistrationPayment(row, canValidatePayments) {
+  return Boolean(canValidatePayments && isManualOrder(row.payment) && isOpenOrder(row.payment))
+}
+
+/**
+ * El caso "el pago figura cancelado pero la plata entró": revalidar aplica a
+ * cualquier orden de Mercado Pago sin importar el permiso (no acredita nada
+ * por sí sola); acreditar a mano exige el mismo permiso que en Finanzas.
+ */
+function canRecoverRegistrationPayment(row, canForceSettle) {
+  if (!row.payment) return false
+  return row.payment.method === 'mercado_pago' || (canForceSettle && canForceSettleOrder(row.payment))
 }
 
 /**
@@ -89,6 +105,7 @@ function buildRegistrationFilterCounts(registrations, resolvePayment, gatePendin
 export default function RegistrationsSection({
   canAssignSchedule = false,
   canEdit,
+  canValidatePayments = false,
   filters,
   filteredRegistrations,
   gatePendingIds = EMPTY_GATE_PENDING_IDS,
@@ -96,13 +113,17 @@ export default function RegistrationsSection({
   registrations = [],
   registrationsCount,
   onApprovePayment,
+  onForceSettlePayment,
+  onRejectPayment,
   onExportAdmin,
   onExportPluUsa,
   onGoToEvents,
+  onRefreshAthleteData,
   onScheduleAssigned,
   onSelectAthlete,
   onSetFilters,
   onSetRegistrationStatus,
+  canForceSettle = false,
   canSetStatus = false,
   onDelete,
   onSetPublicVisibility,
@@ -122,6 +143,7 @@ export default function RegistrationsSection({
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
   const [validationEnabled, setValidationEnabled] = useState(true)
+  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('registrations')
 
   useEffect(() => {
     startTour('admin-registrations', getRegistrationsTourSteps(t))
@@ -218,6 +240,9 @@ export default function RegistrationsSection({
           paymentMethod: payment?.method,
           amount: payment ? money(payment.amount) : '—',
           paymentId: payment?.id,
+          // La orden completa: el diálogo de validación necesita comprobante,
+          // canal y notas, no sólo el id y el estado.
+          payment: payment ?? null,
         }
       }),
     [filteredRegistrations, resolvePayment],
@@ -307,15 +332,15 @@ export default function RegistrationsSection({
   // de arriba corre una sola vez al montar la sección.
   async function handleApprovePayment(paymentId) {
     const result = await onApprovePayment?.(paymentId)
-    if (result?.error) {
-      if (
-        result.code === VALIDATION_DISABLED_CODES.registration ||
-        result.code === VALIDATION_DISABLED_CODES.membership
-      ) {
-        setValidationEnabled(false)
-      }
-      notifyError(result.error)
+    if (
+      result?.code === VALIDATION_DISABLED_CODES.registration ||
+      result?.code === VALIDATION_DISABLED_CODES.membership
+    ) {
+      setValidationEnabled(false)
     }
+    // El resultado vuelve al diálogo: el aviso al operador y el toast salen de
+    // `PaymentValidationAction`, que es el que sabe si sigue abierto.
+    return result
   }
 
   async function togglePublicVisibility(row) {
@@ -379,20 +404,58 @@ export default function RegistrationsSection({
       : {
           id: 'event',
           label: t('admin.filters.event'),
-          showLabel: true,
           value: filters.event ?? 'all',
           onChange: handleEventChange,
           options: eventOptions,
           variant: eventCount > EVENT_FILTER_CHIP_MAX ? 'select' : undefined,
+          showLabel: true,
         }
   const affiliationFilter = {
     id: 'affiliationStatus',
     label: t('admin.filters.affiliation'),
-    showLabel: true,
     value: filters.affiliationStatus ?? 'all',
     onChange: handleAffiliationChange,
     options: affiliationOptions,
-    advanced: true,
+    showLabel: true,
+  }
+
+  const savedViewSnapshot = useMemo(
+    () => ({
+      event: filters.event ?? 'all',
+      status: filters.status ?? 'all',
+      affiliationStatus: filters.affiliationStatus ?? 'all',
+      query: filters.query ?? '',
+    }),
+    [filters.event, filters.status, filters.affiliationStatus, filters.query],
+  )
+  const activeSavedView = useMemo(
+    () => findMatchingView(savedViews, savedViewSnapshot),
+    [savedViews, savedViewSnapshot],
+  )
+  const hasFiltersToSave =
+    savedViewSnapshot.event !== 'all' ||
+    savedViewSnapshot.status !== 'all' ||
+    savedViewSnapshot.affiliationStatus !== 'all' ||
+    savedViewSnapshot.query.trim() !== ''
+
+  // Resumen legible de filtros activos para el popover
+  const filterSummary = useMemo(() => {
+    const items = []
+    if (savedViewSnapshot.query.trim()) items.push({ label: 'Búsqueda', value: savedViewSnapshot.query.trim() })
+    if (savedViewSnapshot.event !== 'all') items.push({ label: t('admin.filters.event'), value: savedViewSnapshot.event })
+    if (savedViewSnapshot.status !== 'all') {
+      const opt = statusOptions.find(([v]) => v === savedViewSnapshot.status)
+      if (opt) items.push({ label: t('admin.filters.status'), value: opt[1] })
+    }
+    if (savedViewSnapshot.affiliationStatus !== 'all') {
+      const opt = affiliationOptions.find(([v]) => v === savedViewSnapshot.affiliationStatus)
+      if (opt) items.push({ label: t('admin.filters.affiliation'), value: opt[1] })
+    }
+    return items
+  }, [savedViewSnapshot, statusOptions, affiliationOptions, t])
+
+  function applySavedView(view) {
+    onSetFilters((current) => ({ ...current, ...view.snapshot }))
   }
 
   return (
@@ -417,34 +480,8 @@ export default function RegistrationsSection({
         placeholder={t('admin.search.registration')}
         query={filters.query ?? ''}
         showHeader
-        showStats={!isGloballyEmpty}
+        showStats={false}
         showFilters={!isGloballyEmpty}
-        stats={
-          isGloballyEmpty
-            ? []
-            : [
-                {
-                  label: t('admin.registrations.stats.total'),
-                  value: statusCounts.all ?? total,
-                  tone: 'default',
-                },
-                {
-                  label: t('admin.registrations.stats.pending'),
-                  value: statusCounts.pendiente_pago ?? 0,
-                  tone: 'warning',
-                },
-                {
-                  label: t('admin.registrations.stats.manual'),
-                  value: statusCounts.validacion_manual ?? 0,
-                  tone: 'warning',
-                },
-                {
-                  label: t('admin.registrations.stats.confirmed'),
-                  value: statusCounts.confirmada ?? 0,
-                  tone: 'success',
-                },
-              ]
-        }
         title={t('admin.sections.registrations.title')}
         subtitle={t('admin.sections.registrations.subtitle')}
         totalCount={total}
@@ -474,15 +511,34 @@ export default function RegistrationsSection({
                 {
                   id: 'status',
                   label: t('admin.filters.status'),
-                  showLabel: true,
                   value: filters.status,
                   onChange: handleStatusChange,
                   options: statusOptions,
+                  showLabel: true,
                 },
                 affiliationFilter,
               ].filter(Boolean)
         }
         onQueryChange={handleQueryChange}
+        beforeFilters={
+          isGloballyEmpty ? null : (
+          <AdminSavedViews
+              views={savedViews}
+              activeViewId={activeSavedView?.id ?? null}
+              allLabel={t('admin.savedViews.all')}
+              caption={t('admin.savedViews.caption')}
+              addLabel={t('admin.savedViews.add')}
+              namePlaceholder={t('admin.savedViews.namePlaceholder')}
+              removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+              canSave={hasFiltersToSave && !activeSavedView}
+              filterSummary={filterSummary}
+              onApply={applySavedView}
+              onClear={handleClearFilters}
+              onSave={(label) => saveView(label, savedViewSnapshot)}
+              onRemove={removeView}
+            />
+          )
+        }
       >
         {isGloballyEmpty ? (
           <div className="admin-empty admin-empty--registrations">
@@ -642,23 +698,42 @@ export default function RegistrationsSection({
                   label: t('admin.columns.action'),
                   mobile: 'action',
                   render: (row) => {
-                    const canValidate = canValidateRegistrationPayment(row, canEdit)
+                    const canValidate = canValidateRegistrationPayment(row, canValidatePayments)
+                    const canRecover = canRecoverRegistrationPayment(row, canForceSettle)
                     const hasActions =
-                      canValidate || canManageVisibility || canSetStatus || canDelete
+                      canValidate || canRecover || canManageVisibility || canSetStatus || canDelete
                     if (!hasActions) return <AdminTableActionsEmpty />
                     return (
                       <AdminTableActions onClick={(event) => event.stopPropagation()}>
                         {canValidate ? (
-                          <AdminIconButton
-                            disabled={!validationEnabled}
-                            icon={BadgeCheck}
+                          /* Antes acreditaba de un click, sin abrir el
+                             comprobante. Ahora es el mismo diálogo de Finanzas
+                             y de la puerta: la evidencia se mira siempre. */
+                          <PaymentValidationAction
+                            athlete={{ fullName: row.athlete, documentId: row.document }}
+                            detail={[row.event, row.category].filter(Boolean).join(' · ')}
+                            disabled={!validationEnabled || !canValidateManualOrder(row.payment)}
                             label={
                               validationEnabled
                                 ? t('admin.actions.validate')
                                 : t('admin.athletePayments.validationPaused')
                             }
-                            onClick={() => void handleApprovePayment(row.paymentId)}
-                            variant="celeste"
+                            onApprove={handleApprovePayment}
+                            onReject={onRejectPayment}
+                            order={row.payment}
+                          />
+                        ) : null}
+                        {canRecover ? (
+                          /* "El pago figura cancelado pero la plata entró":
+                             las mismas dos vías de Finanzas, sin tener que ir
+                             a buscar esta misma orden en otra pantalla. */
+                          <PaymentRecoveryAction
+                            athlete={{ fullName: row.athlete, documentId: row.document }}
+                            canForceSettle={canForceSettle}
+                            detail={[row.event, row.category].filter(Boolean).join(' · ')}
+                            onForceSettlePayment={onForceSettlePayment}
+                            onRefreshAthleteData={onRefreshAthleteData}
+                            order={row.payment}
                           />
                         ) : null}
                         {canManageVisibility && onSetPublicVisibility ? (

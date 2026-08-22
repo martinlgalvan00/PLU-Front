@@ -101,7 +101,102 @@ export default {
       },
     },
   },
+  secretOfferRedeemer: {
+    ariaLabel: 'Code redemption',
+    toggle: 'I have a code',
+    label: 'Code',
+    hint: 'It may apply a benefit, grant access, or open an exclusive offer in your account.',
+    placeholder: 'ENTER YOUR CODE',
+    apply: 'Redeem',
+    checking: 'Checking…',
+    redirectingTitle: 'Secret code redeemed',
+    redirectingLead: 'Redirecting you to your secret tab…',
+    acceptedTitle: 'Code ready',
+    acceptedLead: 'We will apply it automatically when you open a compatible checkout.',
+    anotherCode: 'Redeem another code',
+    benefit: {
+      percent: '{{percent}}% discount ready to use.',
+      fixedPrice: 'You unlocked a promotional price.',
+      access: 'You unlocked access to a reserved option.',
+      exclusiveOffer: 'You unlocked an exclusive offer in your account.',
+      discount: 'The benefit is ready for the compatible checkout.',
+    },
+    // How the code that was just redeemed gets paid. `only` is a code that
+    // closed the gateway: it is not "you can also", it is "this way only".
+    payment: {
+      with: 'Paid with {{channels}}.',
+      only: 'Paid only with {{channels}}.',
+      financed:
+        'You can report the payment and be enabled right away, while Finance validates the balance.',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'bank transfer',
+        cash_pitbull: 'cash',
+      },
+    },
+    continue: {
+      membership: 'Use on Membership',
+      registration: 'Use on registration',
+      exclusiveOffer: 'View my offer',
+      checkout: 'Go to checkout',
+    },
+    loginRequired: 'Sign in with your athlete account to save this offer.',
+    loginAction: 'Sign in',
+    error: {
+      not_found: 'That code does not exist.',
+      not_applicable: 'That code applies during its corresponding checkout.',
+      inactive: 'That offer is no longer available.',
+      expired: 'That offer has closed.',
+      not_started: 'That offer is not open yet.',
+      limit_reached: 'That offer has reached its limit.',
+      not_invited: 'That offer is reserved for other accounts.',
+      offer_unavailable: 'That offer is not available right now.',
+      service_unavailable: 'We could not validate the code. Please try again.',
+    },
+  },
+  codeBand: {
+    markKey: 'PLU · Private key',
+    markCode: 'PLU · Code',
+    markPrice: 'PLU · Exclusive price',
+    statusIdle: 'Unredeemed',
+    statusChecking: 'Validating',
+    statusDone: 'Accepted',
+    statusError: 'Not recognised',
+    statusApplied: 'Applied',
+    pay: 'You pay',
+    save: 'You save',
+  },
+  codeScan: {
+    toggle: 'Scan code',
+    title: 'Scan code',
+    close: 'Close',
+    starting: 'Starting the camera…',
+    ready: 'Point at the code QR.',
+    invalid: 'That QR is not a PLU code.',
+    error: {
+      permission: 'We could not access the camera. Check your browser permissions.',
+      unsupported: 'This browser cannot use the camera here. Paste or type the code instead.',
+    },
+  },
   payments: {
+    manualConfirmation: {
+      transferAction: 'I sent the transfer',
+      cashAction: 'I handed over the cash',
+      financingHint:
+        'This code allows financing: confirming enables your membership and registration while Finance reviews the balance.',
+      notApproval:
+        'This notice does not credit the payment. The order remains pending until Finance validates it.',
+      received: 'Notice received',
+      // The closing seal: what got enabled, in the first person. The open
+      // balance is stated in the detail (`financedGranted`), never omitted:
+      // enabling is not settling.
+      financedEyebrow: 'Membership and registration enabled',
+      financedTitle: 'You are a member and you are registered',
+      financedGranted:
+        'Your membership and registration are enabled. The balance is still pending validation.',
+      pendingReview: 'Finance has been notified. The payment is still pending validation.',
+      error: 'We could not record the notice. Please try again.',
+    },
     embeddedTitle: 'Pay with Mercado Pago',
     embeddedLead: 'Complete your payment without leaving the site.',
     walletRedirectNote:
@@ -336,20 +431,258 @@ export default {
     statDigital: '100%',
     statDigitalLabel: 'Digital management',
   },
-  homeGuide: {
-    trigger: 'How it works',
-    title: 'How it works',
-    lead: 'Three steps to compete in an official meet.',
-    step1Title: 'Join',
-    step1Body:
-      'Create your athlete profile and pay for the season. That issues your digital credential.',
-    step2Title: 'Register',
-    step2Body: 'Pick the meet, set division and bodyweight, and generate the registration order.',
-    step3Title: 'Arrive with your QR',
-    step3Body: 'Door staff check you in with the credential. No paper needed.',
-    cta: 'Become a member',
+  help: {
+    trigger: 'Help',
+    triggerAria: 'Open step-by-step help',
+    triggerPendingAria: 'Open step-by-step help. You have a pending step.',
+    eyebrow: 'Help',
+    title: 'What do I need to do?',
+    lead: 'Three steps, always in the same order.',
+    titleComplete: 'You are all set',
+    leadComplete:
+      'Account, membership and registration are up to date. Keep your credential for the door.',
     close: 'Close',
-    closeAria: 'Close how it works',
+    closeAria: 'Close help',
+    stepsAria: 'Steps of the process',
+    stateDone: 'Done',
+    stateNow: 'Your turn',
+    statePending: 'Awaiting payment',
+    stateBlocked: 'Not yet',
+    stateClosed: 'Closed',
+    stateUnavailable: 'No open date',
+    steps: {
+      account: {
+        title: 'Create your account',
+        done: 'You already have an account.',
+        todo: 'You enter your details once: name, ID, date of birth and a password.',
+      },
+      membership: {
+        title: 'Become a PLU member',
+        done: 'Membership valid through {{date}}.',
+        doneNoDate: 'Your membership is active.',
+        todo: 'You pay for the season and your digital credential lands in your profile.',
+        blocked: 'You need the account from step 1 first.',
+      },
+      registration: {
+        title: 'Register for the meet',
+        titleWithEvent: 'Register for {{event}}',
+        done: 'You are registered.',
+        pending: 'Your registration is filed. The payment still has to clear.',
+        todo: 'You pick division and weight class, and pay the entry fee.',
+        blockedAccount: 'You need steps 1 and 2 first.',
+        blockedMembership: 'You need the membership from step 2 first.',
+        closed: 'Registration for this meet is closed.',
+        unavailable: 'No meet has registration open yet.',
+      },
+    },
+    nextEyebrow: 'Your next step',
+    hereEyebrow: 'You are on the step that is due',
+    actionAccount: 'Create my account',
+    actionMembership: 'Become a member',
+    actionRegistration: 'Register for the meet',
+    actionRegistrationPending: 'See my registration',
+    actionCredential: 'See my credential',
+    actionEvents: 'See my meets',
+    guideMe: 'Show me how to get around',
+    guideMeHint: 'Where everything is and how to get back, in a short tour.',
+    guideMeFields: 'Walk me through every field',
+    guideMeFieldsHint: 'I explain what goes in each detail, one by one.',
+    resume: 'Pick up where you left off',
+    resumeHint: 'You were on step {{step}} of {{total}}.',
+    locationLabel: 'You are on',
+    views: {
+      home: 'the front page',
+      members: 'Membership',
+      register: 'Create your account',
+      login: 'Sign in',
+      competition: 'Meet registration',
+      profile: 'My account',
+      events: 'the calendar',
+      pitbull: 'Pitbull Classic',
+    },
+    haveAccountLabel: 'Already have an account?',
+    haveAccountAction: 'Sign in with my email',
+    contact: 'I would rather talk to a person',
+    assist: {
+      title: 'Simple mode',
+      hint: 'Bigger type and buttons, plus a bottom bar with just the essentials: home, your next step, your account and this help.',
+      activeHint: 'It is on. You can turn it off from here whenever you want.',
+    },
+    assistNav: {
+      aria: 'Simple navigation',
+      home: 'Home',
+      account: 'My account',
+      login: 'Sign in',
+      help: 'Help',
+      actionAccount: 'Create account',
+      actionMembership: 'Become a member',
+      actionRegistration: 'Register',
+      actionRegistrationPending: 'My registration',
+      actionCredential: 'Credential',
+      actionEvents: 'My meets',
+    },
+    tour: {
+      orientation: {
+        brand: {
+          title: 'The crest takes you home',
+          body: 'Wherever you are, tap the crest at the top left and you are back on the front page. That is how you never get lost.',
+        },
+        affiliate: {
+          title: 'Membership',
+          body: 'Everything about joining lives here: what it includes, what it costs and how to pay it.',
+        },
+        menu: {
+          title: 'The rest of the site',
+          body: 'This opens everything else: meet calendar, tickets, rulebook and records.',
+        },
+        account: {
+          title: 'Your account',
+          body: 'This is where you sign in with your email and password. Once inside, it is where your credential lives.',
+        },
+        help: {
+          title: 'Help is always right here',
+          body: 'This button is on every screen. It always tells you which step you are on and which one comes next.',
+        },
+        footer: {
+          title: 'The full index is at the bottom',
+          body: 'If you cannot find something, the end of every page lists every section.',
+        },
+        assistHome: {
+          title: 'Home',
+          body: 'This button takes you back to the front page from any screen.',
+        },
+        assistAction: {
+          title: 'Your next step',
+          body: 'The middle button always takes you to whatever is left to do. It changes on its own as you go: create the account, join, register.',
+        },
+        assistAccount: {
+          title: 'Your account',
+          body: 'This is where you sign in with your email and password. Once inside, it is where your credential lives.',
+        },
+        assistHelp: {
+          title: 'Help',
+          body: 'This button opens help. That is where you see your step and where you can turn simple mode off.',
+        },
+        action_home: {
+          title: 'It all starts here',
+          body: 'This button takes you to membership, the first thing you need to compete.',
+        },
+        action_members: {
+          title: 'Membership starts here',
+          body: 'Tap to begin. If you do not have an account yet, we will ask for it first.',
+        },
+        action_events: {
+          title: 'You register from here',
+          body: 'Each meet has its own buttons: see the full detail or register.',
+        },
+        action_pitbull: {
+          title: 'The button to register',
+          body: 'It needs an account and an active membership. If either is missing, help takes you there.',
+        },
+        action_profile: {
+          title: 'Your account, by section',
+          body: 'Credential, meets, membership and personal data. Swipe the rail to see them all.',
+        },
+      },
+      loginCoach: {
+        email: {
+          title: 'Your email address',
+          body: 'The same address you used to create the account. If you cannot recall it, try the one you always use.',
+        },
+        password: {
+          title: 'Your password',
+          body: 'The one you chose when creating the account. Tap the eye on the right to see what you type.',
+        },
+        forgot: {
+          title: 'If you forgot your password',
+          body: 'Tap here and we email you a link to set a new one. Nothing you have done is lost.',
+        },
+        submit: {
+          title: 'And done: Sign in',
+          body: 'If the email or password do not match, we say so under the field and you can try again.',
+        },
+        join: {
+          title: 'If you never signed up',
+          body: 'This link takes you to create the account from scratch. It is step 1 of the whole process.',
+        },
+      },
+      registerCoach: {
+        fullName: {
+          title: 'Your first and last name',
+          body: 'Write it as it appears on your ID. For example: María Rivas.',
+        },
+        country: {
+          title: 'Your nationality',
+          body: 'Open the list and pick your country. It decides which ID document we ask for next.',
+        },
+        documentId: {
+          title: 'Your ID number',
+          body: 'Digits only, no dots or dashes. For example: 28456789.',
+        },
+        birthDate: {
+          title: 'Your date of birth',
+          body: 'Type day, month and year, or tap the calendar on the side and pick it there.',
+        },
+        email: {
+          title: 'Your email address',
+          body: 'It has to be an inbox you can open: we send you a message to confirm the account.',
+        },
+        phone: {
+          title: 'Your phone number',
+          body: 'Your mobile with the area code. For example: +54 9 11 1234 5678.',
+        },
+        password: {
+          title: 'Your password',
+          body: 'Make one up with at least 12 letters or numbers. Write it on paper if that helps: you will need it to sign in.',
+        },
+        continue: {
+          title: 'Now tap Continue',
+          body: 'It saves what you typed and moves to the second part. Anything missing gets flagged and stops you there.',
+        },
+        province: {
+          title: 'Your province',
+          body: 'Open the list and pick the province where you live.',
+        },
+        city: {
+          title: 'Your city',
+          body: 'The city or town where you live.',
+        },
+        gym: {
+          title: 'Your gym or club',
+          body: 'Where you train. If you train on your own, write Independiente.',
+        },
+        sex: {
+          title: 'The category you compete in',
+          body: 'Pick one of the two options. It decides which category your lifts are filed under.',
+        },
+        finish: {
+          title: 'Done: create your account',
+          body: 'This files your profile. You then get an email to confirm it and you can become a member.',
+        },
+      },
+      competitionCoach: {
+        division: {
+          title: 'Your division',
+          body: 'Pick the division you will compete in. If you are unsure, check the rulebook or ask for help before moving on.',
+        },
+        category: {
+          title: 'Your weight class',
+          body: 'The class that matches your bodyweight. It gets confirmed at the official weigh-in.',
+        },
+        estimatedWeight: {
+          title: 'Your estimated bodyweight',
+          body: 'Your weight today, in kilos. It is an estimate used to build the groups: it does not bind you.',
+        },
+        method: {
+          title: 'How you will pay',
+          body: 'Pick a payment method. If you choose transfer or cash, the next step shows you how to continue.',
+        },
+        finish: {
+          title: 'Confirm your registration',
+          body: 'The total sits above the button. Confirming files the registration under your name.',
+        },
+      },
+    },
   },
   launchTeaser: {
     badge: 'Official opening',
@@ -534,12 +867,16 @@ export default {
     message: 'Message',
     messagePlaceholder: 'How can we help…',
     submit: 'Send',
+    submitting: 'Sending…',
     submitNote: 'Reply within 24–48 business hours.',
     formEyebrow: 'Inquiry',
     formTitle: 'Write to us',
     formDesc: 'Choose a reason and leave your details. The right team will take it from there.',
     sentTitle: 'Inquiry sent',
     sentDesc: 'The Maximal / PLU ARG team will reply shortly to the email you provided.',
+    errorTitle: 'Could not send it',
+    errorDesc: 'Try again in a moment, or write to us directly at {{email}}.',
+    errorRetry: 'Retry',
     sidebarTitle: 'Contact details',
     sidebarEmail: 'hola@pluarg.com.ar',
     sidebarLocation: 'Buenos Aires, Argentina',
@@ -705,23 +1042,183 @@ export default {
     navAria: 'Account sections',
     nav: {
       qr: 'Credential',
+      benefits: 'Benefits',
       offer: 'Exclusive offer',
       events: 'Events',
       history: 'History',
       membership: 'Membership',
+      payments: 'Payments',
       personalData: 'My details',
       security: 'Security',
+      needsAttention: 'You have something to resolve here',
+    },
+    benefits: {
+      eyebrow: 'Codes and promotions',
+      title: 'Your benefits',
+      lead: 'Enter or scan your code once. We show what it unlocks and keep it ready for the corresponding payment.',
+      safeNote:
+        'Redeeming does not create a charge or use the quota. The benefit is confirmed only when you create the order.',
+      openOffer: 'View my unlocked exclusive offer',
+      typesTitle: 'What a code may unlock',
+      types: {
+        discount: {
+          title: 'Discount or special price',
+          lead: 'It applies to the total when you open the compatible checkout.',
+        },
+        access: {
+          title: 'Reserved access',
+          lead: 'It unlocks a registration or package that is not shown in the public catalogue.',
+        },
+        offer: {
+          title: 'Exclusive offer',
+          lead: 'It saves a private offer in your account so you can return without entering the code again.',
+        },
+      },
+    },
+    payments: {
+      eyebrow: 'Charges',
+      title: 'Payments',
+      lead: 'The status of every charge, exactly as the payment method recorded it.',
+      emptyTitle: 'You have no charges yet',
+      emptyLead:
+        'Once you join or register for a meet, every payment shows up here with its status and receipt.',
+      emptyAction: 'Go to Membership',
+      alertTitle_one: 'You have {{count}} charge to resolve',
+      alertTitle_other: 'You have {{count}} charges to resolve',
+      alertBody:
+        'Mercado Pago declined the payment, so the membership or registration was not confirmed. Retry it from the charge marked below.',
+      settledAfterAttempts_one:
+        'It went through after {{count}} declined attempt. If you got a decline notice, disregard it.',
+      settledAfterAttempts_other:
+        'It went through after {{count}} declined attempts. If you got a decline notice, disregard it.',
+      mismatch: 'We have your payment and are finishing the credit. No need to pay again.',
+      resolvedElsewhere: {
+        membership:
+          'Your membership is active anyway: the organization granted it another way. This charge was never paid and you do not need to pay it again.',
+        registration:
+          'Your registration is confirmed anyway: the organization granted it another way. This charge was never paid and you do not need to pay it again.',
+      },
+      state: {
+        acreditado: 'Paid',
+        en_revision: 'Under review',
+        revision_pendiente: 'Crediting',
+        esperando_comprobante: 'Receipt missing',
+        esperando_pago: 'Awaiting payment',
+        esperando_pago_en_sede: 'Pay at the venue',
+        procesando: 'Processing',
+        rechazado: 'Declined',
+        cancelado: 'Cancelled',
+        reembolsado: 'Refunded',
+      },
+      stage: {
+        creada: 'Created',
+        pagando: 'Paying',
+        comprobante: 'Receipt',
+        revision: 'Review',
+        pago_en_sede: 'Pay on site',
+        acreditado: 'Paid',
+      },
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Bank transfer',
+        wise_transfer: 'Wise transfer',
+        cash_pitbull: 'Cash at the venue',
+      },
+      action: {
+        retry: 'Start a new charge',
+      },
+      reason: {
+        expired_without_attempt:
+          'It expired on {{date}} with no payment attempt on record: the checkout was opened but never paid.',
+        expired_after_attempt: 'It expired on {{date}} and no payment attempt ever cleared.',
+        closed_without_attempt: 'It was closed with no payment attempt on record.',
+        closed_after_attempt: 'It was closed without any payment attempt clearing.',
+        provider_cancelled: 'Mercado Pago reported the payment as cancelled.',
+        staff_rejected: 'Declined by the organization.',
+        cc_rejected_insufficient_amount: 'The card had insufficient funds.',
+        cc_rejected_bad_filled_card_number: 'The card number was entered incorrectly.',
+        cc_rejected_bad_filled_date: 'The card expiration date was incorrect.',
+        cc_rejected_bad_filled_security_code: 'The security code was incorrect.',
+        cc_rejected_bad_filled_other: 'Some card detail was entered incorrectly.',
+        cc_rejected_call_for_authorize:
+          'Your bank needs you to authorize this amount. Call them and try again.',
+        cc_rejected_card_disabled: 'The card is inactive. Activate it with your bank.',
+        cc_rejected_duplicated_payment: 'There was already an identical recent payment.',
+        cc_rejected_high_risk: 'Mercado Pago declined it for security. Try another method.',
+        cc_rejected_max_attempts: 'You ran out of allowed attempts. Try another card.',
+        cc_rejected_other_reason: 'The issuer declined the payment without a reason.',
+        cc_rejected_invalid_installments: 'The card does not support that number of installments.',
+        cc_rejected_card_type_not_allowed: 'That card type is not enabled.',
+        pending_contingency: 'Mercado Pago is processing the payment. It credits on its own.',
+        pending_review_manual: 'Mercado Pago put it under review. It resolves in minutes or hours.',
+        pending_waiting_transfer: 'Waiting for the transfer to clear.',
+        pending_waiting_payment: 'Voucher issued: it still needs to be paid in cash.',
+      },
     },
     offer: {
       eyebrow: 'Secret code redeemed',
+      title: 'Your exclusive offer',
+      codeLabel: 'Code',
       lead: 'You redeemed the secret code {{code}}. This offer is yours alone and is not published anywhere.',
       packageLabel: 'Membership + Registration',
       membershipFallback: 'Annual membership',
+      remaining: '{{count}} spots remaining',
       registrationLine: '{{event}} registration',
       yourPrice: 'Your price',
       savings: 'You save {{amount}} against buying both separately.',
       savingsRedeemed: 'You saved {{amount}} against buying both separately.',
-      cta: 'Complete my registration',
+      cta: {
+        mercado_pago: 'Pay for the offer',
+        bank_transfer: 'Continue with the transfer',
+        cash_pitbull: 'Reserve and pay in cash',
+      },
+      entryLegend: 'Your registration details',
+      entryHint: 'We take them from your profile. Check them before paying.',
+      entryEdit: 'Adjust my details',
+      channelLegend: 'How you want to pay',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Bank transfer',
+        cash_pitbull: 'Cash at the event',
+      },
+      checkoutNote: {
+        mercado_pago: 'Payment is processed right here, with the exclusive price of your code.',
+        bank_transfer:
+          'We give you the transfer details right here and you upload the receipt without leaving this page.',
+        cash_pitbull:
+          'You reserve the offer now and pay in cash on event day, with the reference we give you here.',
+      },
+      // Same slot as the channel note, different sentence: when the code lets
+      // you report the payment, that is what has to be said before buying, not
+      // after. Only applies to the channels settled by hand.
+      checkoutNoteFinanced: {
+        bank_transfer:
+          'We give you the transfer details and you can report the payment: you are enabled right away and Finance validates the receipt afterwards.',
+        cash_pitbull:
+          'You reserve the offer now and pay in cash on event day. If you report the payment is arranged, you are enabled right away.',
+      },
+      financingLegal:
+        'Reporting a payment does not settle it: the balance stays open until Finance validates it.',
+      checkoutClosed: 'Payment is closed for now. Your offer stays reserved.',
+      checkoutUnavailable: 'We could not open the payment. Please try again in a moment.',
+      payTitle: {
+        mercado_pago: 'Pay your offer',
+        bank_transfer: 'Transfer the amount of your offer',
+        cash_pitbull: 'You pay in cash on event day',
+      },
+      paySafeNote: 'Secure Mercado Pago checkout, inside your account.',
+      payManualNote: 'Your spot is reserved; the team confirms the payment by hand.',
+      cashLead:
+        'We reserved your offer for {{amount}}. Bring the amount in cash and show this reference at the check-in desk.',
+      cashReference: 'Your order reference',
+      cashFine: 'If you do not pay on event day, the offer is released back to the pool.',
+      backToDetail: 'Back to the details',
+      resumeAction: 'Finish paying',
+      manualPendingAction: 'Check my payment status',
+      orderConcept: '{{event}} membership + registration',
+      settledTitle: 'Payment credited',
+      settledLead:
+        'Your membership and registration are confirmed as soon as the payment finishes clearing.',
       expires: 'The offer closes on {{date}}.',
       more: 'You have {{count}} more unlocked offer.',
       redeemedAction: 'View my registration',
@@ -729,16 +1226,22 @@ export default {
       profileIncompleteAction: 'Complete my details',
       state: {
         redeemed: 'You already bought this offer. Your membership and registration are on file.',
+        financed:
+          'Financing already enabled your membership and registration. The balance remains under Payments until Finance reviews it.',
         expired: 'This offer has closed.',
         not_started: 'This offer is not open yet.',
-        offer_unavailable: 'The offer is not available right now. Write to us if you think this is a mistake.',
+        offer_unavailable:
+          'The offer is not available right now. Write to us if you think this is a mistake.',
         missing: 'We could not find the offer.',
+        pending_payment:
+          'Your purchase has started and is waiting for payment. Membership and registration are credited once it is approved.',
       },
     },
     credential: {
       brandLine: 'Argentina · Digital credential',
       athlete: 'Athlete',
       document: 'ID document',
+      memberCode: 'Member',
       birthDate: 'Date of birth',
       gym: 'Gym or team',
       location: 'Location',
@@ -903,15 +1406,20 @@ export default {
       comboSavings: 'Save',
       comboUntil: 'Valid until {{date}}',
       comboPromoHint: 'Save {{amount}} versus paying separately.',
-      discountLabel: 'Discount code',
-      discountToggle: 'I have a discount code',
-      discountPlaceholder: 'E.g. SUMMER2026',
-      discountApply: 'Apply',
+      discountLabel: 'Code',
+      discountToggle: 'I have a code',
+      discountHint: 'Redeem your code.',
+      discountPlaceholder: 'ENTER YOUR CODE',
+      discountApply: 'Redeem',
       discountChecking: 'Validating…',
       publicPromoApplied: 'Promotion in effect · you save {{amount}}',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
       discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountAppliedAccess: 'Code {{code}} applied · combo unlocked',
+      // Deferred payment: the promise is immediate access, not settlement.
+      // The balance stays open until Finance validates it.
+      discountFinanced:
+        'This code lets you report the payment: pick transfer or cash and you are enabled right away, while Finance validates the balance.',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -923,21 +1431,7 @@ export default {
         no_savings: 'That code does not improve the price of this purchase.',
         not_started: 'That code is not active yet.',
         not_invited: 'That code is reserved for other accounts.',
-      },
-      offerUnlocked: {
-        eyebrow: 'You redeemed the secret code',
-        lead: 'You unlocked the membership + {{event}} registration offer. It is waiting in your exclusive offer tab.',
-        cta: 'View my offer',
-      },
-      offerUnlockError: {
-        not_found: 'That code does not exist.',
-        not_applicable: 'That code does not unlock any offer.',
-        inactive: 'That offer is no longer available.',
-        expired: 'That offer has closed.',
-        not_started: 'That offer is not open yet.',
-        limit_reached: 'That offer ran out of spots.',
-        not_invited: 'That offer is reserved for other accounts.',
-        offer_unavailable: 'That offer is not available right now.',
+        offer_unavailable: 'That offer is no longer available.',
       },
       paymentLegend: 'Payment method',
       planSelector: 'Membership plan',
@@ -1010,7 +1504,7 @@ export default {
       transferCopyField: 'Copy {{field}}',
       transferNotesLabel: 'Notes (optional)',
       transferNotesPlaceholder: 'Anything Finance should know about this payment',
-      transferUnderstood: 'Send for review',
+      transferUnderstood: 'Close',
       proofAction: 'Attach receipt',
       proofUploading: 'Uploading receipt...',
       proofUploaded:
@@ -1026,7 +1520,8 @@ export default {
       eyebrow: 'My account',
       title: 'Personal data',
       lead: 'Keep your details up to date. Fields marked with * are required to register for meets.',
-      photoHint: 'Click or drag an image onto your photo to change it. JPG, PNG or WEBP, up to 3 MB.',
+      photoHint:
+        'Click or drag an image onto your photo to change it. JPG, PNG or WEBP, up to 3 MB.',
       photoUpload: 'Upload photo',
       photoChange: 'Change photo',
       photoUploading: 'Uploading…',
@@ -1351,7 +1846,7 @@ export default {
       venueEyebrow: 'Confirmed meeting point',
       venueTitle: 'Pitbull Classic',
       venueDesc:
-        'Hosted by Maximal Strength Club. Open the event page for venue, date, and published operational information.',
+        'Hosted by PLU Argentina at La Troupe Multiespacio, Banfield. Open the event page for venue, date, and published operational information.',
       venueCta: 'View Pitbull Classic',
       directoryEyebrow: 'Venue directory',
       directoryTitle: 'The public register is being prepared',
@@ -1995,19 +2490,21 @@ export default {
       credentialStoryHint: '9:16 format with entry QR · generated automatically on confirmation',
       categoriesEyebrow: 'Categories',
       categoriesIndex: '04',
-      categoriesListAria: 'Event categories and divisions',
+      categoriesListAria: 'Event modalities, equipment and divisions',
       categoriesTitle: 'Modalities and divisions',
       categoriesDesc: 'Subject to final confirmation in the official PLU ARG rulebook.',
       categoriesPendingLabel: 'Pending confirmation',
       categoriesSummary: '{{count}} categories · {{categories}} · {{divisions}}',
       categoriesCount: '{{count}} categories',
-      categoriesTotals: '{{modalities}} modalities · {{divisions}} divisions',
-      categoriesGroupCount: '{{count}}',
+      categoriesTotals:
+        '{{modalities}} modalities · {{equipment}} equipment · {{divisions}} divisions',
       categoriesModalities: 'Modalities',
-      categoriesModalitiesHint: 'Equipment',
+      categoriesModalitiesHint: 'Recognized lifts',
+      categoriesEquipment: 'Equipment',
+      categoriesEquipmentHint: 'Equipment class',
       categoriesDivisions: 'Divisions',
       categoriesDivisionsHint: 'Age class',
-      categoriesToggle: 'View event categories and divisions',
+      categoriesToggle: 'View event modalities, equipment and divisions',
       viewFullRulebook: 'View full rulebook',
       ticketsTitle: 'Want to watch the meet?',
       ticketsLead:
@@ -2043,6 +2540,7 @@ export default {
       weighInsFridayNote: 'Early weigh-in. Optional for all categories.',
       weighInsSaturdayNote:
         'Last call. Only for athletes competing who did not weigh in on Friday.',
+      normativeDividerLabel: 'PLU ARG · Pitbull Classic 2026',
       ticketsFormTitle: 'Get your entry',
       ticketPassCta: 'Get your entry',
       resourcesIndex: '08',
@@ -2588,20 +3086,25 @@ export default {
       competitionFormDesc: 'Division, category and bodyweight.',
       packageLegend: 'Package',
       packageSavings: 'Save {{amount}}',
-      discountLabel: 'Discount code',
-      discountPlaceholder: 'E.g. SUMMER2026',
-      discountApply: 'Apply',
+      discountLabel: 'Code',
+      discountHint: 'Redeem your code.',
+      discountPlaceholder: 'ENTER YOUR CODE',
+      discountApply: 'Redeem',
       discountChecking: 'Validating...',
       comboCodeLead: 'This package is closed: it can only be bought with the code you were given.',
-      comboCodeLabel: 'Combo code',
-      comboCodePlaceholder: 'e.g. COMBO-PITBULL',
-      comboCodeApply: 'Unlock',
+      comboCodeLabel: 'Code',
+      comboCodePlaceholder: 'ENTER YOUR CODE',
+      comboCodeApply: 'Redeem',
       comboCodeChecking: 'Checking…',
       comboCodeError: 'That combo code is not valid.',
       publicPromoApplied: 'Promotion in effect · you save {{amount}}',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
       discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
       discountAppliedAccess: 'Code {{code}} applied · combo unlocked',
+      // Same promise as Membership: immediate access against an open
+      // balance, never settlement.
+      discountFinanced:
+        'This code lets you report the payment: pick transfer or cash and you are enabled right away, while Finance validates the balance.',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -2615,11 +3118,7 @@ export default {
         not_invited: 'That code is reserved for other accounts.',
         other_event: 'That code belongs to a different registration.',
         other_event_named: 'That code belongs to {{event}}, not this meet.',
-      },
-      offerUnlocked: {
-        eyebrow: 'You redeemed the secret code',
-        lead: 'Your membership + {{event}} registration offer is already applied below.',
-        viewInAccount: 'View my offer in My account',
+        offer_unavailable: 'That offer is no longer available.',
       },
       competitionPaymentTitle: 'How you pay',
       competitionPaymentDesc: 'Choose how to generate the order.',
@@ -2628,6 +3127,8 @@ export default {
         'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash at Pitbull will be available soon.',
       paymentNoChannelHint:
         'No payment methods are available right now. Try again later or get in touch.',
+      paymentCodeWithoutGatewayHint:
+        'Your code is not paid through Mercado Pago: the price was agreed for the methods you see here. The team validates the payment by hand.',
       paymentLinkLabel: 'Payment link',
       paymentTransferLabel: 'Bank transfer',
       paymentCashPitbullLabel: 'Cash at Pitbull',
@@ -2847,6 +3348,7 @@ export default {
     competingIn: 'Competing in',
     qrScan: 'Scan the QR to verify entry',
     qrScanMembership: 'Scan the QR to verify this membership',
+    joinCta: 'Join at plu-arg.com',
     issued: 'Issued {{date}}',
     tagline: '@pluarg',
   },

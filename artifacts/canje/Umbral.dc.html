@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #f2b705; } a:hover { color: #ffd23f; }
+    .dc {
+      --bg: #181a1f; --text: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --rule: rgba(255, 255, 255, 0.14); --rule-soft: rgba(255, 255, 255, 0.08);
+      --gold: #f2b705; --gold-dim: #a9790f; --danger: #ff8b86; --on-gold: #14181f;
+      --chamber: rgba(0, 0, 0, 0.28);
+    }
+    .dc.is-page { --bg: #0a0b0d; --chamber: rgba(255, 255, 255, 0.03); }
+    .dc.is-light {
+      --bg: #ffffff; --text: #0d0e12; --secondary: #2c2f3c; --muted: #636878;
+      --rule: rgba(15, 17, 23, 0.10); --rule-soft: rgba(15, 17, 23, 0.06);
+      --gold: #a9790f; --gold-dim: #a9790f; --danger: #991b1b;
+      --chamber: rgba(15, 17, 23, 0.035);
+    }
+    .dc {
+      background: var(--bg); color: var(--text);
+      font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      min-height: 100%; padding: 40px 0 48px;
+    }
+    .pad { padding-inline: 40px; }
+    .eyebrow {
+      color: var(--muted); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .head-name { font-size: 26px; font-weight: 300; letter-spacing: -0.01em; margin: 6px 0 10px; }
+    .head-thesis { color: var(--secondary); font-size: 13px; line-height: 1.6; margin: 0; max-width: 46ch; }
+    .sep { background: var(--rule-soft); height: 1px; margin: 28px 40px; }
+    .group-label {
+      color: var(--muted); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .states { display: flex; flex-direction: column; gap: 28px; margin-top: 18px; }
+    .state-name {
+      color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 10px; letter-spacing: 0.06em; margin: 0 0 10px;
+    }
+
+    /* ---------------------------------------------------------------------
+       F · Umbral. En vez de un objeto sobre la página, un lugar dentro de
+       ella: al abrirse, el ancho completo del contenedor se convierte en una
+       cámara de aire con reglas arriba y abajo. Sin radio, sin relleno de
+       color, sin borde propio. El lujo es el vacío y la simetría.
+       --------------------------------------------------------------------- */
+    .umb-shut {
+      align-items: center; border-bottom: 1px solid var(--rule-soft);
+      border-top: 1px solid var(--rule-soft); display: flex;
+      justify-content: space-between; min-height: 56px; padding-inline: 40px;
+    }
+    .umb-shut button {
+      align-items: center; background: none; border: 0; color: var(--secondary);
+      display: inline-flex; font: 500 13px/1 'Poppins', sans-serif;
+      letter-spacing: 0.04em; min-height: 44px; padding: 0; text-align: left;
+    }
+    .umb {
+      background: var(--chamber); border-bottom: 1px solid var(--rule-soft);
+      border-top: 1px solid var(--rule-soft); display: grid; gap: 20px;
+      justify-items: center; padding: 44px 40px;
+    }
+    .umb-eyebrow {
+      color: var(--gold-dim); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.22em; text-transform: uppercase;
+    }
+    .umb-code {
+      color: var(--text); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 19px; font-weight: 500; letter-spacing: 0.26em; line-height: 1;
+      text-align: center; text-transform: uppercase;
+    }
+    .umb-code.is-empty { color: var(--muted); font-size: 13px; letter-spacing: 0.22em; }
+    .umb-code.is-dim { opacity: 0.45; }
+    .umb-code.is-gold { color: var(--gold); }
+    .umb-seam { background: var(--rule); height: 1px; width: 148px; }
+    .umb-seam.is-gold { background: var(--gold); }
+    .umb-seam.is-error { background: var(--danger); }
+    .umb-act {
+      background: none; border: 0; color: var(--gold); font: 700 11px/1 'Poppins', sans-serif;
+      letter-spacing: 0.18em; min-height: 44px; padding: 0; text-transform: uppercase;
+    }
+    .umb-wait { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
+    .umb-hint { color: var(--muted); font-size: 11.5px; line-height: 1.55; margin: 0; max-width: 40ch; text-align: center; }
+    .umb-error { color: var(--danger); font-size: 11.5px; margin: 0; text-align: center; }
+    .umb-amount { font-size: 26px; font-weight: 300; letter-spacing: -0.01em; }
+    .umb-drop {
+      align-items: center; background: none; border: 0; color: var(--muted);
+      display: inline-flex; font: 400 12px/1 'Poppins', sans-serif; min-height: 44px;
+      padding: 0; text-decoration: underline; text-underline-offset: 3px;
+    }
+  </style>
+</helmet>
+<div class="dc {{surfaceClass}}">
+  <div class="pad">
+    <span class="eyebrow">Dirección F</span>
+    <h1 class="head-name">Umbral</h1>
+    <p class="head-thesis">
+      En vez de un objeto apoyado sobre la página, un lugar dentro de ella: al
+      abrirse, el ancho completo se convierte en una cámara de aire con reglas
+      arriba y abajo. Sin radio, sin borde propio, sin relleno de color. El lujo
+      es el vacío y la simetría.
+    </p>
+  </div>
+
+  <div class="sep"></div>
+  <div class="pad"><span class="group-label">Canje universal</span></div>
+  <div class="states">
+    <div>
+      <div class="pad"><p class="state-name">cerrado</p></div>
+      <div class="umb-shut">
+        <button type="button">Tengo un código</button>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-dim)"><path d="m6 9 6 6 6-6"></path></svg>
+      </div>
+    </div>
+
+    <div>
+      <div class="pad"><p class="state-name">abierto</p></div>
+      <div class="umb">
+        <span class="umb-eyebrow">Llave privada</span>
+        <span class="umb-code is-empty">INGRESÁ TU CÓDIGO</span>
+        <span class="umb-seam"></span>
+        <button type="button" class="umb-act">Canjear</button>
+        <p class="umb-hint">Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="pad"><p class="state-name">escrito</p></div>
+      <div class="umb">
+        <span class="umb-eyebrow">Llave privada</span>
+        <span class="umb-code">ONLY-PITBULL</span>
+        <span class="umb-seam"></span>
+        <button type="button" class="umb-act">Canjear</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="pad"><p class="state-name">validando</p></div>
+      <div class="umb">
+        <span class="umb-eyebrow">Llave privada</span>
+        <span class="umb-code is-dim">ONLY-PITBULL</span>
+        <span class="umb-seam"></span>
+        <span class="umb-wait">Validando…</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="pad"><p class="state-name">error</p></div>
+      <div class="umb">
+        <span class="umb-eyebrow">Llave privada</span>
+        <span class="umb-code">ONLY-NORTE</span>
+        <span class="umb-seam is-error"></span>
+        <p class="umb-error">Ese código no existe.</p>
+        <button type="button" class="umb-act">Canjear</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="pad"><p class="state-name">canjeado</p></div>
+      <div class="umb">
+        <span class="umb-eyebrow" style="color: var(--gold)">Llave aceptada</span>
+        <span class="umb-code is-gold">ONLY-PITBULL</span>
+        <span class="umb-seam is-gold"></span>
+        <p class="umb-hint" style="color: var(--secondary)">Redirigiéndote a tu pestaña secreta…</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <div class="pad"><span class="group-label">Campo del checkout</span></div>
+  <div class="states">
+    <div>
+      <div class="pad"><p class="state-name">vacío</p></div>
+      <div class="umb">
+        <span class="umb-eyebrow">Código</span>
+        <span class="umb-code is-empty">INGRESÁ TU CÓDIGO</span>
+        <span class="umb-seam"></span>
+        <button type="button" class="umb-act">Canjear</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="pad"><p class="state-name">aplicado</p></div>
+      <div class="umb">
+        <span class="umb-eyebrow" style="color: var(--gold)">Precio exclusivo aplicado</span>
+        <span class="umb-amount">$ 120.000</span>
+        <span class="umb-seam is-gold"></span>
+        <span class="umb-code" style="font-size: 12px; letter-spacing: 0.18em; color: var(--gold)">ONLY-PITBULL</span>
+        <button type="button" class="umb-drop">Quitar</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"surface":{"editor":"enum","options":["card","page","light"],"default":"card","section":"Superficie"},"$preview":{"width":620,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const surface = this.props.surface ?? 'card';
+    return {
+      surfaceClass: surface === 'page' ? 'is-page' : surface === 'light' ? 'is-light' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>

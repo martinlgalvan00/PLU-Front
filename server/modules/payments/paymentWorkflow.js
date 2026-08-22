@@ -159,7 +159,18 @@ export async function applyCanonicalPayment(payment, order, options = {}) {
       externalPaymentId: payment.id,
       metadata: { stage, ...paymentTrailMetadata(payment) },
     })
-    await notifyPaymentApplied?.({ order, payment: appliedPayment, result })
+    // El aviso se decide con el estado de la ORDEN, no con el del intento. Un
+    // intento rechazado que se aplica después de que otro ya acreditó (MP
+    // reenvía la notificación, o el pago pasa de `pending` a `rejected` horas
+    // más tarde) no cambia el hecho para la persona: la orden sigue aprobada.
+    // Sin esto, ese intento tardío le mandaba "no pudimos procesar tu pago" a
+    // un socio que ya estaba activo.
+    await notifyPaymentApplied?.({
+      order,
+      payment: appliedPayment,
+      result,
+      orderStatus: result?.order?.status ?? null,
+    })
     return { appliedPayment, result }
   } catch (error) {
     // Punto unico donde se acredita: webhook, checkout embebido y conciliacion

@@ -102,7 +102,102 @@ export default {
       },
     },
   },
+  secretOfferRedeemer: {
+    ariaLabel: 'Canje de código',
+    toggle: 'Tengo un código',
+    label: 'Código',
+    hint: 'Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.',
+    placeholder: 'INGRESÁ TU CÓDIGO',
+    apply: 'Canjear',
+    checking: 'Validando…',
+    redirectingTitle: 'Código secreto canjeado',
+    redirectingLead: 'Redirigiéndote a tu pestaña secreta…',
+    acceptedTitle: 'Código listo',
+    acceptedLead: 'Lo vamos a aplicar automáticamente cuando abras el checkout compatible.',
+    anotherCode: 'Canjear otro código',
+    benefit: {
+      percent: '{{percent}}% de descuento listo para usar.',
+      fixedPrice: 'Desbloqueaste un precio promocional.',
+      access: 'Desbloqueaste el acceso a una opción reservada.',
+      exclusiveOffer: 'Desbloqueaste una oferta exclusiva en tu cuenta.',
+      discount: 'El beneficio quedó listo para el checkout compatible.',
+    },
+    // Con qué se paga el código recién canjeado. `only` es un código que cerró
+    // la pasarela: no es "además podés", es "sólo así".
+    payment: {
+      with: 'Se paga con {{channels}}.',
+      only: 'Se paga únicamente con {{channels}}.',
+      financed:
+        'Podés avisarnos el pago y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'transferencia',
+        cash_pitbull: 'efectivo',
+      },
+    },
+    continue: {
+      membership: 'Usar en Afiliación',
+      registration: 'Usar en la inscripción',
+      exclusiveOffer: 'Ver mi oferta',
+      checkout: 'Ir al checkout',
+    },
+    loginRequired: 'Necesitás ingresar con tu cuenta de atleta para guardar la oferta.',
+    loginAction: 'Ingresar',
+    error: {
+      not_found: 'Ese código no existe.',
+      not_applicable: 'Ese código se aplica durante el checkout correspondiente.',
+      inactive: 'Esa oferta ya no está disponible.',
+      expired: 'Esa oferta se cerró.',
+      not_started: 'Esa oferta todavía no está abierta.',
+      limit_reached: 'Esa oferta agotó su cupo.',
+      not_invited: 'Esa oferta está reservada para otras cuentas.',
+      offer_unavailable: 'Esa oferta no está disponible en este momento.',
+      service_unavailable: 'No pudimos validar el código. Intentá nuevamente.',
+    },
+  },
+  codeBand: {
+    markKey: 'PLU · Llave privada',
+    markCode: 'PLU · Código',
+    markPrice: 'PLU · Precio exclusivo',
+    statusIdle: 'Sin canjear',
+    statusChecking: 'Validando',
+    statusDone: 'Aceptada',
+    statusError: 'No reconocida',
+    statusApplied: 'Aplicado',
+    pay: 'Pagás',
+    save: 'Ahorrás',
+  },
+  codeScan: {
+    toggle: 'Escanear código',
+    title: 'Escanear código',
+    close: 'Cerrar',
+    starting: 'Iniciando la cámara…',
+    ready: 'Apuntá al QR del código.',
+    invalid: 'Ese QR no es un código de PLU.',
+    error: {
+      permission: 'No pudimos acceder a la cámara. Revisá los permisos del navegador.',
+      unsupported: 'Este navegador no puede usar la cámara acá. Pegá o tipeá el código.',
+    },
+  },
   payments: {
+    manualConfirmation: {
+      transferAction: 'Ya transferí',
+      cashAction: 'Ya entregué el efectivo',
+      financingHint:
+        'Este código permite financiamiento: al confirmar habilitamos tu afiliación y tu inscripción mientras Finanzas revisa el saldo.',
+      notApproval:
+        'Este aviso no acredita el pago. La orden queda pendiente hasta que Finanzas la valide.',
+      received: 'Aviso recibido',
+      // El sello del cierre: lo que quedó habilitado, en primera persona.
+      // El saldo abierto se dice en el detalle (`financedGranted`), no se
+      // omite: habilitar no es acreditar.
+      financedEyebrow: 'Afiliación e inscripción habilitadas',
+      financedTitle: 'Ya estás afiliado e inscripto',
+      financedGranted:
+        'Tu afiliación y tu inscripción ya están habilitadas. El saldo sigue pendiente de validación.',
+      pendingReview: 'Avisamos a Finanzas. El pago sigue pendiente de validación.',
+      error: 'No pudimos registrar el aviso. Intentá nuevamente.',
+    },
     embeddedTitle: 'Pagá con Mercado Pago',
     embeddedLead: 'Completá el pago sin salir del sitio.',
     walletRedirectNote:
@@ -334,19 +429,258 @@ export default {
     statDigital: '100%',
     statDigitalLabel: 'Gestión digital',
   },
-  homeGuide: {
-    trigger: 'Cómo funciona',
-    title: 'Cómo funciona',
-    lead: 'Tres pasos para competir en un meet oficial.',
-    step1Title: 'Afiliate',
-    step1Body: 'Creá tu perfil de atleta y pagá la temporada. Ahí queda tu credencial digital.',
-    step2Title: 'Inscribite',
-    step2Body: 'Elegí el meet, definí división y peso, y generá la orden de inscripción.',
-    step3Title: 'Llegá con tu QR',
-    step3Body: 'En puerta te acreditan con la credencial. No hace falta llevar papel.',
-    cta: 'Afiliarme',
+  help: {
+    trigger: 'Ayuda',
+    triggerAria: 'Abrir la ayuda paso a paso',
+    triggerPendingAria: 'Abrir la ayuda paso a paso. Tenés un paso pendiente.',
+    eyebrow: 'Ayuda',
+    title: '¿Qué tengo que hacer?',
+    lead: 'Son tres pasos, siempre en el mismo orden.',
+    titleComplete: 'Ya tenés todo listo',
+    leadComplete:
+      'Cuenta, afiliación e inscripción están al día. Guardá tu credencial para la puerta.',
     close: 'Cerrar',
-    closeAria: 'Cerrar cómo funciona',
+    closeAria: 'Cerrar la ayuda',
+    stepsAria: 'Pasos del trámite',
+    stateDone: 'Hecho',
+    stateNow: 'Te toca ahora',
+    statePending: 'Esperando el pago',
+    stateBlocked: 'Todavía no',
+    stateClosed: 'Cerrado',
+    stateUnavailable: 'Sin fecha abierta',
+    steps: {
+      account: {
+        title: 'Crear tu cuenta',
+        done: 'Ya tenés cuenta.',
+        todo: 'Cargás tus datos una sola vez: nombre, documento, fecha de nacimiento y una contraseña.',
+      },
+      membership: {
+        title: 'Afiliarte a PLU',
+        done: 'Afiliación vigente hasta el {{date}}.',
+        doneNoDate: 'Tu afiliación está vigente.',
+        todo: 'Pagás la temporada y te queda la credencial digital en tu perfil.',
+        blocked: 'Antes necesitás la cuenta del paso 1.',
+      },
+      registration: {
+        title: 'Inscribirte al torneo',
+        titleWithEvent: 'Inscribirte a {{event}}',
+        done: 'Ya estás inscripto.',
+        pending: 'Tu inscripción está cargada. Falta que se acredite el pago.',
+        todo: 'Elegís división y categoría de peso, y pagás la inscripción.',
+        blockedAccount: 'Antes necesitás los pasos 1 y 2.',
+        blockedMembership: 'Antes necesitás la afiliación del paso 2.',
+        closed: 'Las inscripciones de este torneo ya cerraron.',
+        unavailable: 'Todavía no hay un torneo con inscripciones abiertas.',
+      },
+    },
+    nextEyebrow: 'Tu próximo paso',
+    hereEyebrow: 'Estás en el paso que te toca',
+    actionAccount: 'Crear mi cuenta',
+    actionMembership: 'Afiliarme',
+    actionRegistration: 'Inscribirme al torneo',
+    actionRegistrationPending: 'Ver mi inscripción',
+    actionCredential: 'Ver mi credencial',
+    actionEvents: 'Ver mis competencias',
+    guideMe: 'Enseñame a moverme por el sitio',
+    guideMeHint: 'Dónde está cada cosa y cómo volver, en un recorrido corto.',
+    guideMeFields: 'Guiame campo por campo',
+    guideMeFieldsHint: 'Te explico qué poner en cada dato, de uno en uno.',
+    resume: 'Seguir donde lo dejaste',
+    resumeHint: 'Ibas por el paso {{step}} de {{total}}.',
+    locationLabel: 'Estás en',
+    views: {
+      home: 'la portada',
+      members: 'Afiliación',
+      register: 'Crear tu cuenta',
+      login: 'Entrar a tu cuenta',
+      competition: 'Inscripción al torneo',
+      profile: 'Mi cuenta',
+      events: 'el calendario',
+      pitbull: 'Pitbull Classic',
+    },
+    haveAccountLabel: '¿Ya tenés cuenta?',
+    haveAccountAction: 'Entrar con mi correo',
+    contact: 'Prefiero que me ayude una persona',
+    assist: {
+      title: 'Modo simple',
+      hint: 'Letras y botones más grandes, y una barra abajo con lo justo: inicio, tu próximo paso, tu cuenta y esta ayuda.',
+      activeHint: 'Está activado. Podés apagarlo desde acá cuando quieras.',
+    },
+    assistNav: {
+      aria: 'Navegación simple',
+      home: 'Inicio',
+      account: 'Mi cuenta',
+      login: 'Acceder',
+      help: 'Ayuda',
+      actionAccount: 'Crear cuenta',
+      actionMembership: 'Afiliarme',
+      actionRegistration: 'Inscribirme',
+      actionRegistrationPending: 'Mi inscripción',
+      actionCredential: 'Credencial',
+      actionEvents: 'Competencias',
+    },
+    tour: {
+      orientation: {
+        brand: {
+          title: 'El escudo te vuelve al inicio',
+          body: 'Estés donde estés, tocá el escudo de arriba a la izquierda y volvés a la portada. Es la forma de no quedar perdido.',
+        },
+        affiliate: {
+          title: 'Afiliación',
+          body: 'Acá está todo sobre afiliarte: qué incluye, cuánto sale y cómo pagarlo.',
+        },
+        menu: {
+          title: 'El resto del sitio',
+          body: 'Desde acá se abre lo demás: calendario de torneos, entradas, reglamento y récords.',
+        },
+        account: {
+          title: 'Tu cuenta',
+          body: 'Acá entrás con tu correo y contraseña. Si ya estás dentro, es donde ves tu credencial.',
+        },
+        help: {
+          title: 'La ayuda está siempre acá',
+          body: 'Este botón aparece en todas las pantallas. Siempre te dice en qué paso estás y cuál es el que sigue.',
+        },
+        footer: {
+          title: 'Abajo está el índice completo',
+          body: 'Si no encontrás algo, al final de cada página está la lista de todas las secciones.',
+        },
+        assistHome: {
+          title: 'Inicio',
+          body: 'Este botón te devuelve a la portada desde cualquier pantalla.',
+        },
+        assistAction: {
+          title: 'Tu próximo paso',
+          body: 'El botón del medio siempre te lleva a lo que te falta hacer. Va cambiando solo según cómo vas: crear la cuenta, afiliarte, inscribirte.',
+        },
+        assistAccount: {
+          title: 'Tu cuenta',
+          body: 'Acá entrás con tu correo y contraseña. Si ya estás dentro, es donde ves tu credencial.',
+        },
+        assistHelp: {
+          title: 'La ayuda',
+          body: 'Este botón abre la ayuda. Ahí ves en qué paso estás y podés apagar el modo simple cuando quieras.',
+        },
+        action_home: {
+          title: 'Desde acá arranca todo',
+          body: 'Este botón te lleva a la afiliación, que es lo primero para poder competir.',
+        },
+        action_members: {
+          title: 'Acá empieza la afiliación',
+          body: 'Tocá para arrancar. Si todavía no tenés cuenta, te la vamos a pedir primero.',
+        },
+        action_events: {
+          title: 'Desde acá te inscribís',
+          body: 'Cada torneo tiene sus botones: ver el detalle completo o inscribirte.',
+        },
+        action_pitbull: {
+          title: 'El botón para inscribirte',
+          body: 'Te pide cuenta y afiliación vigentes. Si te falta alguna, la ayuda te lleva a resolverla.',
+        },
+        action_profile: {
+          title: 'Tu cuenta por partes',
+          body: 'Credencial, competencias, afiliación y datos personales. Deslizá la cinta para ver todas.',
+        },
+      },
+      loginCoach: {
+        email: {
+          title: 'Tu correo electrónico',
+          body: 'El mismo correo con el que creaste la cuenta. Si no te acordás, probá con el que usás siempre.',
+        },
+        password: {
+          title: 'Tu contraseña',
+          body: 'La que elegiste al crear la cuenta. Tocá el ojito de la derecha si querés ver lo que escribís.',
+        },
+        forgot: {
+          title: 'Si no te acordás la contraseña',
+          body: 'Tocá acá y te mandamos un correo para poner una nueva. No perdés nada de lo que ya hiciste.',
+        },
+        submit: {
+          title: 'Y listo: Ingresar',
+          body: 'Si el correo o la contraseña no coinciden, te lo avisamos debajo del campo y podés volver a intentar.',
+        },
+        join: {
+          title: 'Si nunca te registraste',
+          body: 'Este enlace te lleva a crear la cuenta desde cero. Es el paso 1 de todo el trámite.',
+        },
+      },
+      registerCoach: {
+        fullName: {
+          title: 'Tu nombre y apellido',
+          body: 'Escribilo como figura en tu documento. Por ejemplo: María Rivas.',
+        },
+        country: {
+          title: 'Tu nacionalidad',
+          body: 'Abrí la lista y elegí tu país. Si sos argentino elegí Argentina: eso define qué documento te pedimos después.',
+        },
+        documentId: {
+          title: 'Tu número de documento',
+          body: 'Sólo los números, sin puntos ni guiones. Por ejemplo: 28456789.',
+        },
+        birthDate: {
+          title: 'Tu fecha de nacimiento',
+          body: 'Escribí día, mes y año, o tocá el calendario del costado y elegila ahí.',
+        },
+        email: {
+          title: 'Tu correo electrónico',
+          body: 'Tiene que ser un correo al que puedas entrar: te vamos a mandar un mail para confirmar la cuenta.',
+        },
+        phone: {
+          title: 'Tu teléfono',
+          body: 'Tu celular con el código de área. Por ejemplo: +54 9 11 1234 5678.',
+        },
+        password: {
+          title: 'Tu contraseña',
+          body: 'Inventá una de 12 letras o números como mínimo. Anotala en un papel si te ayuda: la vas a necesitar para entrar.',
+        },
+        continue: {
+          title: 'Ahora tocá Continuar',
+          body: 'Guarda lo que escribiste y pasa a la segunda parte. Si algo quedó incompleto te lo marca y no te deja avanzar.',
+        },
+        province: {
+          title: 'Tu provincia',
+          body: 'Abrí la lista y elegí la provincia donde vivís.',
+        },
+        city: {
+          title: 'Tu ciudad',
+          body: 'La ciudad o localidad donde vivís.',
+        },
+        gym: {
+          title: 'Tu gimnasio o club',
+          body: 'Dónde entrenás. Si entrenás solo, escribí Independiente.',
+        },
+        sex: {
+          title: 'Categoría con la que competís',
+          body: 'Elegí una de las dos opciones. Define en qué categoría se cargan tus marcas.',
+        },
+        finish: {
+          title: 'Listo: creá tu cuenta',
+          body: 'Con esto queda tu ficha cargada. Después te llega un correo para confirmarla y ya podés afiliarte.',
+        },
+      },
+      competitionCoach: {
+        division: {
+          title: 'Tu división',
+          body: 'Elegí la división en la que vas a competir. Si no estás seguro, mirá el reglamento o pedí ayuda antes de seguir.',
+        },
+        category: {
+          title: 'Tu categoría de peso',
+          body: 'La categoría que corresponde a tu peso. En el pesaje oficial del día se confirma.',
+        },
+        estimatedWeight: {
+          title: 'Tu peso estimado',
+          body: 'Tu peso de hoy, en kilos. Es una estimación para armar los grupos: no te compromete.',
+        },
+        method: {
+          title: 'Cómo vas a pagar',
+          body: 'Elegí una forma de pago. Si eligís transferencia o efectivo, en el paso siguiente te mostramos cómo continuar.',
+        },
+        finish: {
+          title: 'Confirmá tu inscripción',
+          body: 'Arriba del botón está el total. Al confirmar queda tu inscripción cargada a tu nombre.',
+        },
+      },
+    },
   },
   launchTeaser: {
     badge: 'Apertura oficial',
@@ -530,6 +864,7 @@ export default {
     message: 'Mensaje',
     messagePlaceholder: 'En qué podemos ayudarte…',
     submit: 'Enviar',
+    submitting: 'Enviando…',
     submitNote: 'Respuesta en 24–48 h hábiles.',
     formEyebrow: 'Consulta',
     formTitle: 'Escribinos',
@@ -537,6 +872,9 @@ export default {
     sentTitle: 'Consulta enviada',
     sentDesc:
       'El equipo de Maximal / PLU ARG te va a responder a la brevedad por el correo que dejaste.',
+    errorTitle: 'No se pudo enviar',
+    errorDesc: 'Volvé a intentar en un momento, o escribinos directo a {{email}}.',
+    errorRetry: 'Reintentar',
     sidebarTitle: 'Datos de contacto',
     sidebarEmail: 'hola@pluarg.com.ar',
     sidebarLocation: 'Buenos Aires, Argentina',
@@ -702,23 +1040,184 @@ export default {
     navAria: 'Secciones de tu cuenta',
     nav: {
       qr: 'Credencial',
+      benefits: 'Beneficios',
       offer: 'Oferta exclusiva',
       events: 'Torneos',
       history: 'Historial',
       membership: 'Afiliación',
+      payments: 'Pagos',
       personalData: 'Mis datos',
       security: 'Seguridad',
+      needsAttention: 'Tenés algo para resolver acá',
+    },
+    benefits: {
+      eyebrow: 'Códigos y promociones',
+      title: 'Tus beneficios',
+      lead: 'Ingresá o escaneá tu código una sola vez. Te mostramos qué habilita y lo dejamos listo para usar en el pago correspondiente.',
+      safeNote:
+        'Canjear no genera un cobro ni consume el cupo. El beneficio se confirma recién cuando creás la orden.',
+      openOffer: 'Ver mi oferta exclusiva desbloqueada',
+      typesTitle: 'Qué puede habilitar un código',
+      types: {
+        discount: {
+          title: 'Descuento o precio especial',
+          lead: 'Se aplica al total cuando abrís el checkout compatible.',
+        },
+        access: {
+          title: 'Acceso reservado',
+          lead: 'Habilita una inscripción o paquete que no aparece en el catálogo público.',
+        },
+        offer: {
+          title: 'Oferta exclusiva',
+          lead: 'Guarda una propuesta privada en tu cuenta para retomarla sin volver a ingresar el código.',
+        },
+      },
+    },
+    payments: {
+      eyebrow: 'Cobros',
+      title: 'Pagos',
+      lead: 'El estado de cada cobro, tal como lo registró el medio de pago.',
+      emptyTitle: 'Todavía no generaste ningún cobro',
+      emptyLead:
+        'Cuando te afilies o te inscribas a un torneo, cada pago va a aparecer acá con su estado y su comprobante.',
+      emptyAction: 'Ir a Afiliación',
+      alertTitle_one: 'Tenés {{count}} cobro para resolver',
+      alertTitle_other: 'Tenés {{count}} cobros para resolver',
+      alertBody:
+        'Mercado Pago rechazó el pago y por eso la afiliación o la inscripción no quedó confirmada. Volvé a intentarlo desde el cobro marcado abajo.',
+      settledAfterAttempts_one:
+        'Se acreditó después de {{count}} intento rechazado. Si te llegó un aviso de rechazo, quedó sin efecto.',
+      settledAfterAttempts_other:
+        'Se acreditó después de {{count}} intentos rechazados. Si te llegó un aviso de rechazo, quedó sin efecto.',
+      mismatch:
+        'Registramos tu pago y lo estamos terminando de acreditar. No hace falta que pagues de nuevo.',
+      resolvedElsewhere: {
+        membership:
+          'Tu afiliación quedó activa igual: la habilitó la organización por otra vía. Este cobro no se llegó a pagar y no tenés que volver a pagarlo.',
+        registration:
+          'Tu inscripción quedó confirmada igual: la habilitó la organización por otra vía. Este cobro no se llegó a pagar y no tenés que volver a pagarlo.',
+      },
+      state: {
+        acreditado: 'Acreditado',
+        en_revision: 'En revisión',
+        revision_pendiente: 'Acreditando',
+        esperando_comprobante: 'Falta el comprobante',
+        esperando_pago: 'Esperando el pago',
+        esperando_pago_en_sede: 'A pagar en la sede',
+        procesando: 'Procesando',
+        rechazado: 'Rechazado',
+        cancelado: 'Cancelado',
+        reembolsado: 'Reembolsado',
+      },
+      stage: {
+        creada: 'Generado',
+        pagando: 'Pagando',
+        comprobante: 'Comprobante',
+        revision: 'Revisión',
+        pago_en_sede: 'Pago en sede',
+        acreditado: 'Acreditado',
+      },
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Transferencia bancaria',
+        wise_transfer: 'Transferencia Wise',
+        cash_pitbull: 'Efectivo en la sede',
+      },
+      action: {
+        retry: 'Generar un cobro nuevo',
+      },
+      reason: {
+        expired_without_attempt:
+          'Venció el {{date}} sin que se registrara ningún intento de pago: el checkout se abrió pero no se llegó a pagar.',
+        expired_after_attempt: 'Venció el {{date}} y ningún intento de pago llegó a acreditarse.',
+        closed_without_attempt: 'Se cerró sin que se registrara ningún intento de pago.',
+        closed_after_attempt: 'Se cerró sin que ningún intento de pago llegara a acreditarse.',
+        provider_cancelled: 'Mercado Pago dio el pago por cancelado.',
+        staff_rejected: 'Rechazado por la organización.',
+        cc_rejected_insufficient_amount: 'La tarjeta no tenía fondos suficientes.',
+        cc_rejected_bad_filled_card_number: 'El número de tarjeta quedó mal cargado.',
+        cc_rejected_bad_filled_date: 'La fecha de vencimiento de la tarjeta era incorrecta.',
+        cc_rejected_bad_filled_security_code: 'El código de seguridad era incorrecto.',
+        cc_rejected_bad_filled_other: 'Algún dato de la tarjeta quedó mal cargado.',
+        cc_rejected_call_for_authorize:
+          'Tu banco pide que autorices este monto. Llamalos y volvé a intentar.',
+        cc_rejected_card_disabled: 'La tarjeta está inactiva. Activala con tu banco.',
+        cc_rejected_duplicated_payment: 'Ya había un pago igual reciente.',
+        cc_rejected_high_risk: 'Mercado Pago rechazó el pago por seguridad. Probá con otro medio.',
+        cc_rejected_max_attempts: 'Se agotaron los intentos permitidos. Probá con otra tarjeta.',
+        cc_rejected_other_reason: 'El banco rechazó el pago sin dar un motivo.',
+        cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',
+        cc_rejected_card_type_not_allowed: 'Ese tipo de tarjeta no está habilitado.',
+        pending_contingency: 'Mercado Pago está procesando el pago. Se acredita solo.',
+        pending_review_manual: 'Mercado Pago lo dejó en revisión. Se resuelve en minutos u horas.',
+        pending_waiting_transfer: 'Esperando que se acredite la transferencia.',
+        pending_waiting_payment: 'Cupón emitido: falta pagarlo en efectivo.',
+      },
     },
     offer: {
       eyebrow: 'Código secreto canjeado',
+      title: 'Tu oferta exclusiva',
+      codeLabel: 'Código',
       lead: 'Canjeaste el código secreto {{code}}. Esta oferta es sólo para vos y no está publicada en ningún lado.',
       packageLabel: 'Afiliación + Inscripción',
       membershipFallback: 'Afiliación anual',
+      remaining: '{{count}} cupos disponibles',
       registrationLine: 'Inscripción {{event}}',
       yourPrice: 'Tu precio',
       savings: 'Ahorrás {{amount}} sobre la suma de las dos compras.',
       savingsRedeemed: 'Ahorraste {{amount}} sobre la suma de las dos compras.',
-      cta: 'Completar mi inscripción',
+      cta: {
+        mercado_pago: 'Procesar el pago de la oferta',
+        bank_transfer: 'Continuar con la transferencia',
+        cash_pitbull: 'Reservar y pagar en efectivo',
+      },
+      entryLegend: 'Datos de tu inscripción',
+      entryHint: 'Los tomamos de tu perfil. Revisalos antes de pagar.',
+      entryEdit: 'Ajustar mis datos',
+      channelLegend: 'Cómo querés pagar',
+      channel: {
+        mercado_pago: 'Mercado Pago',
+        bank_transfer: 'Transferencia bancaria',
+        cash_pitbull: 'Efectivo en el evento',
+      },
+      checkoutNote: {
+        mercado_pago: 'El cobro se procesa acá mismo, con el importe exclusivo de tu código.',
+        bank_transfer:
+          'Te damos los datos para transferir acá mismo y subís el comprobante sin salir de esta página.',
+        cash_pitbull:
+          'Reservás la oferta ahora y pagás en efectivo el día del evento, con la referencia que te damos acá.',
+      },
+      // Mismo lugar que la nota de canal, otra frase: cuando el código deja
+      // avisar el pago, eso es lo que hay que decir antes de comprar, no
+      // después. Sólo aplica a los canales que se cobran a mano.
+      checkoutNoteFinanced: {
+        bank_transfer:
+          'Te damos los datos para transferir y podés avisarnos el pago: quedás habilitado en el momento y Finanzas valida el comprobante después.',
+        cash_pitbull:
+          'Reservás la oferta ahora y pagás en efectivo el día del evento. Si avisás que arreglaste el pago, quedás habilitado en el momento.',
+      },
+      financingLegal:
+        'Avisar el pago no lo acredita: el saldo queda abierto hasta que Finanzas lo valide.',
+      checkoutClosed: 'El cobro está cerrado por ahora. Tu oferta queda reservada.',
+      checkoutUnavailable: 'No pudimos abrir el cobro. Volvé a intentar en un momento.',
+      payTitle: {
+        mercado_pago: 'Pagá tu oferta',
+        bank_transfer: 'Transferí el importe de tu oferta',
+        cash_pitbull: 'Pagás en efectivo el día del evento',
+      },
+      paySafeNote: 'Cobro seguro de Mercado Pago, dentro de tu cuenta.',
+      payManualNote: 'Tu lugar queda reservado; el equipo confirma el pago a mano.',
+      cashLead:
+        'Reservamos tu oferta por {{amount}}. Llevá el importe en efectivo y mostrá esta referencia en la mesa de acreditación.',
+      cashReference: 'Referencia de tu orden',
+      cashFine: 'Si no llegás a pagarla el día del evento, la oferta se libera y vuelve al cupo.',
+      backToDetail: 'Volver al detalle',
+      resumeAction: 'Terminar de pagar',
+      manualPendingAction: 'Ver el estado de mi pago',
+      orderConcept: 'Afiliación + inscripción {{event}}',
+      settledTitle: 'Pago acreditado',
+      settledLead:
+        'Tu afiliación y tu inscripción quedan confirmadas en cuanto el pago termine de acreditarse.',
       expires: 'La oferta se cierra el {{date}}.',
       more: 'Tenés {{count}} oferta más desbloqueada.',
       redeemedAction: 'Ver mi inscripción',
@@ -726,17 +1225,22 @@ export default {
       profileIncompleteAction: 'Completar mis datos',
       state: {
         redeemed: 'Ya compraste esta oferta. Tu afiliación y tu inscripción quedaron registradas.',
+        financed:
+          'FIAR ya habilitó tu afiliación y tu inscripción. El saldo continúa en Pagos hasta que Finanzas lo revise.',
         expired: 'Esta oferta se cerró.',
         not_started: 'Esta oferta todavía no está abierta.',
         offer_unavailable:
           'La oferta no está disponible en este momento. Escribinos si creés que es un error.',
         missing: 'No encontramos la oferta.',
+        pending_payment:
+          'Tu compra quedó iniciada y espera el pago. La afiliación y la inscripción se acreditan cuando se aprueba.',
       },
     },
     credential: {
       brandLine: 'Argentina · Credencial digital',
       athlete: 'Atleta',
       document: 'DNI o documento',
+      memberCode: 'Socio',
       birthDate: 'Fecha de nacimiento',
       gym: 'Gimnasio o equipo',
       location: 'Ubicación',
@@ -904,15 +1408,20 @@ export default {
       comboSavings: 'Ahorrás',
       comboUntil: 'Válida hasta el {{date}}',
       comboPromoHint: 'Ahorrás {{amount}} frente a pagar por separado.',
-      discountLabel: 'Código de descuento',
-      discountToggle: 'Tengo un código de descuento',
-      discountPlaceholder: 'Ej: VERANO2026',
-      discountApply: 'Aplicar',
+      discountLabel: 'Código',
+      discountToggle: 'Tengo un código',
+      discountHint: 'Canjeá tu código.',
+      discountPlaceholder: 'INGRESÁ TU CÓDIGO',
+      discountApply: 'Canjear',
       discountChecking: 'Validando…',
       publicPromoApplied: 'Promoción vigente · ahorrás {{amount}}',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
+      // Delegar el pago: la promesa es habilitacion inmediata, no
+      // acreditacion. La deuda sigue abierta hasta que Finanzas valide.
+      discountFinanced:
+        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -924,21 +1433,7 @@ export default {
         no_savings: 'Ese código no mejora el precio de esta compra.',
         not_started: 'Ese código todavía no está vigente.',
         not_invited: 'Ese código está reservado para otras cuentas.',
-      },
-      offerUnlocked: {
-        eyebrow: 'Canjeaste el código secreto',
-        lead: 'Desbloqueaste la oferta de afiliación + inscripción a {{event}}. Está esperándote en tu ficha de oferta exclusiva.',
-        cta: 'Ver mi oferta',
-      },
-      offerUnlockError: {
-        not_found: 'Ese código no existe.',
-        not_applicable: 'Ese código no desbloquea ninguna oferta.',
-        inactive: 'Esa oferta ya no está disponible.',
-        expired: 'Esa oferta se cerró.',
-        not_started: 'Esa oferta todavía no está abierta.',
-        limit_reached: 'Esa oferta agotó su cupo.',
-        not_invited: 'Esa oferta está reservada para otras cuentas.',
-        offer_unavailable: 'Esa oferta no está disponible en este momento.',
+        offer_unavailable: 'Esa oferta ya no está disponible.',
       },
       paymentLegend: 'Método de pago',
       planSelector: 'Plan de afiliación',
@@ -1014,7 +1509,7 @@ export default {
       transferCopyField: 'Copiar {{field}}',
       transferNotesLabel: 'Observaciones (opcional)',
       transferNotesPlaceholder: 'Algo que Finanzas debería saber sobre este pago',
-      transferUnderstood: 'Enviar a validación',
+      transferUnderstood: 'Cerrar',
       proofAction: 'Adjuntar comprobante',
       proofUploading: 'Subiendo comprobante...',
       proofUploaded:
@@ -1071,8 +1566,8 @@ export default {
       errorEmergencyPhone: 'Ingresá un teléfono de emergencia válido.',
       errorInstagram: 'Ingresá sólo tu usuario de Instagram, sin enlace ni espacios.',
       errorBestTotal: 'Ingresá un total entre 10 y 2.000 kg.',
-      errorFullName: 'IngresÃ¡ tu nombre completo.',
-      errorBirthDate: 'IngresÃ¡ tu fecha de nacimiento.',
+      errorFullName: 'Ingresá tu nombre completo.',
+      errorBirthDate: 'Ingresá tu fecha de nacimiento.',
       errorCountry: 'Seleccioná tu país.',
       profileComplete: 'Perfil completo',
       profileIncomplete_one: '{{count}} campo pendiente',
@@ -1357,7 +1852,7 @@ export default {
       venueEyebrow: 'Punto de encuentro confirmado',
       venueTitle: 'Pitbull Classic',
       venueDesc:
-        'Organiza Maximal Strength Club. Consultá la ficha del evento para ver sede, fecha y toda la información operativa publicada.',
+        'Organiza PLU Argentina en La Troupe Multiespacio, Banfield. Consultá la ficha del evento para ver sede, fecha y toda la información operativa publicada.',
       venueCta: 'Ver Pitbull Classic',
       directoryEyebrow: 'Directorio de sedes',
       directoryTitle: 'El padrón público está en preparación',
@@ -2008,19 +2503,21 @@ export default {
         'Formato 9:16 con QR de ingreso · se genera automáticamente al confirmar',
       categoriesEyebrow: 'Categorías',
       categoriesIndex: '04',
-      categoriesListAria: 'Categorías y divisiones del evento',
+      categoriesListAria: 'Modalidades, equipamiento y divisiones del evento',
       categoriesTitle: 'Modalidades y divisiones',
       categoriesDesc: 'Sujetas a confirmación del reglamento oficial PLU ARG.',
       categoriesPendingLabel: 'Pendiente de confirmación',
       categoriesSummary: '{{count}} categorías · {{categories}} · {{divisions}}',
       categoriesCount: '{{count}} categorías',
-      categoriesTotals: '{{modalities}} modalidades · {{divisions}} divisiones',
-      categoriesGroupCount: '{{count}}',
+      categoriesTotals:
+        '{{modalities}} modalidades · {{equipment}} equipamiento · {{divisions}} divisiones',
       categoriesModalities: 'Modalidades',
-      categoriesModalitiesHint: 'Equipamiento',
+      categoriesModalitiesHint: 'Levantamientos reconocidos',
+      categoriesEquipment: 'Equipamiento',
+      categoriesEquipmentHint: 'Categoría de equipo',
       categoriesDivisions: 'Divisiones',
       categoriesDivisionsHint: 'Clase de edad',
-      categoriesToggle: 'Ver categorías y divisiones del evento',
+      categoriesToggle: 'Ver modalidades, equipamiento y divisiones del evento',
       viewFullRulebook: 'Ver reglamento completo',
       ticketsTitle: '¿Querés mirar el evento?',
       ticketsLead:
@@ -2056,6 +2553,7 @@ export default {
       weighInsFridayNote: 'Pesaje adelantado. Opcional para todas las categorías.',
       weighInsSaturdayNote:
         'Último llamado. Exclusivo para atletas que compiten y no se pesaron el viernes.',
+      normativeDividerLabel: 'PLU ARG · Pitbull Classic 2026',
       ticketsFormTitle: 'Conseguir entrada',
       ticketPassCta: 'Conseguir entrada',
       resourcesIndex: '08',
@@ -2585,7 +3083,7 @@ export default {
       competitionProfileYears: 'años',
       competitionProfileSex: 'Sexo competitivo',
       competitionCommitmentLocked:
-        'Tu división, categoría y peso declarados para este torneo ya quedaron asentados.',
+        'Tu división, modalidad y categoría declaradas para este torneo ya quedaron asentadas.',
       competitionSubmit: 'Generar inscripción',
       checkoutSoon:
         'Los cobros e inscripciones abren en breve. Creá tu cuenta y pedí aviso al abrir.',
@@ -2598,23 +3096,28 @@ export default {
       checkoutContinue: 'Continuar al pago',
       checkoutRegistrationLine: 'Inscripción',
       competitionFormTitle: 'Definí tu entrada',
-      competitionFormDesc: 'División, categoría y peso.',
+      competitionFormDesc: 'División, modalidad y categoría.',
       packageLegend: 'Paquete',
       packageSavings: 'Ahorrás {{amount}}',
-      discountLabel: 'Código de descuento',
-      discountPlaceholder: 'Ej: VERANO2026',
-      discountApply: 'Aplicar',
+      discountLabel: 'Código',
+      discountHint: 'Canjeá tu código.',
+      discountPlaceholder: 'INGRESÁ TU CÓDIGO',
+      discountApply: 'Canjear',
       discountChecking: 'Validando...',
       comboCodeLead: 'Este paquete es cerrado: se compra sólo con el código que te pasaron.',
-      comboCodeLabel: 'Código del combo',
-      comboCodePlaceholder: 'Ej: COMBO-PITBULL',
-      comboCodeApply: 'Desbloquear',
+      comboCodeLabel: 'Código',
+      comboCodePlaceholder: 'INGRESÁ TU CÓDIGO',
+      comboCodeApply: 'Canjear',
       comboCodeChecking: 'Verificando…',
       comboCodeError: 'Ese código de combo no es válido.',
       publicPromoApplied: 'Promoción vigente · ahorrás {{amount}}',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
+      // Misma promesa que en Afiliacion: habilitacion inmediata contra una
+      // deuda abierta, nunca acreditacion.
+      discountFinanced:
+        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -2628,11 +3131,7 @@ export default {
         not_invited: 'Ese código está reservado para otras cuentas.',
         other_event: 'Ese código es de otra inscripción.',
         other_event_named: 'Ese código es de {{event}}, no de este torneo.',
-      },
-      offerUnlocked: {
-        eyebrow: 'Canjeaste el código secreto',
-        lead: 'Tu oferta de afiliación + inscripción a {{event}} ya está aplicada abajo.',
-        viewInAccount: 'Ver mi oferta en Mi cuenta',
+        offer_unavailable: 'Esa oferta ya no está disponible.',
       },
       competitionPaymentTitle: 'Cómo pagás',
       competitionPaymentDesc: 'Elegí el medio para generar la orden.',
@@ -2641,6 +3140,8 @@ export default {
         'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
       paymentNoChannelHint:
         'No hay medios de pago disponibles en este momento. Volvé a intentar más tarde o escribinos.',
+      paymentCodeWithoutGatewayHint:
+        'Tu código no se paga con Mercado Pago: el precio quedó pactado para los medios que ves acá. El equipo valida el pago a mano.',
       paymentLinkLabel: 'Link de pago',
       paymentTransferLabel: 'Transferencia bancaria',
       // Faltaba: `RegisterSettle` ya ofrecía la opción, así que el selector
@@ -2788,7 +3289,7 @@ export default {
       credentialGymEmpty: 'Gimnasio / Club',
       credentialLocationEmpty: 'Ciudad, provincia',
       sexCompetitive: 'Sexo competitivo',
-      bodyWeight: 'Peso corporal',
+      bodyWeight: 'Categoría',
       bodyWeightPlaceholder: 'Ej.: 67,5 kg',
       procedureType: 'Tipo de trámite',
       procedureRegistration: 'Inscripción a {{event}}',
@@ -2801,7 +3302,7 @@ export default {
       sex: 'Sexo',
       competitionDataDesc: 'Datos específicos para esta competencia.',
       division: 'División',
-      category: 'Categoría',
+      category: 'Modalidad',
       estimatedWeight: 'Peso estimado (kg)',
       paymentTitle: 'Método de pago',
       paymentDescProfile: 'Elegí cómo pagar tu afiliación.',
@@ -2864,6 +3365,7 @@ export default {
     competingIn: 'Compito en',
     qrScan: 'Escaneá el QR para verificar tu ingreso',
     qrScanMembership: 'Escaneá el QR para verificar la afiliación',
+    joinCta: 'Afiliate en plu-arg.com',
     issued: 'Emitido {{date}}',
     tagline: '@pluarg',
   },

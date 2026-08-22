@@ -24,6 +24,17 @@ const STATUS_BY_CODE = {
   PLU22: 409,
   PLU23: 409,
   PLU24: 409,
+  // Misma familia, agregados después: todavía no está vigente (PLU25),
+  // reservado para otras cuentas (PLU26), es de otra inscripción (PLU27) y no
+  // acepta el medio de pago elegido (PLU28, ver
+  // 20260908100000_promo_code_mercado_pago_optout). Los tres primeros ya los
+  // levantaba la RPC sin mapeo y salían como 503; PLU28 nace mapeado porque el
+  // checkout tiene que poder distinguir "código inválido" de "este código no se
+  // paga con la pasarela".
+  PLU25: 409,
+  PLU26: 409,
+  PLU27: 409,
+  PLU28: 409,
   23505: 409,
   23503: 409,
   23514: 400,
@@ -46,12 +57,25 @@ const STATUS_BY_CODE = {
   42883: 500,
 }
 
+// Violaciones de integridad: unique, foreign key y check. A diferencia de los
+// PLU*, que la base levanta con una frase escrita para el atleta, estos traen
+// el nombre crudo del constraint -- `duplicate key value violates unique
+// constraint "event_registrations_event_id_athlete_id_key"`. Eso ya se mostro
+// tal cual en el checkout de Pitbull. Cuando pasa, el unico texto presentable
+// es el fallback en castellano que aporta cada call site; el mensaje de
+// Postgres viaja en `details` para que quede en el log del errorHandler y no
+// en la pantalla.
+const RAW_INTEGRITY_CODES = new Set(['23505', '23503', '23514'])
+
 export function assertSupabaseResult(result, fallback = 'No se pudo completar la operacion.') {
   if (!result?.error) return result?.data
   const status = STATUS_BY_CODE[result.error.code] ?? 503
-  throw new HttpError(status, result.error.message || fallback, {
+  const raw = result.error.message
+  const leaksConstraintName = RAW_INTEGRITY_CODES.has(String(result.error.code))
+  throw new HttpError(status, (!leaksConstraintName && raw) || fallback, {
     code: result.error.code,
     details: result.error.details,
+    ...(leaksConstraintName && raw ? { raw } : {}),
   })
 }
 

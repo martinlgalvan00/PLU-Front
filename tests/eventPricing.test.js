@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveComboDeal } from '../src/lib/eventPricing.js'
+import { resolveComboDeal, resolveLiveComboOffer } from '../src/lib/eventPricing.js'
 
 describe('resolveComboDeal', () => {
   it('calcula ahorro y 20% sobre 75k + 75k a 120k', () => {
@@ -32,5 +32,38 @@ describe('resolveComboDeal', () => {
 
   it('ignora montos inválidos', () => {
     expect(resolveComboDeal({ membership: 0, registration: 75000, combo: 120000 }).live).toBe(false)
+  })
+})
+
+describe('resolveLiveComboOffer', () => {
+  it('no publica combos apagados ni restringidos', () => {
+    expect(resolveLiveComboOffer({ comboOffer: { active: false, price: 120000 } })).toBeNull()
+    expect(
+      resolveLiveComboOffer({
+        comboOffer: { active: true, audience: 'code', price: 120000 },
+      }),
+    ).toBeNull()
+  })
+
+  it('permite resolver el combo restringido solo en un contexto desbloqueado', () => {
+    const offer = { active: true, audience: 'code', price: 120000 }
+    expect(
+      resolveLiveComboOffer({ comboOffer: offer }, new Date(), { includeRestricted: true }),
+    ).toBe(offer)
+  })
+
+  it('nunca resuelve un combo privado, ni desde un contexto desbloqueado', () => {
+    const offer = { active: true, audience: 'private', price: 120000 }
+    expect(
+      resolveLiveComboOffer({ comboOffer: offer }, new Date(), { includeRestricted: true }),
+    ).toBeNull()
+  })
+
+  it('no publica un combo archivado aunque siga con active=true (20260914100000)', () => {
+    // El fallback de `fetchPublishedEvents` a Supabase directo no pasa por
+    // `sanitizePublicCatalogEvent`: sin este chequeo, un combo archivado con
+    // su precio congelado volvía a anunciarse a cualquier visitante.
+    const offer = { active: true, audience: 'public', price: 120000, archivedAt: '2026-09-14T10:00:00Z' }
+    expect(resolveLiveComboOffer({ comboOffer: offer })).toBeNull()
   })
 })

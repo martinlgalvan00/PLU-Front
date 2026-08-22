@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
-  ArrowRight,
   CalendarClock,
   Check,
   ImageDown,
+  KeyRound,
   LockKeyhole,
   RefreshCw,
   ShieldCheck,
@@ -17,26 +17,36 @@ import { formatShortDate, money } from '../../lib/format.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
-import { previewDiscountCode, unlockOfferCode } from '../../services/athleteApi.js'
+import { previewDiscountCode } from '../../services/athleteApi.js'
 import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
-import { isOfferUnlockKind } from '../../services/exclusiveOfferService.js'
+import {
+  clearPendingPromotionCode,
+  promotionDestination,
+  readPendingPromotionCode,
+  redeemPromotionCode,
+  savePendingPromotionCode,
+} from '../../services/promotionCodeService.js'
 import {
   getMembershipLifecycle,
   isMembershipCurrent,
   MEMBERSHIP_LIFECYCLE,
 } from '../../services/membershipService.js'
+import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
 import CheckoutDesk, { CheckoutBar } from '../../components/checkout/CheckoutDesk.jsx'
+import CodeScanButton from '../../components/ui/CodeScanButton.jsx'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import Reveal from '../../components/ui/Reveal.jsx'
 import SeasonComboOffer from '../../components/ui/SeasonComboOffer.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
+import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentConfirmation.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
 import { channelOpen } from '../../lib/paymentChannels.js'
+import '../../styles/components/code-band.css'
 
 export default function MembershipPurchaseSection({
   athlete,
@@ -49,8 +59,7 @@ export default function MembershipPurchaseSection({
   events = [],
   onSelectEvent,
   checkoutAvailability = {},
-  onNavigateSection,
-  onOfferUnlocked,
+  onNavigate,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -58,6 +67,7 @@ export default function MembershipPurchaseSection({
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [transferChannel, setTransferChannel] = useState('bank_transfer')
   const [transferAmount, setTransferAmount] = useState(null)
+  const [manualOrder, setManualOrder] = useState(null)
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
@@ -83,7 +93,7 @@ export default function MembershipPurchaseSection({
   // Oferta exclusiva recién canjeada desde esta pantalla. No entra al cálculo
   // del precio de la afiliación: la oferta se compra en el checkout del torneo.
   // Acá sólo se confirma el canje y se ofrece la ficha donde vive.
-  const [unlockedOffer, setUnlockedOffer] = useState(null)
+  const pendingPromotionAppliedRef = useRef(null)
   // Promoción que corre para todos y se aplica sola dentro de la transacción de
   // compra. Se guarda aparte del cupón tipeado porque son dos cosas distintas:
   // el cupón se puede quitar, la promo pública no es del atleta. Si hay cupón,
@@ -136,8 +146,14 @@ export default function MembershipPurchaseSection({
   const transferOffered = transferSelectable || manualChannelsOpenGlobally
   const cashOffered = cashSelectable || manualChannelsOpenGlobally
   // La pasarela también se cierra por concepto desde Administración. Un cupón no
-  // la reabre: sólo destraba canales manuales.
-  const mercadoPagoOffered = channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
+  // la reabre —para eso sólo sirven los canales manuales—, pero sí la puede
+  // cerrar: un código pactado a un precio que sólo cierra por transferencia o
+  // en efectivo viaja con `mercadoPagoEnabled: false` (20260908100000) y la RPC
+  // rechaza la orden con PLU28.
+  const codeClosesMercadoPago =
+    discountPreview?.valid && discountPreview.mercadoPagoEnabled === false
+  const mercadoPagoOffered =
+    !codeClosesMercadoPago && channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
   // Wise tiene interruptor propio, independiente del canal manual local y de
   // los cupones que lo destraban.
   const wiseOffered = channelOpen(checkoutAvailability, 'membership', 'wise_transfer')
@@ -333,14 +349,47 @@ export default function MembershipPurchaseSection({
     wiseOffered,
   ])
 
-  async function applyDiscountCode() {
-    const code = discountCodeInput.trim().toUpperCase()
+  async function applyDiscountCode(codeOverride) {
+    const override = typeof codeOverride === 'string' ? codeOverride : null
+    const code = (override ?? discountCodeInput).trim().toUpperCase()
     if (!code || !selectedPlan) return
+    /*
+     * Recotización: el mismo código ya está aplicado y lo único que cambió es
+     * el canal, que puede cobrar otro importe. No vuelve a pasar por el
+     * resolvedor —sería un evento de embudo y un round-trip de más por cada
+     * cambio de medio de pago, además de reintentar el unlock— y tampoco vuelve
+     * a resolver destino: ese canje ya llegó acá. Mismo criterio que el
+     * checkout de inscripción, donde esta guarda existía sólo para el código de
+     * la oferta.
+     */
+    const repricing = discountPreview?.valid === true && discountPreview.code === code
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
-    setUnlockedOffer(null)
     try {
+      let resolution = null
+      if (!repricing) {
+        try {
+          resolution = await redeemPromotionCode(code, {
+            surface: 'membership',
+            planCode: selectedPlan.code,
+          })
+        } catch {
+          // Compatibilidad durante despliegues escalonados: el preview económico
+          // existente sigue operativo aunque el resolvedor nuevo aún no responda.
+        }
+        const resolvedDestination = promotionDestination(resolution)
+        if (resolution?.accepted && resolvedDestination?.view === 'competition') {
+          savePendingPromotionCode(resolution.code, {
+            surface: 'membership',
+            destination: resolution.destination,
+            resolved: true,
+          })
+          onNavigate?.(resolvedDestination.view, resolvedDestination.options)
+          return
+        }
+      }
+
       const preview = await previewDiscountCode({
         code,
         appliesTo: 'membership',
@@ -348,18 +397,11 @@ export default function MembershipPurchaseSection({
         paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
-        // Un código de oferta exclusiva NO aplica a una afiliación suelta, y por
-        // eso el preview lo rechaza. Pero es exactamente el código que se
-        // reparte para canjear acá: en vez de un "no aplica" seco, se intenta el
-        // canje y se lo manda a su ficha. Ese es el punto de un código secreto —
-        // se tipea donde uno lo tiene a mano.
-        if (preview.reason === 'not_applicable' && isOfferUnlockKind(preview.kind)) {
-          if (await redeemSecretOffer(code)) return
-        }
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
         return
       }
       setDiscountPreview(preview)
+      clearPendingPromotionCode()
     } catch (error) {
       setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
     } finally {
@@ -367,27 +409,20 @@ export default function MembershipPurchaseSection({
     }
   }
 
-  /**
-   * Canje del código secreto desde la pantalla de afiliación.
-   *
-   * Devuelve true si desbloqueó algo: el llamador corta ahí y no muestra el
-   * error del preview. Acá no se cobra nada — el combo se compra desde el
-   * checkout del torneo, así que la pantalla anuncia el canje y ofrece la ficha.
-   */
-  async function redeemSecretOffer(code) {
-    try {
-      const unlock = await unlockOfferCode({ code })
-      if (!unlock.unlocked) {
-        setDiscountError(t(`account.membership.offerUnlockError.${unlock.reason ?? 'not_found'}`))
-        return true
-      }
-      setUnlockedOffer(unlock.offer ?? { code })
-      onOfferUnlocked?.()
-      return true
-    } catch {
-      return false
-    }
-  }
+  useEffect(() => {
+    if (!selectedPlan) return
+    const pending = readPendingPromotionCode()
+    if (!pending || pendingPromotionAppliedRef.current === pending.code) return
+    const destination = pending.context?.destination
+    // El pendiente sólo se aplica solo cuando el resolvedor ya dijo que esta
+    // ficha es su destino: el código no se canjea desde ninguna página pública,
+    // así que llegó de otro checkout que lo resolvió antes de mandarlo acá.
+    if (destination?.view !== 'profile' || destination?.tab !== 'account-membership') return
+    pendingPromotionAppliedRef.current = pending.code
+    setDiscountCodeInput(pending.code)
+    void applyDiscountCode(pending.code)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlan?.code])
 
   // El ahorro depende del canal (transferencia paga menos que Mercado Pago), así
   // que cambiar de medio después de aplicar el cupón dejaba en pantalla un
@@ -402,11 +437,24 @@ export default function MembershipPurchaseSection({
   // La promo pública se aplica sola al crear la orden. Sin este preview el
   // checkout anunciaría el precio de lista y cobraría otro. Depende del plan y
   // del canal por el mismo motivo que el cupón.
+  //
+  // Con un cupón en juego no se consulta: el cupón gana (`activeDiscount`) y la
+  // promo pública no se muestra ni se cobra, así que era un pedido por cada
+  // cambio de plan o de canal cuyo resultado nadie leía. Al quitar el cupón el
+  // efecto vuelve a correr y la repuebla.
+  //
+  // `discountChecking` entra en la condición porque recotizar limpia el preview
+  // por un instante: sin eso, cada cambio de canal volvía a disparar la consulta
+  // en ese hueco. Y no se apaga `publicPromo` acá —sólo se deja de pedir— para
+  // no parpadear la línea de promo mientras se valida un código que puede
+  // terminar rechazado.
+  const hasAppliedCode = discountChecking || discountPreview?.valid === true
   useEffect(() => {
     if (!selectedPlan) {
       setPublicPromo(null)
       return undefined
     }
+    if (hasAppliedCode) return undefined
     let cancelled = false
     void (async () => {
       try {
@@ -425,14 +473,13 @@ export default function MembershipPurchaseSection({
     return () => {
       cancelled = true
     }
-  }, [paymentMethod, selectedPlan])
+  }, [hasAppliedCode, paymentMethod, selectedPlan])
 
   function clearDiscountCode() {
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
     setDiscountOpen(false)
-    setUnlockedOffer(null)
   }
 
   function openDiscountField() {
@@ -487,12 +534,14 @@ export default function MembershipPurchaseSection({
         setTransferOrderId(result?.createdOrder?.paymentId ?? null)
         setTransferChannel(method === 'wise_transfer' ? 'wise_transfer' : 'bank_transfer')
         setTransferAmount(result?.createdOrder?.amount ?? null)
+        setManualOrder(result?.createdOrder ?? null)
         setTransferOpen(true)
         return
       }
       if (method === 'cash_pitbull') {
         setEmbeddedOrder(null)
         setChangingMethod(false)
+        setManualOrder(result?.createdOrder ?? null)
         setCheckoutMessage(t('account.membership.cashPitbullCreated'))
         return
       }
@@ -833,31 +882,6 @@ export default function MembershipPurchaseSection({
                 </div>
               ) : null}
 
-              {unlockedOffer ? (
-                <div className="offer-unlocked" role="status">
-                  <span className="offer-unlocked__eyebrow">
-                    {t('account.membership.offerUnlocked.eyebrow')}
-                  </span>
-                  <strong className="offer-unlocked__code">{unlockedOffer.code}</strong>
-                  <p className="offer-unlocked__lead">
-                    {unlockedOffer.description ||
-                      t('account.membership.offerUnlocked.lead', {
-                        event: unlockedOffer.event?.title ?? '',
-                      })}
-                  </p>
-                  {onNavigateSection ? (
-                    <button
-                      type="button"
-                      className="offer-unlocked__cta"
-                      onClick={() => onNavigateSection('account-offer')}
-                    >
-                      {t('account.membership.offerUnlocked.cta')}
-                      <ArrowRight size={16} aria-hidden />
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-
               {selectedPlan ? (
                 <div className="account-discount">
                   {!discountPreview && publicPromo ? (
@@ -870,77 +894,151 @@ export default function MembershipPurchaseSection({
                     </p>
                   ) : null}
                   {discountPreview ? (
-                    <p className="account-discount__applied">
-                      <Tag size={14} aria-hidden />
-                      {discountPreview.kind === 'fixed_price'
-                        ? t('account.membership.discountAppliedFixed', {
-                            code: discountPreview.code,
-                            amount: money(discountPreview.finalAmount, locale),
-                          })
-                        : t('account.membership.discountApplied', {
-                            code: discountPreview.code,
-                            amount: money(discountPreview.discountAmount, locale),
-                          })}
-                      <button type="button" onClick={clearDiscountCode} disabled={checkoutLocked}>
-                        {t('account.membership.discountRemove')}
-                      </button>
-                    </p>
-                  ) : discountOpen ? (
-                    <div className="account-discount__field">
-                      <label htmlFor="membership-discount-code">
-                        {t('account.membership.discountLabel')}
-                      </label>
-                      <div className="account-discount__row">
-                        <input
-                          ref={discountInputRef}
-                          id="membership-discount-code"
-                          type="text"
-                          autoComplete="off"
-                          spellCheck={false}
-                          placeholder={t('account.membership.discountPlaceholder')}
-                          value={discountCodeInput}
-                          disabled={checkoutLocked || discountChecking}
-                          onChange={(event) =>
-                            setDiscountCodeInput(event.target.value.toUpperCase())
-                          }
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault()
-                              void applyDiscountCode()
-                              return
-                            }
-                            if (event.key === 'Escape') {
-                              event.preventDefault()
-                              clearDiscountCode()
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          disabled={checkoutLocked || discountChecking || !discountCodeInput.trim()}
-                          onClick={applyDiscountCode}
-                        >
-                          {discountChecking
-                            ? t('account.membership.discountChecking')
-                            : t('account.membership.discountApply')}
-                        </button>
+                    /* Aplicado: el mismo registro que el canje universal y el
+                       campo de inscripción — código e importe separados dentro
+                       de la banda, con su palabra ("pagás" o "ahorrás"). */
+                    <div className="account-discount__applied">
+                      <div className="code-band" data-state="applied">
+                        <span className="code-band__grain" aria-hidden />
+                        <div className="code-band__frame">
+                          <div className="code-band__head">
+                            <span className="code-band__mark">{t('codeBand.markPrice')}</span>
+                            <span className="code-band__status code-band__status--done">
+                              {t('codeBand.statusApplied')}
+                            </span>
+                          </div>
+                          <div className="code-band__row">
+                            <span className="code-band__code">{discountPreview.code}</span>
+                            <span className="code-band__amount">
+                              <span>
+                                {t(
+                                  discountPreview.kind === 'fixed_price'
+                                    ? 'codeBand.pay'
+                                    : 'codeBand.save',
+                                )}
+                              </span>
+                              {money(
+                                discountPreview.kind === 'fixed_price'
+                                  ? discountPreview.finalAmount
+                                  : discountPreview.discountAmount,
+                                locale,
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      {discountError ? (
-                        <p className="account-discount__error" role="alert">
-                          {discountError}
+                      {/* El código deja delegar el pago: se dice acá, con el
+                          código ya aplicado y antes de elegir el medio, porque
+                          es lo que cambia la decisión de quien todavía no juntó
+                          la plata. Sólo aparece si además hay un canal manual
+                          que el atleta pueda declarar. */}
+                      {discountPreview.financed && (transferSelectable || cashSelectable) ? (
+                        <p className="code-band-hint">
+                          {t('account.membership.discountFinanced')}
                         </p>
                       ) : null}
+                      <button
+                        type="button"
+                        className="code-band-drop"
+                        onClick={clearDiscountCode}
+                        disabled={checkoutLocked}
+                      >
+                        {t('account.membership.discountRemove')}
+                      </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      className="account-discount__toggle"
-                      disabled={checkoutLocked}
-                      onClick={openDiscountField}
-                    >
-                      <Tag size={16} aria-hidden />
-                      {t('account.membership.discountToggle')}
-                    </button>
+                    <MotionContentSwap swapKey={discountOpen ? 'field' : 'button'} mode="sync">
+                      {discountOpen ? (
+                        <div className="account-discount__field">
+                          <label className="visually-hidden" htmlFor="membership-discount-code">
+                            {t('account.membership.discountLabel')}
+                          </label>
+                          <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
+                            <span className="code-band__grain" aria-hidden />
+                            <div className="code-band__frame">
+                              <div className="code-band__head">
+                                <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                                <span
+                                  className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
+                                >
+                                  {t(
+                                    discountChecking
+                                      ? 'codeBand.statusChecking'
+                                      : discountError
+                                        ? 'codeBand.statusError'
+                                        : 'codeBand.statusIdle',
+                                  )}
+                                </span>
+                              </div>
+                              <div className="code-band__row">
+                                <input
+                                  ref={discountInputRef}
+                                  id="membership-discount-code"
+                                  className="code-band__input"
+                                  type="text"
+                                  autoComplete="off"
+                                  spellCheck={false}
+                                  placeholder={t('account.membership.discountPlaceholder')}
+                                  value={discountCodeInput}
+                                  disabled={checkoutLocked || discountChecking}
+                                  onChange={(event) =>
+                                    setDiscountCodeInput(event.target.value.toUpperCase())
+                                  }
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault()
+                                      void applyDiscountCode()
+                                      return
+                                    }
+                                    if (event.key === 'Escape') {
+                                      event.preventDefault()
+                                      clearDiscountCode()
+                                    }
+                                  }}
+                                />
+                                <CodeScanButton
+                                  disabled={checkoutLocked || discountChecking}
+                                  onScan={(scanned) => {
+                                    setDiscountCodeInput(scanned)
+                                    void applyDiscountCode(scanned)
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  className="code-band__chip"
+                                  disabled={
+                                    checkoutLocked || discountChecking || !discountCodeInput.trim()
+                                  }
+                                  onClick={applyDiscountCode}
+                                >
+                                  {discountChecking
+                                    ? t('account.membership.discountChecking')
+                                    : t('account.membership.discountApply')}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="code-band-hint">{t('account.membership.discountHint')}</p>
+                          {discountError ? (
+                            <p className="code-band-error" role="alert">
+                              {discountError}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="code-band-toggle account-discount__toggle"
+                          disabled={checkoutLocked}
+                          onClick={openDiscountField}
+                        >
+                          <span className="code-band-toggle__seal" aria-hidden>
+                            <KeyRound size={13} />
+                          </span>
+                          {t('account.membership.discountToggle')}
+                        </button>
+                      )}
+                    </MotionContentSwap>
                   )}
                 </div>
               ) : null}
@@ -1022,9 +1120,13 @@ export default function MembershipPurchaseSection({
                     ? t('pages.register.paymentWisePriceHint')
                     : !mercadoPagoOffered && !transferOffered && !cashOffered && !wiseOffered
                       ? t('pages.register.paymentNoChannelHint')
-                      : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
-                        ? t('pages.register.paymentMercadoPagoOnlyHint')
-                        : ''
+                      : // Mercado Pago desaparece del selector sin que el atleta
+                        // haya tocado nada: el código lo cerró y hay que decirlo.
+                        codeClosesMercadoPago
+                        ? t('pages.register.paymentCodeWithoutGatewayHint')
+                        : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
+                          ? t('pages.register.paymentMercadoPagoOnlyHint')
+                          : ''
                 }
                 offers={
                   selectedPlan
@@ -1100,6 +1202,16 @@ export default function MembershipPurchaseSection({
         </p>
       )}
 
+      {manualOrder?.manualPaymentChannel === 'cash_pitbull' ? (
+        <ManualPaymentConfirmation
+          channel="cash_pitbull"
+          financedEntitlementsAt={manualOrder.financedEntitlementsAt}
+          financingAllowed={manualOrder.financingAllowed}
+          manualPaymentDeclaredAt={manualOrder.manualPaymentDeclaredAt}
+          orderId={manualOrder.paymentId ?? manualOrder.id ?? null}
+        />
+      ) : null}
+
       {transferOpen && (
         <TransferPayModal
           athlete={athlete}
@@ -1107,6 +1219,9 @@ export default function MembershipPurchaseSection({
           currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
           channel={transferChannel}
           orderId={transferOrderId}
+          financingAllowed={manualOrder?.financingAllowed === true}
+          manualPaymentDeclaredAt={manualOrder?.manualPaymentDeclaredAt ?? null}
+          financedEntitlementsAt={manualOrder?.financedEntitlementsAt ?? null}
           onClose={() => setTransferOpen(false)}
         />
       )}

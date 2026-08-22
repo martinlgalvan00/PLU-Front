@@ -1,5 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import {
+  derivePaymentProgress,
+  serializePaymentProgress,
+} from '../../src/lib/paymentProgress.js'
 import { HttpError } from '../lib/errors.js'
 import {
   assertPaidCheckoutAvailable,
@@ -16,9 +20,9 @@ import {
   resolvePaymentsProvider,
 } from '../modules/payments/createPaymentProviderAdapter.js'
 import {
-  PAYMENT_RECOVERY_JOB_ENABLED,
   PAYMENT_RECOVERY_JOB_INTERVAL_MS,
   PAYMENT_WEBHOOK_DEFER_PROCESSING,
+  isPaymentRecoveryJobEnabled,
 } from '../modules/payments/paymentRuntimeDefaults.js'
 import {
   applyCanonicalPayment,
@@ -173,6 +177,11 @@ const revalidationSweepSchema = z.object({
 
 const revalidateOrderSchema = z.object({
   apply: z.boolean().optional().default(true),
+  // El número de operación que muestra Mercado Pago permite diagnosticar una
+  // orden puntual incluso si el webhook nunca llegó a crear un intento local.
+  // Sigue siendo sólo una pista: el workflow verifica referencia, monto y
+  // moneda contra la orden antes de aplicar cualquier cambio.
+  providerPaymentId: z.coerce.string().trim().regex(/^\d+$/).optional(),
 })
 
 const mockNotifySchema = z.object({
@@ -399,10 +408,22 @@ export function createPaymentRoutes(deps = {}) {
     },
   )
 
+  /**
+   * Estado real de un cobro. Devolvia solo `status` — el agregado crudo — asi
+   * que la pantalla que espera el retorno de Mercado Pago no tenia con que
+   * distinguir "todavia procesando" de "vencio sin pagar" ni con que explicar
+   * un rechazo. Ahora viaja el progreso derivado del libro de intentos, que es
+   * el mismo que consume la seccion de pagos del atleta.
+   */
   router.get('/orders/:orderId/status', publicReadLimiter, async (req, res, next) => {
     try {
       const orderId = parseInput(z.string().uuid(), req.params.orderId)
       const order = await requireOrderAccess(req, orderId, req.get('x-order-access-token'))
+      const attempts = await repository()
+        .listOrderPayments(order.id, order.kind)
+        .catch(() => [])
+      const progress = derivePaymentProgress({ order, attempts })
+
       res.json({
         order: {
           id: order.id,
@@ -410,7 +431,15 @@ export function createPaymentRoutes(deps = {}) {
           amount: order.amount,
           currency: order.currency,
           reference: order.reference,
+          concept: order.concept,
+          displayConcept: order.displayConcept,
+          conceptDetail: order.conceptDetail ?? null,
+          method: order.method,
+          manualPaymentChannel: order.manualPaymentChannel ?? null,
+          expiresAt: order.expiresAt ?? null,
+          approvedAt: order.approvedAt ?? null,
         },
+        progress: serializePaymentProgress(progress),
       })
     } catch (error) {
       next(error)
@@ -511,7 +540,7 @@ export function createPaymentRoutes(deps = {}) {
         ],
         configuration: {
           ...runtime,
-          recoveryEnabled: PAYMENT_RECOVERY_JOB_ENABLED,
+          recoveryEnabled: isPaymentRecoveryJobEnabled(env),
           recoveryIntervalMs: PAYMENT_RECOVERY_JOB_INTERVAL_MS,
         },
       })
@@ -689,6 +718,7 @@ export function createPaymentRoutes(deps = {}) {
         const result = await revalidatePaymentOrder(orderId, {
           ...services({ notifications: true }),
           apply: req.validatedBody.apply,
+          providerPaymentId: req.validatedBody.providerPaymentId,
           actor: `${req.auth.user.id}:${req.auth.user.email}`,
         })
         res.json(result)

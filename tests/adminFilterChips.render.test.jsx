@@ -221,15 +221,19 @@ describe('Inscripciones — rieles etiquetados', () => {
     )
   }
 
-  it('etiqueta evento y estado cuando hay más de un riel', () => {
-    const { container } = renderRegistrations()
+  it('nombra evento y estado aunque el riel no muestre su label', () => {
+    /*
+     * Los rieles de chips dejaron de imprimir su label visible: el copy de los
+     * propios chips ya dice qué se está filtrando, y la versalita repetida
+     * ("ESTADO / VENCIMIENTO") era ruido. Lo que no puede perderse es el nombre
+     * accesible, que es lo que anuncia un lector de pantalla y lo que permite
+     * distinguir un riel de otro — así que eso es lo que se afirma acá, y no la
+     * presencia del `<span>`.
+     */
+    renderRegistrations()
 
-    const labels = [...container.querySelectorAll('.admin-filter-group__label')].map(
-      (label) => label.textContent,
-    )
-
-    expect(labels).toContain('Evento')
-    expect(labels).toContain('Estado')
+    expect(screen.getByRole('group', { name: 'Evento' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
   })
 
   it('mantiene el texto de los exports para poder ocultarlo solo por CSS', () => {

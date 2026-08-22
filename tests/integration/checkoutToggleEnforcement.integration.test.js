@@ -467,7 +467,13 @@ describe('interruptores de canal manual y validación por HTTP', () => {
         {
           method: 'POST',
           headers: authHeaders(cookie),
-          body: JSON.stringify({ status }),
+          // El motivo es obligatorio, y el canal sólo al activar: sin ellos la
+          // ruta corta en 400 y el interruptor de validación nunca se evalúa.
+          body: JSON.stringify({
+            status,
+            reason: 'Prueba del interruptor de validación.',
+            ...(status === 'activa' ? { channel: 'courtesy' } : {}),
+          }),
         },
       )
       const payload = await response.json()

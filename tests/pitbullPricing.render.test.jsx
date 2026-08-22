@@ -131,4 +131,37 @@ describe('precio publico de Pitbull Classic', () => {
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--secondary'))
     expect(onNavigate).toHaveBeenCalledWith('profile')
   })
+
+  it('no revela un combo restringido por código en la página pública', () => {
+    const pitbull = {
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      featured: true,
+      status: 'inscripcion_abierta',
+      price: 85000,
+      pricing: { membership: 85000, registration: 85000, combo: 120000 },
+      comboOffer: {
+        active: true,
+        audience: 'code',
+        price: 120000,
+        currency: 'ARS',
+        startsAt: '2020-01-01T00:00:00.000Z',
+        endsAt: '2099-12-31T23:59:59.000Z',
+      },
+    }
+
+    const { container } = render(
+      <I18nProvider>
+        <PitbullPage
+          events={[pitbull]}
+          memberships={[]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(container.querySelector('.season-combo-offer')).toBeNull()
+    expect(container.textContent).not.toContain('$\u00a0120.000')
+  })
 })

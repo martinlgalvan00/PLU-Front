@@ -1,16 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, BadgeCheck, CircleAlert, MailCheck, RefreshCw, Route } from 'lucide-react'
+import {
+  Activity,
+  ArrowUpRight,
+  BadgeCheck,
+  CircleAlert,
+  MailCheck,
+  RefreshCw,
+  Route,
+} from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import AuditEventBody from '../../components/admin/AuditEventBody.jsx'
 import AuditEventDialog from '../../components/admin/AuditEventDialog.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
-import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { auditLabels } from '../../i18n/adminHelpers.js'
+import es from '../../i18n/locales/es.js'
+import { translate } from '../../i18n/translate.js'
+import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 import {
   fetchAuditEntries,
   fetchAuditFacets,
@@ -47,11 +58,11 @@ const EMPTY_OVERVIEW = {
   approvedOrdersWithoutActiveMembership: 0,
 }
 
-function formatDateTime(value, locale) {
+function formatDateTime(value) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(locale === 'en' ? 'en-US' : 'es-AR', {
+  return date.toLocaleString('es-AR', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -59,8 +70,98 @@ function formatDateTime(value, locale) {
   })
 }
 
+function useMobileAuditLayout() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
+  )
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 768px)')
+    const sync = (event) => setIsMobile(event.matches)
+    sync(media)
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
+
+  return isMobile
+}
+
+function AuditMobileList({
+  emptyMessage,
+  entries,
+  labels,
+  onOpenDetail,
+  onOpenTrace,
+  t,
+}) {
+  if (!entries.length) return <p className="audit-mobile-list__empty">{emptyMessage}</p>
+
+  return (
+    <div className="audit-mobile-list" aria-label={t('admin.audit.mobileListLabel')}>
+      {entries.map((entry) => (
+        <article className="audit-mobile-entry" key={entry.id}>
+          <div className="audit-mobile-entry__head">
+            <div className="audit-mobile-entry__action">
+              <span
+                className={`status-pill status-pill--${entry.tone === 'default' ? 'neutral' : entry.tone}`}
+              >
+                {labels.action(entry.action)}
+              </span>
+              <span>
+                {[labels.source(entry.source), labels.actor(entry.actorType)]
+                  .filter(Boolean)
+                  .filter((label, index, list) => list.indexOf(label) === index)
+                  .join(' · ')}
+              </span>
+            </div>
+            <time dateTime={entry.createdAt}>{formatDateTime(entry.createdAt)}</time>
+          </div>
+
+          <dl className="audit-mobile-entry__facts">
+            <div>
+              <dt>{t('admin.audit.columnEntity')}</dt>
+              <dd>{labels.entity(entry.entityType)}</dd>
+            </div>
+            {entry.actorId ? (
+              <div>
+                <dt>{t('admin.audit.columnActor')}</dt>
+                <dd>{labels.actor(entry.actorType)}</dd>
+              </div>
+            ) : null}
+          </dl>
+
+          <AuditEventBody labels={labels} row={entry} />
+
+          <footer className="audit-mobile-entry__footer">
+            <button
+              type="button"
+              className="audit-mobile-entry__detail"
+              onClick={() => onOpenDetail(entry.id)}
+            >
+              {t('admin.audit.openDetail')}
+              <ArrowUpRight size={16} aria-hidden />
+            </button>
+            {TRACEABLE_ENTITY_TYPES.has(entry.entityType) && entry.entityId ? (
+              <AdminIconButton
+                icon={Route}
+                label={t('admin.paymentTrace.open')}
+                onClick={() => onOpenTrace(entry.entityId)}
+                variant="ghost"
+              />
+            ) : null}
+          </footer>
+        </article>
+      ))}
+    </div>
+  )
+}
+
 export default function AuditSection() {
-  const { locale, messages, t } = useI18n()
+  // La auditoría es una herramienta operativa para el equipo local. No debe
+  // heredar un idioma guardado en otra parte del sitio: sus etiquetas explican
+  // evidencia y acciones sensibles, y se presentan siempre en español.
+  const t = useCallback((key, vars) => translate(es, key, vars), [])
+  const isMobileLayout = useMobileAuditLayout()
   const [entries, setEntries] = useState([])
   const [facets, setFacets] = useState({
     actions: [],
@@ -90,6 +191,44 @@ export default function AuditSection() {
   // browser, no es una columna filtrable). Se aplica sobre lo ya cargado.
   const [onlyIncidents, setOnlyIncidents] = useState(false)
   const [detailEventId, setDetailEventId] = useState(null)
+  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('audit')
+
+  const savedViewSnapshot = useMemo(
+    () => ({ query, source, status, category, action, actorType, entityType }),
+    [action, actorType, category, entityType, query, source, status],
+  )
+  const activeSavedView = useMemo(
+    () => findMatchingView(savedViews, savedViewSnapshot),
+    [savedViews, savedViewSnapshot],
+  )
+  const hasFiltersToSave =
+    query.trim() !== '' ||
+    source !== 'all' ||
+    status !== 'all' ||
+    category !== 'all' ||
+    action !== 'all' ||
+    actorType !== 'all' ||
+    entityType !== 'all'
+
+  function applySavedView(view) {
+    setQuery(view.snapshot.query ?? '')
+    setSource(view.snapshot.source ?? 'all')
+    setStatus(view.snapshot.status ?? 'all')
+    setCategory(view.snapshot.category ?? 'all')
+    setAction(view.snapshot.action ?? 'all')
+    setActorType(view.snapshot.actorType ?? 'all')
+    setEntityType(view.snapshot.entityType ?? 'all')
+  }
+
+  function clearSavedView() {
+    setQuery('')
+    setSource('all')
+    setStatus('all')
+    setCategory('all')
+    setAction('all')
+    setActorType('all')
+    setEntityType('all')
+  }
 
   const filters = useMemo(
     () => ({
@@ -181,7 +320,7 @@ export default function AuditSection() {
   // puntos, así que estas etiquetas se resuelven contra el diccionario. Una RPC
   // nueva que empiece a auditar aparece igual en el listado aunque todavía no
   // tenga copy, en vez de desaparecer.
-  const labels = useMemo(() => auditLabels(messages), [messages])
+  const labels = useMemo(() => auditLabels(es), [])
   const actionLabel = labels.action
   const categoryLabel = labels.category
   const actorLabel = labels.actor
@@ -302,7 +441,7 @@ export default function AuditSection() {
         className: 'data-table__column--audit-when',
         render: (row) => (
           <time className="audit-entry__time" dateTime={row.createdAt}>
-            {formatDateTime(row.createdAt, locale)}
+            {formatDateTime(row.createdAt)}
           </time>
         ),
       },
@@ -375,7 +514,7 @@ export default function AuditSection() {
         render: (row) => <AuditEventBody labels={labels} row={row} />,
       },
     ],
-    [actionLabel, actorLabel, entityLabel, labels, locale, sourceLabel, t],
+    [actionLabel, actorLabel, entityLabel, labels, sourceLabel, t],
   )
 
   const affiliationIncidents =
@@ -392,6 +531,32 @@ export default function AuditSection() {
   const displayedEntries = useMemo(
     () => (onlyIncidents ? entries.filter((entry) => entry.tone === 'danger') : entries),
     [entries, onlyIncidents],
+  )
+
+  const auditGuide = (
+    <details className="audit-flow-guide">
+      <summary>
+        <span>{t('admin.audit.flowEyebrow')}</span>
+        <strong>{t('admin.audit.flowTitle')}</strong>
+      </summary>
+      <div className="audit-flow-guide__content">
+        <p>{t('admin.audit.flowLead')}</p>
+        <ol className="audit-flow-guide__steps">
+          <li>
+            <strong>{t('admin.audit.flowStepHealthTitle')}</strong>
+            <span>{t('admin.audit.flowStepHealthBody')}</span>
+          </li>
+          <li>
+            <strong>{t('admin.audit.flowStepFilterTitle')}</strong>
+            <span>{t('admin.audit.flowStepFilterBody')}</span>
+          </li>
+          <li>
+            <strong>{t('admin.audit.flowStepDetailTitle')}</strong>
+            <span>{t('admin.audit.flowStepDetailBody')}</span>
+          </li>
+        </ol>
+      </div>
+    </details>
   )
 
   const health = (
@@ -518,7 +683,26 @@ export default function AuditSection() {
       title={t('admin.audit.title')}
       subtitle={t('admin.audit.subtitle')}
       totalCount={entries.length}
-      beforeFilters={health}
+      beforeFilters={
+        <>
+          {auditGuide}
+          {health}
+          <AdminSavedViews
+            views={savedViews}
+            activeViewId={activeSavedView?.id ?? null}
+            allLabel={t('admin.savedViews.all')}
+            caption={t('admin.savedViews.caption')}
+            addLabel={t('admin.savedViews.add')}
+            namePlaceholder={t('admin.savedViews.namePlaceholder')}
+            removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+            canSave={hasFiltersToSave && !activeSavedView}
+            onApply={applySavedView}
+            onClear={clearSavedView}
+            onSave={(label) => saveView(label, savedViewSnapshot)}
+            onRemove={removeView}
+          />
+        </>
+      }
       filters={filterOptions}
       filterActions={
         <>
@@ -559,21 +743,36 @@ export default function AuditSection() {
         <LoadingState label={t('admin.audit.loading')} />
       ) : (
         <>
-          <AdminDataTable
-            className="admin-data-table--audit"
-            columns={columns}
-            rows={displayedEntries}
-            pagination={false}
-            emptyMessage={
-              onlyIncidents && entries.length > 0
-                ? t('admin.audit.onlyIncidentsEmpty')
-                : t('admin.audit.empty')
-            }
-            // Toda la fila abre el detalle: el error completo, el stack y lo que
-            // la persona venía haciendo antes. La celda mostraba el mensaje y
-            // nada más, y el resto había que ir a buscarlo a la base.
-            onRowClick={(row) => setDetailEventId(row.id)}
-          />
+          {isMobileLayout ? (
+            <AuditMobileList
+              emptyMessage={
+                onlyIncidents && entries.length > 0
+                  ? t('admin.audit.onlyIncidentsEmpty')
+                  : t('admin.audit.empty')
+              }
+              entries={displayedEntries}
+              labels={labels}
+              onOpenDetail={setDetailEventId}
+              onOpenTrace={setTraceOrderId}
+              t={t}
+            />
+          ) : (
+            <AdminDataTable
+              className="admin-data-table--audit audit-desktop-table"
+              columns={columns}
+              rows={displayedEntries}
+              pagination={false}
+              emptyMessage={
+                onlyIncidents && entries.length > 0
+                  ? t('admin.audit.onlyIncidentsEmpty')
+                  : t('admin.audit.empty')
+              }
+              // Toda la fila abre el detalle: el error completo, el stack y lo que
+              // la persona venía haciendo antes. La celda mostraba el mensaje y
+              // nada más, y el resto había que ir a buscarlo a la base.
+              onRowClick={(row) => setDetailEventId(row.id)}
+            />
+          )}
           {cursor ? (
             <div className="audit-loadmore">
               <button

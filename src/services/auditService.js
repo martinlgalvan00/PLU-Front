@@ -1,4 +1,5 @@
 import { apiGet } from '../lib/api.js'
+import { operatorFailureMessage } from '../lib/auditPresentation.js'
 
 /**
  * auditService.js — PLU ARG
@@ -157,7 +158,16 @@ function summaryValue(value) {
 
 function summarize(metadata) {
   if (!metadata || typeof metadata !== 'object') return []
-  return SUMMARY_FIELDS.map((field) => ({ field, value: summaryValue(metadata[field]) })).filter(
+  return SUMMARY_FIELDS.map((field) => {
+    const value = summaryValue(metadata[field])
+    return {
+      field,
+      value:
+        field === 'error'
+          ? operatorFailureMessage(value, metadata.errorCode, metadata.statusDetail) ?? value
+          : value,
+    }
+  }).filter(
     ({ value }) => value != null && value !== '',
   )
 }
@@ -247,6 +257,11 @@ export function describeAuditError(metadata) {
 
   const detail = {
     message,
+    operatorMessage: operatorFailureMessage(
+      message,
+      error?.code ?? metadata.errorCode,
+      metadata.statusDetail,
+    ),
     name: error?.name ?? null,
     code: error?.code ?? metadata.errorCode ?? null,
     httpStatus: Number.isFinite(Number(error?.status)) ? Number(error.status) : null,

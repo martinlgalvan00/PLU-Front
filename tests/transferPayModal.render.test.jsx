@@ -46,7 +46,7 @@ describe('modal de transferencia', () => {
     expect(dialog.querySelector('.account-transfer-warning svg')).toBeNull()
     expect(screen.getByRole('button', { name: 'Copiar Alias' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: /^enviar a validación$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^cerrar$/i }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })

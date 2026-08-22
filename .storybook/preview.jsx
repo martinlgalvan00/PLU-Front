@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { configure } from 'storybook/test'
 import { ThemeProvider, useTheme } from '../src/providers/ThemeProvider.jsx'
 import { I18nProvider, useI18n } from '../src/i18n/I18nProvider.jsx'
 import { OAuthProvider } from '../src/providers/OAuthProvider.jsx'
@@ -9,6 +10,21 @@ import '../src/styles/index.css'
 // automatico de Vite a los componentes importados. Exponer React mantiene
 // el preview alineado con el build productivo sin tocar cada componente.
 globalThis.React = React
+
+/*
+ * Ventana de las esperas asincronicas de las `play`.
+ *
+ * El default de testing-library es 1 s, y alcanza cuando una story corre sola.
+ * En la corrida completa los 113 archivos comparten un solo Chromium, asi que
+ * una pantalla que espera a que resuelva un pedido —el CTA de Afiliacion e
+ * Inscripcion queda deshabilitado hasta que vuelve el chequeo de tanda privada—
+ * se pasaba del segundo bajo carga y fallaba una de cada cuatro corridas, sin
+ * que hubiera nada roto.
+ *
+ * Cinco segundos es holgado para la carga real y sigue fallando fuerte si el
+ * estado nunca llega: lo que se afirma es el estado final, no su velocidad.
+ */
+configure({ asyncUtilTimeout: 5000 })
 
 // Goes through the real setTheme() API (not a direct DOM attribute write) so
 // the DOM and ThemeProvider's own React context state never disagree —
