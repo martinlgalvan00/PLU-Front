@@ -608,6 +608,8 @@ export default {
       codeSearchLabel: 'Search code',
       codeSearchPlaceholder: 'Code, description or event',
       codeSearchNoResults: 'No code matches "{{query}}".',
+      comboScopeUnavailable:
+        'There is no current combo for this scope: the code can be saved, but redemption will reject it until the event combo reopens.',
       newDiscountCode: 'New code',
       publishDiscountCode: 'Publish code',
       formTitleNewCode: 'New code',
