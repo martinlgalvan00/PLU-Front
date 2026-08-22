@@ -128,6 +128,6 @@ describe('el corpus de migraciones queda ordenado', () => {
       .map((name) => name.split('_')[0])
     const duplicated = versions.filter((version, index) => versions.indexOf(version) !== index)
     expect(duplicated).toEqual([])
-    expect([...versions].sort().at(-1)).toBe('20260915100000')
+    expect([...versions].sort().at(-1)).toBe('20260916100000')
   })
 })

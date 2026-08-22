@@ -310,9 +310,19 @@ describe('checkout abierto desde la pestaña secreta', () => {
 })
 
 describe('código tipeado en el checkout con el resolvedor disponible', () => {
-  it('deja la oferta aplicada antes de revelar la pestaña secreta', async () => {
-    previewByScope()
-    const { container, onNavigate } = renderCompetition()
+  // Las ofertas exclusivas generadas por código quedaron retiradas
+  // (20260915100000): aunque el resolvedor universal todavía conteste
+  // `open_exclusive_offer` -un backend sin migrar-, `redeemPromotionCode` lo
+  // rechaza antes de que el checkout lo vea. Ni se revela nada, ni se navega
+  // a ninguna pestaña secreta: el código sigue el camino normal de un cupón
+  // y, al estar desactivado, termina en el error de siempre.
+  it('nunca revela ni navega a la pestaña secreta: el código retirado sigue el camino normal', async () => {
+    // Un código 'offer' desactivado (20260915100000) ya no cotiza en ningún
+    // alcance: `athlete_preview_discount_code` lo rechaza por `inactive` sea
+    // cual sea el `appliesTo`, así que ni el alcance normal ni el reintento
+    // por combo pueden dar con un preview válido.
+    vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'inactive' })
+    const { onNavigate } = renderCompetition()
     await waitForAccessValidation()
     openDiscountField()
 
@@ -321,19 +331,12 @@ describe('código tipeado en el checkout con el resolvedor disponible', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
-    // La revelación sigue existiendo: es el momento en que el atleta confirma
-    // qué desbloqueó.
-    await waitFor(() =>
-      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-offer' }),
-    )
-    // Pero el checkout ya quedó con la oferta aplicada, así que al volver no
-    // hace falta tipear nada de nuevo.
-    expect(appliedDiscount(container)).toContain('120.000')
-    // El resolvedor ya registró el unlock: no se duplica.
+    await waitFor(() => expect(previewDiscountCode).toHaveBeenCalled())
+    expect(onNavigate.mock.calls.filter(([view]) => view === 'profile')).toEqual([])
     expect(unlockOfferCode).not.toHaveBeenCalled()
   })
 
-  it('manda a la pestaña secreta cuando la oferta es de otro torneo', async () => {
+  it('una oferta de otro torneo tampoco navega ni se aplica', async () => {
     vi.mocked(redeemPromotionCodeRequest).mockResolvedValue({
       ...RESOLVED_OFFER,
       code: 'ONLY-NORTE',
@@ -353,13 +356,7 @@ describe('código tipeado en el checkout con el resolvedor disponible', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
-    await waitFor(() =>
-      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-offer' }),
-    )
-    // No se aplicó nada en este checkout: la oferta no es de este torneo.
-    const applied = vi
-      .mocked(previewDiscountCode)
-      .mock.calls.filter((call) => call[0]?.code === 'ONLY-NORTE')
-    expect(applied).toEqual([])
+    await waitFor(() => expect(previewDiscountCode).toHaveBeenCalled())
+    expect(onNavigate.mock.calls.filter(([view]) => view === 'profile')).toEqual([])
   })
 })
