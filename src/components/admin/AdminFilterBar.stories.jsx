@@ -125,11 +125,12 @@ function AuditLikeFilterBar({ initialAction = 'all' }) {
  * (chips) y fecha de alta (variant `dateRange`, dos inputs nativos). */
 function AthletesLikeFilterBar({
   initialRange = { from: '', to: '' },
+  initialStatus = 'all',
   containerWidth = null,
   layout = undefined,
 }) {
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('all')
+  const [status, setStatus] = useState(initialStatus)
   const [registrationStatus, setRegistrationStatus] = useState('all')
   const [gym, setGym] = useState('all')
   const [division, setDivision] = useState('all')
@@ -273,4 +274,30 @@ export const CincoFiltrosPopoverConRangoActivo = {
  * scrollea en vez de desbordar. */
 export const CincoFiltrosPopoverContenedorAngosto = {
   render: () => <AthletesLikeFilterBar layout="popover" containerWidth={390} />,
+}
+
+/** Segundo rediseño: las 5 facetas agrupadas detrás de un solo botón
+ * "Filtros" (`layout="panel"`) en vez de un pill por filtro. Lo aplicado
+ * queda visible como chips removibles debajo del buscador. */
+export const CincoFiltrosPanel = {
+  render: () => <AthletesLikeFilterBar layout="panel" />,
+}
+
+/** Panel con dos filtros ya activos (afiliación con tono + rango de fecha) --
+ * confirma los chips de resumen, el badge de conteo en el botón y que el
+ * chip de afiliación toma el color de estado en vez de celeste genérico. */
+export const CincoFiltrosPanelConFiltrosActivos = {
+  render: () => (
+    <AthletesLikeFilterBar
+      layout="panel"
+      initialStatus="afiliado_activo"
+      initialRange={{ from: '2026-01-01', to: '2026-03-15' }}
+    />
+  ),
+}
+
+/** Mismo panel en un contenedor angosto -- confirma que el botón colapsa a
+ * solo ícono y el panel se ancla al borde derecho en vez de desbordar. */
+export const CincoFiltrosPanelContenedorAngosto = {
+  render: () => <AthletesLikeFilterBar layout="panel" containerWidth={390} />,
 }

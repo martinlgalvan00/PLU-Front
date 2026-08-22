@@ -1,98 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { Calendar, Check, ChevronDown, Search, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Calendar, ChevronDown, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
+import AdminFilterCombobox from './AdminFilterCombobox.jsx'
 import AdminFilterDateRange from './AdminFilterDateRange.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-
-function neutralValue(filter) {
-  return filter.defaultValue ?? filter.options?.[0]?.[0]
-}
-
-function isFilterActive(filter) {
-  if (filter.variant === 'dateRange') {
-    return Boolean(filter.value?.from) || Boolean(filter.value?.to)
-  }
-  return filter.value !== neutralValue(filter)
-}
-
-function formatShortDate(iso) {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
-}
-
-function pillValueText(filter, t) {
-  if (filter.variant === 'dateRange') {
-    const from = filter.value?.from
-    const to = filter.value?.to
-    if (from && to) return `${formatShortDate(from)} – ${formatShortDate(to)}`
-    if (from) return `${t('admin.filters.registeredFrom')} ${formatShortDate(from)}`
-    if (to) return `${t('admin.filters.registeredTo')} ${formatShortDate(to)}`
-    return null
-  }
-  const active = filter.options?.find(([optionValue]) => optionValue === filter.value)
-  return active ? active[1] : null
-}
-
-/** Combobox con búsqueda para filtros `variant: 'select'` con muchas opciones
- * (ej. gimnasio): filtra la lista ya calculada por el caller, no pide nada
- * nuevo al backend. */
-function AdminFilterCombobox({ filter, onSelect, t }) {
-  const [query, setQuery] = useState('')
-  const inputRef = useRef(null)
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => inputRef.current?.focus())
-    return () => cancelAnimationFrame(frame)
-  }, [])
-
-  const normalizedQuery = query.trim().toLowerCase()
-  const visibleOptions = normalizedQuery
-    ? (filter.options ?? []).filter(([, optionLabel]) =>
-        String(optionLabel).toLowerCase().includes(normalizedQuery),
-      )
-    : (filter.options ?? [])
-
-  return (
-    <div className="admin-filter-popover__combobox">
-      <div className="admin-filter-popover__search">
-        <Search size={13} aria-hidden />
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t('admin.filters.searchOptions')}
-          aria-label={t('admin.filters.searchOptions')}
-        />
-      </div>
-      <div className="admin-filter-popover__options" role="listbox" aria-label={filter.ariaLabel ?? filter.label}>
-        {visibleOptions.length > 0 ? (
-          visibleOptions.map(([optionValue, optionLabel]) => {
-            const selected = filter.value === optionValue
-            return (
-              <button
-                key={optionValue}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                className={`admin-filter-popover__option${selected ? ' is-selected' : ''}`}
-                onClick={() => onSelect(optionValue)}
-              >
-                {selected ? (
-                  <Check size={13} aria-hidden />
-                ) : (
-                  <span className="admin-filter-popover__option-spacer" aria-hidden />
-                )}
-                <span>{optionLabel}</span>
-              </button>
-            )
-          })
-        ) : (
-          <p className="admin-filter-popover__empty">{t('admin.filters.noMatchingOptions')}</p>
-        )}
-      </div>
-    </div>
-  )
-}
+import { filterValueText, isFilterActive, neutralValue } from '../../lib/adminFilterValue.js'
 
 /**
  * Fila de filtros como pills compactos: cada uno abre un popover con el
@@ -131,7 +43,7 @@ export default function AdminFilterPillRow({ filters }) {
       {filters.map((filter) => {
         const active = isFilterActive(filter)
         const open = openId === filter.id
-        const valueText = active ? pillValueText(filter, t) : null
+        const valueText = active ? filterValueText(filter, t) : null
         const accessibleName = filter.ariaLabel ?? filter.label
 
         return (

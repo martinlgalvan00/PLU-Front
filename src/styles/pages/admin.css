@@ -19671,6 +19671,214 @@ button.action-queue__proof:focus-visible {
   text-align: center;
 }
 
+/* ── Barra de filtros — panel único (AdminFilterBar layout="panel") ──
+   Search + un solo botón "Filtros" que abre un panel con todos los grupos
+   juntos, en vez de un pill por filtro (ver AdminFilterPillRow arriba). Lo
+   aplicado queda como chips removibles debajo del buscador, visibles aunque
+   el panel esté cerrado. Ver AdminFilterPanel.jsx -- hoy solo Atletas. */
+
+.admin-filter-panel-anchor {
+  display: inline-flex;
+  flex: none;
+  position: relative;
+}
+
+.admin-filter-panel-trigger {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 600;
+  gap: 9px;
+  height: 52px;
+  padding: 0 18px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.admin-filter-panel-trigger:hover {
+  border-color: var(--color-border-light);
+}
+
+.admin-filter-panel-trigger:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-filter-panel-trigger.is-open {
+  border-color: var(--color-accent-celeste-border-strong);
+}
+
+.admin-filter-panel-trigger.has-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border-color: var(--color-accent-celeste-border-strong);
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .admin-filter-panel-trigger {
+  background: rgba(15, 17, 23, 0.03);
+}
+
+.admin-filter-panel-trigger__badge {
+  align-items: center;
+  background: var(--color-brand-celeste);
+  border-radius: 50%;
+  color: #0a0b0d;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  height: 19px;
+  justify-content: center;
+  width: 19px;
+}
+
+.admin-filter-panel-trigger__chevron {
+  color: var(--color-text-muted);
+  flex: none;
+  transition: transform var(--transition-fast);
+}
+
+.admin-filter-panel-trigger.is-open .admin-filter-panel-trigger__chevron {
+  color: var(--color-brand-celeste);
+  transform: rotate(180deg);
+}
+
+.admin-filter-panel {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  left: 0;
+  max-width: min(620px, 92vw);
+  padding: 18px;
+  position: absolute;
+  top: calc(100% + 9px);
+  width: max-content;
+  z-index: var(--z-dropdown);
+}
+
+.admin-filter-panel__grid {
+  display: grid;
+  gap: 20px 28px;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
+.admin-filter-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-filter-panel__field-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-filter-panel-chips {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.admin-filter-panel-chip {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border: 1px solid var(--color-accent-celeste-border-strong);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 7px;
+  padding: 6px 8px 6px 12px;
+}
+
+.admin-filter-panel-chip button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 16px;
+  justify-content: center;
+  opacity: 0.75;
+  transition:
+    background var(--transition-fast),
+    opacity var(--transition-fast);
+  width: 16px;
+}
+
+.admin-filter-panel-chip button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  opacity: 1;
+}
+
+.admin-filter-panel-chip button:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Tono opcional del chip -- mismo criterio y mismos tokens que ya usa el
+   chip activo de AdminFilterChipGroup (admin-filter-chip--tone-*): el color
+   del filtro predice el color del resultado en vez de un celeste genérico. */
+.admin-filter-panel-chip--tone-success {
+  background: var(--admin-status-success-bg);
+  border-color: var(--admin-status-success-border);
+  color: var(--admin-status-success);
+}
+
+.admin-filter-panel-chip--tone-danger {
+  background: var(--admin-status-danger-bg);
+  border-color: var(--admin-status-danger-border);
+  color: var(--admin-status-danger);
+}
+
+.admin-filter-panel-chip--tone-info {
+  background: var(--admin-status-info-bg);
+  border-color: var(--admin-status-info-border);
+  color: var(--admin-status-info);
+}
+
+.admin-filter-panel-chips__clear {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  transition: color var(--transition-fast);
+}
+
+.admin-filter-panel-chips__clear:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-filter-panel-chips__clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
 /* @container, no @media: el "angosto" real de este panel es el ancho del
    propio .admin-list-section (lo squeeza el sidebar en notebook), no el
    viewport -- mismo criterio que el resto de admin.css (admin-panel). */
@@ -19706,6 +19914,24 @@ button.action-queue__proof:focus-visible {
 
   .admin-filter-popover {
     max-width: min(320px, calc(100vw - 40px));
+  }
+
+  .admin-filter-panel-trigger__label {
+    display: none;
+  }
+
+  .admin-filter-panel-trigger {
+    padding: 0 14px;
+  }
+
+  .admin-filter-panel {
+    left: auto;
+    max-width: min(340px, calc(100vw - 40px));
+    right: 0;
+  }
+
+  .admin-filter-panel__grid {
+    grid-template-columns: 1fr;
   }
 }
 

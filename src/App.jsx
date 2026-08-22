@@ -48,6 +48,7 @@ import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
+  ACCOUNT_PAYMENTS_TAB,
   DEFAULT_ACCOUNT_TAB,
   accountTabFromSectionParam,
   getTransitionDirection,
@@ -169,7 +170,11 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const paymentReturn = params.get('payment')
-    if (!['success', 'pending'].includes(paymentReturn ?? '')) return
+    // `failure` llega cuando el pago se hizo con saldo de cuenta MP: esa opción
+    // sale del sitio y vuelve por `back_urls`, así que sin conciliar acá el
+    // rechazo quedaba sin mostrarse hasta que la persona entrara a Pagos por su
+    // cuenta (o nunca, si no sabía que existía esa pantalla).
+    if (!['success', 'pending', 'failure'].includes(paymentReturn ?? '')) return
 
     const orderId = params.get('order') || params.get('external_reference')
     if (!orderId) return
@@ -199,9 +204,17 @@ export default function App() {
       .then((result) => {
         if (result?.reconciled) {
           const orderConcept = result.order?.concept ?? result.order?.payment_order?.concept ?? null
-          const targetProfileTab = ['registration', 'combo'].includes(orderConcept)
-            ? ACCOUNT_EVENTS_TAB
-            : DEFAULT_ACCOUNT_TAB
+          const orderStatus = result.order?.status ?? result.payment?.status ?? null
+          // El estado conciliado manda sobre el `payment=` de la URL: si MP dice
+          // rechazado, la persona tiene que caer en Pagos (ahí está el motivo y
+          // el botón para reintentar), sin importar a qué tab la llevaría un
+          // pago aprobado del mismo tipo de orden.
+          const targetProfileTab =
+            orderStatus === 'rechazado'
+              ? ACCOUNT_PAYMENTS_TAB
+              : ['registration', 'combo'].includes(orderConcept)
+                ? ACCOUNT_EVENTS_TAB
+                : DEFAULT_ACCOUNT_TAB
           window.dispatchEvent(
             new CustomEvent('plu:payment-updated', {
               detail: {
