@@ -13,6 +13,11 @@ import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.j
  * consume, el código se apaga solo, y el que llega después es rechazado en las
  * tres puertas (canje, preview y checkout). Lo mismo con una promo vencida y con
  * una que todavía no abrió.
+ *
+ * El vehículo es un código `fixed_price` sobre el combo del evento: las
+ * modalidades offer/access están retiradas (20260915100000 las fuerza a nacer
+ * apagadas), pero cupo y ventana son de `discount_codes`, no de una modalidad,
+ * y siguen custodiando los códigos promocionales vivos.
  */
 const mutationHeaders = {
   Origin: 'http://localhost:5173',
@@ -31,6 +36,7 @@ describe('cupo y ventana de un código contra Supabase', () => {
   const createdCodeIds = []
   let plan
   let event
+  let comboPrice
 
   beforeAll(async () => {
     const nowIso = new Date().toISOString()
@@ -74,6 +80,19 @@ describe('cupo y ventana de un código contra Supabase', () => {
     if (eventResult.error) throw new Error(eventResult.error.message)
     event = eventResult.data
     createdEventIds.push(event.id)
+
+    // El código promociona el combo, así que el combo tiene que existir: es la
+    // base sobre la que el preview y la orden miden el ahorro.
+    comboPrice = plan.price + event.price
+    const offerResult = await admin.from('event_combo_offers').insert({
+      organization_id: plan.organization_id,
+      event_id: event.id,
+      membership_plan_id: plan.id,
+      price: comboPrice,
+      currency: plan.currency,
+      active: true,
+    })
+    if (offerResult.error) throw new Error(offerResult.error.message)
   })
 
   afterAll(async () => {
@@ -110,6 +129,10 @@ describe('cupo y ventana de un código contra Supabase', () => {
       )
     }
     if (createdEventIds.length) {
+      await cleanup(
+        admin.from('event_combo_offers').delete().in('event_id', createdEventIds),
+        'ofertas combo',
+      )
       await cleanup(admin.from('events').delete().in('id', createdEventIds), 'eventos')
     }
     const entityIds = [...orderIds, ...createdEventIds, ...createdCodeIds]
@@ -127,20 +150,18 @@ describe('cupo y ventana de un código contra Supabase', () => {
     }
   })
 
-  /** Un código de oferta autosuficiente sobre el evento del fixture. */
-  async function createOfferCode(overrides = {}) {
+  /** Un código promocional de precio fijo sobre el combo del fixture. */
+  async function createPromoCode(overrides = {}) {
     const code = `CUPO-${randomBytes(4).toString('hex').toUpperCase()}`
     const result = await admin.rpc('staff_upsert_discount_code', {
       p_code: {
         code,
-        kind: 'offer',
+        kind: 'fixed_price',
         appliesTo: 'combo',
-        audience: 'code',
-        eventId: event.id,
-        membershipPlanId: plan.id,
-        fixedPrice: Math.max(1, plan.price + event.price - 20000),
+        fixedPrice: Math.max(1, comboPrice - 20000),
         manualChannels: ['bank_transfer'],
         active: true,
+        organizationId: plan.organization_id,
         ...overrides,
       },
       p_actor: 'integration-test',
@@ -148,6 +169,15 @@ describe('cupo y ventana de un código contra Supabase', () => {
     if (result.error) throw new Error(result.error.message)
     createdCodeIds.push(result.data.id)
     return result.data
+  }
+
+  /** El canje universal: la puerta que abre la campaña desde el navegador. */
+  function redeemCode(athlete, code) {
+    return admin.rpc('athlete_redeem_promotion_code', {
+      p_organization_id: plan.organization_id,
+      p_athlete_id: athlete.id,
+      p_code: code,
+    })
   }
 
   /** Un atleta con email verificado y su cookie de sesión. */
@@ -195,31 +225,27 @@ describe('cupo y ventana de un código contra Supabase', () => {
         paymentMethod: 'manual_link',
         idempotencyKey: randomUUID(),
         discountCode: code,
-        comboAccessCode: code,
       }),
     })
   }
 
   it('con un solo canje, el segundo atleta queda afuera en las tres puertas', async () => {
-    const saved = await createOfferCode({ maxRedemptions: 1 })
+    const saved = await createPromoCode({ maxRedemptions: 1 })
     const first = await createAthlete('Cupo-A')
     const second = await createAthlete('Cupo-B')
 
-    // Los dos alcanzan a canjear la llave: el unlock no consume cupo, y eso es
-    // deliberado (20260902100000). El cupo se consume al comprar.
+    // Los dos alcanzan a canjear el código: el canje no consume cupo, y eso es
+    // deliberado. El cupo se consume al comprar.
     for (const athlete of [first, second]) {
-      const unlock = await admin.rpc('athlete_unlock_offer_code', {
-        p_organization_id: plan.organization_id,
-        p_athlete_id: athlete.id,
-        p_code: saved.code,
-      })
-      if (unlock.error) throw new Error(unlock.error.message)
-      expect(unlock.data.unlocked, JSON.stringify(unlock.data)).toBe(true)
+      const redeem = await redeemCode(athlete, saved.code)
+      if (redeem.error) throw new Error(redeem.error.message)
+      expect(redeem.data.status, JSON.stringify(redeem.data)).toBe('accepted')
     }
 
     const bought = await buyCombo(first, saved.code)
     const boughtBody = await bought.json()
     expect(bought.status, JSON.stringify(boughtBody)).toBe(201)
+    expect(boughtBody.order.amount).toBe(saved.fixed_price)
 
     // 1. La base: el cupo quedó consumido y el código se apagó solo, en la
     //    misma transacción que registró la redención (20260821150000).
@@ -235,14 +261,11 @@ describe('cupo y ventana de un código contra Supabase', () => {
       .eq('discount_code_id', saved.id)
     expect(redemptions.data).toHaveLength(1)
 
-    // 2. El canje: quien llega después ya no puede ni abrir la ficha.
-    const lateUnlock = await admin.rpc('athlete_unlock_offer_code', {
-      p_organization_id: plan.organization_id,
-      p_athlete_id: second.id,
-      p_code: saved.code,
-    })
-    expect(lateUnlock.data.unlocked).toBe(false)
-    expect(['limit_reached', 'inactive']).toContain(lateUnlock.data.reason)
+    // 2. El canje: quien llega después recibe el rechazo, no la campaña.
+    const lateRedeem = await redeemCode(second, saved.code)
+    if (lateRedeem.error) throw new Error(lateRedeem.error.message)
+    expect(lateRedeem.data.status).toBe('rejected')
+    expect(['limit_reached', 'inactive']).toContain(lateRedeem.data.reason)
 
     // 3. El preview: el checkout no anuncia un ahorro que no va a poder cobrar.
     const preview = await admin.rpc('athlete_preview_discount_code', {
@@ -250,7 +273,7 @@ describe('cupo y ventana de un código contra Supabase', () => {
       p_athlete_id: second.id,
       p_code: saved.code,
       p_applies_to: 'combo',
-      p_base_amount: plan.price + event.price,
+      p_base_amount: comboPrice,
       p_payment_method: 'manual_link',
     })
     expect(preview.data.valid).toBe(false)
@@ -267,25 +290,22 @@ describe('cupo y ventana de un código contra Supabase', () => {
   })
 
   it('una promo vencida no se canjea ni se cobra', async () => {
-    const saved = await createOfferCode({
+    const saved = await createPromoCode({
       expiresAt: new Date(Date.now() - 3600_000).toISOString(),
     })
     const athlete = await createAthlete('Vencido')
 
-    const unlock = await admin.rpc('athlete_unlock_offer_code', {
-      p_organization_id: plan.organization_id,
-      p_athlete_id: athlete.id,
-      p_code: saved.code,
-    })
-    expect(unlock.data.unlocked).toBe(false)
-    expect(unlock.data.reason).toBe('expired')
+    const redeem = await redeemCode(athlete, saved.code)
+    if (redeem.error) throw new Error(redeem.error.message)
+    expect(redeem.data.status).toBe('rejected')
+    expect(redeem.data.reason).toBe('expired')
 
     const preview = await admin.rpc('athlete_preview_discount_code', {
       p_organization_id: plan.organization_id,
       p_athlete_id: athlete.id,
       p_code: saved.code,
       p_applies_to: 'combo',
-      p_base_amount: plan.price + event.price,
+      p_base_amount: comboPrice,
       p_payment_method: 'manual_link',
     })
     expect(preview.data.valid).toBe(false)
@@ -297,25 +317,22 @@ describe('cupo y ventana de un código contra Supabase', () => {
 
   it('una promo programada todavía no vale, y lo dice sin confundirla con inválida', async () => {
     const startsAt = new Date(Date.now() + 7 * 86400000).toISOString()
-    const saved = await createOfferCode({ startsAt })
+    const saved = await createPromoCode({ startsAt })
     const athlete = await createAthlete('Programado')
 
-    const unlock = await admin.rpc('athlete_unlock_offer_code', {
-      p_organization_id: plan.organization_id,
-      p_athlete_id: athlete.id,
-      p_code: saved.code,
-    })
-    expect(unlock.data.unlocked).toBe(false)
+    const redeem = await redeemCode(athlete, saved.code)
+    if (redeem.error) throw new Error(redeem.error.message)
+    expect(redeem.data.status).toBe('rejected')
     // No es "no existe" ni "venció": el código sirve, más tarde.
-    expect(unlock.data.reason).toBe('not_started')
-    expect(unlock.data.startsAt).toBeTruthy()
+    expect(redeem.data.reason).toBe('not_started')
+    expect(redeem.data.startsAt).toBeTruthy()
 
     const preview = await admin.rpc('athlete_preview_discount_code', {
       p_organization_id: plan.organization_id,
       p_athlete_id: athlete.id,
       p_code: saved.code,
       p_applies_to: 'combo',
-      p_base_amount: plan.price + event.price,
+      p_base_amount: comboPrice,
       p_payment_method: 'manual_link',
     })
     expect(preview.data.valid).toBe(false)

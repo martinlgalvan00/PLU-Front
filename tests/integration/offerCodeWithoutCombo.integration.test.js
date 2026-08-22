@@ -5,14 +5,16 @@ import { manualChannelsOpen } from './helpers/platformToggles.js'
 import { createSupabaseTestClient, listen } from './helpers/supabaseTestClient.js'
 
 /**
- * Una oferta exclusiva sobre un torneo SIN combo cargado, de punta a punta
- * (20260913100000). Es el trámite que antes era imposible: había que configurar
- * el combo del evento primero, y sólo entonces se podía crear el código.
+ * El retiro de las ofertas exclusivas por código, de punta a punta.
  *
- * Lo que se verifica es la cadena completa contra Postgres real: el alta
- * resuelve el paquete sola, el canje abre la ficha sin combo, la ficha sigue
- * listándose, y la compra cobra el importe pactado —no el de lista— sobre una
- * orden que empaqueta afiliación e inscripción.
+ * Este archivo nació verificando la oferta sin combo (20260913100000); dos
+ * migraciones después la modalidad entera quedó retirada: 20260915100000 apagó
+ * toda fila offer/access y dejó un trigger que fuerza a que ninguna nueva
+ * nazca activa, y 20260916100000 sacó de Mi cuenta las fichas de códigos
+ * apagados. Lo que se verifica ahora es el tombstone contra Postgres real: el
+ * alta no puede reabrir la modalidad, el canje no destraba, la ficha no se
+ * lista ni para quien ya la tenía canjeada, y el checkout sigue sin vender un
+ * combo que no existe.
  */
 const mutationHeaders = {
   Origin: 'http://localhost:5173',
@@ -24,7 +26,7 @@ function sessionCookie(response) {
   return response.headers.get('set-cookie')?.split(';')[0]
 }
 
-describe('oferta exclusiva sin combo contra Supabase', () => {
+describe('retiro de la oferta exclusiva por código contra Supabase', () => {
   const admin = createSupabaseTestClient()
   const createdAthleteIds = []
   const createdEventIds = []
@@ -85,7 +87,7 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
     }
   })
 
-  it('se crea, se canjea y se cobra sin que exista ningún combo', async () => {
+  it('un código de oferta nace apagado y no destraba ni se lista ni se cobra', async () => {
     const nowIso = new Date().toISOString()
     const planResult = await admin
       .from('membership_plans')
@@ -102,14 +104,14 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
       )
     }
     const plan = planResult.data
-    const slug = `oferta-sin-combo-${randomUUID()}`
+    const slug = `oferta-retirada-${randomUUID()}`
     const now = Date.now()
     const eventResult = await admin
       .from('events')
       .insert({
         organization_id: plan.organization_id,
         slug,
-        title: 'Oferta sin combo integration test',
+        title: 'Oferta retirada integration test',
         description: 'Fixture transaccional',
         venue: 'Test venue',
         location: 'Buenos Aires',
@@ -130,20 +132,20 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
     const competition = eventResult.data
     createdEventIds.push(competition.id)
 
-    // A propósito NO se crea `event_combo_offers`: es todo el punto del cambio.
     const listTotal = plan.price + competition.price
     const offerPrice = Math.max(1, listTotal - 20000)
-    const code = `SIN-COMBO-${randomBytes(4).toString('hex').toUpperCase()}`
+    const code = `RETIRADA-${randomBytes(4).toString('hex').toUpperCase()}`
+    // El alta pide la oferta activa, como lo haría un panel viejo o un script:
+    // la RPC la acepta (es historia contable legítima) pero el trigger la
+    // fuerza a nacer apagada.
     const upsert = await admin.rpc('staff_upsert_discount_code', {
       p_code: {
         code,
-        description: 'Oferta exclusiva sin combo',
+        description: 'Oferta exclusiva retirada',
         kind: 'offer',
         appliesTo: 'combo',
         audience: 'code',
         eventId: competition.id,
-        // El paquete lo nombra el código: es el dato que antes obligaba a
-        // cargar el combo antes.
         membershipPlanId: plan.id,
         fixedPrice: offerPrice,
         manualChannels: ['bank_transfer'],
@@ -153,8 +155,15 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
     })
     if (upsert.error) throw new Error(upsert.error.message)
     expect(upsert.data.kind).toBe('offer')
-    expect(upsert.data.membership_plan_id).toBe(plan.id)
     createdCodeIds.push(upsert.data.id)
+
+    // 1. La fila que quedó en la base está apagada, sin importar qué pidió el alta.
+    const stored = await admin
+      .from('discount_codes')
+      .select('active')
+      .eq('id', upsert.data.id)
+      .single()
+    expect(stored.data.active).toBe(false)
 
     const suffix = randomUUID()
     const athleteResponse = await fetch(`${listenTarget.url}/api/athletes/register`, {
@@ -186,29 +195,34 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
       .update({ email_verified_at: new Date().toISOString() })
       .eq('id', athleteId)
 
-    // 1. El canje abre la ficha sin ningún combo detrás, y el paquete que
-    //    anuncia es el del código.
+    // 2. El canje no abre nada: el código existe pero está apagado.
     const unlock = await admin.rpc('athlete_unlock_offer_code', {
       p_organization_id: plan.organization_id,
       p_athlete_id: athleteId,
       p_code: code,
     })
     if (unlock.error) throw new Error(unlock.error.message)
-    expect(unlock.data.unlocked, JSON.stringify(unlock.data)).toBe(true)
-    expect(unlock.data.offer.comboOffer).toBeNull()
-    expect(unlock.data.offer.membershipPlan.id).toBe(plan.id)
-    expect(unlock.data.offer.fixedPrice).toBe(offerPrice)
+    expect(unlock.data.unlocked, JSON.stringify(unlock.data)).toBe(false)
+    expect(unlock.data.reason).toBe('inactive')
 
-    // 2. Y la ficha sigue listándose entre sesiones: antes el inner join contra
-    //    el combo la hacía desaparecer de Mi cuenta.
+    // 3. Ni siquiera un desbloqueo previo al retiro alimenta la ficha de Mi
+    //    cuenta: es la vidriera que cerró 20260916100000. Se simula el canje
+    //    viejo insertando la fila directo, como quedó en las cuentas reales.
+    const unlockRow = await admin.from('discount_code_unlocks').insert({
+      organization_id: plan.organization_id,
+      discount_code_id: upsert.data.id,
+      athlete_id: athleteId,
+    })
+    if (unlockRow.error) throw new Error(unlockRow.error.message)
     const listed = await admin.rpc('athlete_list_offer_unlocks', {
       p_organization_id: plan.organization_id,
       p_athlete_id: athleteId,
     })
     if (listed.error) throw new Error(listed.error.message)
-    expect(listed.data.map((offer) => offer.code)).toContain(code)
+    expect(listed.data.map((offer) => offer.code)).not.toContain(code)
 
-    // 3. La compra: una sola orden con concepto combo, al importe pactado.
+    // 4. El checkout no vende el paquete: sin combo vigente y con la llave
+    //    apagada no hay nada que cobrar, y no queda ninguna orden colgada.
     const comboResponse = await fetch(`${listenTarget.url}/api/athletes/me/registration-combos`, {
       method: 'POST',
       headers: { ...mutationHeaders, Cookie: sessionCookie(athleteResponse) },
@@ -219,27 +233,21 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
         bodyweightKg: 90,
         paymentMethod: 'manual_link',
         idempotencyKey: randomUUID(),
-        // El código cumple los dos roles, igual que desde la ficha.
         discountCode: code,
         comboAccessCode: code,
       }),
     })
-    const comboBody = await comboResponse.json()
-    expect(comboResponse.status, JSON.stringify(comboBody)).toBe(201)
-    expect(comboBody.order.concept).toBe('combo')
-    expect(comboBody.order.amount).toBe(offerPrice)
-    // El ahorro se mide contra el precio de lista, que es la base con la que
-    // nació la orden. La respuesta del alta es la fila cruda de la RPC, así que
-    // viaja en snake_case.
-    expect(comboBody.order.discount_amount).toBe(listTotal - offerPrice)
-    expect(comboBody.comboOffer).toBeNull()
-    expect(comboBody.plan.id).toBe(plan.id)
-    expect(comboBody.membership.athleteId ?? comboBody.membership.athlete_id).toBe(athleteId)
+    expect(comboResponse.status).toBe(404)
+    const orders = await admin
+      .from('athlete_payment_orders')
+      .select('id')
+      .eq('athlete_id', athleteId)
+    expect(orders.data ?? []).toHaveLength(0)
   })
 
-  it('sin la llave canjeada el checkout sigue contestando 404', async () => {
-    // La contracara: el paquete virtual existe sólo para quien tiene el código.
-    // Sin llave y sin combo no hay nada que vender, igual que antes.
+  it('sin combo cargado el checkout contesta 404, con código o sin él', async () => {
+    // La contracara que no cambió con el retiro: sin combo vigente no hay
+    // paquete que vender, igual que antes de que existieran las ofertas.
     const nowIso = new Date().toISOString()
     const planResult = await admin
       .from('membership_plans')
@@ -251,14 +259,14 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
       .limit(1)
       .maybeSingle()
     const plan = planResult.data
-    const slug = `sin-llave-${randomUUID()}`
+    const slug = `sin-combo-${randomUUID()}`
     const now = Date.now()
     const eventResult = await admin
       .from('events')
       .insert({
         organization_id: plan.organization_id,
         slug,
-        title: 'Sin llave integration test',
+        title: 'Sin combo integration test',
         description: 'Fixture transaccional',
         venue: 'Test venue',
         location: 'Buenos Aires',
@@ -283,9 +291,9 @@ describe('oferta exclusiva sin combo contra Supabase', () => {
       method: 'POST',
       headers: mutationHeaders,
       body: JSON.stringify({
-        fullName: `Sin Llave ${suffix}`,
+        fullName: `Sin Combo ${suffix}`,
         documentId: String(10_000_000 + (randomBytes(4).readUInt32BE(0) % 90_000_000)),
-        email: `sin-llave-${suffix}@pluarg.test`,
+        email: `sin-combo-${suffix}@pluarg.test`,
         birthDate: '1995-01-01',
         phone: '1122334455',
         country: 'Argentina',
