@@ -1436,14 +1436,7 @@ export function createAthleteRoutes({
         // scope 'combo' hace que discountCodeManualEligibility no matchee
         // 'membership' ni 'registration' solos. El canal pedido también tiene
         // que estar entre los que el código habilita.
-        const comboOffer = await repo().findEventComboOffer(eventSlug)
-        if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
-        // Un combo financiado destraba el canal igual que un cupón con
-        // elegibilidad manual: el checkout ya no le ofrece al atleta elegir
-        // método, así que no puede quedar bloqueado si Finanzas cerró el canal
-        // efectivo a nivel plataforma.
-        const comboOverride =
-          (await manualChannelOverride(req.validatedBody, 'combo')) || comboOffer.financed === true
+        const comboOverride = await manualChannelOverride(req.validatedBody, 'combo')
         const comboChannel = paymentChannelOf(req.validatedBody.paymentMethod)
         assertPaymentChannelEnabled(toggles, 'membership', comboChannel, {
           override: comboOverride,
@@ -1455,7 +1448,6 @@ export function createAthleteRoutes({
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
-<<<<<<< Updated upstream
         // Sin combo vigente el paquete puede ser el de una oferta que este
         // atleta ya canjeó: la llave trae su propia afiliación y se cotiza
         // contra la suma de las partes. Es la misma regla que aplica la RPC.
@@ -1485,9 +1477,6 @@ export function createAthleteRoutes({
           baseAmount: comboOffer.price,
           eventSlug,
         })
-=======
-        assertComboAccessCode(comboOffer, req.validatedBody.comboAccessCode)
->>>>>>> Stashed changes
         const membershipAccessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'membership',
           code: req.validatedBody.membershipAccessCode,

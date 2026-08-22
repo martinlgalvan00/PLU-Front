@@ -3113,17 +3113,10 @@ export default {
       competitionFormDesc: 'División, modalidad y categoría.',
       packageLegend: 'Paquete',
       packageSavings: 'Ahorrás {{amount}}',
-<<<<<<< Updated upstream
       discountLabel: 'Código',
       discountHint: 'Canjeá tu código.',
       discountPlaceholder: 'INGRESÁ TU CÓDIGO',
       discountApply: 'Canjear',
-=======
-      discountLabel: 'Código de descuento',
-      discountToggle: 'Tengo un código de descuento',
-      discountPlaceholder: 'Ej: VERANO2026',
-      discountApply: 'Aplicar',
->>>>>>> Stashed changes
       discountChecking: 'Validando...',
       comboCodeLead: 'Este paquete es cerrado: se compra sólo con el código que te pasaron.',
       comboCodeLabel: 'Código',
@@ -3131,8 +3124,6 @@ export default {
       comboCodeApply: 'Canjear',
       comboCodeChecking: 'Verificando…',
       comboCodeError: 'Ese código de combo no es válido.',
-      comboCodeUnlockedPrefix: 'Código',
-      comboCodeUnlockedSuffix: 'verificado — accediste al paquete exclusivo.',
       publicPromoApplied: 'Promoción vigente · ahorrás {{amount}}',
       discountApplied: 'Código {{code}} aplicado · ahorrás {{amount}}',
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',

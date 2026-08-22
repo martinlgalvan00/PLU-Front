@@ -469,19 +469,11 @@ export default function RegisterPage({
   const [discountChecking, setDiscountChecking] = useState(false)
   const [discountOpen, setDiscountOpen] = useState(false)
   const [discountError, setDiscountError] = useState('')
-<<<<<<< Updated upstream
   // Código secreto recién canjeado. No es lo mismo que `discountPreview`: el
   // preview dice cuánto se cobra, esto dice QUÉ se desbloqueó, y es lo único que
   // el atleta vino a confirmar cuando tipeó un código que no era un descuento.
   const [unlockedOffer, setUnlockedOffer] = useState(null)
   const [offerRedirecting, setOfferRedirecting] = useState(false)
-=======
-  // Campo colapsado por defecto: la mayoría de quienes se inscriben no tiene
-  // código, así que mostrarlo siempre era ruido para el caso común. Mismo
-  // patrón que la afiliación del perfil (`MembershipPurchaseSection`).
-  const [discountOpen, setDiscountOpen] = useState(false)
-  const discountInputRef = useRef(null)
->>>>>>> Stashed changes
   const [accessRequirements, setAccessRequirements] = useState({
     membership: false,
     registration: false,
@@ -890,23 +882,9 @@ export default function RegisterPage({
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
-<<<<<<< Updated upstream
     setUnlockedOffer(null)
     setOfferRedirecting(false)
-=======
-    setDiscountOpen(false)
->>>>>>> Stashed changes
   }
-
-  function openDiscountField() {
-    setDiscountError('')
-    setDiscountOpen(true)
-  }
-
-  useEffect(() => {
-    if (!discountOpen || discountPreview) return
-    discountInputRef.current?.focus()
-  }, [discountOpen, discountPreview])
 
   // Un cupón aplicado sobre 'registration' no necesariamente vale sobre
   // 'combo' (sólo applies_to = 'both' cubre el combo) y viceversa: cambiar de
@@ -1249,24 +1227,10 @@ export default function RegisterPage({
         : wiseEnabled
           ? 'wise_transfer'
           : null
-  // Un combo financiado no le pide al atleta elegir método: el checkout le
-  // esconde el selector y manda 'cash_pitbull' por dentro (misma orden
-  // 'pendiente' de siempre, Finanzas la aprueba después). Este combo tiene que
-  // quedar afuera de la corrección de más abajo, que reacomoda el método
-  // elegido al primer canal abierto — si no, pisaría el valor forzado apenas
-  // el canal efectivo esté cerrado a nivel plataforma (el backend ya lo
-  // destraba para este caso puntual, ver overrides en /me/registration-combos).
-  const comboFinanced =
-    effectivePurchaseType === 'combo' && comboAvailability.offer?.financed === true
   useEffect(() => {
-    if (comboFinanced) return
     if (selectedMethodEnabled || !firstOpenMethod) return
     onUpdateForm({ target: { name: 'paymentMethod', value: firstOpenMethod } })
-  }, [comboFinanced, firstOpenMethod, selectedMethodEnabled, onUpdateForm])
-  useEffect(() => {
-    if (!comboFinanced || form.paymentMethod === 'cash_pitbull') return
-    onUpdateForm({ target: { name: 'paymentMethod', value: 'cash_pitbull' } })
-  }, [comboFinanced, form.paymentMethod, onUpdateForm])
+  }, [firstOpenMethod, selectedMethodEnabled, onUpdateForm])
   const stepErrorsVisible =
     flow === 'profile' &&
     profileErrorStepIndex === profileStepIndex &&
@@ -2553,61 +2517,6 @@ export default function RegisterPage({
                     </div>
                   </FormSection>
 
-<<<<<<< Updated upstream
-=======
-                  {comboAvailability.locked ? (
-                    <div className="register-combo-code">
-                      <p className="register-combo-code__lead">
-                        <LockKeyhole size={15} aria-hidden />
-                        {t('pages.register.comboCodeLead')}
-                      </p>
-                      <div className="register-combo-code__row">
-                        <label htmlFor="register-combo-code">
-                          {t('pages.register.comboCodeLabel')}
-                        </label>
-                        <input
-                          id="register-combo-code"
-                          type="text"
-                          autoComplete="off"
-                          spellCheck={false}
-                          placeholder={t('pages.register.comboCodePlaceholder')}
-                          value={comboCodeInput}
-                          disabled={comboCodeChecking}
-                          onChange={(codeEvent) =>
-                            setComboCodeInput(codeEvent.target.value.toUpperCase())
-                          }
-                          onKeyDown={(codeEvent) => {
-                            if (codeEvent.key !== 'Enter') return
-                            codeEvent.preventDefault()
-                            void unlockComboWithCode()
-                          }}
-                        />
-                        <button
-                          type="button"
-                          disabled={comboCodeChecking || !comboCodeInput.trim()}
-                          onClick={unlockComboWithCode}
-                        >
-                          {comboCodeChecking
-                            ? t('pages.register.comboCodeChecking')
-                            : t('pages.register.comboCodeApply')}
-                        </button>
-                      </div>
-                      {comboCodeError ? (
-                        <p className="register-combo-code__error" role="alert">
-                          {comboCodeError}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : comboCode && comboAvailability.offer ? (
-                    <p className="register-combo-code__unlocked" role="status">
-                      <ShieldCheck size={15} aria-hidden />
-                      {t('pages.register.comboCodeUnlockedPrefix')}
-                      <strong>{comboCode}</strong>
-                      {t('pages.register.comboCodeUnlockedSuffix')}
-                    </p>
-                  ) : null}
-
->>>>>>> Stashed changes
                   {showComboChoice || (isPaidCheckout && flow === 'competition') ? (
                     <RegisterSettle
                       comboComingSoon={comboComingSoon}
@@ -2629,7 +2538,7 @@ export default function RegisterPage({
                       registrationPrice={registrationListPrice}
                       registrationManualPrice={eventPricing.registrationManual}
                       showPackage={showComboChoice}
-                      showPayment={isPaidCheckout && !comboFinanced}
+                      showPayment={isPaidCheckout}
                     />
                   ) : null}
 
@@ -2673,7 +2582,6 @@ export default function RegisterPage({
                         </p>
                       ) : null}
                       {discountPreview ? (
-<<<<<<< Updated upstream
                         /* Aplicado: la banda pasa a ser el registro de lo que
                            se va a cobrar. El importe y su palabra ("pagás" /
                            "ahorrás") se separan porque significan cosas
@@ -2716,65 +2624,6 @@ export default function RegisterPage({
                                 )}
                               </div>
                             </div>
-=======
-                        <p className="register-discount__applied">
-                          <Tag size={14} aria-hidden />
-                          {discountPreview.kind === 'fixed_price'
-                            ? t('pages.register.discountAppliedFixed', {
-                                code: discountPreview.code,
-                                amount: money(discountPreview.finalAmount, locale),
-                              })
-                            : t('pages.register.discountApplied', {
-                                code: discountPreview.code,
-                                amount: money(discountPreview.discountAmount, locale),
-                              })}
-                          <button type="button" onClick={clearDiscountCode} disabled={submitting}>
-                            {t('pages.register.discountRemove')}
-                          </button>
-                        </p>
-                      ) : discountOpen ? (
-                        <>
-                          <label
-                            className="register-discount__label"
-                            htmlFor="registration-discount-code"
-                          >
-                            {t('pages.register.discountLabel')}
-                          </label>
-                          <div className="register-discount__row">
-                            <input
-                              ref={discountInputRef}
-                              id="registration-discount-code"
-                              type="text"
-                              autoComplete="off"
-                              spellCheck={false}
-                              placeholder={t('pages.register.discountPlaceholder')}
-                              value={discountCodeInput}
-                              disabled={submitting || discountChecking}
-                              onChange={(event) =>
-                                setDiscountCodeInput(event.target.value.toUpperCase())
-                              }
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault()
-                                  void applyDiscountCode()
-                                  return
-                                }
-                                if (event.key === 'Escape') {
-                                  event.preventDefault()
-                                  clearDiscountCode()
-                                }
-                              }}
-                            />
-                            <button
-                              type="button"
-                              disabled={submitting || discountChecking || !discountCodeInput.trim()}
-                              onClick={applyDiscountCode}
-                            >
-                              {discountChecking
-                                ? t('pages.register.discountChecking')
-                                : t('pages.register.discountApply')}
-                            </button>
->>>>>>> Stashed changes
                           </div>
                           {/* El código deja delegar el pago: se dice con el
                               código ya aplicado y antes de elegir el medio,
@@ -2788,7 +2637,6 @@ export default function RegisterPage({
                               {t('pages.register.discountFinanced')}
                             </p>
                           ) : null}
-<<<<<<< Updated upstream
                           <button
                             type="button"
                             className="code-band-drop"
@@ -2895,19 +2743,6 @@ export default function RegisterPage({
                             )}
                           </MotionContentSwap>
                         </div>
-=======
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          className="register-discount__toggle"
-                          disabled={submitting}
-                          onClick={openDiscountField}
-                        >
-                          <Tag size={14} aria-hidden />
-                          {t('pages.register.discountToggle')}
-                        </button>
->>>>>>> Stashed changes
                       )}
                     </div>
                   ) : null}
