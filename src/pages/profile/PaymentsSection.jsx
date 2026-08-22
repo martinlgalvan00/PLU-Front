@@ -1,7 +1,8 @@
-import { Receipt } from 'lucide-react'
+import { ArrowRight, CircleAlert, Receipt } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import { money } from '../../lib/format.js'
+import { isPaymentActionable } from '../../lib/paymentProgress.js'
 
 /**
  * PaymentsSection — PLU ARG
@@ -106,6 +107,11 @@ export default function PaymentsSection({ payments = [], onNavigateSection, onRe
   const rows = [...payments].sort(
     (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
   )
+  // Cobros que de verdad necesitan que la persona haga algo: rechazado o
+  // vencido, sin que la afiliación/inscripción haya quedado resuelta por otra
+  // vía. Es el mismo criterio que ya decide si la fila ofrece "Generar un
+  // cobro nuevo" — acá se cuenta para el aviso de arriba de la lista.
+  const actionableCount = rows.filter((payment) => isPaymentActionable(payment.progress)).length
 
   return (
     <section id="account-payments" className="account-section account-section--neutral">
@@ -122,12 +128,33 @@ export default function PaymentsSection({ payments = [], onNavigateSection, onRe
       {rows.length ? (
         <>
           <p className="account-section__lead">{t('account.payments.lead')}</p>
+
+          {actionableCount > 0 ? (
+            <div className="account-inline-alert account-inline-alert--danger" role="alert">
+              <div className="account-inline-alert__icon">
+                <CircleAlert size={18} aria-hidden />
+              </div>
+              <div className="account-inline-alert__body">
+                <strong>
+                  {t(
+                    actionableCount === 1
+                      ? 'account.payments.alertTitle_one'
+                      : 'account.payments.alertTitle_other',
+                    { count: actionableCount },
+                  )}
+                </strong>
+                <p>{t('account.payments.alertBody')}</p>
+              </div>
+            </div>
+          ) : null}
+
           <ul className="account-payments-list">
             {rows.map((payment) => {
               const progress = payment.progress
               const reason = resolveReason(progress)
               const date = formatDate(payment.createdAt, locale)
               const channelLabel = t(`account.payments.channel.${progress?.channel ?? 'mercado_pago'}`)
+              const isActionable = isPaymentActionable(progress)
 
               return (
                 <li key={payment.id} className="account-payment">
@@ -165,7 +192,14 @@ export default function PaymentsSection({ payments = [], onNavigateSection, onRe
                     <ProgressTrack stages={progress.stages} t={t} />
                   ) : null}
 
-                  {reason ? <p className="account-payment__reason">{reason}</p> : null}
+                  {reason ? (
+                    <p
+                      className={`account-payment__reason${isActionable ? ' account-payment__reason--alert' : ''}`}
+                    >
+                      {isActionable ? <CircleAlert size={14} aria-hidden /> : null}
+                      <span>{reason}</span>
+                    </p>
+                  ) : null}
 
                   {/* El intento fallido no cambia el estado, pero explica por qué
                       pudo haber llegado un aviso de rechazo antes del comprobante. */}
@@ -200,15 +234,14 @@ export default function PaymentsSection({ payments = [], onNavigateSection, onRe
                   {/* Sin `resolvedElsewhere`: ofrecerle pagar de nuevo a quien
                       ya tiene la afiliación activa es empujarlo a pagar dos
                       veces lo mismo. */}
-                  {progress?.action === 'retry' &&
-                  !progress.resolvedElsewhere &&
-                  typeof onRetryPayment === 'function' ? (
+                  {isActionable && typeof onRetryPayment === 'function' ? (
                     <button
                       type="button"
                       className="account-payment__action"
                       onClick={() => onRetryPayment(payment)}
                     >
                       {t('account.payments.action.retry')}
+                      <ArrowRight size={14} aria-hidden />
                     </button>
                   ) : null}
                 </li>

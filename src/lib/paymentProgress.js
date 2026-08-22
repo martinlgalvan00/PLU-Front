@@ -189,6 +189,20 @@ function hasProof(order = {}) {
 }
 
 /**
+ * ¿Esta orden necesita que el atleta haga algo ahora? Rechazada o vencida y
+ * sin resolver por otra vía (afiliación/inscripción ya otorgada de todos
+ * modos). Un solo criterio para el aviso de la sección Pagos, el ícono de
+ * cada fila y el indicador de la ficha "Pagos" en la navegación — que las
+ * tres lecturas puedan desalinearse (una avisa, la otra no) es peor que
+ * repetir una condición de una línea.
+ *
+ * @param {ReturnType<typeof derivePaymentProgress>|null|undefined} progress
+ */
+export function isPaymentActionable(progress) {
+  return progress?.action === 'retry' && !progress?.resolvedElsewhere
+}
+
+/**
  * Estado real de un cobro, con su historial de intentos.
  *
  * @param {{ order: object, attempts?: object[] }} input
