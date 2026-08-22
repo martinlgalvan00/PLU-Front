@@ -872,6 +872,7 @@ export function createSupabaseAthleteRepository(
         openResponse,
         manualResponse,
         financedResponse,
+        rejectedResponse,
         approvedResponse,
         totalResponse,
         openAmounts,
@@ -882,6 +883,7 @@ export function createSupabaseAthleteRepository(
           .in('status', OPEN_PAYMENT_ORDER_STATUSES)
           .eq('financing_allowed', true)
           .not('financed_entitlements_at', 'is', null),
+        scoped().eq('status', 'rechazado'),
         scoped().eq('status', 'aprobado'),
         scoped(),
         client
@@ -896,6 +898,7 @@ export function createSupabaseAthleteRepository(
         openResponse,
         manualResponse,
         financedResponse,
+        rejectedResponse,
         approvedResponse,
         totalResponse,
       ]) {
@@ -907,6 +910,7 @@ export function createSupabaseAthleteRepository(
         pending: openResponse.count ?? 0,
         validacion_manual: manualResponse.count ?? 0,
         financed: financedResponse.count ?? 0,
+        rechazado: rejectedResponse.count ?? 0,
         aprobado: approvedResponse.count ?? 0,
         all: totalResponse.count ?? 0,
         openAmount: (amounts ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0),

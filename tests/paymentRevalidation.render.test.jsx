@@ -71,6 +71,35 @@ function renderSection(props = {}) {
 }
 
 describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
+  it('permite aislar las rechazadas para recuperarlas sin buscar entre todas las órdenes', async () => {
+    listAthletePaymentOrders.mockResolvedValue({
+      orders: [{ ...MP_ORDER, status: 'rechazado' }],
+      counts: {
+        rechazado: 1,
+        all: 1,
+        pending: 0,
+        validacion_manual: 0,
+        financed: 0,
+        aprobado: 0,
+        openAmount: 0,
+      },
+    })
+    renderSection({ statusFilter: { status: 'all', at: 1 } })
+
+    const rejectedFilter = await screen.findByRole('button', { name: /rechazadas/i })
+    fireEvent.click(rejectedFilter)
+
+    await waitFor(() =>
+      expect(listAthletePaymentOrders).toHaveBeenLastCalledWith({
+        limit: 200,
+        statuses: ['rechazado'],
+        financed: undefined,
+        withCounts: true,
+      }),
+    )
+    expect(screen.getByRole('button', { name: 'Revalidar con Mercado Pago' })).toBeTruthy()
+  })
+
   it('ofrece la acción solo en las órdenes que cobra Mercado Pago', async () => {
     listAthletePaymentOrders.mockResolvedValue({ orders: [MP_ORDER, TRANSFER_ORDER], counts: null })
     renderSection({ statusFilter: { status: 'all', at: 1 } })

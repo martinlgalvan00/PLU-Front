@@ -1189,6 +1189,7 @@ export default {
   },
 
   eventConsole: {
+    close: 'Close',
     configLabel: 'Event setup',
     activityLabel: 'Activity',
     back: 'Back to the event list',
@@ -1892,6 +1893,7 @@ export default {
     },
   },
   registrationStatus: {
+    reasonHint: 'To save the change, choose a status and write a reason of at least 3 characters.',
     title: 'Correct registration status',
     lead: 'Change the status without deleting the registration: division, category and assigned slot are kept.',
     athlete: 'Athlete',
@@ -2795,6 +2797,10 @@ export default {
     },
   },
   athletePayments: {
+    lookupPayment: 'Validate operation number',
+    lookupPaymentHint: 'Paste the Mercado Pago operation number. It is only settled if it matches this order.',
+    lookupPaymentLabel: 'Mercado Pago operation number',
+    lookupPaymentSubmit: 'Validate operation',
     eyebrow: 'Memberships and registrations',
     title: 'Athlete orders',
     subtitle: 'Transfers awaiting review and Mercado Pago settlements',
@@ -2805,6 +2811,7 @@ export default {
     filterPending: 'To review',
     filterManual: 'Under review',
     filterFinanced: 'Financed',
+    filterRejected: 'Rejected',
     filterApproved: 'Approved',
     filterAll: 'All',
     rejectedBy: 'Rejected by {{actor}}',

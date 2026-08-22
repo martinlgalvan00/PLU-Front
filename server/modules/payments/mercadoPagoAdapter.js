@@ -262,8 +262,14 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
    * pago embebido y en la suscripcion, asi que es la unica clave que permite
    * reconstruir la verdad del proveedor sin depender de que el webhook haya
    * llegado.
-   */
+  */
   async function searchPaymentsForOrder(order) {
+    // Sin esta guarda una revalidación con un token de otra cuenta devolvía
+    // simplemente una lista vacía. Para Finanzas eso se veía como "Mercado
+    // Pago no tiene el pago", aunque el cobro estuviera acreditado en la cuenta
+    // correcta. La búsqueda también es una operación sobre dinero: tiene que
+    // usar la misma cuenta cobradora que crea el checkout.
+    await assertConfiguredCollector()
     const response = await getJson(
       `/v1/payments/search?external_reference=${encodeURIComponent(String(order.id))}&sort=date_created&criteria=desc`,
     )

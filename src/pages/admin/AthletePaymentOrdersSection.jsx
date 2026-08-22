@@ -19,6 +19,7 @@ import { getAthletePaymentProofUrls, listAthletePaymentOrders } from '../../serv
 import {
   OPEN_ORDER_STATUSES,
   buildPaymentValidationItem,
+  canForceSettleOrder,
   canValidateConcept,
   canValidateManualOrder,
   hasPaymentProof,
@@ -50,6 +51,11 @@ const STATUS_FILTERS = [
   // grupo donde el club esta expuesto, asi que tiene su propia vista en vez de
   // quedar mezclado entre las pendientes.
   ['financed', 'admin.athletePayments.filterFinanced'],
+  // Un rechazo de Mercado Pago puede ser el ultimo estado que recibimos antes
+  // de una falla de webhook o retorno. Tenerlo a un click deja a la vista la
+  // accion de revalidar contra el proveedor, sin mezclarlo con las ordenes que
+  // realmente esperan una validacion manual.
+  ['rechazado', 'admin.athletePayments.filterRejected'],
   ['aprobado', 'admin.athletePayments.filterApproved'],
   ['all', 'admin.athletePayments.filterAll'],
 ]
@@ -63,6 +69,7 @@ const DB_STATUSES_BY_FILTER = Object.freeze({
   pending: ['pendiente', 'validacion_manual'],
   validacion_manual: ['validacion_manual'],
   financed: ['pendiente', 'validacion_manual'],
+  rechazado: ['rechazado'],
   aprobado: ['aprobado'],
   all: null,
 })
@@ -75,16 +82,6 @@ function formatDateTime(value, locale) {
     dateStyle: 'short',
     timeStyle: 'short',
   })
-}
-
-/**
- * Órdenes que el flujo normal ya no puede resolver pero todavía tienen arreglo:
- * un cobro de Mercado Pago que quedó rechazado, o una transferencia rechazada
- * cuyo dinero terminó entrando igual. Son las candidatas a acreditación manual.
- */
-function canForceSettleRow(row) {
-  if (row.status === 'aprobado') return false
-  return row.method === 'mercado_pago' || row.status === 'rechazado'
 }
 
 const TOGGLE_KEY_BY_CODE = {
@@ -649,7 +646,7 @@ export default function AthletePaymentOrdersSection({
                   {/* Vía de excepción: sólo aparece en las órdenes que el botón
                       de validar no puede tocar (Mercado Pago, o rechazadas),
                       para que no compita con el flujo normal. */}
-                  {canForceSettle && canForceSettleRow(row) ? (
+                  {canForceSettle && canForceSettleOrder(row) ? (
                     <AdminIconButton
                       disabled={!row.validatable || approvingId === row.id}
                       icon={HandCoins}

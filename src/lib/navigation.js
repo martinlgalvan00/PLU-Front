@@ -54,9 +54,6 @@ export const ACCOUNT_PAYMENTS_TAB = 'account-payments'
  */
 export const ACCOUNT_TAB_IDS = [
   DEFAULT_ACCOUNT_TAB,
-  // Segunda posición y no al final: una oferta exclusiva con cupo y ventana no
-  // puede quedar escondida detrás de Seguridad.
-  ACCOUNT_OFFER_TAB,
   ACCOUNT_EVENTS_TAB,
   'account-history',
   ACCOUNT_MEMBERSHIP_TAB,
@@ -82,7 +79,8 @@ const ACCOUNT_TAB_BY_SECTION = Object.freeze({
   // sin ninguna pista.
   benefits: ACCOUNT_MEMBERSHIP_TAB,
   beneficios: ACCOUNT_MEMBERSHIP_TAB,
-  offer: ACCOUNT_OFFER_TAB,
+  // Enlaces históricos no deben abrir ni anunciar una oferta por código.
+  offer: ACCOUNT_MEMBERSHIP_TAB,
   history: 'account-history',
   security: 'account-security',
   profile: 'account-personal-data',

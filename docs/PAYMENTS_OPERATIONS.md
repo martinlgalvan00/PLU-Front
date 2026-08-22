@@ -195,17 +195,37 @@ informe que para Mercado Pago.
 - `PAYMENT_RECOVERY_JOB_ENABLED=true`: inicia un loop residente de recuperacion;
   usarlo solamente en un unico worker persistente por entorno. En local y
   Vercel queda `false`: el cron autenticado ejecuta la recuperacion bajo demanda.
+- `PAYMENT_REVALIDATION_JOB_ENABLED=true`: mismo criterio, pero para el barrido
+  que corrige ordenes de Mercado Pago mal etiquetadas (`cancelado`/`rechazado`
+  local cuando el proveedor ya tiene un pago `approved`) releyendo el estado
+  real contra la API de MP — es el mismo camino que el boton "Revalidar" del
+  panel (`server/modules/payments/paymentRevalidationWorkflow.js`), corrido
+  con `apply: true` sobre las ultimas `PAYMENT_REVALIDATION_SINCE_DAYS` (3 por
+  defecto) ordenes no aprobadas. En Vercel queda `false`: el cron diario
+  autenticado lo ejecuta bajo demanda, complementado cada hora por
+  `.github/workflows/payment-revalidation-cron.yml` (mismo patron que
+  `payment-recovery-cron.yml`) para no depender del limite de una corrida
+  diaria del plan Hobby.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
 
 En Vercel, un scheduler invoca por `GET` los endpoints
 `/api/internal/jobs/payment-recovery`,
+`/api/internal/jobs/payment-revalidation`,
 `/api/internal/jobs/membership-renewal` y
 `/api/internal/jobs/security-user-lifecycle` con
 `Authorization: Bearer <CRON_SECRET>`. El mantenimiento de reservas y órdenes
 corre cada minuto en Supabase mediante la migración
 `20260724000000_domain_maintenance_cron.sql`. Los RPC de claim y las
 actualizaciones atómicas mantienen los reintentos idempotentes.
+
+Nota sobre `payment-revalidation`: a diferencia de `payment-recovery` (que
+drena colas de eventos que sí llegaron), este job existe para el caso donde
+ninguna entrada llegó — la notificación de Mercado Pago se perdió, el atleta
+cerró la pestaña antes de volver del checkout, y el cron de expiración
+(`expire_domain_orders`, cada 3 minutos) canceló la orden mientras tanto. Sin
+este job, esa orden queda `cancelado` hasta que alguien del staff la revalida
+a mano desde el panel.
 
 ## Auditoria, logs y diagnostico de fallas
 

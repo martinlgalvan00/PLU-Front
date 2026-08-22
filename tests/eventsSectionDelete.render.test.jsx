@@ -73,8 +73,15 @@ function renderEvents(overrides = {}) {
 }
 
 describe('EventsSection — borrado de eventos', () => {
+  // El borrado vive en la consola del evento: abrir el modal es parte del flujo.
+  function openConsole() {
+    fireEvent.click(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/))
+    return screen.getByRole('dialog', { name: 'Evento seleccionado' })
+  }
+
   it('no ofrece la acción a quien no puede eliminar eventos', () => {
     renderEvents({ canDeleteEvents: false })
+    openConsole()
     expect(screen.queryByLabelText('Eliminar evento')).toBeNull()
   })
 
@@ -82,6 +89,7 @@ describe('EventsSection — borrado de eventos', () => {
     const onDeleteEvent = vi.fn(async () => ({ deletedEvent: { id: EVENT.id }, events: [] }))
     renderEvents({ onDeleteEvent })
 
+    openConsole()
     fireEvent.click(screen.getByLabelText('Eliminar evento'))
 
     // Los números salen del dry run en la base, no de lo que el panel tenga en
@@ -101,6 +109,7 @@ describe('EventsSection — borrado de eventos', () => {
     const onDeleteEvent = vi.fn(async () => ({ deletedEvent: { id: EVENT.id }, events: [] }))
     renderEvents({ onDeleteEvent, onFetchDeleteImpact: async () => impact({ requiresForce: true }) })
 
+    openConsole()
     fireEvent.click(screen.getByLabelText('Eliminar evento'))
 
     const input = await screen.findByLabelText('Escribí el identificador del evento')
@@ -128,6 +137,7 @@ describe('EventsSection — borrado de eventos', () => {
 
     renderEvents({ onDeleteEvent })
 
+    openConsole()
     fireEvent.click(screen.getByLabelText('Eliminar evento'))
     await screen.findByText(/48 inscripciones/)
 

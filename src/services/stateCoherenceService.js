@@ -41,6 +41,17 @@ function orderOf(payments, orderId) {
 }
 
 /**
+ * La orden que respalda un derecho, sin importar su estado actual. A
+ * diferencia de `resolveEntitlementBacking` (que solo mira derechos ya
+ * otorgados) esta sirve para el caso inverso: una afiliación o inscripción
+ * que sigue `cancelada`/`pendiente` porque su orden quedó así, y hay que poder
+ * revalidarla o acreditarla a mano sin salir de la lista.
+ */
+export function findEntitlementOrder(entity, payments = []) {
+  return orderOf(payments, entity?.paymentOrderId)
+}
+
+/**
  * ¿Este derecho está otorgado sin un cobro que lo respalde?
  *
  * `explained` distingue lo que hay que ir a corregir de lo que ya tiene su

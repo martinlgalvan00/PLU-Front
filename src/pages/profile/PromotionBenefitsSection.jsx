@@ -1,22 +1,16 @@
-import { BadgePercent, KeyRound, LockKeyhole, Sparkles } from 'lucide-react'
+import { BadgePercent, KeyRound } from 'lucide-react'
 import SecretOfferCodeRedeemer from '../../components/ui/SecretOfferCodeRedeemer.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { ACCOUNT_OFFER_TAB } from '../../lib/navigation.js'
 import { readPendingPromotionCode } from '../../services/promotionCodeService.js'
 import '../../styles/components/promotion-benefits.css'
 
 const BENEFIT_TYPES = [
   { id: 'discount', icon: BadgePercent },
-  { id: 'access', icon: LockKeyhole },
-  { id: 'offer', icon: Sparkles },
 ]
 
 export default function PromotionBenefitsSection({
   session,
-  hasExclusiveOffer = false,
   onNavigate,
-  onNavigateSection,
-  onOfferUnlocked,
 }) {
   const { t } = useI18n()
   const pendingCode = readPendingPromotionCode()?.code ?? ''
@@ -41,22 +35,11 @@ export default function PromotionBenefitsSection({
             initialCode={pendingCode}
             session={session}
             onNavigate={onNavigate}
-            onOfferUnlocked={onOfferUnlocked}
           />
           <p className="promotion-benefits__safe-note">
             <KeyRound size={14} aria-hidden />
             <span>{t('account.benefits.safeNote')}</span>
           </p>
-          {hasExclusiveOffer ? (
-            <button
-              type="button"
-              className="promotion-benefits__offer-link"
-              onClick={() => onNavigateSection?.(ACCOUNT_OFFER_TAB)}
-            >
-              <Sparkles size={15} aria-hidden />
-              {t('account.benefits.openOffer')}
-            </button>
-          ) : null}
         </div>
 
         <div className="promotion-benefits__types" aria-labelledby="benefit-types-title">

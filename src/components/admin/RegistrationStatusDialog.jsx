@@ -124,6 +124,11 @@ export default function RegistrationStatusDialog({
             placeholder={t('admin.registrationStatus.reasonPlaceholder')}
             onChange={(event) => setReason(event.target.value)}
           />
+          {!reasonValid ? (
+            <small className="admin-status-dialog__hint">
+              {t('admin.registrationStatus.reasonHint')}
+            </small>
+          ) : null}
         </div>
 
         {error ? (

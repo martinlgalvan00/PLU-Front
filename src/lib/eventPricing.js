@@ -16,6 +16,11 @@ export const DEFAULT_EVENT_PRICING = {
 /** Oferta combo vigente segun active + ventana startsAt/endsAt. */
 export function isComboOfferLive(offer, now = new Date()) {
   if (!offer || offer.active !== true) return false
+  // Un combo archivado es historia contable (20260914100000): sigue con
+  // `active = true` porque esa migración no lo toca, pero dejó de ofrecerse.
+  // Sin este check, el fallback de `fetchPublishedEvents` a Supabase directo
+  // -que no pasa por `sanitizePublicCatalogEvent`- lo volvía a anunciar.
+  if (offer.archivedAt) return false
   const price = Number(offer.price)
   if (!Number.isFinite(price) || price <= 0) return false
   if (offer.startsAt && new Date(offer.startsAt).getTime() > now.getTime()) return false

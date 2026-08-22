@@ -2327,6 +2327,9 @@ export function useAppData() {
             ),
           )
         }
+        // Releer el snapshot evita que la tabla quede mostrando el estado
+        // anterior cuando la RPC aplicó efectos vinculados al pago.
+        void refreshAthleteData({ silent: true })
         publishAthleteSnapshotInvalidation()
         return { registration, duplicate }
       } catch (error) {
@@ -2334,7 +2337,7 @@ export function useAppData() {
         return { error: error?.message ?? 'No se pudo cambiar el estado de la inscripción.' }
       }
     },
-    [session],
+    [refreshAthleteData, session],
   )
 
   // Activación/baja manual desde el panel. El servidor vuelve a validar el

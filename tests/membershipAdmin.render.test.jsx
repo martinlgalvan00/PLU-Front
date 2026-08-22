@@ -75,7 +75,7 @@ describe('operación de afiliaciones', () => {
     const onSetMembershipStatus = vi.fn(async () => ({ membership: membership({ status: 'cancelada' }) }))
     renderSection([membership()], { onSetMembershipStatus })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Dar de baja' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(onSetMembershipStatus).not.toHaveBeenCalled()
 
@@ -97,7 +97,7 @@ describe('operación de afiliaciones', () => {
     const onSetMembershipStatus = vi.fn(async () => ({ membership: membership() }))
     renderSection([membership({ status: 'pendiente_pago' })], { onSetMembershipStatus })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Activar' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
 
     const confirm = () => screen.getByRole('button', { name: 'Activar y registrar el motivo' })
     expect(confirm().disabled).toBe(true)
@@ -125,7 +125,7 @@ describe('operación de afiliaciones', () => {
       onSetMembershipStatus: vi.fn(),
     })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Activar' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
 
     // Marcar la orden como aprobada falsearía los ingresos: el diálogo lo dice
     // para que nadie espere ver el pago en verde ni intente "arreglarlo".
@@ -140,7 +140,7 @@ describe('operación de afiliaciones', () => {
     })
     renderSection([membership()], { onSetMembershipStatus })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Dar de baja' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
     fillReason()
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar baja' }))
 

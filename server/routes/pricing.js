@@ -67,7 +67,9 @@ export const discountCodeSchema = z
     // evento— ya no se puede crear: el paquete y su importe viven en el código,
     // no en un objeto aparte. La base conserva la modalidad para las filas
     // históricas; editarlas desde el panel las guarda como 'offer'.
-    kind: z.enum(['percent', 'fixed_price', 'offer']).default('percent'),
+    // Los códigos sólo pueden aplicar descuentos. Las ofertas exclusivas
+    // originadas por código quedaron retiradas del producto.
+    kind: z.enum(['percent', 'fixed_price']).default('percent'),
     // Tope en 99: un cupón nunca puede dejar una orden en $0 — Mercado Pago no
     // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
     // gratuita. Ver apply_discount_code_to_order (rechaza descuento == importe).
@@ -90,7 +92,6 @@ export const discountCodeSchema = z
     // la RPC: el plan del combo del evento si hay combo, o la única afiliación
     // de pago único vigente. Sólo hace falta elegirlo cuando hay más de una, y
     // es lo que permitió que crear una oferta no exija cargar un combo antes.
-    membershipPlanId: z.string().uuid().optional(),
     maxRedemptions: z.coerce.number().int().positive().optional(),
     // Ventana de la promo. `startsAt` vacío = vigente desde que se enciende,
     // que es como se comportaban todas las promos antes de tener apertura.

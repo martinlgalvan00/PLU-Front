@@ -7,6 +7,7 @@ import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminScheduleAssigner from '../../components/admin/AdminScheduleAssigner.jsx'
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
+import PaymentRecoveryAction from '../../components/admin/PaymentRecoveryAction.jsx'
 import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
 import {
   AdminIdentityCell,
@@ -31,6 +32,7 @@ import {
   resolveRegistrationPayment,
 } from '../../services/registrationAdminService.js'
 import {
+  canForceSettleOrder,
   canValidateManualOrder,
   isManualOrder,
   isOpenOrder,
@@ -70,6 +72,16 @@ function canValidateRegistrationPayment(row, canValidatePayments) {
 }
 
 /**
+ * El caso "el pago figura cancelado pero la plata entró": revalidar aplica a
+ * cualquier orden de Mercado Pago sin importar el permiso (no acredita nada
+ * por sí sola); acreditar a mano exige el mismo permiso que en Finanzas.
+ */
+function canRecoverRegistrationPayment(row, canForceSettle) {
+  if (!row.payment) return false
+  return row.payment.method === 'mercado_pago' || (canForceSettle && canForceSettleOrder(row.payment))
+}
+
+/**
  * Contadores para los chips de estado y afiliación en una sola pasada sobre
  * `registrations` (antes: un `.filter()` completo por cada uno de los 5
  * estados solo para los badges de conteo).
@@ -101,14 +113,17 @@ export default function RegistrationsSection({
   registrations = [],
   registrationsCount,
   onApprovePayment,
+  onForceSettlePayment,
   onRejectPayment,
   onExportAdmin,
   onExportPluUsa,
   onGoToEvents,
+  onRefreshAthleteData,
   onScheduleAssigned,
   onSelectAthlete,
   onSetFilters,
   onSetRegistrationStatus,
+  canForceSettle = false,
   canSetStatus = false,
   onDelete,
   onSetPublicVisibility,
@@ -393,6 +408,7 @@ export default function RegistrationsSection({
           onChange: handleEventChange,
           options: eventOptions,
           variant: eventCount > EVENT_FILTER_CHIP_MAX ? 'select' : undefined,
+          showLabel: true,
         }
   const affiliationFilter = {
     id: 'affiliationStatus',
@@ -400,7 +416,7 @@ export default function RegistrationsSection({
     value: filters.affiliationStatus ?? 'all',
     onChange: handleAffiliationChange,
     options: affiliationOptions,
-    advanced: true,
+    showLabel: true,
   }
 
   const savedViewSnapshot = useMemo(
@@ -498,6 +514,7 @@ export default function RegistrationsSection({
                   value: filters.status,
                   onChange: handleStatusChange,
                   options: statusOptions,
+                  showLabel: true,
                 },
                 affiliationFilter,
               ].filter(Boolean)
@@ -682,8 +699,9 @@ export default function RegistrationsSection({
                   mobile: 'action',
                   render: (row) => {
                     const canValidate = canValidateRegistrationPayment(row, canValidatePayments)
+                    const canRecover = canRecoverRegistrationPayment(row, canForceSettle)
                     const hasActions =
-                      canValidate || canManageVisibility || canSetStatus || canDelete
+                      canValidate || canRecover || canManageVisibility || canSetStatus || canDelete
                     if (!hasActions) return <AdminTableActionsEmpty />
                     return (
                       <AdminTableActions onClick={(event) => event.stopPropagation()}>
@@ -702,6 +720,19 @@ export default function RegistrationsSection({
                             }
                             onApprove={handleApprovePayment}
                             onReject={onRejectPayment}
+                            order={row.payment}
+                          />
+                        ) : null}
+                        {canRecover ? (
+                          /* "El pago figura cancelado pero la plata entró":
+                             las mismas dos vías de Finanzas, sin tener que ir
+                             a buscar esta misma orden en otra pantalla. */
+                          <PaymentRecoveryAction
+                            athlete={{ fullName: row.athlete, documentId: row.document }}
+                            canForceSettle={canForceSettle}
+                            detail={[row.event, row.category].filter(Boolean).join(' · ')}
+                            onForceSettlePayment={onForceSettlePayment}
+                            onRefreshAthleteData={onRefreshAthleteData}
                             order={row.payment}
                           />
                         ) : null}

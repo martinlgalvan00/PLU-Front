@@ -11,7 +11,6 @@ import {
   redeemPromotionCode,
   savePendingPromotionCode,
 } from '../../services/promotionCodeService.js'
-import { waitForSecretOfferRedirect } from '../../services/secretOfferRedemptionService.js'
 import CodeScanButton from './CodeScanButton.jsx'
 import '../../styles/components/secret-code-redeemer.css'
 import '../../styles/components/code-band.css'
@@ -31,7 +30,6 @@ import '../../styles/components/code-band.css'
 export default function SecretOfferCodeRedeemer({
   session = null,
   onNavigate,
-  onOfferUnlocked,
   className = '',
   defaultOpen = false,
   initialCode = '',
@@ -78,30 +76,11 @@ export default function SecretOfferCodeRedeemer({
       }
       setCode(result.code)
       setResolvedPromotion(result)
-      const destination = promotionDestination(result)
-      if (result.action !== 'open_exclusive_offer') {
-        savePendingPromotionCode(result.code, {
-          surface: 'global',
-          destination: result.destination ?? null,
-        })
-      } else {
-        clearPendingPromotionCode()
-      }
-      if (!destination || result.action !== 'open_exclusive_offer') {
-        setState('accepted')
-        return
-      }
-      setState('redirecting')
-      // Si el destino es la ficha secreta, hay que refrescarla ANTES de saltar:
-      // esta misma página puede ya estar montada (el widget vive dentro del
-      // perfil), así que un simple `onNavigate` no alcanza — sin este refresh,
-      // AthleteProfilePage sigue viendo la lista de ofertas vieja, filtra la
-      // ficha por no tener oferta todavía y el salto no lleva a ningún lado.
-      await Promise.all([
-        result.action === 'open_exclusive_offer' ? onOfferUnlocked?.() : null,
-        waitForSecretOfferRedirect(),
-      ])
-      onNavigate?.(destination.view, destination.options)
+      savePendingPromotionCode(result.code, {
+        surface: 'global',
+        destination: result.destination ?? null,
+      })
+      setState('accepted')
     } catch (error) {
       if (error?.status === 401) {
         setState('login')
@@ -114,7 +93,7 @@ export default function SecretOfferCodeRedeemer({
 
   const classes = ['secret-code-redeemer', className].filter(Boolean).join(' ')
   const checking = state === 'checking'
-  const settled = state === 'redirecting' || state === 'accepted'
+  const settled = state === 'accepted'
   // El estado se dice, no se pinta: es la misma ficha de una credencial emitida.
   const status = checking
     ? t('codeBand.statusChecking')
@@ -226,33 +205,24 @@ export default function SecretOfferCodeRedeemer({
             </div>
           </div>
 
-          {state === 'redirecting' || state === 'accepted' ? (
+          {state === 'accepted' ? (
             <div className="secret-code-redeemer__resolved" role="status" aria-live="polite">
               <span className="secret-code-redeemer__resolved-icon" aria-hidden>
                 <Check size={16} />
               </span>
               <span className="code-band-done">
                 <strong>
-                  {resolvedPromotion?.campaign?.name ||
-                    t(
-                      state === 'accepted'
-                        ? 'secretOfferRedeemer.acceptedTitle'
-                        : 'secretOfferRedeemer.redirectingTitle',
-                    )}
+                  {resolvedPromotion?.campaign?.name || t('secretOfferRedeemer.acceptedTitle')}
                 </strong>
                 <span>
-                  {state === 'accepted' && benefit
+                  {benefit
                     ? t(`secretOfferRedeemer.benefit.${benefit.type}`, benefit)
-                    : t(
-                        state === 'accepted'
-                          ? 'secretOfferRedeemer.acceptedLead'
-                          : 'secretOfferRedeemer.redirectingLead',
-                      )}
+                    : t('secretOfferRedeemer.acceptedLead')}
                 </span>
                 {/* Los medios van antes de la descripción de la campaña: es lo
                     que el atleta necesita para el paso siguiente, no el relato
                     de la promo. */}
-                {state === 'accepted' && payment ? (
+                {payment ? (
                   <small>
                     {t(
                       payment.gatewayClosed
@@ -266,7 +236,7 @@ export default function SecretOfferCodeRedeemer({
                     )}
                   </small>
                 ) : null}
-                {state === 'accepted' && payment?.financed ? (
+                {payment?.financed ? (
                   <small>{t('secretOfferRedeemer.payment.financed')}</small>
                 ) : null}
                 {resolvedPromotion?.campaign?.description ? (

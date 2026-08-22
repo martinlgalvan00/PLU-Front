@@ -628,6 +628,11 @@ export function mapSupabaseEventRow(row) {
             : 'public',
           startsAt: comboOfferRow.starts_at ?? null,
           endsAt: comboOfferRow.ends_at ?? null,
+          // El fallback de `fetchPublishedEvents` a Supabase directo no pasa por
+          // `sanitizePublicCatalogEvent`: sin este campo, `isComboOfferLive`
+          // no podía distinguir un combo archivado (historia contable) de uno
+          // vigente, y lo volvía a anunciar con su precio congelado.
+          archivedAt: comboOfferRow.archived_at ?? null,
         }
       : null,
     price: row.price,
@@ -653,6 +658,7 @@ export function mapSupabaseEventRow(row) {
         price: comboOfferRow?.price,
         startsAt: comboOfferRow?.starts_at ?? null,
         endsAt: comboOfferRow?.ends_at ?? null,
+        archivedAt: comboOfferRow?.archived_at ?? null,
       })
         ? Number(comboOfferRow.price)
         : rules.comboPrice,

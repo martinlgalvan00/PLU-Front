@@ -59,7 +59,7 @@ const EMPTY_PLAN = {
  * propio. Estaban separados en el formulario, así que para elegir había que
  * saber de antemano esa diferencia interna. Ahora la decide el precio.
  */
-const CODE_TYPES = ['percent', 'fixed_price', 'offer_access']
+const CODE_TYPES = ['percent', 'fixed_price']
 
 /**
  * Ofertas que un código puede instanciar. Hoy hay una sola —el paquete de
@@ -75,7 +75,7 @@ const OFFER_KINDS = ['membership_registration']
  * y su importe viven en el código— y las que existen se leen como oferta.
  */
 function codeTypeOf(kind) {
-  return ['offer', 'access'].includes(kind) ? 'offer_access' : (kind ?? 'percent')
+  return ['percent', 'fixed_price'].includes(kind) ? kind : 'percent'
 }
 
 /**
@@ -83,7 +83,7 @@ function codeTypeOf(kind) {
  * importe: no hay combo del que heredar un precio.
  */
 function codeKindFor(type) {
-  return type === 'offer_access' ? 'offer' : type
+  return type
 }
 
 /**

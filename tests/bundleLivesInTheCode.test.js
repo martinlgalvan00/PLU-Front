@@ -78,8 +78,8 @@ describe('el panel tiene una sola superficie', () => {
     expect(panel).toContain('membershipPlanId')
   })
 
-  it('sigue habiendo exactamente tres tipos', () => {
-    expect(panel).toContain("const CODE_TYPES = ['percent', 'fixed_price', 'offer_access']")
+  it('quedan sólo dos tipos: la oferta por código está retirada (20260915100000)', () => {
+    expect(panel).toContain("const CODE_TYPES = ['percent', 'fixed_price']")
   })
 })
 
@@ -91,7 +91,7 @@ describe('la API ya no puede volver a partir la configuración en dos', () => {
     expect(pricingRepository).not.toContain('staff_delete_event_combo_offer')
   })
 
-  it("la modalidad 'access' sale del contrato y las tres que quedan siguen entrando", () => {
+  it("'access' y 'offer' salen del contrato: sólo quedan los dos descuentos (20260915100000)", () => {
     const base = {
       code: 'TEST-CODE',
       appliesTo: 'membership',
@@ -117,7 +117,7 @@ describe('la API ya no puede volver a partir la configuración en dos', () => {
         membershipPlanId: '22222222-2222-4222-8222-222222222222',
         fixedPrice: 120000,
       }).success,
-    ).toBe(true)
+    ).toBe(false)
   })
 })
 
@@ -128,6 +128,6 @@ describe('el corpus de migraciones queda ordenado', () => {
       .map((name) => name.split('_')[0])
     const duplicated = versions.filter((version, index) => versions.indexOf(version) !== index)
     expect(duplicated).toEqual([])
-    expect([...versions].sort().at(-1)).toBe('20260914100000')
+    expect([...versions].sort().at(-1)).toBe('20260915100000')
   })
 })

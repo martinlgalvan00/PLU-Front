@@ -1,5 +1,4 @@
 import { redeemPromotionCodeRequest } from './athleteApi.js'
-import { resolveOfferChannels } from './exclusiveOfferService.js'
 
 const PENDING_PROMOTION_KEY = 'plu:pending-promotion-code'
 const CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/
@@ -73,14 +72,17 @@ export async function redeemPromotionCode(
   const code = normalizePromotionCode(value)
   if (!CODE_PATTERN.test(code))
     return { accepted: false, status: 'rejected', reason: 'not_found', code }
-  return redeem({ code, context })
+  const result = await redeem({ code, context })
+  // Defensa ante una API aún sin migrar: una oferta por código nunca puede
+  // abrir una pantalla ni llegar a mostrarse.
+  if (result?.kind === 'offer' || result?.kind === 'access' || result?.action === 'open_exclusive_offer') {
+    return { accepted: false, status: 'rejected', reason: 'offer_unavailable', code }
+  }
+  return result
 }
 
 export function promotionDestination(result) {
   if (!result?.accepted) return null
-  if (result.action === 'open_exclusive_offer') {
-    return { view: 'profile', options: { tab: 'account-offer' } }
-  }
   const destination = result.destination ?? {}
   if (destination.view === 'profile') {
     return { view: 'profile', options: { tab: destination.tab } }
@@ -102,12 +104,6 @@ export function promotionBenefitPresentation(result) {
     return { type: 'percent', percent: percentOff }
   }
   if (['fixed_price'].includes(result?.kind)) return { type: 'fixedPrice' }
-  if (result?.kind === 'offer' || result?.campaign?.objective === 'exclusive_offer') {
-    return { type: 'exclusiveOffer' }
-  }
-  if (result?.kind === 'access' || result?.campaign?.objective === 'access') {
-    return { type: 'access' }
-  }
   return { type: 'discount' }
 }
 
@@ -128,7 +124,10 @@ export function promotionPaymentPresentation(result) {
   if (!result?.accepted) return null
   const benefit = result.benefit ?? {}
   const manual = Array.isArray(benefit.manualChannels) ? benefit.manualChannels : []
-  const channels = resolveOfferChannels(benefit)
+  const channels = [
+    ...(benefit.mercadoPagoEnabled !== false ? ['mercado_pago'] : []),
+    ...manual,
+  ]
   if (!channels.length) return null
   return {
     channels,

@@ -390,10 +390,14 @@ export default function AdminPage({
           {activePeopleTab === 'memberships' && (
             <MembershipsSection
               memberships={enrichedMemberships}
+              payments={payments}
               registrations={registrations}
               unreconciledPayments={unreconciledMembershipPayments}
               onSelectAthlete={handleSelectAthlete}
               onSetMembershipStatus={onSetMembershipStatus}
+              onForceSettlePayment={onForceSettlePayment}
+              onRefreshAthleteData={onRefreshAthleteData}
+              canForceSettle={hasPermission(authorization, 'admin.payments.approve')}
               canManage={hasPermission(authorization, 'admin.memberships.write')}
               canDelete={canDeleteMemberships && Boolean(onDeleteMembership)}
               onDelete={onDeleteMembership}
@@ -427,6 +431,7 @@ export default function AdminPage({
               onExportAdmin={onExportAdmin}
               onExportPluUsa={onExportPluUsa}
               onGoToEvents={() => setSection('events')}
+              onRefreshAthleteData={onRefreshAthleteData}
               onScheduleAssigned={onScheduleAssigned}
               onSelectAthlete={handleSelectAthlete}
               onSetFilters={onSetFilters}

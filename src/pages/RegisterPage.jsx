@@ -2646,101 +2646,103 @@ export default function RegisterPage({
                             {t('pages.register.discountRemove')}
                           </button>
                         </div>
-                      ) : discountOpen ? (
-                        <div className="account-discount__field">
-                          <label className="visually-hidden" htmlFor="registration-discount-code">
-                            {t('pages.register.discountLabel')}
-                          </label>
-                          <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
-                            <span className="code-band__grain" aria-hidden />
-                            <div className="code-band__frame">
-                              <div className="code-band__head">
-                                <span className="code-band__mark">{t('codeBand.markCode')}</span>
-                                <span
-                                  className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
-                                >
-                                  {t(
-                                    discountChecking
-                                      ? 'codeBand.statusChecking'
-                                      : discountError
-                                        ? 'codeBand.statusError'
-                                        : 'codeBand.statusIdle',
-                                  )}
-                                </span>
-                              </div>
-                              <div className="code-band__row">
-                                <input
-                                  id="registration-discount-code"
-                                  className="code-band__input"
-                                  type="text"
-                                  autoComplete="off"
-                                  spellCheck={false}
-                                  placeholder={t('pages.register.discountPlaceholder')}
-                                  value={discountCodeInput}
-                                  disabled={submitting || discountChecking}
-                                  onChange={(event) =>
-                                    setDiscountCodeInput(event.target.value.toUpperCase())
-                                  }
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault()
-                                      void applyDiscountCode()
-                                      return
-                                    }
-                                    if (event.key === 'Escape') {
-                                      event.preventDefault()
-                                      clearDiscountCode()
-                                    }
-                                  }}
-                                />
-                                <CodeScanButton
-                                  disabled={submitting || discountChecking}
-                                  onScan={(scanned) => {
-                                    setDiscountCodeInput(scanned)
-                                    void applyDiscountCode(scanned)
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="code-band__chip"
-                                  disabled={
-                                    submitting || discountChecking || !discountCodeInput.trim()
-                                  }
-                                  onClick={() => applyDiscountCode()}
-                                >
-                                  {discountChecking
-                                    ? t('pages.register.discountChecking')
-                                    : t('pages.register.discountApply')}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <p className="code-band-hint">{t('pages.register.discountHint')}</p>
-                          {discountError ? (
-                            <p className="code-band-error" role="alert">
-                              {discountError}
-                            </p>
-                          ) : null}
-                        </div>
                       ) : (
-                        <button
-                          type="button"
-                          className="code-band-toggle account-discount__toggle"
-                          disabled={submitting}
-                          // `openDiscountField` no existía: el botón que abre el
-                          // campo tiraba ReferenceError al primer click, así que
-                          // en el checkout de inscripción no había forma de
-                          // tipear un código.
-                          onClick={() => {
-                            setDiscountOpen(true)
-                            setDiscountError('')
-                          }}
-                        >
-                          <span className="code-band-toggle__seal" aria-hidden>
-                            <KeyRound size={13} />
-                          </span>
-                          {t('account.membership.discountToggle')}
-                        </button>
+                        <div className="account-discount">
+                          <MotionContentSwap swapKey={discountOpen ? 'field' : 'button'} mode="sync">
+                            {discountOpen ? (
+                              <div className="account-discount__field">
+                                <label className="visually-hidden" htmlFor="registration-discount-code">
+                                  {t('pages.register.discountLabel')}
+                                </label>
+                                <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
+                                  <span className="code-band__grain" aria-hidden />
+                                  <div className="code-band__frame">
+                                    <div className="code-band__head">
+                                      <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                                      <span
+                                        className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
+                                      >
+                                        {t(
+                                          discountChecking
+                                            ? 'codeBand.statusChecking'
+                                            : discountError
+                                              ? 'codeBand.statusError'
+                                              : 'codeBand.statusIdle',
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div className="code-band__row">
+                                      <input
+                                        id="registration-discount-code"
+                                        className="code-band__input"
+                                        type="text"
+                                        autoComplete="off"
+                                        spellCheck={false}
+                                        placeholder={t('pages.register.discountPlaceholder')}
+                                        value={discountCodeInput}
+                                        disabled={submitting || discountChecking}
+                                        onChange={(event) =>
+                                          setDiscountCodeInput(event.target.value.toUpperCase())
+                                        }
+                                        onKeyDown={(event) => {
+                                          if (event.key === 'Enter') {
+                                            event.preventDefault()
+                                            void applyDiscountCode()
+                                            return
+                                          }
+                                          if (event.key === 'Escape') {
+                                            event.preventDefault()
+                                            clearDiscountCode()
+                                          }
+                                        }}
+                                      />
+                                      <CodeScanButton
+                                        disabled={submitting || discountChecking}
+                                        onScan={(scanned) => {
+                                          setDiscountCodeInput(scanned)
+                                          void applyDiscountCode(scanned)
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        className="code-band__chip"
+                                        disabled={
+                                          submitting || discountChecking || !discountCodeInput.trim()
+                                        }
+                                        onClick={() => applyDiscountCode()}
+                                      >
+                                        {discountChecking
+                                          ? t('pages.register.discountChecking')
+                                          : t('pages.register.discountApply')}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="code-band-hint">{t('pages.register.discountHint')}</p>
+                                {discountError ? (
+                                  <p className="code-band-error" role="alert">
+                                    {discountError}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="code-band-toggle account-discount__toggle"
+                                disabled={submitting}
+                                onClick={() => {
+                                  setDiscountOpen(true)
+                                  setDiscountError('')
+                                }}
+                              >
+                                <span className="code-band-toggle__seal" aria-hidden>
+                                  <KeyRound size={13} />
+                                </span>
+                                {t('account.membership.discountToggle')}
+                              </button>
+                            )}
+                          </MotionContentSwap>
+                        </div>
                       )}
                     </div>
                   ) : null}
