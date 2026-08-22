@@ -583,6 +583,7 @@ export default function App() {
           onSetDiscountCodeState={app.setDiscountCodeState}
           onDeleteDiscountCode={app.deleteDiscountCode}
           onSimulatePromotionCode={app.simulatePromotionCode}
+          onFetchDiscountCodeRedemptions={app.fetchDiscountCodeRedemptions}
           billingSubscriptions={app.billingSubscriptions}
           billingSubscriptionsLoading={app.billingSubscriptionsLoading}
           billingSubscriptionsError={app.billingSubscriptionsError}

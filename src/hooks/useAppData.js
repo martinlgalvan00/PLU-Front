@@ -156,6 +156,7 @@ import {
   deleteDiscountCodeRequest,
   deleteMembershipPlanRequest,
   discountCodeStatePayload,
+  fetchDiscountCodeRedemptionsRequest,
   fetchPricingConfigurationRequest,
   simulatePromotionCodeRequest,
   setDiscountCodeStateRequest,
@@ -2966,6 +2967,20 @@ export function useAppData() {
     [session],
   )
 
+  const fetchDiscountCodeRedemptions = useCallback(
+    async (codeId) => {
+      if (!hasPermission(session, 'admin.pricing.read')) {
+        return { error: 'Sin permisos para ver los canjes de este código.' }
+      }
+      try {
+        return { redemptions: await fetchDiscountCodeRedemptionsRequest(codeId) }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo leer el historial de canjes.' }
+      }
+    },
+    [session],
+  )
+
   const refreshBillingSubscriptions = useCallback(async (filters = {}) => {
     const currentSession = sessionRef.current
     if (!currentSession || !hasPermission(currentSession, 'admin.payments.read')) return null
@@ -3082,6 +3097,7 @@ export function useAppData() {
     setDiscountCodeState,
     deleteDiscountCode,
     simulatePromotionCode,
+    fetchDiscountCodeRedemptions,
     billingSubscriptions,
     billingSubscriptionsLoading,
     billingSubscriptionsError,

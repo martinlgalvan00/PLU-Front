@@ -59,16 +59,9 @@ export const discountCodeSchema = z
       .regex(/^[A-Z0-9]+(?:-[A-Z0-9]+)*$/, 'Usá letras mayúsculas, números y guiones.'),
     description: z.string().trim().max(200).optional().default(''),
     // 'percent' descuenta sobre el precio vigente; 'fixed_price' fija el
-    // importe final de la compra; 'offer' es la oferta exclusiva detrás de un
-    // código secreto: el paquete de afiliación + inscripción con su propio
-    // importe ("afiliación + inscripción a $120.000").
-    //
-    // 'access' —la oferta sin precio propio, que cobraba el del combo del
-    // evento— ya no se puede crear: el paquete y su importe viven en el código,
-    // no en un objeto aparte. La base conserva la modalidad para las filas
-    // históricas; editarlas desde el panel las guarda como 'offer'.
-    // Los códigos sólo pueden aplicar descuentos. Las ofertas exclusivas
-    // originadas por código quedaron retiradas del producto.
+    // importe final de la compra. Las modalidades 'offer'/'access' (ofertas
+    // exclusivas por código) quedaron retiradas del producto (20260915100000):
+    // la base conserva las filas históricas, pero no se pueden crear ni editar.
     kind: z.enum(['percent', 'fixed_price']).default('percent'),
     // Tope en 99: un cupón nunca puede dejar una orden en $0 — Mercado Pago no
     // puede cobrar eso, y hoy no existe un flujo de confirmación para orden
@@ -85,13 +78,8 @@ export const discountCodeSchema = z
     fixedPriceManual: money.optional(),
     appliesTo: z.enum(['membership', 'registration', 'combo', 'both']),
     // A qué inscripción aplica el código. Vacío = cualquiera, que es como se
-    // comportaban todos los códigos antes de 20260902100000. Obligatorio en
-    // 'offer': la oferta empaqueta la afiliación con ESA inscripción.
+    // comportaban todos los códigos antes de 20260902100000.
     eventId: z.string().uuid().optional(),
-    // Qué afiliación empaqueta la oferta (20260913100000). Vacío = lo resuelve
-    // la RPC: el plan del combo del evento si hay combo, o la única afiliación
-    // de pago único vigente. Sólo hace falta elegirlo cuando hay más de una, y
-    // es lo que permitió que crear una oferta no exija cargar un combo antes.
     maxRedemptions: z.coerce.number().int().positive().optional(),
     // Ventana de la promo. `startsAt` vacío = vigente desde que se enciende,
     // que es como se comportaban todas las promos antes de tener apertura.
@@ -221,7 +209,7 @@ export const discountCodeSchema = z
     }
     // Un porcentaje no lleva importe: el precio manual sólo significa algo
     // cuando hay un precio promocional que desdoblar por canal.
-    if (code.fixedPriceManual != null && !['fixed_price', 'offer'].includes(code.kind)) {
+    if (code.fixedPriceManual != null && code.kind !== 'fixed_price') {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['fixedPriceManual'],
@@ -246,32 +234,6 @@ export const discountCodeSchema = z
         message: 'Indicá el precio promocional.',
       })
     }
-    // La oferta exclusiva es el paquete completo detrás de un secreto: se aplica
-    // al combo, se reparte como código y sabe a qué inscripción pertenece.
-    if (code.kind === 'offer') {
-      if (code.appliesTo !== 'combo') {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['appliesTo'],
-          message: 'Una oferta exclusiva se aplica al combo de afiliación e inscripción.',
-        })
-      }
-      if (code.audience !== 'code') {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['audience'],
-          message: 'Una oferta exclusiva se reparte como código: no puede ser pública.',
-        })
-      }
-      if (!code.eventId) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['eventId'],
-          message: 'Elegí a qué inscripción aplica la oferta exclusiva.',
-        })
-      }
-      return
-    }
     // Un mismo importe fijo no significa lo mismo aplicado a una afiliación
     // sola que a un combo: el precio promocional exige un alcance único.
     if (code.appliesTo === 'both') {
@@ -292,15 +254,11 @@ export const discountCodeSchema = z
         ...code,
         fixedPrice: undefined,
         fixedPriceManual: undefined,
-        membershipPlanId: undefined,
       }
     }
     return {
       ...code,
       percentOff: undefined,
-      // Sólo una oferta instancia un paquete. Un precio promocional a secas no
-      // empaqueta nada, aunque el formulario venga del mismo tipo del panel.
-      membershipPlanId: code.kind === 'offer' ? code.membershipPlanId : undefined,
     }
   })
 
@@ -334,9 +292,13 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
 
   router.get('/', ...readGuard, staffLimiter, async (_req, res, next) => {
     try {
+      // La analítica de campañas es complemento, no requisito: si su RPC
+      // falla, el catálogo entero se caía con ella y Tarifas quedaba en
+      // blanco. Ahora degrada a lista vacía y el catálogo sigue llegando.
+      const repo = repository()
       const [configuration, campaignAnalytics] = await Promise.all([
-        repository().getConfiguration(),
-        repository().getCampaignAnalytics(),
+        repo.getConfiguration(),
+        repo.getCampaignAnalytics().catch(() => []),
       ])
       const pricingAvailability = getFeatureAvailability(FEATURE_KEYS.pricingWrites, env)
       res.json({
@@ -366,6 +328,27 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
         const simulation = await repository().simulatePromotionCode(codeId)
         if (!simulation) throw new HttpError(404, 'Código no encontrado.')
         res.json({ simulation })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Quién canjeó el código, cuándo y sobre qué orden. La lista de Tarifas
+  // muestra solo el contador; sin esta lectura, responder "¿quién lo usó?"
+  // obligaba a entrar a la base a mano.
+  router.get(
+    '/discount-codes/:codeId/redemptions',
+    ...readGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const codeId = parseRouteParam(
+          z.string().uuid(),
+          req.params.codeId,
+          'El identificador del código es inválido.',
+        )
+        res.json({ redemptions: (await repository().listDiscountCodeRedemptions(codeId)) ?? [] })
       } catch (error) {
         next(error)
       }

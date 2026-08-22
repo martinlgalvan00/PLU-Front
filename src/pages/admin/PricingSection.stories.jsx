@@ -65,7 +65,9 @@ const configuration = {
       id: '66666666-6666-4666-8666-666666666666',
       code: 'ONLY-PITBULL',
       description: 'Afiliación + inscripción al Pitbull Classic.',
-      kind: 'offer',
+      // El combo vive en el código: precio fijo con alcance 'combo'. Las
+      // modalidades offer/access están retiradas y el catálogo las filtra.
+      kind: 'fixed_price',
       fixedPrice: 75000,
       // Mismo importe por transferencia y efectivo: el caso pactado. Se carga
       // explícito para que el panel muestre la nota del canal manual.
@@ -172,6 +174,24 @@ export default {
           hasPrice: true,
         },
       },
+    }),
+    onFetchDiscountCodeRedemptions: async () => ({
+      redemptions: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          discountAmount: 5000,
+          redeemedAt: '2026-08-18T14:30:00.000Z',
+          athlete: { id: 'ath-1', fullName: 'Ana Torres', email: 'ana@plu.ar' },
+          order: { id: 'ord-1', status: 'aprobado', amount: 75000, currency: 'ARS' },
+        },
+        {
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          discountAmount: 5000,
+          redeemedAt: '2026-08-19T10:05:00.000Z',
+          athlete: { id: 'ath-2', fullName: 'Bruno Díaz', email: 'bruno@plu.ar' },
+          order: { id: 'ord-2', status: 'validacion_manual', amount: 75000, currency: 'ARS' },
+        },
+      ],
     }),
   },
 }

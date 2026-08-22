@@ -196,6 +196,41 @@ export async function simulatePromotionCodeRequest(codeId) {
   return result.simulation ?? null
 }
 
+/** Una fila del historial: quién canjeó, cuánto descontó y sobre qué orden. */
+export function mapDiscountCodeRedemption(row) {
+  const athlete = row.athlete ?? row.athletes ?? null
+  const order = row.order ?? row.athlete_payment_orders ?? null
+  return {
+    id: row.id,
+    discountAmount: Number(row.discount_amount ?? row.discountAmount) || 0,
+    redeemedAt: row.created_at ?? row.createdAt ?? null,
+    athlete: athlete
+      ? {
+          id: athlete.id,
+          fullName: athlete.full_name ?? athlete.fullName ?? '',
+          email: athlete.email ?? '',
+        }
+      : null,
+    order: order
+      ? {
+          id: order.id,
+          status: order.status ?? '',
+          amount: Number(order.amount) || 0,
+          currency: order.currency ?? 'ARS',
+          method: order.method ?? null,
+          concept: order.concept ?? null,
+        }
+      : null,
+  }
+}
+
+export async function fetchDiscountCodeRedemptionsRequest(codeId) {
+  const result = await apiGet(
+    `/api/pricing/discount-codes/${encodeURIComponent(codeId)}/redemptions`,
+  )
+  return (result.redemptions ?? []).map(mapDiscountCodeRedemption)
+}
+
 export async function createMembershipPlanVersionRequest(plan) {
   const result = await apiPost('/api/pricing/membership-plans/versions', {
     ...plan,

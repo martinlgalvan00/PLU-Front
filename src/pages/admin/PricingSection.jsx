@@ -7,6 +7,7 @@ import {
   CirclePlus,
   Copy,
   FlaskConical,
+  History,
   Pencil,
   QrCode,
   RefreshCw,
@@ -51,39 +52,22 @@ const EMPTY_PLAN = {
 }
 
 /**
- * Los tres tipos de código, en el vocabulario de quien los reparte: descuento
- * por porcentaje, precio fijo promocional, o acceso a una oferta.
- *
- * `offer_access` no es una modalidad de la base: colapsa `offer` y `access`,
- * que son la misma decisión —este código abre una oferta— con y sin precio
- * propio. Estaban separados en el formulario, así que para elegir había que
- * saber de antemano esa diferencia interna. Ahora la decide el precio.
+ * Los dos tipos de código, en el vocabulario de quien los reparte: descuento
+ * por porcentaje o precio fijo promocional. El "combo" (afiliación +
+ * inscripción) no es un tipo: es un precio fijo con alcance 'combo'. Las
+ * modalidades de oferta exclusiva ('offer'/'access') están retiradas
+ * (20260915100000).
  */
 const CODE_TYPES = ['percent', 'fixed_price']
 
 /**
- * Ofertas que un código puede instanciar. Hoy hay una sola —el paquete de
- * afiliación + inscripción de un evento—, y por eso se elige y no se asume:
- * cuando exista una segunda, entra en esta lista y en su clave de i18n, sin
- * tocar el resto del formulario.
- */
-const OFFER_KINDS = ['membership_registration']
-
-/**
- * Tipo del panel para una modalidad guardada. `access` era la oferta sin precio
- * propio, que cobraba el del combo del evento: ya no se puede crear —el paquete
- * y su importe viven en el código— y las que existen se leen como oferta.
+ * Tipo del panel para una modalidad guardada. Las modalidades históricas
+ * `offer`/`access` están retiradas (20260915100000) y el catálogo del panel
+ * las filtra antes de llegar acá; si una se colara, se lee como porcentaje en
+ * vez de romper el formulario.
  */
 function codeTypeOf(kind) {
   return ['percent', 'fixed_price'].includes(kind) ? kind : 'percent'
-}
-
-/**
- * Modalidad de la base para el tipo elegido. Una oferta siempre trae su propio
- * importe: no hay combo del que heredar un precio.
- */
-function codeKindFor(type) {
-  return type
 }
 
 /**
@@ -110,6 +94,21 @@ function codeChannelsBadgeKey(code) {
  */
 const PROMO_STATES = ['off', 'code', 'public']
 
+/**
+ * Estados de orden con etiqueta propia en el historial de canjes. Uno que no
+ * esté acá (un estado nuevo de la base) se muestra tal cual en vez de romper
+ * la traducción.
+ */
+const REDEMPTION_ORDER_STATUSES = [
+  'pendiente',
+  'creado',
+  'aprobado',
+  'validacion_manual',
+  'cancelado',
+  'rechazado',
+  'reembolsado',
+]
+
 const EMPTY_DISCOUNT_CODE = {
   id: undefined,
   code: '',
@@ -118,28 +117,16 @@ const EMPTY_DISCOUNT_CODE = {
   // Quién accede: 'code' hay que tipearla, 'public' se aplica sola a todos.
   audience: 'code',
   // 'percent' descuenta un porcentaje; 'fixed_price' fija el importe final de
-  // la compra; 'access' no descuenta nada — es un código secreto que sólo
-  // desbloquea el combo; 'offer' es la OFERTA EXCLUSIVA: desbloquea el combo y
-  // además fija su precio ("afiliación + inscripción a $120.000" detrás de un
-  // código secreto). 'access' y 'offer' sólo valen con appliesTo 'combo'.
+  // la compra (también la del combo, con appliesTo 'combo').
   kind: 'percent',
-  // Qué oferta instancia un código de tipo "Acceso a una oferta". Vive en el
-  // borrador y no en la base: la oferta está implícita en `applies_to = 'combo'`
-  // más el evento, y hoy no hay una segunda que distinguir.
-  offerKind: OFFER_KINDS[0],
   percentOff: '',
   fixedPrice: '',
   // Importe final para transferencia y efectivo. Vacío = cobra lo mismo que
   // `fixedPrice` en cualquier canal, que es el caso más común.
   fixedPriceManual: '',
   appliesTo: 'membership',
-  // A qué inscripción aplica. Vacío = cualquiera. Obligatorio en 'offer': la
-  // oferta empaqueta la afiliación con esa inscripción.
+  // A qué inscripción aplica. Vacío = cualquiera.
   eventId: '',
-  // Qué afiliación empaqueta la oferta. Vacío la resuelve el servidor —la del
-  // combo del torneo, o la única de pago único vigente—, así que el campo sólo
-  // se muestra cuando hay más de una y la elección es real.
-  membershipPlanId: '',
   maxRedemptions: '',
   startsAt: '',
   expiresAt: '',
@@ -295,6 +282,7 @@ export default function PricingSection({
   onSetDiscountCodeState,
   onDeleteDiscountCode,
   onSimulatePromotionCode,
+  onFetchDiscountCodeRedemptions,
   subscriptions = [],
   subscriptionsLoading = false,
   subscriptionsError,
@@ -313,7 +301,12 @@ export default function PricingSection({
   const [planError, setPlanError] = useState('')
   const [planToDelete, setPlanToDelete] = useState(null)
   const [deleteError, setDeleteError] = useState('')
-  const [notice, setNotice] = useState('')
+  // El banner de resultado guarda texto y tono: un fallo de copiar o de bajar
+  // el QR se anunciaba con el mismo aspecto que una confirmación, así que un
+  // error se leía como éxito. `setNotice(texto)` sigue siendo la confirmación
+  // de siempre; el tono 'error' se pide explícito.
+  const [notice, setNoticeState] = useState(null)
+  const setNotice = (text, tone = 'success') => setNoticeState(text ? { text, tone } : null)
   const [pendingAction, setPendingAction] = useState('')
   const [retirementPlanId, setRetirementPlanId] = useState(null)
   const [retirementDraft, setRetirementDraft] = useState('')
@@ -327,6 +320,11 @@ export default function PricingSection({
   const [copiedCodeId, setCopiedCodeId] = useState(null)
   const [downloadedQrCodeId, setDownloadedQrCodeId] = useState(null)
   const [simulationState, setSimulationState] = useState({ id: null, loading: false, data: null })
+  const [redemptionsState, setRedemptionsState] = useState({
+    id: null,
+    loading: false,
+    data: null,
+  })
   const [codeToDelete, setCodeToDelete] = useState(null)
   const [codeDeleteError, setCodeDeleteError] = useState('')
   const [cancelTarget, setCancelTarget] = useState(null)
@@ -339,12 +337,20 @@ export default function PricingSection({
     onRefresh?.()
   }, [onRefresh])
 
+  // La referencia temporal de los estados vencido/programado. Avanza con cada
+  // tick del refresco: congelada al montar, un panel abierto varias horas
+  // mostraba y ordenaba estados falsos.
+  const [now, setNow] = useState(() => new Date())
+
   // Los canjes llegan desde los checkouts de atletas, no desde este panel. La
   // API relee el contador canónico periódicamente para que el operador vea
-  // cómo se descuentan los cupos sin tener que recargar la pantalla.
+  // cómo se descuentan los cupos sin tener que recargar la pantalla. La misma
+  // cadencia avanza `now`.
   useEffect(() => {
     const refresh = () => {
-      if (document.visibilityState === 'visible') onRefresh?.()
+      if (document.visibilityState !== 'visible') return
+      setNow(new Date())
+      onRefresh?.()
     }
     const timerId = window.setInterval(refresh, PRICING_LIVE_SYNC_MS)
     const onVisibilityChange = () => {
@@ -377,7 +383,7 @@ export default function PricingSection({
         setCopiedCodeId(null)
       }, COPY_FEEDBACK_MS)
     } catch {
-      setNotice(t('admin.sections.pricing.copyDiscountCodeError'))
+      setNotice(t('admin.sections.pricing.copyDiscountCodeError'), 'error')
     }
   }
 
@@ -394,7 +400,7 @@ export default function PricingSection({
         setDownloadedQrCodeId(null)
       }, COPY_FEEDBACK_MS)
     } catch {
-      setNotice(t('admin.sections.pricing.downloadPromotionQrError'))
+      setNotice(t('admin.sections.pricing.downloadPromotionQrError'), 'error')
     }
   }
 
@@ -419,11 +425,30 @@ export default function PricingSection({
     }
   }
 
+  // El historial responde "¿quién lo usó?" sin entrar a la base: el contador
+  // de la lista dice cuántos, esto dice quiénes, cuándo y sobre qué orden.
+  async function showRedemptions(code) {
+    if (!onFetchDiscountCodeRedemptions) return
+    // Segundo click sobre el mismo código: cierra el historial.
+    if (redemptionsState.id === code.id && !redemptionsState.loading) {
+      setRedemptionsState({ id: null, loading: false, data: null })
+      return
+    }
+    setRedemptionsState({ id: code.id, loading: true, data: null })
+    const result = await onFetchDiscountCodeRedemptions(code.id)
+    setRedemptionsState({
+      id: code.id,
+      loading: false,
+      data: result?.error
+        ? { error: result.error }
+        : { redemptions: result?.redemptions ?? [] },
+    })
+  }
+
   const pricingWritesEnabled = isFeatureEnabled(FEATURE_KEYS.pricingWrites)
   const locked = !pricingWritesEnabled || configuration.availability?.editable === false || !canEdit
   const showProductionLock =
     !pricingWritesEnabled || configuration.availability?.reason === 'production_coming_soon'
-  const now = useMemo(() => new Date(), [])
   const plans = useMemo(() => {
     const list = [...(configuration.plans ?? [])]
     const rank = (plan) => {
@@ -440,7 +465,6 @@ export default function PricingSection({
       return (Number(right.version) || 0) - (Number(left.version) || 0)
     })
   }, [configuration.plans, now])
-  const events = useMemo(() => configuration.events ?? [], [configuration.events])
   const discountCodes = useMemo(() => {
     const list = [...(configuration.discountCodes ?? [])]
     const rank = (code) => (getDiscountCodeAvailability(code, now).status === 'active' ? 0 : 1)
@@ -450,18 +474,19 @@ export default function PricingSection({
       return new Date(right.createdAt ?? 0) - new Date(left.createdAt ?? 0)
     })
   }, [configuration.discountCodes, now])
-  const oneTimePlans = useMemo(
-    () =>
-      plans.filter((plan) => {
-        if (!plan.active || plan.collectionMode !== 'one_time') return false
-        if (plan.effectiveFrom && new Date(plan.effectiveFrom) > now) return false
-        return !plan.retiredAt || new Date(plan.retiredAt) > now
-      }),
-    [now, plans],
-  )
-  const selectedOfferEvent = codeDraft?.eventId
-    ? (events.find((event) => event.id === codeDraft.eventId) ?? null)
-    : null
+  // Búsqueda local sobre la lista: con lotes por invitado la sección puede
+  // tener cientos de códigos y encontrar uno a ojo deja de ser razonable.
+  // Filtra por código, descripción y torneo, sin distinguir mayúsculas.
+  const [codeQuery, setCodeQuery] = useState('')
+  const visibleDiscountCodes = useMemo(() => {
+    const query = codeQuery.trim().toLowerCase()
+    if (!query) return discountCodes
+    return discountCodes.filter((code) =>
+      [code.code, code.description, code.eventTitle]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(query)),
+    )
+  }, [codeQuery, discountCodes])
   // Dependemos de si el formulario está abierto, no del draft entero: el
   // draft cambia en cada tecla y antes reenfocaba el primer campo en cada
   // keystroke, sacando el cursor de donde el operador estaba escribiendo.
@@ -497,42 +522,13 @@ export default function PricingSection({
   const draftFinancingInert = Boolean(
     codeDraft && codeDraft.financed === true && (codeDraft.manualChannels ?? []).length === 0,
   )
-  // Tipo elegido en el panel, que no siempre es la modalidad guardada: una
-  // oferta con y sin precio propio son dos modalidades del mismo tipo.
+  // Tipo elegido en el panel, que no siempre es la modalidad guardada (una
+  // fila histórica puede traer una modalidad retirada).
   const draftCodeType = codeDraft ? codeTypeOf(codeDraft.kind) : 'percent'
-  const draftOpensOffer = draftCodeType === 'offer_access'
   // Cómo se cobra, derivado de las tres columnas que guarda la base: así un
   // código ya cargado —incluso uno anterior a este selector— se reabre en el
   // modo que le corresponde en vez de en el default.
   const draftPaymentMode = codeDraft ? codePaymentModeOf(codeDraft) : 'mercado_pago'
-  /**
-   * Qué afiliación empaqueta la oferta, en el mismo orden que resuelve
-   * `staff_upsert_discount_code`: la elegida en el formulario, la del combo del
-   * torneo, o la única de pago único vigente. Con una sola afiliación vigente
-   * —el caso real— no hay nada que preguntar y el campo no aparece.
-   */
-  const offerPlan = useMemo(() => {
-    const chosen = oneTimePlans.find((plan) => plan.id === codeDraft?.membershipPlanId)
-    if (chosen) return chosen
-    const comboPlan = oneTimePlans.find(
-      (plan) => plan.id === selectedOfferEvent?.comboOffer?.membershipPlanId,
-    )
-    if (comboPlan) return comboPlan
-    return oneTimePlans.length === 1 ? oneTimePlans[0] : null
-  }, [codeDraft?.membershipPlanId, oneTimePlans, selectedOfferEvent])
-  /**
-   * Techo del precio de la oferta: lo que ese atleta pagaría sin el código. Es
-   * el precio del combo cuando el torneo tiene uno encendido —podría comprarlo
-   * igual— y la suma de las partes cuando no. Mismo cálculo que la RPC, para
-   * que el formulario explique el rechazo en vez de traducir un 400.
-   */
-  const offerCeiling = useMemo(() => {
-    if (!selectedOfferEvent || !offerPlan) return null
-    const listTotal =
-      Number(offerPlan.price ?? 0) + Number(selectedOfferEvent.registrationPrice ?? 0)
-    const combo = selectedOfferEvent.comboOffer
-    return combo?.active ? Math.min(Number(combo.price), listTotal) : listTotal
-  }, [offerPlan, selectedOfferEvent])
   useEffect(() => {
     if (!codeFormOpen) return undefined
     const form = codeFormRef.current
@@ -637,14 +633,12 @@ export default function PricingSection({
             batchPrefix: '',
             description: source.description,
             kind: source.kind ?? 'percent',
-            offerKind: OFFER_KINDS[0],
             audience: source.audience === 'public' ? 'public' : 'code',
             percentOff: source.kind === 'percent' ? source.percentOff : '',
             fixedPrice: source.fixedPrice ?? '',
             fixedPriceManual: source.fixedPriceManual ?? '',
             appliesTo: source.appliesTo,
             eventId: source.eventId ?? '',
-            membershipPlanId: source.membershipPlanId ?? '',
             maxRedemptions: source.maxRedemptions ?? '',
             startsAt: toLocalDateTime(source.startsAt),
             expiresAt: toLocalDateTime(source.expiresAt),
@@ -664,13 +658,7 @@ export default function PricingSection({
   async function submitCode(event) {
     event.preventDefault()
     setCodeError('')
-    // Una oferta guardada como `access` es de antes de que el paquete viviera
-    // en el código: se edita como oferta y al guardar toma su propio importe.
-    const isOffer = ['offer', 'access'].includes(codeDraft.kind)
-    // 'offer' comparte con 'fixed_price' todo lo económico: importe obligatorio,
-    // precio manual opcional y alcance único.
-    const isFixedPrice = codeDraft.kind === 'fixed_price' || isOffer
-    const opensOffer = isOffer
+    const isFixedPrice = codeDraft.kind === 'fixed_price'
     const percentOff = Number(codeDraft.percentOff)
     
     // Si Mercado Pago está desactivado, tomamos el precio manual como base
@@ -763,29 +751,6 @@ export default function PricingSection({
     if (codeDraft.financed && codeDraft.audience === 'public') {
       setCodeError(t('admin.sections.pricing.codeFinancingPublicInvalid'))
       return
-    }
-    if (opensOffer) {
-      if (!codeDraft.eventId) {
-        setCodeError(t('admin.sections.pricing.offerEventRequired'))
-        return
-      }
-      // Sin afiliación resuelta no hay paquete que ofrecer: pasa sólo cuando
-      // hay más de una vigente y el operador todavía no eligió.
-      if (!offerPlan) {
-        setCodeError(t('admin.sections.pricing.offerPlanRequired'))
-        return
-      }
-      // Sólo se compara cuando la oferta declara un importe propio: sin precio
-      // cobra exactamente el del combo, y compararla contra sí misma
-      // rechazaría una oferta válida.
-      if (offerCeiling != null && effectiveFixedPrice >= offerCeiling) {
-        setCodeError(
-          t('admin.sections.pricing.offerPriceTooHigh', {
-            price: money(offerCeiling, locale),
-          }),
-        )
-        return
-      }
     }
 
     setPendingAction('code')
@@ -956,8 +921,13 @@ export default function PricingSection({
         </div>
       ) : null}
       {notice ? (
-        <div className="admin-pricing__message" role="status">
-          {notice}
+        <div
+          className={`admin-pricing__message${
+            notice.tone === 'error' ? ' admin-pricing__message--error' : ''
+          }`}
+          role={notice.tone === 'error' ? 'alert' : 'status'}
+        >
+          {notice.text}
         </div>
       ) : null}
       {isLoading && plans.length === 0 ? (
@@ -1345,12 +1315,27 @@ export default function PricingSection({
           </button>
         </header>
 
+        {/* La búsqueda aparece recién cuando la lista la necesita: con un
+            puñado de códigos es ruido, con un lote de invitados es la única
+            forma de encontrar uno. */}
+        {discountCodes.length > 5 ? (
+          <label className="admin-pricing__code-search">
+            <span>{t('admin.sections.pricing.codeSearchLabel')}</span>
+            <input
+              type="search"
+              value={codeQuery}
+              onChange={(event) => setCodeQuery(event.target.value)}
+              placeholder={t('admin.sections.pricing.codeSearchPlaceholder')}
+            />
+          </label>
+        ) : null}
+
         <div
           className="admin-pricing__plan-list"
           role="list"
           aria-label={t('admin.sections.pricing.discountCodesTitle')}
         >
-          {discountCodes.map((code) => {
+          {visibleDiscountCodes.map((code) => {
             const availability = getDiscountCodeAvailability(code, now)
             const { status } = availability
             const expiry = describeExpiry(code.expiresAt, now, locale, t)
@@ -1415,14 +1400,6 @@ export default function PricingSection({
                         {t('admin.sections.pricing.exclusiveBadge', {
                           count: availability.inviteeCount,
                         })}
-                      </span>
-                    ) : null}
-                    {/* Las dos caras del mismo tipo llevan la misma marca: con
-                        precio propio o cobrando el combo, lo que el código abre
-                        es una oferta que no está publicada. */}
-                    {['offer', 'access'].includes(code.kind) ? (
-                      <span className="admin-pricing__status admin-pricing__status--offer">
-                        {t('admin.sections.pricing.offerBadge')}
                       </span>
                     ) : null}
                     {/* Quién puede delegar el pago cambia la operación: a ese
@@ -1499,11 +1476,20 @@ export default function PricingSection({
                           </div>
                         ),
                       )}
+                      {/* La recaudación cierra el embudo: canjes sin plata no
+                          cuentan la historia completa. Solo con pagos — un $0
+                          al lado de "0 pagados" no informa nada. */}
+                      {code.campaignMetrics.paidCount > 0 ? (
+                        <div>
+                          <dt>{t('admin.sections.pricing.campaignMetric.revenue')}</dt>
+                          <dd>{money(code.campaignMetrics.revenue, locale)}</dd>
+                        </div>
+                      ) : null}
                     </dl>
                   ) : null}
                 </div>
 
-                {['fixed_price', 'offer'].includes(code.kind) ? (
+                {code.kind === 'fixed_price' ? (
                   <div className="admin-pricing__plan-amount-stack">
                     <strong className="admin-pricing__plan-amount">
                       {money(code.fixedPrice ?? 0, locale)}
@@ -1518,12 +1504,6 @@ export default function PricingSection({
                       </span>
                     ) : null}
                   </div>
-                ) : code.kind === 'access' ? (
-                  /* Un código de acceso no tiene importe: sin esta rama la lista
-                     mostraba "−null%". */
-                  <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
-                    {t('admin.sections.pricing.accessAmount')}
-                  </strong>
                 ) : (
                   <strong className="admin-pricing__plan-amount admin-pricing__plan-amount--percent">
                     −{code.percentOff}%
@@ -1555,6 +1535,23 @@ export default function PricingSection({
                       {simulationState.loading && simulationState.id === code.id
                         ? t('admin.sections.pricing.simulatingPromotion')
                         : t('admin.sections.pricing.simulatePromotion')}
+                    </button>
+                  ) : null}
+                  {/* Solo con canjes: un historial vacío no responde nada. */}
+                  {onFetchDiscountCodeRedemptions && availability.redeemedCount > 0 ? (
+                    <button
+                      type="button"
+                      className="admin-pricing__btn admin-pricing__btn--quiet"
+                      onClick={() => showRedemptions(code)}
+                      aria-expanded={redemptionsState.id === code.id}
+                      disabled={redemptionsState.loading && redemptionsState.id === code.id}
+                    >
+                      <History size={14} aria-hidden />
+                      {redemptionsState.loading && redemptionsState.id === code.id
+                        ? t('admin.sections.pricing.redemptionsLoading')
+                        : redemptionsState.id === code.id && redemptionsState.data
+                          ? t('admin.sections.pricing.redemptionsHide')
+                          : t('admin.sections.pricing.redemptionsShow')}
                     </button>
                   ) : null}
                   <button
@@ -1660,11 +1657,78 @@ export default function PricingSection({
                     )}
                   </div>
                 ) : null}
+                {redemptionsState.id === code.id && redemptionsState.data ? (
+                  <div className="admin-pricing__simulation" role="status">
+                    {redemptionsState.data.error ? (
+                      <p className="admin-pricing__promo-note is-error">
+                        {redemptionsState.data.error}
+                      </p>
+                    ) : redemptionsState.data.redemptions.length === 0 ? (
+                      /* El contador y el historial se leen en momentos
+                         distintos: entre uno y otro una orden pudo morir y
+                         liberar su canje. */
+                      <p className="admin-pricing__promo-note">
+                        {t('admin.sections.pricing.redemptionsEmpty')}
+                      </p>
+                    ) : (
+                      <>
+                        <strong>
+                          {t('admin.sections.pricing.redemptionsTitle', {
+                            count: redemptionsState.data.redemptions.length,
+                          })}
+                        </strong>
+                        <ul className="admin-pricing__redemptions">
+                          {redemptionsState.data.redemptions.map((redemption) => (
+                            <li key={redemption.id}>
+                              <strong>
+                                {redemption.athlete?.fullName ||
+                                  redemption.athlete?.email ||
+                                  t('admin.sections.pricing.redemptionUnknownAthlete')}
+                              </strong>
+                              <span>
+                                {redemption.redeemedAt
+                                  ? new Intl.DateTimeFormat(locale, {
+                                      dateStyle: 'medium',
+                                      timeStyle: 'short',
+                                    }).format(new Date(redemption.redeemedAt))
+                                  : null}
+                              </span>
+                              <span>
+                                {t('admin.sections.pricing.redemptionSaved', {
+                                  amount: money(redemption.discountAmount, locale),
+                                })}
+                              </span>
+                              {redemption.order ? (
+                                <span>
+                                  {t('admin.sections.pricing.redemptionOrder', {
+                                    amount: money(redemption.order.amount, locale),
+                                    status: REDEMPTION_ORDER_STATUSES.includes(
+                                      redemption.order.status,
+                                    )
+                                      ? t(
+                                          `admin.sections.pricing.redemptionOrderStatus.${redemption.order.status}`,
+                                        )
+                                      : redemption.order.status,
+                                  })}
+                                </span>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                ) : null}
               </article>
             )
           })}
           {!isLoading && discountCodes.length === 0 && !codeDraft ? (
             <p className="admin-pricing__empty">{t('admin.sections.pricing.discountCodesEmpty')}</p>
+          ) : null}
+          {!isLoading && discountCodes.length > 0 && visibleDiscountCodes.length === 0 ? (
+            <p className="admin-pricing__empty">
+              {t('admin.sections.pricing.codeSearchNoResults', { query: codeQuery.trim() })}
+            </p>
           ) : null}
         </div>
 
@@ -1727,21 +1791,13 @@ export default function PricingSection({
                     const type = event.target.value
                     setCodeDraft({
                       ...codeDraft,
-                      kind: codeKindFor(type),
+                      kind: type,
+                      // Un precio promocional necesita alcance único: si venía
+                      // en "afiliación e inscripción", se cae a afiliación.
                       appliesTo:
-                        // Un precio promocional necesita alcance único: si venía
-                        // en "afiliación e inscripción", se cae a afiliación.
                         type === 'fixed_price' && codeDraft.appliesTo === 'both'
                           ? 'membership'
-                          : // Una oferta se entrega como paquete: siempre es el
-                            // combo del evento, nunca una afiliación o una
-                            // inscripción sueltas.
-                            type === 'offer_access'
-                            ? 'combo'
-                            : codeDraft.appliesTo,
-                      // Una oferta que se aplica sola a todo el mundo no es una
-                      // oferta: es el precio nuevo del combo.
-                      audience: type === 'offer_access' ? 'code' : codeDraft.audience,
+                          : codeDraft.appliesTo,
                     })
                   }}
                 >
@@ -1752,47 +1808,10 @@ export default function PricingSection({
                   ))}
                 </select>
               </label>
-              {/* Instanciar la oferta: qué se desbloquea. Va antes del evento
-                  porque es lo que define qué significa elegirlo. Hoy la lista
-                  tiene un solo paquete —el combo de afiliación + inscripción—,
-                  y se elige igual: es la diferencia entre un código que abre
-                  algo nombrado y uno que abre "el combo", a secas. */}
-              {draftOpensOffer ? (
-                <label title={t('admin.sections.pricing.offerKindHint')}>
-                  <span>{t('admin.sections.pricing.offerKindLabel')}</span>
-                  <select
-                    value={codeDraft.offerKind ?? OFFER_KINDS[0]}
-                    onChange={(event) =>
-                      setCodeDraft({ ...codeDraft, offerKind: event.target.value })
-                    }
-                  >
-                    {OFFER_KINDS.map((offerKind) => (
-                      <option key={offerKind} value={offerKind}>
-                        {t(`admin.sections.pricing.offerKind.${offerKind}`)}
-                      </option>
-                    ))}
-                  </select>
-                  <small>{t('admin.sections.pricing.offerKindOnlyOne')}</small>
-                </label>
-              ) : null}
-              {/* El importe es obligatorio en los dos tipos que lo tienen: es
-                  todo el contrato del código. Una oferta ya no puede heredar el
-                  precio de un combo, porque el combo dejó de existir como
-                  objeto aparte. */}
-              {['fixed_price', 'offer_access'].includes(draftCodeType) &&
-              codeDraft.mercadoPagoEnabled !== false ? (
-                <label
-                  title={t(
-                    draftOpensOffer
-                      ? 'admin.sections.pricing.offerPriceHint'
-                      : 'admin.sections.pricing.fixedPriceHint',
-                  )}
-                >
-                  <span>
-                    {draftOpensOffer
-                      ? t('admin.sections.pricing.offerPrice')
-                      : t('admin.sections.pricing.fixedPrice')}
-                  </span>
+              {/* El importe es todo el contrato de un precio promocional. */}
+              {draftCodeType === 'fixed_price' && codeDraft.mercadoPagoEnabled !== false ? (
+                <label title={t('admin.sections.pricing.fixedPriceHint')}>
+                  <span>{t('admin.sections.pricing.fixedPrice')}</span>
                   <input
                     type="number"
                     min="1"
@@ -1803,21 +1822,9 @@ export default function PricingSection({
                     }
                     required
                   />
-                  {draftOpensOffer ? (
-                    <small>
-                      {/* Con el torneo elegido el techo es un número real: lo
-                          que ese atleta pagaría sin el código. Decirlo acá
-                          evita el viaje al servidor para enterarse. */}
-                      {offerCeiling != null
-                        ? t('admin.sections.pricing.offerPriceCeiling', {
-                            price: money(offerCeiling, locale),
-                          })
-                        : t('admin.sections.pricing.offerPriceHint')}
-                    </small>
-                  ) : null}
                 </label>
               ) : null}
-              {['fixed_price', 'offer_access'].includes(draftCodeType) ? (
+              {draftCodeType === 'fixed_price' ? (
                 <label title={t('admin.sections.pricing.fixedPriceManualHint')}>
                   <span>{t('admin.sections.pricing.fixedPriceManual')}</span>
                   <input
@@ -1851,131 +1858,48 @@ export default function PricingSection({
                   />
                 </label>
               )}
-              {/* El alcance no se pregunta en una oferta: el paquete elegido
-                  arriba ya dice qué entrega. Un select de una sola opción no
-                  era una decisión, era ruido. */}
-              {draftOpensOffer ? null : (
-                <label>
-                  <span>{t('admin.sections.pricing.appliesToLabel')}</span>
-                  <select
-                    value={codeDraft.appliesTo}
-                    onChange={(event) =>
-                      setCodeDraft({ ...codeDraft, appliesTo: event.target.value })
-                    }
-                  >
-                    <option value="membership">
-                      {t('admin.sections.pricing.appliesTo.membership')}
-                    </option>
-                    <option value="registration">
-                      {t('admin.sections.pricing.appliesTo.registration')}
-                    </option>
-                    <option value="combo">{t('admin.sections.pricing.appliesTo.combo')}</option>
-                    {draftCodeType === 'fixed_price' ? null : (
-                      <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
-                    )}
-                  </select>
-                </label>
-              )}
-              {/* Las dos mitades del paquete, juntas: qué afiliación y qué
-                  inscripción. La afiliación sólo se pregunta cuando hay más de
-                  una de pago único vigente —con una sola la resuelve el
-                  servidor, en el mismo orden— porque elegir mal cambia qué
-                  compra el atleta. */}
-              {draftOpensOffer && oneTimePlans.length > 1 ? (
-                <label title={t('admin.sections.pricing.offerPlanHint')}>
-                  <span>{t('admin.sections.pricing.offerPlanLabel')}</span>
-                  <select
-                    value={codeDraft.membershipPlanId || (offerPlan?.id ?? '')}
-                    onChange={(event) =>
-                      setCodeDraft({ ...codeDraft, membershipPlanId: event.target.value })
-                    }
-                  >
-                    <option value="">{t('admin.sections.pricing.offerPlanPlaceholder')}</option>
-                    {oneTimePlans.map((plan) => (
-                      <option key={plan.id} value={plan.id}>
-                        {plan.name} · {money(plan.price, locale)}
-                      </option>
-                    ))}
-                  </select>
-                  <small>{t('admin.sections.pricing.offerPlanHint')}</small>
-                </label>
-              ) : null}
-              {/* Alcance por inscripción. Obligatorio en una oferta exclusiva
-                  —es la mitad del paquete— y opcional en el resto: sin evento,
-                  el código vale para cualquiera. Una promo pública no puede
-                  limitarse (ver discount_codes_public_event_check). */}
+              <label>
+                <span>{t('admin.sections.pricing.appliesToLabel')}</span>
+                <select
+                  value={codeDraft.appliesTo}
+                  onChange={(event) =>
+                    setCodeDraft({ ...codeDraft, appliesTo: event.target.value })
+                  }
+                >
+                  <option value="membership">
+                    {t('admin.sections.pricing.appliesTo.membership')}
+                  </option>
+                  <option value="registration">
+                    {t('admin.sections.pricing.appliesTo.registration')}
+                  </option>
+                  <option value="combo">{t('admin.sections.pricing.appliesTo.combo')}</option>
+                  {draftCodeType === 'fixed_price' ? null : (
+                    <option value="both">{t('admin.sections.pricing.appliesTo.both')}</option>
+                  )}
+                </select>
+              </label>
+              {/* Alcance por inscripción. Opcional: sin evento, el código vale
+                  para cualquiera. Una promo pública no puede limitarse (ver
+                  discount_codes_public_event_check). */}
               {['registration', 'combo'].includes(codeDraft.appliesTo) &&
               codeDraft.audience === 'code' ? (
                 <label>
-                  <span>
-                    {draftOpensOffer
-                      ? t('admin.sections.pricing.offerEventLabel')
-                      : t('admin.sections.pricing.codeEventLabel')}
-                  </span>
+                  <span>{t('admin.sections.pricing.codeEventLabel')}</span>
                   <select
                     value={codeDraft.eventId ?? ''}
                     onChange={(event) =>
                       setCodeDraft({ ...codeDraft, eventId: event.target.value })
                     }
-                    required={draftOpensOffer}
                   >
-                    {draftOpensOffer ? (
-                      <option value="">{t('admin.sections.pricing.offerEventPlaceholder')}</option>
-                    ) : (
-                      <option value="">{t('admin.sections.pricing.codeEventAny')}</option>
-                    )}
-                    {/* Cualquier torneo puede recibir una oferta: el código
-                        trae su propio precio y su propia afiliación. */}
+                    <option value="">{t('admin.sections.pricing.codeEventAny')}</option>
                     {(configuration.events ?? []).map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.title}
                       </option>
                     ))}
                   </select>
-                  <small>
-                    {draftOpensOffer
-                      ? t('admin.sections.pricing.offerEventHint')
-                      : t('admin.sections.pricing.codeEventHint')}
-                  </small>
+                  <small>{t('admin.sections.pricing.codeEventHint')}</small>
                 </label>
-              ) : null}
-              {draftOpensOffer ? (
-                <aside
-                  className="admin-pricing__exclusive-flow admin-pricing__wide"
-                  aria-labelledby="pricing-exclusive-flow-title"
-                >
-                  <div className="admin-pricing__exclusive-flow-intro">
-                    <h4 id="pricing-exclusive-flow-title">
-                      {t('admin.sections.pricing.exclusiveFlowTitle')}
-                    </h4>
-                  </div>
-                  <dl>
-                    <div>
-                      <dt>{t('admin.sections.pricing.exclusiveFlowCode')}</dt>
-                      <dd>
-                        {codeDraft.code || t('admin.sections.pricing.exclusiveFlowCodePending')}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>{t('admin.sections.pricing.exclusiveFlowBenefit')}</dt>
-                      <dd>
-                        {/* Sin torneo o sin importe no hay oferta que resumir:
-                            las dos mitades del paquete y su precio son el
-                            contrato entero del código. */}
-                        {selectedOfferEvent && Number(codeDraft.fixedPrice) > 0
-                          ? `${selectedOfferEvent.title} · ${money(
-                              Number(codeDraft.fixedPrice),
-                              locale,
-                            )}`
-                          : t('admin.sections.pricing.exclusiveFlowBenefitPending')}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>{t('admin.sections.pricing.exclusiveFlowDestination')}</dt>
-                      <dd>{t('admin.sections.pricing.exclusiveFlowDestinationValue')}</dd>
-                    </div>
-                  </dl>
-                </aside>
               ) : null}
               <label title={t('admin.sections.pricing.maxRedemptionsHint')}>
                 <span>{t('admin.sections.pricing.maxRedemptions')}</span>
@@ -2037,11 +1961,7 @@ export default function PricingSection({
                   }}
                 >
                   <option value="code">{t('admin.sections.pricing.audience.code')}</option>
-                  {/* Una oferta que se aplica sola a todo el mundo deja de ser
-                      una oferta: es el precio nuevo del combo. */}
-                  {draftOpensOffer ? null : (
-                    <option value="public">{t('admin.sections.pricing.audience.public')}</option>
-                  )}
+                  <option value="public">{t('admin.sections.pricing.audience.public')}</option>
                 </select>
               </label>
               {/* Cómo se cobra el código: UNA decisión, no cuatro casillas cuya
