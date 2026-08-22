@@ -3100,17 +3100,10 @@ export default {
       competitionFormDesc: 'Division, category and bodyweight.',
       packageLegend: 'Package',
       packageSavings: 'Save {{amount}}',
-<<<<<<< Updated upstream
       discountLabel: 'Code',
       discountHint: 'Redeem your code.',
       discountPlaceholder: 'ENTER YOUR CODE',
       discountApply: 'Redeem',
-=======
-      discountLabel: 'Discount code',
-      discountToggle: 'I have a discount code',
-      discountPlaceholder: 'E.g. SUMMER2026',
-      discountApply: 'Apply',
->>>>>>> Stashed changes
       discountChecking: 'Validating...',
       comboCodeLead: 'This package is closed: it can only be bought with the code you were given.',
       comboCodeLabel: 'Code',
@@ -3118,8 +3111,6 @@ export default {
       comboCodeApply: 'Redeem',
       comboCodeChecking: 'Checking…',
       comboCodeError: 'That combo code is not valid.',
-      comboCodeUnlockedPrefix: 'Code',
-      comboCodeUnlockedSuffix: 'verified — you unlocked the exclusive package.',
       publicPromoApplied: 'Promotion in effect · you save {{amount}}',
       discountApplied: 'Code {{code}} applied · you save {{amount}}',
       discountAppliedFixed: 'Code {{code}} applied · you pay {{amount}}',
