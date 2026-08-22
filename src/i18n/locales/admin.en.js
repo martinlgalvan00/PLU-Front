@@ -30,6 +30,12 @@ export default {
     next: 'Next',
     finish: 'Got it',
     stepOf: 'Step {{current}} of {{total}}',
+    coach: {
+      exit: 'Leave the tutorial',
+      filled: 'You already filled this in',
+      pending: 'Fill it in, then tap Next',
+      waiting: 'I will point at this step as soon as it shows up on screen.',
+    },
     menuReplay: 'View this tour',
     menuModeLabel: 'Auto-show',
     mode: {
@@ -44,6 +50,14 @@ export default {
     search: {
       title: 'Global search',
       body: 'Search an athlete, a document ID, or an event without switching sections. Enter takes you straight to the result.',
+    },
+    globalSearch: {
+      title: 'Jump to an athlete (Ctrl K)',
+      body: 'From any section of the panel, search by name, document ID, email, or gym and jump straight to the athlete file, without going through Athletes.',
+    },
+    savedViews: {
+      title: 'Saved views',
+      body: 'Save a search-and-filter combination under a name to reapply it in one click, instead of rebuilding it every time.',
     },
     kpis: {
       title: 'Operational status',
@@ -117,6 +131,24 @@ export default {
       table: {
         title: 'Validate and manage',
         body: 'Approve a manual payment, show/hide from the public roster, change status, or delete -- all from the row, without leaving the list.',
+      },
+    },
+    audit: {
+      guide: {
+        title: 'How to read this section',
+        body: 'Start with the overall status, then find the specific event with the filters, and finally open its full context.',
+      },
+      health: {
+        title: 'Operational health',
+        body: 'Events, delivered emails, retries, and incidents from the last 24 hours -- tap the incident count to filter down to just those.',
+      },
+      filters: {
+        title: 'Filter the log',
+        body: 'Combine source, status, category, action, actor, and entity to reach the specific event you are looking for.',
+      },
+      table: {
+        title: 'Each event in detail',
+        body: 'Tap any row to see the full detail -- including the payment trace when the event is tied to a payment order.',
       },
     },
     events: {
@@ -202,6 +234,7 @@ export default {
       pluUsa: 'Partner',
     },
     dashboard: 'Overview',
+    people: 'People',
     athletes: 'Athletes',
     memberships: 'Memberships',
     events: 'Events',
@@ -227,6 +260,15 @@ export default {
     registrationStatus: 'Registration status',
     event: 'Event',
     expiration: 'Expiration',
+    gym: 'Gym',
+    allGyms: 'All gyms',
+    division: 'Division',
+    allDivisions: 'All divisions',
+    registeredAt: 'Registration date',
+    registeredFrom: 'From',
+    registeredTo: 'To',
+    registeredAtFrom: 'From {{date}}',
+    registeredAtTo: 'Until {{date}}',
     allStatuses: 'All statuses',
     allEvents: 'All events',
     allExpiring: 'All expirations',
@@ -248,6 +290,11 @@ export default {
     showingAll: 'All',
     moreFilters: 'More filters',
     fewerFilters: 'Fewer filters',
+    advancedLabel: 'Advanced filters',
+    searchFilters: 'Search filters…',
+    noMatchingFilters: 'No filters match your search',
+    searchOptions: 'Search…',
+    noMatchingOptions: 'No results',
   },
   stats: {
     total: 'Total',
@@ -317,6 +364,20 @@ export default {
     dashboard: 'Search athlete, ID or event',
     submit: 'Search registrations',
     users: 'Search by name or email',
+    global: 'Search athlete, ID, member, event…',
+    globalAria: 'Global athlete search',
+    globalEmpty: 'No matches',
+    globalHint: 'Open profile',
+  },
+  savedViews: {
+    caption: 'Saved views',
+    all: 'All',
+    add: 'Save current filters',
+    namePlaceholder: 'View name',
+    remove: 'Remove view {{label}}',
+    limitReached: "You've reached the limit of {{count}} saved views. Remove one to save another.",
+    saveFailed: "Couldn't save the view. Your browser storage might be full or blocked.",
+    removeFailed: "Couldn't remove the view. Try again.",
   },
   table: {
     sortLabel: 'Sort',
@@ -406,9 +467,6 @@ export default {
       title: 'Athletes',
       subtitle: 'Identity, sporting status and roster traceability',
       empty: 'No athletes match your search',
-      statActive: 'Active',
-      statExpired: 'Expired',
-      statBlocked: 'Blocked',
       bulk: {
         label: 'Bulk actions',
         selectedCount: '{{count}} athletes selected',
@@ -438,12 +496,6 @@ export default {
       title: 'Memberships',
       subtitle: 'Validity, codes and federation renewals',
       empty: 'No memberships match the filters',
-      statActive: 'Active',
-      statExpired: 'Expired',
-      statCancelled: 'Cancelled',
-      statNewThisMonth: 'New this month',
-      statExpiringSoon: 'Expiring in 30 days',
-      statPendingPayment: 'Awaiting payment',
       viewCredential: 'Credential',
       credentialTitle: 'Member credential',
       credentialLead: 'Door QR and details for the issued membership.',
@@ -453,12 +505,26 @@ export default {
       cancel: 'Deactivate',
       applying: 'Applying…',
       actionError: 'We could not update the membership.',
-      cancelConfirmTitle: 'Confirm membership deactivation',
-      cancelConfirmDescription: 'You are about to deactivate {{athlete}}’s membership.',
+      manual: {
+        activateTitle: 'Activate the membership manually',
+        activateDescription:
+          'You are about to leave {{athlete}}’s membership active without a settled charge on the platform.',
+        cancelTitle: 'Confirm membership deactivation',
+        cancelDescription: 'You are about to deactivate {{athlete}}’s membership.',
+        channelLabel: 'How was it resolved?',
+        channelPlaceholder: 'Pick the channel…',
+        reasonLabel: 'Reason',
+        reasonPlaceholder: 'E.g. transfer received on Aug 20, receipt shared in the group.',
+        reasonHint: 'It stays on the athlete’s record and in the audit log. This is what gets read when someone disputes it.',
+        orderNotice:
+          'The Mercado Pago order stays cancelled: no money came in through that channel, and marking it settled would falsify revenue. If you need the accounting entry, use manual settlement with a receipt.',
+        back: 'Back',
+        close: 'Close',
+        confirmActivate: 'Activate and record the reason',
+        confirmCancel: 'Confirm deactivation',
+      },
       cancelConfirmWarning:
         'The credential will no longer grant entry and the athlete will receive an email about the change.',
-      keepActive: 'Keep active',
-      confirmCancel: 'Confirm deactivation',
       registeredToTournamentBadge: 'Tournament',
       validationPaused: 'Membership validation is paused from Access and enablement.',
       validationPausedLead:
@@ -524,9 +590,6 @@ export default {
         'A plan can only be deleted when it has no memberships, orders or subscriptions attached.',
       deleteConfirmCancel: 'Keep plan',
       deleteConfirmConfirm: 'Delete plan',
-      comboTitle: 'Combo offer',
-      comboLead:
-        'Combine a membership and a registration. The final price must stay below the separate total.',
       event: 'Event',
       membershipPlan: 'Included plan',
       membershipAmount: 'Membership',
@@ -534,22 +597,8 @@ export default {
       comboPrice: 'Combo price',
       comboStarts: 'From',
       comboEnds: 'Until',
-      comboActive: 'Offer enabled',
-      saveCombo: 'Save offer',
       noEvents: 'There are no events to configure.',
-      noOneTimePlans: 'At least one active one-time plan is required.',
       saved: 'Configuration updated.',
-      separateTotal: 'Bought separately',
-      comboSavings: 'Savings',
-      comboOverLimit: 'Over the maximum',
-      comboMax: 'Max {{amount}}',
-      comboOfferOn: 'Enabled',
-      comboOfferOff: 'Off',
-      editCombo: 'Edit offer',
-      closeComboEditor: 'Close editor',
-      comboNotConfigured: 'Not configured',
-      comboPlus: '+',
-      comboEquals: '=',
       colPlan: 'Plan',
       colPrice: 'Price',
       colEffective: 'Effective',
@@ -561,7 +610,7 @@ export default {
       scheduleRetirement: 'Schedule retirement',
       discountCodesTitle: 'Discount and promo codes',
       discountCodesLead:
-        'Percentage discounts or fixed-price promos, with limited spots, expiry and live tracking.',
+        'Three types: a percentage discount, a fixed promotional price, or a combo — membership + registration — with its own price. Everything is set here: nothing to configure beforehand.',
       discountCodesEmpty: 'No codes yet.',
       newDiscountCode: 'New code',
       publishDiscountCode: 'Publish code',
@@ -569,29 +618,56 @@ export default {
       formTitleEditCode: 'Edit {{code}}',
       code: 'Code',
       codeFormatHint: 'Uppercase letters, numbers and dashes.',
+      batchPrefix: 'Prefix (Optional)',
+      batchPrefixHint: 'Base prefix for automatic codes (e.g., PROMO).',
+      batchPreview:
+        'It generates {{count}} individual codes, one per invitee. Example: {{example}}.',
       percentOff: 'Discount (%)',
       percentOffInvalid: 'The discount must be a whole number between 1 and 99.',
-      codeKindLabel: 'Type',
+      codeKindLabel: 'Code type',
       codeKindHint:
-        'A discount takes a percentage off. A promo price sets what is paid, agreed separately per payment method. Access does not discount anything: it only unlocks the combo. An exclusive offer does both — it unlocks one registration’s combo and sets its own price.',
+        'A percentage discounts the current price; a fixed price replaces it; an offer opens a package that is not published.',
       codeKind: {
         percent: 'Percentage discount',
-        fixed_price: 'Fixed promo price',
-        access: 'Combo access (no discount)',
-        offer: 'Exclusive offer (membership + registration)',
+        fixed_price: 'Fixed promotional price',
+        offer_access: 'Combo or offer (membership + registration)',
       },
+      // Which offer the code instantiates. There is only one today; the select
+      // exists anyway because naming the package is what makes the code legible.
+      offerKindLabel: 'Offer it opens',
+      offerKind: {
+        membership_registration: 'Membership + registration for an event',
+      },
+      offerKindHint:
+        'The package unlocked on redemption. It is paid in full, once, and credits both things.',
+      offerKindOnlyOne: 'It is the only offer available for now.',
       offerBadge: 'Exclusive offer',
       offerPrice: 'Offer price via Mercado Pago (ARS)',
+      offerPriceHint:
+        'What whoever redeems the offer pays via Mercado Pago. With an amount here the code is the offer and no combo needs to exist; empty charges what that event combo already costs.',
+      offerPriceCeiling: 'It must be lower than {{price}}, which is what is paid today without the code.',
+      offerPlanLabel: 'Membership in the package',
+      offerPlanPlaceholder: 'Choose the membership',
+      offerPlanHint:
+        'The membership bundled together with the registration. You are asked because more than one is current.',
       offerEventLabel: 'Offer registration',
       offerEventPlaceholder: 'Choose the registration',
-      offerEventComboPrice: 'combo {{price}}',
       offerEventHint:
-        'The offer replaces that registration’s combo price only for whoever redeems the code. Only registrations that already have a combo configured are listed.',
+        'The registration bundled in the package. The offer only applies to whoever redeems the code: if the tournament already has a combo, it replaces it for that person.',
       offerEventRequired: 'Choose which registration the exclusive offer applies to.',
-      offerComboMissing:
-        'That registration does not have a membership + registration combo configured yet. Set it up above before creating the offer.',
+      offerPlanRequired: 'Choose which membership the offer bundles.',
       offerPriceTooHigh:
-        'The offer price must be lower than that registration’s combo price ({{price}}).',
+        'The offer price must be lower than what is already paid without the code ({{price}}).',
+      exclusiveFlowEyebrow: 'Secret flow',
+      exclusiveFlowTitle: 'Private offer page',
+      exclusiveFlowLead:
+        'It is redeemed from My account > Benefits or during payment: it reveals the package and opens its private page without publishing it.',
+      exclusiveFlowCode: 'Key',
+      exclusiveFlowBenefit: 'Benefit',
+      exclusiveFlowDestination: 'Destination',
+      exclusiveFlowCodePending: 'Define the code',
+      exclusiveFlowBenefitPending: 'Choose the event',
+      exclusiveFlowDestinationValue: 'My account · Exclusive offer · Process payment',
       codeEventLabel: 'Limit to one registration',
       codeEventAny: 'Any registration',
       codeEventHint:
@@ -606,8 +682,7 @@ export default {
       fixedPriceManualPlaceholder: 'Same as the Mercado Pago price',
       fixedPriceManualHint:
         'Empty = they pay the same as through Mercado Pago. Can be equal, lower or higher.',
-      fixedPriceManualInvalid:
-        'The transfer or cash price must be a whole number greater than 0.',
+      fixedPriceManualInvalid: 'The transfer or cash price must be a whole number greater than 0.',
       fixedPriceManualNote: 'Transfer and cash: {{amount}}',
       fixedPriceScopeInvalid:
         'A promo price needs a single scope: membership, registration or combo.',
@@ -631,12 +706,38 @@ export default {
         'It ran out of redemptions and closed itself. Raise the redemption limit to enable it again.',
       publicPromoChannelsInvalid:
         'A public promotion cannot unlock manual payment methods. Open them from Access and availability.',
+      publicPromoGatewayInvalid:
+        'A public promotion cannot close Mercado Pago: it applies to every purchase on its own. Close it from Access and availability.',
       manualChannelsPublicHint:
-        'Not used on a public promotion: opening a channel for everyone is done from Access and availability, not here.',
+        'Not used on a public promotion: opening or closing a channel for everyone is done from Access and availability, not here.',
       manualChannelsLegend: 'Payment methods it unlocks',
-      manualChannelsHint:
-        'Mercado Pago is always available. Check a channel so this code unlocks it only for whoever uses it, even if it is off globally. With nothing checked, the purchase goes through Mercado Pago only.',
+      codeChannelsLegend: 'Payment and entitlement',
+      codePaymentModeLabel: 'How it is paid',
+      codePaymentMode: {
+        mercado_pago: 'Mercado Pago',
+        manual: 'Cash or transfer only',
+        manual_financed: 'Cash or transfer, enabled when they report the payment',
+      },
+      codePaymentModeHint: {
+        mercado_pago:
+          'Paid online and credited automatically. The normal case: nobody on the team has to validate anything.',
+        manual:
+          'Whoever uses the code pays by transfer or in cash, and is enabled once Finance confirms the payment. The channels are unlocked for this code only, even if they are off globally.',
+        manual_financed:
+          'Whoever uses the code reports the transfer or the cash handover and is enabled right then, for both membership and registration. The debt stays open until Finance validates it.',
+      },
+      codeAlsoMercadoPago: 'Also accept Mercado Pago',
+      batchPartialError:
+        '{{created}} of {{total}} codes were created. The rest did not go through: {{reason}}',
+      codeChannelsEmpty:
+        'Pick at least one payment method. With none, the code is redeemed and there is no way to pay for it.',
+      codeFinancingChannelRequired:
+        'Reporting a payment needs transfer or cash: it is the only thing the athlete can report. With Mercado Pago alone the payment settles on its own.',
+      codeFinancingPublicInvalid:
+        'A public promo cannot defer payment: it applies to every purchase on its own. Hand it out as a code instead.',
+      codeFinancedBadge: 'Deferred payment',
       manualChannel: {
+        mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
         cash_pitbull: 'Cash at Pitbull',
       },
@@ -645,27 +746,11 @@ export default {
         cash_pitbull: 'Unlocks cash',
         'bank_transfer+cash_pitbull': 'Unlocks transfer and cash',
       },
-      comboAudienceLabel: 'Who sees the combo',
-      comboAudience: {
-        public: 'Public — anyone sees it',
-        code: 'Restricted — with access code',
+      codeChannelsOnlyBadge: {
+        bank_transfer: 'Bank transfer only',
+        cash_pitbull: 'Cash only',
+        'bank_transfer+cash_pitbull': 'No Mercado Pago',
       },
-      comboAudienceHint:
-        'Restricted: the package is not offered and only whoever types the code can buy it. It gates access, not price.',
-      comboAccessCode: 'Combo access code',
-      comboAccessCodePlaceholder: 'e.g. COMBO-PITBULL',
-      comboAccessCodeHint:
-        'Uppercase, numbers and hyphens. This is what you hand out: switching the combo to public clears it.',
-      comboAccessCodeInvalid: 'The combo access code must be uppercase, numbers and hyphens.',
-      deleteCombo: 'Delete combo',
-      comboDeleted: 'Combo offer deleted.',
-      deleteComboConfirmTitle: 'Delete the {{event}} combo',
-      deleteComboConfirmDescription:
-        'You are about to remove the {{event}} combo offer from the catalog. Standalone membership and registration are untouched.',
-      deleteComboConfirmWarning:
-        'It can only be deleted if nobody bought this event combo. If there are orders already, deactivate it instead.',
-      deleteComboConfirmCancel: 'Keep combo',
-      deleteComboConfirmConfirm: 'Delete combo',
       deleteDiscountCode: 'Delete',
       deleteDiscountCodeAria: 'Delete code {{code}}',
       deleteCodeConfirmTitle: 'Delete {{code}}',
@@ -694,9 +779,9 @@ export default {
       promoWindowInvalid: 'The promotion must close after it opens.',
       invitees: 'Exclusive to (emails)',
       inviteesPlaceholder: 'one email per line',
-      inviteesHint:
-        'Empty = open to anyone. With addresses, only those accounts can use it.',
+      inviteesHint: 'Empty = open to anyone. With addresses, only those accounts can use it.',
       inviteesCountHint: 'Exclusive to {{count}} account(s). Clear the list to open it.',
+      personalCodeHint: 'Personal code: only the account tied to this email can redeem it.',
       inviteesInvalid: '{{email}} is not a valid email address.',
       inviteesTooMany: 'The invite list cannot hold more than 500 addresses.',
       exclusiveBadge: 'Exclusive · {{count}}',
@@ -718,6 +803,31 @@ export default {
       copyDiscountCode: 'Copy code {{code}}',
       discountCodeCopied: 'Copied',
       copyDiscountCodeError: 'We could not copy the code. Select it and copy it manually.',
+      downloadPromotionQr: 'Download QR',
+      promotionQrDownloaded: 'QR downloaded',
+      downloadPromotionQrError: 'We could not generate the redemption QR.',
+      simulatePromotion: 'Test flow',
+      simulatingPromotion: 'Testing…',
+      simulationTitle: 'Journey verified',
+      simulationDestination: 'Destination: {{destination}}',
+      simulationEmpty: 'The validation did not return a result.',
+      simulationError: 'We could not validate the code journey.',
+      simulationRedeemHint: 'Redeemed from the code field in Membership or Registration.',
+      simulationCheck: {
+        active: 'The code is active',
+        withinWindow: 'It is within its validity window',
+        restrictedCombo: 'The combo is code-restricted',
+        hasEvent: 'It has a linked registration',
+        hasPrice: 'It has a configured final price',
+        payable: 'It has at least one payment method',
+        financingDeclarable: 'If payment is deferred, there is a channel to report it',
+      },
+      campaignMetric: {
+        resolvedCount: 'Validated',
+        unlockedCount: 'Unlocked',
+        checkoutCount: 'Started checkout',
+        paidCount: 'Paid',
+      },
       discountStatus: {
         active: 'Active',
         exhausted: 'Exhausted',
@@ -780,8 +890,10 @@ export default {
       channelAria: 'Enable {{channel}} for {{concept}}',
       channelOn: 'Active',
       channelOff: 'Closed',
-      noChannelWarning: 'With no method open this concept cannot be charged, even if intake is enabled.',
-      environmentHold: 'An environment variable is holding payments above the panel ({{variables}}). The switches have no effect until it is removed.',
+      noChannelWarning:
+        'With no method open this concept cannot be charged, even if intake is enabled.',
+      environmentHold:
+        'An environment variable is holding payments above the panel ({{variables}}). The switches have no effect until it is removed.',
       togglesTitle: 'General enablement',
       togglesLead:
         'One block per concept: whether intake is open, which methods it is charged with, and whether Finance settles it. Off here, nobody starts anything new, code or no code.',
@@ -939,6 +1051,7 @@ export default {
       eyebrow: 'Event mode',
       title: 'Gate and accreditation',
       subtitle: 'Scanning, access and live operational control',
+      subtitleForEvent: '{{event}} gate: scanning, payments and entries',
     },
     pluUsa: {
       eyebrow: 'Read-only view',
@@ -954,14 +1067,6 @@ export default {
       statRegistrations: 'Confirmed registrations',
       export: 'Download report',
       empty: 'No memberships match the filters',
-    },
-  },
-  registrations: {
-    stats: {
-      total: 'Total',
-      pending: 'Pending payment',
-      manual: 'Manual review',
-      confirmed: 'Confirmed',
     },
   },
   board: {
@@ -1084,6 +1189,7 @@ export default {
   },
 
   eventConsole: {
+    close: 'Close',
     configLabel: 'Event setup',
     activityLabel: 'Activity',
     back: 'Back to the event list',
@@ -1217,6 +1323,7 @@ export default {
     filterReady: 'Eligible',
     filterDone: 'Checked in',
     filterPending: 'Not eligible',
+    filterToValidate: 'To settle',
     statusLabel: 'Entry status',
     statusLabelShort: 'Status',
     type: 'Type',
@@ -1231,8 +1338,11 @@ export default {
     statReady: 'Eligible',
     statDone: 'Checked in',
     statPending: 'Not eligible',
+    statToValidate: 'To settle',
+    dayNumber: 'Day {{day}}',
     searchPlaceholder: 'Search by name, ID or code',
     markEntry: 'Record entry',
+    settleAtDoor: 'Settle and approve',
     checkedInAt: 'Checked in {{time}}',
     empty: 'No athletes or tickets to show',
     scanner: {
@@ -1654,6 +1764,7 @@ export default {
     factRequestId: 'Request ID',
 
     failureTitle: 'What failed',
+    providerMessage: 'Original technical message',
     factCode: 'Code',
     factHttp: 'HTTP status',
     factErrorName: 'Error type',
@@ -1684,6 +1795,72 @@ export default {
     rawTitle: 'Full event metadata',
   },
 
+  // Operational vocabulary, deliberately not reusing `account.payments.*`:
+  // those are written in second person for the athlete.
+  paymentState: {
+    state: {
+      acreditado: 'Settled',
+      en_revision: 'Under review',
+      revision_pendiente: 'Settling',
+      esperando_comprobante: 'Proof missing',
+      esperando_pago: 'Awaiting payment',
+      esperando_pago_en_sede: 'Pay on site',
+      procesando: 'Processing',
+      rechazado: 'Rejected',
+      cancelado: 'Cancelled',
+      reembolsado: 'Refunded',
+    },
+    reason: {
+      expired_without_attempt: 'Expired on {{date}} with no payment attempt on record.',
+      expired_after_attempt: 'Expired on {{date}}; no attempt ever settled.',
+      closed_without_attempt: 'Closed with no payment attempt on record.',
+      closed_after_attempt: 'Closed without any attempt settling.',
+      closed_before_expiry: 'Closed before expiring, most likely replaced by a new charge.',
+      superseded_by_new_order: 'Replaced by a new charge for the same concept.',
+      provider_cancelled: 'Mercado Pago reported the payment as cancelled.',
+      staff_rejected: 'Closed by the organization.',
+      resolved_off_platform:
+        'No money came in through this channel: the entitlement was granted manually. Do not settle this order.',
+    },
+    attempt: {
+      cc_rejected_insufficient_amount: 'Card had insufficient funds.',
+      cc_rejected_bad_filled_card_number: 'Card number entered incorrectly.',
+      cc_rejected_bad_filled_date: 'Card expiry date was wrong.',
+      cc_rejected_bad_filled_security_code: 'Security code was wrong.',
+      cc_rejected_bad_filled_other: 'Card details entered incorrectly.',
+      cc_rejected_call_for_authorize: 'Bank required authorization for the amount.',
+      cc_rejected_card_disabled: 'Card was inactive.',
+      cc_rejected_duplicated_payment: 'Recent duplicate payment.',
+      cc_rejected_high_risk: 'Rejected by Mercado Pago fraud prevention.',
+      cc_rejected_max_attempts: 'Allowed attempts exhausted.',
+      cc_rejected_other_reason: 'Bank rejected without a reason.',
+      cc_rejected_invalid_installments: 'Card did not allow those installments.',
+      cc_rejected_card_type_not_allowed: 'Card type not enabled.',
+      pending_contingency: 'Mercado Pago was still processing the payment.',
+      pending_review_manual: 'Mercado Pago left it under manual review.',
+      pending_waiting_transfer: 'Waiting for the transfer to settle.',
+      pending_waiting_payment: 'Voucher issued but unpaid.',
+    },
+    resolvedElsewhere: {
+      membership: 'The membership is active through another route: do not charge this again.',
+      registration: 'The registration is confirmed through another route: do not charge this again.',
+    },
+    manual: {
+      stamp: 'Manually by {{actor}} · {{date}}',
+      unknownActor: 'an operator',
+      missingReason:
+        'No reason on record: it was activated before the panel asked for one. Worth writing down.',
+      channel: {
+        bank_transfer: 'Bank transfer',
+        wise_transfer: 'Wise transfer',
+        cash: 'Cash',
+        courtesy: 'Courtesy',
+        error_correction: 'Error correction',
+        sponsor: 'Trade / sponsor',
+        other: 'Other channel',
+      },
+    },
+  },
   paymentTrace: {
     open: 'View payment trace',
     eyebrow: 'Audit',
@@ -1716,6 +1893,7 @@ export default {
     },
   },
   registrationStatus: {
+    reasonHint: 'To save the change, choose a status and write a reason of at least 3 characters.',
     title: 'Correct registration status',
     lead: 'Change the status without deleting the registration: division, category and assigned slot are kept.',
     athlete: 'Athlete',
@@ -1839,8 +2017,11 @@ export default {
     kindExpense: 'Expense',
   },
   paymentOperations: {
-    title: 'Payment operations and reconciliation',
+    title: 'Payment Operations & Reconciliation',
     subtitle: 'Mercado Pago webhooks, retries, subscriptions and reconciliations in one place.',
+    tabAthletes: 'Athletes',
+    tabTickets: 'Tickets',
+    tabLedger: 'System',
     workerActive: 'Automatic recovery is active',
     workerInactive: 'Automatic recovery is disabled',
     refresh: 'Refresh',
@@ -2002,7 +2183,6 @@ export default {
     priceRegistration: 'Registration',
     priceRegistrationManual: 'Registration · bank transfer/cash',
     priceRegistrationManualPlaceholder: 'Same as the Mercado Pago price',
-    priceCombo: 'Membership + meet combo',
     pricingCatalogHint:
       'Membership and combo offers are managed from Pricing to keep a single source of truth.',
     priceCurrency: 'ARS',
@@ -2617,18 +2797,28 @@ export default {
     },
   },
   athletePayments: {
+    lookupPayment: 'Validate operation number',
+    lookupPaymentHint: 'Paste the Mercado Pago operation number. It is only settled if it matches this order.',
+    lookupPaymentLabel: 'Mercado Pago operation number',
+    lookupPaymentSubmit: 'Validate operation',
     eyebrow: 'Memberships and registrations',
     title: 'Athlete orders',
     subtitle: 'Transfers awaiting review and Mercado Pago settlements',
     openAmount: '{{amount}} awaiting settlement',
+    openAmountPartial: '{{amount}}+ awaiting settlement',
     refresh: 'Refresh',
+    refreshing: 'Refreshing…',
     filterPending: 'To review',
-    filterManual: 'With receipt',
+    filterManual: 'Under review',
+    filterFinanced: 'Financed',
+    filterRejected: 'Rejected',
     filterApproved: 'Approved',
     filterAll: 'All',
     rejectedBy: 'Rejected by {{actor}}',
     columnProof: 'Receipt',
     proofMissing: 'No receipt',
+    declared: 'Declared by athlete',
+    financedActive: 'Financed · access active',
     proofError: 'Could not open the receipt.',
     webhookOnly: 'Mercado Pago settles through the webhook',
     forceSettle: 'Settle manually',
@@ -2669,6 +2859,17 @@ export default {
   },
   athleteDetail: {
     back: 'Back to athletes',
+    divergence: {
+      title: 'States resolved outside the charge',
+      titleUnexplained: 'A state has no explanation',
+      kind: {
+        membership: 'Membership {{status}} while the payment is {{orderStatus}}.',
+        registration: 'Registration {{status}} while the payment is {{orderStatus}}.',
+      },
+      explained: 'Resolved by {{actor}}: {{reason}}',
+      unexplained:
+        'Nobody wrote down why. Check whether the payment came in through another channel and record it.',
+    },
     tabs: {
       profile: 'Profile',
       memberships: 'Memberships',

@@ -90,12 +90,10 @@ vi.mock('../src/services/paymentService.js', () => ({
 }))
 
 const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
-const { fetchRegistrationAccessRequirements } = await import(
-  '../src/services/registrationAccessService.js'
-)
-const { previewDiscountCode, unlockOfferCode, fetchOfferUnlocks } = await import(
-  '../src/services/athleteApi.js'
-)
+const { fetchRegistrationAccessRequirements } =
+  await import('../src/services/registrationAccessService.js')
+const { previewDiscountCode, unlockOfferCode, fetchOfferUnlocks } =
+  await import('../src/services/athleteApi.js')
 
 const ATHLETE = {
   id: 'ath-1',
@@ -131,6 +129,7 @@ const OFFER_PAYLOAD = {
   fixedPrice: 120000,
   redeemed: false,
   event: { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026' },
+  comboOffer: { ...RESTRICTED_EVENT.comboOffer },
 }
 
 const COMBO_PREVIEW = {
@@ -146,8 +145,6 @@ const COMBO_PREVIEW = {
 const NOT_APPLICABLE = {
   valid: false,
   reason: 'not_applicable',
-  kind: 'offer',
-  appliesTo: 'combo',
 }
 
 function renderCompetition(props = {}) {
@@ -158,7 +155,12 @@ function renderCompetition(props = {}) {
         createdOrder={null}
         event={RESTRICTED_EVENT}
         flow="competition"
-        form={{ division: 'Open', category: 'Raw', estimatedWeight: '83', paymentMethod: 'mercado_pago' }}
+        form={{
+          division: 'Open',
+          category: 'Raw',
+          estimatedWeight: '83',
+          paymentMethod: 'mercado_pago',
+        }}
         memberships={[]}
         registrations={[]}
         total={65000}
@@ -182,6 +184,16 @@ function isAutomatic(call) {
   return !call?.[0]?.code
 }
 
+/**
+ * El campo de codigo nace plegado detras de "Tengo un codigo": el checkout no le
+ * pone un input a quien no tiene ninguno. Se abre antes de tipear; es idempotente
+ * porque el boton desaparece una vez abierto.
+ */
+function openDiscountField() {
+  const toggle = screen.queryByRole('button', { name: /^Tengo un código$/i })
+  if (toggle) fireEvent.click(toggle)
+}
+
 afterEach(cleanup)
 
 beforeEach(() => {
@@ -193,6 +205,19 @@ beforeEach(() => {
 })
 
 describe('canje del código secreto en el checkout de inscripción', () => {
+  it('no delata el combo restringido antes de escribir el código', async () => {
+    vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
+    renderCompetition()
+    await waitForAccessValidation()
+    openDiscountField()
+
+    expect(screen.queryByText(/Este paquete es cerrado/i)).toBe(null)
+    expect(screen.queryByLabelText(/Código del combo/i)).toBe(null)
+    expect(screen.queryByText('$\u00a0150.000')).toBe(null)
+    expect(screen.getByLabelText(/^Código$/i)).toBeTruthy()
+    expect(screen.getByText(/^Canjeá tu código\.$/i)).toBeTruthy()
+  })
+
   it('destraba un combo restringido reintentando el preview contra el combo', async () => {
     // Alcance 'registration' (el paquete todavía no es accesible) -> rechazo por
     // alcance; alcance 'combo' -> válido.
@@ -203,15 +228,17 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
-    const input = await screen.findByLabelText(/Código de descuento/i)
+    const input = await screen.findByLabelText(/^Código$/i)
     fireEvent.change(input, { target: { value: 'only-pitbull' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Aplicar$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
+    expect(await screen.findByText('Redirigiéndote a tu pestaña secreta…')).toBeTruthy()
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
     // El error de alcance NO se muestra: fue un paso intermedio, no el resultado.
     expect(screen.queryByText('Ese código no aplica a este pago.')).toBe(null)
-    expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
+    expect(screen.getAllByText('ONLY-PITBULL').length).toBeGreaterThan(0)
 
     // Se consultaron los dos alcances, en ese orden.
     const scopes = vi
@@ -225,6 +252,25 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'ONLY-PITBULL' })
   })
 
+  it('revela el combo desde el canje aunque el catalogo publico no lo incluya', async () => {
+    vi.mocked(previewDiscountCode).mockImplementation(async ({ code, appliesTo }) => {
+      if (!code) return { valid: false, reason: 'no_public_promo' }
+      if (appliesTo === 'combo') return COMBO_PREVIEW
+      return NOT_APPLICABLE
+    })
+    renderCompetition({ event: { ...RESTRICTED_EVENT, comboOffer: null } })
+    await waitForAccessValidation()
+    openDiscountField()
+
+    fireEvent.change(await screen.findByLabelText(/^Código$/i), {
+      target: { value: 'ONLY-PITBULL' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+
+    await waitFor(() => expect(screen.getByText(/secreto/i)).toBeTruthy())
+    expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'ONLY-PITBULL' })
+  })
+
   it('el código de desbloqueo sobrevive al cambio de paquete que él mismo provoca', async () => {
     vi.mocked(previewDiscountCode).mockImplementation(async ({ code, appliesTo }) => {
       if (!code) return { valid: false, reason: 'no_public_promo' }
@@ -233,10 +279,11 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
-    const input = await screen.findByLabelText(/Código de descuento/i)
+    const input = await screen.findByLabelText(/^Código$/i)
     fireEvent.change(input, { target: { value: 'ONLY-PITBULL' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Aplicar$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
     // Si el efecto de `purchaseType` lo hubiera limpiado, el anuncio y el
@@ -245,28 +292,67 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy()
   })
 
-  it('un código que de verdad no aplica sigue mostrando el error', async () => {
+  it('un código que cierra Mercado Pago lo saca del selector y explica por qué', async () => {
+    // 20260908100000: el cupón puede cerrar la pasarela para una oferta pactada
+    // a un precio que sólo cierra por transferencia. Ofrecerla igual mandaba al
+    // atleta contra el PLU28 de la RPC al enviar la orden.
     vi.mocked(previewDiscountCode).mockImplementation(async ({ code }) => {
       if (!code) return { valid: false, reason: 'no_public_promo' }
-      return { valid: false, reason: 'not_applicable', kind: 'fixed_price', appliesTo: 'membership' }
+      return {
+        valid: true,
+        kind: 'fixed_price',
+        code: 'PACTADO',
+        discountAmount: 20000,
+        finalAmount: 45000,
+        manualChannels: ['bank_transfer'],
+        mercadoPagoEnabled: false,
+        eventSlug: 'pitbull-classic-2026',
+      }
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
-    const input = await screen.findByLabelText(/Código de descuento/i)
-    fireEvent.change(input, { target: { value: 'SOLO-AFILIACION' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Aplicar$/i }))
+    fireEvent.change(await screen.findByLabelText(/^Código$/i), { target: { value: 'pactado' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
     await waitFor(() =>
-      expect(screen.getByText('Ese código no aplica a este pago.')).toBeTruthy(),
+      expect(screen.getByRole('radio', { name: /Transferencia bancaria/ })).toBeTruthy(),
     )
+    expect(screen.queryByRole('radio', { name: /Mercado Pago/ })).toBe(null)
+    expect(screen.getByText(/Tu código no se paga con Mercado Pago/)).toBeTruthy()
+  })
+
+  it('un código que de verdad no aplica sigue mostrando el error', async () => {
+    vi.mocked(previewDiscountCode).mockImplementation(async ({ code, appliesTo }) => {
+      if (!code) return { valid: false, reason: 'no_public_promo' }
+      if (appliesTo === 'combo') {
+        return { valid: false, reason: 'not_applicable' }
+      }
+      return {
+        valid: false,
+        reason: 'not_applicable',
+        kind: 'fixed_price',
+        appliesTo: 'membership',
+      }
+    })
+    renderCompetition()
+    await waitForAccessValidation()
+    openDiscountField()
+
+    const input = await screen.findByLabelText(/^Código$/i)
+    fireEvent.change(input, { target: { value: 'SOLO-AFILIACION' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+
+    await waitFor(() => expect(screen.getByText('Ese código no aplica a este pago.')).toBeTruthy())
     expect(unlockOfferCode).not.toHaveBeenCalled()
-    // No se reintenta contra el combo: no es una modalidad que desbloquee nada.
+    // Aunque el primer rechazo diga que es un precio fijo, el servidor vuelve
+    // a decidir contra el combo. Si tampoco aplica, recién ahí se muestra error.
     const scopes = vi
       .mocked(previewDiscountCode)
       .mock.calls.filter((call) => !isAutomatic(call))
       .map((call) => call[0].appliesTo)
-    expect(scopes).toEqual(['registration'])
+    expect(scopes).toEqual(['registration', 'combo'])
   })
 
   it('nombra la inscripción cuando el código es de otro torneo', async () => {
@@ -276,10 +362,11 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
-    const input = await screen.findByLabelText(/Código de descuento/i)
+    const input = await screen.findByLabelText(/^Código$/i)
     fireEvent.change(input, { target: { value: 'ONLY-NORTE' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Aplicar$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 
     await waitFor(() =>
       expect(screen.getByText('Ese código es de Copa Norte, no de este torneo.')).toBeTruthy(),
@@ -295,11 +382,12 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
 
     // Sin tipear nada: entrar desde la ficha no puede obligar a volver a
     // escribir el código que ya se canjeó.
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
-    expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
+    expect(screen.getAllByText('ONLY-PITBULL').length).toBeGreaterThan(0)
   })
 
   it('una oferta ya comprada no se auto-aplica', async () => {
@@ -307,6 +395,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
@@ -319,6 +408,7 @@ describe('canje del código secreto en el checkout de inscripción', () => {
     vi.mocked(previewDiscountCode).mockResolvedValue({ valid: false, reason: 'no_public_promo' })
     renderCompetition()
     await waitForAccessValidation()
+    openDiscountField()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)

@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
-  BadgeDollarSign,
   LoaderCircle,
   RefreshCw,
   RotateCcw,
   ScanSearch,
-  ShieldAlert,
   ShieldCheck,
-  Ticket,
-  Webhook,
 } from 'lucide-react'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
@@ -20,6 +16,7 @@ import {
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
+import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getPaymentsTourSteps } from '../../lib/adminTourSteps.js'
@@ -61,24 +58,7 @@ function scrollToId(id) {
   })
 }
 
-function OpsKpi({ icon: Icon, label, value, hint, tone, onClick }) {
-  return (
-    <button
-      type="button"
-      className={`admin-payments-ops-strip__kpi admin-payments-ops-strip__kpi--${tone}`}
-      onClick={onClick}
-    >
-      <span className="admin-payments-ops-strip__kpi-icon" aria-hidden>
-        <Icon size={15} strokeWidth={1.7} />
-      </span>
-      <span className="admin-payments-ops-strip__kpi-body">
-        <span className="admin-payments-ops-strip__kpi-value">{value}</span>
-        <span className="admin-payments-ops-strip__kpi-label">{label}</span>
-        {hint ? <span className="admin-payments-ops-strip__kpi-hint">{hint}</span> : null}
-      </span>
-    </button>
-  )
-}
+
 
 export default function PaymentsOperationsSection({
   canEdit,
@@ -105,10 +85,11 @@ export default function PaymentsOperationsSection({
   const [revalidation, setRevalidation] = useState(null)
   const [fixingOrderId, setFixingOrderId] = useState(null)
   const [status, setStatus] = useState('')
+  const [activeTab, setActiveTab] = useState('athletes')
   const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
-  const [athleteStatusRequest, setAthleteStatusRequest] = useState(null)
-  const [athleteSummary, setAthleteSummary] = useState({
+  const [athleteStatusRequest, _setAthleteStatusRequest] = useState(null)
+  const [_athleteSummary, setAthleteSummary] = useState({
     pending: null,
     openAmount: null,
     loading: true,
@@ -256,12 +237,6 @@ export default function PaymentsOperationsSection({
     pastDue === 0 &&
     health?.healthy !== false
 
-  const ticketPendingCount = pendingTicketOrders?.length ?? 0
-  const ticketsWithProof = useMemo(
-    () => (pendingTicketOrders ?? []).filter((order) => order.paymentProofPath).length,
-    [pendingTicketOrders],
-  )
-
   const primaryMetrics = [
     {
       id: 'integrity',
@@ -318,32 +293,6 @@ export default function PaymentsOperationsSection({
     isLedgerHealthy &&
     (!status || status === 'failed')
 
-  const athletePending =
-    athleteSummary.loading || athleteSummary.pending == null ? null : athleteSummary.pending
-  const athleteOpenAmount =
-    athleteSummary.loading || athleteSummary.openAmount == null ? null : athleteSummary.openAmount
-
-  const integrityTone =
-    !data || loading ? 'neutral' : !isLedgerHealthy || pastDue > 0 ? 'danger' : 'success'
-
-  const integrityValue =
-    !data || loading
-      ? '—'
-      : !isLedgerHealthy
-        ? (healthIssues ?? t('admin.paymentOperations.integrityAlert'))
-        : pastDue > 0
-          ? pastDue
-          : t('admin.paymentOperations.integrityOk')
-
-  const integrityHint =
-    !data || loading
-      ? null
-      : !isLedgerHealthy
-        ? t('admin.paymentOperations.kpiIntegrityHintIssue')
-        : pastDue > 0
-          ? t('admin.paymentOperations.kpiIntegrityHintMora', { count: pastDue })
-          : null
-
   const healthBreakdown = []
   if (health && health.healthy === false) {
     if (Number(health.athleteOrderDrift ?? 0) > 0) {
@@ -380,112 +329,15 @@ export default function PaymentsOperationsSection({
   const blockers = Array.isArray(data?.blockers) ? data.blockers : []
   const showHealthCallout = Boolean(data) && (healthBreakdown.length > 0 || blockers.length > 0)
 
-  function focusAthletes() {
-    setAthleteStatusRequest({ status: 'pending', at: Date.now() })
-    scrollToId('admin-athlete-payments')
-  }
-
-  function focusTickets() {
-    scrollToId('admin-ticket-orders')
-  }
-
-  function focusLedger(nextStatus = '') {
-    setStatus(nextStatus)
-    scrollToId('admin-payment-ledger')
-  }
+  const tabOptions = [
+    ['athletes', t('admin.paymentOperations.tabAthletes')],
+    ['tickets', t('admin.paymentOperations.tabTickets')],
+    ['ledger', t('admin.paymentOperations.tabLedger')],
+  ]
 
   return (
     <div className="admin-payments-operations">
-      <div
-        className="admin-payments-ops-strip"
-        aria-label={t('admin.paymentOperations.opsStripAria')}
-      >
-        <div className="admin-payments-ops-strip__kpis">
-          <OpsKpi
-            icon={BadgeDollarSign}
-            label={t('admin.paymentOperations.kpiAthletes')}
-            value={athletePending == null ? '—' : athletePending}
-            hint={
-              athleteOpenAmount != null && athleteOpenAmount > 0
-                ? t('admin.paymentOperations.kpiAthletesHint', {
-                    amount: money(athleteOpenAmount, locale),
-                  })
-                : null
-            }
-            tone={athletePending > 0 ? 'warning' : 'neutral'}
-            onClick={focusAthletes}
-          />
-          <OpsKpi
-            icon={Ticket}
-            label={t('admin.paymentOperations.kpiTickets')}
-            value={manualLoading && ticketPendingCount === 0 ? '—' : ticketPendingCount}
-            hint={
-              ticketsWithProof > 0
-                ? t('admin.paymentOperations.kpiTicketsHint', { count: ticketsWithProof })
-                : null
-            }
-            tone={ticketPendingCount > 0 ? 'warning' : 'neutral'}
-            onClick={focusTickets}
-          />
-          <OpsKpi
-            icon={Webhook}
-            label={t('admin.paymentOperations.kpiFailed')}
-            value={loading && !data ? '—' : failedCount}
-            tone={failedCount > 0 ? 'danger' : 'neutral'}
-            onClick={() => focusLedger('failed')}
-          />
-          <OpsKpi
-            icon={RotateCcw}
-            label={t('admin.paymentOperations.kpiReconciliations')}
-            value={loading && !data ? '—' : pendingReconciliations}
-            tone={pendingReconciliations > 0 ? 'warning' : 'neutral'}
-            onClick={() => focusLedger('')}
-          />
-          <OpsKpi
-            icon={integrityTone === 'danger' ? ShieldAlert : ShieldCheck}
-            label={t('admin.paymentOperations.kpiIntegrity')}
-            value={integrityValue}
-            hint={integrityHint}
-            tone={integrityTone}
-            onClick={() => focusLedger('')}
-          />
-        </div>
-        <div className="admin-payments-ops-strip__actions">
-          <button
-            type="button"
-            className="btn btn--outline btn--small"
-            onClick={() => void refreshAll()}
-            disabled={loading || recovering}
-          >
-            <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-          </button>
-          {canEdit ? (
-            <>
-              <button
-                type="button"
-                className="btn btn--outline btn--small"
-                onClick={() => void handleRevalidate()}
-                disabled={revalidating || recovering}
-              >
-                {revalidating ? (
-                  <LoaderCircle size={14} aria-hidden className="is-spinning" />
-                ) : (
-                  <ScanSearch size={14} aria-hidden />
-                )}{' '}
-                {t('admin.paymentOperations.revalidate')}
-              </button>
-              <button
-                type="button"
-                className="btn btn--small"
-                onClick={() => void handleRecover()}
-                disabled={recovering}
-              >
-                <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
-              </button>
-            </>
-          ) : null}
-        </div>
-      </div>
+
 
       {showHealthCallout ? (
         <div className="admin-payments-ops-callout" role="status">
@@ -654,7 +506,64 @@ export default function PaymentsOperationsSection({
         </section>
       ) : null}
 
-      <AthletePaymentOrdersSection
+      <header className="admin-orders-block__header" style={{ borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+        <div>
+          <span className="admin-orders-block__eyebrow">{t('admin.dashboard.financePending')}</span>
+          <h2 className="admin-orders-block__title">{t('admin.paymentOperations.title')}</h2>
+          <p className="admin-orders-block__lead">{t('admin.paymentOperations.subtitle')}</p>
+          
+          <div style={{ marginTop: '1.5rem' }}>
+            <SegmentedSwitch
+              className="segmented-switch--luxury"
+              active={activeTab}
+              ariaLabel={t('admin.paymentOperations.title')}
+              onChange={setActiveTab}
+              options={tabOptions}
+            />
+          </div>
+        </div>
+
+        <div className="admin-orders-block__actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="btn btn--outline btn--small"
+              onClick={() => void refreshAll()}
+              disabled={loading || recovering}
+            >
+              <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
+            </button>
+            {canEdit ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--outline btn--small"
+                  onClick={() => void handleRevalidate()}
+                  disabled={revalidating || recovering}
+                >
+                  {revalidating ? (
+                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                  ) : (
+                    <ScanSearch size={14} aria-hidden />
+                  )}{' '}
+                  {t('admin.paymentOperations.revalidate')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => void handleRecover()}
+                  disabled={recovering}
+                >
+                  <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+                </button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </header>
+
+      <div style={{ display: activeTab === 'athletes' ? 'block' : 'none' }}>
+        <AthletePaymentOrdersSection
         canEdit={canEdit}
         canForceSettle={canEdit && Boolean(onForceSettlePayment)}
         validationEnabled={validation}
@@ -667,8 +576,13 @@ export default function PaymentsOperationsSection({
         refreshKey={athleteRefreshKey}
         statusFilter={athleteStatusRequest}
       />
+      </div>
 
-      <div id="admin-ticket-orders" className="admin-ticket-orders-anchor">
+      <div
+        id="admin-ticket-orders"
+        className="admin-ticket-orders-anchor"
+        style={{ display: activeTab === 'tickets' ? 'block' : 'none' }}
+      >
         <TicketOrdersSection
           canEdit={canEdit && validation.ticket}
           initialQuery={ticketOrderEventScope}
@@ -685,6 +599,7 @@ export default function PaymentsOperationsSection({
         id="admin-payment-ledger"
         className="admin-payment-ops"
         aria-labelledby="payment-ops-title"
+        style={{ display: activeTab === 'ledger' ? 'block' : 'none', marginTop: '2rem' }}
       >
         <header className="admin-payment-ops__header admin-payment-ops__header--compact">
           <div className="admin-payment-ops__intro">

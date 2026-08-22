@@ -56,4 +56,32 @@ describe('internal scheduled jobs', () => {
     expect(paymentRecovery).toHaveBeenCalledOnce()
     await target.close()
   })
+
+  it('ejecuta la revalidacion de pagos con autorizacion valida', async () => {
+    const paymentRevalidation = vi.fn().mockResolvedValue({ summary: { corrected: 1 } })
+    const env = {
+      CRON_SECRET: 'secret-for-tests',
+    }
+    const target = listen(
+      createApp({
+        env,
+        supabaseAdmin: { kind: 'supabase-double' },
+        jobRunners: { paymentRevalidation },
+      }),
+    )
+
+    const response = await fetch(`${target.url}/api/internal/jobs/payment-revalidation`, {
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      status: 'completed',
+      job: 'payment-revalidation',
+      result: { summary: { corrected: 1 } },
+    })
+    expect(paymentRevalidation).toHaveBeenCalledOnce()
+    await target.close()
+  })
 })

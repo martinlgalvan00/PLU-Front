@@ -12,9 +12,13 @@ import { revalidatePaymentOrder } from '../src/services/paymentService.js'
  * que el resultado se lea sin abrir la traza y que la fila quede al día.
  */
 
+// `listAthletePaymentOrders` devuelve `{ orders, counts }` desde que los
+// contadores de los chips los calcula la base: contar las filas traídas mentía
+// pasada la página 200.
 vi.mock('../src/services/athleteApi.js', () => ({
   listAthletePaymentOrders: vi.fn(),
   getAthletePaymentProofUrl: vi.fn(async () => 'https://cdn.example/proof.jpg'),
+  getAthletePaymentProofUrls: vi.fn(async () => ({})),
 }))
 
 vi.mock('../src/services/paymentService.js', () => ({
@@ -67,8 +71,37 @@ function renderSection(props = {}) {
 }
 
 describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
+  it('permite aislar las rechazadas para recuperarlas sin buscar entre todas las órdenes', async () => {
+    listAthletePaymentOrders.mockResolvedValue({
+      orders: [{ ...MP_ORDER, status: 'rechazado' }],
+      counts: {
+        rechazado: 1,
+        all: 1,
+        pending: 0,
+        validacion_manual: 0,
+        financed: 0,
+        aprobado: 0,
+        openAmount: 0,
+      },
+    })
+    renderSection({ statusFilter: { status: 'all', at: 1 } })
+
+    const rejectedFilter = await screen.findByRole('button', { name: /rechazadas/i })
+    fireEvent.click(rejectedFilter)
+
+    await waitFor(() =>
+      expect(listAthletePaymentOrders).toHaveBeenLastCalledWith({
+        limit: 200,
+        statuses: ['rechazado'],
+        financed: undefined,
+        withCounts: true,
+      }),
+    )
+    expect(screen.getByRole('button', { name: 'Revalidar con Mercado Pago' })).toBeTruthy()
+  })
+
   it('ofrece la acción solo en las órdenes que cobra Mercado Pago', async () => {
-    listAthletePaymentOrders.mockResolvedValue([MP_ORDER, TRANSFER_ORDER])
+    listAthletePaymentOrders.mockResolvedValue({ orders: [MP_ORDER, TRANSFER_ORDER], counts: null })
     renderSection({ statusFilter: { status: 'all', at: 1 } })
 
     // Con la migración a antd, la tabla renderiza una sola fila, así que hay
@@ -79,7 +112,7 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
   })
 
   it('no la ofrece sin permiso de edición', async () => {
-    listAthletePaymentOrders.mockResolvedValue([MP_ORDER])
+    listAthletePaymentOrders.mockResolvedValue({ orders: [MP_ORDER], counts: null })
     render(
       <I18nProvider>
         <AthletePaymentOrdersSection canEdit={false} statusFilter={{ status: 'all', at: 1 }} />
@@ -91,7 +124,7 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
   })
 
   it('corrige la fila con lo que responde el proveedor y lo deja a la vista', async () => {
-    listAthletePaymentOrders.mockResolvedValue([MP_ORDER])
+    listAthletePaymentOrders.mockResolvedValue({ orders: [MP_ORDER], counts: null })
     revalidatePaymentOrder.mockResolvedValue({
       order: { id: MP_ORDER.id, reference: MP_ORDER.reference },
       localStatus: 'cancelado',
@@ -120,7 +153,7 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
   })
 
   it('dice cuando el proveedor no tiene ningún pago, sin tocar el estado', async () => {
-    listAthletePaymentOrders.mockResolvedValue([MP_ORDER])
+    listAthletePaymentOrders.mockResolvedValue({ orders: [MP_ORDER], counts: null })
     revalidatePaymentOrder.mockResolvedValue({
       order: { id: MP_ORDER.id, reference: MP_ORDER.reference },
       localStatus: 'cancelado',
@@ -144,7 +177,7 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
   })
 
   it('muestra el error del proveedor sin dejar la fila en un estado inventado', async () => {
-    listAthletePaymentOrders.mockResolvedValue([MP_ORDER])
+    listAthletePaymentOrders.mockResolvedValue({ orders: [MP_ORDER], counts: null })
     revalidatePaymentOrder.mockRejectedValue(new Error('Mercado Pago no está configurado.'))
     renderSection({ statusFilter: { status: 'all', at: 1 } })
 

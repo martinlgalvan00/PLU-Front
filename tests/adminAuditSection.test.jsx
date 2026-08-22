@@ -71,6 +71,9 @@ afterEach(() => {
   // consultas de un test encuentran el DOM del anterior.
   cleanup()
   vi.resetAllMocks()
+  // Las vistas guardadas viven en localStorage (`useAdminSavedFilterViews`):
+  // sin limpiarlo, una vista creada en un test aparece en el siguiente.
+  window.localStorage.clear()
 })
 
 function healthyOverview(overrides = {}) {
@@ -280,7 +283,45 @@ describe('sección de auditoría', () => {
     // No disparamos fireEvent.change porque Antd Select no usa native selects.
   })
 
-  it('muestra la salud del flujo antes de los filtros', async () => {
+  it('guarda, aplica y elimina una vista de filtros', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({
+      actions: [],
+      categories: [],
+      entityTypes: [],
+      actorTypes: [],
+      sources: ['domain'],
+      statuses: [],
+    })
+    fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
+
+    renderWithI18n(<AuditSection />)
+
+    const search = await screen.findByPlaceholderText('Buscar por entidad o responsable')
+    fireEvent.change(search, { target: { value: 'PLU-0001' } })
+
+    const addButton = await screen.findByRole('button', { name: 'Guardar filtros actuales' })
+    addButton.click()
+
+    const nameInput = await screen.findByPlaceholderText('Nombre de la vista')
+    fireEvent.change(nameInput, { target: { value: 'Morosos' } })
+    fireEvent.submit(nameInput.closest('form'))
+
+    const viewChip = await screen.findByRole('button', { name: 'Morosos' })
+    expect(viewChip).toBeTruthy()
+
+    // Limpiar el filtro no borra la vista guardada, solo la deja de aplicar.
+    fireEvent.change(search, { target: { value: '' } })
+    expect(search.value).toBe('')
+
+    viewChip.click()
+    await waitFor(() => expect(search.value).toBe('PLU-0001'))
+
+    screen.getByRole('button', { name: 'Eliminar vista Morosos' }).click()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Morosos' })).toBeNull())
+  })
+
+  it('explica el recorrido y muestra la salud de toda la operación antes de los filtros', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview({ status: 'attention', emailAttention: 2 }))
     fetchAuditFacets.mockResolvedValue({
       actions: [],
@@ -293,9 +334,57 @@ describe('sección de auditoría', () => {
 
     renderWithI18n(<AuditSection />)
 
-    const health = await screen.findByRole('region', { name: 'Salud del flujo de afiliación' })
+    expect(await screen.findByText('Seguimiento completo de cada operación')).toBeTruthy()
+    fireEvent.click(screen.getByText('Seguimiento completo de cada operación'))
+    expect(screen.getByText('1. Revisá el estado general')).toBeTruthy()
+    expect(screen.getByText('2. Encontrá el hecho')).toBeTruthy()
+    expect(screen.getByText('3. Abrí el contexto')).toBeTruthy()
+    const health = await screen.findByRole('region', { name: 'Salud de la operación' })
     const filters = screen.getByRole('group', { name: 'Fuente' })
     expect(health.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('cambia la tabla por fichas operativas al abrirse en mobile', async () => {
+    const previousMatchMedia = window.matchMedia
+    window.matchMedia = () => ({
+      matches: true,
+      media: '(max-width: 768px)',
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })
+
+    try {
+      fetchAuditOverview.mockResolvedValue(healthyOverview())
+      fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+      fetchAuditEntries.mockResolvedValue({
+        entries: [
+          normalizeAuditEntry({
+            id: 'mobile-log',
+            action: 'membership.activated',
+            entity_type: 'membership',
+            entity_id: 'mem-mobile',
+            actor_type: 'staff',
+            source: 'domain',
+            metadata: { memberCode: 'PLU-MOBILE-01' },
+            created_at: '2026-08-16T12:00:00.000Z',
+          }),
+        ],
+        nextCursor: null,
+      })
+
+      renderWithI18n(<AuditSection />)
+
+      expect(await screen.findByText('PLU-MOBILE-01')).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Ver detalle y contexto' })).toBeTruthy()
+      expect(document.querySelector('.audit-mobile-list')).toBeTruthy()
+      expect(document.querySelector('.audit-desktop-table')).toBeNull()
+    } finally {
+      window.matchMedia = previousMatchMedia
+    }
   })
 
   it('abre la traza completa del cobro para una orden de pago fallida', async () => {

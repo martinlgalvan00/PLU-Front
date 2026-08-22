@@ -392,7 +392,14 @@ export const PITBULL_CLASSIC = {
   location: 'Banfield, Buenos Aires',
   slots: 180,
   registered: 48,
-  categories: ['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'],
+  modalities: [
+    'Full Power',
+    'Push-Pull',
+    'Especialista en sentadilla',
+    'Especialista en banca',
+    'Especialista en peso muerto',
+  ],
+  categories: ['Raw', 'Raw con vendas', 'Single ply', 'Multi ply', 'Sin límite'],
   divisions: ['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'],
 }
 
@@ -816,15 +823,13 @@ export const ADMIN_NAV_GROUPS = [
     labelKey: 'admin.nav.groups.management',
     items: [
       ['dashboard', 'admin.nav.dashboard', 'LayoutDashboard'],
-      ['athletes', 'admin.nav.athletes', 'Users'],
-      ['memberships', 'admin.nav.memberships', 'BadgeCheck'],
+      ['people', 'admin.nav.people', 'Users'],
     ],
   },
   {
     labelKey: 'admin.nav.groups.events',
     items: [
       ['events', 'admin.nav.events', 'Calendar'],
-      ['registrations', 'admin.nav.registrations', 'ClipboardList'],
       ['grid', 'admin.nav.grid', 'LayoutGrid'],
       ['checkin', 'admin.nav.checkin', 'ScanLine'],
       ['results', 'admin.nav.results', 'Trophy'],

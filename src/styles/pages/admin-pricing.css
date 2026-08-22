@@ -234,7 +234,7 @@
 .admin-pricing__combo-summary {
   display: grid;
   gap: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin: 0;
 }
 
@@ -458,10 +458,91 @@
 .admin-pricing__plan-actions {
   align-items: center;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.7rem;
   justify-content: flex-end;
-  min-width: 320px;
+  min-width: min(100%, 320px);
+}
+
+.admin-pricing__campaign-funnel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0.35rem 0 0;
+}
+
+.admin-pricing__campaign-funnel div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.admin-pricing__campaign-funnel dt {
+  color: var(--color-text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-pricing__campaign-funnel dd {
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-pricing__simulation {
+  align-items: start;
+  border-left: 2px solid var(--color-brand-celeste);
+  color: var(--color-text-secondary);
+  display: grid;
+  font-size: 0.74rem;
+  gap: 0.35rem;
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  padding: 0.2rem 0 0.2rem 0.75rem;
+}
+
+.admin-pricing__simulation > strong {
+  color: var(--color-text-primary);
+}
+
+.admin-pricing__simulation-link {
+  align-items: center;
+  color: var(--color-brand-celeste);
+  display: inline-flex;
+  font-weight: 650;
+  gap: 0.35rem;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  width: fit-content;
+}
+
+.admin-pricing__simulation-link:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-pricing__simulation-link:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-brand-action);
+  outline-offset: 3px;
+}
+
+.admin-pricing__simulation ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  list-style: none;
+  margin: 0.1rem 0 0;
+  padding: 0;
+}
+
+.admin-pricing__simulation li.is-passed {
+  color: var(--color-success-text, var(--color-brand-celeste));
+}
+
+.admin-pricing__simulation li.is-failed {
+  color: var(--color-warning-text);
 }
 
 .admin-pricing__plan-amount--percent {
@@ -796,6 +877,13 @@
   color: var(--color-text-secondary);
 }
 
+/* Financiado no compite por el oro: no es una distinción del código, es una
+   condición operativa —a este atleta se le cobra a mano y la deuda queda
+   abierta—, así que se dice en el color de texto con la marca de la fila. */
+.admin-pricing__status--financed {
+  color: var(--color-text-secondary);
+}
+
 /* Una promo de precio fijo puede cotizar distinto por canal: el importe de
    Mercado Pago manda y el manual se anota abajo, sin robarle jerarquía. */
 .admin-pricing__plan-amount-stack {
@@ -1054,8 +1142,168 @@
 }
 
 .admin-pricing__form--combo fieldset.admin-pricing__combo-window {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
+}
+
+.admin-pricing__combo-window > .admin-pricing__toggle {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  grid-column: 1 / -1;
+  min-height: 44px;
+  padding-top: 0.75rem;
+}
+
+.admin-pricing__form--combo fieldset.admin-pricing__combo-visibility {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 0.65rem;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr;
+  margin: 0;
+  padding-top: 0.85rem;
+}
+
+.admin-pricing__combo-visibility > legend {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.admin-pricing__combo-visibility-options {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-pricing__combo-visibility-options > label {
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  cursor: pointer;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 72px;
+  padding: 0.75rem;
+  text-transform: none;
+}
+
+.admin-pricing__combo-visibility-options > label + label {
+  border-left: 0;
+}
+
+.admin-pricing__combo-visibility-options > label.is-selected {
+  background: color-mix(in srgb, var(--color-brand-gold) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+}
+
+.admin-pricing__combo-visibility-options input {
+  accent-color: var(--color-brand-gold);
+  height: 18px;
+  min-height: 18px;
+  width: 18px;
+}
+
+.admin-pricing__combo-visibility-options span {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.admin-pricing__combo-visibility-options strong {
+  color: var(--color-text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.admin-pricing__combo-visibility-options small {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+
+.admin-pricing__combo-private-note {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.admin-pricing__combo-visibility-options > label:has(input:focus-visible) {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+  position: relative;
+  z-index: 1;
+}
+
+.admin-pricing__exclusive-flow {
+  border-left: 2px solid var(--admin-premium, var(--color-brand-gold));
+  display: grid;
+  gap: 1rem;
+  padding: 0.15rem 0 0.15rem 1rem;
+}
+
+.admin-pricing__exclusive-flow-intro {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 58ch;
+}
+
+.admin-pricing__exclusive-flow-intro > span,
+.admin-pricing__exclusive-flow dt {
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-pricing__exclusive-flow h4,
+.admin-pricing__exclusive-flow p,
+.admin-pricing__exclusive-flow dl,
+.admin-pricing__exclusive-flow dd {
+  margin: 0;
+}
+
+.admin-pricing__exclusive-flow h4 {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+
+.admin-pricing__exclusive-flow p {
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.admin-pricing__exclusive-flow dl {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-pricing__exclusive-flow dl > div {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem 0 0;
+}
+
+.admin-pricing__exclusive-flow dl > div + div {
+  border-left: 1px solid var(--color-border-subtle);
+  padding-left: 0.9rem;
+}
+
+.admin-pricing__exclusive-flow dd {
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .admin-pricing__form label {
@@ -1067,6 +1315,17 @@
   gap: 0.4rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+/* La versalita es del nombre del campo, no de su explicación: el `small`
+   heredaba el uppercase del label y cada aclaración quedaba como un párrafo en
+   mayúsculas de 11px. Los inputs ya se reseteaban igual unas reglas más abajo. */
+.admin-pricing__form label small {
+  font-size: 0.76rem;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
 }
 
 .admin-pricing__form input,
@@ -1095,6 +1354,11 @@
    aunque el resto del formulario esté en tema oscuro. */
 .admin-pricing__form select {
   color-scheme: dark;
+}
+
+.admin-pricing__form select option {
+  background-color: var(--color-bg-surface, #1e1e1e);
+  color: var(--color-text-primary, #ffffff);
 }
 
 .admin-pricing__form input:hover:not(:disabled),
@@ -1144,6 +1408,71 @@
   accent-color: var(--color-brand-gold);
   min-height: 18px;
   width: 18px;
+}
+
+/* El código y su alternativa por lote comparten celda: con un solo invitado se
+   tipea el código, con varios se elige el prefijo y cada persona recibe el suyo. */
+.admin-pricing__batch-group {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+/* Matriz de medios de pago del código: los tres canales y, colgando de ellos,
+   el financiamiento. Es un bloque propio dentro del formulario —regla arriba,
+   nombre en versalitas— porque responde una pregunta distinta del resto de los
+   campos: no cuánto cobra el código, sino por dónde se cobra. */
+.admin-pricing__channels {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 0.85rem;
+  margin: 0.5rem 0 0;
+  min-width: 0;
+  padding: 1rem 0 0;
+}
+
+.admin-pricing__channels > legend {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.admin-pricing__channels-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.admin-pricing__channels-warning {
+  color: var(--color-danger-text, var(--color-brand-red));
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.admin-pricing__toggle--financing {
+  align-items: start;
+  background: color-mix(in srgb, var(--color-brand-gold) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 24%, transparent);
+  border-radius: 10px;
+  padding: 0.8rem;
+}
+
+.admin-pricing__toggle--financing span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-pricing__toggle--financing small {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 450;
+  letter-spacing: 0;
+  line-height: 1.4;
 }
 
 .admin-pricing__form-actions {
@@ -1439,6 +1768,15 @@
 }
 
 @media (max-width: 900px) {
+  .admin-pricing__combo-visibility-options {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-pricing__combo-visibility-options > label + label {
+    border-left: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+    border-top: 0;
+  }
+
   .admin-pricing__block-head {
     align-items: stretch;
     flex-direction: column;
@@ -1600,7 +1938,7 @@
     }
 
     .admin-pricing__form--combo fieldset.admin-pricing__combo-window {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .admin-pricing__form--combo .admin-pricing__form-actions {
@@ -1614,6 +1952,17 @@
   }
 
   @container admin-pricing (max-width: 559px) {
+    .admin-pricing__exclusive-flow dl {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-pricing__exclusive-flow dl > div + div {
+      border-left: 0;
+      border-top: 1px solid var(--color-border-subtle);
+      margin-top: 0.7rem;
+      padding-left: 0;
+    }
+
     .admin-pricing__combo-stack {
       align-items: stretch;
       display: grid;

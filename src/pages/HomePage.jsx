@@ -1,9 +1,8 @@
 import { m } from 'motion/react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef } from 'react'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'
-import HomeGuideSheet from '../components/ui/HomeGuideSheet.jsx'
 import HomeMembershipBand from '../components/ui/HomeMembershipBand.jsx'
 import HomeResultsTeaser from '../components/ui/HomeResultsTeaser.jsx'
 import HomeRulebookTeaser from '../components/ui/HomeRulebookTeaser.jsx'
@@ -18,7 +17,8 @@ import {
   getFeaturedEventDestination,
   getPitbullClassicEvent,
 } from '../lib/eventNavigation.js'
-import { hasSeenHomeGuide, markHomeGuideSeen } from '../lib/homeGuideStorage.js'
+import { hasSeenHomeGuide } from '../lib/homeGuideStorage.js'
+import { useHelp } from '../providers/HelpProvider.jsx'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
@@ -103,18 +103,13 @@ export default function HomePage({
     isPaidCheckoutOpen(launchEvent, env, new Date(), { checkoutKind: 'registration' })
   const isRegistrationDisabled =
     !paidCheckoutOpen || !launchEvent || launchEvent.status === 'proximamente'
-  const [guideOpen, setGuideOpen] = useState(false)
+  const { openHelp } = useHelp()
   const guideAutoOpenedRef = useRef(false)
 
-  const closeGuide = useCallback(() => {
-    markHomeGuideSeen()
-    setGuideOpen(false)
-  }, [])
-
-  const openGuide = useCallback(() => {
-    setGuideOpen(true)
-  }, [])
-
+  // Primera visita en mobile: la ayuda se ofrece sola una vez, cuando la barra
+  // fija aparece. Es el único auto-abrir de la app y existe porque el público
+  // que se traba en estos trámites no busca un botón de ayuda por su cuenta.
+  // `HelpDock` marca "vista" al abrirse, así que no insiste después.
   const handleStickyVisible = useCallback(() => {
     if (guideAutoOpenedRef.current || isLoggedInAthlete || hasSeenHomeGuide()) return
     if (
@@ -124,14 +119,8 @@ export default function HomePage({
       return
     }
     guideAutoOpenedRef.current = true
-    setGuideOpen(true)
-  }, [isLoggedInAthlete])
-
-  const goToAffiliation = useCallback(() => {
-    markHomeGuideSeen()
-    setGuideOpen(false)
-    onNavigate?.('members')
-  }, [onNavigate])
+    openHelp('home-first-visit')
+  }, [isLoggedInAthlete, openHelp])
 
   return (
     <main className="home-page">
@@ -208,13 +197,7 @@ export default function HomePage({
         </Reveal>
       </section>
 
-      <StickyMobileCta
-        guideOpen={guideOpen}
-        onBecameVisible={handleStickyVisible}
-        onNavigate={goToAffiliation}
-        onOpenGuide={openGuide}
-      />
-      {guideOpen ? <HomeGuideSheet onAffiliate={goToAffiliation} onClose={closeGuide} /> : null}
+      <StickyMobileCta onBecameVisible={handleStickyVisible} onNavigate={onNavigate} />
     </main>
   )
 }

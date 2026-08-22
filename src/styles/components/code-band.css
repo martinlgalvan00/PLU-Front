@@ -1,0 +1,412 @@
+/* Sello — el canje con el registro de la credencial — PLU ARG
+   ---------------------------------------------------------------------------
+   Una sola hoja para las superficies habilitadas de canje: la ficha Beneficios
+   de Mi cuenta (`SecretOfferCodeRedeemer`) y los campos integrados a los
+   checkouts de inscripción (`.register-discount`) y afiliación
+   (`.account-discount`). Antes cada una tenía su propia caja
+   rellena con el botón en oro macizo: tres formularios que no se distinguían de
+   un campo de contacto.
+
+   La tesis: la app ya tiene una pieza lujosa —la credencial digital— y el canje
+   no necesita un lenguaje nuevo, necesita el de ella. De `credential-card.css`
+   se toman, con los mismos valores: la cara en degradé 158deg, el filo de oro al
+   34 %, el marco interior al 7 % de blanco, el grano, y el código en el mismo
+   mono espaciado 0.18em que el número de socio. La acción es su chip metálico.
+
+   Presupuesto: un solo acento (oro; el celeste es navegación y acá no se usa),
+   una sola acción plena por bloque, cero cards anidadas —la banda es la única
+   superficie propia y va sin fondo detrás—, y ningún loop: el grano y los lavados
+   son estáticos.
+
+   El estado no se pinta, se dice: la ficha superior lleva el sello y el estado en
+   palabras (`Sin canjear`, `Validando`, `Aceptada`, `No reconocida`, `Aplicado`),
+   igual que un documento emitido. */
+
+.code-band {
+  /* Espejo de credential-card.css. Local y no global: el rol es "banda de
+     canje", no un color de marca nuevo. */
+  --band-face: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  --band-wash-gold: color-mix(in oklab, var(--plu-gold-500) 14%, transparent);
+  --band-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
+  --band-edge: color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  --band-frame: color-mix(in oklab, #fff 7%, transparent);
+  --band-lip: rgba(255, 255, 255, 0.08);
+  --band-grain-a: rgba(255, 255, 255, 0.03);
+  --band-grain-b: rgba(255, 255, 255, 0.01);
+  --band-ink: color-mix(in oklab, var(--plu-gold-400) 88%, #fff);
+  --band-label: color-mix(in oklab, #fff 38%, transparent);
+  --band-shadow: 0 18px 34px -22px rgba(0, 0, 0, 0.7);
+
+  background:
+    radial-gradient(70% 55% at 100% 0%, var(--band-wash-gold) 0%, transparent 55%),
+    radial-gradient(55% 45% at 0% 100%, var(--band-wash-celeste) 0%, transparent 50%),
+    var(--band-face);
+  border: 1px solid var(--band-edge);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 var(--band-lip),
+    var(--band-shadow);
+  isolation: isolate;
+  max-width: 470px;
+  overflow: hidden;
+  padding: 3px;
+  position: relative;
+  transition: border-color var(--transition-fast);
+  width: 100%;
+}
+
+/* La credencial es oscura por definición; en light se traduce a papel cálido
+   conservando el filo de oro y el marco interior, que son lo que la identifica.
+   `--color-brand-gold-dark` es el oro que este repo ya elige cuando el gold-500
+   no llega a contraste sobre blanco. */
+[data-theme='light'] .code-band {
+  --band-face: linear-gradient(158deg, #ffffff 0%, #fbfaf7 52%, #f6f4ef 100%);
+  --band-wash-gold: color-mix(in oklab, var(--color-brand-gold-dark) 8%, transparent);
+  --band-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 6%, transparent);
+  --band-edge: color-mix(in oklab, var(--color-brand-gold-dark) 38%, rgba(15, 17, 23, 0.08));
+  --band-frame: rgba(15, 17, 23, 0.05);
+  --band-lip: rgba(255, 255, 255, 0.9);
+  --band-grain-a: rgba(15, 17, 23, 0.02);
+  --band-grain-b: rgba(15, 17, 23, 0.012);
+  --band-ink: #8a5f08;
+  --band-label: rgba(13, 14, 18, 0.45);
+  --band-shadow: 0 14px 28px -20px rgba(15, 17, 23, 0.3);
+}
+
+/* Foco dentro de la banda: el filo sube a oro pleno. Es la única respuesta de
+   material que tiene la pieza, y reemplaza al típico anillo azul de input. */
+.code-band:focus-within {
+  --band-edge: color-mix(in oklab, var(--plu-gold-500) 58%, transparent);
+}
+
+[data-theme='light'] .code-band:focus-within {
+  --band-edge: color-mix(in oklab, var(--color-brand-gold-dark) 62%, transparent);
+}
+
+.code-band--error {
+  --band-edge: color-mix(in oklab, var(--color-danger-text) 46%, rgba(255, 255, 255, 0.1));
+}
+
+.code-band__grain {
+  background:
+    linear-gradient(122deg, transparent 36%, var(--band-grain-a) 50%, transparent 64%),
+    repeating-linear-gradient(135deg, var(--band-grain-b) 0 1px, transparent 1px 13px);
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.code-band__frame {
+  border: 1px solid var(--band-frame);
+  border-radius: 7px;
+  display: grid;
+  gap: 12px;
+  padding: 15px 17px;
+  position: relative;
+  z-index: 2;
+}
+
+.code-band__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  justify-content: space-between;
+}
+
+/* El tracking de 0.28em es el de `.credential-card__mark`: es lo que hace que
+   la línea se lea como emisión y no como etiqueta de formulario. */
+.code-band__mark {
+  color: var(--band-label);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.code-band__status {
+  color: var(--band-label);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.code-band__status--done {
+  color: var(--band-ink);
+}
+
+.code-band__status--error {
+  color: var(--color-danger-text);
+}
+
+/* Envuelve por ANCHO DISPONIBLE y no por viewport: el mismo widget se monta en
+   la tarjeta de Mi cuenta, en el panel de Entradas y a ancho completo en
+   Pitbull. Cuando el código y la acción no entran juntos, la acción baja a su
+   propio renglón en vez de salirse de la banda. */
+.code-band__row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+/* El código, con el mismo tratamiento que el número de socio de la credencial
+   (`.credential-card__code-value`): mono, 600, 0.18em, tinta de oro. */
+.code-band__input,
+.code-band__code {
+  background: transparent;
+  border: 0;
+  color: var(--band-ink);
+  /* 10ch de base: el código puede encogerse hasta ahí antes de que la fila
+     envuelva, y nunca fuerza el ancho de la banda. */
+  flex: 1 1 10ch;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.code-band__input {
+  min-height: 44px;
+  padding: 0;
+}
+
+.code-band__input::placeholder {
+  color: var(--band-label);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.code-band__input:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-band__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.code-band__amount {
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.code-band__amount span {
+  color: var(--band-label);
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* Chip metálico: el mismo degradé del chip de la credencial. Es la única
+   acción plena del bloque. */
+.code-band__chip {
+  align-items: center;
+  background: linear-gradient(145deg, #f8e7a8 0%, #e0b03a 42%, #a9790f 72%, #f3e6b0 100%);
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: #14181f;
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font: 700 12px/1 var(--font-family);
+  gap: 7px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  /* Al final de la fila, y a la derecha también cuando quedó sola en su
+     renglón. */
+  margin-left: auto;
+  min-height: 44px;
+  padding-inline: 16px;
+  text-transform: uppercase;
+  transition:
+    filter var(--transition-fast),
+    transform var(--transition-fast);
+  white-space: nowrap;
+}
+
+.code-band__chip:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.code-band__chip:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.code-band__chip:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-band__chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Escaneo dentro de la banda: sólo el ícono. El selector lleva tres clases
+   porque `code-scan.css` refuerza el suyo con dos (`.code-scan
+   .code-scan__toggle`) justamente para ganarle a las filas que lo hospedan. */
+.code-band .code-scan .code-scan__toggle {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  gap: 0;
+  min-height: 44px;
+  padding-inline: 0;
+  width: 30px;
+}
+
+.code-band .code-scan .code-scan__toggle:hover:not(:disabled) {
+  color: var(--band-ink);
+}
+
+.code-band .code-scan__label {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* La prosa que acompaña a la banda vive afuera: la banda es la pieza, no el
+   contenedor de todo el bloque. */
+.code-band-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.code-band-error {
+  color: var(--color-danger-text);
+  font-size: 12px;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.code-band-done {
+  display: grid;
+  gap: 3px;
+}
+
+.code-band-done strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.code-band-done span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Entrada al canje: el sello con el filo de oro y una línea, sin celeste —
+   esto no es navegación. */
+.code-band-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 500 13px/1 var(--font-family);
+  gap: 10px;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.code-band-toggle:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.code-band-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.code-band-toggle:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.code-band-toggle__seal {
+  align-items: center;
+  background: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  flex: none;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+[data-theme='light'] .code-band-toggle__seal {
+  background: linear-gradient(158deg, #ffffff 0%, #f6f4ef 100%);
+  border-color: color-mix(in oklab, var(--color-brand-gold-dark) 38%, rgba(15, 17, 23, 0.08));
+  color: var(--color-brand-gold-dark);
+}
+
+.code-band-drop {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: 400 12px/1 var(--font-family);
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.code-band-drop:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.code-band-drop:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.code-band-drop:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+@media (max-width: 430px) {
+  /* En teléfono la acción ocupa el ancho completo, como el resto de los
+     controles de la app. */
+  .code-band__chip {
+    flex: 1 0 100%;
+    width: 100%;
+  }
+}

@@ -41,6 +41,29 @@ export function buildAthleteCredentialUrl(code) {
   return buildCredentialUrl({ code })
 }
 
+/**
+ * Código que va DENTRO del QR de una persona.
+ *
+ * Existe para que todas las superficies muestren el mismo código: el token de
+ * credencial del atleta si lo tiene, el qrToken de la membresía si no, y el
+ * número de socio como último recurso. Cuando esta regla vivía duplicada en
+ * cada pantalla, la misma persona veía un QR distinto según entrara por su
+ * credencial, por "Mi QR" o por la card compartible.
+ *
+ * @param {{ athlete?: object, membership?: object, latestMembership?: object }} params
+ * @returns {string | null}
+ */
+export function resolveCredentialCode({ athlete, membership, latestMembership } = {}) {
+  return (
+    athlete?.credentialToken ??
+    membership?.qrToken ??
+    latestMembership?.qrToken ??
+    membership?.memberCode ??
+    latestMembership?.memberCode ??
+    null
+  )
+}
+
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

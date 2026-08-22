@@ -51,8 +51,11 @@ export default function PaymentValidationDialog({
       ? item.paymentProofPath.trim()
       : item?.paymentProofPath
   const hasProof = Boolean(item?.hasProof || proofPath)
-  const [proofUrl, setProofUrl] = useState(null)
-  const [proofLoading, setProofLoading] = useState(hasProof)
+  // La bandeja ya firmó la URL de las filas abiertas: cuando viaja en el item,
+  // el comprobante se dibuja en el primer render y no hay spinner que esperar.
+  const preloadedProofUrl = item?.proofUrl ?? null
+  const [proofUrl, setProofUrl] = useState(preloadedProofUrl)
+  const [proofLoading, setProofLoading] = useState(hasProof && !preloadedProofUrl)
   const [proofError, setProofError] = useState('')
   const [imageFailed, setImageFailed] = useState(false)
   const [imageExpanded, setImageExpanded] = useState(false)
@@ -114,12 +117,19 @@ export default function PaymentValidationDialog({
       return undefined
     }
 
+    setImageFailed(false)
+    setImageExpanded(false)
+    if (preloadedProofUrl) {
+      setProofUrl(preloadedProofUrl)
+      setProofLoading(false)
+      setProofError('')
+      return undefined
+    }
+
     let cancelled = false
     setProofLoading(true)
     setProofError('')
     setProofUrl(null)
-    setImageFailed(false)
-    setImageExpanded(false)
 
     const load = item.paymentId
       ? getAthletePaymentProofUrl(item.paymentId)
@@ -141,7 +151,7 @@ export default function PaymentValidationDialog({
     return () => {
       cancelled = true
     }
-  }, [hasProof, item, t])
+  }, [hasProof, item, preloadedProofUrl, t])
 
   if (!item) return null
 

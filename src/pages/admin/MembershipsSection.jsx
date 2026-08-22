@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BadgeCheck, Ban, QrCode, Trash2 } from 'lucide-react'
+import { AlertTriangle, PencilLine, QrCode, Trash2 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
+import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
 import MembershipCredentialModal from '../../components/admin/MembershipCredentialModal.jsx'
+import MembershipManualStatusDialog from '../../components/admin/MembershipManualStatusDialog.jsx'
+import PaymentRecoveryAction from '../../components/admin/PaymentRecoveryAction.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import {
   AdminIdentityCell,
@@ -14,6 +17,7 @@ import {
   AdminTableActions,
   AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
+import { canForceSettleOrder } from '../../services/paymentValidationService.js'
 import {
   fetchPlatformFeatureToggles,
   VALIDATION_DISABLED_CODES,
@@ -35,17 +39,33 @@ import {
   projectMembershipStatus,
 } from '../../services/membershipService.js'
 import { groupRegistrationsByAthlete } from '../../services/registrationAdminService.js'
+import { findEntitlementOrder } from '../../services/stateCoherenceService.js'
+import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 
 // Una inscripción cancelada o todavía en borrador no cuenta como "inscripto
 // a un torneo" — el socio no tiene ahí una participación real en curso.
 const NON_TOURNAMENT_REGISTRATION_STATUSES = new Set(['cancelada', 'borrador'])
 
+/**
+ * Mismo criterio que en Inscripciones y Finanzas: revalidar aplica a
+ * cualquier orden de Mercado Pago sin importar el permiso (no acredita nada
+ * por sí sola); acreditar a mano exige el permiso de Finanzas.
+ */
+function canRecoverMembershipPayment(payment, canForceSettle) {
+  if (!payment) return false
+  return payment.method === 'mercado_pago' || (canForceSettle && canForceSettleOrder(payment))
+}
+
 export default function MembershipsSection({
   memberships,
+  payments = [],
   registrations = [],
   onSelectAthlete,
   onSetMembershipStatus,
+  onForceSettlePayment,
+  onRefreshAthleteData,
   onDelete,
+  canForceSettle = false,
   canManage = false,
   canDelete = false,
   unreconciledPayments = [],
@@ -61,12 +81,15 @@ export default function MembershipsSection({
   }, [])
   const [expiring, setExpiring] = useState('all')
   const [registeredToTournament, setRegisteredToTournament] = useState('all')
+  const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('memberships')
   // Credencial abierta en modal. Guardamos id + nombre para el encabezado
   // sin esperar al fetch; solo una abierta a la vez.
   const [credentialTarget, setCredentialTarget] = useState(null)
   const [pendingId, setPendingId] = useState(null)
   const [actionError, setActionError] = useState('')
-  const [cancelTarget, setCancelTarget] = useState(null)
+  // Un solo estado para las dos decisiones manuales: las dos abren el mismo
+  // diálogo y las dos exigen motivo. `{ id, athlete, status }`.
+  const [manualTarget, setManualTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   // Default abierto: si el GET falla no bloqueamos la pantalla. Un `false`
   // explícito del interruptor es lo único que congela Activar / Dar de baja.
@@ -86,7 +109,13 @@ export default function MembershipsSection({
     }
   }, [])
 
-  async function applyStatus(membershipId, nextStatus) {
+  /**
+   * `reason` y `channel` no son opcionales: la RPC los exige (ver
+   * 20260910100000) y el 400 del backend es la última palabra. El diálogo no
+   * habilita el botón sin ellos, así que esto no debería poder llamarse sin
+   * motivo -- pero si pasa, falla del lado del servidor y no en silencio.
+   */
+  async function applyStatus(membershipId, nextStatus, { reason, channel } = {}) {
     if (!validationEnabled) {
       setActionError(t('admin.sections.memberships.validationPaused'))
       return false
@@ -94,7 +123,7 @@ export default function MembershipsSection({
     setPendingId(membershipId)
     setActionError('')
     try {
-      const result = await onSetMembershipStatus?.(membershipId, nextStatus)
+      const result = await onSetMembershipStatus?.(membershipId, nextStatus, { reason, channel })
       if (result?.error) {
         // El toggle pudo apagarse después de montar la sección (el fetch de
         // arriba corre una sola vez al entrar): si el backend confirma que la
@@ -109,7 +138,7 @@ export default function MembershipsSection({
         }
         return false
       }
-      if (nextStatus === 'cancelada') setCancelTarget(null)
+      setManualTarget(null)
       return true
     } catch (error) {
       setActionError(error?.message ?? t('admin.sections.memberships.actionError'))
@@ -202,6 +231,31 @@ export default function MembershipsSection({
     [tournamentRegisteredCount, t],
   )
 
+  const savedViewSnapshot = useMemo(
+    () => ({ query, status, expiring, registeredToTournament }),
+    [query, status, expiring, registeredToTournament],
+  )
+  const activeSavedView = useMemo(
+    () => findMatchingView(savedViews, savedViewSnapshot),
+    [savedViews, savedViewSnapshot],
+  )
+  const hasFiltersToSave =
+    query.trim() !== '' || status !== 'all' || expiring !== 'all' || registeredToTournament !== 'all'
+
+  function applySavedView(view) {
+    setQuery(view.snapshot.query ?? '')
+    setStatus(view.snapshot.status ?? 'all')
+    setExpiring(view.snapshot.expiring ?? 'all')
+    setRegisteredToTournament(view.snapshot.registeredToTournament ?? 'all')
+  }
+
+  function clearSavedView() {
+    setQuery('')
+    setStatus('all')
+    setExpiring('all')
+    setRegisteredToTournament('all')
+  }
+
   const rows = useMemo(
     () =>
       filterMemberships(projectedMemberships, {
@@ -224,6 +278,7 @@ export default function MembershipsSection({
         hasTournamentRegistration: item.hasTournamentRegistration,
         startDate: item.startDate,
         expirationDate: item.expirationDate,
+        payment: findEntitlementOrder(item, payments),
         canViewCredential: [MEMBERSHIP_LIFECYCLE.CURRENT, MEMBERSHIP_LIFECYCLE.EXPIRING].includes(
           item.lifecycle,
         ),
@@ -234,37 +289,7 @@ export default function MembershipsSection({
           MEMBERSHIP_LIFECYCLE.SCHEDULED,
         ].includes(item.lifecycle),
       })),
-    [projectedMemberships, query, status, expiring, registeredToTournament],
-  )
-
-  // Métricas de gestión, no un recuento de estados: lo que el admin necesita
-  // saber de un vistazo es cuántos socios cubre hoy la afiliación, cuántos
-  // entraron este mes, a quiénes hay que ir a renovar y cuánto quedó trabado
-  // esperando pago.
-  const stats = useMemo(
-    () => [
-      {
-        label: t('admin.sections.memberships.statActive'),
-        value: metrics.active,
-        tone: 'success',
-      },
-      {
-        label: t('admin.sections.memberships.statNewThisMonth'),
-        value: metrics.newThisMonth,
-        tone: 'default',
-      },
-      {
-        label: t('admin.sections.memberships.statExpiringSoon'),
-        value: metrics.expiringSoon,
-        tone: 'warning',
-      },
-      {
-        label: t('admin.sections.memberships.statPendingPayment'),
-        value: metrics.pendingPayment,
-        tone: metrics.pendingPayment > 0 ? 'warning' : 'default',
-      },
-    ],
-    [metrics, t],
+    [projectedMemberships, payments, query, status, expiring, registeredToTournament],
   )
 
   return (
@@ -287,11 +312,10 @@ export default function MembershipsSection({
         placeholder={t('admin.search.membership')}
         query={query}
         showHeader
-        showStats
+        showStats={false}
         eyebrow={t('admin.sections.memberships.eyebrow')}
         title={t('admin.sections.memberships.title')}
         subtitle={t('admin.sections.memberships.subtitle')}
-        stats={stats}
         totalCount={memberships.length}
         filters={[
           {
@@ -300,6 +324,7 @@ export default function MembershipsSection({
             value: status,
             onChange: setStatus,
             options: statusOptions,
+            showLabel: true,
           },
           {
             id: 'expiring',
@@ -321,6 +346,22 @@ export default function MembershipsSection({
           },
         ]}
         onQueryChange={setQuery}
+        beforeFilters={
+          <AdminSavedViews
+            views={savedViews}
+            activeViewId={activeSavedView?.id ?? null}
+            allLabel={t('admin.savedViews.all')}
+            caption={t('admin.savedViews.caption')}
+            addLabel={t('admin.savedViews.add')}
+            namePlaceholder={t('admin.savedViews.namePlaceholder')}
+            removeAriaLabel={(label) => t('admin.savedViews.remove', { label })}
+            canSave={hasFiltersToSave && !activeSavedView}
+            onApply={applySavedView}
+            onClear={clearSavedView}
+            onSave={(label) => saveView(label, savedViewSnapshot)}
+            onRemove={removeView}
+          />
+        }
       >
         <AdminDataTable
           className="admin-data-table--memberships"
@@ -403,10 +444,15 @@ export default function MembershipsSection({
               mobileSortable: false,
               className: 'data-table__column--actions',
               render: (row) => {
+                const canRecover = canRecoverMembershipPayment(row.payment, canForceSettle)
+                const editableStatuses = [
+                  ...(row.canActivate ? ['activa'] : []),
+                  ...(row.canCancel ? ['cancelada'] : []),
+                ]
                 const hasActions =
                   row.canViewCredential ||
-                  (canManage && row.canActivate) ||
-                  (canManage && row.canCancel) ||
+                  (canManage && editableStatuses.length > 0) ||
+                  canRecover ||
                   canDelete
                 if (!hasActions) return <AdminTableActionsEmpty />
                 const pausedLabel = t('admin.sections.memberships.validationPaused')
@@ -427,39 +473,39 @@ export default function MembershipsSection({
                         variant="ghost"
                       />
                     )}
-                    {canManage && row.canActivate && (
+                    {canManage && editableStatuses.length > 0 && (
                       <AdminIconButton
                         disabled={pendingId === row.id || !validationEnabled}
-                        icon={BadgeCheck}
+                        icon={PencilLine}
                         spinning={pendingId === row.id}
                         label={
                           pendingId === row.id
                             ? t('admin.sections.memberships.applying')
                             : validationEnabled
-                              ? t('admin.sections.memberships.activate')
+                              ? t('admin.registrationStatus.action')
                               : pausedLabel
                         }
-                        onClick={() => applyStatus(row.id, 'activa')}
+                        // Antes activaba en el acto. Activar a mano es otorgar
+                        // un derecho sin cobro que lo respalde: pasa por el
+                        // diálogo que pide canal y motivo, como ya hacía la
+                        // baja.
+                        onClick={() => {
+                          setActionError('')
+                          setManualTarget({ ...row, editableStatuses })
+                        }}
                         variant="celeste"
                       />
                     )}
-                    {canManage && row.canCancel && (
-                      <AdminIconButton
-                        disabled={pendingId === row.id || !validationEnabled}
-                        icon={Ban}
-                        spinning={pendingId === row.id}
-                        label={
-                          pendingId === row.id
-                            ? t('admin.sections.memberships.applying')
-                            : validationEnabled
-                              ? t('admin.sections.memberships.cancel')
-                              : pausedLabel
-                        }
-                        onClick={() => {
-                          setActionError('')
-                          setCancelTarget(row)
-                        }}
-                        variant="ghost"
+                    {canRecover && (
+                      /* "El pago figura cancelado pero la plata entró": las
+                         mismas dos vías de Finanzas, sin salir de Afiliaciones. */
+                      <PaymentRecoveryAction
+                        athlete={{ fullName: row.athlete, documentId: row.document }}
+                        canForceSettle={canForceSettle}
+                        detail={row.memberCode}
+                        onForceSettlePayment={onForceSettlePayment}
+                        onRefreshAthleteData={onRefreshAthleteData}
+                        order={row.payment}
                       />
                     )}
                     {canDelete && (
@@ -500,22 +546,19 @@ export default function MembershipsSection({
           />
         ) : null}
 
-        {cancelTarget ? (
-          <AdminDeleteConfirmDialog
-            busy={pendingId === cancelTarget.id}
+        {manualTarget ? (
+          <MembershipManualStatusDialog
+            athleteName={manualTarget.athlete}
+            busy={pendingId === manualTarget.id}
             error={actionError}
             onCancel={() => {
-              if (pendingId !== cancelTarget.id) setCancelTarget(null)
+              if (pendingId !== manualTarget.id) setManualTarget(null)
             }}
-            onConfirm={() => applyStatus(cancelTarget.id, 'cancelada')}
-            title={t('admin.sections.memberships.cancelConfirmTitle')}
-            description={t('admin.sections.memberships.cancelConfirmDescription', {
-              athlete: cancelTarget.athlete,
-            })}
-            warning={t('admin.sections.memberships.cancelConfirmWarning')}
-            cancelLabel={t('admin.sections.memberships.keepActive')}
-            confirmLabel={t('admin.sections.memberships.confirmCancel')}
-            busyLabel={t('admin.sections.memberships.applying')}
+            onConfirm={({ status: nextStatus, reason, channel }) =>
+              applyStatus(manualTarget.id, nextStatus, { reason, channel })
+            }
+            currentStatus={manualTarget.status}
+            statusOptions={manualTarget.editableStatuses}
           />
         ) : null}
 

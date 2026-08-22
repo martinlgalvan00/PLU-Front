@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import EventsSection from '../src/pages/admin/EventsSection.jsx'
 
@@ -62,50 +62,71 @@ function renderEvents(overrides = {}) {
   )
 }
 
-describe('EventsSection — ficha operativa', () => {
-  it('muestra el título y la sede del evento seleccionado en la ficha', () => {
+function openConsole(rowTitle) {
+  fireEvent.click(screen.getByTitle(rowTitle))
+  return screen.getByRole('dialog', { name: 'Evento seleccionado' })
+}
+
+describe('EventsSection — consola como modal', () => {
+  it('la lista es la única superficie: sin consola hasta tocar una fila', () => {
     renderEvents()
-    const panel = screen.getByRole('complementary', { name: 'Evento seleccionado' })
-    expect(panel.querySelector('.admin-event-preview__selected-title')?.textContent).toBe(
+    expect(document.querySelector('.admin-event-preview--panel')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('abre la consola del evento al tocar la fila', () => {
+    renderEvents({ adminEvents: [EVENT, OTHER] })
+    const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+
+    expect(dialog.querySelector('.admin-event-console-modal__title')?.textContent).toBe(
       'Pitbull Classic',
     )
-    expect(panel.querySelector('.admin-event-preview__meta-line')?.textContent).toMatch(
+    expect(dialog.querySelector('.admin-event-console-modal__meta-line')?.textContent).toMatch(
       /Maximal Strength Club/,
     )
-    expect(within(panel).getByRole('button', { name: 'Editar evento' })).toBeTruthy()
+    expect(within(dialog).getByRole('button', { name: 'Editar evento' })).toBeTruthy()
+  })
+
+  it('cambia de evento tocando otra fila con la consola abierta', () => {
+    renderEvents({ adminEvents: [EVENT, OTHER] })
+    const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    expect(dialog.querySelector('.admin-event-console-modal__title')?.textContent).toBe(
+      'Pitbull Classic',
+    )
+
+    // La lista sigue visible detrás del modal: tocar la otra fila renueva la consola.
+    fireEvent.click(screen.getByTitle(/pit elite · agosto-elite/))
+    expect(
+      screen.getByRole('dialog', { name: 'Evento seleccionado' }).querySelector(
+        '.admin-event-console-modal__title',
+      )?.textContent,
+    ).toBe('pit elite')
   })
 
   it('no duplica la sede cuando venue y location coinciden', () => {
     renderEvents({ adminEvents: [OTHER] })
-    const panel = screen.getByRole('complementary', { name: 'Evento seleccionado' })
-    expect(panel.querySelector('.admin-event-preview__meta-line')?.textContent).toMatch(/pit elite/)
-    expect(panel.querySelector('.admin-event-preview__meta-line')?.textContent).not.toMatch(
-      /pit elite,\s*pit elite/,
-    )
+    const dialog = openConsole(/pit elite · agosto-elite/)
+    const meta = dialog.querySelector('.admin-event-console-modal__meta-line')?.textContent
+    expect(meta).toMatch(/pit elite/)
+    expect(meta).not.toMatch(/pit elite,\s*pit elite/)
   })
 
-  it('desplaza la ficha al elegir otro evento cuando el layout está apilado', () => {
-    const scroll = vi.fn()
-    Element.prototype.scrollIntoView = scroll
-    const originalComputedStyle = window.getComputedStyle.bind(window)
-    const style = vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
-      if (element?.classList?.contains('admin-events-workspace')) {
-        return { gridTemplateColumns: 'minmax(0, 1fr)', getPropertyValue: () => '' }
-      }
-      return originalComputedStyle(element, pseudo)
-    })
+  it('cierra la consola con Escape y con el botón de cierre', () => {
+    renderEvents({ adminEvents: [EVENT] })
+    openConsole(/Pitbull Classic · pitbull-classic-2026/)
 
-    renderEvents({ adminEvents: [EVENT, OTHER] })
-    fireEvent.click(screen.getByTitle(/pit elite · agosto-elite/))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
 
-    expect(scroll).toHaveBeenCalledTimes(1)
-    style.mockRestore()
+    const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
 
 /**
  * El listado marca la excepción, no la regla: casi todos los meets piden
- * afiliación, así que un sello en la mayoría de las filas sería ruido. El que
+ * afiliación, así que un sello en la mayoría de filas sería ruido. El que
  * está abierto es el que cambia cómo se lo controla en la puerta, y hasta ahora
  * eso solo se veía abriendo el editor.
  */
@@ -129,11 +150,11 @@ describe('EventsSection — meets abiertos en el listado', () => {
     expect(document.querySelector('.admin-event-row__open-mark')).toBeNull()
   })
 
-  it('deja el requisito operable desde la ficha, sin abrir el editor', () => {
+  it('deja el requisito operable desde la consola, sin abrir el editor', () => {
     renderEvents({ adminEvents: [{ ...EVENT, requiresMembership: false }] })
-    const panel = screen.getByRole('complementary', { name: 'Evento seleccionado' })
+    const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
 
-    const access = panel.querySelector('.admin-event-state__access')
+    const access = dialog.querySelector('.admin-event-state__access')
     expect(access).not.toBeNull()
     expect(
       access.querySelector('.admin-filter-chip[aria-pressed="true"]').textContent,

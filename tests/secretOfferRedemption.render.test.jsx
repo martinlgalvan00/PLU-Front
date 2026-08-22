@@ -114,8 +114,6 @@ const OFFER_PAYLOAD = {
 const NOT_APPLICABLE_OFFER = {
   valid: false,
   reason: 'not_applicable',
-  kind: 'offer',
-  appliesTo: 'combo',
 }
 
 function renderSection(props = {}) {
@@ -137,9 +135,10 @@ function renderSection(props = {}) {
 
 async function typeCode(code) {
   fireEvent.click(await screen.findByRole('button', { name: /Tengo un código/i }))
-  const input = await screen.findByLabelText(/Código/i)
+  const input = await screen.findByLabelText(/^Código$/i)
+  expect(screen.getByText(/^Canjeá tu código\.$/i)).toBeTruthy()
   fireEvent.change(input, { target: { value: code } })
-  fireEvent.click(screen.getByRole('button', { name: /^Aplicar$/i }))
+  fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
 }
 
 afterEach(cleanup)
@@ -166,6 +165,7 @@ describe('canje del código secreto desde Afiliación', () => {
 
     await typeCode('only-pitbull')
 
+    expect(await screen.findByText('Redirigiéndote a tu pestaña secreta…')).toBeTruthy()
     // Lo que la persona vino a leer: que canjeó, y qué.
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
     expect(screen.getByText('ONLY-PITBULL')).toBeTruthy()
@@ -173,8 +173,10 @@ describe('canje del código secreto desde Afiliación', () => {
 
     // El código viaja normalizado a mayúsculas.
     expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'ONLY-PITBULL' })
-    // La cuenta recarga sus ofertas para que la ficha aparezca en la cinta.
+    // La cuenta recarga sus ofertas para que la ficha aparezca en la cinta y
+    // el canje termina directamente en esa ficha secreta.
     expect(onOfferUnlocked).toHaveBeenCalled()
+    expect(onNavigateSection).toHaveBeenCalledWith('account-offer')
 
     fireEvent.click(screen.getByRole('button', { name: /Ver mi oferta/i }))
     expect(onNavigateSection).toHaveBeenCalledWith('account-offer')
@@ -187,6 +189,7 @@ describe('canje del código secreto desde Afiliación', () => {
 
     await typeCode('ONLY-PITBULL')
 
+    expect(await screen.findByText('Redirigiéndote a tu pestaña secreta…')).toBeTruthy()
     await waitFor(() => expect(screen.getByText('Canjeaste el código secreto')).toBeTruthy())
     expect(screen.queryByText('Ese código no aplica a este pago.')).toBe(null)
   })
@@ -200,14 +203,16 @@ describe('canje del código secreto desde Afiliación', () => {
       kind: 'fixed_price',
       appliesTo: 'combo',
     })
+    vi.mocked(unlockOfferCode).mockResolvedValue({
+      unlocked: false,
+      reason: 'not_applicable',
+    })
     renderSection({ onNavigateSection: vi.fn(), onOfferUnlocked: vi.fn() })
 
     await typeCode('COMBO150')
 
-    await waitFor(() =>
-      expect(screen.getByText('Ese código no aplica a este pago.')).toBeTruthy(),
-    )
-    expect(unlockOfferCode).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByText('Ese código no aplica a este pago.')).toBeTruthy())
+    expect(unlockOfferCode).toHaveBeenCalledWith({ code: 'COMBO150' })
     expect(screen.queryByText('Canjeaste el código secreto')).toBe(null)
   })
 

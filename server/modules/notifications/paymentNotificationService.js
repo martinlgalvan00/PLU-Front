@@ -101,8 +101,24 @@ export function createPaymentNotificationService({
   const mailer = dispatcher ?? createEmailDispatcher({ repository, brevo, env })
   const appUrl = (resolveDeploymentAppUrl(env) || env.VITE_APP_URL || '').replace(/\/$/, '')
 
-  return async function notifyPaymentApplied({ order, payment, result }) {
-    const payerEmail = order.payerEmail ?? payment.payerEmail
+  return async function notifyPaymentApplied({ order, payment, result, orderStatus = null }) {
+    // El hecho que le importa a la persona es el estado de la ORDEN. Un intento
+    // que no acreditó y llega después de que otro sí lo hizo (MP reenvía la
+    // notificación, o el pago pasa de `pending` a `rejected` horas más tarde)
+    // no tiene nada que avisar: la orden ya está aprobada y el comprobante ya
+    // salió. Sin esta guarda, ese intento tardío mandaba "no pudimos procesar
+    // tu pago" a un socio con la afiliación activa.
+    if (orderStatus === 'aprobado' && payment.status !== 'aprobado') return []
+
+    // La cuenta manda sobre el pagador: una orden de atleta puede pagarse desde
+    // el Mercado Pago de un familiar, y el aviso tiene que llegarle a quien es
+    // dueño de la afiliación. `payer_email` en la orden lo pisa el último
+    // intento aplicado, así que tomarlo primero desviaba los avisos a la
+    // dirección de un intento fallido.
+    const payerEmail =
+      (order.kind === 'athlete' ? order.athlete?.email : null) ??
+      order.payerEmail ??
+      payment.payerEmail
     if (!payerEmail) return []
 
     const recipientName = order.athlete?.full_name ?? payerEmail

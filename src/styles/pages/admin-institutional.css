@@ -740,6 +740,14 @@
   padding: 0 0 26px;
 }
 
+@media (max-width: 860px) {
+  .admin-shell .admin-page-toolbar {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
 .admin-page-toolbar__headline {
   display: grid;
   gap: 7px;

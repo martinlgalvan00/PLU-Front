@@ -1,3 +1,4 @@
+import { expect, userEvent, within } from 'storybook/test'
 import PricingSection from './PricingSection.jsx'
 import '../../styles/pages/admin-pricing.css'
 
@@ -48,22 +49,41 @@ const configuration = {
       currency: 'ARS',
       status: 'inscripcion_abierta',
       published: true,
-      comboOffer: null,
+      comboOffer: {
+        membershipPlanId: '11111111-1111-4111-8111-111111111111',
+        price: 80000,
+        manualPrice: 80000,
+        active: true,
+        audience: 'code',
+        accessCode: 'ONLY-PITBULL',
+        financed: true,
+      },
     },
   ],
   discountCodes: [
     {
       id: '66666666-6666-4666-8666-666666666666',
-      code: 'PITBULL',
+      code: 'ONLY-PITBULL',
       description: 'Afiliación + inscripción al Pitbull Classic.',
-      kind: 'fixed_price',
-      fixedPrice: 120000,
+      kind: 'offer',
+      fixedPrice: 75000,
       // Mismo importe por transferencia y efectivo: el caso pactado. Se carga
       // explícito para que el panel muestre la nota del canal manual.
-      fixedPriceManual: 120000,
+      fixedPriceManual: 75000,
       appliesTo: 'combo',
+      eventId: '33333333-3333-4333-8333-333333333333',
+      eventTitle: 'Pitbull Classic 2026',
+      audience: 'code',
       maxRedemptions: 40,
       redeemedCount: 12,
+      unlockedCount: 21,
+      campaignMetrics: {
+        resolvedCount: 28,
+        unlockedCount: 21,
+        checkoutCount: 15,
+        paidCount: 12,
+        revenue: 900000,
+      },
       expiresAt: '2026-10-30T23:59:00.000Z',
       active: true,
       manualChannels: ['bank_transfer', 'cash_pitbull'],
@@ -137,14 +157,49 @@ export default {
     isLoading: false,
     onCreatePlanVersion: async () => ({}),
     onRefresh: () => {},
-    onSaveComboOffer: async () => ({}),
     onSetPlanActive: async () => ({}),
     onUpsertDiscountCode: async () => ({}),
     onSetDiscountCodeState: async () => ({}),
+    onSimulatePromotionCode: async () => ({
+      simulation: {
+        status: 'ready',
+        destination: { kind: 'account_offer' },
+        checks: {
+          active: true,
+          withinWindow: true,
+          restrictedCombo: true,
+          hasEvent: true,
+          hasPrice: true,
+        },
+      },
+    }),
   },
 }
 
 export const Operativa = {}
+
+/**
+ * El alta quedó reducida a los dos descuentos: crear la oferta exclusiva desde
+ * el panel se revocó (20260915100000) —el paquete y su precio viven en el
+ * código—. La historia fija el select para que `offer_access` no reaparezca
+ * por un merge distraído.
+ */
+export const AltaSoloDescuentos = {
+  args: {
+    configuration: {
+      ...configuration,
+      events: [{ ...configuration.events[0], comboOffer: null }],
+      discountCodes: [],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByRole('button', { name: /nuevo código/i }))
+    const kindSelect = await canvas.findByLabelText(/^tipo de código/i)
+    const kinds = Array.from(kindSelect.options).map((option) => option.value)
+    await expect(kinds).toEqual(['percent', 'fixed_price'])
+  },
+}
 
 export const Proximamente = {
   args: {

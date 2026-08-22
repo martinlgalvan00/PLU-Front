@@ -1,0 +1,292 @@
+/* =============================================
+   MODO ASISTIDO — escala grande y navegación recortada
+
+   Se activa con `data-assist="on"` en <html> (ver src/lib/assistMode.js), el
+   mismo mecanismo que el tema. La idea es no duplicar ni un componente: acá
+   sólo se reescala tipografía, se agrandan targets y se recorta lo que sobra.
+
+   Lo que este modo NO hace, a propósito:
+   - No apaga el motion. Eso es `prefers-reduced-motion`, que ya está cubierto
+     en cada pieza; forzarlo desde acá dejaría contenido con `opacity: 0` en
+     las secciones que entran con `whileInView`.
+   - No esconde destinos. Oculta los dos menús desplegables del navbar, que es
+     la parte que confunde, pero el footer mantiene el índice completo de las
+     catorce pantallas y los enlaces directos del navbar siguen ahí.
+   ============================================= */
+
+[data-assist='on'] {
+  --assist-nav-height: 68px;
+  --assist-tap: 56px;
+}
+
+/* Cuerpo del sitio: sube todo lo que no tiene tamaño propio declarado. */
+[data-assist='on'] body {
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+/* La barra fija ocupa el borde inferior: el contenido termina antes. */
+[data-assist='on'] .app-shell {
+  padding-bottom: calc(var(--assist-nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Navegación recortada ────────────────────── */
+
+/* Los dos menús desplegables del navbar (Competencia y Más) son la parte que
+   este público no logra abrir ni cerrar. Se van; sus destinos siguen en el
+   footer y en la barra de abajo. `display: none` y no `visibility` para que
+   tampoco queden en el orden de tabulación ni en el árbol de accesibilidad. */
+[data-assist='on'] .plu-global-nav__dropdown {
+  display: none;
+}
+
+/* La portada tiene su propio CTA fijo abajo. Con la barra asistida serían dos
+   barras apiladas en el mismo borde: gana la barra, que además lleva la misma
+   acción y encima calculada. */
+[data-assist='on'] .sticky-mobile-cta {
+  display: none !important;
+}
+
+.assist-nav {
+  background: var(--color-bg-surface);
+  border-top: 1px solid var(--color-border-strong);
+  bottom: 0;
+  box-shadow: 0 -8px 24px var(--color-shadow-tint, rgba(0, 0, 0, 0.18));
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  position: fixed;
+  right: 0;
+  z-index: 130;
+}
+
+.assist-nav__inner {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-inline: auto;
+  max-width: 620px;
+}
+
+.assist-nav__item {
+  align-content: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: grid;
+  font-family: var(--font-family);
+  gap: 4px;
+  justify-items: center;
+  min-height: var(--assist-nav-height, 68px);
+  padding: 8px 4px;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.assist-nav__item:hover {
+  color: var(--color-text-primary);
+}
+
+.assist-nav__item:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: -3px;
+}
+
+.assist-nav__icon {
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.assist-nav__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.assist-nav__item.is-active {
+  color: var(--color-brand-celeste);
+}
+
+/* Único acento de la barra: el próximo paso del trámite. */
+.assist-nav__item--action {
+  color: var(--color-text-primary);
+}
+
+.assist-nav__item--action .assist-nav__icon {
+  background: var(--color-brand-action);
+  border-radius: 999px;
+  color: var(--color-brand-action-text);
+  height: 40px;
+  width: 40px;
+}
+
+.assist-nav__item--action .assist-nav__label {
+  font-weight: 700;
+}
+
+.assist-nav__badge {
+  background: var(--color-brand-action);
+  border: 2px solid var(--color-bg-surface);
+  border-radius: 999px;
+  height: 10px;
+  position: absolute;
+  right: -3px;
+  top: -2px;
+  width: 10px;
+}
+
+/* ── Formularios: una columna y controles grandes ── */
+
+/* `!important` acotado y a propósito en este bloque. Las hojas de página
+   (`register.css`, `design-phase2.css`) declaran la grilla y los campos con
+   tres clases de especificidad — `.register-page--profile .register-card
+   .form-grid` — y además se cargan con el chunk lazy de la página, o sea
+   después de esta hoja. Sin `!important` el modo asistido quedaba anulado
+   justo en la pantalla donde más hace falta. La alternativa era encadenar los
+   selectores de cada página acá, que se rompe la próxima vez que alguien
+   renombra una clase.
+   Sólo llevan `!important` las propiedades que *definen* el modo (columnas y
+   tamaños); color, borde y espaciado se resuelven por especificidad. */
+
+/* El zigzag de una grilla de tres columnas es lo que más desorienta al
+   completar la ficha: en asistido el formulario pasa a una sola columna y el
+   orden de lectura es el orden de tipeo. */
+[data-assist='on'] .form-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  row-gap: 22px !important;
+}
+
+[data-assist='on'] .field {
+  font-size: 15px;
+  gap: 9px;
+}
+
+[data-assist='on'] .field__label {
+  color: var(--color-text-primary);
+  font-size: 15px !important;
+  font-weight: 700;
+}
+
+/* Sin `padding` acá: el shorthand reseteaba el `padding-left: 40px` que
+   `register.css` reserva para el ícono del campo, y el ícono terminaba
+   encimado sobre el texto. El aire vertical lo da `min-height`. */
+[data-assist='on'] .field input,
+[data-assist='on'] .field select {
+  border-color: var(--color-border-strong);
+  font-size: 17px !important;
+  min-height: var(--assist-tap, 56px) !important;
+}
+
+[data-assist='on'] .field__error {
+  font-size: 14px !important;
+}
+
+[data-assist='on'] .field__choice {
+  font-size: 15px !important;
+  min-height: var(--assist-tap, 56px) !important;
+}
+
+[data-assist='on'] .field__choice-text {
+  font-size: 15px !important;
+}
+
+/* La ficha de muestra del alta de cuenta es decorativa (`aria-hidden`) y
+   empuja el formulario fuera de la primera pantalla en un teléfono. */
+[data-assist='on'] .register-live-credential {
+  display: none !important;
+}
+
+/* ── Acciones ────────────────────────────────── */
+
+[data-assist='on'] .btn,
+[data-assist='on'] .register-card__submit,
+[data-assist='on'] .hero__cta {
+  font-size: 15px !important;
+  min-height: var(--assist-tap, 56px) !important;
+}
+
+[data-assist='on'] .site-footer nav button {
+  font-size: 15px;
+  min-height: 44px;
+}
+
+/* ── Ayuda y tutorial en escala grande ───────── */
+
+[data-assist='on'] .help-panel {
+  bottom: calc(var(--assist-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-sm));
+}
+
+[data-assist='on'] .help-panel__title {
+  font-size: 24px;
+}
+
+[data-assist='on'] .help-panel__lead,
+[data-assist='on'] .help-panel__step-detail,
+[data-assist='on'] .help-panel__link-label {
+  font-size: 15px;
+}
+
+[data-assist='on'] .help-panel__step-title {
+  font-size: 16px;
+}
+
+[data-assist='on'] .help-panel__link-hint {
+  font-size: 13.5px;
+}
+
+[data-assist='on'] .help-panel__location,
+[data-assist='on'] .help-panel__door,
+[data-assist='on'] .help-panel__door-link,
+[data-assist='on'] .help-panel__assist-label {
+  font-size: 14px;
+}
+
+[data-assist='on'] .help-panel__assist {
+  min-height: 44px;
+}
+
+[data-assist='on'] .help-panel__door-link {
+  min-height: 44px;
+}
+
+[data-assist='on'] .help-panel__cta {
+  font-size: 15px;
+  min-height: 58px;
+}
+
+[data-assist='on'] .admin-tour-card--coach {
+  max-width: min(420px, calc(100vw - 24px));
+}
+
+[data-assist='on'] .admin-tour-card--coach .admin-tour-card__title {
+  font-size: 21px;
+}
+
+[data-assist='on'] .admin-tour-card--coach .admin-tour-card__body {
+  font-size: 16px;
+  line-height: 1.62;
+}
+
+[data-assist='on'] .admin-tour-card--coach .admin-tour-card__field-state {
+  font-size: 13.5px;
+}
+
+@media (max-width: 640px) {
+  [data-assist='on'] .help-panel {
+    bottom: calc(var(--assist-nav-height) + env(safe-area-inset-bottom, 0px));
+    max-height: 74vh;
+  }
+
+  .assist-nav__label {
+    font-size: 12px;
+  }
+}
+
+/* En pantallas muy angostas cuatro etiquetas no entran a 12px sin cortarse. */
+@media (max-width: 360px) {
+  .assist-nav__label {
+    font-size: 11px;
+  }
+}

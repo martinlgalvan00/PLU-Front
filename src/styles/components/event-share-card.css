@@ -186,23 +186,6 @@
   background: var(--card-accent-alt);
 }
 
-/* ─── Marco interior ──────────────────────────────────────────────
-   El mismo gesto que la credencial física: un filo fino dorado tenue
-   corrido del borde. Div con borde plano (html2canvas lo rasteriza
-   perfecto), nunca outline/clip exóticos. */
-.share-card__frame {
-  position: absolute;
-  inset: 26px;
-  border: 1px solid rgba(242, 183, 5, 0.16);
-  border-radius: 4px;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.share-card--portrait .share-card__frame {
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
 /* ─── Textura "foil" ─────────────────────────────────────────────
    Solo las líneas finas repetidas: dan material metalizado sin dibujar
    nada. No se monta sobre un retrato — la foto ya es el material, y una
@@ -221,18 +204,37 @@
   );
 }
 
-/* ─── Franja de acento superior ───────────────────────────────────
-   Firma de marca (celeste → dorado), la misma de la credencial, pero
-   sin el blanco central: un filo fino de 4px que se lee como marca,
-   no como bandera pegada. */
-.share-card__stripe-top {
+/* ─── Firma ───────────────────────────────────────────────────────
+   Barra oro grabada al canto izquierdo: la misma firma de la credencial
+   digital del atleta (ver account-credential.css). Reemplaza a la franja
+   superior + el marco interior — tres gestos de marca en una sola pieza
+   se leían como plantilla, y ninguno como firma. */
+.share-card__signature {
   position: absolute;
   top: 0;
+  bottom: 0;
   left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--card-accent-alt) 0%, var(--card-accent) 100%);
+  width: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 210, 63, 0.95) 0%,
+    rgba(242, 183, 5, 0.8) 52%,
+    rgba(169, 121, 15, 0.62) 100%
+  );
   z-index: 10;
+}
+
+.share-card--story .share-card__signature {
+  width: 12px;
+}
+
+.share-card--ticket .share-card__signature {
+  background: linear-gradient(
+    180deg,
+    rgba(116, 172, 223, 0.95) 0%,
+    rgba(87, 140, 190, 0.8) 52%,
+    rgba(52, 92, 133, 0.62) 100%
+  );
 }
 
 /* ─── Header ────────────────────────────────────────────────────── */
@@ -261,7 +263,7 @@
 }
 
 .share-card__logo {
-  height: 96px;
+  height: 84px;
   width: auto;
   aspect-ratio: 1 / 1;
   object-fit: contain;
@@ -270,65 +272,22 @@
 }
 
 .share-card--story .share-card__logo {
-  height: 124px;
+  height: 100px;
 }
 
+/* Hairline entre escudo y nombre: el mismo divisor de la credencial. */
 .share-card__brand-name {
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.62);
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 21px;
+  font-weight: 550;
+  letter-spacing: 0.2em;
+  padding-left: 22px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.66);
 }
 
 .share-card--story .share-card__brand-name {
-  font-size: 27px;
-}
-
-/* Estado: texto neutro, el acento vive solo en el dot. Un glow tipo LED
-   (`box-shadow: 0 0 12px`) se lee como neón barato en el PNG — prohibido. */
-.share-card__status {
-  display: inline-flex;
-  align-items: center;
-  align-self: center;
-  gap: 12px;
-  flex: none;
-  padding: 13px 26px;
-  font-size: 19px;
-  font-weight: 650;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
-  white-space: nowrap;
-  border: 1px solid rgba(242, 183, 5, 0.4);
-  border-radius: 999px;
-  background: rgba(242, 183, 5, 0.09);
-}
-
-.share-card--ticket .share-card__status {
-  border-color: rgba(116, 172, 223, 0.45);
-  background: rgba(116, 172, 223, 0.09);
-}
-
-/* Sobre un retrato el pill necesita un fondo propio: la foto puede tener
-   cualquier luminancia detrás del texto. */
-.share-card--portrait .share-card__status {
-  background: rgba(10, 11, 14, 0.55);
-  border-color: rgba(242, 183, 5, 0.55);
-}
-
-.share-card--portrait.share-card--ticket .share-card__status {
-  border-color: rgba(116, 172, 223, 0.6);
-}
-
-.share-card__status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--card-accent);
-}
-
-.share-card--ticket .share-card__status-dot {
-  background: var(--card-accent-alt);
+  font-size: 23px;
 }
 
 /* ─── Body ────────────────────────────────────────────────────────
@@ -364,36 +323,45 @@
    .share-card__frame. */
 .share-card__seal-mark {
   box-sizing: border-box;
-  flex: none;
-  align-self: flex-start;
-  margin-bottom: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 232px;
-  height: 232px;
-  border-radius: 50%;
-  /* Peso liviano y aire alrededor: a este tamaño, letras bold llenan el
-     disco y se leen como una mancha sólida en miniatura (feed de
-     Instagram). El aire es lo que lo hace leer como medalla grabada. */
-  font-size: 78px;
+  /* Fuera del flujo: en el flex del cuerpo, un nombre de dos líneas lo
+     empujaba contra el borde superior y el monograma salía cortado. Como es
+     material y no contenido, se ancla al lienzo. */
+  position: absolute;
+  /* Arriba y chico: en 1:1 con un nombre de dos líneas, un monograma más
+     grande se cruzaba por detrás del nombre y ensuciaba el protagonista. */
+  top: 2.5%;
+  right: var(--card-gutter);
+  z-index: 4;
+  /* Iniciales grabadas en el material, no un disco con letras adentro: el
+     círculo con borde y relleno se leía como el avatar por defecto de
+     cualquier app. Acá el aire superior lo ocupa tipografía de la marca,
+     a escala de póster y en un tono que no compite con el nombre.
+
+     Relleno plano (sin -webkit-text-stroke): html2canvas no rasteriza el
+     trazo de texto y las letras salían macizas en el PNG. */
+  color: rgba(255, 255, 255, 0.06);
+  font-size: 220px;
+  /* Peso liviano y tracking abierto: a esta escala un 800 con tracking
+     negativo convierte dos iniciales en una masa rectangular (la lección ya
+     estaba aprendida en la versión de disco de esta misma pieza). El grabado
+     tiene que leerse como tipografía, no como mancha. */
   font-weight: 500;
-  letter-spacing: 0.04em;
-  text-indent: 0.04em;
-  color: var(--card-accent);
-  background-color: #16181f;
-  border: 2px solid rgba(242, 183, 5, 0.45);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
 }
 
 .share-card--ticket .share-card__seal-mark {
-  color: var(--card-accent-alt);
-  border-color: rgba(116, 172, 223, 0.5);
+  color: rgba(116, 172, 223, 0.07);
+}
+
+.share-card--membership .share-card__seal-mark {
+  color: rgba(242, 183, 5, 0.09);
 }
 
 .share-card--story .share-card__seal-mark {
-  width: 300px;
-  height: 300px;
-  font-size: 100px;
+  font-size: 340px;
+  top: 13%;
 }
 
 /* ─── Plinto de contenido ─────────────────────────────────────────
@@ -460,15 +428,32 @@
 }
 
 .share-card__eyebrow {
+  align-items: center;
+  display: flex;
   font-size: 22px;
-  font-weight: 500;
+  font-weight: 550;
+  gap: 14px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--card-accent);
+  color: rgba(255, 255, 255, 0.72);
 }
 
-.share-card--ticket .share-card__eyebrow {
-  color: var(--card-accent-alt);
+.share-card--story .share-card__eyebrow {
+  font-size: 24px;
+}
+
+/* El acento del bloque vive en el punto, no en el texto: sobre grafito el
+   oro a 22px con tracking amplio se leía como una etiqueta de oferta. */
+.share-card__eyebrow-dot {
+  border-radius: 50%;
+  flex: none;
+  height: 12px;
+  width: 12px;
+  background-color: var(--card-accent);
+}
+
+.share-card--ticket .share-card__eyebrow-dot {
+  background-color: var(--card-accent-alt);
 }
 
 .share-card__athlete-name {
@@ -480,10 +465,12 @@
   line-height: 0.96;
   letter-spacing: -0.035em;
   color: var(--card-text);
-  /* Truncar nombres muy largos */
+  /* Tres líneas: con dos, un nombre completo largo perdía el apellido — y el
+     apellido es justo lo que la persona quiere ver en su póster. El tamaño ya
+     baja por longitud (ver nameSize). */
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
@@ -618,8 +605,10 @@
   letter-spacing: 0.2em;
 }
 
+/* 46px: "Temporada 2026" mide ~455px a 52 y su columna es de 432, así que
+   partía en dos líneas. Medido, no estimado. */
 .share-card--story .share-card__field-value {
-  font-size: 56px;
+  font-size: 46px;
 }
 
 /* ─── Footer ──────────────────────────────────────────────────────
@@ -633,7 +622,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 32px;
+  /* 46px: las marcas de visor del QR sobresalen 11px del chip y necesitan aire
+     antes del texto de verificación. */
+  gap: 46px;
   margin: 40px var(--card-gutter) 56px;
   padding: 26px 0 0;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
@@ -656,15 +647,28 @@
 }
 
 .share-card__tagline {
+  display: block;
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.68);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .share-card--story .share-card__tagline {
   font-size: 22px;
+}
+
+/* Fecha de emisión: dato de documento, en el peso más bajo de la pieza. */
+.share-card__issued {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.36);
+}
+
+.share-card--story .share-card__issued {
+  font-size: 17px;
 }
 
 .share-card__qr-caption {
@@ -679,11 +683,16 @@
 }
 
 .share-card__url {
+  display: flex;
   flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(255, 255, 255, 0.44);
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -693,7 +702,79 @@
 
 /* ─── QR de verificación ──────────────────────────────────────────
    Chip blanco con quiet-zone propia: garantiza contraste/lectura sin
-   importar el fondo oscuro de la card. */
+   importar el fondo oscuro de la card. Las marcas de visor viven en el
+   bloque de alrededor, nunca sobre el papel. */
+.share-card__qr-block {
+  flex: none;
+  position: relative;
+}
+
+.share-card__qr-mark {
+  border-color: rgba(242, 183, 5, 0.8);
+  border-style: solid;
+  border-width: 0;
+  height: 22px;
+  position: absolute;
+  width: 22px;
+}
+
+.share-card--ticket .share-card__qr-mark {
+  border-color: rgba(116, 172, 223, 0.82);
+}
+
+.share-card__qr-mark--tl {
+  border-left-width: 3px;
+  border-top-width: 3px;
+  left: -11px;
+  top: -11px;
+}
+
+.share-card__qr-mark--tr {
+  border-right-width: 3px;
+  border-top-width: 3px;
+  right: -11px;
+  top: -11px;
+}
+
+.share-card__qr-mark--bl {
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+  bottom: -11px;
+  left: -11px;
+}
+
+.share-card__qr-mark--br {
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+  bottom: -11px;
+  right: -11px;
+}
+
+.share-card--story .share-card__qr-mark {
+  height: 28px;
+  width: 28px;
+}
+
+.share-card--story .share-card__qr-mark--tl,
+.share-card--story .share-card__qr-mark--tr {
+  top: -14px;
+}
+
+.share-card--story .share-card__qr-mark--bl,
+.share-card--story .share-card__qr-mark--br {
+  bottom: -14px;
+}
+
+.share-card--story .share-card__qr-mark--tl,
+.share-card--story .share-card__qr-mark--bl {
+  left: -14px;
+}
+
+.share-card--story .share-card__qr-mark--tr,
+.share-card--story .share-card__qr-mark--br {
+  right: -14px;
+}
+
 .share-card__qr-chip {
   box-sizing: border-box;
   flex: none;
@@ -730,33 +811,6 @@
    Marca más presente en el header y ficha de campos en vez de bloque
    editorial. El resto lo hereda de la composición base.
    ═══════════════════════════════════════════════════════════════════ */
-
-.share-card--membership .share-card__logo {
-  height: 112px;
-}
-
-.share-card--membership.share-card--story .share-card__logo {
-  height: 148px;
-}
-
-.share-card--membership .share-card__brand-name {
-  font-size: 28px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.share-card--membership.share-card--story .share-card__brand-name {
-  font-size: 34px;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.share-card--membership .share-card__status {
-  padding: 11px 20px;
-  font-size: 17px;
-  letter-spacing: 0.14em;
-}
 
 .share-card--membership .share-card__identity {
   gap: 22px;

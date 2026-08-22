@@ -25,13 +25,17 @@ describe('cinta de la cuenta como fuente única del orden', () => {
     // dejaría el panel entrando por el lado contrario al del tab que lo abrió.
     expect(ACCOUNT_TAB_IDS).toEqual([
       'account-qr',
-      // Ficha condicional: sólo se dibuja para quien canjeó un código secreto
-      // de oferta exclusiva, pero su posición vive acá igual — la dirección de
-      // la transición se lee del orden completo, no del filtrado.
-      'account-offer',
+      // Sin ficha de canje suelta: Beneficios se retiró de la cinta y el código
+      // se canjea dentro del checkout de Afiliación o de Inscripción, que es
+      // también donde se escanea su QR. No hay ruta pública de canje.
+      // Sin "Oferta exclusiva": las ofertas generadas por código quedaron
+      // retiradas (20260915100000) y ya no hay ficha que abrir.
       'account-events',
       'account-history',
       'account-membership',
+      // Los pagos van pegados a Afiliación: es donde nace el cobro y adonde
+      // apuntan los emails (`/mi-cuenta?section=payments`).
+      'account-payments',
       'account-personal-data',
       'account-security',
     ])
@@ -40,8 +44,11 @@ describe('cinta de la cuenta como fuente única del orden', () => {
   it('la página deriva la dirección del swap de ese orden', () => {
     const page = readFileSync('src/pages/AthleteProfilePage.jsx', 'utf8')
     expect(page).toContain("import MotionContentSwap from '../motion/MotionContentSwap.tsx'")
-    expect(page).toContain(
-      "import { ACCOUNT_OFFER_TAB, ACCOUNT_TAB_IDS, DEFAULT_ACCOUNT_TAB } from '../lib/navigation.js'",
+    // Lo que se está resguardando es de dónde sale el orden, no cómo quedó
+    // formateada la línea de import: la lista de constantes crece y Prettier la
+    // parte en varias líneas.
+    expect(page).toMatch(
+      /import \{[^}]*\bACCOUNT_TAB_IDS\b[^}]*\} from '\.\.\/lib\/navigation\.js'/s,
     )
     expect(page).toContain('ACCOUNT_TAB_IDS.indexOf(activeTab)')
     // `sync` y no `wait`: con `wait` el contenedor colapsa un frame entre el
@@ -73,9 +80,7 @@ describe('CSS del panel de la cuenta', () => {
   it('los dos paneles comparten celda durante la transición', () => {
     // Sin esto la grilla le da una fila a cada panel montado y la página se
     // estira al doble a mitad del cambio de tab.
-    expect(css).toMatch(
-      /\.account-sections > \.account-tab-panel \{[^}]*grid-area: 1 \/ 1;[^}]*\}/,
-    )
+    expect(css).toMatch(/\.account-sections > \.account-tab-panel \{[^}]*grid-area: 1 \/ 1;[^}]*\}/)
   })
 
   it('ya no queda el fade sin dirección que manejaba el cambio de tab', () => {
@@ -86,9 +91,9 @@ describe('CSS del panel de la cuenta', () => {
   it('el settle interno respeta reduced motion', () => {
     expect(css).toContain('@keyframes account-panel-settle')
     const reducedBlocks = css.match(/@media \(prefers-reduced-motion: reduce\) \{[^}]*\}[^}]*\}/g)
-    expect(
-      (reducedBlocks ?? []).some((block) => block.includes('account-section__heading')),
-    ).toBe(true)
+    expect((reducedBlocks ?? []).some((block) => block.includes('account-section__heading'))).toBe(
+      true,
+    )
   })
 
   it('anima sólo transform y opacity, sin transition: all', () => {
@@ -119,6 +124,9 @@ describe('AccountNav sigue anunciando el tab activo', () => {
     expect(screen.getByRole('tab', { name: 'Credencial' }).getAttribute('aria-selected')).toBe(
       'true',
     )
+
+    // Beneficios ya no es un tab: su canje se hace desde Afiliación.
+    expect(screen.queryByRole('tab', { name: 'Beneficios' })).toBe(null)
 
     fireEvent.click(screen.getByRole('tab', { name: 'Seguridad' }))
     expect(active).toBe('account-security')

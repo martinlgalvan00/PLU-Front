@@ -141,15 +141,33 @@ const CATALOG = [
     retryable: true,
   },
   {
+    code: 'MP_ACCOUNT_MISMATCH',
+    match: /MP_ACCOUNT_MISMATCH|otra cuenta de Mercado Pago|cuenta cobradora configurada/i,
+    title: 'El checkout y la recuperacion usan cuentas distintas de Mercado Pago',
+    cause:
+      'El intento guarda el collector_id de la cuenta que creo el pago, pero el proceso actual autentica contra otra cuenta. Esa cuenta no puede consultar ni acreditar ese recurso, aunque el id sea valido.',
+    fix: [
+      'Configurar MERCADO_PAGO_COLLECTOR_ID con el id de /users/me de la MISMA aplicacion que tiene el Access Token.',
+      'Separar las variables de Vercel DEV (TEST) y Production (PROD): Access Token, Public Key, webhook secret y collector id deben pertenecer a la misma aplicacion.',
+      'Corregir la configuracion y relanzar manualmente la conciliacion desde la orden; no acreditar ni descartar el pago a mano.',
+    ],
+    severity: 'blocker',
+    scope: 'configuracion',
+    // Repetir con las mismas credenciales nunca va a poder leer un recurso de
+    // otra cuenta. Se detiene hasta que alguien corrija la configuracion y lo
+    // relance de forma explicita.
+    retryable: false,
+  },
+  {
     code: 'PROVIDER_PAYMENT_NOT_FOUND',
     match: /Pago mock no encontrado|payment not found|resource not found|Not Found/i,
     title: 'Mercado Pago no reconoce ese pago',
     cause:
-      'La consulta canonica por el id de la notificacion devolvio 404. Suele ser una notificacion de otra aplicacion de MP (sandbox contra produccion), un reenvio de un pago borrado o una prueba manual.',
+      'La consulta canonica por el id devolvio 404. En un webhook puede ser una prueba manual o un id de otra aplicacion; durante la conciliacion de un pago que el checkout ya creo, suele indicar que otro proceso usa una cuenta o entorno distinto, o que el recurso sandbox dejo de existir.',
     fix: [
-      'Verificar que el id exista en el panel de MP de la MISMA aplicacion que tiene cargado el Access Token.',
-      'Confirmar que MERCADO_PAGO_ENV coincide con el entorno del que provino la notificacion.',
-      'Si el pago no existe, el evento se puede descartar: no hay dinero asociado.',
+      'Buscar tanto el id como el external_reference de la orden en la MISMA cuenta y aplicacion que creo el pago.',
+      'Comparar MERCADO_PAGO_ENV y la identidad del Access Token en todos los procesos; dejar un solo worker de recovery por entorno.',
+      'Si existe evidencia de Payment.create, no aprobar ni descartar a mano. Corregir el entorno y relanzar la conciliacion: validara referencia, monto y moneda antes de aplicar.',
     ],
     severity: 'degraded',
     scope: 'proveedor',
@@ -467,7 +485,8 @@ const REJECTION_DETAILS = {
   cc_rejected_card_disabled: 'Tarjeta inactiva. El atleta debe activarla con el banco.',
   cc_rejected_duplicated_payment:
     'Pago duplicado: ya existe uno igual reciente. Verificar antes de reintentar.',
-  cc_rejected_high_risk: 'Rechazo por prevencion de fraude de MP. Sugerir otro medio de pago.',
+  cc_rejected_high_risk:
+    'Mercado Pago rechazó el pago por prevención de fraude. No acreditar ni reintentar desde el panel; pedirle al atleta que use otro medio de pago o consulte con Mercado Pago.',
   cc_rejected_max_attempts: 'Se agotaron los intentos permitidos. Esperar y usar otra tarjeta.',
   cc_rejected_other_reason: 'El emisor rechazo el pago sin detalle. Reintentar con otro medio.',
   cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',

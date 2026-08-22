@@ -35,9 +35,11 @@ VITE_SUPABASE_ANON_KEY
 MERCADO_PAGO_ACCESS_TOKEN
 VITE_MERCADO_PAGO_PUBLIC_KEY
 MERCADO_PAGO_WEBHOOK_SECRET
+MERCADO_PAGO_COLLECTOR_ID
 APP_URL
 # API_URL es opcional: si falta, se usa APP_URL.
-PAYMENT_RECOVERY_JOB_ENABLED=true
+# false en local y Vercel; true solo en un unico worker persistente por entorno.
+PAYMENT_RECOVERY_JOB_ENABLED=false
 DOMAIN_MAINTENANCE_JOB_ENABLED=true
 CRON_SECRET
 ```
@@ -57,6 +59,17 @@ cuando la API se publique en un origen diferente.
 Configurar la URL publica HTTPS `POST /api/payments/webhook/mercadopago`.
 El path corto `/api/payments/webhook` sigue aceptado como alias legacy.
 El endpoint exige `data.id` en la query, valida `x-signature`, `x-request-id` y tolerancia temporal, guarda cada notificacion de forma idempotente y no acredita desde datos enviados por el navegador. Si Mercado Pago reintenta, la clave unica evita duplicar el efecto. El recovery job reclama eventos fallidos con lock, backoff y maximo de intentos; la conciliacion consulta el estado autoritativo de Mercado Pago.
+
+Ademas del backoff en minutos de la cola durable, las llamadas al proveedor
+reintentan in-process las fallas transitorias cortas
+(`server/modules/payments/providerRetry.js`): las lecturas idempotentes
+(`GET /v1/payments/:id`, search por `external_reference`, `/users/me`)
+reintentan red, timeout, 5xx y 429 con backoff `~500/1500/3500 ms` + jitter;
+las escrituras (crear preferencia/pago/suscripcion) reintentan **solo** 429 —la
+unica falla donde el proveedor garantiza que no proceso nada— respetando
+`Retry-After` con techo de 10 s. Un timeout o 5xx sobre un POST de cobro nunca
+se repite a ciegas: cae al camino de reconciliacion por `external_reference`,
+que pregunta que paso antes de crear otra operacion.
 
 ### URLs DEV y PROD (copiar/pegar)
 
@@ -101,6 +114,7 @@ MERCADO_PAGO_ENV=sandbox
 VITE_MERCADO_PAGO_PUBLIC_KEY=<public key TEST>
 MERCADO_PAGO_ACCESS_TOKEN=<access token TEST>
 MERCADO_PAGO_WEBHOOK_SECRET=<secret app TEST>
+MERCADO_PAGO_COLLECTOR_ID=<id de GET /users/me para token TEST>
 APP_URL=https://plu-git-dev-martinlgalvan00s-projects.vercel.app
 
 # Production (app PROD)
@@ -109,6 +123,7 @@ MERCADO_PAGO_ENV=production
 VITE_MERCADO_PAGO_PUBLIC_KEY=<public key PROD>
 MERCADO_PAGO_ACCESS_TOKEN=<access token PROD>
 MERCADO_PAGO_WEBHOOK_SECRET=<secret app PROD>
+MERCADO_PAGO_COLLECTOR_ID=<id de GET /users/me para token PROD>
 APP_URL=https://www.powerliftingunited.ar
 APP_PRODUCTION=true
 ```
@@ -188,18 +203,40 @@ informe que para Mercado Pago.
 
 - `GET /api/health`: confirma que la Function responde.
 - `GET /api/ready`: devuelve 200 solamente si Prisma y Supabase responden.
-- `PAYMENT_RECOVERY_JOB_ENABLED=true`: reprocesamiento de webhook y conciliacion.
+- `PAYMENT_RECOVERY_JOB_ENABLED=true`: inicia un loop residente de recuperacion;
+  usarlo solamente en un unico worker persistente por entorno. En local y
+  Vercel queda `false`: el cron autenticado ejecuta la recuperacion bajo demanda.
+- `PAYMENT_REVALIDATION_JOB_ENABLED=true`: mismo criterio, pero para el barrido
+  que corrige ordenes de Mercado Pago mal etiquetadas (`cancelado`/`rechazado`
+  local cuando el proveedor ya tiene un pago `approved`) releyendo el estado
+  real contra la API de MP — es el mismo camino que el boton "Revalidar" del
+  panel (`server/modules/payments/paymentRevalidationWorkflow.js`), corrido
+  con `apply: true` sobre las ultimas `PAYMENT_REVALIDATION_SINCE_DAYS` (3 por
+  defecto) ordenes no aprobadas. En Vercel queda `false`: el cron diario
+  autenticado lo ejecuta bajo demanda, complementado cada hora por
+  `.github/workflows/payment-revalidation-cron.yml` (mismo patron que
+  `payment-recovery-cron.yml`) para no depender del limite de una corrida
+  diaria del plan Hobby.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
 
 En Vercel, un scheduler invoca por `GET` los endpoints
 `/api/internal/jobs/payment-recovery`,
+`/api/internal/jobs/payment-revalidation`,
 `/api/internal/jobs/membership-renewal` y
 `/api/internal/jobs/security-user-lifecycle` con
 `Authorization: Bearer <CRON_SECRET>`. El mantenimiento de reservas y órdenes
 corre cada minuto en Supabase mediante la migración
 `20260724000000_domain_maintenance_cron.sql`. Los RPC de claim y las
 actualizaciones atómicas mantienen los reintentos idempotentes.
+
+Nota sobre `payment-revalidation`: a diferencia de `payment-recovery` (que
+drena colas de eventos que sí llegaron), este job existe para el caso donde
+ninguna entrada llegó — la notificación de Mercado Pago se perdió, el atleta
+cerró la pestaña antes de volver del checkout, y el cron de expiración
+(`expire_domain_orders`, cada 3 minutos) canceló la orden mientras tanto. Sin
+este job, esa orden queda `cancelado` hasta que alguien del staff la revalida
+a mano desde el panel.
 
 ## Auditoria, logs y diagnostico de fallas
 

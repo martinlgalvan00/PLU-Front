@@ -10,18 +10,30 @@
 ## Estados
 
 ### Atleta
+
 `pre_registrado` → `registrado` → `afiliado_activo` → `afiliado_vencido` | `bloqueado`
 
 ### Afiliación
+
 `pendiente_pago` → `activa` → `vencida` | `cancelada` | `reembolsada`
 
 ### Inscripción
+
 `borrador` → `pendiente_pago` → `pagada` → `confirmada` | `observada` | `cancelada`
 
 ### Pago
+
 `creado` → `pendiente` → `aprobado` | `rechazado` | `cancelado` | `reembolsado`
 
 ## Precios
+
+### Política vigente sobre códigos
+
+Los códigos sólo pueden aplicar descuentos porcentuales o precios fijos. Queda
+prohibido crear, activar, canjear, comprar o mostrar una oferta exclusiva
+generada mediante un código. Las filas históricas `kind='offer'` y
+`kind='access'` se conservan únicamente para auditoría: se desactivan y no se
+incluyen en catálogos, cuentas, checkouts ni paneles.
 
 Los planes de afiliación se leen de `membership_plans`. Cada cambio económico
 publica una fila versionada (`family_code`, `version`, `effective_from` y
@@ -34,10 +46,14 @@ precio propio de inscripción. Las afiliaciones y las ofertas conjuntas se
 administran desde **Tarifas**, para evitar dos valores distintos para el mismo
 concepto. El frontend nunca puede enviar el monto autoritativo de una orden.
 
-Una oferta conjunta vive en `event_combo_offers`, referencia una versión de
-afiliación de pago único y no puede superar la suma del plan más la inscripción.
+Una oferta conjunta —afiliación + inscripción— **se configura dentro de su código**
+(`discount_codes`: `membership_plan_id` + `fixed_price` + `event_id`). No hay una
+segunda pantalla ni un objeto aparte que haya que cargar antes: el código es la
+oferta. `event_combo_offers` sobrevive como historia de las órdenes que se
+cobraron con esos precios y su escritura está revocada desde 20260914100000; el
+checkout la sigue leyendo cuando una orden vieja la referencia.
 La compra se crea con `create_membership_registration_combo_order`: bajo una
-misma transacción bloquea atleta, evento, oferta y plan; reserva el cupo; crea
+misma transacción bloquea atleta, evento, oferta —si existe— y plan; reserva el cupo; crea
 una sola `athlete_payment_order` con `concept=combo`; y vincula a esa orden la
 afiliación y la inscripción. El precio, la moneda y el plan siempre se releen
 del catálogo en PostgreSQL y nunca llegan como datos autoritativos del browser.
@@ -53,12 +69,36 @@ una con su propio interruptor. La fecha **Abre la inscripción** del panel
 administración del catálogo económico conserva su política de escritura
 separada.
 
+Una oferta conjunta es siempre **secreta**: se reparte como código
+(`audience='code'`), no aparece en ninguna landing ni dashboard hasta que el
+atleta lo canjea, y el canje abre su ficha privada en Mi cuenta. El checkout
+vuelve a validar precio, alcance, cupo y ventana en el servidor. Ya no existe un
+paquete "público" ni uno "privado": esos eran estados de visibilidad del combo
+como objeto, y el objeto dejó de configurarse. Un combo histórico marcado privado
+sigue pausando los códigos secretos que lo referencian.
+
+El panel ofrece **tres tipos de código**, y son los tres únicos: descuento por
+porcentaje (`kind='percent'`), precio fijo promocional (`fixed_price`) y combo u
+oferta (`offer`) —el paquete de afiliación + inscripción con su propio importe—.
+El tercero exige evento, afiliación empaquetada e importe: es todo su contrato.
+`kind='access'` —la oferta sin precio propio, que cobraba el del combo— ya no se
+puede crear ni viaja en el contrato de la API; las filas históricas siguen siendo
+válidas y, editadas desde el panel, se guardan como `offer`.
+
 Una **oferta exclusiva** es un `discount_codes` con `kind='offer'`: un código
-secreto que no descuenta sino que desbloquea el combo de una inscripción y le
-fija su propio precio. Exige `applies_to='combo'`, `audience='code'`,
-`event_id` (a qué inscripción aplica) y un `fixed_price` menor al precio del
-combo de ese evento; el alta lo rechaza si la inscripción todavía no tiene combo
-configurado. `kind='access'` sigue siendo el desbloqueo sin precio.
+secreto que no descuenta sino que vende el paquete de afiliación + inscripción a
+su propio precio. Exige `applies_to='combo'`, `audience='code'`, `event_id` (a
+qué inscripción aplica), `membership_plan_id` (qué afiliación empaqueta) y un
+`fixed_price` menor a lo que ese atleta pagaría sin el código: el precio del
+combo si el evento tiene uno encendido, o la suma del plan más la inscripción si
+no lo tiene.
+
+**No hay nada que cargar antes de crear una oferta.** El código se sostiene solo:
+trae su paquete, su precio y su ventana. El checkout resuelve el paquete con la
+llave que el atleta ya canjeó (`discount_code_unlocks`), crea la orden al precio
+de lista y el código la baja al importe pactado —la orden nunca nace por debajo
+del catálogo sin un código que la baje—. Borrar la afiliación que una oferta
+empaqueta queda bloqueado mientras esa oferta exista.
 
 El alcance por inscripción (`discount_codes.event_id`, opcional para el resto de
 las modalidades) se verifica en el canje contra el evento **real** de la orden
@@ -71,8 +111,40 @@ Canjear el código y comprar con él son dos hechos distintos.
 no lleva importe y no entra en los reportes de Finanzas. `discount_code_redemptions`
 sigue siendo el registro contable y es lo que consume `max_redemptions`, escrito
 recién dentro de la transacción que crea la orden. El unlock es lo que sostiene la
-ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos; el código
-se puede canjear tanto desde Afiliación como desde el checkout de inscripción.
+ficha **Oferta exclusiva** de Mi cuenta entre sesiones y dispositivos. El canje
+se ofrece dentro del checkout de **Afiliación** o **Inscripción**, donde además
+puede recalcular el precio. Calendario, ficha del evento, Pitbull Classic y
+Entradas no muestran un formulario de canje.
+**No hay página pública de canje.** Un código no se abre desde ninguna URL propia:
+se tipea —o se escanea con el botón de cámara del mismo campo— dentro del checkout
+que lo va a cobrar, y el campo nace plegado detrás de "Tengo un código". Desde ahí
+el resolvedor manda a donde corresponda: aplica el descuento si el código es del
+concepto que se está pagando, desbloquea la oferta secreta y salta a su pestaña, o
+abre el checkout del torneo cuando pertenece a una inscripción. El QR que reparte
+Precios codifica el código pelado, porque su destino es ese botón de escaneo. Luego de confirmarlo, la interfaz muestra qué habilitó y abre el
+checkout o la pestaña privada correspondiente. Conocer el código no vuelve
+pública la oferta en ningún catálogo.
+
+La ficha **Oferta exclusiva** es transitoria: se muestra sólo mientras el
+atleta pueda iniciar la compra o retomar una orden que todavía requiere una
+acción. Desaparece cuando Finanzas aprueba la orden. Si una orden manual tiene
+`financing_allowed = true`, desaparece apenas la declaración de transferencia
+otorga provisionalmente afiliación e inscripción; la deuda y su validación
+continúan visibles en Pagos, mientras los derechos se consultan en Afiliación y
+Torneos. Una transferencia sin FIAR puede conservar la ficha durante la espera
+de validación, pero deja de mostrarla cuando la orden se acredita.
+
+La experiencia promocional se modela como campaña: `promotion_campaigns`
+define nombre, visibilidad y destino; `promotion_campaign_benefits` describe el
+beneficio; y `discount_codes` conserva la llave y el contrato económico que se
+valida al crear la orden. `athlete_redeem_promotion_code` es el resolvedor
+universal para Afiliación, Inscripción, Evento, Entradas y enlaces `/canjear`.
+Puede desbloquear una ficha o preparar un código para el checkout, pero nunca
+confirma pagos ni consume cupo. El cupo se consume sólo al crear la orden.
+
+Un código con exactamente un email invitado se considera **personal**. El
+enlace y el QR no contienen privilegios adicionales: sólo transportan el código
+y el backend vuelve a validar atleta, vigencia, cupo, evento y audiencia.
 
 Cada atleta tiene un único `credential_token` estable. Pagar un combo no crea
 otro QR ni modifica el anterior: la consulta de credencial resuelve en tiempo
@@ -94,12 +166,12 @@ por compatibilidad y referencia un
 `AccessRole`, cuya matriz de `AccessPermission` es la fuente autoritativa para
 API y panel.
 
-| Jerarquía | Rol | Alcance predeterminado |
-|-----------|-----|------------------------|
-| 1 | Super Admin | Acceso total y protegido; supervisa toda la jerarquía |
-| 2 | Administrador | Acceso total y protegido; administra PLU y Seguridad |
-| 3 | PLU | Representación de la federación; lectura operativa y exportación institucional |
-| 4 | Seguridad | Eventos y check-in; su alcance puede ampliarse sin delegar administración |
+| Jerarquía | Rol           | Alcance predeterminado                                                         |
+| --------- | ------------- | ------------------------------------------------------------------------------ |
+| 1         | Super Admin   | Acceso total y protegido; supervisa toda la jerarquía                          |
+| 2         | Administrador | Acceso total y protegido; administra PLU y Seguridad                           |
+| 3         | PLU           | Representación de la federación; lectura operativa y exportación institucional |
+| 4         | Seguridad     | Eventos y check-in; su alcance puede ampliarse sin delegar administración      |
 
 Reglas:
 
@@ -172,6 +244,35 @@ confirmada alcanza para ingresar.
 
 Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
 conciliación server-side. Finanzas puede aprobar solamente métodos manuales.
+
+En transferencia y efectivo el atleta puede declarar que realizó la entrega.
+La declaración cambia la orden a `validacion_manual`, evita su vencimiento
+automático y genera auditoría, pero **no acredita el pago** ni crea un asiento
+en `athlete_payments`: la aprobación sigue siendo exclusiva de Finanzas. Si la
+orden fotografió `financing_allowed = true`, esa declaración habilita
+provisionalmente afiliación e inscripción mientras la deuda permanece abierta.
+Un rechazo de Finanzas revoca ambos derechos provisionales.
+
+El financiamiento es una condición **del código** (`discount_codes.financed`) y,
+para el combo restringido, también de la oferta (`event_combo_offers.financed`).
+`plu_private.settle_order_financing` es la única regla que lo decide, y corre en
+los tres checkouts —afiliación, inscripción y combo— después de que el canal
+quedó escrito: sólo fotografía `financing_allowed` sobre transferencia o efectivo,
+porque son los únicos canales donde existe una declaración del atleta. Mercado
+Pago acredita solo y Wise tiene su propia validación en USD. Un código no puede
+financiar sin declarar al menos un canal manual —sería un interruptor inerte— ni
+siendo una promo pública, que se aplica sola a todas las compras del concepto. La
+bandera nunca se apaga sola: habilitar es automático, revocar es una decisión de
+Finanzas al rechazar.
+
+En el panel esas tres columnas —`mercado_pago_enabled`, `manual_channels`,
+`financed`— se cargan como **una sola decisión**, "cómo se cobra", con tres
+modos: *Mercado Pago* (la pasarela acredita sola), *sólo efectivo o
+transferencia* (Finanzas valida antes de habilitar) y *efectivo o transferencia
+que habilita al avisar el pago* (el financiamiento). Elegir un modo manual abre
+los canales y cierra la pasarela; se puede reabrir y estrechar los canales dentro
+del modo. Ninguna combinación que la base rechaza es alcanzable desde el
+formulario: el financiamiento no puede quedar inerte ni existir sin canal manual.
 
 Un `external_payment_id` de un proveedor pertenece a una única orden en todo el
 sistema, incluso entre entradas y afiliaciones. Una suscripción queda ligada al

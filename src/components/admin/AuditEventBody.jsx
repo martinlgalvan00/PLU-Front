@@ -1,11 +1,12 @@
-import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { presentAuditEvent } from '../../lib/auditPresentation.js'
 import { AdminMonoCell } from './AdminTableCells.jsx'
+import es from '../../i18n/locales/es.js'
+import { translate } from '../../i18n/translate.js'
 
-function formatTimestamp(value, locale) {
+function formatTimestamp(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return String(value)
-  return date.toLocaleString(locale === 'en' ? 'en-US' : 'es-AR', {
+  return date.toLocaleString('es-AR', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -13,9 +14,9 @@ function formatTimestamp(value, locale) {
   })
 }
 
-function FactValue({ field, value, locale }) {
+function FactValue({ field, value }) {
   if (field === 'nextRetryAt') {
-    return formatTimestamp(value, locale)
+    return formatTimestamp(value)
   }
   if (field === 'attempt') {
     return String(value)
@@ -27,7 +28,6 @@ function FactValue({ field, value, locale }) {
 }
 
 export default function AuditEventBody({ row, labels }) {
-  const { locale, t } = useI18n()
   const { lead, leadKind, facts, hasStory } = presentAuditEvent(row)
   const technical = [
     row.entityId
@@ -62,7 +62,7 @@ export default function AuditEventBody({ row, labels }) {
             <div key={field}>
               <dt>{labels.field(field)}</dt>
               <dd>
-                <FactValue field={field} value={value} locale={locale} />
+                <FactValue field={field} value={value} />
               </dd>
             </div>
           ))}
@@ -71,7 +71,7 @@ export default function AuditEventBody({ row, labels }) {
 
       {technical.length > 0 ? (
         <details className="audit-event__technical">
-          <summary>{t('admin.audit.technicalDetails')}</summary>
+          <summary>{translate(es, 'admin.audit.technicalDetails')}</summary>
           <dl>
             {technical.map((item) => (
               <div key={item.key}>

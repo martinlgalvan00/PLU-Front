@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from './lib/supabaseAdmin.js'
 import { startEmailDispatchJob } from './jobs/emailDispatchJob.js'
 import { startMembershipRenewalJob } from './jobs/membershipRenewalJob.js'
 import { startPaymentRecoveryJob } from './jobs/paymentRecoveryJob.js'
+import { startPaymentRevalidationJob } from './jobs/paymentRevalidationJob.js'
 import { startDomainMaintenanceJob } from './jobs/domainMaintenanceJob.js'
 import { startSecurityUserLifecycleJob } from './jobs/securityUserLifecycleJob.js'
 
@@ -46,5 +47,6 @@ applyServerRuntimeDefaults(server)
 startEmailDispatchJob({ client: getSupabaseAdmin() })
 startMembershipRenewalJob({ client: getSupabaseAdmin() })
 startPaymentRecoveryJob({ client: getSupabaseAdmin() })
+startPaymentRevalidationJob({ client: getSupabaseAdmin() })
 startDomainMaintenanceJob({ client: getSupabaseAdmin() })
 startSecurityUserLifecycleJob({ prisma: getPrisma(), client: getSupabaseAdmin() })

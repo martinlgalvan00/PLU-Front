@@ -124,17 +124,23 @@ export default function EventShareCard({
   // que la escala es más generosa que antes; la historia tiene más alto y
   // sube otro escalón.
   const nameLength = resolvedAthleteName.trim().length
+  // El escalón de >30 existe para que un nombre completo largo entre en tres
+  // líneas en vez de perder el apellido en el line-clamp.
   const nameSize = isStory
-    ? nameLength > 22
-      ? 112
-      : nameLength > 16
-        ? 136
-        : 158
-    : nameLength > 22
-      ? 84
-      : nameLength > 16
-        ? 104
-        : 120
+    ? nameLength > 30
+      ? 98
+      : nameLength > 22
+        ? 118
+        : nameLength > 16
+          ? 142
+          : 166
+    : nameLength > 30
+      ? 76
+      : nameLength > 22
+        ? 90
+        : nameLength > 16
+          ? 112
+          : 128
 
   // Iniciales del atleta para el sello cuando no hay foto — la
   // personalización de la pieza sin superponer texto alguno.
@@ -245,17 +251,18 @@ export default function EventShareCard({
         </>
       )}
 
-      {/* ── Marco interior fino (gesto credencial impresa) ── */}
-      <div className="share-card__frame" aria-hidden />
-
-      {/* ── Franja de acento superior ── */}
-      <div className="share-card__stripe-top" />
+      {/* ── Firma: barra oro grabada al canto, la misma de la credencial
+             digital. Reemplaza al marco interior + franja superior: dos
+             firmas de marca en la misma pieza se anulaban entre sí. ── */}
+      <div className="share-card__signature" aria-hidden />
 
       {/* ── Textura sutil: líneas finas, look "foil". Sobre un retrato
              sobra material, así que solo entra en la variante con sello. ── */}
       {!hasPhoto && <div className="share-card__texture" aria-hidden />}
 
-      {/* ── Header: marca + estado ── */}
+      {/* ── Header: solo la marca. El estado bajó al plinto, pegado al
+             nombre: arriba competía con el escudo y obligaba a un segundo
+             acento en la franja superior. ── */}
       <header className="share-card__header">
         <div className="share-card__brand">
           <img
@@ -269,16 +276,6 @@ export default function EventShareCard({
           />
           <span className="share-card__brand-name">{t('shareCard.brandName')}</span>
         </div>
-        <span className="share-card__status">
-          <span className="share-card__status-dot" aria-hidden />
-          {isUnified
-            ? t('shareCard.statusUnified')
-            : isMembership
-              ? t('shareCard.statusMembership')
-              : isTicket
-                ? t('shareCard.statusTicket')
-                : t('shareCard.statusEvent')}
-        </span>
       </header>
 
       {/* ── Cuerpo: sello (sin foto) + identidad + datos, anclado al pie ── */}
@@ -299,18 +296,19 @@ export default function EventShareCard({
           {hasPhoto && <div className="share-card__plate-veil" aria-hidden />}
 
           <div className="share-card__identity">
-            {/* La afiliación no lleva eyebrow: el estado ya vive en el header y
-                la ficha de abajo da el contexto. Un tercer rótulo sobre el
-                nombre solo repetía "socio" tres veces en la misma pieza. */}
-            {!isMembership && (
-              <span className="share-card__eyebrow">
-                {isUnified
+            {/* Un solo rótulo sobre el nombre, con el dot del estado: es a la
+                vez el estado (que antes vivía en un pill arriba) y el contexto
+                de la pieza. */}
+            <span className="share-card__eyebrow">
+              <span className="share-card__eyebrow-dot" aria-hidden />
+              {isMembership
+                ? t('shareCard.statusMembership')
+                : isUnified
                   ? t('shareCard.eyebrowUnified')
                   : isTicket
                     ? t('shareCard.eyebrowTicket')
                     : t('shareCard.eyebrowEvent')}
-              </span>
-            )}
+            </span>
             <h2 className="share-card__athlete-name" style={{ fontSize: nameSize }}>
               {resolvedAthleteName}
             </h2>
@@ -380,13 +378,22 @@ export default function EventShareCard({
       {/* ── Footer: QR de verificación + firma de marca ── */}
       <footer className="share-card__footer">
         {qrSrc && (
-          <div className="share-card__qr-chip">
-            <img src={qrSrc} alt="" className="share-card__qr-img" />
+          /* Marcas de visor alrededor del chip (no encima): el gesto de "esto
+             se escanea". Van por fuera del papel blanco a propósito — dentro
+             comerían la quiet zone del código, que es lo que garantiza el
+             escaneo. Bordes planos, que html2canvas rasteriza sin sorpresas. */
+          <div className="share-card__qr-block">
+            <div className="share-card__qr-chip">
+              <img src={qrSrc} alt="" className="share-card__qr-img" />
+            </div>
+            <span className="share-card__qr-mark share-card__qr-mark--tl" aria-hidden />
+            <span className="share-card__qr-mark share-card__qr-mark--tr" aria-hidden />
+            <span className="share-card__qr-mark share-card__qr-mark--bl" aria-hidden />
+            <span className="share-card__qr-mark share-card__qr-mark--br" aria-hidden />
           </div>
         )}
 
         <div className="share-card__footer-col">
-          <span className="share-card__tagline">{t('shareCard.tagline')}</span>
           <span className="share-card__qr-caption">
             {qrSrc
               ? isMembership
@@ -394,9 +401,17 @@ export default function EventShareCard({
                 : t('shareCard.qrScan')
               : t('shareCard.issued', { date: issuedDate })}
           </span>
+          <span className="share-card__issued">{t('shareCard.issued', { date: issuedDate })}</span>
         </div>
 
-        <span className="share-card__url">plu-arg.com{qrSrc ? ` · ${issuedDate}` : ''}</span>
+        {/* Firma de marca: el handle es lo que hace que la pieza vuelva a la
+            federación cuando alguien la sube. */}
+        <span className="share-card__url">
+          <span className="share-card__tagline">{t('shareCard.tagline')}</span>
+          {/* En la afiliación el pie invita: es la pieza que alguien sube a su
+              historia y la que hace que el que la ve quiera afiliarse. */}
+          {isMembership || isUnified ? t('shareCard.joinCta') : 'plu-arg.com'}
+        </span>
       </footer>
     </div>
   )

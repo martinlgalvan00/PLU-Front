@@ -4,9 +4,9 @@ import { runDomainMaintenanceJob } from '../jobs/domainMaintenanceJob.js'
 import { runEmailDispatchJob } from '../jobs/emailDispatchJob.js'
 import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
 import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
+import { runPaymentRevalidationJob } from '../jobs/paymentRevalidationJob.js'
 import { runSecurityUserLifecycleJob } from '../jobs/securityUserLifecycleJob.js'
 import { HttpError } from '../lib/errors.js'
-import { PAYMENT_RECOVERY_JOB_ENABLED } from '../modules/payments/paymentRuntimeDefaults.js'
 
 function hasValidCronAuthorization(request, secret) {
   const expected = Buffer.from(`Bearer ${secret}`)
@@ -26,6 +26,7 @@ export function createInternalJobRoutes({
     emailDispatch: runners.emailDispatch ?? runEmailDispatchJob,
     membershipRenewal: runners.membershipRenewal ?? runMembershipRenewalJob,
     paymentRecovery: runners.paymentRecovery ?? runPaymentRecoveryJob,
+    paymentRevalidation: runners.paymentRevalidation ?? runPaymentRevalidationJob,
     securityUserLifecycle: runners.securityUserLifecycle ?? runSecurityUserLifecycleJob,
   }
 
@@ -44,12 +45,17 @@ export function createInternalJobRoutes({
   })
 
   router.get('/jobs/payment-recovery', async (_req, res) => {
-    if (!PAYMENT_RECOVERY_JOB_ENABLED) {
-      res.json({ status: 'disabled', job: 'payment-recovery' })
-      return
-    }
     const result = await run.paymentRecovery({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'payment-recovery', result })
+  })
+
+  // Corrige ordenes de Mercado Pago mal etiquetadas (cancelado/rechazado
+  // cuando la plata en realidad entro) releyendo el estado real del
+  // proveedor. Sin flag, igual que payment-recovery: la corrida disparada
+  // por el cron es unica y no compite con el loop residente opcional.
+  router.get('/jobs/payment-revalidation', async (_req, res) => {
+    const result = await run.paymentRevalidation({ client: getSupabaseAdmin?.(), env })
+    res.json({ status: 'completed', job: 'payment-revalidation', result })
   })
 
   // Vacía la cola de emails en 'retrying'. Habilitado salvo que sea 'false':

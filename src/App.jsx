@@ -6,6 +6,7 @@ import DocumentMetaSync from './components/layout/DocumentMetaSync.jsx'
 import PageTransition from './components/layout/PageTransition.jsx'
 import PageErrorBoundary from './components/layout/PageErrorBoundary.jsx'
 import PageLoadFallback from './components/ui/PageLoadFallback.jsx'
+import HelpLayer from './components/ui/HelpLayer.jsx'
 import { useAppData } from './hooks/useAppData.js'
 import { readCredentialParams } from './lib/credentialQr.js'
 import {
@@ -47,7 +48,9 @@ import { reconcileMercadoPagoReturn } from './services/paymentService.js'
 import {
   ACCOUNT_EVENTS_TAB,
   ACCOUNT_MEMBERSHIP_TAB,
+  ACCOUNT_PAYMENTS_TAB,
   DEFAULT_ACCOUNT_TAB,
+  accountTabFromSectionParam,
   getTransitionDirection,
   resolveAfterLoginDestination,
   resolveMembershipCheckout,
@@ -125,7 +128,11 @@ export default function App() {
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
-  const [profileTab, setProfileTab] = useState(DEFAULT_ACCOUNT_TAB)
+  // `?section=` llega en los emails de pago; sin leerlo, "revisá el estado de
+  // tu pago" abría la cuenta en la credencial.
+  const [profileTab, setProfileTab] = useState(
+    () => accountTabFromSectionParam() ?? DEFAULT_ACCOUNT_TAB,
+  )
   const [profileTabNonce, setProfileTabNonce] = useState(0)
   const [ticketEventSlug, setTicketEventSlug] = useState(() =>
     matchTicketsRoute() ? getTicketsRouteEventSlug() : null,
@@ -163,7 +170,11 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const paymentReturn = params.get('payment')
-    if (!['success', 'pending'].includes(paymentReturn ?? '')) return
+    // `failure` llega cuando el pago se hizo con saldo de cuenta MP: esa opción
+    // sale del sitio y vuelve por `back_urls`, así que sin conciliar acá el
+    // rechazo quedaba sin mostrarse hasta que la persona entrara a Pagos por su
+    // cuenta (o nunca, si no sabía que existía esa pantalla).
+    if (!['success', 'pending', 'failure'].includes(paymentReturn ?? '')) return
 
     const orderId = params.get('order') || params.get('external_reference')
     if (!orderId) return
@@ -193,9 +204,17 @@ export default function App() {
       .then((result) => {
         if (result?.reconciled) {
           const orderConcept = result.order?.concept ?? result.order?.payment_order?.concept ?? null
-          const targetProfileTab = ['registration', 'combo'].includes(orderConcept)
-            ? ACCOUNT_EVENTS_TAB
-            : DEFAULT_ACCOUNT_TAB
+          const orderStatus = result.order?.status ?? result.payment?.status ?? null
+          // El estado conciliado manda sobre el `payment=` de la URL: si MP dice
+          // rechazado, la persona tiene que caer en Pagos (ahí está el motivo y
+          // el botón para reintentar), sin importar a qué tab la llevaría un
+          // pago aprobado del mismo tipo de orden.
+          const targetProfileTab =
+            orderStatus === 'rechazado'
+              ? ACCOUNT_PAYMENTS_TAB
+              : ['registration', 'combo'].includes(orderConcept)
+                ? ACCOUNT_EVENTS_TAB
+                : DEFAULT_ACCOUNT_TAB
           window.dispatchEvent(
             new CustomEvent('plu:payment-updated', {
               detail: {
@@ -240,6 +259,13 @@ export default function App() {
       const publicView = matchPublicViewPath()
       if (publicView) {
         setEventPageSlug(null)
+        if (publicView === 'profile') {
+          const sectionTab = accountTabFromSectionParam()
+          if (sectionTab) {
+            setProfileTab(sectionTab)
+            setProfileTabNonce((current) => current + 1)
+          }
+        }
         setView(publicView)
         return
       }
@@ -253,7 +279,7 @@ export default function App() {
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [])
+  }, [getSession])
 
   const navigate = useCallback(
     (nextView, options = {}) => {
@@ -265,8 +291,8 @@ export default function App() {
         pendingAthleteDestination,
       )
       const requestedView = afterLogin.view
-      const requestedOptions = afterLogin.view === nextView ? options : afterLogin.options
-      const resumedAthleteDestination = requestedView !== nextView
+      const resumedAthleteDestination = afterLogin === pendingAthleteDestination
+      const requestedOptions = resumedAthleteDestination ? afterLogin.options : options
       const adminRequired = requestedView === 'admin'
       const athleteRequired = ['profile', 'membership', 'competition'].includes(requestedView)
       const blocked =
@@ -332,11 +358,24 @@ export default function App() {
         setProfileTab(resolvedOptions.tab || DEFAULT_ACCOUNT_TAB)
         setProfileTabNonce((current) => current + 1)
       }
+      if (resolvedView === 'competition' && resolvedOptions.eventSlug) {
+        // `app.adminEvents` requiere el permiso `admin.events.read` — para
+        // cualquier atleta normal queda vacío y este lookup nunca encontraba
+        // nada, así que `selectedEvent` se quedaba con lo que hubiera antes
+        // (otro torneo, o el de arranque) y la navegación por código secreto
+        // terminaba en el checkout equivocado. `publicEvents` es el catálogo
+        // público, sin permiso de por medio, y ya es lo que usa el resto de
+        // la app para mostrar/elegir eventos.
+        const promotionEvent = publicEvents.find(
+          (event) => event.slug === resolvedOptions.eventSlug,
+        )
+        if (promotionEvent) setSelectedEvent(promotionEvent)
+      }
 
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [getSession, pendingAthleteDestination, view],
+    [publicEvents, getSession, pendingAthleteDestination, view],
   )
 
   function selectEvent(event) {
@@ -539,12 +578,11 @@ export default function App() {
           onCreateMembershipPlanVersion={app.createMembershipPlanVersion}
           onDeleteMembershipPlan={app.deleteMembershipPlan}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
-          onSaveEventComboOffer={app.saveEventComboOffer}
-          onDeleteEventComboOffer={app.deleteEventComboOffer}
           onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}
           onUpsertDiscountCode={app.upsertDiscountCode}
           onSetDiscountCodeState={app.setDiscountCodeState}
           onDeleteDiscountCode={app.deleteDiscountCode}
+          onSimulatePromotionCode={app.simulatePromotionCode}
           billingSubscriptions={app.billingSubscriptions}
           billingSubscriptionsLoading={app.billingSubscriptionsLoading}
           billingSubscriptionsError={app.billingSubscriptionsError}
@@ -695,6 +733,8 @@ export default function App() {
         view="profile"
         navigate={navigate}
         transitionDirection={transitionDirection}
+        helpEvent={featuredEvent}
+        onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
           <AthleteProfilePage
@@ -703,12 +743,14 @@ export default function App() {
             onActivateMembership={app.activateDemoMembership}
             onCancelMembership={app.cancelDemoMembership}
             onStartMembershipPayment={app.startMembershipPayment}
+            onStartOfferPayment={app.startOfferPayment}
             demoMode={app.demoMode}
             onNavigate={navigate}
             onSelectEvent={selectEvent}
             onUpdateProfile={app.updateAthleteProfileAction}
             onUpdatePhoto={app.updateAthletePhotoAction}
             onRemovePhoto={app.removeAthletePhotoAction}
+            payments={app.payments}
             registrations={app.registrations}
             session={app.session}
             events={publicEvents}
@@ -733,6 +775,8 @@ export default function App() {
         view={view}
         navigate={navigate}
         transitionDirection={transitionDirection}
+        helpEvent={competitionEvent}
+        onSelectEvent={selectEvent}
       >
         <Suspense fallback={<PageLoadFallback />}>
           <RegisterPage
@@ -799,11 +843,30 @@ export default function App() {
         </PageErrorBoundary>
       </PageTransition>
       {!['login', 'register'].includes(view) && <Footer onNavigate={navigate} />}
+      {/* Fuera de PageTransition: el botón de ayuda no se desmonta al cambiar
+          de pantalla, así que sigue estando donde la persona lo dejó. */}
+      <HelpLayer
+        event={featuredEvent}
+        memberships={app.memberships}
+        onNavigate={navigate}
+        onSelectEvent={selectEvent}
+        registrations={app.registrations}
+        session={app.session}
+        view={view}
+      />
     </div>
   )
 }
 
-function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
+function PrivateLayout({
+  app,
+  children,
+  navigate,
+  view,
+  transitionDirection,
+  helpEvent = null,
+  onSelectEvent,
+}) {
   return (
     <div className="app-shell">
       <EmailVerificationNotice />
@@ -837,6 +900,15 @@ function PrivateLayout({ app, children, navigate, view, transitionDirection }) {
         </PageErrorBoundary>
       </PageTransition>
       <Footer onNavigate={navigate} />
+      <HelpLayer
+        event={helpEvent}
+        memberships={app.memberships}
+        onNavigate={navigate}
+        onSelectEvent={onSelectEvent}
+        registrations={app.registrations}
+        session={app.session}
+        view={view}
+      />
     </div>
   )
 }

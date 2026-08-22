@@ -66,17 +66,72 @@ describe('operación de afiliaciones', () => {
     expect(screen.queryByRole('button', { name: 'Dar de baja' })).toBeNull()
   })
 
-  it('pide confirmación antes de dar de baja y ejecuta una sola transición', async () => {
+  /** Escribe el motivo en el diálogo abierto. Sin esto no se puede confirmar. */
+  function fillReason(text = 'Transferencia recibida el 20/08.') {
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: text } })
+  }
+
+  it('pide confirmación y motivo antes de dar de baja, y ejecuta una sola transición', async () => {
     const onSetMembershipStatus = vi.fn(async () => ({ membership: membership({ status: 'cancelada' }) }))
     renderSection([membership()], { onSetMembershipStatus })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Dar de baja' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
     expect(screen.getByRole('dialog')).toBeTruthy()
     expect(onSetMembershipStatus).not.toHaveBeenCalled()
 
+    // El motivo es obligatorio: sin él el botón no habilita. Es la regla que
+    // faltaba y que dejó tres afiliaciones activas sin explicación en la base.
+    expect(screen.getByRole('button', { name: 'Confirmar baja' }).disabled).toBe(true)
+
+    fillReason('Se dio de baja por pedido del atleta.')
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar baja' }))
+
     await waitFor(() => expect(onSetMembershipStatus).toHaveBeenCalledTimes(1))
-    expect(onSetMembershipStatus).toHaveBeenCalledWith('mem-1', 'cancelada')
+    expect(onSetMembershipStatus).toHaveBeenCalledWith('mem-1', 'cancelada', {
+      reason: 'Se dio de baja por pedido del atleta.',
+      channel: null,
+    })
+  })
+
+  it('exige canal y motivo para activar a mano, y los manda al backend', async () => {
+    const onSetMembershipStatus = vi.fn(async () => ({ membership: membership() }))
+    renderSection([membership({ status: 'pendiente_pago' })], { onSetMembershipStatus })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
+
+    const confirm = () => screen.getByRole('button', { name: 'Activar y registrar el motivo' })
+    expect(confirm().disabled).toBe(true)
+
+    // Con motivo pero sin canal sigue bloqueado: activar a mano atribuye plata
+    // que entró por fuera, y Finanzas necesita saber por dónde entró.
+    fillReason('Pagó por transferencia, comprobante en el grupo.')
+    expect(confirm().disabled).toBe(true)
+
+    fireEvent.change(screen.getByLabelText('¿Por dónde se resolvió?'), {
+      target: { value: 'bank_transfer' },
+    })
+    expect(confirm().disabled).toBe(false)
+
+    fireEvent.click(confirm())
+    await waitFor(() => expect(onSetMembershipStatus).toHaveBeenCalledTimes(1))
+    expect(onSetMembershipStatus).toHaveBeenCalledWith('mem-1', 'activa', {
+      reason: 'Pagó por transferencia, comprobante en el grupo.',
+      channel: 'bank_transfer',
+    })
+  })
+
+  it('avisa que la orden de Mercado Pago no se acredita al activar a mano', () => {
+    renderSection([membership({ status: 'pendiente_pago' })], {
+      onSetMembershipStatus: vi.fn(),
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
+
+    // Marcar la orden como aprobada falsearía los ingresos: el diálogo lo dice
+    // para que nadie espere ver el pago en verde ni intente "arreglarlo".
+    expect(screen.getByRole('dialog').textContent).toContain(
+      'La orden de Mercado Pago queda cancelada',
+    )
   })
 
   it('recupera los controles si la transición rechaza', async () => {
@@ -85,7 +140,8 @@ describe('operación de afiliaciones', () => {
     })
     renderSection([membership()], { onSetMembershipStatus })
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Dar de baja' })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
+    fillReason()
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar baja' }))
 
     await waitFor(() => {

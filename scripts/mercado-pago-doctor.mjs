@@ -151,6 +151,20 @@ try {
   } else {
     const label = body?.nickname || body?.email || body?.id || 'cuenta'
     ok(`Conectado como ${label}`)
+    const configuredCollectorId = String(process.env.MERCADO_PAGO_COLLECTOR_ID ?? '').trim()
+    if (!configuredCollectorId) {
+      fail(
+        'Falta MERCADO_PAGO_COLLECTOR_ID.',
+        `Configuralo con ${body.id}; evita mezclar el checkout y el worker de recovery con otra cuenta.`,
+      )
+    } else if (configuredCollectorId !== String(body.id)) {
+      fail(
+        `MERCADO_PAGO_COLLECTOR_ID no coincide (configurado ${configuredCollectorId}, token ${body.id}).`,
+        'Corregi la variable en este entorno; no reintentes ni descartes pagos hasta alinear la cuenta.',
+      )
+    } else {
+      ok(`Cuenta cobradora verificada (${body.id}).`)
+    }
   }
 } catch (error) {
   fail(

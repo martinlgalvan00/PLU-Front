@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BadgeCheck } from 'lucide-react'
-import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
-import AdminListSection from '../../components/admin/AdminListSection.jsx'
-import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
+import { BadgeCheck, Paperclip } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import AdminFilterBar from '../../components/admin/AdminFilterBar.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
+import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import PaymentValidationDialog from '../../components/admin/PaymentValidationDialog.jsx'
 
 function formatUploadedAt(value, locale) {
@@ -128,31 +128,32 @@ export default function TicketOrdersSection({
   )
 
   return (
-    <AdminListSection
-      filteredCount={rows.length}
-      placeholder={t('admin.ticketOrders.search')}
-      query={query}
-      showHeader
-      showStats
-      stats={[
-        {
-          label: t('admin.ticketOrders.statsPending'),
-          value: allRows.length,
-          tone: allRows.length > 0 ? 'warning' : 'default',
-        },
-        {
-          label: t('admin.ticketOrders.statsWithProof'),
-          value: withProofCount,
-          tone: withProofCount > 0 ? 'warning' : 'default',
-        },
-      ]}
-      totalCount={allRows.length}
-      onQueryChange={setQuery}
-      filters={[]}
-      title={t('admin.ticketOrders.title')}
-      subtitle={t('admin.ticketOrders.subtitle')}
-      variant="tickets"
-    >
+    <section id="admin-ticket-orders" className="admin-orders-block" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+          <AdminFilterBar
+            className="admin-filters--external"
+            compact
+            inline
+            placeholder={t('admin.ticketOrders.search')}
+            query={query}
+            onQueryChange={setQuery}
+          />
+        </div>
+        <div className="admin-orders-block__actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span className="admin-orders-block__amount">
+            {withProofCount} {t('admin.ticketOrders.statsWithProof')}
+          </span>
+          <button
+            type="button"
+            className="btn btn--secondary btn--small"
+            onClick={() => void onRefresh?.()}
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      </div>
+
       {actionError && <p className="form-submit-error">{actionError}</p>}
       {isLoading && rows.length === 0 ? (
         <TableSkeleton rows={6} columns={7} label={t('admin.ticketOrders.loading')} />
@@ -202,17 +203,35 @@ export default function TicketOrdersSection({
               label: t('admin.ticketOrders.proof'),
               mobile: 'default',
               sortable: true,
-              render: (row) => (
-                <span
-                  className={
-                    row.paymentProofPath
-                      ? 'admin-proof-pill admin-proof-pill--ok'
-                      : 'admin-proof-pill'
-                  }
-                >
-                  {row.proofStatus}
-                </span>
-              ),
+              render: (row) => {
+                const hasProof = Boolean(row.paymentProofPath)
+                if (!hasProof) {
+                  return <span className="admin-proof-pill">{row.proofStatus}</span>
+                }
+                return (
+                  <button
+                    type="button"
+                    className="admin-proof-pill admin-proof-pill--ok btn btn--ghost"
+                    style={{ padding: '0', height: 'auto', textDecoration: 'underline', color: 'inherit', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => {
+                      setActionError(null)
+                      setReviewRow({
+                        mode: 'view',
+                        type: 'ticket',
+                        orderId: row.id,
+                        hasProof: true,
+                        paymentProofPath: row.paymentProofPath,
+                        subject: row.attendees,
+                        detail: `${row.event} · ${row.reference}`,
+                        meta: row.amount,
+                      })
+                    }}
+                  >
+                    <Paperclip size={14} aria-hidden />
+                    {row.proofStatus}
+                  </button>
+                )
+              },
             },
             {
               key: 'proofUploadedAt',
@@ -238,25 +257,31 @@ export default function TicketOrdersSection({
                 return (
                   <AdminTableActions>
                     {canEdit ? (
-                      <AdminIconButton
-                        disabled={approving || !row.paymentProofPath}
-                        icon={BadgeCheck}
-                        spinning={approving}
-                        label={t('admin.actions.validate')}
-                        onClick={() => {
-                          setActionError(null)
-                          setReviewRow({
-                            type: 'ticket',
-                            orderId: row.id,
-                            hasProof: Boolean(row.paymentProofPath),
-                            paymentProofPath: row.paymentProofPath ?? null,
-                            subject: row.attendees,
-                            detail: `${row.event} · ${row.reference}`,
-                            meta: row.amount,
-                          })
-                        }}
-                        variant="celeste"
-                      />
+                      !row.paymentProofPath && row.status !== 'aprobado' ? (
+                        <span className="status-pill status-pill--warning">
+                          {t('admin.ticketOrders.proofMissing')}
+                        </span>
+                      ) : (
+                        <AdminIconButton
+                          disabled={approving || !row.paymentProofPath}
+                          icon={BadgeCheck}
+                          spinning={approving}
+                          label={t('admin.actions.validate')}
+                          onClick={() => {
+                            setActionError(null)
+                            setReviewRow({
+                              type: 'ticket',
+                              orderId: row.id,
+                              hasProof: Boolean(row.paymentProofPath),
+                              paymentProofPath: row.paymentProofPath ?? null,
+                              subject: row.attendees,
+                              detail: `${row.event} · ${row.reference}`,
+                              meta: row.amount,
+                            })
+                          }}
+                          variant="celeste"
+                        />
+                      )
                     ) : null}
                   </AdminTableActions>
                 )
@@ -265,30 +290,28 @@ export default function TicketOrdersSection({
           ]}
           rows={rows}
           emptyMessage={`${t('admin.ticketOrders.empty')}. ${t('admin.ticketOrders.emptyHint')}`}
-          variant="admin"
         />
       )}
 
       {reviewRow ? (
         <PaymentValidationDialog
           item={reviewRow}
+          mode={reviewRow.mode ?? 'validate'}
           busy={approvingId === reviewRow.orderId}
           error={actionError ?? ''}
           onCancel={() => setReviewRow(null)}
           onConfirm={() => {
-            const orderId = reviewRow.orderId
-            void handleApprove(orderId).then((approved) => {
-              if (approved) setReviewRow(null)
+            void handleApprove(reviewRow.orderId).then((done) => {
+              if (done) setReviewRow(null)
             })
           }}
           onReject={(reason) => {
-            const orderId = reviewRow.orderId
-            void handleReject(orderId, reason).then((rejected) => {
-              if (rejected) setReviewRow(null)
+            void handleReject(reviewRow.orderId, reason).then((done) => {
+              if (done) setReviewRow(null)
             })
           }}
         />
       ) : null}
-    </AdminListSection>
+    </section>
   )
 }

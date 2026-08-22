@@ -27,9 +27,10 @@ export function getTransitionDirection(fromView, toView) {
   return toRank >= fromRank ? 'forward' : 'back'
 }
 
-const ATHLETE_DESTINATIONS = new Set(['membership', 'competition'])
+const ATHLETE_DESTINATIONS = new Set(['profile', 'membership', 'competition'])
 
 export const DEFAULT_ACCOUNT_TAB = 'account-qr'
+export const ACCOUNT_BENEFITS_TAB = 'account-benefits'
 export const ACCOUNT_MEMBERSHIP_TAB = 'account-membership'
 export const ACCOUNT_EVENTS_TAB = 'account-events'
 /**
@@ -41,6 +42,9 @@ export const ACCOUNT_EVENTS_TAB = 'account-events'
  */
 export const ACCOUNT_OFFER_TAB = 'account-offer'
 
+/** Estado de los cobros de la cuenta: es a donde apuntan los emails de pago. */
+export const ACCOUNT_PAYMENTS_TAB = 'account-payments'
+
 /**
  * Orden de las fichas de la cuenta, en un solo lugar. Lo consumen la cinta
  * (`AccountNav`, que lo recorre para dibujar los tabs) y la página
@@ -50,15 +54,52 @@ export const ACCOUNT_OFFER_TAB = 'account-offer'
  */
 export const ACCOUNT_TAB_IDS = [
   DEFAULT_ACCOUNT_TAB,
-  // Segunda posición y no al final: una oferta exclusiva con cupo y ventana no
-  // puede quedar escondida detrás de Seguridad.
-  ACCOUNT_OFFER_TAB,
   ACCOUNT_EVENTS_TAB,
   'account-history',
   ACCOUNT_MEMBERSHIP_TAB,
+  ACCOUNT_PAYMENTS_TAB,
   'account-personal-data',
   'account-security',
 ]
+
+/**
+ * `?section=` de los emails transaccionales → ficha de la cuenta.
+ *
+ * Los emails linkean `/mi-cuenta?section=payments` desde que existen, pero nada
+ * leía el parámetro: quien entraba desde "revisá el estado de tu pago" caía en
+ * la ficha por defecto (la credencial) sin ninguna pista de dónde mirar.
+ */
+const ACCOUNT_TAB_BY_SECTION = Object.freeze({
+  payments: ACCOUNT_PAYMENTS_TAB,
+  membership: ACCOUNT_MEMBERSHIP_TAB,
+  events: ACCOUNT_EVENTS_TAB,
+  // Beneficios salió de la cinta: los links que ya se repartieron con
+  // `?section=benefits` aterrizan donde hoy se canjea un código —Afiliación—,
+  // en vez de resolver a una ficha que no se renderiza y caer en la credencial
+  // sin ninguna pista.
+  benefits: ACCOUNT_MEMBERSHIP_TAB,
+  beneficios: ACCOUNT_MEMBERSHIP_TAB,
+  // Enlaces históricos no deben abrir ni anunciar una oferta por código.
+  offer: ACCOUNT_MEMBERSHIP_TAB,
+  history: 'account-history',
+  security: 'account-security',
+  profile: 'account-personal-data',
+  qr: DEFAULT_ACCOUNT_TAB,
+  credential: DEFAULT_ACCOUNT_TAB,
+})
+
+/**
+ * @param {string} [search] querystring (`window.location.search`)
+ * @returns {string | null} id de ficha, o `null` si no viene o no se reconoce
+ */
+export function accountTabFromSectionParam(
+  search = typeof window !== 'undefined' ? window.location.search : '',
+) {
+  if (!search) return null
+  const section = new URLSearchParams(search).get('section')
+  if (!section) return null
+  return ACCOUNT_TAB_BY_SECTION[section.trim().toLowerCase()] ?? null
+}
 
 /**
  * El cobro de afiliación vive en la cuenta (`#account-membership`), no en un

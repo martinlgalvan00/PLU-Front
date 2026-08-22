@@ -417,6 +417,38 @@ describe('adaptador de Brevo', () => {
     expect(options.body).not.toContain('k"')
     expect(JSON.parse(options.body).sender.email).toBe('no-reply@plu.example')
   })
+
+  it('frena remitentes públicos antes de crear un envío que Brevo va a rechazar', async () => {
+    const fetchImpl = vi.fn()
+    const adapter = createBrevoAdapter({
+      env: { BREVO_API_KEY: 'k', BREVO_SENDER_EMAIL: 'martinlucianogalvan@gmail.com' },
+      fetchImpl,
+    })
+
+    expect(adapter.configured).toBe(false)
+    await expect(
+      adapter.send({ to: 'a@example.com', subject: 'S', htmlContent: '<p>x</p>' }),
+    ).rejects.toMatchObject({ providerCode: 'BREVO_SENDER_NOT_VERIFIED', retryable: false })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('traduce el rechazo asíncrono del remitente como una falla permanente', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      errorResponse(400, {
+        message:
+          'Sending has been rejected because the sender you used soporte@pluarg.com is not valid. Validate your sender or authenticate your domain',
+      }),
+    )
+    const adapter = createBrevoAdapter({ env, fetchImpl, sleepImpl: async () => {} })
+
+    await expect(
+      adapter.send({ to: 'a@example.com', subject: 'S', htmlContent: '<p>x</p>' }),
+    ).rejects.toMatchObject({
+      providerCode: 'BREVO_SENDER_NOT_VERIFIED',
+      retryable: false,
+      message: expect.stringContaining('Brevo rechazó el remitente'),
+    })
+  })
 })
 
 describe('dispatcher de emails', () => {

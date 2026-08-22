@@ -15,7 +15,7 @@ function buildAthleteProfileSchema(t, country) {
   const msg = (key) => (t ? t(`validation.${key}`) : undefined)
   const isoDate = z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, msg('dateFormat') ?? 'SeleccionÃ¡ una fecha vÃ¡lida.')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, msg('dateFormat') ?? 'Seleccioná una fecha válida.')
     .refine(
       (value) => {
         const date = new Date(`${value}T12:00:00`)
@@ -25,7 +25,7 @@ function buildAthleteProfileSchema(t, country) {
           date.getFullYear() === year && date.getMonth() + 1 === month && date.getDate() === day
         )
       },
-      msg('dateFormat') ?? 'SeleccionÃ¡ una fecha vÃ¡lida.',
+      msg('dateFormat') ?? 'Seleccioná una fecha válida.',
     )
     .refine(
       (value) => {
@@ -38,12 +38,12 @@ function buildAthleteProfileSchema(t, country) {
     fullName: z
       .string()
       .trim()
-      .min(3, msg('fullName') ?? 'IngresÃ¡ tu nombre y apellido.'),
-    // El alta de la API exige 7 u 8 dÃ­gitos (registerSchema en
-    // server/routes/athletes.js). Antes acÃ¡ tambiÃ©n pasaban documentos
-    // alfanumÃ©ricos de 6 a 20 caracteres: el wizard los daba por buenos y el
-    // rechazo aparecÃ­a reciÃ©n al enviar los dos pasos completos. Los
-    // separadores sÃ­ se aceptan -- todo DNI fÃ­sico se lee con puntos -- y el
+      .min(3, msg('fullName') ?? 'Ingresá tu nombre y apellido.'),
+    // El alta de la API exige 7 u 8 dígitos (registerSchema en
+    // server/routes/athletes.js). Antes acá también pasaban documentos
+    // alfanuméricos de 6 a 20 caracteres: el wizard los daba por buenos y el
+    // rechazo aparecía recién al enviar los dos pasos completos. Los
+    // separadores sí se aceptan -- todo DNI físico se lee con puntos -- y el
     // servidor los limpia con el mismo criterio antes de validar.
     documentId: z
       .string()
@@ -74,36 +74,36 @@ function buildAthleteProfileSchema(t, country) {
     email: z
       .string()
       .trim()
-      .email(msg('email') ?? 'IngresÃ¡ un correo electrÃ³nico vÃ¡lido.'),
-    password: z.string().min(12, msg('password') ?? 'UsÃ¡ al menos 12 caracteres.'),
+      .email(msg('email') ?? 'Ingresá un correo electrónico válido.'),
+    password: z.string().min(12, msg('password') ?? 'Usá al menos 12 caracteres.'),
     phone: z.string().refine(
       (value) => {
         const digits = value.replace(/\D/g, '')
         return digits.length >= 8 && digits.length <= 15
       },
-      msg('phone') ?? 'IngresÃ¡ un telÃ©fono vÃ¡lido con cÃ³digo de Ã¡rea.',
+      msg('phone') ?? 'Ingresá un teléfono válido con código de área.',
     ),
     country: z
       .string()
       .trim()
-      .min(2, msg('country') ?? 'IngresÃ¡ tu paÃ­s.'),
+      .min(2, msg('country') ?? 'Ingresá tu país.'),
     province: z
       .string()
       .trim()
-      .min(2, msg('province') ?? 'IngresÃ¡ tu provincia.'),
+      .min(2, msg('province') ?? 'Ingresá tu provincia.'),
     city: z
       .string()
       .trim()
-      .min(2, msg('city') ?? 'IngresÃ¡ tu ciudad.'),
+      .min(2, msg('city') ?? 'Ingresá tu ciudad.'),
     gym: z
       .string()
       .trim()
-      .min(2, msg('gym') ?? 'IngresÃ¡ tu gimnasio o equipo.'),
+      .min(2, msg('gym') ?? 'Ingresá tu gimnasio o equipo.'),
     sex: z
       .string()
       .refine(
         (value) => ['Masculino', 'Femenino'].includes(value),
-        msg('sex') ?? 'SeleccionÃ¡ tu sexo competitivo.',
+        msg('sex') ?? 'Seleccioná tu sexo competitivo.',
       ),
   })
 }
@@ -113,17 +113,17 @@ function buildCompetitionSchema(t) {
 
   return z.object({
     division: z.enum(['Open', 'Youth', 'Junior', 'Sub-Masters', 'Masters'], {
-      message: msg('division') ?? 'SeleccionÃ¡ una divisiÃ³n vÃ¡lida.',
+      message: msg('division') ?? 'Seleccioná una división válida.',
     }),
     category: z.enum(['Raw', 'Raw With Wraps', 'Single-Ply', 'Multi-Ply', 'Unlimited'], {
-      message: msg('category') ?? 'SeleccionÃ¡ una categorÃ­a vÃ¡lida.',
+      message: msg('category') ?? 'Seleccioná una categoría válida.',
     }),
     estimatedWeight: z.string().refine(
       (value) => {
         const weight = Number(value.replace(',', '.').replace(/\s*kg$/i, ''))
         return Number.isFinite(weight) && weight >= 10 && weight <= 250
       },
-      msg('weight') ?? 'IngresÃ¡ un peso entre 10 y 250 kg.',
+      msg('weight') ?? 'Ingresá un peso entre 10 y 250 kg.',
     ),
     paymentMethod: z.enum(['mercado_pago', 'manual_link', 'cash_pitbull', 'wise_transfer']),
   })
@@ -152,7 +152,7 @@ function formatResult(result, t) {
       messages[0],
     ]),
   )
-  const fallback = t ? t('validation.invalid') : 'Datos invÃ¡lidos'
+  const fallback = t ? t('validation.invalid') : 'Datos inválidos'
   return { success: false, error: Object.values(errors)[0] || fallback, errors }
 }
 
@@ -195,18 +195,18 @@ export function validateTicketAttendees(attendees, t, validTicketTypeIds = []) {
 
   attendees.forEach((attendee, index) => {
     if (!attendee.fullName || attendee.fullName.trim().length < 3) {
-      errors[`attendee-${index}-fullName`] = msg('attendeeName', 'IngresÃ¡ nombre y apellido.')
+      errors[`attendee-${index}-fullName`] = msg('attendeeName', 'Ingresá nombre y apellido.')
     }
     if (!/^\d{7,8}$/.test(String(attendee.dni ?? '').trim())) {
       errors[`attendee-${index}-dni`] = msg(
         'attendeeDni',
-        'DNI invÃ¡lido (7 u 8 dÃ­gitos, sin puntos).',
+        'DNI inválido (7 u 8 dígitos, sin puntos).',
       )
     }
     if (!attendee.ticketTypeId || !validTicketTypeIds.includes(attendee.ticketTypeId)) {
       errors[`attendee-${index}-ticketTypeId`] = msg(
         'attendeeDay',
-        'SeleccionÃ¡ un tipo de entrada vÃ¡lido.',
+        'Seleccioná un tipo de entrada válido.',
       )
     }
   })

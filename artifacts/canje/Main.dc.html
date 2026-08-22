@@ -1,0 +1,241 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #f2b705; } a:hover { color: #ffd23f; }
+    .dc {
+      --bg: #181a1f; --text: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --rule: rgba(255, 255, 255, 0.14); --rule-soft: rgba(255, 255, 255, 0.08);
+      --gold: #f2b705; --gold-dim: #a9790f; --danger: #ff8b86;
+      --inset: #0a0b0d; --on-gold: #14181f;
+    }
+    .dc.is-page { --bg: #0a0b0d; --inset: #000000; }
+    .dc.is-light {
+      --bg: #ffffff; --text: #0d0e12; --secondary: #2c2f3c; --muted: #636878;
+      --rule: rgba(15, 17, 23, 0.10); --rule-soft: rgba(15, 17, 23, 0.06);
+      --gold: #a9790f; --gold-dim: #a9790f; --danger: #991b1b; --inset: #f0efec;
+    }
+    .dc {
+      background: var(--bg); color: var(--text);
+      font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      min-height: 100%; padding: 40px 40px 48px;
+    }
+    .eyebrow {
+      color: var(--muted); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .head-name { font-size: 26px; font-weight: 300; letter-spacing: -0.01em; margin: 6px 0 10px; }
+    .head-thesis { color: var(--secondary); font-size: 13px; line-height: 1.6; margin: 0; max-width: 46ch; }
+    .sep { background: var(--rule-soft); height: 1px; margin: 28px 0; }
+    .group-label {
+      color: var(--muted); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .states { display: flex; flex-direction: column; gap: 26px; margin-top: 18px; }
+    .state-name {
+      color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 10px; letter-spacing: 0.06em; margin: 0 0 10px;
+    }
+
+    /* ---------------------------------------------------------------------
+       A · Grabado. El código no vive en una caja: vive en un renglón. La
+       única línea del bloque es la que se graba, y el oro aparece sólo
+       cuando algo es cierto (aceptado), nunca como relleno de un botón.
+       --------------------------------------------------------------------- */
+    .eng { display: grid; gap: 12px; max-width: 440px; }
+    .eng-open {
+      align-items: center; border: 0; border-bottom: 1px solid var(--rule);
+      display: flex; gap: 14px; min-height: 52px; width: 100%;
+    }
+    .eng-open.is-gold { border-bottom-color: var(--gold); }
+    .eng-open.is-error { border-bottom-color: var(--danger); }
+    .eng-code {
+      color: var(--text); flex: 1; font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 19px; font-weight: 500; letter-spacing: 0.2em; min-width: 0;
+      text-transform: uppercase;
+    }
+    .eng-code.is-empty { color: var(--muted); font-size: 13px; letter-spacing: 0.16em; }
+    .eng-code.is-dim { color: var(--secondary); }
+    .eng-code.is-gold { color: var(--gold); }
+    .eng-scan {
+      align-items: center; background: none; border: 0; color: var(--muted);
+      display: inline-flex; height: 44px; justify-content: center; width: 32px;
+    }
+    .eng-act {
+      align-items: center; background: none; border: 0; color: var(--gold);
+      display: inline-flex; font: 600 12px/1 'Poppins', sans-serif; gap: 7px;
+      letter-spacing: 0.08em; min-height: 44px; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .eng-wait {
+      color: var(--muted); font-size: 12px; letter-spacing: 0.08em;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    .eng-hint { color: var(--muted); font-size: 12px; line-height: 1.55; margin: 0; max-width: 52ch; }
+    .eng-error { color: var(--danger); font-size: 12px; margin: 0; }
+    .eng-toggle {
+      align-items: center; background: none; border: 0; color: var(--secondary);
+      display: inline-flex; font: 500 13px/1 'Poppins', sans-serif; gap: 9px;
+      letter-spacing: 0.02em; min-height: 44px;
+    }
+    .eng-toggle svg { color: var(--gold-dim); }
+    .eng-done { display: grid; gap: 3px; }
+    .eng-done strong { font-size: 13px; font-weight: 600; }
+    .eng-done span { color: var(--muted); font-size: 12px; }
+
+    /* Aplicado en el checkout: un estado de cuenta de dos renglones, no un chip. */
+    .eng-applied { border-top: 1px solid var(--gold); display: grid; gap: 8px; max-width: 440px; padding-top: 12px; }
+    .eng-applied-row { align-items: baseline; display: flex; gap: 16px; justify-content: space-between; }
+    .eng-applied-code {
+      color: var(--gold); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.16em;
+    }
+    .eng-applied-amount { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+    .eng-applied-drop { background: none; border: 0; color: var(--muted); font: 400 12px/1 'Poppins', sans-serif; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+  </style>
+</helmet>
+<div class="dc {{surfaceClass}}">
+  <span class="eyebrow">Dirección A</span>
+  <h1 class="head-name">Grabado</h1>
+  <p class="head-thesis">
+    El código se escribe sobre un renglón, no dentro de una caja. Una sola línea
+    por bloque, tipografía monoespaciada abierta, y el oro reservado para el
+    momento en que la llave es aceptada. Se integra en cualquiera de las cuatro
+    páginas sin pedir permiso.
+  </p>
+
+  <div class="sep"></div>
+  <span class="group-label">Canje universal</span>
+  <div class="states">
+    <div>
+      <p class="state-name">cerrado</p>
+      <button type="button" class="eng-toggle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="M10.7 12.3 19 4"></path><path d="m16 5 3 3"></path><path d="m19 8 2-2-3-3-2 2"></path></svg>
+        Tengo un código
+      </button>
+    </div>
+
+    <div>
+      <p class="state-name">abierto</p>
+      <div class="eng">
+        <span class="eyebrow">Código</span>
+        <div class="eng-open">
+          <span class="eng-code is-empty">INGRESÁ TU CÓDIGO</span>
+          <button type="button" class="eng-scan" aria-label="Escanear">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M3 12h18"></path></svg>
+          </button>
+        </div>
+        <p class="eng-hint">Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">escrito</p>
+      <div class="eng">
+        <span class="eyebrow">Código</span>
+        <div class="eng-open">
+          <span class="eng-code">ONLY-PITBULL</span>
+          <button type="button" class="eng-act">
+            Canjear
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">validando</p>
+      <div class="eng">
+        <span class="eyebrow">Código</span>
+        <div class="eng-open">
+          <span class="eng-code is-dim">ONLY-PITBULL</span>
+          <span class="eng-wait">Validando…</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">error</p>
+      <div class="eng">
+        <span class="eyebrow">Código</span>
+        <div class="eng-open is-error">
+          <span class="eng-code">ONLY-NORTE</span>
+          <button type="button" class="eng-act">
+            Canjear
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+          </button>
+        </div>
+        <p class="eng-error">Ese código no existe.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">canjeado</p>
+      <div class="eng">
+        <span class="eyebrow">Código</span>
+        <div class="eng-open is-gold">
+          <span class="eng-code is-gold">ONLY-PITBULL</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f2b705" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+        </div>
+        <div class="eng-done">
+          <strong>Código secreto canjeado</strong>
+          <span>Redirigiéndote a tu pestaña secreta…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <span class="group-label">Campo del checkout</span>
+  <div class="states">
+    <div>
+      <p class="state-name">vacío</p>
+      <div class="eng">
+        <span class="eyebrow">Código</span>
+        <div class="eng-open">
+          <span class="eng-code is-empty">INGRESÁ TU CÓDIGO</span>
+          <button type="button" class="eng-act">
+            Canjear
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+          </button>
+        </div>
+        <p class="eng-hint">Canjeá tu código.</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">aplicado</p>
+      <div class="eng-applied">
+        <div class="eng-applied-row">
+          <span class="eng-applied-code">ONLY-PITBULL</span>
+          <span class="eng-applied-amount">$ 120.000</span>
+        </div>
+        <div class="eng-applied-row">
+          <span style="color: var(--muted); font-size: 12px">Precio exclusivo aplicado</span>
+          <button type="button" class="eng-applied-drop">Quitar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"surface":{"editor":"enum","options":["card","page","light"],"default":"card","section":"Superficie"},"$preview":{"width":620,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const surface = this.props.surface ?? 'card';
+    return {
+      surfaceClass: surface === 'page' ? 'is-page' : surface === 'light' ? 'is-light' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>

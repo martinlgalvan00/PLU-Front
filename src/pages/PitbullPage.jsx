@@ -55,6 +55,20 @@ function scrollToSection(id) {
   })
 }
 
+/** Marco tipo "reglamento oficial": esquinas en escuadra + numeral fantasma
+ * detrás del título. Reservado a las dos secciones normativas del dossier
+ * (pesajes, categorías) — el resto sigue en el registro editorial simple. */
+function PitbullDossierFrameMarks() {
+  return (
+    <>
+      <span className="pitbull-dossier__frame-mark pitbull-dossier__frame-mark--tl" aria-hidden />
+      <span className="pitbull-dossier__frame-mark pitbull-dossier__frame-mark--tr" aria-hidden />
+      <span className="pitbull-dossier__frame-mark pitbull-dossier__frame-mark--bl" aria-hidden />
+      <span className="pitbull-dossier__frame-mark pitbull-dossier__frame-mark--br" aria-hidden />
+    </>
+  )
+}
+
 function PitbullDossierSection({
   id,
   index,
@@ -65,9 +79,38 @@ function PitbullDossierSection({
   className = '',
   tone = 'default',
   hideHeader = false,
+  framed = false,
   children,
 }) {
   const isOps = tone === 'ops'
+
+  const body = (
+    <>
+      {!hideHeader ? (
+        <header className={`pitbull-dossier__head${isOps ? ' pitbull-dossier__head--ops' : ''}`}>
+          {isOps ? null : (
+            <p className="pitbull-dossier__kicker">
+              <span className="pitbull-dossier__index" aria-hidden>
+                {index}
+              </span>
+              <span className="pitbull-dossier__eyebrow">{eyebrow}</span>
+            </p>
+          )}
+          {framed ? (
+            <span className="pitbull-dossier__ghost-index motif-num motif-num--ghost" aria-hidden>
+              {index}
+            </span>
+          ) : null}
+          <h2 id={titleId} className="pitbull-dossier__title">
+            {title}
+          </h2>
+          {lead && !isOps ? <p className="pitbull-dossier__lead">{lead}</p> : null}
+        </header>
+      ) : null}
+
+      {children ? <div className="pitbull-dossier__body">{children}</div> : null}
+    </>
+  )
 
   return (
     <section
@@ -77,24 +120,14 @@ function PitbullDossierSection({
       aria-labelledby={hideHeader ? undefined : titleId}
     >
       <Reveal as="div" direction="up" className="pitbull-dossier__reveal">
-        {!hideHeader ? (
-          <header className={`pitbull-dossier__head${isOps ? ' pitbull-dossier__head--ops' : ''}`}>
-            {isOps ? null : (
-              <p className="pitbull-dossier__kicker">
-                <span className="pitbull-dossier__index" aria-hidden>
-                  {index}
-                </span>
-                <span className="pitbull-dossier__eyebrow">{eyebrow}</span>
-              </p>
-            )}
-            <h2 id={titleId} className="pitbull-dossier__title">
-              {title}
-            </h2>
-            {lead && !isOps ? <p className="pitbull-dossier__lead">{lead}</p> : null}
-          </header>
-        ) : null}
-
-        {children ? <div className="pitbull-dossier__body">{children}</div> : null}
+        {framed ? (
+          <div className="pitbull-dossier__frame">
+            <PitbullDossierFrameMarks />
+            {body}
+          </div>
+        ) : (
+          body
+        )}
       </Reveal>
     </section>
   )
@@ -389,28 +422,45 @@ function PitbullWeighInSnapshot() {
       lead={t('pages.pitbull.weighInsLead')}
       title={t('pages.pitbull.weighInsTitle')}
       titleId="pitbull-weighins-title"
+      framed
     >
       <div className="pitbull-weighins" role="list">
         <article className="pitbull-weighin" role="listitem">
-          <p className="pitbull-weighin__day">{t('pages.pitbull.weighInsFriday')}</p>
-          <div className="pitbull-weighin__slots">
-            <time className="pitbull-weighin__time" dateTime="09:00/12:00">
-              {t('pages.pitbull.weighInsFridaySlot1')}
-            </time>
-            <time className="pitbull-weighin__time" dateTime="16:00/19:00">
-              {t('pages.pitbull.weighInsFridaySlot2')}
-            </time>
+          <span className="pitbull-weighin__node" aria-hidden />
+          <p className="pitbull-weighin__day">
+            <span className="pitbull-weighin__day-index motif-num" aria-hidden>
+              01
+            </span>
+            {t('pages.pitbull.weighInsFriday')}
+          </p>
+          <div className="pitbull-weighin__content">
+            <div className="pitbull-weighin__slots">
+              <time className="pitbull-weighin__time" dateTime="09:00/12:00">
+                {t('pages.pitbull.weighInsFridaySlot1')}
+              </time>
+              <time className="pitbull-weighin__time" dateTime="16:00/19:00">
+                {t('pages.pitbull.weighInsFridaySlot2')}
+              </time>
+            </div>
+            <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsFridayNote')}</p>
           </div>
-          <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsFridayNote')}</p>
         </article>
         <article className="pitbull-weighin" role="listitem">
-          <p className="pitbull-weighin__day">{t('pages.pitbull.weighInsSaturday')}</p>
-          <div className="pitbull-weighin__slots">
-            <time className="pitbull-weighin__time" dateTime="07:00/08:30">
-              {t('pages.pitbull.weighInsSaturdaySlot')}
-            </time>
+          <span className="pitbull-weighin__node" aria-hidden />
+          <p className="pitbull-weighin__day">
+            <span className="pitbull-weighin__day-index motif-num" aria-hidden>
+              02
+            </span>
+            {t('pages.pitbull.weighInsSaturday')}
+          </p>
+          <div className="pitbull-weighin__content">
+            <div className="pitbull-weighin__slots">
+              <time className="pitbull-weighin__time" dateTime="07:00/08:30">
+                {t('pages.pitbull.weighInsSaturdaySlot')}
+              </time>
+            </div>
+            <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsSaturdayNote')}</p>
           </div>
-          <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsSaturdayNote')}</p>
         </article>
       </div>
     </PitbullDossierSection>
@@ -883,14 +933,15 @@ function PitbullInscriptionSection({
   )
 }
 
-/** Catálogo editorial — dos lanes (modalidades / divisiones) con índice y stagger. */
+/** Catálogo editorial — Modalidades como columna destacada (numeral fantasma
+ * por fila), Equipamiento y Divisiones como referencia compacta al lado. */
 function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
   const { reducedMotion } = useMotionConfig()
-  const groups = [
+  const secondaryGroups = [
     {
-      id: 'modalities',
-      hint: t('pages.pitbull.categoriesModalitiesHint'),
-      label: t('pages.pitbull.categoriesModalities'),
+      id: 'equipment',
+      hint: t('pages.pitbull.categoriesEquipmentHint'),
+      label: t('pages.pitbull.categoriesEquipment'),
       rows: pitbullClassic.categories,
     },
     {
@@ -922,6 +973,7 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
       lead={t('pages.pitbull.categoriesDesc')}
       title={t('pages.pitbull.categoriesTitle')}
       titleId="pitbull-categories-title"
+      framed
     >
       <div className="pitbull-cat">
         <div className="pitbull-cat__meta">
@@ -931,7 +983,8 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
           </span>
           <p className="pitbull-cat__totals">
             {t('pages.pitbull.categoriesTotals', {
-              modalities: pitbullClassic.categories.length,
+              modalities: pitbullClassic.modalities.length,
+              equipment: pitbullClassic.categories.length,
               divisions: pitbullClassic.divisions.length,
             })}
           </p>
@@ -945,40 +998,51 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
           </button>
         </div>
 
-        <div className="pitbull-cat__lanes" aria-label={t('pages.pitbull.categoriesListAria')}>
-          {groups.map((group, groupIndex) => (
-            <section
-              key={group.id}
-              className={`pitbull-cat__lane pitbull-cat__lane--${group.id}`}
-              aria-labelledby={`pitbull-cat-${group.id}`}
-            >
-              <header className="pitbull-cat__lane-head">
-                <span className="pitbull-cat__lane-index motif-num" aria-hidden>
-                  {String(groupIndex + 1).padStart(2, '0')}
-                </span>
-                <div className="pitbull-cat__lane-copy">
-                  <p className="pitbull-cat__lane-hint">{group.hint}</p>
-                  <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
-                    {group.label}
-                  </h3>
-                </div>
-                <span className="pitbull-cat__lane-count">
-                  {t('pages.pitbull.categoriesGroupCount', { count: group.rows.length })}
-                </span>
-              </header>
+        <div className="pitbull-cat__spread" aria-label={t('pages.pitbull.categoriesListAria')}>
+          <section className="pitbull-cat__featured" aria-labelledby="pitbull-cat-modalities">
+            <header className="pitbull-cat__featured-head">
+              <p className="pitbull-cat__featured-hint">{t('pages.pitbull.categoriesModalitiesHint')}</p>
+              <h3 id="pitbull-cat-modalities" className="pitbull-cat__featured-title">
+                {t('pages.pitbull.categoriesModalities')}
+              </h3>
+            </header>
 
-              <ListTag className="pitbull-cat__list" {...listMotion}>
-                {group.rows.map((row, rowIndex) => (
-                  <ItemTag key={row} className="pitbull-cat__row" {...itemMotion}>
-                    <span className="pitbull-cat__row-index motif-num" aria-hidden>
-                      {String(rowIndex + 1).padStart(2, '0')}
-                    </span>
-                    <span className="pitbull-cat__row-name">{row}</span>
-                  </ItemTag>
-                ))}
-              </ListTag>
-            </section>
-          ))}
+            <ListTag className="pitbull-cat__featured-list" {...listMotion}>
+              {pitbullClassic.modalities.map((row, rowIndex) => (
+                <ItemTag key={row} className="pitbull-cat__featured-row" {...itemMotion}>
+                  <span
+                    className="pitbull-cat__featured-row-ghost motif-num motif-num--ghost"
+                    aria-hidden
+                  >
+                    {String(rowIndex + 1).padStart(2, '0')}
+                  </span>
+                  <span className="pitbull-cat__featured-row-name">{row}</span>
+                </ItemTag>
+              ))}
+            </ListTag>
+          </section>
+
+          <div className="pitbull-cat__secondary">
+            {secondaryGroups.map((group) => (
+              <section key={group.id} className="pitbull-cat__lane" aria-labelledby={`pitbull-cat-${group.id}`}>
+                <p className="pitbull-cat__lane-hint">{group.hint}</p>
+                <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
+                  {group.label}
+                </h3>
+
+                <ListTag className="pitbull-cat__list" {...listMotion}>
+                  {group.rows.map((row, rowIndex) => (
+                    <ItemTag key={row} className="pitbull-cat__row" {...itemMotion}>
+                      <span className="pitbull-cat__row-index motif-num" aria-hidden>
+                        {String(rowIndex + 1).padStart(2, '0')}
+                      </span>
+                      <span className="pitbull-cat__row-name">{row}</span>
+                    </ItemTag>
+                  ))}
+                </ListTag>
+              </section>
+            ))}
+          </div>
         </div>
       </div>
     </PitbullDossierSection>
@@ -1033,7 +1097,13 @@ export default function PitbullPage({
   const canRegister = isRegistrationOpen(eventStatus) && paidCheckoutOpen
   const isFinished = eventStatus === 'finalizado'
   const eventPricing = resolveEventPricing(pitbullEvent)
-  const liveComboOffer = hasActiveMembership ? null : resolveLiveComboOffer(pitbullEvent)
+  // Un combo `audience=code` es un easter egg: la página pública del torneo no
+  // puede anticipar que existe ni revelar su precio. Recién aparece en la
+  // cuenta del atleta después de canjear la llave.
+  const liveComboOffer =
+    hasActiveMembership || pitbullEvent?.comboOffer?.audience === 'code'
+      ? null
+      : resolveLiveComboOffer(pitbullEvent)
   const eventSlug = pitbullEvent?.slug ?? 'pitbull-classic-2026'
   const ticketCheckout = useTicketCheckoutAvailability(eventSlug)
   const ticketsOpen =
@@ -1164,6 +1234,10 @@ export default function PitbullPage({
           <PitbullExperienceSection t={t} />
 
           <PitbullWeighInSnapshot />
+
+          <div className="pitbull-dossier__ticket-divider" aria-hidden>
+            <span>{t('pages.pitbull.normativeDividerLabel')}</span>
+          </div>
 
           <PitbullCategoriesSection
             pitbullClassic={PITBULL_CLASSIC}

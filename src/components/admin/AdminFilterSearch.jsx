@@ -1,18 +1,27 @@
-import { Input } from 'antd'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 
 export default function AdminFilterSearch({ placeholder = 'Buscar…', query, onQueryChange }) {
   return (
     <div className="admin-filters__search" role="search">
-      <Input
-        allowClear
+      <Search size={16} className="admin-filters__search-icon" aria-hidden />
+      <input
+        type="search"
+        className="admin-filters__search-input"
         placeholder={placeholder}
-        value={query}
+        value={query ?? ''}
         onChange={(event) => onQueryChange(event.target.value)}
-        prefix={<Search size={16} color="var(--color-text-muted)" />}
-        style={{ width: '100%' }}
-        variant="borderless"
+        aria-label={placeholder}
       />
+      {query ? (
+        <button
+          type="button"
+          className="admin-filters__search-clear"
+          aria-label="Limpiar búsqueda"
+          onClick={() => onQueryChange('')}
+        >
+          <X size={13} aria-hidden />
+        </button>
+      ) : null}
     </div>
   )
 }

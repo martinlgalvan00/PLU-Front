@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@200;300;400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #f2b705; } a:hover { color: #ffd23f; }
+    .dc {
+      --bg: #181a1f; --text: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --rule: rgba(255, 255, 255, 0.14); --rule-soft: rgba(255, 255, 255, 0.08);
+      --gold: #f2b705; --gold-dim: #a9790f; --danger: #ff8b86; --on-gold: #14181f;
+      --ghost: rgba(255, 255, 255, 0.22);
+    }
+    .dc.is-page { --bg: #0a0b0d; }
+    .dc.is-light {
+      --bg: #ffffff; --text: #0d0e12; --secondary: #2c2f3c; --muted: #636878;
+      --rule: rgba(15, 17, 23, 0.10); --rule-soft: rgba(15, 17, 23, 0.06);
+      --gold: #a9790f; --gold-dim: #a9790f; --danger: #991b1b;
+      --ghost: rgba(15, 17, 23, 0.20);
+    }
+    .dc {
+      background: var(--bg); color: var(--text);
+      font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      min-height: 100%; padding: 40px 40px 48px;
+    }
+    .eyebrow {
+      color: var(--muted); font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .head-name { font-size: 26px; font-weight: 300; letter-spacing: -0.01em; margin: 6px 0 10px; }
+    .head-thesis { color: var(--secondary); font-size: 13px; line-height: 1.6; margin: 0; max-width: 46ch; }
+    .sep { background: var(--rule-soft); height: 1px; margin: 28px 0; }
+    .group-label {
+      color: var(--muted); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .states { display: flex; flex-direction: column; gap: 30px; margin-top: 18px; }
+    .state-name {
+      color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 10px; letter-spacing: 0.06em; margin: 0 0 10px;
+    }
+
+    /* ---------------------------------------------------------------------
+       E · Cifra. El lujo por escala y vacío: el código deja de ser el
+       contenido de un control y pasa a ser el titular del bloque. Una sola
+       regla al pie, la acción en versalitas al final de esa regla, y nada
+       más. Mismo recurso que usa la ficha para "Tu precio".
+       --------------------------------------------------------------------- */
+    .cif { display: grid; gap: 0; max-width: 470px; }
+    .cif-line {
+      align-items: flex-end; border-bottom: 1px solid var(--rule);
+      display: flex; gap: 18px; padding-bottom: 12px;
+    }
+    .cif-line.is-gold { border-bottom-color: var(--gold); }
+    .cif-line.is-error { border-bottom-color: var(--danger); }
+    .cif-code {
+      color: var(--text); flex: 1; font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 34px; font-weight: 400; letter-spacing: 0.02em; line-height: 1.05;
+      min-width: 0; overflow-wrap: anywhere; text-transform: uppercase;
+    }
+    .cif-code.is-gold { color: var(--gold); }
+    .cif-code.is-dim { color: var(--ghost); }
+    .cif-prompt {
+      color: var(--ghost); flex: 1; font-size: 20px; font-weight: 300;
+      letter-spacing: 0.01em; line-height: 1.2;
+    }
+    /* El área táctil crece hacia arriba: el texto sigue apoyado en la regla
+       pero el botón mide 44px, como todos los controles de la app. */
+    .cif-act {
+      align-items: flex-end; background: none; border: 0; color: var(--gold);
+      display: inline-flex; flex: none; font: 700 11px/1 'Poppins', sans-serif;
+      letter-spacing: 0.16em; min-height: 44px; padding: 0 0 4px;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    .cif-wait { color: var(--muted); flex: none; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; padding-bottom: 4px; text-transform: uppercase; }
+    .cif-foot { align-items: baseline; display: flex; gap: 16px; justify-content: space-between; padding-top: 10px; }
+    .cif-hint { color: var(--muted); font-size: 11.5px; line-height: 1.5; margin: 0; max-width: 46ch; }
+    .cif-error { color: var(--danger); font-size: 11.5px; margin: 0; }
+    .cif-eyebrow { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; margin-bottom: 14px; text-transform: uppercase; }
+    .cif-toggle {
+      background: none; border: 0; color: var(--secondary); font: 300 18px/1.2 'Poppins', sans-serif;
+      letter-spacing: 0.01em; min-height: 44px; padding: 0; text-align: left;
+    }
+    .cif-toggle u { text-decoration-color: var(--gold-dim); text-underline-offset: 6px; }
+    /* En el checkout la jerarquía se invierte: lo grande pasa a ser el importe. */
+    .cif-amount { font-size: 34px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.05; }
+    .cif-code-small {
+      color: var(--gold); font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 12px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .cif-drop {
+      align-items: center; background: none; border: 0; color: var(--muted);
+      display: inline-flex; font: 400 12px/1 'Poppins', sans-serif; min-height: 44px;
+      padding: 0; text-decoration: underline; text-underline-offset: 3px;
+    }
+    @media (max-width: 430px) {
+      .cif-code, .cif-amount { font-size: 26px; }
+    }
+  </style>
+</helmet>
+<div class="dc {{surfaceClass}}">
+  <span class="eyebrow">Dirección E</span>
+  <h1 class="head-name">Cifra</h1>
+  <p class="head-thesis">
+    El código pasa a ser el titular del bloque, no el contenido de un control:
+    escala grande, peso liviano, una sola regla al pie y la acción en versalitas
+    al final de esa regla. Es el mismo recurso con el que la ficha de oferta
+    muestra «Tu precio», aplicado al canje.
+  </p>
+
+  <div class="sep"></div>
+  <span class="group-label">Canje universal</span>
+  <div class="states">
+    <div>
+      <p class="state-name">cerrado</p>
+      <button type="button" class="cif-toggle">Tengo un <u>código</u></button>
+    </div>
+
+    <div>
+      <p class="state-name">abierto</p>
+      <div class="cif">
+        <span class="cif-eyebrow">Código</span>
+        <div class="cif-line">
+          <span class="cif-prompt">Escribilo o escanealo</span>
+          <button type="button" class="cif-act" style="color: var(--muted)" aria-label="Escanear">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M3 12h18"></path></svg>
+          </button>
+        </div>
+        <div class="cif-foot">
+          <p class="cif-hint">Puede aplicar un beneficio, habilitar un acceso o abrir una oferta exclusiva en tu cuenta.</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">escrito</p>
+      <div class="cif">
+        <span class="cif-eyebrow">Código</span>
+        <div class="cif-line">
+          <span class="cif-code">ONLY-PITBULL</span>
+          <button type="button" class="cif-act">Canjear</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">validando</p>
+      <div class="cif">
+        <span class="cif-eyebrow">Código</span>
+        <div class="cif-line">
+          <span class="cif-code is-dim">ONLY-PITBULL</span>
+          <span class="cif-wait">Validando…</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">error</p>
+      <div class="cif">
+        <span class="cif-eyebrow">Código</span>
+        <div class="cif-line is-error">
+          <span class="cif-code">ONLY-NORTE</span>
+          <button type="button" class="cif-act">Canjear</button>
+        </div>
+        <div class="cif-foot">
+          <p class="cif-error">Ese código no existe.</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">canjeado</p>
+      <div class="cif">
+        <span class="cif-eyebrow">Llave aceptada</span>
+        <div class="cif-line is-gold">
+          <span class="cif-code is-gold">ONLY-PITBULL</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-bottom: 4px"><path d="M20 6 9 17l-5-5"></path></svg>
+        </div>
+        <div class="cif-foot">
+          <p class="cif-hint" style="color: var(--secondary)">Redirigiéndote a tu pestaña secreta…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+  <span class="group-label">Campo del checkout</span>
+  <div class="states">
+    <div>
+      <p class="state-name">vacío</p>
+      <div class="cif">
+        <span class="cif-eyebrow">Código</span>
+        <div class="cif-line">
+          <span class="cif-prompt">Canjeá tu código</span>
+          <button type="button" class="cif-act">Canjear</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="state-name">aplicado</p>
+      <div class="cif">
+        <span class="cif-eyebrow">Precio exclusivo aplicado</span>
+        <div class="cif-line is-gold">
+          <span class="cif-code-small">ONLY-PITBULL</span>
+          <span class="cif-amount" style="flex: 1; text-align: right">$ 120.000</span>
+        </div>
+        <div class="cif-foot" style="justify-content: flex-end">
+          <button type="button" class="cif-drop">Quitar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"surface":{"editor":"enum","options":["card","page","light"],"default":"card","section":"Superficie"},"$preview":{"width":620,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const surface = this.props.surface ?? 'card';
+    return {
+      surfaceClass: surface === 'page' ? 'is-page' : surface === 'light' ? 'is-light' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>

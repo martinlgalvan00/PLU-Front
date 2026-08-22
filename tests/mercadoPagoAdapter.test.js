@@ -2,13 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mpMocks = vi.hoisted(() => ({
   preferenceCreate: vi.fn(),
+  paymentCreate: vi.fn(),
+  paymentGet: vi.fn(),
 }))
 
 vi.mock('mercadopago', () => ({
   MercadoPagoConfig: vi.fn(function MercadoPagoConfig(config) {
     this.config = config
   }),
-  Payment: vi.fn(function Payment() {}),
+  Payment: vi.fn(function Payment() {
+    this.create = mpMocks.paymentCreate
+    this.get = mpMocks.paymentGet
+  }),
   PreApproval: vi.fn(function PreApproval() {}),
   PreApprovalPlan: vi.fn(function PreApprovalPlan() {}),
   Preference: vi.fn(function Preference() {
@@ -30,6 +35,9 @@ const order = {
 describe('adaptador de Mercado Pago', () => {
   beforeEach(() => {
     mpMocks.preferenceCreate.mockReset()
+    mpMocks.paymentCreate.mockReset()
+    mpMocks.paymentGet.mockReset()
+    vi.unstubAllGlobals()
   })
 
   it('rechaza credenciales placeholder antes de construir el cliente', () => {
@@ -118,6 +126,54 @@ describe('adaptador de Mercado Pago', () => {
         requestOptions: expect.objectContaining({ idempotencyKey: 'membership-order-1' }),
       }),
     )
+  })
+
+  it('bloquea crear un checkout si el token no pertenece al collector configurado', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify({ id: 999, nickname: 'cuenta-ajena' }), { status: 200 }),
+      ),
+    )
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_COLLECTOR_ID: '111',
+        MERCADO_PAGO_ENV: 'sandbox',
+        APP_URL: 'http://localhost:5173',
+      },
+    })
+
+    await expect(
+      adapter.createPreference({ order, idempotencyKey: 'collector-identity-order-1' }),
+    ).rejects.toMatchObject({
+      status: 503,
+      provider: { code: 'MP_ACCOUNT_MISMATCH', expectedCollectorId: '111' },
+    })
+    expect(mpMocks.preferenceCreate).not.toHaveBeenCalled()
+  })
+
+  it('no informa un falso “sin pagos” al revalidar con un token de otra cuenta', async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ id: 999, nickname: 'cuenta-ajena' }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_COLLECTOR_ID: '111',
+        MERCADO_PAGO_ENV: 'sandbox',
+      },
+    })
+
+    await expect(adapter.searchPaymentsForOrder(order)).rejects.toMatchObject({
+      status: 503,
+      provider: { code: 'MP_ACCOUNT_MISMATCH', expectedCollectorId: '111' },
+    })
+    // Primero se valida /users/me; no se consulta el search de una cuenta que
+    // no es la cobradora, porque su lista vacía sería un falso negativo.
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls[0][0]).toContain('/users/me')
   })
 
   it('redirige las inscripciones de atleta al perfil', async () => {
@@ -214,6 +270,100 @@ describe('adaptador de Mercado Pago', () => {
     // Las back_urls pasan por el mismo normalizador: un redirect ahí no pierde
     // el cobro, pero manda al atleta por un salto extra al volver del checkout.
     expect(body.back_urls.success).toContain('https://www.powerliftingunited.ar/')
+  })
+
+  it('reintenta un 500 puntual del search y devuelve los pagos reales', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'internal' }), { status: 500 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            results: [{ id: 111, status: 'approved', external_reference: 'order-1' }],
+          }),
+          { status: 200 },
+        ),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    const sleep = vi.fn(async () => {})
+    const adapter = createMercadoPagoAdapter({
+      env: { MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token', MERCADO_PAGO_ENV: 'sandbox' },
+      retryOptions: { sleep, random: () => 0.5 },
+    })
+
+    const payments = await adapter.searchPaymentsForOrder(order)
+
+    expect(payments).toHaveLength(1)
+    expect(payments[0].id).toBe(111)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(sleep).toHaveBeenCalledTimes(1)
+  })
+
+  it('ante un 429 espera el Retry-After del proveedor antes de reintentar', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ message: 'rate limited' }), {
+          status: 429,
+          headers: { 'retry-after': '2' },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const sleep = vi.fn(async () => {})
+    const adapter = createMercadoPagoAdapter({
+      env: { MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token', MERCADO_PAGO_ENV: 'sandbox' },
+      retryOptions: { sleep, random: () => 0 },
+    })
+
+    await adapter.searchPaymentsForOrder(order)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(sleep).toHaveBeenCalledWith(2000)
+  })
+
+  it('NO reintenta la creacion de un pago ante un 5xx: el cobro pudo entrar igual', async () => {
+    const providerError = Object.assign(new Error('internal error'), { status: 500 })
+    mpMocks.paymentCreate.mockRejectedValue(providerError)
+    const sleep = vi.fn(async () => {})
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'sandbox',
+        API_URL: 'http://localhost:3001',
+      },
+      retryOptions: { sleep, random: () => 0.5 },
+    })
+
+    await expect(
+      adapter.createPayment({
+        order,
+        idempotencyKey: 'embedded-payment-order-1',
+        formData: { payment_method_id: 'visa', payer: { email: order.payerEmail } },
+      }),
+    ).rejects.toMatchObject({ status: 503 })
+    // Un solo POST: el "que paso con la plata" lo responde la reconciliacion
+    // por external_reference, no un segundo POST a ciegas.
+    expect(mpMocks.paymentCreate).toHaveBeenCalledTimes(1)
+    expect(sleep).not.toHaveBeenCalled()
+  })
+
+  it('la lectura de un pago reintenta el corte de red y entrega el recurso', async () => {
+    const abort = Object.assign(new Error('This operation was aborted'), { name: 'AbortError' })
+    mpMocks.paymentGet
+      .mockRejectedValueOnce(abort)
+      .mockResolvedValueOnce({ id: 222, status: 'approved', external_reference: 'order-1' })
+    const sleep = vi.fn(async () => {})
+    const adapter = createMercadoPagoAdapter({
+      env: { MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token', MERCADO_PAGO_ENV: 'sandbox' },
+      retryOptions: { sleep, random: () => 0.5 },
+    })
+
+    const payment = await adapter.getPayment(222)
+
+    expect(payment.id).toBe(222)
+    expect(mpMocks.paymentGet).toHaveBeenCalledTimes(2)
+    expect(sleep).toHaveBeenCalledTimes(1)
   })
 
   it('no toca dominios que no son el apex oficial', async () => {
