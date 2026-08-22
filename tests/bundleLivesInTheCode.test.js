@@ -70,12 +70,23 @@ describe('el panel tiene una sola superficie', () => {
     }
   })
 
-  it('el formulario del código sigue teniendo las dos mitades del paquete', () => {
-    // Lo que se fue es la sección, no la capacidad: el código nombra su
-    // afiliación y su inscripción.
-    expect(panel).toContain('offerPlanLabel')
-    expect(panel).toContain('offerEventLabel')
-    expect(panel).toContain('membershipPlanId')
+  it('el formulario del código no conserva restos de la oferta retirada', () => {
+    // 20260915100000 retiró las ofertas por código: el paquete se vende como
+    // precio fijo con alcance 'combo', y el formulario de la oferta —plan que
+    // empaqueta, inscripción obligatoria, aside del flujo secreto— se fue con
+    // ella. Nada de eso puede reaparecer por un merge distraído.
+    for (const trace of [
+      'offerPlanLabel',
+      'offerEventLabel',
+      'membershipPlanId',
+      'draftOpensOffer',
+      'offer_access',
+      'exclusiveFlow',
+    ]) {
+      expect(panel, `quedó ${trace} en el panel`).not.toContain(trace)
+    }
+    // La única vía viva del paquete: precio fijo con alcance combo.
+    expect(panel).toContain("t('admin.sections.pricing.appliesTo.combo')")
   })
 
   it('quedan sólo dos tipos: la oferta por código está retirada (20260915100000)', () => {

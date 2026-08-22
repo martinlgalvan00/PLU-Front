@@ -20,6 +20,24 @@ export function createSupabasePricingRepository(client) {
     simulatePromotionCode: (codeId) =>
       rpc('staff_simulate_promotion_code', { p_code_id: codeId }, 'No se pudo simular el código.'),
 
+    // El historial de canjes de un código: quién lo usó, cuándo y sobre qué
+    // orden. Lectura directa y no RPC: es un SELECT plano sin reglas de
+    // negocio sobre una tabla que solo service_role puede leer, y una función
+    // versionada no agregaría ninguna garantía. Atleta y orden entran por sus
+    // FK, así que PostgREST arma el join solo.
+    listDiscountCodeRedemptions: async (codeId) =>
+      assertSupabaseResult(
+        await client
+          .from('discount_code_redemptions')
+          .select(
+            'id, discount_amount, created_at, athlete:athletes(id, full_name, email), order:athlete_payment_orders(id, status, amount, currency, method, concept, created_at)',
+          )
+          .eq('discount_code_id', codeId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+        'No se pudo leer el historial de canjes.',
+      ),
+
     createPlanVersion: (plan, actor) =>
       rpc(
         'staff_create_membership_plan_version',

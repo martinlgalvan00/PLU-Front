@@ -545,6 +545,26 @@
   color: var(--color-warning-text);
 }
 
+/* El historial de canjes vive en el mismo contenedor lateral que la
+   simulación, pero cada fila es una persona: se apilan como renglones, con el
+   nombre como ancla y el resto como metadatos del mismo renglón. */
+ul.admin-pricing__redemptions {
+  display: grid;
+  gap: 0.35rem;
+}
+
+ul.admin-pricing__redemptions li {
+  column-gap: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 0.1rem;
+}
+
+ul.admin-pricing__redemptions li > strong {
+  color: var(--color-text-primary);
+  font-weight: 650;
+}
+
 .admin-pricing__plan-amount--percent {
   color: color-mix(
     in srgb,
@@ -676,6 +696,41 @@
   display: flex;
   flex: none;
   gap: 0.5rem;
+}
+
+/* Búsqueda local de códigos: con lotes de invitados la lista crece a cientos
+   de filas y encontrar una a ojo deja de ser razonable. Mismo trazo que los
+   inputs de retiro: línea baja, sin caja. */
+.admin-pricing__code-search {
+  color: var(--color-text-muted);
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 0.85rem;
+  max-width: 320px;
+}
+
+.admin-pricing__code-search span {
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-pricing__code-search input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  min-height: 38px;
+  padding: 0.4rem 0 0.5rem;
+  width: 100%;
+}
+
+.admin-pricing__code-search input:focus-visible {
+  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+  outline: none;
 }
 
 .admin-pricing__switch {
@@ -2080,7 +2135,8 @@
   );
 }
 
-[data-theme='light'] .admin-pricing__retirement-form input:focus-visible {
+[data-theme='light'] .admin-pricing__retirement-form input:focus-visible,
+[data-theme='light'] .admin-pricing__code-search input:focus-visible {
   border-bottom-color: color-mix(
     in srgb,
     var(--plu-gold-600, var(--color-brand-gold)) 55%,

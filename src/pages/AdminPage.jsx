@@ -98,6 +98,7 @@ export default function AdminPage({
   onSetDiscountCodeState,
   onDeleteDiscountCode,
   onSimulatePromotionCode,
+  onFetchDiscountCodeRedemptions,
   billingSubscriptions,
   billingSubscriptionsLoading,
   billingSubscriptionsError,
@@ -564,6 +565,7 @@ export default function AdminPage({
           onSetDiscountCodeState={onSetDiscountCodeState}
           onDeleteDiscountCode={onDeleteDiscountCode}
           onSimulatePromotionCode={onSimulatePromotionCode}
+          onFetchDiscountCodeRedemptions={onFetchDiscountCodeRedemptions}
           subscriptions={billingSubscriptions}
           subscriptionsLoading={billingSubscriptionsLoading}
           subscriptionsError={billingSubscriptionsError}
