@@ -68,7 +68,7 @@ function scrollTabIntoRail(rail, tab, instant) {
  * exclusiva). Se filtra sobre ITEMS y no se reordena: el orden y la dirección
  * de la transición siguen saliendo de `ACCOUNT_TAB_IDS`.
  */
-export default function AccountNav({ activeId, onChange, visibleIds = null }) {
+export default function AccountNav({ activeId, onChange, visibleIds = null, attentionIds = null }) {
   const { t } = useI18n()
   const items = visibleIds ? ITEMS.filter((item) => visibleIds.includes(item.id)) : ITEMS
   const { reducedMotion } = useMotionConfig()
@@ -126,6 +126,7 @@ export default function AccountNav({ activeId, onChange, visibleIds = null }) {
           <div className="account-nav__inner" role="tablist" ref={railRef}>
             {items.map(({ id, icon: Icon, labelKey }) => {
               const isActive = activeId === id
+              const needsAttention = Boolean(attentionIds?.includes(id))
 
               return (
                 <button
@@ -158,8 +159,16 @@ export default function AccountNav({ activeId, onChange, visibleIds = null }) {
                     />
                   ) : null}
                   <span className="account-nav__item-content">
-                    <Icon size={16} strokeWidth={1.75} aria-hidden />
+                    <span className="account-nav__item-icon">
+                      <Icon size={16} strokeWidth={1.75} aria-hidden />
+                      {needsAttention ? (
+                        <span className="account-nav__item-dot" aria-hidden />
+                      ) : null}
+                    </span>
                     {t(`account.nav.${labelKey}`)}
+                    {needsAttention ? (
+                      <span className="visually-hidden">{t('account.nav.needsAttention')}</span>
+                    ) : null}
                   </span>
                 </button>
               )

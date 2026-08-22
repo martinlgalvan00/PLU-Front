@@ -647,6 +647,26 @@
   color: var(--color-brand-gold);
 }
 
+/* Ficha con algo que resolver (hoy: un cobro rechazado en Pagos) — un punto
+   real, no decorativo: cuenta lo mismo que ya muestra el aviso de la sección,
+   pero visible antes de entrar. Rojo porque es el mismo criterio de
+   error/peligro que ya usa el pill del cobro, no un acento nuevo. */
+.account-nav__item-icon {
+  display: inline-flex;
+  flex: none;
+  position: relative;
+}
+
+.account-nav__item-dot {
+  background: var(--color-brand-red);
+  border-radius: 50%;
+  height: 7px;
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  width: 7px;
+}
+
 [data-theme='light'] .account-nav__viewport {
   border-color: color-mix(in oklab, var(--color-text-primary) 12%, transparent);
 }
@@ -3922,8 +3942,10 @@
   color: var(--color-brand-gold);
 }
 
-/* Banner inline de advertencia de perfil incompleto en UpcomingEventsSection */
-.account-incomplete-banner {
+/* Aviso inline reutilizable: perfil incompleto (UpcomingEventsSection, tono
+   dorado por defecto) y cobro rechazado (PaymentsSection, `--danger`). Mismo
+   cuerpo icono + título + texto — sólo cambia el tono y si hay acción. */
+.account-inline-alert {
   align-items: flex-start;
   animation: account-banner-appear 220ms var(--ease-out) both;
   background: color-mix(in srgb, var(--color-brand-gold) 8%, transparent);
@@ -3947,23 +3969,23 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .account-incomplete-banner {
+  .account-inline-alert {
     animation: none;
   }
 }
 
-.account-incomplete-banner__icon {
+.account-inline-alert__icon {
   color: var(--color-brand-gold);
   flex: none;
   margin-top: 1px;
 }
 
-.account-incomplete-banner__body {
+.account-inline-alert__body {
   flex: 1;
   min-width: 0;
 }
 
-.account-incomplete-banner__body strong {
+.account-inline-alert__body strong {
   color: var(--color-text-primary);
   display: block;
   font-size: 13.5px;
@@ -3971,14 +3993,14 @@
   margin-bottom: 4px;
 }
 
-.account-incomplete-banner__body p {
+.account-inline-alert__body p {
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 1.45;
   margin: 0;
 }
 
-.account-incomplete-banner__action {
+.account-inline-alert__action {
   align-items: center;
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--color-brand-gold) 48%, transparent);
@@ -3999,14 +4021,36 @@
   white-space: nowrap;
 }
 
-.account-incomplete-banner__action:hover {
+.account-inline-alert__action:hover {
   background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-brand-gold) 68%, transparent);
 }
 
-.account-incomplete-banner__action:focus-visible {
+.account-inline-alert__action:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
+}
+
+/* Tono peligro real: cobro rechazado/vencido sin resolver (PaymentsSection).
+   Mismo layout, rojo en vez de dorado — el rojo del sistema es exclusivo de
+   error/peligro, así que acá es el uso correcto, no decorativo. */
+.account-inline-alert--danger {
+  background: color-mix(in srgb, var(--color-brand-red) 7%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-red) 32%, transparent);
+}
+
+.account-inline-alert--danger .account-inline-alert__icon {
+  color: var(--color-brand-red);
+}
+
+.account-inline-alert--danger .account-inline-alert__action {
+  border-color: color-mix(in srgb, var(--color-brand-red) 45%, transparent);
+  color: var(--color-brand-red);
+}
+
+.account-inline-alert--danger .account-inline-alert__action:hover {
+  background: color-mix(in srgb, var(--color-brand-red) 10%, transparent);
+  border-color: var(--color-brand-red);
 }
 
 /* Botón de inscribirse cuando el perfil está incompleto */
@@ -4951,6 +4995,21 @@
   color: var(--color-text-secondary);
 }
 
+/* Motivo de un cobro rechazado/vencido: el mismo texto que el resto de la
+   fila, pero con el ícono de estado real (rojo, no decorativo) para que el
+   ojo lo encuentre sin tener que leer el pill de arriba. */
+.account-payment__reason--alert {
+  align-items: flex-start;
+  display: flex;
+  gap: 7px;
+}
+
+.account-payment__reason--alert svg {
+  color: var(--color-brand-red);
+  flex: none;
+  margin-top: 2px;
+}
+
 .account-payment__meta code {
   display: inline-block;
   font-family: var(--font-mono, ui-monospace, monospace);
@@ -4962,31 +5021,48 @@
   overflow-wrap: anywhere;
 }
 
-/* Acción de un cobro puntual: misma regla inferior que la acción del estado
-   vacío, pero con clase propia — reusar `.account-empty__action` fuera del
-   estado vacío ataba dos cosas que pueden evolucionar por separado. */
+/* Acción de un cobro puntual: la única acción que importa en una fila
+   rechazada/vencida, así que es un botón real (borde + relleno en hover),
+   no un link de párrafo — antes se confundía con metadata al pasar de largo. */
 .account-payment__action {
   align-items: center;
   background: transparent;
-  border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--account-payment-accent) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--account-payment-accent) 45%, transparent);
+  border-radius: 9px;
   color: var(--account-payment-accent);
   cursor: pointer;
   display: inline-flex;
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  margin-top: 2px;
+  gap: 7px;
+  margin-top: 4px;
   /* 44px de alto real: es un target táctil, no un link de párrafo. */
   min-height: 44px;
-  padding: 0;
+  padding: 0 18px;
   transition:
+    background var(--transition-fast),
     border-color var(--transition-fast),
     color var(--transition-fast);
 }
 
 .account-payment__action:hover {
-  border-bottom-color: var(--account-payment-accent);
+  background: color-mix(in srgb, var(--account-payment-accent) 12%, transparent);
+  border-color: var(--account-payment-accent);
+}
+
+.account-payment__action:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.account-payment__action svg {
+  flex: none;
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.account-payment__action:hover svg {
+  transform: translateX(2px);
 }
 
 @media (max-width: 560px) {

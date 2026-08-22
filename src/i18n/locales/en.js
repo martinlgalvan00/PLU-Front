@@ -1050,6 +1050,7 @@ export default {
       payments: 'Payments',
       personalData: 'My details',
       security: 'Security',
+      needsAttention: 'You have something to resolve here',
     },
     benefits: {
       eyebrow: 'Codes and promotions',
@@ -1082,6 +1083,10 @@ export default {
       emptyLead:
         'Once you join or register for a meet, every payment shows up here with its status and receipt.',
       emptyAction: 'Go to Membership',
+      alertTitle_one: 'You have {{count}} charge to resolve',
+      alertTitle_other: 'You have {{count}} charges to resolve',
+      alertBody:
+        'Mercado Pago declined the payment, so the membership or registration was not confirmed. Retry it from the charge marked below.',
       settledAfterAttempts_one:
         'It went through after {{count}} declined attempt. If you got a decline notice, disregard it.',
       settledAfterAttempts_other:

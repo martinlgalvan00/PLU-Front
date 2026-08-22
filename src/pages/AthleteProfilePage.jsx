@@ -14,6 +14,7 @@ import {
   DEFAULT_ACCOUNT_TAB,
 } from '../lib/navigation.js'
 import { isRegistrationAdmitted } from '../lib/status.js'
+import { isPaymentActionable } from '../lib/paymentProgress.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 import { getActionableOffers, pickPrimaryOffer } from '../services/exclusiveOfferService.js'
 import { fetchOfferUnlocks } from '../services/athleteApi.js'
@@ -91,6 +92,10 @@ export default function AthleteProfilePage({
     ? registrations.filter((item) => item.athleteId === athleteId)
     : []
   const athletePayments = athleteId ? payments.filter((item) => item.athleteId === athleteId) : []
+  // Cobro rechazado/vencido sin resolver: la ficha "Pagos" lo marca desde la
+  // navegación para que se note sin tener que entrar a leer la lista.
+  const paymentsNeedAttention = athletePayments.some((item) => isPaymentActionable(item.progress))
+  const navAttentionIds = paymentsNeedAttention ? ['account-payments'] : []
   const offerLifecycleKey = athletePayments
     .map((payment) =>
       [
@@ -289,7 +294,12 @@ export default function AthleteProfilePage({
               onNavigateSection={setActiveTab}
             />
           </Reveal>
-          <AccountNav activeId={resolvedTab} onChange={setActiveTab} visibleIds={visibleTabIds} />
+          <AccountNav
+            activeId={resolvedTab}
+            onChange={setActiveTab}
+            visibleIds={visibleTabIds}
+            attentionIds={navAttentionIds}
+          />
         </aside>
 
         <div className="account-main" ref={mainRef}>

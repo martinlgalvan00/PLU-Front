@@ -1048,6 +1048,7 @@ export default {
       payments: 'Pagos',
       personalData: 'Mis datos',
       security: 'Seguridad',
+      needsAttention: 'Tenés algo para resolver acá',
     },
     benefits: {
       eyebrow: 'Códigos y promociones',
@@ -1080,6 +1081,10 @@ export default {
       emptyLead:
         'Cuando te afilies o te inscribas a un torneo, cada pago va a aparecer acá con su estado y su comprobante.',
       emptyAction: 'Ir a Afiliación',
+      alertTitle_one: 'Tenés {{count}} cobro para resolver',
+      alertTitle_other: 'Tenés {{count}} cobros para resolver',
+      alertBody:
+        'Mercado Pago rechazó el pago y por eso la afiliación o la inscripción no quedó confirmada. Volvé a intentarlo desde el cobro marcado abajo.',
       settledAfterAttempts_one:
         'Se acreditó después de {{count}} intento rechazado. Si te llegó un aviso de rechazo, quedó sin efecto.',
       settledAfterAttempts_other:
