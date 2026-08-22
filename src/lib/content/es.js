@@ -190,20 +190,8 @@ export const MEMBERSHIP_PLANS = [
     highlighted: false,
     procedureType: 'membership',
   },
-  {
-    id: 'combo',
-    title: 'Pitbull Classic',
-    kicker: 'Combo temporada',
-    price: PRICING.combo,
-    period: 'temporada 26/27',
-    features: ['Afiliación anual', 'Inscripción Pitbull Classic', 'Un solo trámite'],
-    highlighted: true,
-    procedureType: 'both',
-    compareWith: [
-      { label: 'Afiliación anual', price: PRICING.membership },
-      { label: 'Inscripción Pitbull Classic', price: PRICING.event },
-    ],
-  },
+  // El plan combo se retiró del catálogo: MembersPage ya lo filtraba y la
+  // entrada solo servía para compilar el precio de la oferta al bundle.
 ]
 
 export const MEMBERSHIP_BENEFITS = [

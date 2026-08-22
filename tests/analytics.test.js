@@ -29,6 +29,13 @@ describe('normalizacion de rutas', () => {
     expect(normalizePath('/eventos/pitbull-classic')).toBe('/eventos/pitbull-classic')
   })
 
+  it('redacta el codigo promocional de los QR viejos de canje', () => {
+    // La ruta /canjear/:codigo ya no existe, pero los QR impresos siguen
+    // apuntando ahi: el codigo es un secreto de negocio y no debe persistirse.
+    expect(normalizePath('/canjear/PITBULL-COMBO')).toBe('/canjear/:code')
+    expect(normalizePath('/canjear/onl2026?utm_source=qr')).toBe('/canjear/:code')
+  })
+
   it('descarta la querystring entera', () => {
     // Un link de recuperacion lleva el email en la query: persistirlo seria
     // guardar un dato personal que la analitica no necesita.

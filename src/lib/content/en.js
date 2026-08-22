@@ -188,20 +188,8 @@ export const MEMBERSHIP_PLANS = [
     highlighted: false,
     procedureType: 'membership',
   },
-  {
-    id: 'combo',
-    title: 'Pitbull Classic',
-    kicker: 'Season combo',
-    price: PRICING.combo,
-    period: '26/27 season',
-    features: ['Annual membership', 'Pitbull Classic registration', 'Single checkout'],
-    highlighted: true,
-    procedureType: 'both',
-    compareWith: [
-      { label: 'Annual membership', price: PRICING.membership },
-      { label: 'Pitbull Classic registration', price: PRICING.event },
-    ],
-  },
+  // The combo plan was retired from the catalog: MembersPage already filtered
+  // it out and the entry only compiled the offer price into the bundle.
 ]
 
 export const MEMBERSHIP_BENEFITS = [

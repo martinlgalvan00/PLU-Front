@@ -1,14 +1,21 @@
 export const STORAGE_KEY = 'plu-arg-maximal'
 
+/**
+ * Fallbacks de precio de lista. Sin `combo` a propósito: la oferta se retiró
+ * del catálogo (event_combo_offers quedó archivada, con la escritura
+ * revocada) y su precio promocional no debe salir compilado en el bundle
+ * público. Solo una oferta viva puede volver a ponerle precio a un combo.
+ */
 export const PRICING = {
   membership: 75000,
   membershipJunior: 28000,
   event: 75000,
-  combo: 120000,
 }
 
 export const PROCEDURE_TYPES = {
-  both: { label: 'Afiliación + inscripción', amount: PRICING.combo },
+  // El trámite conjunto vale la suma de lista: sin combo vigente no hay
+  // descuento que anunciar.
+  both: { label: 'Afiliación + inscripción', amount: PRICING.membership + PRICING.event },
   membership: { label: 'Solo afiliación', amount: PRICING.membership },
   event: { label: 'Solo inscripción', amount: PRICING.event },
 }

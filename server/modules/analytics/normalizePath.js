@@ -12,6 +12,11 @@ const OPAQUE = /^[0-9a-f]{24,}$/i
 const CONTENT_COLLECTIONS = new Set(['eventos', 'events', 'noticias', 'resultados', 'results'])
 
 function normalizeSegment(segment, previousSegment) {
+  // La ruta publica /canjear/:codigo se elimino, pero los QR ya repartidos
+  // siguen apuntando ahi. El segmento es un codigo promocional —secreto de
+  // negocio— y se redacta siempre, tenga la forma que tenga, para que no
+  // quede legible en web_analytics.
+  if (previousSegment === 'canjear') return ':code'
   if (UUID.test(segment)) return ':id'
   if (NUMERIC.test(segment)) return ':n'
   if (MEMBER_CODE.test(segment)) return ':memberCode'

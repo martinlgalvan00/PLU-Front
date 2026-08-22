@@ -91,3 +91,32 @@ describe('createSupabaseAuditRepository · cursor de paginación', () => {
     expect(calls.or[1]).toBe('entity_id.ilike.%ana%,actor_id.ilike.%ana%')
   })
 })
+
+describe('createSupabaseAuditRepository · redacción del código promocional', () => {
+  /**
+   * `apply_discount_code_to_order` y `release_unpaid_discount_redemption`
+   * escriben `metadata.code` en claro. `admin.audit.read` es más amplio que
+   * `admin.pricing.read` (el permiso que protege la lista de códigos), así
+   * que la lectura no puede servir el código entero.
+   */
+  it('enmascara metadata.code de las acciones discount_code.* y solo de esas', async () => {
+    const { client } = createClientDouble([
+      {
+        id: 'row-1',
+        action: 'discount_code.applied',
+        metadata: { code: 'ONLINE2026', orderId: 'order-7' },
+      },
+      // `code` fuera de discount_code.* puede ser un código de error de MP:
+      // tiene que salir intacto.
+      { id: 'row-2', action: 'payment.webhook_failed', metadata: { code: 'MP-401' } },
+      { id: 'row-3', action: 'discount_code.released', metadata: {} },
+    ])
+    const repository = createSupabaseAuditRepository(client)
+
+    const rows = await repository.list()
+
+    expect(rows[0].metadata).toEqual({ code: 'ONL…', orderId: 'order-7' })
+    expect(rows[1].metadata).toEqual({ code: 'MP-401' })
+    expect(rows[2].metadata).toEqual({})
+  })
+})

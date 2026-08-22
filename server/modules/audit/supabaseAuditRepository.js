@@ -26,6 +26,30 @@ import {
 const EVENT_COLUMNS =
   'id, source, action, entity_type, entity_id, actor_type, actor_id, status, severity, metadata, created_at'
 
+/**
+ * Enmascara el código promocional antes de servir la fila.
+ *
+ * `apply_discount_code_to_order` y `release_unpaid_discount_redemption`
+ * escriben `metadata.code` en claro en la bitácora, y esta lectura se sirve
+ * a cualquier rol con `admin.audit.read` — un permiso más amplio que
+ * `admin.pricing.read`, que es el que protege la lista de códigos. Esa es la
+ * frontera real: quien puede leer auditoría no necesariamente puede ver
+ * códigos canjeables. Se enmascara acá, en la única puerta de lectura (no en
+ * la base: la fila íntegra sigue siendo evidencia), dejando un prefijo que
+ * alcanza para correlacionar eventos sin regalar el código entero.
+ */
+function maskDiscountCode(row) {
+  if (!row?.action?.startsWith('discount_code.')) return row
+  const code = row.metadata?.code
+  if (typeof code !== 'string' || code.length === 0) return row
+  return { ...row, metadata: { ...row.metadata, code: `${code.slice(0, 3)}…` } }
+}
+
+/** Toda fila que sale del repositorio pasa por acá: máscara + categoría. */
+function serveRows(rows) {
+  return withAuditCategory((rows ?? []).map(maskDiscountCode))
+}
+
 export function createSupabaseAuditRepository(
   client,
   { organizationId = PRIMARY_ORGANIZATION_ID } = {},
@@ -44,7 +68,7 @@ export function createSupabaseAuditRepository(
         await events().eq('id', id).limit(1),
         'No se pudo leer el evento de auditoría.',
       )
-      return rows?.[0] ? withAuditCategory(rows)[0] : null
+      return rows?.[0] ? serveRows(rows)[0] : null
     },
 
     /**
@@ -134,10 +158,10 @@ export function createSupabaseAuditRepository(
         // Los cuatro ejes llevan categoría igual que la tabla: es lo que permite
         // ver de un vistazo que un `payment_webhook.failed` y un
         // `payment.webhook_failed` del mismo requestId son el mismo hecho.
-        request: withAuditCategory(request),
-        actorBefore: withAuditCategory(actorBefore.slice().reverse()),
-        actorAfter: withAuditCategory(actorAfter),
-        entity: withAuditCategory(entity.slice().reverse()),
+        request: serveRows(request),
+        actorBefore: serveRows(actorBefore.slice().reverse()),
+        actorAfter: serveRows(actorAfter),
+        entity: serveRows(entity.slice().reverse()),
       }
     },
 
@@ -213,9 +237,7 @@ export function createSupabaseAuditRepository(
 
       // Sin `await` el builder llega crudo a assertSupabaseResult, `data` queda
       // undefined y `/api/audit` explota al leer `entries.length` (500).
-      const rows = withAuditCategory(
-        assertSupabaseResult(await query, 'No se pudo leer la auditoría.'),
-      )
+      const rows = serveRows(assertSupabaseResult(await query, 'No se pudo leer la auditoría.'))
 
       // `otro` es el único filtro que no se puede empujar a la base. Se aplica
       // acá asumiendo el costo: la página puede volver más corta que `limit`,
