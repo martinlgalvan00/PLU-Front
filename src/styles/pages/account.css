@@ -1513,18 +1513,41 @@
   width: 100%;
 }
 
+/* Píldora, no texto suelto: un código aplicado se lee como una insignia
+   ganada, no como una línea más de copy. Mismo tratamiento que
+   `.register-discount__applied` en el checkout de inscripción. */
 .account-discount__applied {
+<<<<<<< Updated upstream
   display: grid;
   gap: 6px;
   justify-items: start;
   width: 100%;
+=======
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+  border-radius: 999px;
+  color: var(--color-brand-gold);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 14px;
+>>>>>>> Stashed changes
 }
 
 /* Promo que corre para todos: no la trajo el atleta con un codigo, asi que
    se lee como informacion del catalogo (celeste) y no como un logro suyo
    (oro), y no ofrece "quitar" porque no hay nada que quitar. */
 .account-discount__applied--public {
+<<<<<<< Updated upstream
   align-items: center;
+=======
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 32%, transparent);
+>>>>>>> Stashed changes
   color: var(--color-brand-celeste);
   display: flex;
   flex-wrap: wrap;

@@ -757,6 +757,29 @@ export default {
         cash_pitbull: 'Sólo efectivo',
         'bank_transfer+cash_pitbull': 'Sin Mercado Pago',
       },
+<<<<<<< Updated upstream
+=======
+      comboAudienceHint:
+        'Restringido: el paquete no se ofrece y sólo lo compra quien tipea el código. No cambia el precio, habilita el acceso.',
+      comboAccessCode: 'Código de acceso al combo',
+      comboAccessCodePlaceholder: 'Ej: COMBO-PITBULL',
+      comboAccessCodeHint:
+        'Mayúsculas, números y guiones. Es el que repartís: pasar el combo a público lo borra.',
+      comboAccessCodeInvalid:
+        'El código de acceso al combo tiene que ser mayúsculas, números y guiones.',
+      comboFinanced: 'Financiado',
+      comboFinancedHint:
+        'Quien entra con el código se anota sin elegir método de pago. La orden queda pendiente para que la apruebes vos después desde Pagos.',
+      deleteCombo: 'Eliminar combo',
+      comboDeleted: 'Oferta combo eliminada.',
+      deleteComboConfirmTitle: 'Eliminar el combo de {{event}}',
+      deleteComboConfirmDescription:
+        'Vas a borrar la oferta combo de {{event}} del catálogo. La afiliación y la inscripción sueltas no se tocan.',
+      deleteComboConfirmWarning:
+        'Solo se puede eliminar si nadie compró el combo de este torneo. Si ya hay órdenes, desactivalo en su lugar.',
+      deleteComboConfirmCancel: 'Conservar combo',
+      deleteComboConfirmConfirm: 'Eliminar combo',
+>>>>>>> Stashed changes
       deleteDiscountCode: 'Eliminar',
       deleteDiscountCodeAria: 'Eliminar código {{code}}',
       deleteCodeConfirmTitle: 'Eliminar {{code}}',
