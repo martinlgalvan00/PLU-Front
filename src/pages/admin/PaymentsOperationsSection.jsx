@@ -88,8 +88,8 @@ export default function PaymentsOperationsSection({
   const [activeTab, setActiveTab] = useState('athletes')
   const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
-  const [athleteStatusRequest, setAthleteStatusRequest] = useState(null)
-  const [athleteSummary, setAthleteSummary] = useState({
+  const [athleteStatusRequest, _setAthleteStatusRequest] = useState(null)
+  const [_athleteSummary, setAthleteSummary] = useState({
     pending: null,
     openAmount: null,
     loading: true,

@@ -60,6 +60,17 @@ Configurar la URL publica HTTPS `POST /api/payments/webhook/mercadopago`.
 El path corto `/api/payments/webhook` sigue aceptado como alias legacy.
 El endpoint exige `data.id` en la query, valida `x-signature`, `x-request-id` y tolerancia temporal, guarda cada notificacion de forma idempotente y no acredita desde datos enviados por el navegador. Si Mercado Pago reintenta, la clave unica evita duplicar el efecto. El recovery job reclama eventos fallidos con lock, backoff y maximo de intentos; la conciliacion consulta el estado autoritativo de Mercado Pago.
 
+Ademas del backoff en minutos de la cola durable, las llamadas al proveedor
+reintentan in-process las fallas transitorias cortas
+(`server/modules/payments/providerRetry.js`): las lecturas idempotentes
+(`GET /v1/payments/:id`, search por `external_reference`, `/users/me`)
+reintentan red, timeout, 5xx y 429 con backoff `~500/1500/3500 ms` + jitter;
+las escrituras (crear preferencia/pago/suscripcion) reintentan **solo** 429 —la
+unica falla donde el proveedor garantiza que no proceso nada— respetando
+`Retry-After` con techo de 10 s. Un timeout o 5xx sobre un POST de cobro nunca
+se repite a ciegas: cae al camino de reconciliacion por `external_reference`,
+que pregunta que paso antes de crear otra operacion.
+
 ### URLs DEV y PROD (copiar/pegar)
 
 Frontend y API comparten origen en Vercel: alcanza con `APP_URL`; no hace falta
