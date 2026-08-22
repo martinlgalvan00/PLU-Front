@@ -529,6 +529,16 @@ export default function PricingSection({
   // código ya cargado —incluso uno anterior a este selector— se reabre en el
   // modo que le corresponde en vez de en el default.
   const draftPaymentMode = codeDraft ? codePaymentModeOf(codeDraft) : 'mercado_pago'
+  // Un código de combo sólo se canjea si el evento tiene un combo vigente (la
+  // RPC del catálogo ya filtra los archivados). Hoy pueden no existir combos:
+  // el aviso evita repartir un código que el checkout va a rechazar, sin
+  // bloquear el alta — la vigencia del combo puede llegar después.
+  const draftComboAvailable =
+    codeDraft?.appliesTo !== 'combo' ||
+    (configuration.events ?? []).some(
+      (event) =>
+        (!codeDraft.eventId || event.id === codeDraft.eventId) && event.comboOffer?.active,
+    )
   useEffect(() => {
     if (!codeFormOpen) return undefined
     const form = codeFormRef.current
@@ -1878,6 +1888,11 @@ export default function PricingSection({
                   )}
                 </select>
               </label>
+              {!draftComboAvailable ? (
+                <p className="admin-pricing__channels-warning admin-pricing__wide" role="alert">
+                  {t('admin.sections.pricing.comboScopeUnavailable')}
+                </p>
+              ) : null}
               {/* Alcance por inscripción. Opcional: sin evento, el código vale
                   para cualquiera. Una promo pública no puede limitarse (ver
                   discount_codes_public_event_check). */}

@@ -613,6 +613,8 @@ export default {
       codeSearchLabel: 'Buscar código',
       codeSearchPlaceholder: 'Código, descripción o torneo',
       codeSearchNoResults: 'Ningún código coincide con "{{query}}".',
+      comboScopeUnavailable:
+        'Hoy no hay un combo vigente para este alcance: el código se puede guardar, pero el canje va a rechazarlo hasta que el combo del torneo se reabra.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
       formTitleNewCode: 'Nuevo código',
