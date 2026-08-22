@@ -1,4 +1,4 @@
-import { expect, userEvent, waitFor, within } from 'storybook/test'
+import { expect, userEvent, within } from 'storybook/test'
 import PricingSection from './PricingSection.jsx'
 import '../../styles/pages/admin-pricing.css'
 
@@ -179,27 +179,15 @@ export default {
 export const Operativa = {}
 
 /**
- * El alta de una oferta sobre un torneo SIN combo cargado: el caso que antes
- * era imposible y obligaba a configurar el combo primero (20260913100000). Con
- * dos afiliaciones de pago único vigentes el formulario pregunta cuál se
- * empaqueta; con una sola no pregunta nada.
+ * El alta quedó reducida a los dos descuentos: crear la oferta exclusiva desde
+ * el panel se revocó (20260915100000) —el paquete y su precio viven en el
+ * código—. La historia fija el select para que `offer_access` no reaparezca
+ * por un merge distraído.
  */
-export const OfertaSinCombo = {
+export const AltaSoloDescuentos = {
   args: {
     configuration: {
       ...configuration,
-      plans: [
-        configuration.plans[0],
-        {
-          ...configuration.plans[0],
-          id: '99999999-9999-4999-8999-999999999999',
-          code: 'plu-lifetime-v1',
-          familyCode: 'plu-lifetime',
-          name: 'Afiliación PLU vitalicia',
-          description: 'Pago único, sin renovación.',
-          price: 180000,
-        },
-      ],
       events: [{ ...configuration.events[0], comboOffer: null }],
       discountCodes: [],
     },
@@ -207,25 +195,9 @@ export const OfertaSinCombo = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('button', { name: /nuevo código/i }))
-    await userEvent.selectOptions(
-      await canvas.findByLabelText(/^tipo de código/i),
-      'offer_access',
-    )
-    await userEvent.selectOptions(
-      await canvas.findByLabelText(/inscripción de la oferta/i),
-      configuration.events[0].id,
-    )
-    await userEvent.type(
-      await canvas.findByLabelText(/precio de la oferta por mercado pago/i),
-      '150000',
-    )
-    // El techo sale de la suma de las partes: 180.000 + 45.000 con la vitalicia
-    // elegida. Sin combo cargado, y el formulario igual sabe cotizarlo.
-    await userEvent.selectOptions(
-      await canvas.findByLabelText(/afiliación que empaqueta/i),
-      '99999999-9999-4999-8999-999999999999',
-    )
-    await waitFor(() => expect(canvas.getByText(/Tiene que ser menor a/)).toBeInTheDocument())
+    const kindSelect = await canvas.findByLabelText(/^tipo de código/i)
+    const kinds = Array.from(kindSelect.options).map((option) => option.value)
+    await expect(kinds).toEqual(['percent', 'fixed_price'])
   },
 }
 

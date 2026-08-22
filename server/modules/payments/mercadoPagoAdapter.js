@@ -3,6 +3,7 @@ import { HttpError } from '../../lib/errors.js'
 import { logger } from '../../lib/logger.js'
 import { normalizeOfficialHost, resolveDeploymentAppUrl } from '../../lib/deploymentEnvironment.js'
 import { selectCanonicalProviderPayment } from './providerPaymentSelection.js'
+import { withTransientRetry } from './providerRetry.js'
 
 const DEFAULT_TIMEOUT_MS = 8_000
 const PLACEHOLDER_PATTERN = /^(?:replace|changeme|placeholder|your[_-]|xxx|test-x{4}$)/i
@@ -66,11 +67,35 @@ function normalizeProviderError(error, context = {}) {
   return httpError
 }
 
-/** Ejecuta una llamada al proveedor midiendo latencia y normalizando la falla. */
-async function callProvider(operation, context, run) {
+/**
+ * Ejecuta una llamada al proveedor midiendo latencia y normalizando la falla.
+ *
+ * `idempotent: true` marca lecturas seguras de repetir: ante red/timeout/5xx/429
+ * se reintenta in-process con backoff corto (ver providerRetry.js). Las
+ * escrituras quedan en el default: solo 429 —la única falla que garantiza que
+ * el proveedor no procesó nada— se reintenta; un timeout o 5xx sobre un POST
+ * de cobro cae al camino de reconciliación, que pregunta antes de repetir.
+ * `retry: false` apaga el reintento cuando el `run` ya reintenta por dentro.
+ */
+async function callProvider(operation, context, run, options = {}) {
+  const { idempotent = false, retry = true, retryOptions } = options
   const startedAt = process.hrtime.bigint()
   try {
-    const result = await run()
+    const result = retry
+      ? await withTransientRetry(run, {
+          idempotent,
+          ...retryOptions,
+          onRetry: ({ attempt, delayMs, reason, status }) =>
+            logger.warn('mercadopago.retry', {
+              operation,
+              ...context,
+              attempt,
+              delayMs,
+              reason,
+              apiResponseStatus: status,
+            }),
+        })
+      : await run()
     logger.info('mercadopago.request', {
       operation,
       ...context,
@@ -161,7 +186,12 @@ function assertProviderRequest(order, idempotencyKey) {
   }
 }
 
-export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_TIMEOUT_MS } = {}) {
+export function createMercadoPagoAdapter({
+  env = process.env,
+  timeout = DEFAULT_TIMEOUT_MS,
+  // Solo para tests: acorta las esperas del reintento transitorio.
+  retryOptions,
+} = {}) {
   const accessToken = requireAccessToken(env)
   const expectedCollectorId = String(env.MERCADO_PAGO_COLLECTOR_ID ?? '').trim() || null
   if (expectedCollectorId && !/^\d+$/.test(expectedCollectorId)) {
@@ -174,7 +204,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
   const subscriptionPlanClient = new PreApprovalPlan(client)
   let accountIdentityPromise = null
 
-  async function getJson(path) {
+  async function getJsonOnce(path) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeout)
     try {
@@ -196,6 +226,9 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
           causes: Array.isArray(body?.cause) ? body.cause.slice(0, 5) : [],
           apiResponseStatus: response.status,
           providerRequestId: response.headers.get('x-request-id'),
+          // Con un 429, la espera que pide el proveedor manda sobre el backoff
+          // propio (ver providerRetry.js).
+          retryAfterSeconds: Number(response.headers.get('retry-after')) || null,
         }
         logger.error('mercadopago.request_failed', {
           operation: 'getJson',
@@ -214,6 +247,25 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     }
   }
 
+  // Todas las rutas que pasan por aca son GETs (identidad de cuenta, pago por
+  // id, search por referencia): repetirlas es seguro, asi que un blip de red o
+  // un 5xx puntual se reintenta en el momento en vez de escalar como falla.
+  async function getJson(path) {
+    return withTransientRetry(() => getJsonOnce(path), {
+      idempotent: true,
+      ...retryOptions,
+      onRetry: ({ attempt, delayMs, reason, status }) =>
+        logger.warn('mercadopago.retry', {
+          operation: 'getJson',
+          path,
+          attempt,
+          delayMs,
+          reason,
+          apiResponseStatus: status,
+        }),
+    })
+  }
+
   /**
    * La cuenta cobradora es parte del contrato del entorno, igual que el token.
    * Se consulta una vez por proceso y nunca se expone el token ni datos del
@@ -222,14 +274,21 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
    */
   async function getAccountIdentity() {
     if (!accountIdentityPromise) {
-      accountIdentityPromise = callProvider('getAccountIdentity', {}, async () => {
-        const account = await getJson('/users/me')
-        if (!account?.id) throw new HttpError(502, 'Mercado Pago no devolvio la identidad de la cuenta.')
-        return {
-          id: String(account.id),
-          nickname: account.nickname ?? null,
-        }
-      }).catch((error) => {
+      // retry: false — getJson ya reintenta por dentro; anidar duplicaria las
+      // esperas sin sumar resiliencia.
+      accountIdentityPromise = callProvider(
+        'getAccountIdentity',
+        {},
+        async () => {
+          const account = await getJson('/users/me')
+          if (!account?.id) throw new HttpError(502, 'Mercado Pago no devolvio la identidad de la cuenta.')
+          return {
+            id: String(account.id),
+            nickname: account.nickname ?? null,
+          }
+        },
+        { retry: false },
+      ).catch((error) => {
         accountIdentityPromise = null
         throw error
       })
@@ -335,6 +394,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
         'createPreference',
         { orderId: order.id, orderKind: order.kind, amount: order.amount },
         () => preferenceClient.create({ body, requestOptions: { idempotencyKey } }),
+        { retryOptions },
       )
       return {
         id: result.id,
@@ -347,8 +407,11 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     },
 
     async getPayment(id) {
-      return callProvider('getPayment', { externalPaymentId: String(id) }, () =>
-        paymentClient.get({ id: String(id) }),
+      return callProvider(
+        'getPayment',
+        { externalPaymentId: String(id) },
+        () => paymentClient.get({ id: String(id) }),
+        { idempotent: true, retryOptions },
       )
     },
 
@@ -405,6 +468,7 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
             },
             requestOptions: { idempotencyKey },
           }),
+        { retryOptions },
       )
     },
 
@@ -484,8 +548,11 @@ export function createMercadoPagoAdapter({ env = process.env, timeout = DEFAULT_
     },
 
     async getSubscription(id) {
-      return callProvider('getSubscription', { subscriptionId: String(id) }, () =>
-        subscriptionClient.get({ id: String(id) }),
+      return callProvider(
+        'getSubscription',
+        { subscriptionId: String(id) },
+        () => subscriptionClient.get({ id: String(id) }),
+        { idempotent: true, retryOptions },
       )
     },
 

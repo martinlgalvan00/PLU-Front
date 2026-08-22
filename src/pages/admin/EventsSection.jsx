@@ -458,6 +458,9 @@ export default function EventsSection({
       setPendingDelete(null)
       setDeleteImpact(null)
       setRequiresForce(false)
+      // La consola no puede quedar mostrando un evento que ya no existe: el
+      // fallback de selectedEvent a rows[0] la dejaría abierta sobre otro meet.
+      setConsoleOpen(false)
       setMessage({
         tone: 'success',
         text: t('admin.sections.events.delete.done', { title: pendingDelete.title }),
