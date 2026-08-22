@@ -8,7 +8,10 @@ export const DEFAULT_EVENT_PRICING = {
   registration: PRICING.event,
   // Precio por transferencia/efectivo. null = cobra igual que `registration`.
   registrationManual: null,
-  combo: PRICING.combo,
+  // El combo promocional se retiró: el default es la suma de lista, que deja
+  // el "deal" en 0% de ahorro (resolveComboDeal → live: false) en vez de
+  // compilar al bundle el precio de una oferta que ya no existe.
+  combo: PRICING.membership + PRICING.event,
   ticketsEnabled: false,
   ticketAddons: [],
 }
