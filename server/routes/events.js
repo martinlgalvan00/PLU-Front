@@ -20,7 +20,9 @@ const EVENT_SELECT = `
   capacityRules:event_capacity_rules(*),
   eventRegistrations:event_registrations(status),
   eventDays:event_days(*),
-  comboOffer:event_combo_offers(*),
+  comboOffer:event_combo_offers(
+    id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at
+  ),
   ticketTypes:ticket_types(
     *,
     ticketTypeDays:ticket_type_days(event_day_id),
@@ -43,7 +45,7 @@ const CATALOG_EVENT_SELECT = `
   eventRegistrations:event_registrations(count),
   eventDays:event_days(id, day_index, label, date),
   comboOffer:event_combo_offers(
-    id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, archived_at
+    id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at
   ),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,

@@ -199,10 +199,10 @@ export const athleteWriteLimiter = buildLimiter(
 /**
  * Verificación del código de una tanda privada. Limiter propio y estrecho, no
  * `athleteWriteLimiter`: este endpoint compara una contraseña compartida y
- * responde válido/inválido sin crear ninguna orden, así que es el único lugar
- * del sistema donde se puede probar el código en loop y leer el resultado. Con
- * el balde de escritura de atleta (60 cada 10 min) alcanzaba para barrer un
- * código débil; acá queda en un puñado de intentos por IP.
+ * responde válido/inválido sin crear ninguna orden. Con el balde de escritura
+ * de atleta (60 cada 10 min) alcanzaba para barrer un código débil; acá queda
+ * en un puñado de intentos por IP. La otra superficie donde se prueban códigos
+ * en loop —los promocionales— tiene su propio balde (`promotionCodeLimiter`).
  *
  * El límite es por IP y no por atleta a propósito: el código lo comparte la
  * organización, así que el abuso esperable es una sola máquina probando, no un
@@ -213,6 +213,30 @@ export const registrationAccessCodeLimiter = buildLimiter(
   15,
   'Demasiados intentos con el código de acceso. Proba de nuevo en unos minutos.',
   { name: 'access-code', mode: 'strict' },
+)
+
+/**
+ * Validación y canje de códigos promocionales (`/me/discount-preview`,
+ * `/me/codes/redeem`, `/me/offer-unlocks`). Limiter propio y NO
+ * `publicWriteLimiter`, por las dos puntas del mismo problema:
+ *
+ *   - Enumeración: estos endpoints responden existe/no-existe (con motivo)
+ *     para cualquier string, así que los 30 cada 10 minutos de la escritura
+ *     pública dejaban un barrido de diccionario demasiado barato.
+ *   - Auto-DoS: el balde compartido era el mismo del alta de órdenes; un
+ *     atleta que probaba códigos se quedaba sin cupo para pagar.
+ *
+ * Más holgado que `registrationAccessCodeLimiter` porque el flujo legítimo es
+ * charlatán: aplicar un código de combo son ~3 requests (resolvedor + dos
+ * previews) y cada cambio de medio de pago recotiza. El corte fuerte contra
+ * la enumeración es por cuenta (identityGuard, scope `access_code`), que
+ * bloquea a los pocos intentos inexistentes sin importar cuántas IPs roten.
+ */
+export const promotionCodeLimiter = buildLimiter(
+  15 * 60 * 1000,
+  30,
+  'Demasiados intentos con códigos. Proba de nuevo en unos minutos.',
+  { name: 'promotion-code', mode: 'strict' },
 )
 
 /**

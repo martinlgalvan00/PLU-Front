@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
-  ArrowRight,
   CalendarClock,
   Check,
   ImageDown,
@@ -21,11 +20,6 @@ import { listMembershipPlans } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
 import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
-import {
-  redeemSecretOfferCode,
-  shouldTrySecretOfferFallback,
-  waitForSecretOfferRedirect,
-} from '../../services/secretOfferRedemptionService.js'
 import {
   clearPendingPromotionCode,
   promotionDestination,
@@ -65,9 +59,7 @@ export default function MembershipPurchaseSection({
   events = [],
   onSelectEvent,
   checkoutAvailability = {},
-  onNavigateSection,
   onNavigate,
-  onOfferUnlocked,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -101,8 +93,6 @@ export default function MembershipPurchaseSection({
   // Oferta exclusiva recién canjeada desde esta pantalla. No entra al cálculo
   // del precio de la afiliación: la oferta se compra en el checkout del torneo.
   // Acá sólo se confirma el canje y se ofrece la ficha donde vive.
-  const [unlockedOffer, setUnlockedOffer] = useState(null)
-  const [offerRedirecting, setOfferRedirecting] = useState(false)
   const pendingPromotionAppliedRef = useRef(null)
   // Promoción que corre para todos y se aplica sola dentro de la transacción de
   // compra. Se guarda aparte del cupón tipeado porque son dos cosas distintas:
@@ -376,8 +366,6 @@ export default function MembershipPurchaseSection({
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
-    setUnlockedOffer(null)
-    setOfferRedirecting(false)
     try {
       let resolution = null
       if (!repricing) {
@@ -389,10 +377,6 @@ export default function MembershipPurchaseSection({
         } catch {
           // Compatibilidad durante despliegues escalonados: el preview económico
           // existente sigue operativo aunque el resolvedor nuevo aún no responda.
-        }
-        if (resolution?.accepted && resolution.action === 'open_exclusive_offer') {
-          await redeemSecretOffer(code, resolution)
-          return
         }
         const resolvedDestination = promotionDestination(resolution)
         if (resolution?.accepted && resolvedDestination?.view === 'competition') {
@@ -413,14 +397,6 @@ export default function MembershipPurchaseSection({
         paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
-        // Un código de oferta exclusiva NO aplica a una afiliación suelta, y por
-        // eso el preview lo rechaza. Pero es exactamente el código que se
-        // reparte para canjear acá: en vez de un "no aplica" seco, se intenta el
-        // canje y se lo manda a su ficha. Ese es el punto de un código secreto —
-        // se tipea donde uno lo tiene a mano.
-        if (shouldTrySecretOfferFallback(preview)) {
-          if (await redeemSecretOffer(code)) return
-        }
         setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
         return
       }
@@ -430,42 +406,6 @@ export default function MembershipPurchaseSection({
       setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
     } finally {
       setDiscountChecking(false)
-    }
-  }
-
-  /**
-   * Canje del código secreto desde la pantalla de afiliación.
-   *
-   * Devuelve true si desbloqueó algo: el llamador corta ahí y no muestra el
-   * error del preview. Acá no se cobra nada — el combo se compra desde el
-   * checkout del torneo, así que la pantalla anuncia el canje y ofrece la ficha.
-   */
-  async function redeemSecretOffer(code, resolution = null) {
-    try {
-      const unlock = resolution
-        ? { unlocked: true, offer: resolution.offer ?? { code, campaign: resolution.campaign } }
-        : await redeemSecretOfferCode(code)
-      if (!unlock.unlocked) {
-        // Un cupón común puede ser válido para otro alcance sin ser una oferta
-        // secreta. En ese caso conserva el error del preview original. Los
-        // rechazos propios de una oferta (agotada, vencida, etc.) sí se explican.
-        if (!['not_applicable', 'not_found'].includes(unlock.reason)) {
-          setDiscountError(t(`account.membership.offerUnlockError.${unlock.reason}`))
-          return true
-        }
-        return false
-      }
-      setUnlockedOffer(unlock.offer ?? { code })
-      clearPendingPromotionCode()
-      setOfferRedirecting(true)
-      // Primero se recarga la cinta para que la ficha ya exista cuando se la
-      // selecciona; después el canje lleva directo al contenido secreto.
-      await Promise.all([onOfferUnlocked?.(), waitForSecretOfferRedirect()])
-      onNavigateSection?.('account-offer')
-      setOfferRedirecting(false)
-      return true
-    } catch {
-      return false
     }
   }
 
@@ -540,8 +480,6 @@ export default function MembershipPurchaseSection({
     setDiscountPreview(null)
     setDiscountError('')
     setDiscountOpen(false)
-    setUnlockedOffer(null)
-    setOfferRedirecting(false)
   }
 
   function openDiscountField() {
@@ -941,35 +879,6 @@ export default function MembershipPurchaseSection({
                     onChange={changeBillingMode}
                     options={billingOptions}
                   />
-                </div>
-              ) : null}
-
-              {unlockedOffer ? (
-                <div className="offer-unlocked" role="status">
-                  <span className="offer-unlocked__eyebrow">
-                    {offerRedirecting
-                      ? t('secretOfferRedeemer.redirectingTitle')
-                      : t('account.membership.offerUnlocked.eyebrow')}
-                  </span>
-                  <strong className="offer-unlocked__code">{unlockedOffer.code}</strong>
-                  <p className="offer-unlocked__lead">
-                    {offerRedirecting
-                      ? t('secretOfferRedeemer.redirectingLead')
-                      : unlockedOffer.description ||
-                        t('account.membership.offerUnlocked.lead', {
-                          event: unlockedOffer.event?.title ?? '',
-                        })}
-                  </p>
-                  {onNavigateSection && !offerRedirecting ? (
-                    <button
-                      type="button"
-                      className="offer-unlocked__cta"
-                      onClick={() => onNavigateSection('account-offer')}
-                    >
-                      {t('account.membership.offerUnlocked.cta')}
-                      <ArrowRight size={16} aria-hidden />
-                    </button>
-                  ) : null}
                 </div>
               ) : null}
 
