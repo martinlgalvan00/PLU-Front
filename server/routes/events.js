@@ -43,7 +43,11 @@ const CATALOG_EVENT_SELECT = `
   eventRegistrations:event_registrations(count),
   eventDays:event_days(id, day_index, label, date),
   comboOffer:event_combo_offers(
+<<<<<<< Updated upstream
     id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, archived_at
+=======
+    id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed
+>>>>>>> Stashed changes
   ),
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,

@@ -751,6 +751,28 @@ export default {
         cash_pitbull: 'Cash only',
         'bank_transfer+cash_pitbull': 'No Mercado Pago',
       },
+<<<<<<< Updated upstream
+=======
+      comboAudienceHint:
+        'Restricted: the package is not offered and only whoever types the code can buy it. It gates access, not price.',
+      comboAccessCode: 'Combo access code',
+      comboAccessCodePlaceholder: 'e.g. COMBO-PITBULL',
+      comboAccessCodeHint:
+        'Uppercase, numbers and hyphens. This is what you hand out: switching the combo to public clears it.',
+      comboAccessCodeInvalid: 'The combo access code must be uppercase, numbers and hyphens.',
+      comboFinanced: 'Financed',
+      comboFinancedHint:
+        'Anyone who enters with the code registers without choosing a payment method. The order stays pending for you to approve later from Payments.',
+      deleteCombo: 'Delete combo',
+      comboDeleted: 'Combo offer deleted.',
+      deleteComboConfirmTitle: 'Delete the {{event}} combo',
+      deleteComboConfirmDescription:
+        'You are about to remove the {{event}} combo offer from the catalog. Standalone membership and registration are untouched.',
+      deleteComboConfirmWarning:
+        'It can only be deleted if nobody bought this event combo. If there are orders already, deactivate it instead.',
+      deleteComboConfirmCancel: 'Keep combo',
+      deleteComboConfirmConfirm: 'Delete combo',
+>>>>>>> Stashed changes
       deleteDiscountCode: 'Delete',
       deleteDiscountCodeAria: 'Delete code {{code}}',
       deleteCodeConfirmTitle: 'Delete {{code}}',

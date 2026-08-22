@@ -314,6 +314,56 @@ const discountCodeStateSchema = z.object({
   audience: z.enum(['public', 'code']).optional(),
 })
 
+<<<<<<< Updated upstream
+=======
+export const comboOfferSchema = z
+  .object({
+    membershipPlanId: z.string().uuid(),
+    price: money,
+    manualPrice: money.optional(),
+    active: z.boolean().default(false),
+    startsAt: optionalDateTime,
+    endsAt: optionalDateTime,
+    // Mismo eje que las promociones: 'public' lo ve cualquiera, 'code' sólo
+    // quien tipea el código de acceso. Apagado sigue siendo `active: false`.
+    audience: z.enum(['public', 'code']).default('public'),
+    // Saltea la elección de método de pago en el checkout: la orden se crea
+    // igual como pendiente, para que Finanzas la apruebe a mano después.
+    financed: z.boolean().default(false),
+    accessCode: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .max(32)
+      .optional()
+      .default('')
+      .refine(
+        (value) => !value || /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/.test(value),
+        'Usá mayúsculas, números y guiones.',
+      ),
+  })
+  .superRefine((offer, context) => {
+    if (offer.startsAt && offer.endsAt && new Date(offer.endsAt) < new Date(offer.startsAt)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['endsAt'],
+        message: 'El cierre debe ser posterior a la apertura.',
+      })
+    }
+    // Un combo restringido sin código es un combo que nadie puede comprar.
+    if (offer.audience === 'code' && offer.accessCode.length < 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['accessCode'],
+        message: 'Definí el código de acceso al combo (mínimo 3 caracteres).',
+      })
+    }
+  })
+  // Un combo público no conserva el código: volver a restringirlo tiene que
+  // obligar a elegir uno nuevo en vez de revivir el que ya se repartió.
+  .transform((offer) => (offer.audience === 'public' ? { ...offer, accessCode: '' } : offer))
+
+>>>>>>> Stashed changes
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`
 }
