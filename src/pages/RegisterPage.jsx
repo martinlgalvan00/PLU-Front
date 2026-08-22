@@ -43,23 +43,16 @@ import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
-import { isOfferUnlockKind } from '../services/exclusiveOfferService.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
-import { ACCOUNT_OFFER_TAB } from '../lib/navigation.js'
 import { channelOpen } from '../lib/paymentChannels.js'
 import {
   resendAthleteVerification,
   checkAthleteAvailability,
-  fetchOfferUnlocks,
   previewDiscountCode,
   verifyAthleteEmailCode,
 } from '../services/athleteApi.js'
-import {
-  redeemSecretOfferCode,
-  shouldTrySecretOfferFallback,
-  waitForSecretOfferRedirect,
-} from '../services/secretOfferRedemptionService.js'
+import { shouldTrySecretOfferFallback } from '../services/secretOfferRedemptionService.js'
 import {
   clearPendingPromotionCode,
   promotionDestination,
@@ -473,7 +466,6 @@ export default function RegisterPage({
   // preview dice cuánto se cobra, esto dice QUÉ se desbloqueó, y es lo único que
   // el atleta vino a confirmar cuando tipeó un código que no era un descuento.
   const [unlockedOffer, setUnlockedOffer] = useState(null)
-  const [offerRedirecting, setOfferRedirecting] = useState(false)
   const [accessRequirements, setAccessRequirements] = useState({
     membership: false,
     registration: false,
@@ -593,60 +585,32 @@ export default function RegisterPage({
   }, [committedCompetitionRegistration, onUpdateForm])
 
   /**
-   * Un código de desbloqueo ('access' u 'offer') queda aplicado y además elige
-   * el paquete: `comboAvailability.enabled` depende de
-   * `unlocked = Boolean(comboCode)`, no sólo del `purchaseType` elegido.
+   * Un código con alcance de combo queda aplicado y además elige el paquete:
+   * `comboAvailability.enabled` depende de `unlocked = Boolean(comboCode)`, no
+   * sólo del `purchaseType` elegido.
    *
-   * El canje se registra del lado del servidor para que la ficha "Oferta
-   * exclusiva" de Mi cuenta exista después de un refresh. Si esa llamada falla,
-   * el checkout sigue funcionando: el desbloqueo de esta compra ya está resuelto
-   * en memoria y el servidor lo revalida al crear la orden.
+   * Acá no se registra nada del lado del servidor: los kinds que desbloqueaban
+   * una ficha aparte ('offer'/'access') están retirados, así que la única
+   * redención real ocurre dentro de la transacción que crea la orden.
    */
-  async function commitUnlockedCode(code, preview, { redirect = true, offer = null } = {}) {
+  function commitUnlockedCode(code, preview, { offer = null } = {}) {
     setDiscountOpen(true)
     setDiscountPreview(preview)
     setComboCode(code)
     setPurchaseType('combo')
     clearPendingPromotionCode()
-    // La oferta ya conocida no se vuelve a canjear: cuando el resolvedor o el
-    // listado de ofertas desbloqueadas ya la trajeron, el unlock del servidor
-    // está hecho y repetirlo sólo agrega una ida y vuelta antes de poder pagar.
-    let unlocked = Boolean(offer)
-    if (offer) {
-      setUnlockedOffer(offer)
-    } else {
-      try {
-        const unlock = await redeemSecretOfferCode(code)
-        unlocked = unlock.unlocked
-        setUnlockedOffer(unlock.unlocked ? (unlock.offer ?? { code }) : { code })
-      } catch {
-        setUnlockedOffer({ code })
-      }
-    }
-    if (!unlocked || !redirect) return
-    // El canje termina en su destino natural: una ficha privada que no
-    // existía antes de conocer el código. Desde ahí se retoma el checkout
-    // con la oferta aplicada automáticamente.
-    setOfferRedirecting(true)
-    await waitForSecretOfferRedirect()
-    onNavigate?.('profile', { tab: ACCOUNT_OFFER_TAB })
-    setOfferRedirecting(false)
+    setUnlockedOffer(offer ?? { code })
   }
 
   /**
-   * Deja una oferta YA desbloqueada aplicada en ESTE checkout: cotiza el combo
-   * y fija el importe promocional.
-   *
-   * Es lo único que la pestaña secreta no puede hacer por sí misma. El canje ya
-   * está registrado del lado del servidor, pero eso no cobra nada: sin este
-   * paso, entrar desde la ficha terminaba de vuelta en la ficha —el resolvedor
-   * universal responde `open_exclusive_offer` también para un código ya
-   * canjeado— y el pago no llegaba nunca.
+   * Deja un código de combo aplicado en ESTE checkout: cotiza el combo y fija
+   * el importe promocional. El preview no cobra nada — la redención con su
+   * cupo ocurre dentro de la transacción que crea la orden.
    *
    * `isCancelled` corta si el checkout ya cambió de torneo mientras el preview
    * viajaba: aplicar la oferta del torneo anterior sería peor que no aplicarla.
    */
-  async function applyUnlockedOffer(code, { offer = null, redirect = false, isCancelled } = {}) {
+  async function applyUnlockedOffer(code, { offer = null, isCancelled } = {}) {
     if (!code || !event?.slug) return null
     const preview = await previewDiscountCode({
       code,
@@ -656,14 +620,9 @@ export default function RegisterPage({
     })
     if (isCancelled?.()) return null
     if (!preview?.valid) return preview ?? { valid: false }
-    // Algunas versiones de la RPC no adjuntan `kind` en el preview. Acá ya se
-    // sabe que el código desbloquea (lo dijo el servidor al canjearlo), y el
-    // resumen del checkout necesita el `kind` para explicar el importe.
-    await commitUnlockedCode(
-      code,
-      { ...preview, kind: preview.kind ?? offer?.kind ?? 'offer' },
-      { redirect, offer },
-    )
+    // Algunas versiones de la RPC no adjuntan `kind` en el preview; el resumen
+    // del checkout lo usa para explicar el importe.
+    commitUnlockedCode(code, { ...preview, kind: preview.kind ?? offer?.kind ?? null }, { offer })
     return preview
   }
 
@@ -688,15 +647,12 @@ export default function RegisterPage({
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
-    setOfferRedirecting(false)
     try {
       // La oferta ya está aplicada en este checkout y hay que recotizarla
       // (cambió el medio de pago, que cambia el importe). No pasa por el
-      // resolvedor —sería otro evento de embudo por cada cambio de medio— y
-      // sobre todo no vuelve a mandar a la pestaña secreta: ese canje ya llegó
-      // a su destino y el atleta está justamente pagándolo.
+      // resolvedor: sería otro evento de embudo por cada cambio de medio.
       if (comboCode && comboCode === code) {
-        const repriced = await applyUnlockedOffer(code, { offer: unlockedOffer, redirect: false })
+        const repriced = await applyUnlockedOffer(code, { offer: unlockedOffer })
         if (!repriced?.valid) {
           // Sin importe promocional no hay oferta: dejar el paquete destrabado
           // cobraría el combo a precio de lista anunciando una oferta.
@@ -722,38 +678,6 @@ export default function RegisterPage({
           // El preview específico conserva compatibilidad si el resolvedor se
           // despliega unos minutos después que el frontend.
         }
-      }
-      if (resolution?.accepted && resolution.action === 'open_exclusive_offer') {
-        setDiscountCodeInput(resolution.code)
-        const unlocked = resolution.offer
-          ? { campaign: resolution.campaign ?? null, ...resolution.offer }
-          : { code: resolution.code, campaign: resolution.campaign }
-        setUnlockedOffer(unlocked)
-        clearPendingPromotionCode()
-        // Si la oferta es de este torneo, se aplica acá mismo: el canje ya está
-        // hecho y lo que falta es el cobro. `redirect` sigue llevando a la
-        // pestaña secreta cuando el código se tipeó a mano (es el momento en que
-        // el atleta confirma qué desbloqueó), pero no cuando el checkout se
-        // auto-canjea al abrirse — ahí el atleta viene DE esa pestaña.
-        const unlockedSlug = unlocked.event?.slug ?? null
-        if (
-          (!unlockedSlug || unlockedSlug === event.slug) &&
-          (
-            await applyUnlockedOffer(resolution.code, {
-              offer: unlocked,
-              redirect: override === null,
-            })
-          )?.valid
-        ) {
-          return
-        }
-        // La oferta es de otro torneo (o el combo no la deja aplicar todavía):
-        // la pestaña secreta es el único lugar donde se entiende qué se canjeó.
-        setOfferRedirecting(true)
-        await waitForSecretOfferRedirect()
-        onNavigate?.('profile', { tab: ACCOUNT_OFFER_TAB })
-        setOfferRedirecting(false)
-        return
       }
       const resolvedDestination = promotionDestination(resolution)
       const opensAnotherCheckout =
@@ -792,17 +716,13 @@ export default function RegisterPage({
             paymentMethod: toApiPaymentMethod(form.paymentMethod),
           })
           if (comboPreview.valid) {
-            await commitUnlockedCode(code, comboPreview, { redirect: override === null })
+            commitUnlockedCode(code, comboPreview)
             return
           }
           setDiscountError(describeDiscountError(comboPreview))
           return
         }
         setDiscountError(describeDiscountError(preview))
-        return
-      }
-      if (isOfferUnlockKind(preview.kind)) {
-        await commitUnlockedCode(code, preview, { redirect: override === null })
         return
       }
       setDiscountPreview(preview)
@@ -813,39 +733,6 @@ export default function RegisterPage({
       setDiscountChecking(false)
     }
   }
-
-  // Auto-canje: si el atleta ya desbloqueó una oferta para ESTE torneo, el
-  // checkout la aplica solo. Sin esto, entrar desde la ficha "Oferta exclusiva"
-  // obligaría a volver a tipear el código que ya canjeó.
-  //
-  // Va directo al preview del combo y no al resolvedor universal: la oferta ya
-  // vino resuelta en el listado, así que volver a canjearla sería registrar un
-  // evento de embudo por cada vez que se abre el checkout y —peor— pedir otra
-  // vez el destino de un canje que justamente terminó acá.
-  useEffect(() => {
-    if (flow !== 'competition' || !event?.slug) return undefined
-    let cancelled = false
-    void (async () => {
-      try {
-        const offers = await fetchOfferUnlocks()
-        const match = offers.find((item) => item.event?.slug === event.slug && !item.redeemed)
-        if (!match || cancelled) return
-        setDiscountCodeInput(match.code)
-        setUnlockedOffer(match)
-        await applyUnlockedOffer(match.code, {
-          offer: match,
-          redirect: false,
-          isCancelled: () => cancelled,
-        })
-      } catch {
-        // Sin ofertas desbloqueadas el checkout es el de siempre.
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [event?.slug, flow])
 
   useEffect(() => {
     if (flow !== 'competition' || !event?.slug) return
@@ -870,20 +757,18 @@ export default function RegisterPage({
   }, [form.paymentMethod])
 
   function clearDiscountCode() {
-    // Si el código quitado era el que desbloqueó el combo, hay que re-trabar
-    // el paquete: si no, el submit manda comboAccessCode (desde `comboCode`,
-    // que sigue seteado) pero no discountCode (el preview ya es null), y el
-    // código nunca se redime aunque el acceso siga "andando" a ojos del
-    // atleta. Sólo el reset de `comboCode` hace falta: el efecto que sincroniza
-    // `purchaseType` con `comboEnabled` (línea ~794) reacciona solo.
-    if (isOfferUnlockKind(discountPreview?.kind)) {
-      setComboCode('')
-    }
+    // Si el código quitado era el que destrabó el combo, hay que re-trabar el
+    // paquete: si no, el submit manda comboAccessCode (desde `comboCode`, que
+    // sigue seteado) pero no discountCode (el preview ya es null), y el código
+    // nunca se redime aunque el acceso siga "andando" a ojos del atleta.
+    // `comboCode` sólo lo setea commitUnlockedCode, así que resetear siempre es
+    // correcto: el efecto que sincroniza `purchaseType` con `comboEnabled`
+    // reacciona solo.
+    setComboCode('')
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
     setUnlockedOffer(null)
-    setOfferRedirecting(false)
   }
 
   // Un cupón aplicado sobre 'registration' no necesariamente vale sobre
@@ -891,13 +776,14 @@ export default function RegisterPage({
   // paquete invalida el preview en pantalla en vez de dejarlo aplicado a un
   // alcance que ya no corresponde.
   //
-  // Excepción: un código de desbloqueo es el que CAUSÓ el cambio a 'combo'
-  // (commitUnlockedCode setea preview y purchaseType en el mismo lote), así que
-  // limpiarlo acá desharía el canje que se acaba de hacer. `discountPreview` se
-  // lee del render en curso —ya trae el valor nuevo— y no entra en las deps
-  // para no limpiar en cada cambio de preview.
+  // Excepción: un código con alcance de combo es el que CAUSÓ el cambio a
+  // 'combo' (commitUnlockedCode setea preview, comboCode y purchaseType en el
+  // mismo lote), así que limpiarlo acá desharía la aplicación que se acaba de
+  // hacer. `comboCode` y `discountPreview` se leen del render en curso —ya
+  // traen el valor nuevo— y no entran en las deps para no limpiar en cada
+  // cambio de preview.
   useEffect(() => {
-    if (isOfferUnlockKind(discountPreview?.kind)) return
+    if (purchaseType === 'combo' && comboCode && discountPreview?.valid) return
     clearDiscountCode()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purchaseType])
@@ -2540,34 +2426,6 @@ export default function RegisterPage({
                       showPackage={showComboChoice}
                       showPayment={isPaidCheckout}
                     />
-                  ) : null}
-
-                  {unlockedOffer && isOfferUnlockKind(discountPreview?.kind) ? (
-                    <div className="offer-unlocked" role="status">
-                      <span className="offer-unlocked__eyebrow">
-                        {offerRedirecting
-                          ? t('secretOfferRedeemer.redirectingTitle')
-                          : t('pages.register.offerUnlocked.eyebrow')}
-                      </span>
-                      <strong className="offer-unlocked__code">{discountPreview.code}</strong>
-                      <p className="offer-unlocked__lead">
-                        {offerRedirecting
-                          ? t('secretOfferRedeemer.redirectingLead')
-                          : unlockedOffer.description ||
-                            t('pages.register.offerUnlocked.lead', {
-                              event: unlockedOffer.event?.title ?? event?.title ?? '',
-                            })}
-                      </p>
-                      {onNavigate && !offerRedirecting ? (
-                        <button
-                          type="button"
-                          className="offer-unlocked__link"
-                          onClick={() => onNavigate('profile', { tab: ACCOUNT_OFFER_TAB })}
-                        >
-                          {t('pages.register.offerUnlocked.viewInAccount')}
-                        </button>
-                      ) : null}
-                    </div>
                   ) : null}
 
                   {isPaidCheckout && ['registration', 'combo'].includes(effectivePurchaseType) ? (

@@ -30,6 +30,7 @@ function formatDate(value, locale) {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone: 'America/Argentina/Buenos_Aires',
   })
 }
 
@@ -46,6 +47,9 @@ function formatDateTime(value, locale) {
     // es-AR por defecto sale "04:36 p. m."; el reloj de 24 horas es el que se
     // usa acá y el que hace comparable la hora con la del comprobante de MP.
     hour12: locale === 'en',
+    // Siempre en ART: el comprobante de MP está en hora argentina, y sin fijarla
+    // la hora renderizada dependería del huso del dispositivo (o del CI).
+    timeZone: 'America/Argentina/Buenos_Aires',
   })
 }
 

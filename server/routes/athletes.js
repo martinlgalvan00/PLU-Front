@@ -25,6 +25,7 @@ import { requirePermission } from '../middleware/auth.js'
 import {
   athleteAuthLimiter,
   athleteWriteLimiter,
+  promotionCodeLimiter,
   publicReadLimiter,
   publicWriteLimiter,
   registrationAccessCodeLimiter,
@@ -96,6 +97,7 @@ import {
 import {
   assertDiscountCodeEventScope,
   assertPreviewEventScope,
+  concealInactiveReason,
 } from '../services/offerCodeService.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
@@ -1515,6 +1517,28 @@ export function createAthleteRoutes({
     },
   )
   /**
+   * Corte por cuenta para las superficies que prueban códigos promocionales,
+   * complementario al balde por IP (`promotionCodeLimiter`): un pool de IPs
+   * rotando sobre la misma sesión no ve el límite por IP, y acá cada intento
+   * que ni siquiera acierta un código real suma al contador del atleta.
+   *
+   * Sólo cuentan los motivos de enumeración (`not_found`/`inactive`): un
+   * código real vencido o ya usado prueba que el atleta lo tiene en la mano,
+   * y castigarlo bloquearía reintentos legítimos. Cualquier resultado sobre
+   * un código real limpia el contador, igual que un login correcto.
+   */
+  const promotionCodeIdentity = (athleteId) => ({
+    scope: IDENTITY_SCOPES.accessCode,
+    identity: athleteId,
+    deps: { supabaseAdmin: client() },
+    env,
+    threshold: 8,
+  })
+  const settlePromotionCodeAttempt = async (identity, reason) => {
+    if (reason === 'not_found' || reason === 'inactive') await registerIdentityFailure(identity)
+    else await clearIdentityFailures(identity)
+  }
+  /**
    * Preview de solo lectura de un código de descuento: valida y calcula sin
    * redimir, para que el checkout muestre "ahorrás $X" antes de confirmar. El
    * monto real que se cobra sale únicamente de la respuesta del POST que crea
@@ -1522,11 +1546,13 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/discount-preview',
-    publicWriteLimiter,
+    promotionCodeLimiter,
     validateBody(discountPreviewSchema),
     async (req, res, next) => {
       try {
         const auth = await athlete(req)
+        const codeGuard = promotionCodeIdentity(auth.athleteId)
+        await assertIdentityNotLocked(codeGuard)
         const { code, appliesTo, planCode, eventSlug, paymentMethod } = req.validatedBody
         let baseAmount
         let manualPrice
@@ -1557,17 +1583,21 @@ export function createAthleteRoutes({
         if (paymentMethod && isManualPaymentMethod(paymentMethod) && manualPrice != null) {
           baseAmount = manualPrice
         }
-        const preview = await repo().previewDiscountCode(auth.athleteId, {
-          code,
-          appliesTo,
-          baseAmount,
-          // El mismo `method` con el que se guardaría la orden: la RPC lo usa
-          // para elegir el precio promocional del canal (`fixed_price` vs
-          // `fixed_price_manual`). Sin esto, una promo con precio manual
-          // anunciaba el importe de Mercado Pago y cobraba el otro.
-          paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
-        })
-        res.json({ preview: assertPreviewEventScope(preview, eventSlug) })
+        const preview = assertPreviewEventScope(
+          await repo().previewDiscountCode(auth.athleteId, {
+            code,
+            appliesTo,
+            baseAmount,
+            // El mismo `method` con el que se guardaría la orden: la RPC lo usa
+            // para elegir el precio promocional del canal (`fixed_price` vs
+            // `fixed_price_manual`). Sin esto, una promo con precio manual
+            // anunciaba el importe de Mercado Pago y cobraba el otro.
+            paymentMethod: paymentMethod ? storagePaymentMethod(paymentMethod) : null,
+          }),
+          eventSlug,
+        )
+        await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        res.json({ preview: concealInactiveReason(preview) })
       } catch (error) {
         next(error)
       }
@@ -1580,13 +1610,23 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/codes/redeem',
-    publicWriteLimiter,
+    promotionCodeLimiter,
     validateBody(promotionCodeRedeemSchema),
     async (req, res, next) => {
       try {
         const auth = await athlete(req)
-        const result = await repo().redeemPromotionCode(auth.athleteId, req.validatedBody)
-        res.json(result ?? { status: 'rejected', reason: 'not_found' })
+        const codeGuard = promotionCodeIdentity(auth.athleteId)
+        await assertIdentityNotLocked(codeGuard)
+        const result =
+          (await repo().redeemPromotionCode(auth.athleteId, req.validatedBody)) ?? {
+            status: 'rejected',
+            reason: 'not_found',
+          }
+        await settlePromotionCodeAttempt(
+          codeGuard,
+          result.status === 'rejected' ? result.reason : 'valid',
+        )
+        res.json(concealInactiveReason(result))
       } catch (error) {
         next(error)
       }
@@ -1607,13 +1647,19 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/offer-unlocks',
-    publicWriteLimiter,
+    promotionCodeLimiter,
     validateBody(offerUnlockSchema),
     async (req, res, next) => {
       try {
         const auth = await athlete(req)
-        const result = await repo().unlockOfferCode(auth.athleteId, req.validatedBody.code)
-        res.json(result ?? { unlocked: false, reason: 'not_found' })
+        const codeGuard = promotionCodeIdentity(auth.athleteId)
+        await assertIdentityNotLocked(codeGuard)
+        const result = (await repo().unlockOfferCode(auth.athleteId, req.validatedBody.code)) ?? {
+          unlocked: false,
+          reason: 'not_found',
+        }
+        await settlePromotionCodeAttempt(codeGuard, result.unlocked ? 'valid' : result.reason)
+        res.json(concealInactiveReason(result))
       } catch (error) {
         next(error)
       }

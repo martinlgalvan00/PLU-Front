@@ -418,7 +418,7 @@ export function createSupabaseAthleteRepository(
         await client
           .from('events')
           .select(
-            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at, audience, access_code, financed)',
+            'id, comboOffer:event_combo_offers(price, manual_price, currency, active, starts_at, ends_at, audience, access_code, financed, archived_at)',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
@@ -431,8 +431,14 @@ export function createSupabaseAthleteRepository(
       // ninguna llave lo reabre: es una decisión explícita del panel.
       if (offer?.audience === 'private') return null
       const now = new Date()
+      // Un combo archivado no es un combo vigente aunque conserve `active`:
+      // 20260914100000 archivó todas las filas sin apagarlas (para que las
+      // órdenes viejas sigan legibles), y la RPC del checkout ya filtra por
+      // `archived_at is null`. Sin este filtro el preview cotizaba —y
+      // anunciaba el precio de— un combo que el alta después rechazaba.
       const usable =
         Boolean(offer?.active) &&
+        !offer.archived_at &&
         !(offer.starts_at && new Date(offer.starts_at) > now) &&
         !(offer.ends_at && new Date(offer.ends_at) < now)
       if (!usable) {

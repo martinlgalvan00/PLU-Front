@@ -145,8 +145,13 @@ beforeAll(async () => {
         async searchPaymentsForOrder(order) {
           return order.id === cancelledOrderId ? [approvedPayment(cancelledOrderId)] : []
         },
+        // El workflow tambien relee por ID los intentos que ya estan en el
+        // ledger, asi que el doble tiene que contestar como el proveedor real:
+        // solo existe el pago aprobado. Si devolviera "aprobado" para cualquier
+        // id, el intento cancelado volveria como un falso pago aprobado y la
+        // acreditacion pisaria esa fila en vez de insertar la nueva.
         async getPayment(id) {
-          return { ...approvedPayment(cancelledOrderId), id: String(id) }
+          return String(id) === externalPaymentId ? approvedPayment(cancelledOrderId) : null
         },
       },
       notifyPaymentApplied: async () => {},
