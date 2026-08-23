@@ -5238,6 +5238,36 @@
   }
 }
 
+/* Header superior de Operación y conciliación de pagos: eyebrow/título/
+   subtítulo/tabs a la izquierda, acciones alineadas arriba a la derecha.
+   Reemplaza los `style` inline que traía este bloque -- CSS vive en
+   src/styles/, no en el componente. El borde y el padding ya los pone
+   `.admin-payments-operations .admin-orders-block__header`; acá solo se
+   ajusta el layout flex de las dos columnas. Doblemente scopeado (dos
+   clases) a propósito: `.admin-orders-block__header` también trae un
+   `align-items: flex-end` genérico desde admin-audit.css, y acá el título
+   necesita alinearse arriba, no abajo. */
+.admin-payments-operations .admin-payments-ops-top {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 28px;
+  justify-content: space-between;
+}
+
+.admin-payments-ops-top__tabs {
+  margin-top: 20px;
+}
+
+.admin-payments-operations .admin-payments-ops-top__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
 /* Strip operativo siempre visible */
 .admin-payments-ops-strip {
   align-items: center;
@@ -18972,10 +19002,10 @@ button.action-queue__proof:focus-visible {
 }
 
 /* =========================================================================
-   PAGOS — Traza de rechazo en la orden (quién y por qué)
-   Sub-línea bajo el status badge de la bandeja de Finanzas y fila del
-   diálogo de validación. Muted y truncada: identifica, no compite con el
-   veredicto.
+   PAGOS — Estado con motivo en la bandeja de Finanzas
+   Sub-línea bajo el status badge. El motivo (PaymentStateCell, qué pasó) y
+   quién decidió se leen de corrido, sin truncar: en una tabla operativa
+   tienen que poder encontrarse con Ctrl+F, y en mobile no hay hover.
    ========================================================================= */
 
 .admin-orders-block__status-cell {
@@ -18985,14 +19015,17 @@ button.action-queue__proof:focus-visible {
   min-width: 0;
 }
 
-.admin-orders-block__rejection {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  line-height: 1.45;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Mismo problema que ya resolvió `.athlete-detail__panel
+   .data-table__column--status`: sin un piso, la columna colapsa al ancho del
+   badge y el motivo cae en una cinta de una palabra por línea. */
+.admin-data-table--athlete-orders .data-table__column--status {
+  min-width: 240px;
+}
+
+@media (max-width: 1024px) {
+  .admin-data-table--athlete-orders .data-table__column--status {
+    min-width: 200px;
+  }
 }
 
 .payment-validation-dialog__rejection-row dd {
