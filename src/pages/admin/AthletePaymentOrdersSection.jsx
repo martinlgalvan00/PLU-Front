@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BadgeCheck, HandCoins, Paperclip, RefreshCw, Route, ScanSearch } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import { PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import {
@@ -15,6 +16,7 @@ import { PAYMENT_METHODS } from '../../lib/constants.js'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { formatRejectionActor } from '../../lib/paymentAudit.js'
+import { derivePaymentProgress } from '../../lib/paymentProgress.js'
 import { getAthletePaymentProofUrls, listAthletePaymentOrders } from '../../services/athleteApi.js'
 import {
   OPEN_ORDER_STATUSES,
@@ -56,6 +58,11 @@ const STATUS_FILTERS = [
   // accion de revalidar contra el proveedor, sin mezclarlo con las ordenes que
   // realmente esperan una validacion manual.
   ['rechazado', 'admin.athletePayments.filterRejected'],
+  // Mismo argumento que el filtro de arriba, pero "cancelado" tapaba motivos
+  // que no tienen nada que ver entre si (checkout vencido sin que nadie
+  // pagara, o una baja de afiliacion que cancela la orden a proposito). Sin
+  // su propio filtro quedaban mezcladas con "todas" y nadie las miraba juntas.
+  ['cancelado', 'admin.athletePayments.filterCancelled'],
   ['aprobado', 'admin.athletePayments.filterApproved'],
   ['all', 'admin.athletePayments.filterAll'],
 ]
@@ -70,6 +77,7 @@ const DB_STATUSES_BY_FILTER = Object.freeze({
   validacion_manual: ['validacion_manual'],
   financed: ['pendiente', 'validacion_manual'],
   rechazado: ['rechazado'],
+  cancelado: ['cancelado'],
   aprobado: ['aprobado'],
   all: null,
 })
@@ -200,6 +208,8 @@ export default function AthletePaymentOrdersSection({
     return {
       pending: open.length,
       validacion_manual: orders.filter((order) => order.status === 'validacion_manual').length,
+      rechazado: orders.filter((order) => order.status === 'rechazado').length,
+      cancelado: orders.filter((order) => order.status === 'cancelado').length,
       aprobado: orders.filter((order) => order.status === 'aprobado').length,
       all: orders.length,
       openAmount: open.reduce((sum, order) => sum + (order.amount ?? 0), 0),
@@ -235,6 +245,13 @@ export default function AthletePaymentOrdersSection({
         rejectedBy: order.rejectedBy ?? null,
         rejectionReason: order.rejectionReason ?? null,
         rejectedAt: order.rejectedAt ?? null,
+        cancelledBy: order.cancelledBy ?? null,
+        cancellationReason: order.cancellationReason ?? null,
+        cancelledAt: order.cancelledAt ?? null,
+        // Mismo agregado que ya arma la ficha del atleta (AthleteDetailSection):
+        // el motivo de un rechazo o una cancelacion sale de un solo lugar, para
+        // que las dos pantallas no cuenten historias distintas del mismo pago.
+        progress: derivePaymentProgress({ order, attempts: [] }),
         createdAt: order.createdAt,
         notes: order.notes,
         hasProof: Boolean(order.paymentProofPath),
@@ -352,6 +369,24 @@ export default function AthletePaymentOrdersSection({
     } finally {
       setApprovingId(null)
     }
+  }
+
+  // Quién cerró la orden así, para rechazos y cancelaciones por igual. El
+  // motivo (qué pasó) ya lo cuenta `PaymentStateCell`; esto agrega quién
+  // decidió -- sin esto una orden cerrada por un operador y una cerrada por
+  // Mercado Pago se leían exactamente igual.
+  function closureActorLine(row) {
+    if (row.status === 'cancelado' && row.cancelledBy) {
+      return t('admin.athletePayments.cancelledBy', {
+        actor: formatRejectionActor(row.cancelledBy, t),
+      })
+    }
+    if (row.status === 'rechazado' && row.rejectedBy) {
+      return t('admin.athletePayments.rejectedBy', {
+        actor: formatRejectionActor(row.rejectedBy, t),
+      })
+    }
+    return null
   }
 
   function openReview(row, mode = 'validate') {
@@ -548,34 +583,31 @@ export default function AthletePaymentOrdersSection({
               key: 'status',
               label: t('admin.columns.status'),
               mobile: 'badge',
-              render: (row) => (
-                <div className="admin-orders-block__status-cell">
-                  <StatusBadge value={row.status} />
-                  {row.manualPaymentDeclaredAt ? (
-                    <span className="status-pill status-pill--info">
-                      {t(
-                        row.financingAllowed && row.financedEntitlementsAt
-                          ? 'admin.athletePayments.financedActive'
-                          : 'admin.athletePayments.declared',
-                      )}
-                    </span>
-                  ) : null}
-                  {/* Trazabilidad del rechazo: quién decidió y con qué motivo.
-                      Sin esto, la orden rechazada era una etiqueta sin
-                      responsable — el "quién" vivía solo en los logs. */}
-                  {row.status === 'rechazado' && (row.rejectedBy || row.rejectionReason) ? (
-                    <span
-                      className="admin-orders-block__rejection"
-                      title={[row.rejectionReason, row.rejectedAt].filter(Boolean).join(' · ')}
-                    >
-                      {t('admin.athletePayments.rejectedBy', {
-                        actor: formatRejectionActor(row.rejectedBy, t),
-                      })}
-                      {row.rejectionReason ? ` · ${row.rejectionReason}` : ''}
-                    </span>
-                  ) : null}
-                </div>
-              ),
+              render: (row) => {
+                const actorLine = closureActorLine(row)
+                return (
+                  <div className="admin-orders-block__status-cell">
+                    {/* Rechazada o cancelada: el badge se acompaña del motivo real
+                        (sellado por la base, mismo agregado que usa la ficha del
+                        atleta) en vez de una etiqueta roja sin explicación. */}
+                    {row.status === 'rechazado' || row.status === 'cancelado' ? (
+                      <PaymentStateCell payment={row} />
+                    ) : (
+                      <StatusBadge value={row.status} />
+                    )}
+                    {row.manualPaymentDeclaredAt ? (
+                      <span className="status-pill status-pill--info">
+                        {t(
+                          row.financingAllowed && row.financedEntitlementsAt
+                            ? 'admin.athletePayments.financedActive'
+                            : 'admin.athletePayments.declared',
+                        )}
+                      </span>
+                    ) : null}
+                    {actorLine ? <p className="admin-state-cell__note">{actorLine}</p> : null}
+                  </div>
+                )
+              },
             },
             {
               key: 'action',

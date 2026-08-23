@@ -506,13 +506,13 @@ export default function PaymentsOperationsSection({
         </section>
       ) : null}
 
-      <header className="admin-orders-block__header" style={{ borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+      <header className="admin-orders-block__header admin-payments-ops-top">
         <div>
           <span className="admin-orders-block__eyebrow">{t('admin.dashboard.financePending')}</span>
           <h2 className="admin-orders-block__title">{t('admin.paymentOperations.title')}</h2>
           <p className="admin-orders-block__lead">{t('admin.paymentOperations.subtitle')}</p>
-          
-          <div style={{ marginTop: '1.5rem' }}>
+
+          <div className="admin-payments-ops-top__tabs">
             <SegmentedSwitch
               className="segmented-switch--luxury"
               active={activeTab}
@@ -523,42 +523,40 @@ export default function PaymentsOperationsSection({
           </div>
         </div>
 
-        <div className="admin-orders-block__actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              className="btn btn--outline btn--small"
-              onClick={() => void refreshAll()}
-              disabled={loading || recovering}
-            >
-              <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-            </button>
-            {canEdit ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--outline btn--small"
-                  onClick={() => void handleRevalidate()}
-                  disabled={revalidating || recovering}
-                >
-                  {revalidating ? (
-                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
-                  ) : (
-                    <ScanSearch size={14} aria-hidden />
-                  )}{' '}
-                  {t('admin.paymentOperations.revalidate')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={() => void handleRecover()}
-                  disabled={recovering}
-                >
-                  <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
-                </button>
-              </>
-            ) : null}
-          </div>
+        <div className="admin-orders-block__actions admin-payments-ops-top__actions">
+          <button
+            type="button"
+            className="btn btn--ghost btn--small"
+            onClick={() => void refreshAll()}
+            disabled={loading || recovering}
+          >
+            <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
+          </button>
+          {canEdit ? (
+            <>
+              <button
+                type="button"
+                className="btn btn--ghost btn--small"
+                onClick={() => void handleRevalidate()}
+                disabled={revalidating || recovering}
+              >
+                {revalidating ? (
+                  <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                ) : (
+                  <ScanSearch size={14} aria-hidden />
+                )}{' '}
+                {t('admin.paymentOperations.revalidate')}
+              </button>
+              <button
+                type="button"
+                className="btn btn--small"
+                onClick={() => void handleRecover()}
+                disabled={recovering}
+              >
+                <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+              </button>
+            </>
+          ) : null}
         </div>
       </header>
 
