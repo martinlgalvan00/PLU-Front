@@ -189,7 +189,9 @@ export function CheckoutBar({
         ) : null}
         <div className="plu-checkout__total">
           <span>{totalLabel || t('pages.register.total')}</span>
-          <strong>{total == null ? '—' : money(total, locale)}</strong>
+          <strong>
+            {total == null ? '—' : typeof total === 'string' ? total : money(total, locale)}
+          </strong>
         </div>
       </div>
       {hideCta ? null : (

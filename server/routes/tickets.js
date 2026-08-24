@@ -17,6 +17,46 @@ async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
   if (resolvePaidCheckoutOverride(env) !== null) return null
   return resolveEventRegistrationOpensAt(supabase, { eventSlug })
 }
+
+async function resolveTicketOrderArsTotal(supabase, { eventSlug, attendees }) {
+  if (!supabase) return null
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('id,rules')
+    .eq('slug', eventSlug)
+    .maybeSingle()
+  if (eventError) throw new HttpError(500, 'No se pudo cotizar las entradas para Wise.')
+  if (!event) throw new HttpError(404, 'Evento no encontrado.')
+
+  const { data: ticketTypes, error: typeError } = await supabase
+    .from('ticket_types')
+    .select('id,price')
+    .eq('event_id', event.id)
+    .eq('active', true)
+  if (typeError) throw new HttpError(500, 'No se pudo cotizar las entradas para Wise.')
+
+  const { data: addonCatalog, error: addonError } = await supabase.rpc(
+    'event_ticket_addons_catalog',
+    { p_rules: event.rules ?? {} },
+  )
+  if (addonError) throw new HttpError(500, 'No se pudo cotizar los beneficios para Wise.')
+
+  const pricesByType = new Map((ticketTypes ?? []).map((type) => [type.id, Number(type.price) || 0]))
+  const pricesByAddon = new Map(
+    (Array.isArray(addonCatalog) ? addonCatalog : [])
+      .filter((addon) => addon?.enabled !== false && addon?.id)
+      .map((addon) => [addon.id, Number(addon.price) || 0]),
+  )
+  return attendees.reduce((sum, attendee) => {
+    const ticketPrice = pricesByType.get(attendee.ticketTypeId)
+    if (ticketPrice == null) throw new HttpError(400, 'Tipo de entrada invalido.')
+    const addonsTotal = (attendee.addonIds ?? []).reduce(
+      (addonSum, addonId) => addonSum + (pricesByAddon.get(addonId) ?? 0),
+      0,
+    )
+    return sum + ticketPrice + addonsTotal
+  }, 0)
+}
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import {
@@ -173,14 +213,21 @@ export function createTicketRoutes({
             ? (req.validatedBody.manualPaymentChannel ?? 'bank_transfer')
             : 'mercado_pago'
         assertPaymentChannelEnabled(toggles, 'ticket', ticketChannel)
-        const ticketWisePrice = ticketChannel === 'wise_transfer' ? wisePriceFor({ concept: 'ticket' }) : null
+        const ticketArsTotal =
+          ticketChannel === 'wise_transfer'
+            ? await resolveTicketOrderArsTotal(getSupabaseAdmin?.(), req.validatedBody)
+            : null
+        const ticketWisePrice =
+          ticketChannel === 'wise_transfer'
+            ? wisePriceFor({ concept: 'ticket', arsAmount: ticketArsTotal })
+            : null
         res.status(201).json(
           await repo().createOrder({
             ...req.validatedBody,
             // Precio calculado por la API, nunca por el cliente: el monto
             // por asistente (`wisePriceFor`) se multiplica acá y viaja como
             // total ya cerrado, igual que el resto de las órdenes manuales.
-            wiseAmount: ticketWisePrice ? ticketWisePrice.amount * req.validatedBody.attendees.length : null,
+            wiseAmount: ticketWisePrice ? ticketWisePrice.amount : null,
             wiseCurrency: ticketWisePrice?.currency ?? null,
           }),
         )

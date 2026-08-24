@@ -24,6 +24,7 @@ import { money } from '../../lib/format.js'
 import { toggleAttendeeAddon as applyAttendeeAddonToggle } from '../../lib/ticketAddons.js'
 import { validateTicketAttendees } from '../../lib/validation.js'
 import { priceForAttendee, priceForOrder } from '../../services/ticketService.js'
+import { wisePriceLabel } from '../../services/checkoutPricing.js'
 
 const MAX_TICKETS = 8
 
@@ -344,7 +345,12 @@ function EditorialAttendeeFields({
 }
 
 function isManualTicketPayment(method) {
-  return method === 'transferencia' || method === 'manual' || method === 'manual_link'
+  return (
+    method === 'transferencia' ||
+    method === 'manual' ||
+    method === 'manual_link' ||
+    method === 'wise_transfer'
+  )
 }
 
 function TicketPaymentOptions({
@@ -352,6 +358,8 @@ function TicketPaymentOptions({
   mercadoPagoEnabled = true,
   wiseEnabled = false,
   paymentMethod,
+  total = 0,
+  locale = 'es',
   onChange,
   t,
 }) {
@@ -408,7 +416,7 @@ function TicketPaymentOptions({
           <Landmark size={18} aria-hidden />
           <span>
             <strong>{t('pages.register.paymentWiseLabel')}</strong>
-            <small>{t('pages.register.paymentWisePriceHint')}</small>
+            <small>{wisePriceLabel(total, locale)}</small>
           </span>
         </label>
       ) : null}
@@ -603,25 +611,49 @@ export default function TicketPurchaseSection({
               {visibleOrder.manualPaymentChannel === 'wise_transfer' ? (
                 <>
                   <div>
-                    <dt>{t('account.membership.transferWiseEmail')}</dt>
-                    <dd>{env.payments.wiseEmail || t('account.membership.transferAskAdmin')}</dd>
-                  </div>
-                  {env.payments.wiseSwiftOrIban ? (
-                    <div>
-                      <dt>{t('account.membership.transferWiseSwiftIban')}</dt>
-                      <dd>{env.payments.wiseSwiftOrIban}</dd>
-                    </div>
-                  ) : null}
-                  <div>
                     <dt>{t('account.membership.transferHolder')}</dt>
                     <dd>{env.payments.wiseHolder || t('account.membership.transferAskAdmin')}</dd>
                   </div>
+                  <div>
+                    <dt>{t('account.membership.transferWiseAccountType')}</dt>
+                    <dd>
+                      {env.payments.wiseAccountType || t('account.membership.transferAskAdmin')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t('account.membership.transferWiseRoutingNumber')}</dt>
+                    <dd>
+                      {env.payments.wiseRoutingNumber || t('account.membership.transferAskAdmin')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t('account.membership.transferWiseAccountNumber')}</dt>
+                    <dd>{env.payments.wiseAccount || t('account.membership.transferAskAdmin')}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('account.membership.transferWiseAddress')}</dt>
+                    <dd>{env.payments.wiseAddress || t('account.membership.transferAskAdmin')}</dd>
+                  </div>
+                  {env.payments.wiseSwiftOrIban ? (
+                    <div>
+                      <dt>{t('account.membership.transferWiseSwiftBic')}</dt>
+                      <dd>{env.payments.wiseSwiftOrIban}</dd>
+                    </div>
+                  ) : null}
+                  {env.payments.wiseEmail ? (
+                    <div>
+                      <dt>{t('account.membership.transferWiseEmail')}</dt>
+                      <dd>{env.payments.wiseEmail}</dd>
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <>
                   <div>
                     <dt>{t('account.membership.transferAlias')}</dt>
-                    <dd>{env.payments.transferAlias || t('account.membership.transferAskAdmin')}</dd>
+                    <dd>
+                      {env.payments.transferAlias || t('account.membership.transferAskAdmin')}
+                    </dd>
                   </div>
                   <div>
                     <dt>{t('account.membership.transferAccount')}</dt>
@@ -635,7 +667,9 @@ export default function TicketPurchaseSection({
                   ) : null}
                   <div>
                     <dt>{t('account.membership.transferHolder')}</dt>
-                    <dd>{env.payments.transferHolder || t('account.membership.transferAskAdmin')}</dd>
+                    <dd>
+                      {env.payments.transferHolder || t('account.membership.transferAskAdmin')}
+                    </dd>
                   </div>
                 </>
               )}
@@ -917,6 +951,8 @@ export default function TicketPurchaseSection({
               mercadoPagoEnabled={mercadoPagoEnabled}
               wiseEnabled={wiseEnabled}
               paymentMethod={paymentMethod}
+              total={total}
+              locale={locale}
               onChange={(value) => {
                 setPaymentMethod(value)
                 setSubmitError('')
