@@ -80,12 +80,52 @@ export default function TransferReceipt({
   const isCompetition = purpose === 'competition'
   const isWise = channel === 'wise_transfer'
   const askAdmin = t('account.membership.transferAskAdmin')
-  const alias = (isWise ? env.payments.wiseEmail : env.payments.transferAlias) || askAdmin
   const holder = (isWise ? env.payments.wiseHolder : env.payments.transferHolder) || askAdmin
-  const cbu = isWise ? env.payments.wiseSwiftOrIban : env.payments.transferCbu
   const reference = `${athlete.documentId} · ${athlete.fullName}`
   const copyLabel = t('account.membership.transferCopy')
   const copiedLabel = t('account.membership.transferCopied')
+
+  const wiseRows = [
+    { labelKey: 'account.membership.transferHolder', value: holder },
+    {
+      labelKey: 'account.membership.transferWiseAccountType',
+      value: env.payments.wiseAccountType || askAdmin,
+    },
+    {
+      labelKey: 'account.membership.transferWiseRoutingNumber',
+      value: env.payments.wiseRoutingNumber || askAdmin,
+    },
+    {
+      labelKey: 'account.membership.transferWiseAccountNumber',
+      value: env.payments.wiseAccount || askAdmin,
+    },
+    {
+      labelKey: 'account.membership.transferWiseAddress',
+      value: env.payments.wiseAddress || askAdmin,
+    },
+    {
+      labelKey: 'account.membership.transferWiseSwiftBic',
+      value: env.payments.wiseSwiftOrIban || askAdmin,
+    },
+    ...(env.payments.wiseEmail
+      ? [{ labelKey: 'account.membership.transferWiseEmail', value: env.payments.wiseEmail }]
+      : []),
+  ]
+
+  const bankRows = [
+    {
+      labelKey: 'account.membership.transferAlias',
+      value: env.payments.transferAlias || askAdmin,
+      meta: t('account.membership.transferAccountValue'),
+      className: 'account-transfer-data__row--alias',
+    },
+    ...(env.payments.transferCbu
+      ? [{ labelKey: 'account.membership.transferCbu', value: env.payments.transferCbu }]
+      : []),
+    { labelKey: 'account.membership.transferHolder', value: holder },
+  ]
+
+  const transferRows = isWise ? wiseRows : bankRows
 
   function copyAria(fieldKey) {
     return t('account.membership.transferCopyField', { field: t(fieldKey) })
@@ -95,64 +135,22 @@ export default function TransferReceipt({
     <>
       <div className="account-transfer-receipt">
         <dl className="account-transfer-data account-transfer-data--receipt">
-          <div className="account-transfer-data__row--alias">
-            <dt>
-              {t(
-                isWise
-                  ? 'account.membership.transferWiseEmail'
-                  : 'account.membership.transferAlias',
+          {transferRows.map((row) => (
+            <div className={row.className} key={row.labelKey}>
+              <dt>{t(row.labelKey)}</dt>
+              {row.value !== askAdmin ? (
+                <CopyableValue
+                  value={row.value}
+                  copyLabel={copyLabel}
+                  copiedLabel={copiedLabel}
+                  copyAria={copyAria(row.labelKey)}
+                  meta={row.meta}
+                />
+              ) : (
+                <dd>{row.value}</dd>
               )}
-            </dt>
-            {alias !== askAdmin ? (
-              <CopyableValue
-                value={alias}
-                copyLabel={copyLabel}
-                copiedLabel={copiedLabel}
-                copyAria={copyAria(
-                  isWise
-                    ? 'account.membership.transferWiseEmail'
-                    : 'account.membership.transferAlias',
-                )}
-                meta={isWise ? undefined : t('account.membership.transferAccountValue')}
-              />
-            ) : (
-              <dd>{alias}</dd>
-            )}
-          </div>
-          {cbu ? (
-            <div>
-              <dt>
-                {t(
-                  isWise
-                    ? 'account.membership.transferWiseSwiftIban'
-                    : 'account.membership.transferCbu',
-                )}
-              </dt>
-              <CopyableValue
-                value={cbu}
-                copyLabel={copyLabel}
-                copiedLabel={copiedLabel}
-                copyAria={copyAria(
-                  isWise
-                    ? 'account.membership.transferWiseSwiftIban'
-                    : 'account.membership.transferCbu',
-                )}
-              />
             </div>
-          ) : null}
-          <div>
-            <dt>{t('account.membership.transferHolder')}</dt>
-            {holder !== askAdmin ? (
-              <CopyableValue
-                value={holder}
-                copyLabel={copyLabel}
-                copiedLabel={copiedLabel}
-                copyAria={copyAria('account.membership.transferHolder')}
-              />
-            ) : (
-              <dd>{holder}</dd>
-            )}
-          </div>
+          ))}
           <div>
             <dt>{t('account.membership.transferReference')}</dt>
             <CopyableValue
@@ -164,7 +162,11 @@ export default function TransferReceipt({
           </div>
         </dl>
         <p id={warningId} className="account-transfer-warning" role="note">
-          {t('account.membership.transferVerifyWarning')}
+          {t(
+            isWise
+              ? 'account.membership.transferWiseVerifyWarning'
+              : 'account.membership.transferVerifyWarning',
+          )}
         </p>
       </div>
       <label className="account-transfer-notes">

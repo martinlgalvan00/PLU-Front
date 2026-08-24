@@ -1,21 +1,28 @@
+import { arsToWiseUsd } from '../../shared/wisePricing.js'
+import { env } from '../config/env.js'
+
 /**
  * La UI llama `transferencia` a lo que la API llama `manual_link`. Todo lo que
- * viaje al backend tiene que ir traducido: el preview de un cupón calculado
- * sobre el canal equivocado le muestra al atleta un ahorro que después no se
+ * viaje al backend tiene que ir traducido: el preview de un cupon calculado
+ * sobre el canal equivocado le muestra al atleta un ahorro que despues no se
  * cumple.
  */
 export function toApiPaymentMethod(paymentMethod) {
   if (paymentMethod === 'transferencia') return 'manual_link'
-  if (paymentMethod === 'mercado_pago' || paymentMethod === 'cash_pitbull') return paymentMethod
+  if (
+    paymentMethod === 'mercado_pago' ||
+    paymentMethod === 'cash_pitbull' ||
+    paymentMethod === 'wise_transfer'
+  ) {
+    return paymentMethod
+  }
   if (paymentMethod === 'manual_link') return 'manual_link'
   return null
 }
 
 /**
- * Sólo previsualización — la API vuelve a resolver el precio contra el plan/
- * evento/combo antes de crear la orden, nunca confía en este cálculo. `manualPrice`
- * es el precio de transferencia/efectivo del plan/evento/combo que ya está
- * cargado en pantalla (`null` = cobra igual que `fallback` en cualquier canal).
+ * Solo previsualizacion: la API vuelve a resolver el precio contra el plan,
+ * evento o combo antes de crear la orden.
  */
 export function previewCheckoutPrice({ paymentMethod, manualPrice, fallback }) {
   const isManualChannel =
@@ -24,4 +31,21 @@ export function previewCheckoutPrice({ paymentMethod, manualPrice, fallback }) {
     paymentMethod === 'cash_pitbull'
   if (isManualChannel && manualPrice != null) return manualPrice
   return fallback
+}
+
+export function previewWisePrice(amountArs) {
+  return arsToWiseUsd(amountArs, {
+    VITE_WISE_BLUE_RATE_ARS: env.payments.wiseBlueRateArs,
+    VITE_WISE_ROUNDING_STEP_USD: env.payments.wiseRoundingStepUsd,
+  })
+}
+
+export function wisePriceLabel(amountArs, locale = 'es') {
+  const amount = previewWisePrice(amountArs)
+  if (!amount) return 'USD -'
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(amount)
 }

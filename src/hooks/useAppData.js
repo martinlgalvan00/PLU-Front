@@ -916,7 +916,9 @@ export function useAppData() {
           name: athlete.fullName,
           email: athlete.email,
         })
-        markSignedIn(sessionDisplayName({ role: 'athlete_plu', name: athlete.fullName }, { short: true }))
+        markSignedIn(
+          sessionDisplayName({ role: 'athlete_plu', name: athlete.fullName }, { short: true }),
+        )
         return { athlete, confirmation, emailVerification }
       } catch (error) {
         if (error instanceof ApiError) {
@@ -1341,6 +1343,8 @@ export function useAppData() {
           quantity: createdTickets.length,
           amount: order.amount,
           paymentMethod: order.provider,
+          manualPaymentChannel: order.manualPaymentChannel,
+          currency: order.currency,
           reference: order.reference,
           status: order.status,
           paymentProofPath: order.paymentProofPath,

@@ -77,6 +77,7 @@ function toCamelOrder(row) {
     amount: row.amount,
     currency: row.currency,
     provider: row.provider,
+    manualPaymentChannel: row.manual_payment_channel ?? row.manualPaymentChannel ?? null,
     status: row.status,
     reference: row.reference,
     rejectedBy: row.rejected_by ?? row.rejectedBy ?? null,

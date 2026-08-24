@@ -109,6 +109,7 @@ describe('normalización del canal de pago hacia la API', () => {
     expect(toApiPaymentMethod('transferencia')).toBe('manual_link')
     expect(toApiPaymentMethod('manual_link')).toBe('manual_link')
     expect(toApiPaymentMethod('cash_pitbull')).toBe('cash_pitbull')
+    expect(toApiPaymentMethod('wise_transfer')).toBe('wise_transfer')
     expect(toApiPaymentMethod('mercado_pago')).toBe('mercado_pago')
   })
 

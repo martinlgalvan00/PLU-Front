@@ -18,7 +18,11 @@ import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
-import { previewCheckoutPrice, toApiPaymentMethod } from '../../services/checkoutPricing.js'
+import {
+  previewCheckoutPrice,
+  toApiPaymentMethod,
+  wisePriceLabel,
+} from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
 import {
   clearPendingPromotionCode,
@@ -187,7 +191,11 @@ export default function MembershipPurchaseSection({
       }
     : null
   const methodLabel =
-    paymentMethod === 'mercado_pago' ? 'Mercado Pago' : t('account.membership.transfer')
+    paymentMethod === 'mercado_pago'
+      ? 'Mercado Pago'
+      : paymentMethod === 'wise_transfer'
+        ? t('pages.register.paymentWiseLabel')
+        : t('account.membership.transfer')
   const availablePlans = plans
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
   const selectedPlanPrice = previewCheckoutPrice({
@@ -1077,7 +1085,16 @@ export default function MembershipPurchaseSection({
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
-                      total={activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice}
+                      total={
+                        paymentMethod === 'wise_transfer'
+                          ? wisePriceLabel(
+                              activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice,
+                              locale,
+                            )
+                          : activeDiscount
+                            ? activeDiscount.finalAmount
+                            : selectedPlanPrice
+                      }
                       totalLabel={t('account.membership.priceLabel')}
                       type="button"
                       onClick={handleCheckoutAction}
@@ -1139,7 +1156,7 @@ export default function MembershipPurchaseSection({
                           name: selectedPlan.name,
                           priceLabel:
                             paymentMethod === 'wise_transfer'
-                              ? t('pages.register.paymentWisePriceHint')
+                              ? wisePriceLabel(selectedPlanPrice, locale)
                               : money(selectedPlanPrice, locale),
                         },
                       ]
