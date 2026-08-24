@@ -1,22 +1,35 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, RefreshCw } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, PencilLine, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
+import AdminExpenseDialog from '../../components/admin/AdminExpenseDialog.jsx'
+import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
-import { createExpense, fetchFinanceReport } from '../../services/financeService.js'
+import { createExpense, deleteExpense, fetchFinanceReport, updateExpense } from '../../services/financeService.js'
 
 const today = () => new Date().toISOString().slice(0, 10)
 const monthStart = () => `${today().slice(0, 8)}01`
 const SEARCH_DEBOUNCE_MS = 350
 
-const EMPTY_EXPENSE = {
-  occurredOn: today(),
-  category: '',
-  description: '',
-  amount: '',
-  receiptPath: '',
+/**
+ * El editor de egresos alterna entre alta y edición: `expense` en null es un
+ * alta nueva; con fila, edición de ese asiento.
+ */
+function ExpenseEditor({ expense, busy, error, onCancel, onConfirm }) {
+  if (expense === undefined) return null
+  return (
+    <AdminExpenseDialog
+      expense={expense}
+      busy={busy}
+      error={error}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
+  )
 }
 
 export default function FinanceSection({ canEdit = false }) {
@@ -33,7 +46,12 @@ export default function FinanceSection({ canEdit = false }) {
   const [initialLoading, setInitialLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState(EMPTY_EXPENSE)
+  const [deleting, setDeleting] = useState(false)
+  const [dialogError, setDialogError] = useState('')
+  /** `undefined` cerrado; `null` alta; fila de egreso, edición. */
+  const [editorExpense, setEditorExpense] = useState(undefined)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
   const reportLoadedRef = useRef(false)
 
   // El buscador no dispara un request por cada tecla: la query viaja al
@@ -65,24 +83,40 @@ export default function FinanceSection({ canEdit = false }) {
     void load()
   }, [load])
 
-  function patchForm(field, value) {
-    setForm((current) => ({ ...current, [field]: value }))
-  }
-
-  async function submit(event) {
-    event.preventDefault()
+  async function submitExpense(payload) {
     setSaving(true)
-    setError('')
+    setDialogError('')
     try {
-      await createExpense({ ...form, amount: Number(form.amount) })
-      setForm({ ...EMPTY_EXPENSE, occurredOn: today() })
-      notifySuccess(t('admin.toasts.expenseSaved'))
+      if (editorExpense == null) {
+        await createExpense(payload)
+        notifySuccess(t('admin.toasts.expenseSaved'))
+      } else {
+        await updateExpense(editorExpense.id, payload)
+        notifySuccess(t('admin.toasts.expenseUpdated'))
+      }
+      setEditorExpense(undefined)
       await load()
     } catch (saveError) {
-      setError(saveError.message)
-      notifyError(saveError.message)
+      setDialogError(saveError.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await deleteExpense(deleteTarget.id)
+      notifySuccess(t('admin.toasts.expenseDeleted'))
+      setDeleteTarget(null)
+      await load()
+    } catch (deleteFail) {
+      setDeleteError(deleteFail.message)
+      notifyError(deleteFail.message)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -110,15 +144,30 @@ export default function FinanceSection({ canEdit = false }) {
             <h2 id="admin-finance-title">{t('admin.ledger.title')}</h2>
             <p>{t('admin.ledger.lead')}</p>
           </div>
-          <button
-            className="btn btn--outline btn--small admin-finance__refresh"
-            type="button"
-            onClick={() => void load()}
-            disabled={initialLoading || refreshing || saving}
-          >
-            <RefreshCw className={refreshing ? 'is-spinning' : undefined} size={14} aria-hidden />
-            {t('admin.ledger.refresh')}
-          </button>
+          <div className="admin-finance__header-actions">
+            {canEdit ? (
+              <button
+                className="btn btn--small admin-finance__add"
+                type="button"
+                onClick={() => {
+                  setDialogError('')
+                  setEditorExpense(null)
+                }}
+              >
+                <Plus size={14} aria-hidden />
+                {t('admin.ledger.addExpense')}
+              </button>
+            ) : null}
+            <button
+              className="btn btn--outline btn--small admin-finance__refresh"
+              type="button"
+              onClick={() => void load()}
+              disabled={initialLoading || refreshing || saving}
+            >
+              <RefreshCw className={refreshing ? 'is-spinning' : undefined} size={14} aria-hidden />
+              {t('admin.ledger.refresh')}
+            </button>
+          </div>
         </header>
 
         {refreshing && report ? (
@@ -169,61 +218,6 @@ export default function FinanceSection({ canEdit = false }) {
           </div>
         </div>
       </div>
-
-      {canEdit ? (
-        <form className="admin-finance__expense" onSubmit={submit}>
-          <h3>{t('admin.ledger.addExpense')}</h3>
-          <div className="admin-finance__expense-grid">
-            <label className="admin-finance__field">
-              <span>{t('admin.ledger.date')}</span>
-              <input
-                required
-                type="date"
-                value={form.occurredOn}
-                onChange={(event) => patchForm('occurredOn', event.target.value)}
-              />
-            </label>
-            <label className="admin-finance__field">
-              <span>{t('admin.ledger.category')}</span>
-              <input
-                required
-                value={form.category}
-                onChange={(event) => patchForm('category', event.target.value)}
-              />
-            </label>
-            <label className="admin-finance__field">
-              <span>{t('admin.ledger.amount')}</span>
-              <input
-                required
-                min="1"
-                type="number"
-                inputMode="numeric"
-                value={form.amount}
-                onChange={(event) => patchForm('amount', event.target.value)}
-              />
-            </label>
-            <label className="admin-finance__field admin-finance__field--wide">
-              <span>{t('admin.ledger.description')}</span>
-              <input
-                required
-                value={form.description}
-                onChange={(event) => patchForm('description', event.target.value)}
-              />
-            </label>
-            <label className="admin-finance__field admin-finance__field--wide">
-              <span>{t('admin.ledger.receipt')}</span>
-              <input
-                value={form.receiptPath}
-                onChange={(event) => patchForm('receiptPath', event.target.value)}
-                placeholder={t('admin.ledger.receiptHint')}
-              />
-            </label>
-            <button className="btn" disabled={saving}>
-              {saving ? t('admin.ledger.saving') : t('admin.ledger.submit')}
-            </button>
-          </div>
-        </form>
-      ) : null}
 
       {error ? (
         <p className="form-submit-error" role="alert">
@@ -324,10 +318,76 @@ export default function FinanceSection({ canEdit = false }) {
                 className: 'admin-finance__col-reference',
                 render: (row) => row.reference ?? '—',
               },
+              ...(canEdit
+                ? [
+                    {
+                      key: 'actions',
+                      label: t('admin.ledger.colActions'),
+                      mobile: 'action',
+                      render: (row) => {
+                        // Los ingresos son de solo lectura: salen del ledger de
+                        // pagos y se corrigen desde Operación de pagos.
+                        if (row.kind !== 'expense') return <AdminTableActionsEmpty />
+                        return (
+                          <AdminTableActions aria-label={t('admin.ledger.colActions')}>
+                            <AdminIconButton
+                              icon={PencilLine}
+                              label={t('admin.ledger.editExpense')}
+                              onClick={() => {
+                                setDialogError('')
+                                setEditorExpense(row)
+                              }}
+                              variant="ghost"
+                            />
+                            <AdminIconButton
+                              icon={Trash2}
+                              label={t('admin.ledger.deleteExpense')}
+                              onClick={() => {
+                                setDeleteError('')
+                                setDeleteTarget(row)
+                              }}
+                              variant="danger"
+                            />
+                          </AdminTableActions>
+                        )
+                      },
+                    },
+                  ]
+                : []),
             ]}
           />
         )}
       </div>
+
+      <ExpenseEditor
+        expense={editorExpense}
+        busy={saving}
+        error={dialogError}
+        onCancel={() => {
+          if (!saving) setEditorExpense(undefined)
+        }}
+        onConfirm={(payload) => void submitExpense(payload)}
+      />
+
+      {deleteTarget ? (
+        <AdminDeleteConfirmDialog
+          busy={deleting}
+          error={deleteError}
+          title={t('admin.ledger.deleteExpenseTitle')}
+          description={t('admin.ledger.deleteExpenseDescription', {
+            description: deleteTarget.description,
+            amount: money(deleteTarget.amount, locale),
+          })}
+          warning={t('admin.ledger.deleteExpenseWarning')}
+          cancelLabel={t('admin.ledger.cancel')}
+          confirmLabel={t('admin.ledger.deleteExpenseConfirm')}
+          busyLabel={t('admin.ledger.deleteExpenseBusy')}
+          onCancel={() => {
+            if (!deleting) setDeleteTarget(null)
+          }}
+          onConfirm={() => void confirmDelete()}
+        />
+      ) : null}
     </section>
   )
 }

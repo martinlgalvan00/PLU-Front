@@ -172,6 +172,10 @@ export function useEventRegistrationCapacity(
     slots,
     recent,
     remaining: status === 'live' ? (summary?.remaining ?? null) : null,
+    // El organizador decide si el sitio exhibe cuántos se anotaron. Mientras
+    // no llegue el summary (loading/fallback) se conserva el comportamiento
+    // histórico: mostrar.
+    progressPublic: status === 'live' ? summary?.progressPublic !== false : true,
     inView,
     observeRef: observeNodeRef,
   }

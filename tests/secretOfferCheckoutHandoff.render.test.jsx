@@ -310,6 +310,31 @@ describe('código de combo tipeado en el checkout', () => {
     expect(onNavigate.mock.calls).toEqual([])
     expect(vi.mocked(redeemPromotionCodeRequest).mock.calls.length).toBe(resolverCalls)
   })
+
+  // El evento real no trae `comboOffer`: `event_combo_offers` está archivada
+  // desde 20260914100000 y el paquete vive sólo en el código. Los tres tests
+  // de arriba corren sobre un evento con `comboOffer` ya cargado -como si esa
+  // tabla siguiera viva-, así que no hubieran detectado esto: sin `comboOffer`
+  // en el evento, la tarjeta del combo nunca se ofrecía aunque el código se
+  // aplicara bien y el banner de descuento mostrara el importe correcto — el
+  // atleta veía el torneo suelto, sin nada para llevarse el paquete.
+  it('revela la tarjeta del combo con el precio pactado aunque el evento no tenga un combo cargado', async () => {
+    previewByScope()
+    const { container } = renderCompetition({ event: { ...RESTRICTED_EVENT, comboOffer: null } })
+    await waitForAccessValidation()
+    openDiscountField()
+    await typeAndRedeem('ONLY-PITBULL')
+    await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
+
+    const comboRadio = screen.getByRole('radio', { name: /Afiliación \+ inscripción al torneo/i })
+    expect(comboRadio.disabled).toBe(false)
+    // La tarjeta del combo, no el banner de código aplicado (que ya
+    // funcionaba): con ahorro real muestra "$ 120.000 en lugar de $ 150.000",
+    // el mismo ahorro que antes sólo se veía cuando el evento ya traía un
+    // `comboOffer` cargado.
+    expect(comboRadio.closest('.plu-checkout__offer')?.textContent).toContain('120.000')
+    expect(comboRadio.closest('.plu-checkout__offer')?.textContent).toContain('en lugar de')
+  })
 })
 
 describe('código tipeado en el checkout con el resolvedor disponible', () => {

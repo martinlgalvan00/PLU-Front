@@ -21,9 +21,14 @@ function emit(fn, message) {
 }
 
 describe('toasts operativos del panel', () => {
-  it('no renderiza nada hasta que se dispara una notificación', () => {
+  it('mantiene la región viva montada (vacía) para poder anunciar el primer toast', () => {
     const { container } = render(wrap(<AdminActionToasts />))
-    expect(container.querySelector('.admin-toasts')).toBeNull()
+    // La región live debe existir en el DOM antes de insertar el contenido:
+    // si el contenedor nace junto con el primer toast, muchos lectores no
+    // lo anuncian. Vacía no pinta nada visualmente.
+    const region = container.querySelector('.admin-toasts')
+    expect(region).not.toBeNull()
+    expect(region.children.length).toBe(0)
   })
 
   it('confirma una acción exitosa con role=status', () => {

@@ -13,6 +13,9 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
  * grilla de un evento con atletas ya asignados. Estos tests fijan que el camino
  * corto existe, que manda solo ese campo, y que la pantalla dice la
  * consecuencia antes de que alguien quede afuera en la puerta.
+ *
+ * Desde el modelo staged: tocar un chip pre-selecciona el cambio y nada viaja
+ * al backend hasta "Guardar". Un solo guardado manda todos los cambios juntos.
  */
 
 const EVENT = {
@@ -41,6 +44,10 @@ function accessChip(name) {
   )
 }
 
+function saveButton() {
+  return document.querySelector('.admin-event-state__pending-save')
+}
+
 afterEach(cleanup)
 
 describe('AdminEventStateControl — acceso al meet', () => {
@@ -51,16 +58,55 @@ describe('AdminEventStateControl — acceso al meet', () => {
     expect(accessChip(/^abierto$/i).getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('manda solo requiresMembership al deshabilitar el requisito', async () => {
+  it('pre-selecciona el cambio pero no lo guarda hasta "Guardar"', async () => {
     const onSetState = renderControl(EVENT, vi.fn(async () => ({ event: EVENT, events: [] })))
 
     fireEvent.click(accessChip(/^abierto$/i))
+
+    // Tocar el chip solo arma la selección pendiente: el evento persistido
+    // no se toca todavía.
+    expect(screen.getByText(/un cambio sin guardar/i)).toBeTruthy()
+    expect(onSetState).not.toHaveBeenCalled()
+
+    fireEvent.click(saveButton())
 
     await waitFor(() => expect(onSetState).toHaveBeenCalledTimes(1))
     // Ni status ni published: el estado público y la visibilidad son otras dos
     // decisiones y no pueden viajar de arrastre.
     expect(onSetState).toHaveBeenCalledWith('pitbull-classic-2026', { requiresMembership: false })
     expect(await screen.findByText(/quedó abierto: no pide afiliación/i)).toBeDefined()
+    expect(screen.queryByText(/sin guardar/i)).toBeNull()
+  })
+
+  it('descartar devuelve la banda al estado persistido sin llamar al backend', () => {
+    const onSetState = renderControl()
+
+    fireEvent.click(accessChip(/^abierto$/i))
+    expect(screen.getByText(/un cambio sin guardar/i)).toBeTruthy()
+
+    fireEvent.click(document.querySelector('.admin-event-state__pending-discard'))
+
+    expect(onSetState).not.toHaveBeenCalled()
+    expect(screen.queryByText(/sin guardar/i)).toBeNull()
+    expect(accessChip(/solo afiliados/i).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('manda varios cambios juntos en un solo guardado', async () => {
+    const onSetState = renderControl(EVENT, vi.fn(async () => ({ event: EVENT, events: [] })))
+
+    fireEvent.click(accessChip(/^abierto$/i))
+    // Despublicar desde el toggle de visibilidad (pre-selección, no guardado).
+    fireEvent.click(document.querySelector('.admin-event-state__visibility'))
+
+    expect(screen.getByText(/2 cambios sin guardar/i)).toBeTruthy()
+
+    fireEvent.click(saveButton())
+
+    await waitFor(() => expect(onSetState).toHaveBeenCalledTimes(1))
+    expect(onSetState).toHaveBeenCalledWith('pitbull-classic-2026', {
+      requiresMembership: false,
+      published: false,
+    })
   })
 
   it('vuelve a exigir afiliación desde el mismo control', async () => {
@@ -70,6 +116,7 @@ describe('AdminEventStateControl — acceso al meet', () => {
     )
 
     fireEvent.click(accessChip(/solo afiliados/i))
+    fireEvent.click(saveButton())
 
     await waitFor(() =>
       expect(onSetState).toHaveBeenCalledWith('pitbull-classic-2026', {
@@ -84,6 +131,7 @@ describe('AdminEventStateControl — acceso al meet', () => {
     fireEvent.click(accessChip(/solo afiliados/i))
 
     expect(onSetState).not.toHaveBeenCalled()
+    expect(screen.queryByText(/sin guardar/i)).toBeNull()
   })
 
   it('escribe la consecuencia de cada opción, no solo su nombre', () => {

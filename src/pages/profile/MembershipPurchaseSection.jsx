@@ -934,7 +934,9 @@ export default function MembershipPurchaseSection({
                           que el atleta pueda declarar. */}
                       {discountPreview.financed && (transferSelectable || cashSelectable) ? (
                         <p className="code-band-hint">
-                          {t('account.membership.discountFinanced')}
+                          {t('account.membership.discountFinanced', {
+                            days: discountPreview.financingTermDays,
+                          })}
                         </p>
                       ) : null}
                       <button
@@ -1206,9 +1208,12 @@ export default function MembershipPurchaseSection({
         <ManualPaymentConfirmation
           channel="cash_pitbull"
           financedEntitlementsAt={manualOrder.financedEntitlementsAt}
+          financedPaymentDueAt={manualOrder.financedPaymentDueAt}
           financingAllowed={manualOrder.financingAllowed}
           manualPaymentDeclaredAt={manualOrder.manualPaymentDeclaredAt}
           orderId={manualOrder.paymentId ?? manualOrder.id ?? null}
+          onNavigate={onNavigate}
+          profileTab="account-membership"
         />
       ) : null}
 

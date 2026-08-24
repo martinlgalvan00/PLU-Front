@@ -221,18 +221,18 @@ describe('Inscripciones — rieles etiquetados', () => {
     )
   }
 
-  it('nombra evento y estado aunque el riel no muestre su label', () => {
+  it('nombra evento y estado en su pill, con los chips adentro del popover', () => {
     /*
-     * Los rieles de chips dejaron de imprimir su label visible: el copy de los
-     * propios chips ya dice qué se está filtrando, y la versalita repetida
-     * ("ESTADO / VENCIMIENTO") era ruido. Lo que no puede perderse es el nombre
-     * accesible, que es lo que anuncia un lector de pantalla y lo que permite
-     * distinguir un riel de otro — así que eso es lo que se afirma acá, y no la
-     * presencia del `<span>`.
+     * La barra pasó a pills + popover: cada faceta es un botón con su nombre
+     * visible, y el grupo de chips (con su nombre accesible para lectores de
+     * pantalla) vive dentro del popover que ese botón abre.
      */
     renderRegistrations()
 
-    expect(screen.getByRole('group', { name: 'Evento' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Evento/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Estado/ })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Estado/ }))
     expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
   })
 

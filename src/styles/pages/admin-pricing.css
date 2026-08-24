@@ -1445,6 +1445,54 @@ ul.admin-pricing__redemptions li > strong {
   grid-column: 1 / -1;
 }
 
+/* Límite de canjes, ventana y descripción: tres campos que casi ningún código
+   necesita. Colapsados detrás de un <details> para que el caso común —un
+   cupón simple— no obligue a mirar los once campos del formulario, siguiendo
+   el mismo patrón que ya usa el resumen de KPIs (admin-kpi-more). */
+.admin-pricing__advanced {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  margin-top: 0.35rem;
+  padding-top: 0.85rem;
+}
+
+.admin-pricing__advanced > summary {
+  align-items: center;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.7rem;
+  font-weight: 650;
+  gap: 0.4rem;
+  letter-spacing: 0.08em;
+  list-style: none;
+  min-height: 32px;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.admin-pricing__advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-pricing__advanced > summary::after {
+  color: var(--color-text-muted);
+  content: '▾';
+  font-size: 0.65rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.admin-pricing__advanced[open] > summary::after {
+  content: '▴';
+}
+
+.admin-pricing__advanced-body {
+  display: grid;
+  gap: 0.85rem 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.85rem;
+}
+
 .admin-pricing__toggle {
   align-items: center;
   grid-template-columns: auto 1fr;
@@ -1509,6 +1557,29 @@ ul.admin-pricing__redemptions li > strong {
   margin: 0;
 }
 
+/* Lectura comercial del combo mientras se lo carga: precio del paquete contra
+   la suma de las partes, con el ahorro en oro. Sin caja ni fondo a propósito —
+   es una consecuencia de los campos de arriba, no un bloque aparte, y el
+   formulario ya gasta su superficie elevada en la matriz de canales. */
+.admin-pricing__combo-deal {
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  gap: 0 0.35rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* `--admin-premium` y no `--color-brand-gold`: el oro de marca es el mismo
+   #f2b705 en los dos temas y sobre superficie clara no llega a AA. Este alias
+   ya resuelve gold-400 en oscuro y gold-600 en claro, que es exactamente para
+   lo que existe. */
+.admin-pricing__combo-deal strong {
+  color: var(--admin-premium, var(--color-brand-gold));
+  font-weight: 650;
+}
+
 .admin-pricing__toggle--financing {
   align-items: start;
   background: color-mix(in srgb, var(--color-brand-gold) 7%, transparent);
@@ -1528,6 +1599,17 @@ ul.admin-pricing__redemptions li > strong {
   font-weight: 450;
   letter-spacing: 0;
   line-height: 1.4;
+}
+
+/* Pegado al interruptor de arriba, no suelto en el resto del formulario: es
+   SU plazo, no una fecha general del código. */
+.admin-pricing__financing-term {
+  margin-top: -0.35rem;
+  max-width: 160px;
+}
+
+.admin-pricing__financing-term input {
+  width: 100%;
 }
 
 .admin-pricing__form-actions {
@@ -1940,7 +2022,8 @@ ul.admin-pricing__redemptions li > strong {
     flex-direction: column;
   }
 
-  .admin-pricing__form fieldset {
+  .admin-pricing__form fieldset,
+  .admin-pricing__advanced-body {
     grid-template-columns: 1fr;
   }
 

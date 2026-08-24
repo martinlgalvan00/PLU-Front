@@ -409,6 +409,12 @@ export default function PaymentValidationDialog({
 
         {rejecting ? (
           <div className="payment-validation-dialog__reject-form">
+            {item.financingAllowed && item.financedEntitlementsAt ? (
+              <p className="payment-validation-dialog__financing-warning" role="alert">
+                <FileWarning size={16} aria-hidden />
+                {t('admin.paymentValidation.rejectRevokesFinancing')}
+              </p>
+            ) : null}
             <label htmlFor={reasonId}>{t('admin.paymentValidation.rejectReasonLabel')}</label>
             <textarea
               id={reasonId}

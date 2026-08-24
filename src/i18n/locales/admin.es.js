@@ -16,6 +16,8 @@ export default {
     showSidebar: 'Mostrar panel lateral',
     defaultSection: 'Panel',
     breadcrumbRoot: 'Admin',
+    breadcrumbAria: 'Ruta de navegación del panel',
+    skipToContent: 'Saltar al contenido principal',
     navAria: 'Navegación operativa',
     navBadgeAria: '{{label}}, {{count}} pendientes',
     goToDashboard: 'Ir al resumen',
@@ -608,13 +610,36 @@ export default {
       scheduleRetirement: 'Programar vigencia',
       discountCodesTitle: 'Códigos de descuento y promoción',
       discountCodesLead:
-        'Tres tipos: un descuento por porcentaje, un precio fijo promocional, o un combo —afiliación + inscripción— con su propio precio. Todo se carga acá: no hay nada que configurar antes.',
+        'Tres tipos: un descuento por porcentaje, un precio fijo promocional, o un combo —afiliación + inscripción— con su propio precio. Todo se carga acá: el combo se arma dentro del código, no antes.',
       discountCodesEmpty: 'Todavía no hay códigos cargados.',
       codeSearchLabel: 'Buscar código',
       codeSearchPlaceholder: 'Código, descripción o torneo',
       codeSearchNoResults: 'Ningún código coincide con "{{query}}".',
-      comboScopeUnavailable:
-        'Hoy no hay un combo vigente para este alcance: el código se puede guardar, pero el canje va a rechazarlo hasta que el combo del torneo se reabra.',
+      // Lo que le falta al combo para poder canjearse, en el orden en que el
+      // operador completa el formulario. Reemplazan al aviso que pedía reabrir
+      // el combo del torneo: ese objeto se retiró en 20260914100000 y el
+      // paquete pasó a vivir dentro del código.
+      comboBlocker: {
+        noPlan:
+          'No hay ninguna afiliación de pago único vigente para empaquetar. Activá una en Planes de afiliación y volvé.',
+        noEvent:
+          'Elegí a qué inscripción aplica el combo: el precio y el canje se resuelven contra ese torneo.',
+        pickPlan:
+          'Hay más de una afiliación de pago único vigente: elegí cuál empaqueta el combo.',
+        noSavings:
+          'El precio del combo tiene que ser menor a lo que cuesta comprar afiliación e inscripción por separado.',
+      },
+      comboDeal: '{{combo}} contra {{separate}} por separado.',
+      comboDealSavings: 'Ahorra {{amount}} ({{percent}}%).',
+      bundlePlanLabel: 'Afiliación que empaqueta',
+      bundlePlanHint:
+        'Qué afiliación compra el atleta junto con la inscripción. Sólo se listan las de pago único vigentes.',
+      bundlePlanAuto: 'Automática — {{plan}}',
+      bundlePlanPick: 'Elegí una afiliación',
+      comboEventLabel: 'Inscripción que empaqueta',
+      comboEventPick: 'Elegí una inscripción',
+      comboEventHint:
+        'Obligatoria: el combo se arma contra un torneo, y ahí es donde se canjea.',
       newDiscountCode: 'Nuevo código',
       publishDiscountCode: 'Publicar código',
       formTitleNewCode: 'Nuevo código',
@@ -629,10 +654,11 @@ export default {
       percentOffInvalid: 'El descuento tiene que ser un número entero entre 1 y 99.',
       codeKindLabel: 'Tipo de código',
       codeKindHint:
-        'Un porcentaje descuenta sobre el precio vigente; un precio fijo lo reemplaza. Para el combo: precio fijo con alcance "Combo".',
+        'Un porcentaje descuenta sobre el precio vigente; un precio fijo lo reemplaza. El combo vende afiliación e inscripción juntas a un precio propio.',
       codeKind: {
         percent: 'Descuento por porcentaje',
         fixed_price: 'Precio fijo promocional',
+        combo: 'Combo (afiliación + inscripción)',
       },
       codeEventLabel: 'Limitar a una inscripción',
       codeEventAny: 'Cualquier inscripción',
@@ -695,21 +721,14 @@ export default {
         'Sin uso en una promoción pública: abrir o cerrar un canal para todo el mundo se hace desde Acceso y habilitación, no desde acá.',
       manualChannelsLegend: 'Medios de pago que habilita',
       codeChannelsLegend: 'Cobro y habilitación',
-      codePaymentModeLabel: 'Cómo se cobra',
-      codePaymentMode: {
-        mercado_pago: 'Mercado Pago',
-        manual: 'Sólo efectivo o transferencia',
-        manual_financed: 'Efectivo o transferencia, habilita al avisar el pago',
-      },
-      codePaymentModeHint: {
-        mercado_pago:
-          'Se paga online y acredita solo. Es el caso normal: nadie del equipo tiene que validar nada.',
-        manual:
-          'Quien use el código paga por transferencia o en efectivo, y queda habilitado cuando Finanzas confirma el cobro. Los canales se destraban sólo para este código, aunque estén apagados en general.',
-        manual_financed:
-          'Quien use el código avisa que transfirió o que entrega el efectivo y en ese momento queda habilitado en afiliación e inscripción. La deuda sigue abierta hasta que Finanzas la valide.',
-      },
-      codeAlsoMercadoPago: 'Aceptar también Mercado Pago',
+      advancedOptions: 'Más opciones — límite de canjes, ventana y descripción',
+      codeFinancingToggle: 'Habilita al avisar el pago',
+      codeFinancingToggleHint:
+        'Quien use el código avisa que transfirió o que entrega el efectivo y en ese momento queda habilitado en afiliación e inscripción. La deuda sigue abierta hasta que Finanzas la valide.',
+      codeFinancingTerm: 'Plazo para pagar (días)',
+      codeFinancingTermHint:
+        'Si Finanzas no acredita el pago dentro de este plazo, la plataforma da de baja sola la afiliación y la inscripción que había habilitado.',
+      codeFinancingTermInvalid: 'El plazo de pago tiene que ser un número entero de entre 1 y 90 días.',
       batchPartialError:
         'Se crearon {{created}} de {{total}} códigos. Los que faltan no entraron: {{reason}}',
       codeChannelsEmpty:
@@ -1138,6 +1157,12 @@ export default {
     statusSaved: 'Estado actualizado.',
     publishedSaved: 'El evento ya es visible en el sitio.',
     unpublishedSaved: 'El evento dejó de mostrarse en el sitio.',
+    changesSaved: 'Cambios guardados.',
+    pendingOne: 'Un cambio sin guardar.',
+    pendingMany: '{{count}} cambios sin guardar.',
+    save: 'Guardar',
+    saving: 'Guardando…',
+    discard: 'Descartar',
     overridden:
       'El evento sigue con el cupo lleno, así que quedó en "Cupo lleno". Subí el cupo desde el editor para reabrir la inscripción.',
     fullNote:
@@ -1668,6 +1693,33 @@ export default {
     spotlightSubtitleLive: '{{date}} · {{location}} · {{fill}}% ocupado',
     spotlightEyebrow: 'Evento insignia',
     spotlightEmpty: 'No hay evento insignia activo en el calendario.',
+    spotlightClosesIn: 'La inscripción cierra en {{count}} días',
+    spotlightClosesToday: 'La inscripción cierra hoy',
+    focusEyebrow: 'Prioridades',
+    focusTitle: 'Atención de hoy',
+    focusSubtitleOne: 'Un tema necesita revisión',
+    focusSubtitleMany: '{{count}} temas necesitan revisión',
+    focusOpen: 'Abrir',
+    focusEmpty: 'Todo al día: no hay temas que requieran revisión ahora.',
+    reminder: {
+      manualPaymentsOne: 'pago espera validación manual',
+      manualPayments: 'pagos esperan validación manual',
+      observedRegistrationsOne: 'inscripción observada',
+      observedRegistrations: 'inscripciones observadas',
+      eventConsistencyOne: 'evento con fechas o cupos contradictorios',
+      eventConsistency: 'eventos con fechas o cupos contradictorios',
+      ticketOrdersOne: 'orden de entrada por cobrar',
+      ticketOrders: 'órdenes de entrada por cobrar',
+      gateRegistrationsOne: 'inscripto sin afiliación vigente',
+      gateRegistrations: 'inscriptos sin afiliación vigente',
+      expiringMembershipsOne: 'afiliación vence pronto',
+      expiringMemberships: 'afiliaciones vencen pronto',
+      expiresOn: 'la primera vence el {{date}}',
+      closingEvent: 'cierra inscripciones',
+      closingToday: 'cierra hoy',
+      closingInDays: 'cierra en {{count}} días',
+      nearlyFull: 'cupos casi completos',
+    },
     slots: 'Cupos',
     slotsLeft: 'Cupos libres',
     registrationCloses: 'Cierre de inscripción',
@@ -1965,6 +2017,8 @@ export default {
     settleReferencePlaceholder: 'Ej.: ID de operación, número de transferencia',
     settleConfirm: 'Acreditar el cobro',
     reject: 'Rechazar',
+    rejectRevokesFinancing:
+      'Esta orden ya habilitó afiliación e inscripción por financiamiento. Rechazarla las da de baja ahora mismo.',
     rejectReasonLabel: 'Motivo del rechazo',
     rejectReasonPlaceholder: 'Ej.: el comprobante no coincide con el monto de la orden.',
     rejectConfirm: 'Confirmar rechazo',
@@ -2019,8 +2073,21 @@ export default {
     colDetail: 'Detalle',
     colAmount: 'Importe',
     colReference: 'Referencia',
+    colActions: 'Acciones',
     kindIncome: 'Ingreso',
     kindExpense: 'Egreso',
+    editExpense: 'Editar egreso',
+    editExpenseHint: 'Corregir fecha, monto o detalle del asiento.',
+    newExpenseHint: 'El asiento queda auditado con tu usuario.',
+    cancel: 'Cancelar',
+    saveChanges: 'Guardar cambios',
+    deleteExpense: 'Eliminar egreso',
+    deleteExpenseTitle: 'Eliminar egreso',
+    deleteExpenseDescription:
+      'Se quita "{{description}}" ({{amount}}) de la caja del período.',
+    deleteExpenseWarning: 'La auditoría conserva el asiento original.',
+    deleteExpenseConfirm: 'Eliminar',
+    deleteExpenseBusy: 'Eliminando…',
   },
   paymentOperations: {
     title: 'Operación y conciliación de pagos',
@@ -2405,6 +2472,9 @@ export default {
     laneSpectatorsLead:
       'Venta de entradas para espectadores, independiente de la inscripción de atletas.',
     slotsRemaining: 'Quedan {{count}} lugares',
+    capacityVisibilityTitle: 'Mostrar ocupación en el sitio',
+    capacityVisibilityHint:
+      'Apagado, el sitio no publica cuántos se anotaron ni el progreso del cupo. El panel siempre la ve.',
     liveSummary: 'Link, plataforma y estado de la transmisión en vivo.',
     consistency: {
       title: 'El estado público no coincide con la configuración',
@@ -2850,6 +2920,13 @@ export default {
     proofMissing: 'Sin comprobante',
     declared: 'Declarado por atleta',
     financedActive: 'Financiado · derechos activos',
+    // Plazo de pago del financiamiento (20260922100000): cuánto falta o hace
+    // cuánto venció para que Finanzas acredite antes de que el cron dé de baja.
+    financingDueIn: 'Vence en {{days}} días',
+    financingDueToday: 'Vence hoy',
+    financingDueTomorrow: 'Vence mañana',
+    financingOverdue: 'Vencido hace {{days}} días',
+    financingOverdueYesterday: 'Vencido ayer',
     proofError: 'No se pudo abrir el comprobante.',
     webhookOnly: 'Mercado Pago se acredita por webhook',
     forceSettle: 'Acreditar a mano',
@@ -2988,6 +3065,8 @@ export default {
     ticketApproved: 'Orden de entradas aprobada',
     ticketRejected: 'Orden de entradas rechazada',
     expenseSaved: 'Egreso registrado',
+    expenseUpdated: 'Egreso actualizado',
+    expenseDeleted: 'Egreso eliminado',
     actionError: 'La acción no se pudo completar',
   },
 }

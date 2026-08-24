@@ -14,9 +14,28 @@ import '../../styles/components/transfer-pay-modal.css'
  * activa—, así que disparado en el acto desmontaba el sello a mitad de la
  * ráfaga: la persona confirmaba y aparecía en otra pestaña sin haber leído qué
  * pasó. Cubre el sello estampado (560 ms) más la ráfaga (~1,2 s). No demora
- * nada cuando no hay nada que festejar.
+ * nada cuando no hay nada que festejar. La navegación al perfil (más abajo)
+ * reusa el mismo margen: es la misma razón, aplicada a dejar la pantalla.
  */
 const CELEBRATION_HOLD_MS = 2200
+
+/**
+ * `financed_payment_due_at` es un timestamptz completo, no una fecha suelta
+ * como la que espera `formatShortDate` — se formatea acá en vez de forzarlo
+ * por esa función.
+ */
+function formatDueDate(iso, locale) {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  return date
+    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+    .replace('.', '')
+}
 
 /**
  * Declaracion del atleta: deja la acreditacion exclusivamente en Finanzas.
@@ -26,7 +45,10 @@ const CELEBRATION_HOLD_MS = 2200
  * Por eso el panel no se convierte en una linea de texto sino en el mismo sello
  * que la federacion usa en sus otros cierres de tramite (`ConfirmationSeal`),
  * con la rafaga aprobada y la deuda dicha en la misma pieza — habilitar no es
- * acreditar, y el sello no puede prometer lo que no paso.
+ * acreditar, y el sello no puede prometer lo que no paso. Que la deuda siga
+ * abierta no lo resuelve un segundo paso de "ya pagué de verdad": lo resuelve
+ * el plazo (`financed_payment_due_at`) y la baja automatica si vence sin que
+ * Finanzas acredite (20260922100000) — declarar sigue siendo un solo toque.
  *
  * Sin financiamiento no hay nada que cerrar: la orden queda en validacion y el
  * acuse sigue siendo la linea fria de siempre. Festejar ahi seria festejar un
@@ -38,9 +60,12 @@ export default function ManualPaymentConfirmation({
   financingAllowed = false,
   manualPaymentDeclaredAt = null,
   financedEntitlementsAt = null,
+  financedPaymentDueAt = null,
   onConfirmed,
+  onNavigate,
+  profileTab,
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const [state, setState] = useState(manualPaymentDeclaredAt ? 'confirmed' : 'idle')
   const [granted, setGranted] = useState(Boolean(financedEntitlementsAt))
   // El festejo es del hecho recien ocurrido, no del estado. Al volver a la
@@ -74,10 +99,24 @@ export default function ManualPaymentConfirmation({
             },
           }),
         )
-      // El timer no se cancela al desmontar a propósito: si la persona navega
-      // antes, el refresco sigue siendo necesario.
-      if (entitlementsGranted) window.setTimeout(notifyApp, CELEBRATION_HOLD_MS)
-      else notifyApp()
+      // El efectivo se declara en Pitbull, no frente a la pantalla: una vez
+      // habilitado no hay nada más que hacer acá, así que vuelve solo al
+      // perfil — leyendo antes el sello, con el mismo margen que ya usa el
+      // refresco de arriba. La transferencia se queda: ese recibo sigue
+      // ofreciendo subir el comprobante en la misma pantalla.
+      const goToProfile = () => {
+        if (isCash) onNavigate?.('profile', profileTab ? { tab: profileTab } : undefined)
+      }
+      if (entitlementsGranted) {
+        // El timer no se cancela al desmontar a propósito: si la persona
+        // navega antes, el refresco sigue siendo necesario.
+        window.setTimeout(() => {
+          notifyApp()
+          goToProfile()
+        }, CELEBRATION_HOLD_MS)
+      } else {
+        notifyApp()
+      }
       onConfirmed?.(result)
     } catch (confirmationError) {
       setState('error')
@@ -98,7 +137,13 @@ export default function ManualPaymentConfirmation({
             variant="membership"
             eyebrow={t('payments.manualConfirmation.financedEyebrow')}
             title={t('payments.manualConfirmation.financedTitle')}
-            detail={t('payments.manualConfirmation.financedGranted')}
+            detail={
+              formatDueDate(financedPaymentDueAt, locale)
+                ? t('payments.manualConfirmation.financedGrantedWithDeadline', {
+                    date: formatDueDate(financedPaymentDueAt, locale),
+                  })
+                : t('payments.manualConfirmation.financedGranted')
+            }
             celebrate={justHappened}
             celebrateKey={`financed-order-${orderId}`}
             haptic={justHappened}
@@ -117,7 +162,13 @@ export default function ManualPaymentConfirmation({
         )
       ) : (
         <div className="manual-payment-confirmation">
-          {financingAllowed ? (
+          {isCash ? (
+            <p className="manual-payment-confirmation__financing">
+              {financingAllowed
+                ? t('payments.manualConfirmation.financingHint')
+                : t('payments.manualConfirmation.noFinancingHint')}
+            </p>
+          ) : financingAllowed ? (
             <p className="manual-payment-confirmation__financing">
               {t('payments.manualConfirmation.financingHint')}
             </p>
@@ -133,11 +184,7 @@ export default function ManualPaymentConfirmation({
             ) : (
               <CheckCircle2 size={18} aria-hidden />
             )}
-            {t(
-              isCash
-                ? 'payments.manualConfirmation.cashAction'
-                : 'payments.manualConfirmation.transferAction',
-            )}
+            {t(isCash ? 'payments.manualConfirmation.cashAction' : 'payments.manualConfirmation.transferAction')}
           </button>
           <p className="manual-payment-confirmation__legal">
             {t('payments.manualConfirmation.notApproval')}

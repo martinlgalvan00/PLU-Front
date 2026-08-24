@@ -1,5 +1,5 @@
 import { HttpError } from '../lib/errors.js'
-import { isOfferUnlockKind } from './offerCodeService.js'
+import { unlocksComboBundle } from './offerCodeService.js'
 import { verifyPassword } from './passwordService.js'
 
 export function normalizeRegistrationAccessCode(value) {
@@ -84,7 +84,9 @@ async function discountCodeGrantsComboAccess(
       appliesTo: 'combo',
       baseAmount,
     })
-    if (!preview?.valid || !isOfferUnlockKind(preview.kind)) return false
+    // `appliesTo` lo agrega el preview desde 20260918100000: sin él un precio
+    // promocional de combo era indistinguible de uno de afiliación suelta.
+    if (!preview?.valid || !unlocksComboBundle(preview)) return false
     if (preview.eventSlug && preview.eventSlug !== eventSlug) return false
     return true
   } catch {

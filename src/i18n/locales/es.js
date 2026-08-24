@@ -185,6 +185,8 @@ export default {
       cashAction: 'Ya entregué el efectivo',
       financingHint:
         'Este código permite financiamiento: al confirmar habilitamos tu afiliación y tu inscripción mientras Finanzas revisa el saldo.',
+      noFinancingHint:
+        'Este código no incluye financiamiento: tu afiliación y tu inscripción quedan pendientes hasta que Administración valide el pago.',
       notApproval:
         'Este aviso no acredita el pago. La orden queda pendiente hasta que Finanzas la valide.',
       received: 'Aviso recibido',
@@ -195,6 +197,10 @@ export default {
       financedTitle: 'Ya estás afiliado e inscripto',
       financedGranted:
         'Tu afiliación y tu inscripción ya están habilitadas. El saldo sigue pendiente de validación.',
+      // Con plazo conocido (20260922100000): la fecha límite real, no solo
+      // "sigue pendiente" — es la que usa el administrador para dar de baja.
+      financedGrantedWithDeadline:
+        'Tu afiliación y tu inscripción ya están habilitadas. Tenés hasta el {{date}} para que Finanzas acredite el pago.',
       pendingReview: 'Avisamos a Finanzas. El pago sigue pendiente de validación.',
       error: 'No pudimos registrar el aviso. Intentá nuevamente.',
     },
@@ -1419,9 +1425,11 @@ export default {
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
       // Delegar el pago: la promesa es habilitacion inmediata, no
-      // acreditacion. La deuda sigue abierta hasta que Finanzas valide.
+      // acreditacion. La deuda sigue abierta hasta que Finanzas valide, y
+      // ahora se dice por cuanto tiempo (20260922100000): sin el plazo, la
+      // promesa sonaba indefinida.
       discountFinanced:
-        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
+        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento. Tenés {{days}} días para que Finanzas acredite el pago — si no, se cancela.',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -2619,6 +2627,8 @@ export default {
       inscriptionCounterAria: 'Progreso de inscripción: {{registered}} de {{slots}} cupos atletas',
       inscriptionCounterPending: 'Los cupos se publican al abrir la inscripción.',
       inscriptionCounterPendingAria: 'Inscripción aún no abierta',
+      inscriptionCounterHidden: 'El progreso de inscripción no se publica para este evento.',
+      inscriptionCounterHiddenAria: 'Cupo del evento: {{slots}} plazas atletas',
       institutionalIndex: '08',
       institutionalEyebrow: 'Ecosistema PLU',
       faqIndex: '09',
@@ -3115,9 +3125,9 @@ export default {
       discountAppliedFixed: 'Código {{code}} aplicado · pagás {{amount}}',
       discountAppliedAccess: 'Código {{code}} aplicado · combo desbloqueado',
       // Misma promesa que en Afiliacion: habilitacion inmediata contra una
-      // deuda abierta, nunca acreditacion.
+      // deuda abierta, nunca acreditacion — con el plazo real, no indefinido.
       discountFinanced:
-        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento, mientras Finanzas valida el saldo.',
+        'Este código te deja avisarnos el pago: elegí transferencia o efectivo y quedás habilitado en el momento. Tenés {{days}} días para que Finanzas acredite el pago — si no, se cancela.',
       discountRemove: 'Quitar',
       discountError: {
         not_found: 'Ese código no existe.',
@@ -3160,6 +3170,13 @@ export default {
         'Esta orden ya tiene un pago iniciado en Mercado Pago. Completalo o esperá a que venza para usar transferencia.',
       paymentLinkHint: 'Validación administrativa · hasta 48 horas',
       cashPitbullCreated: 'Tu orden quedó creada. Podés pagar en efectivo en Pitbull.',
+      // Nota de estado en la card lateral: acá no hay botón (la acción vive
+      // una sola vez, en el panel de pago), solo se dice en qué queda el
+      // beneficio según el código tenga o no financiamiento.
+      cashFinancingActiveNote:
+        'Financiamiento activo: tu afiliación e inscripción se habilitan al confirmar la entrega en el panel de pago.',
+      cashFinancingPendingNote:
+        'Sin financiamiento: tus beneficios se habilitan cuando Administración valide el pago.',
       alreadyRegisteredPaid: 'Ya tenés una inscripción confirmada en este evento.',
       membershipPaymentInProgress:
         'Ya tenés una afiliación pendiente. Retomá el pago vigente; si enviaste una transferencia, Administración la valida en hasta 48 horas.',

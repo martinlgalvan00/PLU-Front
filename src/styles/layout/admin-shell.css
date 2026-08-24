@@ -2,6 +2,35 @@
    ADMIN SHELL
    ============================================= */
 
+/* Skip-link: primero en el tab order del panel. Fuera de pantalla hasta
+   que recibe foco de teclado; por encima del Drawer de antd (z 1000). */
+.admin-shell__skip-link {
+  background: var(--admin-attention-bg);
+  border-radius: 0 0 var(--border-radius-md, 8px) 0 var(--border-radius-md, 8px);
+  color: var(--admin-attention-text);
+  font-size: 13px;
+  font-weight: 700;
+  left: 16px;
+  padding: 10px 16px;
+  position: fixed;
+  top: 0;
+  transform: translateY(-120%);
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, ease-out);
+  z-index: 1300;
+}
+
+.admin-shell__skip-link:focus {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell__skip-link {
+    transition: none;
+  }
+}
+
 .admin-shell {
   background: var(--color-bg-primary);
   display: flex;
@@ -130,6 +159,24 @@
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.3;
+}
+
+/* Breadcrumb semántico: nav + ol + aria-current="page" en el ítem activo.
+   El separador es decorativo y vive solo en CSS. */
+.admin-shell__breadcrumb-list {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell__breadcrumb-item + .admin-shell__breadcrumb-item::before {
+  content: '/';
+  margin: 0 6px;
+}
+
+.admin-shell__breadcrumb-item[aria-current='page'] {
+  color: var(--color-text-secondary);
 }
 
 .admin-shell__header-title {

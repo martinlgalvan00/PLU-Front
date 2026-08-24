@@ -72,25 +72,39 @@ describe('el panel tiene una sola superficie', () => {
 
   it('el formulario del código no conserva restos de la oferta retirada', () => {
     // 20260915100000 retiró las ofertas por código: el paquete se vende como
-    // precio fijo con alcance 'combo', y el formulario de la oferta —plan que
-    // empaqueta, inscripción obligatoria, aside del flujo secreto— se fue con
-    // ella. Nada de eso puede reaparecer por un merge distraído.
+    // precio fijo con alcance 'combo', y el formulario de la oferta —su aside
+    // del flujo secreto, sus etiquetas propias— se fue con ella. Nada de eso
+    // puede reaparecer por un merge distraído.
     for (const trace of [
       'offerPlanLabel',
       'offerEventLabel',
-      'membershipPlanId',
       'draftOpensOffer',
       'offer_access',
       'exclusiveFlow',
     ]) {
       expect(panel, `quedó ${trace} en el panel`).not.toContain(trace)
     }
-    // La única vía viva del paquete: precio fijo con alcance combo.
-    expect(panel).toContain("t('admin.sections.pricing.appliesTo.combo')")
   })
 
-  it('quedan sólo dos tipos: la oferta por código está retirada (20260915100000)', () => {
-    expect(panel).toContain("const CODE_TYPES = ['percent', 'fixed_price']")
+  // `membershipPlanId` sí vuelve, y no es un resto de la oferta: es el séptimo
+  // dato del paquete —qué afiliación se empaqueta— que 20260918100000 le dio al
+  // código de combo para que no necesite el objeto combo del evento. La
+  // diferencia con la oferta retirada es que acá lo pide el mismo formulario
+  // que fija el precio, no una segunda sección.
+  it('el combo nombra su afiliación desde el mismo formulario', () => {
+    expect(panel).toContain('membershipPlanId')
+    expect(panel).toContain('bundlePlans')
+    expect(panel).not.toContain('admin-pricing__block--combo')
+  })
+
+  // El combo dejó de estar escondido dentro de "Aplica a": elegirlo ahí no
+  // arrastraba las condiciones que necesita (inscripción, audiencia, paquete),
+  // y por eso se podía guardar un código que el canje después rechazaba.
+  it('el combo es un tipo del panel, no un alcance más (20260918100000)', () => {
+    expect(panel).toContain("const CODE_TYPES = ['percent', 'fixed_price', 'combo']")
+    expect(panel).toContain('codeShapeForType')
+    // Y deja de ofrecerse por duplicado en el selector de alcance.
+    expect(panel).not.toContain('<option value="combo">')
   })
 })
 
@@ -133,12 +147,21 @@ describe('la API ya no puede volver a partir la configuración en dos', () => {
 })
 
 describe('el corpus de migraciones queda ordenado', () => {
-  it('la migración es la última y no colisiona con otra versión', () => {
+  // Se verifica el ORDEN RELATIVO, no el máximo global: fijar "la última" hacía
+  // que cualquier migración de otro dominio —Finanzas, eventos— rompiera este
+  // test sin haber tocado nada del combo.
+  it('las migraciones del paquete van en orden y ninguna versión colisiona', () => {
     const versions = readdirSync(resolve(ROOT, 'supabase/migrations'))
       .filter((name) => name.endsWith('.sql'))
       .map((name) => name.split('_')[0])
     const duplicated = versions.filter((version, index) => versions.indexOf(version) !== index)
     expect(duplicated).toEqual([])
-    expect([...versions].sort().at(-1)).toBe('20260917100000')
+    // La cadena que movió el paquete adentro del código, en el orden en que
+    // tiene que aplicarse: sin combo → sin sección → sin oferta → con tipo.
+    const chain = ['20260913100000', '20260914100000', '20260915100000', '20260918100000']
+    for (const version of chain) {
+      expect(versions, `falta la migración ${version}`).toContain(version)
+    }
+    expect([...chain].sort()).toEqual(chain)
   })
 })
