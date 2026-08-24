@@ -66,7 +66,11 @@ import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/Regi
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
 import ManualPaymentConfirmation from '../components/checkout/ManualPaymentConfirmation.jsx'
 import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
-import { previewCheckoutPrice, toApiPaymentMethod } from '../services/checkoutPricing.js'
+import {
+  previewCheckoutPrice,
+  toApiPaymentMethod,
+  wisePriceLabel,
+} from '../services/checkoutPricing.js'
 import { getMissingCompetitionProfileFields } from '../services/competitionProfile.js'
 import { fetchRegistrationAccessRequirements } from '../services/registrationAccessService.js'
 import {
@@ -881,6 +885,8 @@ export default function RegisterPage({
     activeDiscount?.valid && Number.isFinite(discountedTotal) && discountedTotal > 0
       ? discountedTotal
       : checkoutListTotal
+  const checkoutTotalLabel =
+    form.paymentMethod === 'wise_transfer' ? wisePriceLabel(checkoutTotal, locale) : checkoutTotal
   // La promo pública se aplica sola al crear la orden. Sin este preview el
   // checkout anunciaría el precio de lista y cobraría otro. Depende del alcance
   // (combo o inscripción suelta) y del canal, igual que el cupón.
@@ -2491,9 +2497,7 @@ export default function RegisterPage({
                           {discountPreview.financed &&
                           (codeChannels.includes('bank_transfer') ||
                             codeChannels.includes('cash_pitbull')) ? (
-                            <p className="code-band-hint">
-                              {t('pages.register.discountFinanced')}
-                            </p>
+                            <p className="code-band-hint">{t('pages.register.discountFinanced')}</p>
                           ) : null}
                           <button
                             type="button"
@@ -2506,17 +2510,27 @@ export default function RegisterPage({
                         </div>
                       ) : (
                         <div className="account-discount">
-                          <MotionContentSwap swapKey={discountOpen ? 'field' : 'button'} mode="sync">
+                          <MotionContentSwap
+                            swapKey={discountOpen ? 'field' : 'button'}
+                            mode="sync"
+                          >
                             {discountOpen ? (
                               <div className="account-discount__field">
-                                <label className="visually-hidden" htmlFor="registration-discount-code">
+                                <label
+                                  className="visually-hidden"
+                                  htmlFor="registration-discount-code"
+                                >
                                   {t('pages.register.discountLabel')}
                                 </label>
-                                <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
+                                <div
+                                  className={`code-band${discountError ? ' code-band--error' : ''}`}
+                                >
                                   <span className="code-band__grain" aria-hidden />
                                   <div className="code-band__frame">
                                     <div className="code-band__head">
-                                      <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                                      <span className="code-band__mark">
+                                        {t('codeBand.markCode')}
+                                      </span>
                                       <span
                                         className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
                                       >
@@ -2565,7 +2579,9 @@ export default function RegisterPage({
                                         type="button"
                                         className="code-band__chip"
                                         disabled={
-                                          submitting || discountChecking || !discountCodeInput.trim()
+                                          submitting ||
+                                          discountChecking ||
+                                          !discountCodeInput.trim()
                                         }
                                         onClick={() => applyDiscountCode()}
                                       >
@@ -2719,7 +2735,7 @@ export default function RegisterPage({
                   <>
                     {isPaidCheckout ? (
                       <RegisterCheckoutBar
-                        checkoutTotal={checkoutTotal}
+                        checkoutTotal={checkoutTotalLabel}
                         flow={flow}
                         packageLabel={
                           flow === 'membership'
@@ -2734,7 +2750,11 @@ export default function RegisterPage({
                         {flow !== 'profile' && (
                           <div className="register-card__total">
                             <span>{t('pages.register.total')}</span>
-                            <strong>{money(checkoutTotal, locale)}</strong>
+                            <strong>
+                              {typeof checkoutTotalLabel === 'string'
+                                ? checkoutTotalLabel
+                                : money(checkoutTotal, locale)}
+                            </strong>
                           </div>
                         )}
                         <button

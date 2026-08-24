@@ -2,29 +2,19 @@ import CheckoutDesk, { CheckoutBar } from './CheckoutDesk.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { resolveComboDeal } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
-import { previewCheckoutPrice } from '../../services/checkoutPricing.js'
+import {
+  previewCheckoutPrice,
+  wisePriceLabel as formatWisePriceLabel,
+} from '../../services/checkoutPricing.js'
 
-/**
- * Adaptador del flow de inscripción: arma ofertas y medios
- * para el escritorio de cobro. No crea la orden.
- */
 export default function RegisterSettle({
-  // Cada canal manual se ofrece por separado: Administración puede abrirlos a
-  // todos, o un código de promoción destrabar sólo uno para quien lo use.
   cashEnabled = false,
   comboComingSoon = false,
   comboEnabled = false,
   comboOffer = null,
   comboSavings = 0,
-  // Mercado Pago también se abre y cierra por concepto desde Administración:
-  // ya no es un medio incondicional. Default abierto para no dejar una pantalla
-  // sin ningún medio ante una lectura incompleta.
   mercadoPagoEnabled = true,
-  // Compatible histórico: abre los dos canales manuales salvo que se pase cada
-  // uno por separado.
   manualPaymentEnabled = false,
-  // Wise es una celda más de la matriz, con su propio interruptor —no
-  // depende de `manualPaymentEnabled` ni de un cupón.
   wiseEnabled = false,
   membershipPrice = 0,
   membershipManualPrice = null,
@@ -46,7 +36,6 @@ export default function RegisterSettle({
 
   const comboSelected = purchaseType === 'combo'
   const wiseSelected = paymentMethod === 'wise_transfer'
-  const wisePriceLabel = t('pages.register.paymentWisePriceHint')
   const displayedMembershipPrice = previewCheckoutPrice({
     paymentMethod,
     manualPrice: membershipManualPrice,
@@ -73,19 +62,18 @@ export default function RegisterSettle({
     offers.push({
       id: 'combo',
       name: t('account.membership.comboTitle'),
-      priceLabel: !comboOffer ? '—' : wiseSelected ? wisePriceLabel : money(displayedComboPrice, locale),
+      priceLabel: !comboOffer
+        ? '-'
+        : wiseSelected
+          ? formatWisePriceLabel(displayedComboPrice, locale)
+          : money(displayedComboPrice, locale),
       featured: true,
       disabled: comboComingSoon,
-      // El ahorro se anuncia con los precios que se muestran para el medio
-      // elegido. Con los de lista, un combo sin descuento real seguía diciendo
-      // "ahorrás".
       savings: displayedDeal?.live
         ? displayedDeal.percent > 0
           ? t('comboDeal.percent', { percent: displayedDeal.percent })
           : t('pages.register.packageSavings', { amount: money(comboSavings, locale) })
         : '',
-      // Mismo criterio para el bloque de promo: `SeasonComboOffer` se apaga
-      // solo si no hay ahorro, y la fila quedaba sin ningún precio visible.
       deal:
         comboOffer && displayedDeal?.live
           ? {
@@ -102,13 +90,12 @@ export default function RegisterSettle({
     offers.push({
       id: 'registration',
       name: t('account.membership.comboSeparate'),
-      priceLabel: wiseSelected ? wisePriceLabel : money(displayedRegistrationPrice, locale),
+      priceLabel: wiseSelected
+        ? formatWisePriceLabel(displayedRegistrationPrice, locale)
+        : money(displayedRegistrationPrice, locale),
     })
   }
 
-  // Canal manual cerrado desde el panel: transferencia y efectivo no se ofrecen,
-  // en vez de aparecer y fallar con 409 al enviar. `manualPaymentEnabled` es el
-  // compatible histórico: abre los dos salvo que se pase cada canal aparte.
   const transferOffered = transferEnabled || manualPaymentEnabled
   const cashOffered = cashEnabled || manualPaymentEnabled
   const methods = showPayment
@@ -122,7 +109,9 @@ export default function RegisterSettle({
         ...(cashOffered
           ? [{ value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') }]
           : []),
-        ...(wiseEnabled ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }] : []),
+        ...(wiseEnabled
+          ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }]
+          : []),
       ]
     : []
 
@@ -138,13 +127,13 @@ export default function RegisterSettle({
       paymentError={paymentError}
       paymentHint={
         paymentHint ||
-        // Sin ningún medio abierto hay que decirlo: un escritorio de cobro
-        // vacío no se explica solo.
         (methods.length === 0 && showPayment
           ? t('pages.register.paymentNoChannelHint')
-          : mercadoPagoEnabled && !transferOffered && !cashOffered && !wiseEnabled
-            ? t('pages.register.paymentMercadoPagoOnlyHint')
-            : '')
+          : wiseSelected
+            ? t('pages.register.paymentWisePriceHint')
+            : mercadoPagoEnabled && !transferOffered && !cashOffered && !wiseEnabled
+              ? t('pages.register.paymentMercadoPagoOnlyHint')
+              : '')
       }
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}
