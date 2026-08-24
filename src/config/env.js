@@ -64,8 +64,13 @@ export const env = {
     // que cargar valores reales antes de habilitar el canal wise_transfer.
     wiseHolder: import.meta.env.VITE_PAYMENT_WISE_HOLDER ?? '',
     wiseAccount: import.meta.env.VITE_PAYMENT_WISE_ACCOUNT ?? '',
+    wiseAccountType: import.meta.env.VITE_PAYMENT_WISE_ACCOUNT_TYPE ?? '',
+    wiseRoutingNumber: import.meta.env.VITE_PAYMENT_WISE_ROUTING_NUMBER ?? '',
     wiseSwiftOrIban: import.meta.env.VITE_PAYMENT_WISE_SWIFT_IBAN ?? '',
+    wiseAddress: import.meta.env.VITE_PAYMENT_WISE_ADDRESS ?? '',
     wiseEmail: import.meta.env.VITE_PAYMENT_WISE_EMAIL ?? '',
+    wiseBlueRateArs: import.meta.env.VITE_WISE_BLUE_RATE_ARS ?? '',
+    wiseRoundingStepUsd: import.meta.env.VITE_WISE_ROUNDING_STEP_USD ?? '',
   },
   analytics: {
     enabled: import.meta.env.VITE_ANALYTICS_ENABLED !== 'false',

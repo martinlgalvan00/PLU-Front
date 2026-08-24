@@ -1316,7 +1316,9 @@ export function createAthleteRoutes({
           code: req.validatedBody.accessCode,
         })
         const membershipWisePrice =
-          membershipChannel === 'wise_transfer' ? wisePriceFor({ concept: 'membership' }) : null
+          membershipChannel === 'wise_transfer'
+            ? wisePriceFor({ concept: 'membership', arsAmount: plan.price })
+            : null
         const created = await repo().createMembershipOrder(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
@@ -1389,7 +1391,9 @@ export function createAthleteRoutes({
           eventSlug,
         })
         const registrationWisePrice =
-          registrationChannel === 'wise_transfer' ? wisePriceFor({ concept: 'registration' }) : null
+          registrationChannel === 'wise_transfer'
+            ? wisePriceFor({ concept: 'registration', arsAmount: event.price })
+            : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
@@ -1489,7 +1493,9 @@ export function createAthleteRoutes({
           code: req.validatedBody.registrationAccessCode,
         })
         const comboWisePrice =
-          comboChannel === 'wise_transfer' ? wisePriceFor({ concept: 'combo' }) : null
+          comboChannel === 'wise_transfer'
+            ? wisePriceFor({ concept: 'combo', arsAmount: comboOffer.price })
+            : null
         const created = await repo().createRegistrationCombo(auth.athleteId, {
           ...req.validatedBody,
           paymentMethod: storagePaymentMethod(req.validatedBody.paymentMethod),
@@ -1617,11 +1623,10 @@ export function createAthleteRoutes({
         const auth = await athlete(req)
         const codeGuard = promotionCodeIdentity(auth.athleteId)
         await assertIdentityNotLocked(codeGuard)
-        const result =
-          (await repo().redeemPromotionCode(auth.athleteId, req.validatedBody)) ?? {
-            status: 'rejected',
-            reason: 'not_found',
-          }
+        const result = (await repo().redeemPromotionCode(auth.athleteId, req.validatedBody)) ?? {
+          status: 'rejected',
+          reason: 'not_found',
+        }
         await settlePromotionCodeAttempt(
           codeGuard,
           result.status === 'rejected' ? result.reason : 'valid',
