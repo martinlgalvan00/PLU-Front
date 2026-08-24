@@ -1,4 +1,7 @@
 import { apiGet } from '../lib/api.js'
+import { PAYMENT_CHANNELS } from '../lib/paymentChannels.js'
+
+const CHECKOUT_CONCEPTS = ['membership', 'registration', 'ticket']
 
 export const DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY = {
   membershipEnabled: true,
@@ -7,6 +10,22 @@ export const DEFAULT_PUBLIC_CHECKOUT_AVAILABILITY = {
   membershipManualEnabled: true,
   registrationManualEnabled: true,
   ticketManualEnabled: true,
+}
+
+function normalizePaymentChannels(channels) {
+  return Object.fromEntries(
+    CHECKOUT_CONCEPTS.map((concept) => [
+      concept,
+      Object.fromEntries(
+        PAYMENT_CHANNELS.map((channel) => [
+          channel,
+          typeof channels?.[concept]?.[channel] === 'boolean'
+            ? channels[concept][channel]
+            : undefined,
+        ]),
+      ),
+    ]),
+  )
 }
 
 export function normalizePublicCheckoutAvailability(result) {
@@ -18,6 +37,7 @@ export function normalizePublicCheckoutAvailability(result) {
         result?.[key] !== false,
       ]),
     ),
+    paymentChannels: normalizePaymentChannels(result?.paymentChannels),
   }
 }
 
