@@ -130,6 +130,8 @@ describe('filtros de evento en Inscripciones', () => {
         }),
       ],
     })
+    // El filtro de evento es un pill; los chips de cada evento están en su popover.
+    fireEvent.click(screen.getByRole('button', { name: /^Evento/ }))
     expect(screen.getByRole('group', { name: /^evento$/i })).toBeTruthy()
     expect(screen.getAllByRole('button', { name: /pitbull classic/i }).length).toBeGreaterThan(0)
   })

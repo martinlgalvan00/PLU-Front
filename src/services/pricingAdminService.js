@@ -263,76 +263,30 @@ export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
 export const MANUAL_PAYMENT_CHANNELS = ['bank_transfer', 'cash_pitbull']
 
 /**
- * Cómo se cobra un código, como UNA decisión en vez de tres interruptores.
+ * El importe pactado no se pierde al cerrar o abrir un canal de cobro.
  *
- * En la base son tres columnas independientes —`mercado_pago_enabled`,
- * `manual_channels`, `financed`— y el panel las mostraba como cuatro casillas
- * cuya validez dependía entre sí: financiar sin canal manual quedaba inerte,
- * destildar las tres dejaba un código que nadie podía pagar. El operador tenía
- * que reconstruir el contrato en la cabeza.
- *
- * Son tres intenciones, y ninguna combinación inválida es alcanzable:
- *
- *   * 'mercado_pago'    — la pasarela acredita sola. Es el caso por defecto.
- *   * 'manual'          — se cobra a mano; Finanzas valida antes de habilitar.
- *   * 'manual_financed' — se cobra a mano y el atleta queda habilitado en
- *                         afiliación e inscripción cuando avisa que pagó. La
- *                         deuda sigue abierta (`financing_allowed`).
- *
- * `mercadoPagoEnabled` sobrevive como refinamiento de los dos modos manuales
- * ("aceptar también Mercado Pago"): es lo que permite leer sin pérdida los
- * códigos que ya existen con la pasarela abierta y canales manuales.
+ * `fixedPrice` (Mercado Pago) y `fixedPriceManual` (transferencia/efectivo)
+ * son dos campos del formulario que se muestran u ocultan según qué canales
+ * estén tildados. Si el operador sólo escribió el importe en el que ahora se
+ * oculta, se traslada al que queda visible: sin esto, tildar o destildar
+ * Mercado Pago dejaba el precio manual vacío pidiendo un importe que la
+ * persona ya había escrito.
  */
-export const CODE_PAYMENT_MODES = ['mercado_pago', 'manual', 'manual_financed']
-
-/** El modo de un código guardado. Cualquier fila vieja cae en uno de los tres. */
-export function codePaymentModeOf(code) {
-  const manual = Array.isArray(code?.manualChannels) ? code.manualChannels : []
-  if (manual.length === 0) return 'mercado_pago'
-  return code?.financed === true ? 'manual_financed' : 'manual'
-}
-
-/**
- * Las tres columnas que corresponden al modo elegido.
- *
- * Elegir un modo manual abre los dos canales cuando no había ninguno —sin canal
- * no hay nada que cobrar ni que declarar— y conserva la selección cuando el
- * operador ya la ajustó. Volver a Mercado Pago limpia todo: un código de
- * pasarela con financiamiento guardado es la contradicción que la base rechaza.
- */
-export function applyCodePaymentMode(code, mode) {
-  const current = Array.isArray(code?.manualChannels) ? code.manualChannels : []
+export function transferPriceOnChannelToggle(code, mercadoPagoEnabled) {
   const filled = (value) => String(value ?? '').trim() !== ''
-  if (mode === 'mercado_pago') {
-    return {
-      ...code,
-      manualChannels: [],
-      mercadoPagoEnabled: true,
-      financed: false,
-      // El importe pactado no se pierde al reabrir la pasarela: el campo de
-      // Mercado Pago vuelve a aparecer y quedaba vacío aunque el precio ya
-      // estuviera acordado para el canal manual.
-      fixedPrice: filled(code?.fixedPrice) ? code.fixedPrice : (code?.fixedPriceManual ?? ''),
-    }
-  }
-  // Ya estaba en un modo manual: se conserva lo que el operador ajustó —los
-  // canales y una reapertura deliberada de la pasarela—, así moverse entre
-  // "cobra a mano" y "habilita al avisar" no pierde nada.
-  const wasManual = current.length > 0
   return {
     ...code,
-    manualChannels: wasManual ? current : [...MANUAL_PAYMENT_CHANNELS],
-    // Viniendo de la pasarela, un modo manual la cierra: es exactamente lo que
-    // significa "sí o sí efectivo o transferencia". Se puede reabrir a mano.
-    mercadoPagoEnabled: wasManual ? code?.mercadoPagoEnabled === true : false,
-    financed: mode === 'manual_financed',
-    // Con la pasarela cerrada, el importe que se cobra es el del canal manual
-    // (`effective_fixed_price`) y el campo de Mercado Pago desaparece. Si el
-    // operador ya había puesto el precio ahí, se traslada: antes el formulario
-    // rechazaba el alta pidiendo un importe que la persona creía haber escrito.
-    fixedPriceManual: filled(code?.fixedPriceManual)
-      ? code.fixedPriceManual
-      : (code?.fixedPrice ?? ''),
+    mercadoPagoEnabled,
+    fixedPrice: mercadoPagoEnabled
+      ? filled(code?.fixedPrice)
+        ? code.fixedPrice
+        : (code?.fixedPriceManual ?? '')
+      : code?.fixedPrice,
+    fixedPriceManual: !mercadoPagoEnabled
+      ? filled(code?.fixedPriceManual)
+        ? code.fixedPriceManual
+        : (code?.fixedPrice ?? '')
+      : code?.fixedPriceManual,
   }
 }
 
@@ -467,9 +421,16 @@ export async function upsertDiscountCodeRequest(code) {
       code.eventId && audience === 'code' && ['registration', 'combo'].includes(code.appliesTo)
         ? code.eventId
         : undefined,
-    // Qué afiliación empaqueta la oferta. Vacío la resuelve la RPC —el plan del
-    // combo, o la única de pago único vigente—, así que el formulario sólo lo
-    // manda cuando hay una elección real que hacer.
+    // Qué afiliación empaqueta el combo. Sólo un precio promocional con alcance
+    // 'combo' instancia un paquete (20260918100000); en el resto de las
+    // modalidades el campo viaja vacío para que el servidor lo descarte en vez
+    // de dejar colgado un plan que nadie eligió. Vacío también lo resuelve la
+    // RPC —el plan del combo si hay combo, o la única afiliación de pago único
+    // vigente—, así que el formulario sólo lo manda cuando hubo una elección.
+    membershipPlanId:
+      kind === 'fixed_price' && code.appliesTo === 'combo' && code.membershipPlanId
+        ? code.membershipPlanId
+        : undefined,
     startsAt: dateTimeToIso(code.startsAt),
     expiresAt: dateTimeToIso(code.expiresAt),
     // Siempre se manda la lista completa: el array presente reemplaza la

@@ -5,16 +5,17 @@ const DEFAULT_INTERVAL_MS = 60_000
 export async function runDomainMaintenanceJob({ client } = {}) {
   if (!client) throw new Error('Supabase no está configurado para mantenimiento de dominio.')
 
-  const [ticketReservations, domainOrders] = await Promise.all(
+  const [ticketReservations, domainOrders, financedOrders] = await Promise.all(
     [
       client.rpc('expire_ticket_reservations', { p_now: new Date().toISOString() }),
       client.rpc('expire_domain_orders', { p_now: new Date().toISOString() }),
+      client.rpc('expire_financed_payment_orders', { p_now: new Date().toISOString() }),
     ].map(async (request) =>
       assertSupabaseResult(await request, 'Falló el mantenimiento de órdenes.'),
     ),
   )
 
-  return { ticketReservations, domainOrders }
+  return { ticketReservations, domainOrders, financedOrders }
 }
 
 export function startDomainMaintenanceJob({ client, env = process.env } = {}) {

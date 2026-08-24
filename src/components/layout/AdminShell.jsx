@@ -67,10 +67,10 @@ const ALERT_BADGE_KEYS = new Set(['payments', 'registrations', 'people'])
 // menú. "Personas" la reemplaza en la barra, así que el badge se resuelve
 // por alias en vez de duplicar el cálculo o renombrar esa clave.
 const NAV_BADGE_ALIASES = { people: 'registrations' }
-// Secciones que todavía caen en `PlaceholderSection`. 'checkin' salió de acá
-// cuando AdminPage empezó a renderizar la sección: hasta entonces el ítem
-// llevaba a una pantalla en blanco, igual que el acceso directo de Eventos.
-const UNAVAILABLE_NAV_KEYS = new Set(['results', 'exports'])
+// Ítems ocultos de la barra lateral: 'results' y 'exports' todavía caen en
+// `PlaceholderSection', y el check-in se opera desde la consola de cada
+// evento (Eventos → Consola → Check-in), no como sección de navegación propia.
+const HIDDEN_NAV_KEYS = new Set(['results', 'exports', 'checkin'])
 const PINNED_NAV_KEY = 'dashboard'
 const SIDEBAR_MODE_STORAGE_KEY = 'plu-admin-sidebar-mode'
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'plu-admin-sidebar-collapsed'
@@ -232,7 +232,7 @@ export default function AdminShell({
     } else {
       groups = ADMIN_NAV_GROUPS.map((group) => ({
         ...group,
-        items: group.items.filter(([key]) => !UNAVAILABLE_NAV_KEYS.has(key)),
+        items: group.items.filter(([key]) => !HIDDEN_NAV_KEYS.has(key)),
       })).filter((group) => group.items.length > 0)
     }
 
@@ -437,6 +437,9 @@ export default function AdminShell({
     <Layout
       className={`admin-shell${sidebarHidden ? ' admin-shell--sidebar-hidden' : ''}${collapsed && !isPhoneViewport ? ' admin-shell--collapsed' : ''}`}
     >
+      <a className="admin-shell__skip-link" href="#admin-main-content">
+        {t('admin.shell.skipToContent')}
+      </a>
       {!isPhoneViewport && !sidebarHidden && (
         <>
           <Sider
@@ -487,9 +490,19 @@ export default function AdminShell({
               />
             )}
             <div className="admin-shell__header-copy">
-              <div className="admin-shell__breadcrumb">
-                {t('admin.shell.breadcrumbRoot')} / {activeLabel}
-              </div>
+              <nav
+                className="admin-shell__breadcrumb"
+                aria-label={t('admin.shell.breadcrumbAria')}
+              >
+                <ol className="admin-shell__breadcrumb-list">
+                  <li className="admin-shell__breadcrumb-item">
+                    {t('admin.shell.breadcrumbRoot')}
+                  </li>
+                  <li className="admin-shell__breadcrumb-item" aria-current="page">
+                    {activeLabel}
+                  </li>
+                </ol>
+              </nav>
             </div>
           </Space>
 
@@ -526,7 +539,9 @@ export default function AdminShell({
             </Dropdown>
           </div>
         </Header>
-        <Content className="admin-shell__content">{children}</Content>
+        <Content id="admin-main-content" tabIndex={-1} className="admin-shell__content">
+          {children}
+        </Content>
       </Layout>
     </Layout>
   )

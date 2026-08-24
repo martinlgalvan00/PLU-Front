@@ -257,7 +257,9 @@
   --admin-sidebar: #090b0e;
   --admin-sidebar-surface: #0e1115;
   --admin-sidebar-text: #ecece8;
-  --admin-sidebar-muted: rgba(236, 236, 232, 0.46);
+  /* 0.58 sobre #090b0e ≈ 5.9:1 — AA para texto chico (con 0.46 quedaba
+     en ~4.05:1, por debajo del mínimo 4.5:1). */
+  --admin-sidebar-muted: rgba(236, 236, 232, 0.58);
   --admin-sidebar-hover: rgba(255, 255, 255, 0.045);
   --admin-sidebar-border: rgba(255, 255, 255, 0.055);
   --admin-sidebar-shadow: 24px 0 64px rgba(0, 0, 0, 0.45);
@@ -300,6 +302,26 @@
   --admin-shadow-panel: 0 26px 72px rgba(0, 0, 0, 0.34);
   --admin-attention-bg: var(--plu-cool-800);
   --admin-attention-text: var(--plu-ink-inverse);
+
+  /* Material de modal admin — un escalón por debajo de todo el panel:
+     cool-950 translúcido + blur, para que la atmósfera oscura se refracte
+     y el panel lea como piedra flotante, no como otro box opaco. */
+  --admin-modal-bg: color-mix(in srgb, var(--plu-cool-950) 88%, transparent);
+  --admin-modal-border: color-mix(in srgb, white 10%, transparent);
+  --admin-modal-highlight: rgba(255, 255, 255, 0.06);
+  --admin-modal-blur: 20px;
+  --admin-modal-shadow: 0 32px 90px rgba(0, 0, 0, 0.6);
+  --admin-modal-backdrop: color-mix(in srgb, var(--plu-cool-950) 72%, transparent);
+  --admin-modal-backdrop-blur: 6px;
+  --admin-modal-ink: var(--plu-ink-inverse);
+  --admin-modal-text-secondary: rgba(236, 236, 232, 0.78);
+  --admin-modal-text-muted: rgba(236, 236, 232, 0.6);
+  --admin-modal-hairline: color-mix(in srgb, white 12%, transparent);
+  --admin-modal-bg-muted: color-mix(in srgb, white 8%, transparent);
+  --admin-modal-bg-surface: color-mix(in srgb, white 5%, transparent);
+  --admin-modal-border-light: color-mix(in srgb, white 22%, transparent);
+  --admin-modal-danger-text: var(--color-danger-text);
+  --admin-modal-danger-bg: var(--color-danger-bg);
 
   /* Liquid glass — una sola receta material para paneles del admin.
      La atmósfera del main (--theme-atmosphere-stack-admin) es lo que el

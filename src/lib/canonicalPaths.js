@@ -33,7 +33,7 @@ export function isCanonicalPathname(
 /**
  * Vista pública inicial según pathname (sin query flows — esos se resuelven antes).
  * @param {string} [pathname]
- * @returns {'tickets' | 'events' | 'members' | 'rulebook' | 'results' | 'records' | 'pitbull' | 'shop' | 'community' | 'faq' | 'contact' | 'resources' | 'team' | 'sponsors' | 'standards' | 'home' | 'notFound'}
+ * @returns {'tickets' | 'events' | 'members' | 'rulebook' | 'results' | 'records' | 'pitbull' | 'shop' | 'community' | 'faq' | 'contact' | 'resources' | 'team' | 'sponsors' | 'standards' | 'profile' | 'login' | 'register' | 'home' | 'notFound'}
  */
 export function resolvePathnamePublicView(
   pathname = typeof window !== 'undefined' ? window.location.pathname : '/',

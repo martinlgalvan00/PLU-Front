@@ -6746,6 +6746,109 @@
   vertical-align: -2px;
 }
 
+/* ── Revisión pendiente ──
+   Aparece solo cuando hay cambios pre-seleccionados: separa "tocar un chip"
+   de "guardar el evento". El guardado es el único acento de la franja (oro
+   PLU, la acción principal); descartar es un texto quieto. */
+.admin-shell .admin-list-shell--events .admin-event-state__pending {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-action) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-action) 32%, transparent);
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+  padding: 8px 10px 8px 14px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-hint {
+  color: var(--admin-ink);
+  font-size: 12px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-discard {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-state__pending-discard:hover:not(:disabled) {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-discard:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-discard:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: 999px;
+  color: var(--color-on-brand-action, var(--color-bg-primary));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 14px;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brand-action) 88%, var(--admin-ink));
+  border-color: color-mix(in srgb, var(--color-brand-action) 88%, var(--admin-ink));
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (pointer: coarse) {
+  .admin-shell .admin-list-shell--events .admin-event-state__pending-discard,
+  .admin-shell .admin-list-shell--events .admin-event-state__pending-save {
+    min-height: 44px;
+  }
+}
+
 /* Marca de evento sin publicar en la fila: mismo peso visual que la estrella
    de destacado, tono apagado porque comunica ausencia, no distinción. */
 .admin-shell .admin-list-shell--events .admin-event-row__hidden-mark,

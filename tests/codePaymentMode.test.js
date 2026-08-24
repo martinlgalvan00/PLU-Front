@@ -1,110 +1,55 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  CODE_PAYMENT_MODES,
-  MANUAL_PAYMENT_CHANNELS,
-  applyCodePaymentMode,
-  codePaymentModeOf,
   generateDiscountCode,
   mapWithConcurrency,
   normalizeCodePrefix,
+  transferPriceOnChannelToggle,
 } from '../src/services/pricingAdminService.js'
 
 /**
  * codePaymentMode.test.js — PLU ARG
  *
- * Cómo se cobra un código eran tres columnas independientes y cuatro casillas
- * en el panel cuya validez dependía entre sí: financiar sin canal manual
- * quedaba inerte, destildar las tres dejaba un código que nadie podía pagar.
- * Acá se fija que las tres intenciones reales sean una sola decisión y que
- * ninguna combinación inválida sea alcanzable desde el selector.
+ * Cómo se cobra un código eran tres columnas independientes que el panel
+ * mostraba primero como cuatro casillas, después como un selector de "modo"
+ * de tres intenciones. El operador pidió volver a los casilleros directos
+ * —uno por medio de pago— porque el selector era más lento que tildar lo que
+ * el código acepta. Las dos combinaciones que la base rechaza (ningún medio,
+ * o financiado sin canal manual) siguen sin poder guardarse: el fieldset las
+ * avisa y bloquea el envío en vez de volverlas inalcanzables desde un select
+ * (ver esos casos en pricingSection.render.test.jsx). Acá sólo queda el
+ * traslado de importe entre canales, que es lo único que sigue viviendo en el
+ * servicio.
  */
-describe('modo de cobro de un código', () => {
-  it('ofrece exactamente las tres intenciones reales', () => {
-    expect(CODE_PAYMENT_MODES).toEqual(['mercado_pago', 'manual', 'manual_financed'])
-  })
-
-  it('lee el modo de un código guardado, incluso de uno anterior al selector', () => {
-    expect(codePaymentModeOf({ manualChannels: [], mercadoPagoEnabled: true })).toBe('mercado_pago')
-    expect(codePaymentModeOf({ manualChannels: ['bank_transfer'] })).toBe('manual')
-    expect(codePaymentModeOf({ manualChannels: ['cash_pitbull'], financed: true })).toBe(
-      'manual_financed',
-    )
-    // Un código viejo con la pasarela abierta Y canales manuales no se pierde:
-    // se lee como manual con la reapertura marcada.
-    const legacy = { manualChannels: ['bank_transfer'], mercadoPagoEnabled: true }
-    expect(codePaymentModeOf(legacy)).toBe('manual')
-    // Y sin campos, el default histórico.
-    expect(codePaymentModeOf({})).toBe('mercado_pago')
-    expect(codePaymentModeOf(null)).toBe('mercado_pago')
-  })
-
-  it('elegir un modo manual cierra la pasarela y abre los dos canales', () => {
-    const draft = { code: 'X', manualChannels: [], mercadoPagoEnabled: true, financed: false }
-    expect(applyCodePaymentMode(draft, 'manual')).toMatchObject({
-      manualChannels: MANUAL_PAYMENT_CHANNELS,
-      mercadoPagoEnabled: false,
-      financed: false,
-    })
-  })
-
-  it('el modo que habilita al avisar el pago nunca puede nacer inerte', () => {
-    // Era el agujero: financiado con sólo Mercado Pago no habilitaba nada,
-    // porque la pasarela acredita sola y no hay nada que declarar.
-    const applied = applyCodePaymentMode({ manualChannels: [] }, 'manual_financed')
-    expect(applied.financed).toBe(true)
-    expect(applied.manualChannels.length).toBeGreaterThan(0)
-  })
-
-  it('moverse entre los dos modos manuales conserva lo que el operador ajustó', () => {
-    const narrowed = { manualChannels: ['cash_pitbull'], mercadoPagoEnabled: true, financed: false }
-    expect(applyCodePaymentMode(narrowed, 'manual_financed')).toMatchObject({
-      manualChannels: ['cash_pitbull'],
-      mercadoPagoEnabled: true,
-      financed: true,
-    })
-  })
-
-  it('volver a Mercado Pago no deja financiamiento ni canales guardados', () => {
-    const manual = {
-      manualChannels: ['bank_transfer', 'cash_pitbull'],
-      mercadoPagoEnabled: false,
-      financed: true,
-    }
-    expect(applyCodePaymentMode(manual, 'mercado_pago')).toMatchObject({
-      manualChannels: [],
-      mercadoPagoEnabled: true,
-      financed: false,
-    })
-  })
-
-  it('el importe pactado viaja con el cambio de modo, en los dos sentidos', () => {
-    // Con la pasarela cerrada el campo de Mercado Pago desaparece y lo que se
-    // cobra es el precio del canal manual: si no se trasladaba, el alta
-    // rechazaba pidiendo un importe que el operador creía haber escrito.
+describe('importe pactado al tildar o destildar Mercado Pago', () => {
+  it('traslada el importe al campo que queda visible si el otro estaba vacío', () => {
+    // Con la pasarela abierta y sin nada tipeado en el canal manual: cerrarla
+    // traslada el importe en vez de dejar el campo visible pidiendo un precio
+    // que el operador ya había escrito.
     const conPasarela = { fixedPrice: 120000, fixedPriceManual: '' }
-    expect(applyCodePaymentMode(conPasarela, 'manual').fixedPriceManual).toBe(120000)
+    expect(transferPriceOnChannelToggle(conPasarela, false)).toMatchObject({
+      mercadoPagoEnabled: false,
+      fixedPrice: 120000,
+      fixedPriceManual: 120000,
+    })
 
-    const aMano = { fixedPrice: '', fixedPriceManual: 115000, manualChannels: ['bank_transfer'] }
-    expect(applyCodePaymentMode(aMano, 'mercado_pago').fixedPrice).toBe(115000)
+    const aMano = { fixedPrice: '', fixedPriceManual: 115000 }
+    expect(transferPriceOnChannelToggle(aMano, true)).toMatchObject({
+      mercadoPagoEnabled: true,
+      fixedPrice: 115000,
+      fixedPriceManual: 115000,
+    })
+  })
 
-    // Y no pisa un precio por canal que ya estaba pactado distinto.
+  it('no pisa un precio por canal que ya estaba pactado distinto', () => {
     const distintos = { fixedPrice: 120000, fixedPriceManual: 110000 }
-    expect(applyCodePaymentMode(distintos, 'manual')).toMatchObject({
+    expect(transferPriceOnChannelToggle(distintos, false)).toMatchObject({
       fixedPrice: 120000,
       fixedPriceManual: 110000,
     })
-  })
-
-  it('cualquier modo produce un contrato que la base acepta', () => {
-    // Las dos constraints que rechazan filas contradictorias:
-    // `discount_codes_financed_channel_check` y el chequeo de "algún canal".
-    for (const mode of CODE_PAYMENT_MODES) {
-      const applied = applyCodePaymentMode({ manualChannels: [] }, mode)
-      expect(applied.financed === true && applied.manualChannels.length === 0).toBe(false)
-      expect(applied.mercadoPagoEnabled === false && applied.manualChannels.length === 0).toBe(
-        false,
-      )
-    }
+    expect(transferPriceOnChannelToggle(distintos, true)).toMatchObject({
+      fixedPrice: 120000,
+      fixedPriceManual: 110000,
+    })
   })
 })
 

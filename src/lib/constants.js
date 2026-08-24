@@ -149,7 +149,7 @@ export const PUBLIC_NAVIGATION = {
               key: 'sponsors',
               labelKey: 'nav.sponsors',
               hintKey: 'nav.sponsorsHint',
-              icon: 'community',
+              icon: 'sponsors',
             },
             {
               key: 'standards',
@@ -172,7 +172,7 @@ export const PUBLIC_NAVIGATION = {
               key: 'resources',
               labelKey: 'nav.resources',
               hintKey: 'nav.resourcesHint',
-              icon: 'book',
+              icon: 'resources',
             },
             { key: 'faq', labelKey: 'nav.faq', hintKey: 'nav.faqHint', icon: 'help' },
             { key: 'contact', labelKey: 'nav.contact', hintKey: 'nav.contactHint', icon: 'mail' },

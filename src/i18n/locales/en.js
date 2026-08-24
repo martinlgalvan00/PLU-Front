@@ -184,6 +184,8 @@ export default {
       cashAction: 'I handed over the cash',
       financingHint:
         'This code allows financing: confirming enables your membership and registration while Finance reviews the balance.',
+      noFinancingHint:
+        'This code does not include financing: your membership and registration stay pending until Administration validates the payment.',
       notApproval:
         'This notice does not credit the payment. The order remains pending until Finance validates it.',
       received: 'Notice received',
@@ -194,6 +196,8 @@ export default {
       financedTitle: 'You are a member and you are registered',
       financedGranted:
         'Your membership and registration are enabled. The balance is still pending validation.',
+      financedGrantedWithDeadline:
+        'Your membership and registration are enabled. You have until {{date}} for Finance to credit the payment.',
       pendingReview: 'Finance has been notified. The payment is still pending validation.',
       error: 'We could not record the notice. Please try again.',
     },
@@ -1419,7 +1423,7 @@ export default {
       // Deferred payment: the promise is immediate access, not settlement.
       // The balance stays open until Finance validates it.
       discountFinanced:
-        'This code lets you report the payment: pick transfer or cash and you are enabled right away, while Finance validates the balance.',
+        'This code lets you report the payment: pick transfer or cash and you are enabled right away. You have {{days}} days for Finance to credit the payment — otherwise it gets cancelled.',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -2605,6 +2609,8 @@ export default {
       inscriptionCounterAria: 'Registration progress: {{registered}} of {{slots}} athlete slots',
       inscriptionCounterPending: 'Slots are published when registration opens.',
       inscriptionCounterPendingAria: 'Registration is not open yet',
+      inscriptionCounterHidden: 'Registration progress is not published for this event.',
+      inscriptionCounterHiddenAria: 'Event capacity: {{slots}} athlete slots',
       institutionalIndex: '08',
       institutionalEyebrow: 'PLU ecosystem',
       faqIndex: '09',
@@ -3104,7 +3110,7 @@ export default {
       // Same promise as Membership: immediate access against an open
       // balance, never settlement.
       discountFinanced:
-        'This code lets you report the payment: pick transfer or cash and you are enabled right away, while Finance validates the balance.',
+        'This code lets you report the payment: pick transfer or cash and you are enabled right away. You have {{days}} days for Finance to credit the payment — otherwise it gets cancelled.',
       discountRemove: 'Remove',
       discountError: {
         not_found: 'That code does not exist.',
@@ -3143,6 +3149,10 @@ export default {
         'This order already has a Mercado Pago payment in progress. Complete it or wait until it expires to pay by transfer.',
       paymentLinkHint: 'Administrative validation · up to 48 hours',
       cashPitbullCreated: 'Your order is ready. You can pay cash at Pitbull.',
+      cashFinancingActiveNote:
+        'Financing active: your membership and registration turn on when you confirm the handoff in the payment panel.',
+      cashFinancingPendingNote:
+        'No financing: your benefits turn on once Administration validates the payment.',
       alreadyRegisteredPaid: 'You already have a confirmed registration for this event.',
       membershipPaymentInProgress:
         'You already have a pending membership. Resume the current payment; if you sent a bank transfer, Administration validates it within up to 48 hours.',

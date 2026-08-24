@@ -75,8 +75,13 @@ function withReport(rows) {
     globalThis.fetch = async (input, init) => {
       const url = String(typeof input === 'string' ? input : (input?.url ?? ''))
       if (url.includes('/api/finance/expenses')) {
-        return new Response(JSON.stringify({ expense: { id: 'expense-new' } }), {
-          status: 201,
+        // Alta, edición y borrado comparten interceptor: el alta/edición
+        // devuelve el asiento; el borrado, 204 sin cuerpo.
+        if ((init?.method ?? 'POST').toUpperCase() === 'DELETE') {
+          return new Response(null, { status: 204 })
+        }
+        return new Response(JSON.stringify({ expense: { id: 'expense-upserted' } }), {
+          status: (init?.method ?? 'POST').toUpperCase() === 'PATCH' ? 200 : 201,
           headers: { 'Content-Type': 'application/json' },
         })
       }

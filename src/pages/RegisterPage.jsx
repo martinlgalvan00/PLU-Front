@@ -138,6 +138,35 @@ function ageAtEvent(birthDate, eventDate) {
   return age >= 0 ? age : null
 }
 
+/**
+ * El paquete que muestra `RegisterSettle` en la tarjeta de combo, armado desde
+ * el preview de un código de combo (20260918100000): la modalidad retirada
+ * ('offer'/'access') traía un `comboOffer` propio con precio por canal; la
+ * actual es un precio fijo que el código nombra directo, sin ese objeto.
+ *
+ * El preview ya resuelve `fixedPrice` para el canal que se le pidió
+ * (`paymentMethod`), así que se lo copia en las dos columnas: en el canal que
+ * se acaba de cotizar, mostrar el mismo número en cualquiera de las dos no
+ * cambia nada, y cambiar de canal vuelve a pedir el preview (ver el
+ * `useEffect` de `[form.paymentMethod]`), que llama de nuevo a esta función
+ * con el número ya actualizado.
+ */
+function comboOfferFromPreview(preview) {
+  // `finalAmount` y no `fixedPrice`: es lo que de verdad se cobra
+  // (`baseAmount - descuento`) y el único de los dos que la RPC garantiza en
+  // cualquier modalidad — `fixedPrice` sólo viaja para 'fixed_price'/'offer'.
+  const price = Number(preview?.finalAmount ?? preview?.fixedPrice) || 0
+  return {
+    price,
+    manualPrice: price,
+    currency: 'ARS',
+    audience: 'code',
+    accessCode: null,
+    financed: preview?.financed === true,
+    active: true,
+  }
+}
+
 function RegisterLiveCredential({ form, t }) {
   const name =
     form.fullName && form.fullName.trim()
@@ -622,7 +651,15 @@ export default function RegisterPage({
     if (!preview?.valid) return preview ?? { valid: false }
     // Algunas versiones de la RPC no adjuntan `kind` en el preview; el resumen
     // del checkout lo usa para explicar el importe.
-    commitUnlockedCode(code, { ...preview, kind: preview.kind ?? offer?.kind ?? null }, { offer })
+    commitUnlockedCode(
+      code,
+      { ...preview, kind: preview.kind ?? offer?.kind ?? null },
+      // `comboOffer` se recalcula en cada repreciado: es el número que acaba
+      // de cotizar el canal actual, no el que traía el `offer` del canje
+      // original. Sin esto, cambiar de Mercado Pago a transferencia dejaba la
+      // tarjeta del combo mostrando el precio del canal anterior.
+      { offer: { ...offer, comboOffer: comboOfferFromPreview(preview) } },
+    )
     return preview
   }
 
@@ -716,7 +753,12 @@ export default function RegisterPage({
             paymentMethod: toApiPaymentMethod(form.paymentMethod),
           })
           if (comboPreview.valid) {
-            commitUnlockedCode(code, comboPreview)
+            // Sin este `comboOffer` sintético, `comboAvailability.offer` queda
+            // en null y la tarjeta del combo nunca se ofrece: el atleta llega
+            // al evento, el código se acepta, pero no aparece nada para pagar.
+            commitUnlockedCode(code, comboPreview, {
+              offer: { comboOffer: comboOfferFromPreview(comboPreview) },
+            })
             return
           }
           setDiscountError(describeDiscountError(comboPreview))
@@ -1716,13 +1758,15 @@ export default function RegisterPage({
                 {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
                   <>
                     <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
-                    <ManualPaymentConfirmation
-                      channel="cash_pitbull"
-                      financedEntitlementsAt={visibleOrder.financedEntitlementsAt}
-                      financingAllowed={visibleOrder.financingAllowed}
-                      manualPaymentDeclaredAt={visibleOrder.manualPaymentDeclaredAt}
-                      orderId={visibleOrder.paymentId ?? visibleOrder.id ?? null}
-                    />
+                    {/* La acción de confirmar vive una sola vez, en el panel de
+                        pago principal: acá solo se dice en qué queda el
+                        beneficio, para no repetir el mismo botón dos veces en
+                        la misma pantalla. */}
+                    <p className="manual-note">
+                      {visibleOrder.financingAllowed
+                        ? t('pages.register.cashFinancingActiveNote')
+                        : t('pages.register.cashFinancingPendingNote')}
+                    </p>
                   </>
                 ) : flow === 'competition' ? (
                   <button
@@ -1971,9 +2015,12 @@ export default function RegisterPage({
                 <ManualPaymentConfirmation
                   channel="cash_pitbull"
                   financedEntitlementsAt={visibleOrder.financedEntitlementsAt}
+                  financedPaymentDueAt={visibleOrder.financedPaymentDueAt}
                   financingAllowed={visibleOrder.financingAllowed}
                   manualPaymentDeclaredAt={visibleOrder.manualPaymentDeclaredAt}
                   orderId={visibleOrder.paymentId ?? visibleOrder.id ?? null}
+                  onNavigate={onNavigate}
+                  profileTab="account-events"
                 />
               ) : (
                 <div className="register-settle__toolbar">
@@ -2492,7 +2539,9 @@ export default function RegisterPage({
                           (codeChannels.includes('bank_transfer') ||
                             codeChannels.includes('cash_pitbull')) ? (
                             <p className="code-band-hint">
-                              {t('pages.register.discountFinanced')}
+                              {t('pages.register.discountFinanced', {
+                                days: discountPreview.financingTermDays,
+                              })}
                             </p>
                           ) : null}
                           <button

@@ -125,5 +125,12 @@ export function buildPaymentValidationItem(
     rejectedBy: order.rejectedBy ?? order.rejected_by ?? null,
     rejectionReason: order.rejectionReason ?? order.rejection_reason ?? null,
     rejectedAt: order.rejectedAt ?? order.rejected_at ?? null,
+    // El diálogo necesita saber si rechazar esta orden revoca una afiliación
+    // o inscripción ya habilitada por financiamiento, para avisarlo antes de
+    // confirmar (no después).
+    financingAllowed: order.financingAllowed === true || order.financing_allowed === true,
+    financedEntitlementsAt: order.financedEntitlementsAt ?? order.financed_entitlements_at ?? null,
+    financedPaymentDueAt:
+      order.financedPaymentDueAt ?? order.financed_payment_due_at ?? null,
   }
 }

@@ -67,7 +67,7 @@ export function getAthletesTourSteps(t) {
       body: t('admin.tour.athletes.search.body'),
     },
     {
-      target: '.admin-filter-chips',
+      target: '.admin-filter-pillrow',
       placement: 'bottom',
       title: t('admin.tour.athletes.filters.title'),
       body: t('admin.tour.athletes.filters.body'),
@@ -137,7 +137,7 @@ export function getRegistrationsTourSteps(t) {
       body: t('admin.tour.registrations.search.body'),
     },
     {
-      target: '.admin-filter-chips',
+      target: '.admin-filter-pillrow',
       placement: 'bottom',
       title: t('admin.tour.registrations.filters.title'),
       body: t('admin.tour.registrations.filters.body'),

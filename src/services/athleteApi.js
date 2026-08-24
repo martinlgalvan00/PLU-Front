@@ -128,6 +128,9 @@ function toCamelPaymentOrder(row) {
     financedEntitlementsAt: row.financed_entitlements_at ?? row.financedEntitlementsAt ?? null,
     financedEntitlementsRevokedAt:
       row.financed_entitlements_revoked_at ?? row.financedEntitlementsRevokedAt ?? null,
+    // Vencimiento del plazo de financiamiento (20260922100000): se calcula al
+    // declarar el pago, no al crear la orden — ver el comentario de la columna.
+    financedPaymentDueAt: row.financed_payment_due_at ?? row.financedPaymentDueAt ?? null,
     discountCode: row.discount_code ?? row.discountCode ?? null,
     discountAmount: Number(row.discount_amount ?? row.discountAmount) || 0,
     notes: row.notes ?? null,
@@ -236,6 +239,8 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
         order.financed_entitlements_at ?? order.financedEntitlementsAt ?? null,
       financedEntitlementsRevokedAt:
         order.financed_entitlements_revoked_at ?? order.financedEntitlementsRevokedAt ?? null,
+      financedPaymentDueAt:
+        order.financed_payment_due_at ?? order.financedPaymentDueAt ?? null,
     }
 
     return {
@@ -267,6 +272,7 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       manualPaymentDeclaredAt: normalizedOrder.manualPaymentDeclaredAt,
       financedEntitlementsAt: normalizedOrder.financedEntitlementsAt,
       financedEntitlementsRevokedAt: normalizedOrder.financedEntitlementsRevokedAt,
+      financedPaymentDueAt: normalizedOrder.financedPaymentDueAt,
       createdAt: order.created_at ?? order.createdAt ?? null,
       // Estado real derivado del agregado + el libro de intentos, no del último
       // intento aplicado. `outcome` es el derecho que este cobro pagaba: si el
@@ -587,6 +593,9 @@ export async function previewDiscountCode({
     // habilita en el momento y deja la deuda abierta (20260912100000). Ausente
     // = no financia, que es lo que valía antes de la migración.
     financed: preview.financed === true,
+    // Días para que Finanzas acredite antes de que el plazo venza y se dé de
+    // baja lo habilitado (20260922100000). Sin valor propio, 7.
+    financingTermDays: Number(preview.financingTermDays) || 7,
   }
 }
 

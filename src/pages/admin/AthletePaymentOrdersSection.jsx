@@ -92,6 +92,31 @@ function formatDateTime(value, locale) {
   })
 }
 
+/**
+ * A cuántos días del vencimiento del plazo de financiamiento está esta orden.
+ * Redondea hacia arriba en días completos: "vence hoy" cuenta como 0, no
+ * queda escondido entre "vence en 1 día" y "vencido hace 1 día".
+ */
+function financingDueInfo(dueAt, t) {
+  if (!dueAt) return null
+  const due = new Date(dueAt)
+  if (Number.isNaN(due.getTime())) return null
+  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000)
+  if (days === 0) {
+    return { tone: 'warning', label: t('admin.athletePayments.financingDueToday') }
+  }
+  if (days === 1) {
+    return { tone: 'warning', label: t('admin.athletePayments.financingDueTomorrow') }
+  }
+  if (days === -1) {
+    return { tone: 'danger', label: t('admin.athletePayments.financingOverdueYesterday') }
+  }
+  if (days < 0) {
+    return { tone: 'danger', label: t('admin.athletePayments.financingOverdue', { days: -days }) }
+  }
+  return { tone: 'info', label: t('admin.athletePayments.financingDueIn', { days }) }
+}
+
 const TOGGLE_KEY_BY_CODE = {
   [VALIDATION_DISABLED_CODES.membership]: 'membership',
   [VALIDATION_DISABLED_CODES.registration]: 'registration',
@@ -260,6 +285,7 @@ export default function AthletePaymentOrdersSection({
         financingAllowed: order.financingAllowed === true,
         manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
         financedEntitlementsAt: order.financedEntitlementsAt ?? null,
+        financedPaymentDueAt: order.financedPaymentDueAt ?? null,
       })),
     [orders, validationEnabled],
   )
@@ -585,6 +611,15 @@ export default function AthletePaymentOrdersSection({
               mobile: 'badge',
               render: (row) => {
                 const actorLine = closureActorLine(row)
+                // Sólo mientras la orden sigue abierta: una vez rechazada o
+                // cancelada el plazo ya no cuenta nada, sea por vencimiento o
+                // por cualquier otro motivo.
+                const dueInfo =
+                  row.financingAllowed &&
+                  row.financedEntitlementsAt &&
+                  OPEN_ORDER_STATUSES.includes(row.status)
+                    ? financingDueInfo(row.financedPaymentDueAt, t)
+                    : null
                 return (
                   <div className="admin-orders-block__status-cell">
                     {/* Rechazada o cancelada: el badge se acompaña del motivo real
@@ -602,6 +637,11 @@ export default function AthletePaymentOrdersSection({
                             ? 'admin.athletePayments.financedActive'
                             : 'admin.athletePayments.declared',
                         )}
+                      </span>
+                    ) : null}
+                    {dueInfo ? (
+                      <span className={`status-pill status-pill--${dueInfo.tone}`}>
+                        {dueInfo.label}
                       </span>
                     ) : null}
                     {actorLine ? <p className="admin-state-cell__note">{actorLine}</p> : null}

@@ -12,7 +12,10 @@ const ManualPaymentConfirmation = (
 const TransferReceipt = (await import('../src/components/checkout/TransferReceipt.jsx')).default
 
 afterEach(cleanup)
-beforeEach(() => confirmAthleteManualPayment.mockReset())
+beforeEach(() => {
+  confirmAthleteManualPayment.mockReset()
+  window.sessionStorage.clear()
+})
 
 describe('ManualPaymentConfirmation', () => {
   it('declara la transferencia y sella la habilitacion sin llamarla pago', async () => {
@@ -146,6 +149,88 @@ describe('ManualPaymentConfirmation', () => {
       </I18nProvider>,
     )
     expect(screen.getByRole('button', { name: 'Ya entregué el efectivo' })).toBeTruthy()
+  })
+
+  it('el efectivo confirma en un solo toque: llama a la RPC de inmediato, sin paso intermedio', async () => {
+    confirmAthleteManualPayment.mockResolvedValue({
+      order: { id: 'order-cash-1', status: 'validacion_manual', financingAllowed: false },
+      entitlementsGranted: false,
+    })
+
+    render(
+      <I18nProvider>
+        <ManualPaymentConfirmation channel="cash_pitbull" orderId="order-cash-1" />
+      </I18nProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ya entregué el efectivo' }))
+
+    await waitFor(() => expect(confirmAthleteManualPayment).toHaveBeenCalledWith('order-cash-1'))
+    expect(await screen.findByText('Aviso recibido')).toBeTruthy()
+  })
+
+  it('tras confirmar efectivo financiado, vuelve sola al perfil una vez leido el sello', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const onNavigate = vi.fn()
+      confirmAthleteManualPayment.mockResolvedValue({
+        order: {
+          id: 'order-cash-2',
+          status: 'validacion_manual',
+          financingAllowed: true,
+          manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
+          financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
+        },
+        entitlementsGranted: true,
+      })
+
+      render(
+        <I18nProvider>
+          <ManualPaymentConfirmation
+            channel="cash_pitbull"
+            financingAllowed
+            orderId="order-cash-2"
+            onNavigate={onNavigate}
+            profileTab="account-events"
+          />
+        </I18nProvider>,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ya entregué el efectivo' }))
+      await waitFor(() => expect(screen.getByText('Ya estás afiliado e inscripto')).toBeTruthy())
+
+      // No navega junto con el sello: se lee primero.
+      expect(onNavigate).not.toHaveBeenCalled()
+      await act(async () => {
+        vi.advanceTimersByTime(2300)
+      })
+      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-events' })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('sin financiamiento, el aviso en efectivo no navega: se queda con el acuse frio', async () => {
+    const onNavigate = vi.fn()
+    confirmAthleteManualPayment.mockResolvedValue({
+      order: { id: 'order-cash-3', status: 'validacion_manual', financingAllowed: false },
+      entitlementsGranted: false,
+    })
+
+    render(
+      <I18nProvider>
+        <ManualPaymentConfirmation
+          channel="cash_pitbull"
+          orderId="order-cash-3"
+          onNavigate={onNavigate}
+          profileTab="account-events"
+        />
+      </I18nProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ya entregué el efectivo' }))
+    await waitFor(() => expect(confirmAthleteManualPayment).toHaveBeenCalled())
+    expect(onNavigate).not.toHaveBeenCalled()
   })
 
   it('la transferencia avisa a la ficha para releer FIAR y retirarse', async () => {
