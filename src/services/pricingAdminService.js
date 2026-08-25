@@ -79,6 +79,13 @@ export function mapDiscountCode(row) {
     // el pago manual y queda habilitado mientras Finanzas valida. Antes era una
     // condición del combo del evento, compartida por todos sus códigos.
     financed: (row.financed ?? false) === true,
+    // Plazo de pago del financiamiento (20260922100000). El servidor lo devuelve
+    // desde esa migración, pero este mapper lo descartaba: `openCodeForm` leía
+    // `source.financingTermDays ?? 7` y por lo tanto SIEMPRE 7, así que abrir
+    // para editar un código de 30 días mostraba 7 y guardarlo le reescribía el
+    // plazo sin que nadie lo hubiera tocado. Null cuando el código no financia.
+    financingTermDays:
+      Number(row.financing_term_days ?? row.financingTermDays) || null,
     redeemedCount: Number(row.redeemed_count ?? row.redeemedCount) || 0,
     // Cuánta gente canjeó la llave, contra `redeemedCount`, que es cuánta la
     // usó para comprar. Son dos números distintos en una oferta secreta.

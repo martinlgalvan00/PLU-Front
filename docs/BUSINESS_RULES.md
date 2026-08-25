@@ -261,6 +261,23 @@ Las dos vías comparten una única regla (`plu_private.revoke_financed_order`);
 sólo cambian el `cancellation_code` (`cancelled_by_staff` vs.
 `financing_term_expired`) y quién figura como actor.
 
+20260923100000 cierra los tres huecos que esa migración dejó abiertos:
+el vencimiento se **backfillea** en toda orden financiada que ya había
+declarado el pago (esas órdenes tenían `financed_payment_due_at` en null y
+por lo tanto quedaban exentas del reloj para siempre), resolviendo el plazo
+con la misma precedencia que `settle_order_financing` —foto de la orden,
+código, combo, 7 días—; las que ya estaban vencidas reciben un piso de
+**3 días de gracia** desde el deploy, para que Finanzas pueda revisar el
+listado (`payment.financing_term_backfilled`) antes de que la baja se
+ejecute. La bitácora ahora distingue quién cortó: el reloj asienta
+`payment.financing_term_expired` y la persona sigue asentando
+`payment.rejected_manually` — el asiento se elige por el `cancellation_code`,
+así que la fila de la orden y la bitácora no pueden contradecirse. Y el
+barrido dejó de descartar sus errores: devuelve `failedOrders` junto a
+`expiredOrders` y asienta cada fallo con su `sqlstate`
+(`payment.financing_expiry_failed`), en vez de reintentar en silencio cada
+3 minutos.
+
 El financiamiento es una condición **del código** (`discount_codes.financed`,
 con su propio `financing_term_days`) y, para el combo restringido, también de
 la oferta (`event_combo_offers.financed`/`financing_term_days`).

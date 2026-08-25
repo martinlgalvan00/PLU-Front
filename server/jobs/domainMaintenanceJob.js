@@ -15,6 +15,18 @@ export async function runDomainMaintenanceJob({ client } = {}) {
     ),
   )
 
+  // `failedOrders` existe desde 20260923100000: antes el barrido devolvía
+  // `expiredOrders: 0` tanto cuando no había nada que vencer como cuando
+  // fallaron todas. Cada fallo queda asentado en la bitácora; acá se sube
+  // también al log del proceso, que es donde se mira cuando un atleta
+  // reclama que sigue habilitado con el plazo vencido.
+  const failedOrders = Number(financedOrders?.failedOrders) || 0
+  if (failedOrders > 0) {
+    console.error(
+      `domain-maintenance-job: ${failedOrders} orden(es) financiada(s) vencida(s) no se pudieron dar de baja.`,
+    )
+  }
+
   return { ticketReservations, domainOrders, financedOrders }
 }
 

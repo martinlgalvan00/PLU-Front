@@ -23,18 +23,22 @@ const CELEBRATION_HOLD_MS = 2200
  * `financed_payment_due_at` es un timestamptz completo, no una fecha suelta
  * como la que espera `formatShortDate` — se formatea acá en vez de forzarlo
  * por esa función.
+ *
+ * Mes completo y no abreviado: la fecha va dentro de una oración ("Tenés hasta
+ * el …") y la abreviatura la deja coja según el ICU que tenga el runtime —
+ * "03 de sept. de 2026" acá, "03 de ago de 2026" allá—. El `.replace('.', '')`
+ * que intentaba tapar eso sólo borraba el primer punto, así que dependía de qué
+ * mes tocara. Con `long` no hay punto que borrar en ninguno de los dos idiomas.
  */
 function formatDueDate(iso, locale) {
   if (!iso) return ''
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
-  return date
-    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-    .replace('.', '')
+  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 /**
@@ -68,6 +72,12 @@ export default function ManualPaymentConfirmation({
   const { locale, t } = useI18n()
   const [state, setState] = useState(manualPaymentDeclaredAt ? 'confirmed' : 'idle')
   const [granted, setGranted] = useState(Boolean(financedEntitlementsAt))
+  // El plazo se calcula al declarar, no al crear la orden (20260922100000): la
+  // prop llega null en el único momento en que la fecha realmente importa, y el
+  // sello prometía "quedás habilitado" sin decir hasta cuándo. La respuesta de
+  // la declaración ya la trae, así que se guarda de ahí y la prop queda como
+  // valor de arranque para cuando la persona vuelve a la pantalla.
+  const [declaredDueAt, setDeclaredDueAt] = useState(null)
   // El festejo es del hecho recien ocurrido, no del estado. Al volver a la
   // pantalla el sello sigue estampado pero el papel no vuelve a salir: una
   // rafaga que se repite en cada visita deja de ser un festejo.
@@ -84,6 +94,7 @@ export default function ManualPaymentConfirmation({
       const entitlementsGranted =
         result.entitlementsGranted || Boolean(result.order?.financedEntitlementsAt)
       setGranted(entitlementsGranted)
+      setDeclaredDueAt(result.order?.financedPaymentDueAt ?? null)
       setJustHappened(entitlementsGranted)
       setState('confirmed')
       const notifyApp = () =>
@@ -126,6 +137,8 @@ export default function ManualPaymentConfirmation({
 
   if (!orderId) return null
 
+  const dueDateLabel = formatDueDate(declaredDueAt ?? financedPaymentDueAt, locale)
+
   /* El paso a acuse es una transicion, no un reemplazo: lo que estaba pidiendo
      una accion pasa a estar resuelto, y el swap lo cuenta. */
   return (
@@ -138,9 +151,9 @@ export default function ManualPaymentConfirmation({
             eyebrow={t('payments.manualConfirmation.financedEyebrow')}
             title={t('payments.manualConfirmation.financedTitle')}
             detail={
-              formatDueDate(financedPaymentDueAt, locale)
+              dueDateLabel
                 ? t('payments.manualConfirmation.financedGrantedWithDeadline', {
-                    date: formatDueDate(financedPaymentDueAt, locale),
+                    date: dueDateLabel,
                   })
                 : t('payments.manualConfirmation.financedGranted')
             }

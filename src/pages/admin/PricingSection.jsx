@@ -104,6 +104,22 @@ function codeChannelsBadgeKey(code) {
 }
 
 /**
+ * Etiqueta del financiamiento del código, con su plazo.
+ *
+ * "Pago delegable" a secas obliga a abrir el formulario de cada código para
+ * saber cuánto tiempo queda la deuda abierta antes de que el reloj dé de baja lo
+ * habilitado (20260922100000), que es justamente lo que mide el riesgo de la
+ * promo. Sin plazo cargado no se inventa uno: el badge queda como estaba.
+ */
+function codeFinancedBadgeKey(code) {
+  const days = Number(code.financingTermDays)
+  if (!Number.isFinite(days) || days < 1) return 'admin.sections.pricing.codeFinancedBadge'
+  return days === 1
+    ? 'admin.sections.pricing.codeFinancedBadgeWithTermOne'
+    : 'admin.sections.pricing.codeFinancedBadgeWithTerm'
+}
+
+/**
  * Los tres estados de una promoción, en el orden en que los recorre el
  * operador: apagada, abierta a todos, abierta sólo a quien tiene el código.
  * En la base son dos ejes (`active` × `audience`); acá es un valor único
@@ -1503,7 +1519,7 @@ export default function PricingSection({
                         hasta que Finanzas la valide. */}
                     {code.financed ? (
                       <span className="admin-pricing__status admin-pricing__status--financed">
-                        {t('admin.sections.pricing.codeFinancedBadge')}
+                        {t(codeFinancedBadgeKey(code), { days: code.financingTermDays })}
                       </span>
                     ) : null}
                   </div>

@@ -129,12 +129,36 @@ export function promotionPaymentPresentation(result) {
     ...manual,
   ]
   if (!channels.length) return null
+  const financed = benefit.financed === true && manual.length > 0
+  const termDays = Number(benefit.financingTermDays)
   return {
     channels,
-    financed: benefit.financed === true && manual.length > 0,
+    financed,
+    // Por cuánto tiempo se puede delegar el pago (20260923100000: el canje
+    // devolvía `financed` y callaba el plazo). Sin valor propio son 7 días, el
+    // mismo default que aplica `settle_order_financing`; null cuando el código
+    // no financia, para que la pantalla no muestre un plazo que no corre.
+    financingTermDays: financed ? (Number.isFinite(termDays) && termDays > 0 ? termDays : 7) : null,
     // Un código que cerró la pasarela cambia la operación: no es "además
     // podés", es "sólo así".
     gatewayClosed: benefit.mercadoPagoEnabled === false,
+  }
+}
+
+/**
+ * Cupo y ventana del código recién canjeado, tal como los devolvió el servidor.
+ *
+ * Son las dos condiciones que el atleta no puede deducir del beneficio y que
+ * cambian la urgencia: cuántos lugares quedan y hasta cuándo. `remaining` es
+ * null cuando el código no tiene tope — no es cero, es "sin límite".
+ */
+export function promotionScarcityPresentation(result) {
+  if (!result?.accepted) return null
+  const benefit = result.benefit ?? {}
+  const remaining = Number(benefit.remaining)
+  return {
+    remaining: Number.isFinite(remaining) ? remaining : null,
+    expiresAt: benefit.expiresAt ?? null,
   }
 }
 

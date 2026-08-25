@@ -155,6 +155,35 @@ export default {
       service_unavailable: 'No pudimos validar el código. Intentá nuevamente.',
     },
   },
+  // Reveal del canje: el momento en que un código secreto se acepta. Antes era
+  // un renglón bajo el input con todo al mismo peso; ahora es una pieza propia
+  // donde el beneficio es el titular y las condiciones son el registro.
+  promotionReveal: {
+    mark: 'PLU · Llave aceptada',
+    close: 'Cerrar',
+    later: 'Lo uso después',
+    // Dentro de un checkout la acción no navega: el atleta ya está donde el
+    // código se cobra, así que la pieza se cierra y el precio recalculado
+    // queda abajo.
+    continueHere: 'Seguir con el pago',
+    reopen: 'Ver el beneficio',
+    paymentWith: 'Se paga con {{channels}}.',
+    paymentOnly: 'Únicamente con {{channels}}.',
+    // El plazo llega en el canje desde 20260923100000: antes el atleta sabía
+    // que podía delegar el pago pero no por cuánto tiempo.
+    financingWithTerm:
+      'Podés avisarnos el pago y quedás habilitado en el momento. Finanzas tiene {{days}} días para acreditarlo; si no llega, la habilitación se da de baja sola.',
+    financingWithTermOne:
+      'Podés avisarnos el pago y quedás habilitado en el momento. Finanzas tiene 1 día para acreditarlo; si no llega, la habilitación se da de baja sola.',
+    remainingValue: 'Quedan {{count}} lugares.',
+    remainingValueOne: 'Queda 1 lugar.',
+    terms: {
+      payment: 'Cómo se paga',
+      financing: 'Pago delegado',
+      remaining: 'Cupo',
+      window: 'Válido hasta',
+    },
+  },
   codeBand: {
     markKey: 'PLU · Llave privada',
     markCode: 'PLU · Código',
@@ -200,7 +229,7 @@ export default {
       // Con plazo conocido (20260922100000): la fecha límite real, no solo
       // "sigue pendiente" — es la que usa el administrador para dar de baja.
       financedGrantedWithDeadline:
-        'Tu afiliación y tu inscripción ya están habilitadas. Tenés hasta el {{date}} para que Finanzas acredite el pago.',
+        'Tu afiliación y tu inscripción ya están habilitadas. Tenés hasta el {{date}} para que Finanzas acredite el pago: si no llega, se dan de baja solas.',
       pendingReview: 'Avisamos a Finanzas. El pago sigue pendiente de validación.',
       error: 'No pudimos registrar el aviso. Intentá nuevamente.',
     },

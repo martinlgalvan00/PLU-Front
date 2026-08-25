@@ -728,6 +728,8 @@ export default {
       codeFinancingPublicInvalid:
         'A public promo cannot defer payment: it applies to every purchase on its own. Hand it out as a code instead.',
       codeFinancedBadge: 'Deferred payment',
+      codeFinancedBadgeWithTerm: 'Deferred payment · {{days}} days',
+      codeFinancedBadgeWithTermOne: 'Deferred payment · 1 day',
       manualChannel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
@@ -2721,6 +2723,9 @@ export default {
       'payment_brick.error': 'Mercado Pago Brick failed to load',
       'payment.approved_manually': 'Payment approved manually',
       'payment.rejected_manually': 'Payment rejected manually',
+      'payment.financing_term_expired': 'Financing term expired — revoked automatically',
+      'payment.financing_expiry_failed': 'Could not revoke the expired financing',
+      'payment.financing_term_backfilled': 'Financing term added to the clock',
       'payment.proof_uploaded': 'Receipt uploaded',
       'ticket_order.created': 'Ticket order created',
       'ticket_order.approved': 'Ticket order approved',

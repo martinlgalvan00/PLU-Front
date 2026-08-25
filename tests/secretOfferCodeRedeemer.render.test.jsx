@@ -109,3 +109,129 @@ describe('canje secreto reutilizable', () => {
     expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-membership' })
   })
 })
+
+/**
+ * Reveal del canje.
+ *
+ * El resultado aceptado se contaba como un renglón debajo del input: campaña en
+ * negrita, beneficio en gris, dos `small` con los medios de pago y el botón.
+ * Todo cierto y todo del mismo peso, así que las condiciones que cambian la
+ * operación —con qué se paga, si el pago se puede delegar y por cuánto tiempo,
+ * cuánto cupo queda— se leían como notas al pie.
+ *
+ * Ahora ese momento se abre en su propia pieza y la banda queda como registro.
+ * Lo que estos tests protegen es que sea UNA cosa o la otra: si las dos se
+ * montan a la vez, cada control queda duplicado en el DOM.
+ */
+const CODIGO_FINANCIADO = {
+  status: 'accepted',
+  accepted: true,
+  action: 'apply_to_checkout',
+  code: 'COMBO-PITBULL',
+  kind: 'fixed_price',
+  campaign: { name: 'Combo Pitbull Classic', description: 'Afiliación más inscripción.' },
+  benefit: {
+    fixedPrice: 90000,
+    manualChannels: ['bank_transfer', 'cash_pitbull'],
+    mercadoPagoEnabled: false,
+    financed: true,
+    financingTermDays: 5,
+    maxRedemptions: 10,
+    remaining: 3,
+    expiresAt: '2026-09-30T23:59:00.000Z',
+  },
+  destination: { view: 'profile', tab: 'account-membership' },
+}
+
+describe('reveal del canje', () => {
+  it('el código aceptado abre el reveal con el beneficio como titular', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(CODIGO_FINANCIADO)
+    renderRedeemer()
+
+    await openAndSubmit('combo-pitbull')
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog.getAttribute('aria-modal')).toBe('true')
+    // El titular es el beneficio; la campaña queda arriba como eyebrow.
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toMatch(/precio promocional/i)
+    expect(screen.getByText('Combo Pitbull Classic')).toBeTruthy()
+    // La llave, para que se vea que el código es suyo.
+    expect(dialog.textContent).toContain('COMBO-PITBULL')
+  })
+
+  it('cuenta las condiciones que el beneficio no dice', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(CODIGO_FINANCIADO)
+    renderRedeemer()
+
+    await openAndSubmit('combo-pitbull')
+    await screen.findByRole('dialog')
+
+    // Pasarela cerrada: no es "además podés", es "sólo así".
+    expect(screen.getByText(/únicamente con/i).textContent).toMatch(/transferencia · efectivo/i)
+    // El plazo del financiamiento, con su consecuencia. Viaja en el canje desde
+    // 20260923100000: antes sólo lo sabía la ficha del checkout.
+    expect(screen.getByText(/5 días para acreditarlo/i)).toBeTruthy()
+    expect(screen.getByText(/Quedan 3 lugares/i)).toBeTruthy()
+  })
+
+  it('cerrado con Escape deja el registro en la banda, sin duplicar nada', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(CODIGO_FINANCIADO)
+    renderRedeemer()
+
+    await openAndSubmit('combo-pitbull')
+    await screen.findByRole('dialog')
+    // Con el reveal abierto la acción existe una sola vez.
+    expect(screen.getAllByRole('button', { name: /Usar en Afiliación/i })).toHaveLength(1)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    // Y sigue existiendo una sola vez, ahora en la banda.
+    expect(screen.getAllByRole('button', { name: /Usar en Afiliación/i })).toHaveLength(1)
+    // El detalle no se repite abajo: para eso está el reabrir.
+    expect(screen.queryByText(/5 días para acreditarlo/i)).toBeNull()
+    expect(screen.getByRole('button', { name: /Ver el beneficio/i })).toBeTruthy()
+  })
+
+  it('se puede volver a leer el detalle sin canjear de nuevo', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(CODIGO_FINANCIADO)
+    renderRedeemer()
+
+    await openAndSubmit('combo-pitbull')
+    await screen.findByRole('dialog')
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    fireEvent.click(screen.getByRole('button', { name: /Ver el beneficio/i }))
+
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    expect(redeemPromotionCodeRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it('la acción principal del reveal navega y cierra la pieza', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(CODIGO_FINANCIADO)
+    const onNavigate = vi.fn()
+    renderRedeemer({ onNavigate })
+
+    await openAndSubmit('combo-pitbull')
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: /Usar en Afiliación/i }))
+
+    expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-membership' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('un código rechazado no abre ninguna pieza', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue({
+      status: 'rejected',
+      accepted: false,
+      reason: 'limit_reached',
+    })
+    renderRedeemer()
+
+    await openAndSubmit('agotado')
+
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})

@@ -22,6 +22,7 @@ import {
   KeyRound,
   LockKeyhole,
   ShieldCheck,
+  Sparkles,
   Tag,
   CalendarClock,
 } from 'lucide-react'
@@ -30,6 +31,7 @@ import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFiel
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
+import PromotionRevealModal from '../components/ui/PromotionRevealModal.jsx'
 import CodeScanButton from '../components/ui/CodeScanButton.jsx'
 import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
@@ -55,7 +57,10 @@ import {
 import { shouldTrySecretOfferFallback } from '../services/secretOfferRedemptionService.js'
 import {
   clearPendingPromotionCode,
+  promotionBenefitPresentation,
   promotionDestination,
+  promotionPaymentPresentation,
+  promotionScarcityPresentation,
   readPendingPromotionCode,
   redeemPromotionCode,
   savePendingPromotionCode,
@@ -484,6 +489,13 @@ export default function RegisterPage({
   const [purchaseType, setPurchaseType] = useState('combo')
   const [discountCodeInput, setDiscountCodeInput] = useState('')
   const [discountPreview, setDiscountPreview] = useState(null)
+  // Qué anunciar cuando el código resultó ser una promo con identidad propia.
+  // Es el payload del resolvedor, no el preview económico: el preview dice
+  // cuánto se paga, el resolvedor dice QUÉ se canjeó. El dato y "está abierto"
+  // son dos cosas distintas: cerrar el anuncio no puede borrar lo anunciado, o
+  // no queda nada para reabrir.
+  const [revealPromotion, setRevealPromotion] = useState(null)
+  const [revealOpen, setRevealOpen] = useState(false)
   const pendingPromotionAppliedRef = useRef(null)
   // Promoción que corre para todos y se aplica sola dentro de la transacción de
   // compra. Va aparte del cupón tipeado: el cupón se puede quitar y manda sobre
@@ -763,6 +775,13 @@ export default function RegisterPage({
             commitUnlockedCode(code, comboPreview, {
               offer: { comboOffer: comboOfferFromPreview(comboPreview) },
             })
+            // El código que destraba el paquete es el que más tiene que
+            // anunciar: sin esto el atleta ve aparecer una tarjeta de combo y
+            // ningún relato de por qué.
+            if (resolution?.accepted) {
+              setRevealPromotion(resolution)
+              setRevealOpen(true)
+            }
             return
           }
           setDiscountError(describeDiscountError(comboPreview))
@@ -772,6 +791,13 @@ export default function RegisterPage({
         return
       }
       setDiscountPreview(preview)
+      // Después del preview a propósito: si el preview rebota, no se
+      // anuncia nada. Sólo cuando el resolvedor reconoció una promo — un
+      // cupón suelto no tiene identidad que contar.
+      if (resolution?.accepted) {
+        setRevealPromotion(resolution)
+        setRevealOpen(true)
+      }
       clearPendingPromotionCode()
     } catch (error) {
       setDiscountError(error?.message ?? t('pages.register.discountError.not_found'))
@@ -813,6 +839,8 @@ export default function RegisterPage({
     setComboCode('')
     setDiscountCodeInput('')
     setDiscountPreview(null)
+    setRevealPromotion(null)
+    setRevealOpen(false)
     setDiscountError('')
     setUnlockedOffer(null)
   }
@@ -2550,6 +2578,20 @@ export default function RegisterPage({
                               })}
                             </p>
                           ) : null}
+                          {/* El anuncio del canje se puede volver a abrir:
+                              sale una sola vez al aplicar el código y ahí están
+                              los canales, el cupo y la ventana, que no entran
+                              en la banda. */}
+                          {revealPromotion ? (
+                            <button
+                              type="button"
+                              className="code-band-detail"
+                              onClick={() => setRevealOpen(true)}
+                            >
+                              <Sparkles size={12} aria-hidden />
+                              {t('promotionReveal.reopen')}
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             className="code-band-drop"
@@ -2875,6 +2917,28 @@ export default function RegisterPage({
           eventSlug={event?.slug ?? null}
           onUnlock={handleAccessUnlock}
           onCancel={() => setAccessGateOpen(false)}
+        />
+      ) : null}
+
+      {/* El momento del canje. Acá la acción principal no navega —el atleta ya
+          está en el checkout que va a cobrar el código—: cierra el anuncio y
+          deja abajo el precio recalculado y, si el código destrabó el paquete,
+          la tarjeta del combo. */}
+      {revealPromotion && revealOpen ? (
+        <PromotionRevealModal
+          campaignDescription={revealPromotion.campaign?.description ?? ''}
+          campaignName={revealPromotion.campaign?.name ?? ''}
+          code={revealPromotion.code}
+          continueLabel={t('promotionReveal.continueHere')}
+          expiresAt={promotionScarcityPresentation(revealPromotion)?.expiresAt ?? null}
+          headline={(() => {
+            const benefit = promotionBenefitPresentation(revealPromotion)
+            return t(`secretOfferRedeemer.benefit.${benefit.type}`, benefit)
+          })()}
+          onClose={() => setRevealOpen(false)}
+          onContinue={() => setRevealOpen(false)}
+          payment={promotionPaymentPresentation(revealPromotion)}
+          remaining={promotionScarcityPresentation(revealPromotion)?.remaining ?? null}
         />
       ) : null}
     </main>

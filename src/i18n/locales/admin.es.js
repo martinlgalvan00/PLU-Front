@@ -738,6 +738,11 @@ export default {
       codeFinancingPublicInvalid:
         'Una promo pública no puede delegar el pago: se aplica sola a todas las compras. Repartila como código.',
       codeFinancedBadge: 'Pago delegable',
+      // El plazo en la etiqueta: un listado de treinta códigos no deja ver
+      // cuál da 3 días y cuál da 30 sin abrir el formulario de cada uno, y es
+      // el dato que decide cuánto riesgo tiene la promo.
+      codeFinancedBadgeWithTerm: 'Pago delegable · {{days}} días',
+      codeFinancedBadgeWithTermOne: 'Pago delegable · 1 día',
       manualChannel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Transferencia bancaria',
@@ -2777,6 +2782,9 @@ export default {
       'payment_brick.error': 'Error al cargar Mercado Pago Brick',
       'payment.approved_manually': 'Pago aprobado a mano',
       'payment.rejected_manually': 'Pago rechazado a mano',
+      'payment.financing_term_expired': 'Financiamiento vencido — baja automática',
+      'payment.financing_expiry_failed': 'No se pudo dar de baja el financiamiento vencido',
+      'payment.financing_term_backfilled': 'Plazo de financiamiento incorporado al reloj',
       'payment.proof_uploaded': 'Comprobante cargado',
       'ticket_order.created': 'Orden de entradas creada',
       'ticket_order.approved': 'Orden de entradas aprobada',
