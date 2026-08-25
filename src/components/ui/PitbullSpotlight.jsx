@@ -79,6 +79,7 @@ export default function PitbullSpotlight({
   onJoin,
   onProfile,
   onResults,
+  progressPublic = true,
   recent = [],
   registerLabel,
   registrationCheckoutEnabled = true,
@@ -270,7 +271,8 @@ export default function PitbullSpotlight({
      * cupo de referencia del contenido estático como si fuera inscripción. */
     const liveRegistered = Number(registered ?? 0)
     const liveSlots = Number(slots ?? 0)
-    const showLiveCapacity = capacityStatus === 'live' && liveSlots > 0 && liveRegistered > 0
+    const showLiveCapacity =
+      capacityStatus === 'live' && liveSlots > 0 && liveRegistered > 0 && progressPublic
     const occupancyPct = showLiveCapacity
       ? Math.min(100, Math.round((liveRegistered / liveSlots) * 100))
       : 0

@@ -400,6 +400,7 @@ export default function AdminFilterBar({
         <div className="admin-filter-popoverbar">
           <div className="admin-filter-popoverbar__row1">
             <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+            {filters.length > 0 ? <AdminFilterPillRow filters={filters} /> : null}
             <div className="admin-filter-popoverbar__spacer" />
             {activeCount > 0 ? (
               <button type="button" className="admin-filter-popoverbar__clear" onClick={clearAll}>
@@ -414,7 +415,6 @@ export default function AdminFilterBar({
               </span>
             ) : null}
           </div>
-          {filters.length > 0 ? <AdminFilterPillRow filters={filters} /> : null}
         </div>
       </div>
     )

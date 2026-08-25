@@ -207,9 +207,10 @@ function PitbullInscriptionCounter({
   variant = 'default',
   softLaunch = false,
   capacityLive = false,
+  progressPublic = true,
 }) {
   const { reducedMotion } = useMotionConfig()
-  const showMeter = capacityLive && !softLaunch
+  const showMeter = capacityLive && !softLaunch && progressPublic
   const pct = showMeter && slots > 0 ? Math.round((registered / slots) * 100) : 0
   const isCompact = variant === 'compact'
   const ariaLabel = softLaunch
@@ -674,6 +675,7 @@ function PitbullInscriptionSection({
   onNavigate,
   onRegister,
   pricing,
+  progressPublic = true,
   recent,
   registered,
   slots,
@@ -767,6 +769,7 @@ function PitbullInscriptionSection({
 
         <PitbullInscriptionCounter
           capacityLive={capacityLive}
+          progressPublic={progressPublic}
           registered={registered}
           slots={slots}
           softLaunch={softLaunch}
@@ -921,7 +924,7 @@ function PitbullInscriptionSection({
         </Body>
       </div>
 
-      {!softLaunch && capacityLive ? (
+      {!softLaunch && capacityLive && progressPublic ? (
         <PitbullRecentRegistrants
           capacityStatus={capacityStatus}
           locale={locale}
@@ -1116,6 +1119,7 @@ export default function PitbullPage({
     registered: liveRegistered,
     slots: liveSlots,
     recent: recentRegistrants,
+    progressPublic,
   } = useEventRegistrationCapacity(eventSlug, {
     enabled: true,
     observeRoot: 'inscripcion',
@@ -1225,6 +1229,7 @@ export default function PitbullPage({
             onNavigate={onNavigate}
             onRegister={handlePitbullRegistration}
             pricing={eventPricing}
+            progressPublic={progressPublic}
             recent={recentRegistrants}
             registered={liveRegistered}
             slots={liveSlots}
