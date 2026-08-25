@@ -59,50 +59,55 @@ function renderAthletes(props = {}) {
   return { ...utils, filterBar }
 }
 
-describe('Atletas — barra de filtros (chips siempre visibles)', () => {
-  it('muestra las 5 facetas a la vista, sin botón "Filtros" ni caja de gimnasio rota', () => {
+describe('Atletas — barra de filtros (pills + popover)', () => {
+  it('muestra las 5 facetas como pills compactos, sin chips ni conteos a la vista', () => {
     const { filterBar } = renderAthletes()
 
-    // Sin el botón único que abría un panel aparte: los grupos ya están en pantalla.
-    expect(within(filterBar).queryByRole('button', { name: /^Filtros/ })).toBeNull()
-
+    // Un pill por faceta: la barra es una sola fila silenciosa, los chips y
+    // conteos viven dentro del popover de cada uno.
     for (const label of ['Afiliación', 'Inscripción', 'Gimnasio', 'División', 'Fecha de alta']) {
-      expect(within(filterBar).getByText(label)).toBeTruthy()
+      expect(within(filterBar).getByRole('button', { name: new RegExp(`^${label}`) })).toBeTruthy()
     }
 
-    // Gimnasio es un <select> real y accesible, no una caja vacía flotando
-    // (el bug original de esta suite: el label del select heredaba el
-    // tratamiento de tarjeta del buscador y quedaba como un rectángulo sin
-    // contenido -- ver admin.css, `label:not(.admin-filters__select-label)`).
-    const gymSelect = within(filterBar).getByRole('combobox', { name: 'Gimnasio' })
-    expect(gymSelect).toBeTruthy()
-    expect(within(filterBar).getByText('Maximal Power')).toBeTruthy()
-    expect(within(filterBar).getByText('Pitbull Barbell')).toBeTruthy()
+    // Nada de la maquinaria interna queda expuesta sin abrir un popover.
+    expect(filterBar.querySelector('.admin-filter-chips')).toBeNull()
+    expect(within(filterBar).queryByText('Maximal Power')).toBeNull()
+    expect(within(filterBar).queryByText('Afiliado activo')).toBeNull()
   })
 
-  it('elige un gimnasio y filtra la tabla', () => {
+  it('elige un gimnasio desde el popover y lo refleja en el pill', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.change(within(filterBar).getByRole('combobox', { name: 'Gimnasio' }), {
-      target: { value: 'pitbull barbell' },
-    })
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^Gimnasio/ }))
+
+    // El select de gimnasio es un combobox con búsqueda: opciones como botones.
+    const popover = filterBar.querySelector('.admin-filter-popover')
+    expect(popover).toBeTruthy()
+    fireEvent.click(within(popover).getByRole('option', { name: 'Pitbull Barbell' }))
 
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
     expect(screen.queryByText('Martina Rivas')).toBeNull()
     expect(screen.queryByText('Florencia López')).toBeNull()
+
+    // El pill activo muestra el valor elegido y su botón de limpieza.
+    expect(within(filterBar).getByRole('button', { name: /^Gimnasio/ }).textContent).toContain(
+      'Pitbull Barbell',
+    )
+    expect(within(filterBar).getByRole('button', { name: 'Quitar filtro' })).toBeTruthy()
   })
 
-  it('elige un chip de Afiliación y lo puede limpiar volviendo a tocarlo', () => {
+  it('filtra por Afiliación desde el popover y limpia con la X del pill', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByText('Afiliado activo'))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^Afiliación/ }))
+    const popover = filterBar.querySelector('.admin-filter-popover')
+    fireEvent.click(within(popover).getByRole('button', { name: /Afiliado activo/ }))
 
     expect(screen.getByText('Martina Rivas')).toBeTruthy()
     expect(screen.queryByText('Nicolás Aguirre')).toBeNull()
 
-    // El chip activo es `clearable`: tocarlo de nuevo vuelve al neutro
-    // ("Todos") en vez de necesitar un botón de limpieza aparte.
-    fireEvent.click(within(filterBar).getByText('Afiliado activo'))
+    // La X del pill activo vuelve al neutro sin reabrir el popover.
+    fireEvent.click(within(filterBar).getByRole('button', { name: 'Quitar filtro' }))
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
   })
 })

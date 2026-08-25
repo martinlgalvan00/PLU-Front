@@ -298,6 +298,7 @@ export default function AthletesSection({
     <AdminListSection
       variant="athletes"
       filteredCount={rows.length}
+      filterLayout="popover"
       placeholder={t('admin.search.athlete')}
       query={query}
       showHeader

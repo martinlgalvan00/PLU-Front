@@ -313,6 +313,9 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
     )
 
     expect(screen.queryByText('status.gate_pending')).toBeNull()
+
+    // El chip vive dentro del popover del pill "Estado".
+    fireEvent.click(screen.getByRole('button', { name: /^Estado/ }))
     expect(screen.getByRole('button', { name: /Confirmada sin afiliación/ })).toBeTruthy()
   })
 })

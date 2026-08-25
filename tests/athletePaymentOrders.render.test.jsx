@@ -1,5 +1,5 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 /**
@@ -134,5 +134,75 @@ describe('Finanzas — comprobante y validación', () => {
     const button = screen.getByRole('button', { name: 'Mercado Pago se acredita por webhook' })
     expect(button.disabled).toBe(true)
     expect(screen.queryByText('Sin comprobante')).toBeNull()
+  })
+})
+
+/**
+ * Plazo de financiamiento en la fila (20260922100000 / 20260923100000).
+ *
+ * La cuenta se hacía dividiendo la diferencia por 86.400.000 y redondeando
+ * hacia arriba, así que corría todas las etiquetas un casillero: un plazo que
+ * vencía esta tarde daba `ceil(0,4) = 1` y el panel decía "Vence mañana". Para
+ * Finanzas eso es la diferencia entre llamar al atleta hoy o perderlo.
+ *
+ * Las fechas se construyen con componentes locales a propósito: la cuenta es de
+ * días de calendario, así que un ISO en UTC ataría el test al huso de la
+ * máquina que lo corre.
+ */
+function financedOrder(due) {
+  return order({
+    financingAllowed: true,
+    manualPaymentDeclaredAt: '2026-08-20T18:00:00.000Z',
+    financedEntitlementsAt: '2026-08-20T18:00:00.000Z',
+    financedPaymentDueAt: due.toISOString(),
+  })
+}
+
+describe('plazo de financiamiento en la fila', () => {
+  const NOW = new Date(2026, 7, 24, 10, 0, 0)
+
+  beforeAll(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(NOW)
+  })
+
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
+  it('un plazo que vence más tarde hoy dice hoy, no mañana', async () => {
+    await renderSection([financedOrder(new Date(2026, 7, 24, 22, 30, 0))])
+
+    expect(screen.getByText('Vence hoy')).toBeTruthy()
+    expect(screen.queryByText('Vence mañana')).toBeNull()
+  })
+
+  it('un plazo de mañana a primera hora dice mañana, no hoy', async () => {
+    await renderSection([financedOrder(new Date(2026, 7, 25, 8, 0, 0))])
+
+    expect(screen.getByText('Vence mañana')).toBeTruthy()
+  })
+
+  it('cuenta los días restantes por calendario', async () => {
+    await renderSection([financedOrder(new Date(2026, 7, 29, 23, 0, 0))])
+
+    expect(screen.getByText('Vence en 5 días')).toBeTruthy()
+  })
+
+  it('una deuda de ayer figura vencida y no como si venciera hoy', async () => {
+    await renderSection([financedOrder(new Date(2026, 7, 23, 23, 0, 0))])
+
+    expect(screen.getByText('Vencido ayer')).toBeTruthy()
+    expect(screen.queryByText('Vence hoy')).toBeNull()
+  })
+
+  it('una orden ya cerrada deja de contar el plazo', async () => {
+    // Con la orden rechazada el plazo no decide nada: seguir mostrando "vencido
+    // hace 3 días" sugiere una acción que ya no existe.
+    await renderSection([
+      { ...financedOrder(new Date(2026, 7, 21, 10, 0, 0)), status: 'rechazado' },
+    ])
+
+    expect(screen.queryByText(/Vencido hace/)).toBeNull()
   })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { ArrowRight, Check, KeyRound, LoaderCircle } from 'lucide-react'
+import { ArrowRight, Check, KeyRound, LoaderCircle, Sparkles } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
   clearPendingPromotionCode,
@@ -8,10 +8,12 @@ import {
   promotionDestination,
   promotionDestinationType,
   promotionPaymentPresentation,
+  promotionScarcityPresentation,
   redeemPromotionCode,
   savePendingPromotionCode,
 } from '../../services/promotionCodeService.js'
 import CodeScanButton from './CodeScanButton.jsx'
+import PromotionRevealModal from './PromotionRevealModal.jsx'
 import '../../styles/components/secret-code-redeemer.css'
 import '../../styles/components/code-band.css'
 
@@ -23,6 +25,14 @@ import '../../styles/components/code-band.css'
  * filo de oro, y el código en el mismo mono espaciado que el número de socio. El
  * estado del canje se dice en palabras en la ficha superior de la banda —igual
  * que un documento emitido— en vez de pintarse con color.
+ *
+ * El resultado aceptado NO se cuenta acá abajo. Un código secreto que se acepta
+ * es el momento del canje, y como renglón bajo el input tenía el beneficio, la
+ * campaña, los medios de pago y la acción todos al mismo peso: lo único que
+ * decide no pesaba más que las notas al pie. Ese momento se abre en
+ * `PromotionRevealModal`; al cerrarlo, la banda queda como registro —el código
+ * aceptado y la acción que lleva al checkout—, con `Ver el beneficio` para
+ * volver a abrirlo. Una sola instancia de cada control: nunca se ven a la vez.
  *
  * La lógica es la de siempre: el servidor resuelve qué es el código y a dónde
  * lleva (`redeemPromotionCode`), y acá sólo se refleja.
@@ -42,6 +52,9 @@ export default function SecretOfferCodeRedeemer({
   const [state, setState] = useState('idle')
   const [reason, setReason] = useState('')
   const [resolvedPromotion, setResolvedPromotion] = useState(null)
+  // El reveal se abre solo al aceptarse el código y se puede volver a abrir
+  // desde la banda: es un momento, no un estado del formulario.
+  const [revealOpen, setRevealOpen] = useState(false)
 
   useEffect(() => {
     const nextCode = normalizePromotionCode(initialCode)
@@ -81,6 +94,7 @@ export default function SecretOfferCodeRedeemer({
         destination: result.destination ?? null,
       })
       setState('accepted')
+      setRevealOpen(true)
     } catch (error) {
       if (error?.status === 401) {
         setState('login')
@@ -109,9 +123,17 @@ export default function SecretOfferCodeRedeemer({
   const payment = resolvedPromotion ? promotionPaymentPresentation(resolvedPromotion) : null
   const destination = resolvedPromotion ? promotionDestination(resolvedPromotion) : null
   const destinationType = resolvedPromotion ? promotionDestinationType(resolvedPromotion) : null
+  const scarcity = resolvedPromotion ? promotionScarcityPresentation(resolvedPromotion) : null
+  // El titular del reveal es el beneficio, que es el dato que decide si vale
+  // la pena seguir al checkout. Mismo texto que ya decía la banda.
+  const benefitLine = benefit
+    ? t(`secretOfferRedeemer.benefit.${benefit.type}`, benefit)
+    : t('secretOfferRedeemer.acceptedLead')
+  const continueLabel = t(`secretOfferRedeemer.continue.${destinationType ?? 'checkout'}`)
 
   function resetRedeemer() {
     clearPendingPromotionCode()
+    setRevealOpen(false)
     setCode('')
     setState('idle')
     setReason('')
@@ -134,9 +156,13 @@ export default function SecretOfferCodeRedeemer({
         </button>
       ) : (
         <form className="secret-code-redeemer__form" onSubmit={redeem} noValidate>
-          <label className="visually-hidden" htmlFor={inputId}>
-            {t('secretOfferRedeemer.label')}
-          </label>
+          {/* Sin campo no hay label: con la llave aceptada el código es un
+              registro y `htmlFor` apuntaría a un id que ya no existe. */}
+          {settled ? null : (
+            <label className="visually-hidden" htmlFor={inputId}>
+              {t('secretOfferRedeemer.label')}
+            </label>
+          )}
           <div
             className={`code-band${state === 'error' ? ' code-band--error' : ''}`}
             data-state={state}
@@ -159,22 +185,32 @@ export default function SecretOfferCodeRedeemer({
                 </span>
               </div>
               <div className="code-band__row">
-                <input
-                  id={inputId}
-                  className="code-band__input"
-                  type="text"
-                  autoComplete="off"
-                  spellCheck={false}
-                  value={code}
-                  placeholder={t('secretOfferRedeemer.placeholder')}
-                  disabled={checking || settled}
-                  onChange={(event) => {
-                    setCode(event.target.value.toUpperCase())
-                    if (state !== 'idle') setState('idle')
-                    setReason('')
-                    setResolvedPromotion(null)
-                  }}
-                />
+                {/* Aceptada la llave, el campo deja de ser un campo: pasa a ser
+                    el registro del código. No es sólo semántica — un `<input>`
+                    no envuelve, así que un código largo (`COMBO-PITBULL-INVIERNO`)
+                    quedaba cortado a media palabra en un teléfono, y no hay
+                    forma de leerlo. El span usa el `.code-band__code` que la
+                    hoja ya tenía para este caso, con `overflow-wrap: anywhere`. */}
+                {settled ? (
+                  <span className="code-band__code">{code}</span>
+                ) : (
+                  <input
+                    id={inputId}
+                    className="code-band__input"
+                    type="text"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={code}
+                    placeholder={t('secretOfferRedeemer.placeholder')}
+                    disabled={checking}
+                    onChange={(event) => {
+                      setCode(event.target.value.toUpperCase())
+                      if (state !== 'idle') setState('idle')
+                      setReason('')
+                      setResolvedPromotion(null)
+                    }}
+                  />
+                )}
                 {settled ? (
                   <Check size={18} aria-hidden className="secret-code-redeemer__seal-check" />
                 ) : (
@@ -205,65 +241,52 @@ export default function SecretOfferCodeRedeemer({
             </div>
           </div>
 
-          {state === 'accepted' ? (
-            <div className="secret-code-redeemer__resolved" role="status" aria-live="polite">
-              <span className="secret-code-redeemer__resolved-icon" aria-hidden>
-                <Check size={16} />
-              </span>
-              <span className="code-band-done">
-                <strong>
-                  {resolvedPromotion?.campaign?.name || t('secretOfferRedeemer.acceptedTitle')}
-                </strong>
-                <span>
-                  {benefit
-                    ? t(`secretOfferRedeemer.benefit.${benefit.type}`, benefit)
-                    : t('secretOfferRedeemer.acceptedLead')}
-                </span>
-                {/* Los medios van antes de la descripción de la campaña: es lo
-                    que el atleta necesita para el paso siguiente, no el relato
-                    de la promo. */}
-                {payment ? (
-                  <small>
-                    {t(
-                      payment.gatewayClosed
-                        ? 'secretOfferRedeemer.payment.only'
-                        : 'secretOfferRedeemer.payment.with',
-                      {
-                        channels: payment.channels
-                          .map((channel) => t(`secretOfferRedeemer.payment.channel.${channel}`))
-                          .join(' · '),
-                      },
-                    )}
-                  </small>
-                ) : null}
-                {payment?.financed ? (
-                  <small>{t('secretOfferRedeemer.payment.financed')}</small>
-                ) : null}
-                {resolvedPromotion?.campaign?.description ? (
-                  <small>{resolvedPromotion.campaign.description}</small>
-                ) : null}
-              </span>
-            </div>
-          ) : (
-            <p className="code-band-hint">{t('secretOfferRedeemer.hint')}</p>
-          )}
+          {/* Con el reveal abierto la banda no repite nada: el detalle vive en
+              la pieza de arriba y acá quedaría escondido detrás del overlay,
+              duplicando controles en el DOM. */}
+          {settled ? null : <p className="code-band-hint">{t('secretOfferRedeemer.hint')}</p>}
 
-          {state === 'accepted' ? (
-            <div className="secret-code-redeemer__resolved-actions">
-              {destination ? (
-                <button
-                  type="button"
-                  className="secret-code-redeemer__continue"
-                  onClick={() => onNavigate?.(destination.view, destination.options)}
-                >
-                  {t(`secretOfferRedeemer.continue.${destinationType ?? 'checkout'}`)}
-                  <ArrowRight size={14} aria-hidden />
+          {settled && !revealOpen ? (
+            <>
+              {/* Sin disco de estado: la banda de arriba ya dice "Aceptada" y
+                  lleva su tilde de oro. Un círculo verde acá era un segundo
+                  acento repitiendo lo mismo dos renglones más abajo. */}
+              <div className="secret-code-redeemer__resolved" role="status" aria-live="polite">
+                <span className="code-band-done">
+                  <strong>
+                    {resolvedPromotion?.campaign?.name || t('secretOfferRedeemer.acceptedTitle')}
+                  </strong>
+                  <span>{benefitLine}</span>
+                  {/* Volver a abrir el detalle: los medios de pago, el plazo del
+                      financiamiento y el cupo se cuentan una sola vez, en el
+                      reveal, en vez de repetirse acá como notas al pie. */}
+                  <button
+                    type="button"
+                    className="code-band-detail"
+                    onClick={() => setRevealOpen(true)}
+                  >
+                    <Sparkles size={12} aria-hidden />
+                    {t('promotionReveal.reopen')}
+                  </button>
+                </span>
+              </div>
+
+              <div className="secret-code-redeemer__resolved-actions">
+                {destination ? (
+                  <button
+                    type="button"
+                    className="secret-code-redeemer__continue"
+                    onClick={() => onNavigate?.(destination.view, destination.options)}
+                  >
+                    {continueLabel}
+                    <ArrowRight size={14} aria-hidden />
+                  </button>
+                ) : null}
+                <button type="button" className="code-band-drop" onClick={resetRedeemer}>
+                  {t('secretOfferRedeemer.anotherCode')}
                 </button>
-              ) : null}
-              <button type="button" className="code-band-drop" onClick={resetRedeemer}>
-                {t('secretOfferRedeemer.anotherCode')}
-              </button>
-            </div>
+              </div>
+            </>
           ) : null}
 
           {state === 'login' ? (
@@ -278,6 +301,31 @@ export default function SecretOfferCodeRedeemer({
             <p className="code-band-error secret-code-redeemer__message is-error" role="alert">
               {t(`secretOfferRedeemer.error.${reason}`)}
             </p>
+          ) : null}
+
+          {/* El momento del canje. Fuera del `form` no puede ir: el reveal no
+              tiene inputs y su acción principal navega, así que no hay submit
+              que se pueda disparar por accidente. */}
+          {settled && revealOpen ? (
+            <PromotionRevealModal
+              campaignDescription={resolvedPromotion?.campaign?.description ?? ''}
+              campaignName={resolvedPromotion?.campaign?.name ?? ''}
+              code={code}
+              continueLabel={continueLabel}
+              expiresAt={scarcity?.expiresAt ?? null}
+              headline={benefitLine}
+              onClose={() => setRevealOpen(false)}
+              onContinue={
+                destination
+                  ? () => {
+                      setRevealOpen(false)
+                      onNavigate?.(destination.view, destination.options)
+                    }
+                  : undefined
+              }
+              payment={payment}
+              remaining={scarcity?.remaining ?? null}
+            />
           ) : null}
         </form>
       )}

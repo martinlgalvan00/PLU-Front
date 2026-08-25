@@ -216,3 +216,143 @@ describe('recotización de un cupón por cambio de canal', () => {
     expect(withoutCode).toHaveLength(0)
   })
 })
+
+/**
+ * El anuncio del canje dentro del checkout de Afiliación.
+ *
+ * La ficha "Mi cuenta > Beneficios" salió de la cinta el 21/08/2026
+ * (`ACCOUNT_TAB_BY_SECTION` redirige `?section=benefits` a Afiliación), así que
+ * la superficie viva donde alguien canjea un código es ESTA — y el resultado se
+ * contaba como un renglón dentro de la banda: código, importe y una línea de
+ * plazo, todo al mismo peso. Los canales habilitados, el cupo restante y la
+ * ventana del código no se decían en ninguna parte.
+ *
+ * `PromotionRevealModal` es ese anuncio. Acá su acción principal no navega: el
+ * atleta ya está en el checkout que va a cobrar el código.
+ */
+const PROMO_FINANCIADA = {
+  status: 'accepted',
+  accepted: true,
+  action: 'apply_to_checkout',
+  code: 'CLUB-25',
+  kind: 'percent',
+  appliesTo: 'membership',
+  campaign: { name: 'Club PLU', description: 'Beneficio para socios del club.' },
+  destination: { view: 'profile', tab: 'account-membership' },
+  benefit: {
+    percentOff: 25,
+    manualChannels: ['bank_transfer'],
+    mercadoPagoEnabled: false,
+    financed: true,
+    financingTermDays: 10,
+    maxRedemptions: 20,
+    remaining: 6,
+    expiresAt: '2026-10-15T23:59:00.000Z',
+  },
+}
+
+async function aplicarCodigo() {
+  fireEvent.click(await screen.findByRole('button', { name: /Tengo un código/i }))
+  fireEvent.change(await screen.findByLabelText(/^Código$/i), { target: { value: 'club-25' } })
+  fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+}
+
+describe('anuncio del canje en Afiliación', () => {
+  it('el código aceptado se anuncia con el beneficio y sus condiciones', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(PROMO_FINANCIADA)
+    vi.mocked(previewDiscountCode).mockResolvedValue(CODE_PREVIEW)
+    renderSection()
+
+    await aplicarCodigo()
+
+    const dialog = await screen.findByRole('dialog')
+    // Por el nombre accesible del diálogo: la sección de Afiliación tiene su
+    // propio h2, así que un `getByRole('heading')` global es ambiguo.
+    expect(dialog.getAttribute('aria-labelledby')).toBe('promotion-reveal-title')
+    expect(document.getElementById('promotion-reveal-title').textContent).toMatch(
+      /25% de descuento/i,
+    )
+    expect(screen.getByText('Club PLU')).toBeTruthy()
+    // Las tres condiciones que la banda no dice.
+    expect(dialog.textContent).toMatch(/únicamente con/i)
+    expect(dialog.textContent).toMatch(/10 días para acreditarlo/i)
+    expect(dialog.textContent).toMatch(/Quedan 6 lugares/i)
+  })
+
+  it('la acción principal no navega: cierra el anuncio y deja el checkout', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(PROMO_FINANCIADA)
+    vi.mocked(previewDiscountCode).mockResolvedValue(CODE_PREVIEW)
+    const onNavigate = vi.fn()
+    render(
+      <I18nProvider>
+        <MembershipPurchaseSection
+          athlete={ATHLETE}
+          membership={null}
+          onActivateMembership={vi.fn()}
+          onCancelMembership={vi.fn()}
+          onNavigate={onNavigate}
+          onStartMembershipPayment={vi.fn()}
+          events={[]}
+          checkoutAvailability={{ membershipEnabled: true, registrationEnabled: true }}
+        />
+      </I18nProvider>,
+    )
+
+    await aplicarCodigo()
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: /Seguir con el pago/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(onNavigate).not.toHaveBeenCalled()
+    // El código sigue aplicado abajo.
+    expect(screen.getByText('CLUB-25')).toBeTruthy()
+  })
+
+  it('el detalle se puede volver a abrir desde la banda', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(PROMO_FINANCIADA)
+    vi.mocked(previewDiscountCode).mockResolvedValue(CODE_PREVIEW)
+    renderSection()
+
+    await aplicarCodigo()
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: /Seguir con el pago/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    fireEvent.click(screen.getByRole('button', { name: /Ver el beneficio/i }))
+
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    // Sin un canje nuevo: el anuncio se relee, no se vuelve a resolver.
+    expect(redeemPromotionCodeRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it('quitar el código retira el anuncio y su reapertura', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(PROMO_FINANCIADA)
+    vi.mocked(previewDiscountCode).mockResolvedValue(CODE_PREVIEW)
+    renderSection()
+
+    await aplicarCodigo()
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: /Seguir con el pago/i }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    fireEvent.click(screen.getByRole('button', { name: /^Quitar$/i }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Ver el beneficio/i })).toBeNull(),
+    )
+  })
+
+  it('un resolvedor sin desplegar aplica el cupón y no anuncia nada', async () => {
+    // Es la rama de compatibilidad: `redeemPromotionCode` falla, el preview
+    // económico sigue valiendo. Sin promo reconocida no hay identidad que
+    // contar, así que no se abre ninguna pieza.
+    vi.mocked(redeemPromotionCodeRequest).mockRejectedValue(new Error('sin resolvedor'))
+    vi.mocked(previewDiscountCode).mockResolvedValue(CODE_PREVIEW)
+    renderSection()
+
+    await aplicarCodigo()
+
+    await waitFor(() => expect(screen.getByText('CLUB-25')).toBeTruthy())
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})

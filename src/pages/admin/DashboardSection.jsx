@@ -5,8 +5,6 @@ import {
   BadgeCheck,
   CalendarDays,
   ClipboardList,
-  CircleAlert,
-  CircleCheck,
   MapPin,
   Send,
   Shield,
@@ -17,6 +15,7 @@ import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
+import AdminPriorityBoard from '../../components/admin/AdminPriorityBoard.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
 import { useAdminModal } from '../../components/admin/useAdminModal.js'
 import Button from '../../components/ui/Button.jsx'
@@ -209,95 +208,6 @@ function StackedBarChart({ title, total, items, section, onNavigate, getLabel, t
   )
 }
 
-/**
- * Una lectura corta de los circuitos evita que el administrador tenga que
- * inferir, cruzando los gráficos, qué sigue su curso y qué requiere una
- * decisión humana. No reemplaza las tablas ni ejecuta mutaciones.
- */
-function OperationalFlows({ flows, onNavigate, t }) {
-  const items = [
-    {
-      id: 'payments',
-      section: 'payments',
-      title: t('admin.dashboard.flowPaymentsTitle'),
-      progressing: flows.payments.reconciliationPending,
-      progressingLabel: t('admin.dashboard.flowPaymentsProgressing'),
-      attention: flows.payments.manualValidation,
-      attentionLabel: t('admin.dashboard.flowPaymentsManual'),
-    },
-    {
-      id: 'registrations',
-      section: 'registrations',
-      title: t('admin.dashboard.flowRegistrationsTitle'),
-      progressing: flows.registrations.confirmed,
-      progressingLabel: t('admin.dashboard.flowRegistrationsConfirmed'),
-      attention: flows.registrations.observed + flows.registrations.gatePending,
-      attentionLabel: t('admin.dashboard.flowRegistrationsAttention'),
-    },
-    {
-      id: 'memberships',
-      section: 'memberships',
-      title: t('admin.dashboard.flowMembershipsTitle'),
-      progressing: flows.memberships.active,
-      progressingLabel: t('admin.dashboard.flowMembershipsActive'),
-      attention: flows.memberships.expiring,
-      attentionLabel: t('admin.dashboard.flowMembershipsExpiring'),
-    },
-    {
-      id: 'events',
-      section: 'events',
-      title: t('admin.dashboard.flowEventsTitle'),
-      progressing: flows.events.open,
-      progressingLabel: t('admin.dashboard.flowEventsOpen'),
-      attention: flows.events.limited,
-      attentionLabel: t('admin.dashboard.flowEventsLimited'),
-    },
-  ]
-
-  return (
-    <section className="admin-ops__flows" aria-labelledby="admin-operational-flows-title">
-      <header className="admin-ops__flows-head">
-        <div>
-          <span className="admin-ops__eyebrow">{t('admin.dashboard.flowsEyebrow')}</span>
-          <h3 id="admin-operational-flows-title">{t('admin.dashboard.flowsTitle')}</h3>
-          <p>{t('admin.dashboard.flowsSubtitle')}</p>
-        </div>
-      </header>
-      <ul className="admin-ops__flows-list">
-        {items.map((item) => {
-          const needsAttention = item.attention > 0
-          const StateIcon = needsAttention ? CircleAlert : CircleCheck
-          return (
-            <li key={item.id} className={needsAttention ? 'is-attention' : 'is-clear'}>
-              <span className="admin-ops__flow-state" aria-hidden>
-                <StateIcon size={16} strokeWidth={1.8} />
-              </span>
-              <div className="admin-ops__flow-copy">
-                <strong>{item.title}</strong>
-                <span>
-                  {item.progressing} {item.progressingLabel}
-                </span>
-              </div>
-              <div className="admin-ops__flow-attention">
-                <strong>{item.attention}</strong>
-                <span>{item.attentionLabel}</span>
-              </div>
-              <button
-                type="button"
-                className="admin-ops__flow-open"
-                onClick={() => onNavigate?.(item.section)}
-              >
-                <span>{t('admin.dashboard.flowOpen')}</span>
-                <ArrowRight size={14} aria-hidden />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
-
 function SpotlightInline({ event, locale, onNavigate, t }) {
   if (!event) return null
 
@@ -306,6 +216,25 @@ function SpotlightInline({ event, locale, onNavigate, t }) {
   const closesAt = event.registrationClosesAt
     ? formatDayMonth(event.registrationClosesAt.slice(0, 10), locale)
     : null
+  // Countdown del cierre: sólo cuando la fecha está a la vista (≤14 días)
+  // para que el dato invite a actuar y no sea una fecha más del bloque.
+  let closesInLabel = null
+  if (event.registrationClosesAt) {
+    const closesAtDate = new Date(event.registrationClosesAt)
+    if (!Number.isNaN(closesAtDate.getTime())) {
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      const startOfCloses = new Date(
+        closesAtDate.getFullYear(),
+        closesAtDate.getMonth(),
+        closesAtDate.getDate(),
+      )
+      const daysLeft = Math.round((startOfCloses - startOfToday) / 24 / 60 / 60 / 1000)
+      if (daysLeft === 0) closesInLabel = t('admin.dashboard.spotlightClosesToday')
+      else if (daysLeft > 0 && daysLeft <= 14)
+        closesInLabel = t('admin.dashboard.spotlightClosesIn', { count: daysLeft })
+    }
+  }
 
   return (
     <aside className="admin-ops__spotlight">
@@ -319,6 +248,9 @@ function SpotlightInline({ event, locale, onNavigate, t }) {
           {event.venue}
           {closesAt ? ` · ${t('admin.dashboard.registrationCloses')} ${closesAt}` : ''}
         </p>
+        {closesInLabel ? (
+          <p className="admin-ops__spotlight-countdown">{closesInLabel}</p>
+        ) : null}
       </div>
       <div className="admin-ops__spotlight-meter" aria-label={t('admin.dashboard.slots')}>
         <div className="admin-ops__spotlight-bar">
@@ -876,7 +808,6 @@ export default function DashboardSection({
     recentRegistrations,
     spotlightEvent,
     topGyms,
-    operationalFlows,
   } = dashboardOverview
 
   const primaryMetrics = useMemo(() => mapMetrics(primary, t, locale), [primary, t, locale])
@@ -944,7 +875,7 @@ export default function DashboardSection({
           ))}
         </section>
 
-        <OperationalFlows flows={operationalFlows} onNavigate={onNavigate} t={t} />
+        <AdminPriorityBoard reminders={dashboardOverview.reminders} onNavigate={onNavigate} />
 
         <section className="admin-ops__board" aria-label={t('admin.dashboard.analyticsAria')}>
           <header className="admin-ops__board-head">

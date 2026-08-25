@@ -9,6 +9,7 @@ import {
   LockKeyhole,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Tag,
 } from 'lucide-react'
 import { env } from '../../config/env.js'
@@ -26,7 +27,10 @@ import {
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
 import {
   clearPendingPromotionCode,
+  promotionBenefitPresentation,
   promotionDestination,
+  promotionPaymentPresentation,
+  promotionScarcityPresentation,
   readPendingPromotionCode,
   redeemPromotionCode,
   savePendingPromotionCode,
@@ -41,6 +45,7 @@ import CheckoutDesk, { CheckoutBar } from '../../components/checkout/CheckoutDes
 import CodeScanButton from '../../components/ui/CodeScanButton.jsx'
 import MercadoPagoEmbeddedCheckout from '../../components/ui/MercadoPagoEmbeddedCheckout.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
+import PromotionRevealModal from '../../components/ui/PromotionRevealModal.jsx'
 import FeatureComingSoon from '../../components/ui/FeatureComingSoon.jsx'
 import Reveal from '../../components/ui/Reveal.jsx'
 import SeasonComboOffer from '../../components/ui/SeasonComboOffer.jsx'
@@ -94,6 +99,13 @@ export default function MembershipPurchaseSection({
   const [checkoutIsError, setCheckoutIsError] = useState(false)
   const [discountCodeInput, setDiscountCodeInput] = useState('')
   const [discountPreview, setDiscountPreview] = useState(null)
+  // Qué anunciar cuando el código resultó ser una promo con identidad propia.
+  // Es el payload del resolvedor, no el preview económico: el preview dice
+  // cuánto se paga, el resolvedor dice QUÉ se canjeó. El dato y "está abierto"
+  // son dos cosas distintas: cerrar el anuncio no puede borrar lo anunciado, o
+  // no queda nada para reabrir.
+  const [revealPromotion, setRevealPromotion] = useState(null)
+  const [revealOpen, setRevealOpen] = useState(false)
   // Oferta exclusiva recién canjeada desde esta pantalla. No entra al cálculo
   // del precio de la afiliación: la oferta se compra en el checkout del torneo.
   // Acá sólo se confirma el canje y se ofrece la ficha donde vive.
@@ -409,6 +421,14 @@ export default function MembershipPurchaseSection({
         return
       }
       setDiscountPreview(preview)
+      // El anuncio sale una sola vez y sólo cuando el resolvedor reconoció una
+      // promo: un cupón suelto no tiene nada que anunciar más allá del precio
+      // que ya se recalculó abajo. Va después del preview a propósito — si el
+      // preview rebota, no se festeja nada.
+      if (resolution?.accepted) {
+        setRevealPromotion(resolution)
+        setRevealOpen(true)
+      }
       clearPendingPromotionCode()
     } catch (error) {
       setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
@@ -486,6 +506,8 @@ export default function MembershipPurchaseSection({
   function clearDiscountCode() {
     setDiscountCodeInput('')
     setDiscountPreview(null)
+    setRevealPromotion(null)
+    setRevealOpen(false)
     setDiscountError('')
     setDiscountOpen(false)
   }
@@ -941,7 +963,25 @@ export default function MembershipPurchaseSection({
                           la plata. Sólo aparece si además hay un canal manual
                           que el atleta pueda declarar. */}
                       {discountPreview.financed && (transferSelectable || cashSelectable) ? (
-                        <p className="code-band-hint">{t('account.membership.discountFinanced')}</p>
+                        <p className="code-band-hint">
+                          {t('account.membership.discountFinanced', {
+                            days: discountPreview.financingTermDays,
+                          })}
+                        </p>
+                      ) : null}
+                      {/* El anuncio del canje se puede volver a abrir: sale
+                          una sola vez al aplicar el código y ahí están los
+                          canales, el cupo y la ventana, que no entran en la
+                          banda. */}
+                      {revealPromotion ? (
+                        <button
+                          type="button"
+                          className="code-band-detail"
+                          onClick={() => setRevealOpen(true)}
+                        >
+                          <Sparkles size={12} aria-hidden />
+                          {t('promotionReveal.reopen')}
+                        </button>
                       ) : null}
                       <button
                         type="button"
@@ -1221,9 +1261,12 @@ export default function MembershipPurchaseSection({
         <ManualPaymentConfirmation
           channel="cash_pitbull"
           financedEntitlementsAt={manualOrder.financedEntitlementsAt}
+          financedPaymentDueAt={manualOrder.financedPaymentDueAt}
           financingAllowed={manualOrder.financingAllowed}
           manualPaymentDeclaredAt={manualOrder.manualPaymentDeclaredAt}
           orderId={manualOrder.paymentId ?? manualOrder.id ?? null}
+          onNavigate={onNavigate}
+          profileTab="account-membership"
         />
       ) : null}
 
@@ -1246,6 +1289,27 @@ export default function MembershipPurchaseSection({
           scopes={['membership']}
           onUnlock={handleAccessUnlock}
           onCancel={() => setAccessGateOpen(false)}
+        />
+      ) : null}
+
+      {/* El momento del canje. Acá la acción principal no navega —el atleta ya
+          está en el checkout que va a cobrar el código—: cierra el anuncio y
+          deja abajo el precio recalculado. */}
+      {revealPromotion && revealOpen ? (
+        <PromotionRevealModal
+          campaignDescription={revealPromotion.campaign?.description ?? ''}
+          campaignName={revealPromotion.campaign?.name ?? ''}
+          code={revealPromotion.code}
+          continueLabel={t('promotionReveal.continueHere')}
+          expiresAt={promotionScarcityPresentation(revealPromotion)?.expiresAt ?? null}
+          headline={(() => {
+            const benefit = promotionBenefitPresentation(revealPromotion)
+            return t(`secretOfferRedeemer.benefit.${benefit.type}`, benefit)
+          })()}
+          onClose={() => setRevealOpen(false)}
+          onContinue={() => setRevealOpen(false)}
+          payment={promotionPaymentPresentation(revealPromotion)}
+          remaining={promotionScarcityPresentation(revealPromotion)?.remaining ?? null}
         />
       ) : null}
     </section>

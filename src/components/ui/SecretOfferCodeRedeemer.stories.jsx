@@ -86,3 +86,85 @@ export const SinSesion = {
     )
   },
 }
+
+/**
+ * Canje aceptado: el reveal, y la banda como registro al cerrarlo.
+ *
+ * El canje aceptado no se puede auditar sin una respuesta del servidor, así que
+ * estas dos historias interceptan `fetch` sobre el endpoint del canje y
+ * devuelven una promoción completa —precio pactado, sólo canales manuales, pago
+ * delegable con plazo, cupo corto y ventana con fecha—. Es el único caso que
+ * justifica la pieza: cuatro condiciones que como `small` bajo el input se
+ * leían como notas al pie.
+ */
+const CANJE_ACEPTADO = {
+  status: 'accepted',
+  action: 'apply_to_checkout',
+  code: 'COMBO-PITBULL-INVIERNO',
+  kind: 'fixed_price',
+  appliesTo: 'combo',
+  campaign: {
+    name: 'Combo Pitbull Classic',
+    description: 'Afiliación anual más inscripción al Pitbull Classic.',
+  },
+  benefit: {
+    fixedPrice: 120000,
+    manualChannels: ['bank_transfer', 'cash_pitbull'],
+    mercadoPagoEnabled: false,
+    financed: true,
+    financingTermDays: 7,
+    maxRedemptions: 10,
+    remaining: 4,
+    expiresAt: '2026-09-30T23:59:00.000Z',
+  },
+  destination: { view: 'profile', tab: 'account-membership' },
+}
+
+function withRedeemStub(Story) {
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input?.url ?? ''
+    if (url.includes('/codes/redeem')) {
+      return new Response(JSON.stringify(CANJE_ACEPTADO), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    return realFetch(input, init)
+  }
+  return <Story />
+}
+
+async function canjear(canvas) {
+  await userEvent.click(canvas.getByRole('button', { name: /tengo un código/i }))
+  await userEvent.type(await canvas.findByLabelText(/^código$/i), 'combo-pitbull-invierno')
+  await userEvent.click(canvas.getByRole('button', { name: /^canjear$/i }))
+}
+
+/** El momento del canje: el reveal, con el beneficio como titular. */
+export const CanjeAceptado = {
+  decorators: [withRedeemStub],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canjear(canvas)
+    // El diálogo se monta en el árbol del componente, no en un portal.
+    await waitFor(() => expect(canvas.getByRole('dialog')).toBeInTheDocument())
+  },
+}
+
+/**
+ * Cerrado el reveal, la banda queda como registro: el código aceptado, el
+ * beneficio en una línea, la acción que lleva al checkout y el reabrir. Nada se
+ * duplica — el detalle vive en el reveal.
+ */
+export const RegistroEnLaBanda = {
+  decorators: [withRedeemStub],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canjear(canvas)
+    await waitFor(() => expect(canvas.getByRole('dialog')).toBeInTheDocument())
+    await userEvent.click(canvas.getByRole('button', { name: /lo uso después/i }))
+    await waitFor(() => expect(canvas.queryByRole('dialog')).toBeNull())
+    await expect(canvas.getByRole('button', { name: /ver el beneficio/i })).toBeInTheDocument()
+  },
+}

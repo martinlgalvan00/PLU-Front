@@ -33,6 +33,12 @@ const ACTION_TONES = {
   'payment_brick.error': 'danger',
   'payment.approved_manually': 'success',
   'payment.rejected_manually': 'danger',
+  // El reloj del financiamiento corta igual que un rechazo, pero no es uno:
+  // la fila tiene que poder distinguirse para explicarle al atleta que lo dio
+  // de baja el plazo y no una persona (20260923100000).
+  'payment.financing_term_expired': 'danger',
+  'payment.financing_expiry_failed': 'danger',
+  'payment.financing_term_backfilled': 'warning',
   'payment.proof_uploaded': 'info',
   'membership.activated': 'success',
   'membership.activated_manually': 'success',

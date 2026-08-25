@@ -1,6 +1,7 @@
 import { EVENT_STATUS } from '../lib/events.js'
 import { money } from '../lib/format.js'
 import { findGatePendingRegistrations } from '../lib/gateAccess.js'
+import { getEventConsistencyWarnings } from './eventAdminService.js'
 import { isExpiringSoon } from './membershipService.js'
 
 const PENDING_PAYMENT_STATUSES = ['pendiente_pago', 'pendiente', 'validacion_manual', 'creado']
@@ -153,6 +154,172 @@ export function getAdminNavBadges({
   }
 }
 
+const REMINDER_SEVERITY_ORDER = { urgent: 0, warning: 1, info: 2 }
+const OPEN_EVENT_STATUSES = ['inscripcion_abierta', 'cupos_limitados']
+const CLOSING_SOON_DAYS = 7
+const NEARLY_FULL_RATIO = 0.9
+
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+/** Días calendario (no fracciones) entre hoy y la fecha objetivo. */
+function calendarDaysLeft(target, now) {
+  return Math.round((startOfDay(target) - startOfDay(now)) / 24 / 60 / 60 / 1000)
+}
+
+/**
+ * Mesa de prioridades del dashboard: una sola lectura de qué necesita
+ * decisión humana hoy. Cada ítem es un "tema" con severidad y sección
+ * destino — el caso individual sigue viviendo en la cola de trabajo.
+ * Todos los conteos salen del mismo snapshot que las tablas: ninguna
+ * llamada nueva al backend.
+ */
+export function buildDashboardReminders({
+  payments,
+  registrations,
+  memberships,
+  events = [],
+  pendingTicketOrders = [],
+  now = new Date(),
+}) {
+  const items = []
+
+  const manualValidationCount = payments.filter(
+    (payment) => payment.status === 'validacion_manual',
+  ).length
+  if (manualValidationCount > 0) {
+    items.push({
+      id: 'manual_payments',
+      kind: 'manual_payments',
+      severity: 'urgent',
+      count: manualValidationCount,
+      section: 'payments',
+    })
+  }
+
+  const inconsistentEvents = events.filter(
+    (event) => getEventConsistencyWarnings(event, event, now).length > 0,
+  )
+  if (inconsistentEvents.length > 0) {
+    items.push({
+      id: 'event_consistency',
+      kind: 'event_consistency',
+      severity: 'urgent',
+      count: inconsistentEvents.length,
+      section: 'events',
+      eventTitles: inconsistentEvents.map((event) => event.title).slice(0, 3),
+    })
+  }
+
+  const observedCount = registrations.filter(
+    (registration) => registration.status === 'observada',
+  ).length
+  if (observedCount > 0) {
+    items.push({
+      id: 'observed_registrations',
+      kind: 'observed_registrations',
+      severity: 'urgent',
+      count: observedCount,
+      section: 'registrations',
+    })
+  }
+
+  if (pendingTicketOrders.length > 0) {
+    items.push({
+      id: 'ticket_orders',
+      kind: 'ticket_orders',
+      severity: 'warning',
+      count: pendingTicketOrders.length,
+      section: 'payments',
+    })
+  }
+
+  const gateCount = findGatePendingRegistrations(registrations, { memberships, events }).length
+  if (gateCount > 0) {
+    items.push({
+      id: 'gate_registrations',
+      kind: 'gate_registrations',
+      severity: 'warning',
+      count: gateCount,
+      section: 'registrations',
+    })
+  }
+
+  const expiring = memberships.filter(
+    (membership) => membership.status === 'activa' && isExpiringSoon(membership.expirationDate),
+  )
+  if (expiring.length > 0) {
+    items.push({
+      id: 'expiring_memberships',
+      kind: 'expiring_memberships',
+      severity: 'warning',
+      count: expiring.length,
+      section: 'memberships',
+      earliestDate:
+        expiring
+          .map((membership) => membership.expirationDate)
+          .filter(Boolean)
+          .sort()[0] ?? null,
+    })
+  }
+
+  events
+    .filter((event) => {
+      if (!OPEN_EVENT_STATUSES.includes(event.status) || !event.registrationClosesAt) return false
+      const closesAt = new Date(event.registrationClosesAt)
+      if (Number.isNaN(closesAt.getTime())) return false
+      const daysLeft = calendarDaysLeft(closesAt, now)
+      return daysLeft >= 0 && daysLeft <= CLOSING_SOON_DAYS
+    })
+    .map((event) => {
+      const closesAt = new Date(event.registrationClosesAt)
+      return {
+        id: event.id ?? event.slug,
+        title: event.title,
+        closesAt: event.registrationClosesAt,
+        daysLeft: calendarDaysLeft(closesAt, now),
+      }
+    })
+    .sort((a, b) => a.daysLeft - b.daysLeft)
+    .forEach((event) => {
+      items.push({
+        id: `closing_event_${event.id}`,
+        kind: 'closing_event',
+        severity: 'warning',
+        count: event.daysLeft,
+        section: 'events',
+        event,
+      })
+    })
+
+  events
+    .filter((event) => {
+      if (!OPEN_EVENT_STATUSES.includes(event.status) || !event.slots) return false
+      const registered = event.registered ?? 0
+      return registered < event.slots && registered / event.slots >= NEARLY_FULL_RATIO
+    })
+    .forEach((event) => {
+      const registered = event.registered ?? 0
+      items.push({
+        id: `nearly_full_${event.id ?? event.slug}`,
+        kind: 'nearly_full_event',
+        severity: 'info',
+        count: Math.min(Math.round((registered / event.slots) * 100), 100),
+        section: 'events',
+        event: { title: event.title },
+      })
+    })
+
+  items.sort((a, b) => REMINDER_SEVERITY_ORDER[a.severity] - REMINDER_SEVERITY_ORDER[b.severity])
+
+  return {
+    items,
+    openCount: items.length,
+    urgentCount: items.filter((item) => item.severity === 'urgent').length,
+  }
+}
+
 function countByStatus(items, statuses) {
   const counts = Object.fromEntries(statuses.map((status) => [status, 0]))
   items.forEach((item) => {
@@ -167,6 +334,8 @@ export function buildDashboardOverview({
   registrations,
   payments,
   events = [],
+  pendingTicketOrders = [],
+  now = new Date(),
 }) {
   const pendingPayments = payments.filter((payment) =>
     PENDING_PAYMENT_STATUSES.includes(payment.status),
@@ -365,6 +534,14 @@ export function buildDashboardOverview({
     .slice(0, 5)
 
   return {
+    reminders: buildDashboardReminders({
+      payments,
+      registrations,
+      memberships,
+      events,
+      pendingTicketOrders,
+      now,
+    }),
     primary: [
       {
         labelKey: 'athletes',

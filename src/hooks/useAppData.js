@@ -761,8 +761,9 @@ export function useAppData() {
         registrations,
         payments,
         events: adminEvents,
+        pendingTicketOrders,
       }),
-    [athletes, memberships, registrations, payments, adminEvents],
+    [athletes, memberships, registrations, payments, adminEvents, pendingTicketOrders],
   )
 
   const dashboard = dashboardOverview.primary
@@ -982,6 +983,7 @@ export function useAppData() {
           financingAllowed: order.financingAllowed === true,
           manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
           financedEntitlementsAt: order.financedEntitlementsAt ?? null,
+          financedPaymentDueAt: order.financedPaymentDueAt ?? null,
           createdAt: order.createdAt,
         }
         setPayments((current) => [payment, ...current])
@@ -1180,6 +1182,7 @@ export function useAppData() {
           financingAllowed: order.financingAllowed === true,
           manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
           financedEntitlementsAt: order.financedEntitlementsAt ?? null,
+          financedPaymentDueAt: order.financedPaymentDueAt ?? null,
           createdAt: order.createdAt,
         }
         setPayments((current) => [payment, ...current])

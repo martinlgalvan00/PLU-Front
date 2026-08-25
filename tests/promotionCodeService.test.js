@@ -96,6 +96,9 @@ describe('servicio universal de códigos', () => {
     expect(soloEfectivo).toEqual({
       channels: ['cash_pitbull'],
       financed: false,
+      // Sin financiamiento no hay plazo que correr: null y no 7, para que
+      // ninguna pantalla muestre una fecha límite que no existe.
+      financingTermDays: null,
       gatewayClosed: true,
     })
   })
@@ -113,6 +116,9 @@ describe('servicio universal de códigos', () => {
     expect(financiado).toEqual({
       channels: ['mercado_pago', 'bank_transfer', 'cash_pitbull'],
       financed: true,
+      // El código no trajo plazo propio: 7 días, el mismo default que
+      // aplica `settle_order_financing` al fotografiar la orden.
+      financingTermDays: 7,
       gatewayClosed: false,
     })
 
@@ -124,7 +130,12 @@ describe('servicio universal de códigos', () => {
         accepted: true,
         benefit: { manualChannels: [], mercadoPagoEnabled: true, financed: true },
       }),
-    ).toEqual({ channels: ['mercado_pago'], financed: false, gatewayClosed: false })
+    ).toEqual({
+      channels: ['mercado_pago'],
+      financed: false,
+      financingTermDays: null,
+      gatewayClosed: false,
+    })
   })
 
   it('no dice nada del cobro cuando el canje fue rechazado', () => {

@@ -1457,9 +1457,37 @@ export function createAthleteRoutes({
         // Sin combo vigente el paquete puede ser el de una oferta que este
         // atleta ya canjeó: la llave trae su propia afiliación y se cotiza
         // contra la suma de las partes. Es la misma regla que aplica la RPC.
-        const comboOffer = await repo().findEventComboOffer(eventSlug, {
+        let comboOffer = await repo().findEventComboOffer(eventSlug, {
           athleteId: auth.athleteId,
         })
+        // Segundo intento: el código que trae el request PUEDE SER esa llave.
+        // Un código de combo (`fixed_price` + alcance `combo`) describe el
+        // paquete entero desde 20260918100000, pero el resolvedor lo busca en
+        // `discount_code_unlocks`, así que hay que registrarlo antes — si no,
+        // quien pega el código directo en el checkout recibe un 404 y la única
+        // salida sería pasar primero por Mi cuenta.
+        //
+        // Sólo cuando no hubo paquete: con un combo del evento vigente manda
+        // ese, y escribir un canje que nadie va a leer sería ruido en la
+        // auditoría. El canje no consume cupo ni fija importe —sólo deja
+        // constancia de que este atleta tiene el código— y la validación real
+        // sigue siendo la de más abajo, así que un código que no sirva no gana
+        // nada por haber pasado por acá.
+        if (!comboOffer) {
+          // Los dos campos, porque el atleta pega el código en el que le
+          // resulta familiar: mismo criterio que
+          // `assertComboAccessCodeOrDiscountCode`.
+          for (const candidate of [
+            req.validatedBody.discountCode,
+            req.validatedBody.comboAccessCode,
+          ]) {
+            if (!candidate) continue
+            await repo().unlockOfferCode(auth.athleteId, candidate)
+          }
+          comboOffer = await repo().findEventComboOffer(eventSlug, {
+            athleteId: auth.athleteId,
+          })
+        }
         if (!comboOffer) throw new HttpError(404, 'El combo no está disponible para este evento.')
         // Acepta el access_code del evento o un discount_code kind='access':
         // el atleta puede haber pegado el código secreto en cualquiera de los

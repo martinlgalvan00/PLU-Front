@@ -21,6 +21,8 @@ const PUBLIC_VIEW_PATHS = Object.freeze({
   sponsors: '/sponsors',
   standards: '/estandares',
   profile: '/perfil',
+  login: '/acceder',
+  register: '/crear-cuenta',
 })
 
 /**

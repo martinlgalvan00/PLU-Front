@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -29,7 +29,13 @@ function walk(dir, acc = []) {
   return acc
 }
 
-const SOURCES = [...walk(resolve('server')), ...walk(resolve('src')), ...walk(resolve('scripts'))]
+// `shared/` aloja codigo que leen server y cliente (p. ej. wisePricing.js);
+// si el contrato no lo escanea, toda variable que viva ahi aparece como muerta.
+const SOURCE_ROOTS = ['server', 'src', 'scripts', 'shared'].filter((dir) =>
+  existsSync(resolve(dir)),
+)
+
+const SOURCES = SOURCE_ROOTS.flatMap((dir) => walk(resolve(dir)))
   .map((file) => readFileSync(file, 'utf8'))
   .join('\n')
 

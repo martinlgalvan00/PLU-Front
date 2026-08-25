@@ -1,0 +1,402 @@
+/* Reveal del canje — la llave aceptada como emisión — PLU ARG
+   ---------------------------------------------------------------------------
+   El resultado de un canje aceptado. Antes vivía como un renglón debajo del
+   input: campaña en negrita, beneficio en gris, dos `small` con los medios de
+   pago. Todo al mismo peso, así que lo que decide —qué desbloqueó— no se
+   distinguía de las notas al pie.
+
+   El material es el que ya tiene la app para las piezas que emite la
+   federación: `credential-card.css` y `code-band.css`. Se toman con los mismos
+   valores la cara en degradé 158deg, el filo de oro al 34 %, el marco interior
+   al 7 % de blanco, el grano estático y el código en el mono espaciado 0.18em
+   del número de socio. No hay lenguaje nuevo: hay el de la credencial aplicado
+   a un documento distinto.
+
+   Presupuesto: un solo acento (oro; el celeste queda para el foco, que es
+   navegación), una sola acción plena, cero cards anidadas —el panel ES la
+   pieza, las condiciones van en filas regladas y no en tarjetas—, un solo
+   efecto atmosférico estático y una sola secuencia de entrada one-shot. Sin
+   ráfaga de papel: el confeti está reservado a los tres cierres de trámite, y
+   canjear un código abre uno.
+
+   Motion: overlay en opacidad, panel en transform, contenido en un stagger de
+   cuatro pasos por `animation-delay`. Nada anima layout ni fondo, no hay
+   `transition: all` y no queda ningún loop. Bajo `prefers-reduced-motion` la
+   pieza aparece completa. */
+
+.promotion-reveal__overlay {
+  align-items: center;
+  animation: promotion-reveal-fade var(--motion-fast, 160ms) var(--ease-out) both;
+  background: rgba(5, 6, 9, 0.78);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 20px;
+  position: fixed;
+  /* Sobre el header (200) y a la par del resto de los modales de checkout. */
+  z-index: 210;
+}
+
+.promotion-reveal {
+  /* Espejo de code-band.css. Local y no global: el rol es "documento de canje",
+     no un color de marca nuevo. */
+  --reveal-face: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  --reveal-wash-gold: color-mix(in oklab, var(--plu-gold-500) 15%, transparent);
+  --reveal-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
+  --reveal-edge: color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  --reveal-frame: color-mix(in oklab, #fff 7%, transparent);
+  --reveal-lip: rgba(255, 255, 255, 0.08);
+  --reveal-grain-a: rgba(255, 255, 255, 0.03);
+  --reveal-grain-b: rgba(255, 255, 255, 0.01);
+  --reveal-ink: color-mix(in oklab, var(--plu-gold-400) 88%, #fff);
+  --reveal-label: color-mix(in oklab, #fff 38%, transparent);
+  --reveal-copy: color-mix(in oklab, #fff 92%, transparent);
+  --reveal-body: color-mix(in oklab, #fff 62%, transparent);
+  --reveal-rule: rgba(255, 255, 255, 0.08);
+
+  animation: promotion-reveal-rise var(--motion-slow, 480ms) var(--ease-cinematic) both;
+  background:
+    radial-gradient(70% 55% at 100% 0%, var(--reveal-wash-gold) 0%, transparent 55%),
+    radial-gradient(55% 45% at 0% 100%, var(--reveal-wash-celeste) 0%, transparent 50%),
+    var(--reveal-face);
+  border: 1px solid var(--reveal-edge);
+  border-radius: var(--institution-radius-surface);
+  box-shadow:
+    inset 0 1px 0 var(--reveal-lip),
+    0 32px 90px -30px rgba(0, 0, 0, 0.75);
+  isolation: isolate;
+  max-height: min(92vh, 720px);
+  max-width: 470px;
+  overflow: hidden auto;
+  padding: 4px;
+  position: relative;
+  width: 100%;
+}
+
+/* La credencial es oscura por definición; en light se traduce a papel cálido
+   conservando el filo de oro y el marco interior, que son lo que la identifica.
+   Mismos valores que `[data-theme='light'] .code-band`. */
+[data-theme='light'] .promotion-reveal {
+  --reveal-face: linear-gradient(158deg, #ffffff 0%, #fbfaf7 52%, #f6f4ef 100%);
+  --reveal-wash-gold: color-mix(in oklab, var(--color-brand-gold-dark) 9%, transparent);
+  --reveal-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 6%, transparent);
+  --reveal-edge: color-mix(in oklab, var(--color-brand-gold-dark) 38%, rgba(15, 17, 23, 0.08));
+  --reveal-frame: rgba(15, 17, 23, 0.05);
+  --reveal-lip: rgba(255, 255, 255, 0.9);
+  --reveal-grain-a: rgba(15, 17, 23, 0.02);
+  --reveal-grain-b: rgba(15, 17, 23, 0.012);
+  --reveal-ink: #8a5f08;
+  --reveal-label: rgba(13, 14, 18, 0.45);
+  --reveal-copy: #0f1117;
+  --reveal-body: rgba(13, 14, 18, 0.66);
+  --reveal-rule: rgba(15, 17, 23, 0.1);
+
+  box-shadow:
+    inset 0 1px 0 var(--reveal-lip),
+    0 32px 90px -34px rgba(15, 17, 23, 0.34);
+}
+
+.promotion-reveal__grain {
+  background:
+    linear-gradient(122deg, transparent 36%, var(--reveal-grain-a) 50%, transparent 64%),
+    repeating-linear-gradient(135deg, var(--reveal-grain-b) 0 1px, transparent 1px 13px);
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.promotion-reveal__frame {
+  border: 1px solid var(--reveal-frame);
+  border-radius: 11px;
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  z-index: 2;
+}
+
+/* Stagger de entrada: cuatro pasos y se termina. El grano y el marco no entran
+   —son el material de la pieza, no contenido—. */
+.promotion-reveal__frame > * {
+  animation: promotion-reveal-line var(--motion-base, 240ms) var(--ease-out) both;
+}
+
+.promotion-reveal__frame > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.promotion-reveal__frame > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.promotion-reveal__frame > *:nth-child(4) {
+  animation-delay: 140ms;
+}
+
+.promotion-reveal__frame > *:nth-child(n + 5) {
+  animation-delay: 180ms;
+}
+
+.promotion-reveal__head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+/* El tracking de 0.28em es el de `.credential-card__mark` y `.code-band__mark`:
+   es lo que hace que la línea se lea como emisión y no como etiqueta. */
+.promotion-reveal__mark {
+  color: var(--reveal-label);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.promotion-reveal__close {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: var(--reveal-label);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  /* Target táctil completo sin agrandar el ícono ni descuadrar la fila. */
+  height: 44px;
+  justify-content: center;
+  margin: -12px -8px -12px 0;
+  padding: 0;
+  transition: color var(--transition-fast);
+  width: 44px;
+}
+
+.promotion-reveal__close:hover {
+  color: var(--reveal-copy);
+}
+
+.promotion-reveal__close:focus-visible,
+.promotion-reveal__continue:focus-visible,
+.promotion-reveal__dismiss:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+.promotion-reveal__eyebrow {
+  color: var(--reveal-ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* El titular: el beneficio. Escala de H2 acotada porque la frase entra en el
+   ancho del panel, no en el de la página. */
+.promotion-reveal__headline {
+  color: var(--reveal-copy);
+  font-family: var(--font-display);
+  font-size: clamp(21px, 5.2vw, 27px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.18;
+  margin: 0;
+  max-width: 24ch;
+}
+
+.promotion-reveal__lead {
+  color: var(--reveal-body);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.promotion-reveal__key {
+  align-items: center;
+  border-block: 1px solid var(--reveal-rule);
+  display: flex;
+  gap: 11px;
+  margin: 2px 0 0;
+  padding-block: 12px;
+}
+
+.promotion-reveal__key-seal {
+  align-items: center;
+  border: 1px solid var(--reveal-edge);
+  border-radius: 6px;
+  color: var(--reveal-ink);
+  display: inline-flex;
+  flex: none;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+/* El código, con el mismo tratamiento que el número de socio de la credencial
+   (`.credential-card__code-value`) y que `.code-band__input`. */
+.promotion-reveal__key-value {
+  color: var(--reveal-ink);
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+/* Condiciones: filas regladas, no tarjetas. Es el registro de lo que el código
+   habilita, y se lee de un tirón. */
+.promotion-reveal__terms {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.promotion-reveal__term {
+  display: grid;
+  gap: 2px 16px;
+  grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
+  padding-block: 9px;
+}
+
+.promotion-reveal__term + .promotion-reveal__term {
+  border-block-start: 1px solid var(--reveal-rule);
+}
+
+.promotion-reveal__term dt {
+  color: var(--reveal-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.promotion-reveal__term dd {
+  color: var(--reveal-body);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.promotion-reveal__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 4px;
+}
+
+/* Chip metálico: el mismo degradé del chip de la credencial y de
+   `.code-band__chip`. Es la única acción plena de la pieza. */
+.promotion-reveal__continue {
+  align-items: center;
+  background: linear-gradient(145deg, #f8e7a8 0%, #e0b03a 42%, #a9790f 72%, #f3e6b0 100%);
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: #14181f;
+  cursor: pointer;
+  display: inline-flex;
+  font: 700 12px/1 var(--font-family);
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  min-height: 44px;
+  padding-inline: 18px;
+  text-transform: uppercase;
+  transition:
+    filter var(--transition-fast),
+    transform var(--transition-fast);
+  white-space: nowrap;
+}
+
+.promotion-reveal__continue:hover {
+  filter: brightness(1.06);
+}
+
+.promotion-reveal__continue:active {
+  transform: translateY(1px);
+}
+
+.promotion-reveal__dismiss {
+  background: transparent;
+  border: 0;
+  color: var(--reveal-label);
+  cursor: pointer;
+  font: 400 12px/1 var(--font-family);
+  min-height: 44px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.promotion-reveal__dismiss:hover {
+  color: var(--reveal-copy);
+}
+
+@keyframes promotion-reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes promotion-reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+@keyframes promotion-reveal-line {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (max-width: 430px) {
+  .promotion-reveal__overlay {
+    /* En teléfono la pieza se apoya abajo: el pulgar llega a la acción sin
+       recorrer la pantalla. */
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .promotion-reveal {
+    border-block-end: 0;
+    border-radius: var(--institution-radius-surface) var(--institution-radius-surface) 0 0;
+    max-height: 92vh;
+  }
+
+  .promotion-reveal__term {
+    /* Etiqueta arriba del valor: dos columnas a 360px dejan el valor en tres
+       palabras por renglón. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .promotion-reveal__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .promotion-reveal__continue {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promotion-reveal__overlay,
+  .promotion-reveal,
+  .promotion-reveal__frame > * {
+    animation: none;
+  }
+}
