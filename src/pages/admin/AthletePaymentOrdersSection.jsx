@@ -93,15 +93,28 @@ function formatDateTime(value, locale) {
 }
 
 /**
- * A cuántos días del vencimiento del plazo de financiamiento está esta orden.
- * Redondea hacia arriba en días completos: "vence hoy" cuenta como 0, no
- * queda escondido entre "vence en 1 día" y "vencido hace 1 día".
+ * A cuántos días de calendario está el vencimiento del plazo de financiamiento.
+ *
+ * Se cuenta por fecha y no por múltiplos de 24 h: el plazo es un timestamptz,
+ * así que dividir la diferencia por 86.400.000 corría todas las etiquetas un
+ * casillero —un vencimiento de esta tarde daba `ceil(0,4) = 1` y el panel decía
+ * "vence mañana", y uno de esta mañana daba `ceil(-0,4) = 0` y decía "vence
+ * hoy" cuando ya estaba vencido—. Normalizar a medianoche local hace que "hoy",
+ * "mañana" y "ayer" signifiquen lo que dicen para quien mira el panel.
  */
+function calendarDaysUntil(due, now) {
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const to = new Date(due.getFullYear(), due.getMonth(), due.getDate())
+  // `round` y no división exacta: un cambio de horario de verano entre las dos
+  // fechas deja la diferencia en 23 o 25 horas.
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000)
+}
+
 function financingDueInfo(dueAt, t) {
   if (!dueAt) return null
   const due = new Date(dueAt)
   if (Number.isNaN(due.getTime())) return null
-  const days = Math.ceil((due.getTime() - Date.now()) / 86_400_000)
+  const days = calendarDaysUntil(due, new Date())
   if (days === 0) {
     return { tone: 'warning', label: t('admin.athletePayments.financingDueToday') }
   }

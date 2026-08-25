@@ -9,7 +9,14 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * (ver la lección de adminOperationalFlows.test.js).
  */
 function inDays(days) {
-  return new Date(Date.now() + days * DAY_MS).toISOString().slice(0, 10)
+  // Fecha LOCAL, no el corte UTC de `toISOString`. `calendarDaysLeft` compara
+  // medianoches locales (`startOfDay` usa getFullYear/getMonth/getDate), así que
+  // el corte UTC hacía fallar el caso "cierra hoy" todas las noches: pasadas las
+  // 21:00 en UTC-3 la fecha UTC ya es la de mañana e `inDays(0)` devolvía mañana.
+  const date = new Date(Date.now() + days * DAY_MS)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 function baseSnapshot(overrides = {}) {

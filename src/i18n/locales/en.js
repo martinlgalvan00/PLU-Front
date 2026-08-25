@@ -154,6 +154,27 @@ export default {
       service_unavailable: 'We could not validate the code. Please try again.',
     },
   },
+  promotionReveal: {
+    mark: 'PLU · Key accepted',
+    close: 'Close',
+    later: 'I will use it later',
+    continueHere: 'Continue to payment',
+    reopen: 'See the benefit',
+    paymentWith: 'Paid with {{channels}}.',
+    paymentOnly: 'Only with {{channels}}.',
+    financingWithTerm:
+      'You can tell us you paid and you are enabled right away. Finance has {{days}} days to credit it; if it does not arrive, the entitlement is revoked automatically.',
+    financingWithTermOne:
+      'You can tell us you paid and you are enabled right away. Finance has 1 day to credit it; if it does not arrive, the entitlement is revoked automatically.',
+    remainingValue: '{{count}} spots left.',
+    remainingValueOne: '1 spot left.',
+    terms: {
+      payment: 'How to pay',
+      financing: 'Deferred payment',
+      remaining: 'Quota',
+      window: 'Valid until',
+    },
+  },
   codeBand: {
     markKey: 'PLU · Private key',
     markCode: 'PLU · Code',
@@ -197,7 +218,7 @@ export default {
       financedGranted:
         'Your membership and registration are enabled. The balance is still pending validation.',
       financedGrantedWithDeadline:
-        'Your membership and registration are enabled. You have until {{date}} for Finance to credit the payment.',
+        'Your membership and registration are enabled. You have until {{date}} for Finance to credit the payment — if it does not arrive, both are revoked automatically.',
       pendingReview: 'Finance has been notified. The payment is still pending validation.',
       error: 'We could not record the notice. Please try again.',
     },

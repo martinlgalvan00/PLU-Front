@@ -103,6 +103,12 @@
   border-radius: 7px;
   display: grid;
   gap: 12px;
+  /* La columna implícita es `auto`, y su mínimo es el min-content de las filas:
+     una fila con un mínimo inflado (ver el chip en el media query de abajo)
+     empujaba la pista más allá de la banda y la banda —que es `overflow:
+     hidden`— recortaba el estado y el código. Con la pista libre de crecer por
+     mínimos, la fila envuelve como estaba previsto. */
+  grid-template-columns: minmax(0, 1fr);
   padding: 15px 17px;
   position: relative;
   z-index: 2;
@@ -322,6 +328,41 @@
   line-height: 1.45;
 }
 
+/* Reabrir el anuncio del canje. Vive en esta hoja y no en la del canje
+   universal porque la usan las dos superficies vivas —Afiliación e
+   Inscripción—, y `secret-code-redeemer.css` no está importada en ninguna de
+   las dos: ahí el botón habría salido sin estilo. Va dentro del registro y no
+   en la fila de acciones a propósito: abajo compite con la acción plena, y acá
+   es lo que es —una forma de volver a leer el detalle—. */
+.code-band-detail {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 11.5px/1 var(--font-family);
+  gap: 6px;
+  justify-self: start;
+  margin-block-start: 6px;
+  min-height: 32px;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.code-band-detail:hover {
+  color: var(--color-brand-gold);
+}
+
+[data-theme='light'] .code-band-detail:hover {
+  color: var(--color-brand-gold-dark);
+}
+
+.code-band-detail:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
 /* Entrada al canje: el sello con el filo de oro y una línea, sin celeste —
    esto no es navegación. */
 .code-band-toggle {
@@ -404,9 +445,17 @@
 
 @media (max-width: 430px) {
   /* En teléfono la acción ocupa el ancho completo, como el resto de los
-     controles de la app. */
+     controles de la app.
+
+     Sin `width: 100%` y con `min-width: 0`: el `width` porcentual sobre un ítem
+     flex con `flex-shrink: 0` se resolvía como un mínimo intrínseco de 278px —
+     medido en el render, no deducido—, y ese piso convertía la banda entera en
+     un bloque de 278px dentro de un teléfono de 360 o 390. El resultado era la
+     banda recortando "Sin canjear" y el código, en las tres pantallas que la
+     usan. La base del 100 % ya hace que el chip ocupe su propio renglón; lo que
+     no puede hacer es fijar el ancho mínimo del bloque que lo contiene. */
   .code-band__chip {
     flex: 1 0 100%;
-    width: 100%;
+    min-width: 0;
   }
 }

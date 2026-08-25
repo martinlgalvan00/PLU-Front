@@ -925,3 +925,69 @@ describe('Tarifas — alta de planes y combo', () => {
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeTruthy()
   })
 })
+
+/**
+ * Plazo de pago del financiamiento en el panel (20260922100000).
+ *
+ * El servidor devuelve `financingTermDays` desde esa migración, pero
+ * `mapDiscountCode` lo descartaba: `openCodeForm` leía `source.financingTermDays
+ * ?? 7`, es decir SIEMPRE 7, así que abrir para editar un código de 30 días
+ * mostraba 7 — y guardarlo le reescribía el plazo sin que nadie lo hubiera
+ * tocado. Estos tests fijan que el plazo se lea, se muestre y se devuelva.
+ */
+describe('Tarifas — plazo del financiamiento', () => {
+  const codigoFinanciado = {
+    id: 'coupon-financiado',
+    code: 'COMBO-30',
+    kind: 'fixed_price',
+    fixedPrice: 120000,
+    appliesTo: 'combo',
+    audience: 'code',
+    redeemedCount: 0,
+    active: true,
+    manualChannels: ['bank_transfer'],
+    mercadoPagoEnabled: false,
+    financed: true,
+    financingTermDays: 30,
+  }
+
+  it('el listado dice el plazo, no sólo que el pago se puede delegar', () => {
+    renderPricing({ configuration: { ...configuration, discountCodes: [codigoFinanciado] } })
+
+    // Es el dato que mide el riesgo de la promo: con treinta códigos en pantalla
+    // no se puede abrir el formulario de cada uno para averiguarlo.
+    expect(screen.getByText('Pago delegable · 30 días')).toBeTruthy()
+  })
+
+  it('editar un código financiado abre el formulario con SU plazo', async () => {
+    renderPricing({ configuration: { ...configuration, discountCodes: [codigoFinanciado] } })
+
+    // El listado tiene un solo código, así que 'Editar' es inequívoco.
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }))
+
+    const term = await screen.findByLabelText(/Plazo para pagar/i)
+    expect(term.value).toBe('30')
+  })
+
+  it('un plazo de un día se dice en singular', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        discountCodes: [{ ...codigoFinanciado, financingTermDays: 1 }],
+      },
+    })
+
+    expect(screen.getByText('Pago delegable · 1 día')).toBeTruthy()
+  })
+
+  it('un código que no financia no anuncia ningún plazo', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        discountCodes: [{ ...codigoFinanciado, financed: false, financingTermDays: null }],
+      },
+    })
+
+    expect(screen.queryByText(/Pago delegable/)).toBeNull()
+  })
+})
