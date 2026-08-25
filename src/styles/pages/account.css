@@ -3175,6 +3175,28 @@
   max-width: 36ch;
 }
 
+/* Beneficio provisorio por financiamiento: la credencial ya está habilitada,
+   pero el plazo puede vencer y darla de baja sola. Mismos tokens que el aviso
+   de pago manual del checkout (register.css .manual-note), declarados acá
+   para no importar esa hoja de estilos en el perfil. */
+.account-qr__financing-note {
+  align-items: center;
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-primary);
+  display: flex;
+  gap: 10px;
+  line-height: 1.45;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+}
+
+.account-qr__financing-note svg {
+  color: var(--color-brand-gold);
+  flex: none;
+}
+
 [data-theme='light'] .account-qr__preview {
   background:
     radial-gradient(ellipse 70% 50% at 90% 0%, rgba(242, 183, 5, 0.1), transparent 55%),

@@ -129,6 +129,42 @@ describe('ingesta publica (/api/analytics/collect)', () => {
     }
   })
 
+  it('acepta un lote solo con tiempo activo', async () => {
+    const { target, analytics } = await setup()
+
+    try {
+      const response = await collect(target.url, {
+        events: [],
+        context: { path: '/mi-cuenta', activeMs: 15_000 },
+      })
+
+      expect(response.status).toBe(202)
+      const [call] = analytics.ingest.mock.calls
+      expect(call[0].events).toEqual([])
+      expect(call[0].context.activeMs).toBe(15_000)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('responde 202 aunque la escritura falle: la analitica no degrada la navegacion', async () => {
+    const { target, analytics } = await setup()
+    analytics.ingest.mockRejectedValueOnce(
+      Object.assign(new Error('PLU91 · lote de eventos vacio'), { status: 503 }),
+    )
+
+    try {
+      const response = await collect(target.url, {
+        events: [{ type: 'pageview', path: '/' }],
+      })
+
+      expect(response.status).toBe(202)
+      expect(await response.json()).toMatchObject({ accepted: 0, deferred: true })
+    } finally {
+      await target.close()
+    }
+  })
+
   it('rechaza coordenadas fuera del rango normalizado', async () => {
     // El heatmap agrupa sobre 0..1: un valor en pixeles rompe la grilla.
     const { target } = await setup()

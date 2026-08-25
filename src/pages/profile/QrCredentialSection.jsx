@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, Lock, Share2 } from 'lucide-react'
+import { CheckCircle2, Clock, Lock, Share2 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import CardPreviewModal from '../../components/ui/CardPreviewModal.jsx'
 import ConfirmationSeal from '../../components/ui/ConfirmationSeal.jsx'
@@ -12,6 +12,7 @@ import {
 } from '../../lib/credentialQr.js'
 import { hasCelebrated, markCelebrated } from '../../lib/celebration.js'
 import { hasPlayedCredentialMerge } from '../../lib/credentialMerge.js'
+import { computeFinancingRemaining, formatFinancingCountdown } from '../../lib/financingCountdown.js'
 import { formatShortDate } from '../../lib/format.js'
 import {
   getRegistrationGateLabelKey,
@@ -37,6 +38,7 @@ export default function QrCredentialSection({
   membership,
   latestMembership = null,
   registrations = [],
+  pendingFinancedPayment = null,
   onNavigateSection,
   onNavigate,
 }) {
@@ -85,6 +87,18 @@ export default function QrCredentialSection({
     !hasPlayedCredentialMerge(athlete?.id, membership.id) &&
     !mergeDone
   const qrBusy = hasCredential && !qrSrc && !qrFailed
+
+  // La credencial ya sale habilitada por financiamiento (afiliación 'activa',
+  // inscripción 'confirmada'), pero ese derecho sigue provisorio mientras
+  // Finanzas no acredite el pago: sin este cartel la pantalla prometía un
+  // beneficio incondicional que el cron puede dar de baja solo si vence el
+  // plazo (`expire_financed_payment_orders`, 20260922100000).
+  const financingRemaining = pendingFinancedPayment
+    ? computeFinancingRemaining(pendingFinancedPayment.financedPaymentDueAt)
+    : null
+  const financingCountdownLabel = financingRemaining
+    ? formatFinancingCountdown(financingRemaining, t)
+    : ''
 
   /* ── El momento en que la credencial existe ──
      Antes la persona pagaba la afiliación, volvía a su cuenta y encontraba el
@@ -362,6 +376,13 @@ export default function QrCredentialSection({
               initialFormat={cardInitialFormat}
             />
           )}
+
+          {financingCountdownLabel ? (
+            <p className="account-qr__financing-note" role="status">
+              <Clock size={15} aria-hidden />
+              <span>{financingCountdownLabel}</span>
+            </p>
+          ) : null}
         </>
       ) : (
         <div className="account-qr account-qr--locked">

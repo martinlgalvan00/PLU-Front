@@ -226,10 +226,21 @@ export default {
       financedTitle: 'Ya estás afiliado e inscripto',
       financedGranted:
         'Tu afiliación y tu inscripción ya están habilitadas. El saldo sigue pendiente de validación.',
-      // Con plazo conocido (20260922100000): la fecha límite real, no solo
-      // "sigue pendiente" — es la que usa el administrador para dar de baja.
-      financedGrantedWithDeadline:
-        'Tu afiliación y tu inscripción ya están habilitadas. Tenés hasta el {{date}} para que Finanzas acredite el pago: si no llega, se dan de baja solas.',
+      // Con plazo conocido (20260922100000): cuenta regresiva en vez de fecha
+      // absoluta — "6 días con 20 horas" se entiende de un vistazo, una fecha
+      // pide hacer la resta. La consecuencia (baja automática) va en el
+      // countdown mismo, no en una frase aparte.
+      financedActiveNow: 'Tus beneficios ya están activos.',
+      financedCountdownDaysHours:
+        'Te quedan {{days}} con {{hours}} para que Finanzas acredite tu pago.',
+      financedCountdownDaysOnly: 'Te quedan {{days}} para que Finanzas acredite tu pago.',
+      financedCountdownHoursOnly: 'Te quedan {{hours}} para que Finanzas acredite tu pago.',
+      financedCountdownExpiring: 'Está por vencer el plazo para que Finanzas acredite tu pago.',
+      financedDaysUnit_one: '{{count}} día',
+      financedDaysUnit_other: '{{count}} días',
+      financedHoursUnit_one: '{{count}} hora',
+      financedHoursUnit_other: '{{count}} horas',
+      goProfile: 'Volver a mi perfil',
       pendingReview: 'Avisamos a Finanzas. El pago sigue pendiente de validación.',
       error: 'No pudimos registrar el aviso. Intentá nuevamente.',
     },
@@ -1465,6 +1476,11 @@ export default {
         inactive: 'Ese código ya no está disponible.',
         expired: 'Ese código venció.',
         not_applicable: 'Ese código no aplica a este pago.',
+        not_applicable_membership: 'Ese código es solo para afiliación.',
+        not_applicable_registration: 'Ese código es solo para inscripción.',
+        not_applicable_combo:
+          'Ese código es del combo (afiliación + inscripción juntas). Usalo en el paquete combo, no en cada pago por separado.',
+        not_applicable_both: 'Ese código aplica a afiliación o a inscripción, no a este checkout.',
         limit_reached: 'Ese código alcanzó el máximo de usos.',
         already_used: 'Ya usaste ese código.',
         no_savings: 'Ese código no mejora el precio de esta compra.',
@@ -3170,6 +3186,11 @@ export default {
         inactive: 'Ese código ya no está disponible.',
         expired: 'Ese código venció.',
         not_applicable: 'Ese código no aplica a este pago.',
+        not_applicable_membership: 'Ese código es solo para afiliación.',
+        not_applicable_registration: 'Ese código es solo para inscripción.',
+        not_applicable_combo:
+          'Ese código es del combo (afiliación + inscripción juntas). Usalo en el paquete combo, no en cada pago por separado.',
+        not_applicable_both: 'Ese código aplica a afiliación o a inscripción, no a este checkout.',
         limit_reached: 'Ese código alcanzó el máximo de usos.',
         already_used: 'Ya usaste ese código.',
         no_savings: 'Ese código no mejora el precio de esta compra.',

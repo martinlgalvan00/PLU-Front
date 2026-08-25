@@ -82,6 +82,27 @@ export default function AthleteProfilePage({
     ? registrations.filter((item) => item.athleteId === athleteId)
     : []
   const athletePayments = athleteId ? payments.filter((item) => item.athleteId === athleteId) : []
+  // La credencial ya se emite con el derecho habilitado por financiamiento
+  // (afiliación 'activa', inscripción 'confirmada' — ver
+  // athlete_confirm_manual_payment, 20260909100000): lo que la pantalla no
+  // sabe todavía es que ese derecho sigue provisorio hasta que Finanzas
+  // acredite. Se toma la orden financiada más próxima a vencer -- si hay más
+  // de una abierta, es la que más urge -- y no revocada ni ya aprobada: una
+  // vez que Finanzas acredita, el beneficio deja de ser condicional.
+  const pendingFinancedPayment =
+    athletePayments
+      .filter(
+        (item) =>
+          item.financingAllowed &&
+          item.financedEntitlementsAt &&
+          !item.financedEntitlementsRevokedAt &&
+          item.status !== 'aprobado',
+      )
+      .sort((a, b) => {
+        const aDue = a.financedPaymentDueAt ? new Date(a.financedPaymentDueAt).getTime() : Infinity
+        const bDue = b.financedPaymentDueAt ? new Date(b.financedPaymentDueAt).getTime() : Infinity
+        return aDue - bDue
+      })[0] ?? null
   // Cobro rechazado/vencido sin resolver: la ficha "Pagos" lo marca desde la
   // navegación para que se note sin tener que entrar a leer la lista.
   const paymentsNeedAttention = athletePayments.some((item) => isPaymentActionable(item.progress))
@@ -152,6 +173,7 @@ export default function AthleteProfilePage({
         membership={membership}
         latestMembership={storedMembership}
         registrations={athleteRegistrations}
+        pendingFinancedPayment={pendingFinancedPayment}
         onNavigateSection={setActiveTab}
         onNavigate={onNavigate}
       />

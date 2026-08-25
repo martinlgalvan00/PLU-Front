@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { CheckCircle2, LoaderCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, LoaderCircle } from 'lucide-react'
 import { confirmAthleteManualPayment } from '../../services/athleteApi.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import ConfirmationSeal from '../ui/ConfirmationSeal.jsx'
 import MotionContentSwap from '../../motion/MotionContentSwap.tsx'
+import { computeFinancingRemaining, formatFinancingCountdown } from '../../lib/financingCountdown.js'
 import '../../styles/components/transfer-pay-modal.css'
 
 /**
@@ -14,32 +15,9 @@ import '../../styles/components/transfer-pay-modal.css'
  * activa—, así que disparado en el acto desmontaba el sello a mitad de la
  * ráfaga: la persona confirmaba y aparecía en otra pestaña sin haber leído qué
  * pasó. Cubre el sello estampado (560 ms) más la ráfaga (~1,2 s). No demora
- * nada cuando no hay nada que festejar. La navegación al perfil (más abajo)
- * reusa el mismo margen: es la misma razón, aplicada a dejar la pantalla.
+ * nada cuando no hay nada que festejar.
  */
 const CELEBRATION_HOLD_MS = 2200
-
-/**
- * `financed_payment_due_at` es un timestamptz completo, no una fecha suelta
- * como la que espera `formatShortDate` — se formatea acá en vez de forzarlo
- * por esa función.
- *
- * Mes completo y no abreviado: la fecha va dentro de una oración ("Tenés hasta
- * el …") y la abreviatura la deja coja según el ICU que tenga el runtime —
- * "03 de sept. de 2026" acá, "03 de ago de 2026" allá—. El `.replace('.', '')`
- * que intentaba tapar eso sólo borraba el primer punto, así que dependía de qué
- * mes tocara. Con `long` no hay punto que borrar en ninguno de los dos idiomas.
- */
-function formatDueDate(iso, locale) {
-  if (!iso) return ''
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
-}
 
 /**
  * Declaracion del atleta: deja la acreditacion exclusivamente en Finanzas.
@@ -69,7 +47,7 @@ export default function ManualPaymentConfirmation({
   onNavigate,
   profileTab,
 }) {
-  const { locale, t } = useI18n()
+  const { t } = useI18n()
   const [state, setState] = useState(manualPaymentDeclaredAt ? 'confirmed' : 'idle')
   const [granted, setGranted] = useState(Boolean(financedEntitlementsAt))
   // El plazo se calcula al declarar, no al crear la orden (20260922100000): la
@@ -110,21 +88,10 @@ export default function ManualPaymentConfirmation({
             },
           }),
         )
-      // El efectivo se declara en Pitbull, no frente a la pantalla: una vez
-      // habilitado no hay nada más que hacer acá, así que vuelve solo al
-      // perfil — leyendo antes el sello, con el mismo margen que ya usa el
-      // refresco de arriba. La transferencia se queda: ese recibo sigue
-      // ofreciendo subir el comprobante en la misma pantalla.
-      const goToProfile = () => {
-        if (isCash) onNavigate?.('profile', profileTab ? { tab: profileTab } : undefined)
-      }
       if (entitlementsGranted) {
         // El timer no se cancela al desmontar a propósito: si la persona
         // navega antes, el refresco sigue siendo necesario.
-        window.setTimeout(() => {
-          notifyApp()
-          goToProfile()
-        }, CELEBRATION_HOLD_MS)
+        window.setTimeout(notifyApp, CELEBRATION_HOLD_MS)
       } else {
         notifyApp()
       }
@@ -137,7 +104,11 @@ export default function ManualPaymentConfirmation({
 
   if (!orderId) return null
 
-  const dueDateLabel = formatDueDate(declaredDueAt ?? financedPaymentDueAt, locale)
+  const remaining = computeFinancingRemaining(declaredDueAt ?? financedPaymentDueAt)
+  const countdownLabel = formatFinancingCountdown(remaining, t)
+  const canGoToProfile = isCash && Boolean(onNavigate)
+  const goToProfile = () =>
+    onNavigate?.('profile', profileTab ? { tab: profileTab } : undefined)
 
   /* El paso a acuse es una transicion, no un reemplazo: lo que estaba pidiendo
      una accion pasa a estar resuelto, y el swap lo cuenta. */
@@ -145,22 +116,32 @@ export default function ManualPaymentConfirmation({
     <MotionContentSwap swapKey={state === 'confirmed' ? 'settled' : 'action'}>
       {state === 'confirmed' ? (
         granted ? (
-          <ConfirmationSeal
-            className="manual-payment-confirmation__seal"
-            variant="membership"
-            eyebrow={t('payments.manualConfirmation.financedEyebrow')}
-            title={t('payments.manualConfirmation.financedTitle')}
-            detail={
-              dueDateLabel
-                ? t('payments.manualConfirmation.financedGrantedWithDeadline', {
-                    date: dueDateLabel,
-                  })
-                : t('payments.manualConfirmation.financedGranted')
-            }
-            celebrate={justHappened}
-            celebrateKey={`financed-order-${orderId}`}
-            haptic={justHappened}
-          />
+          <div className="manual-payment-confirmation__granted">
+            <ConfirmationSeal
+              className="manual-payment-confirmation__seal"
+              variant="membership"
+              eyebrow={t('payments.manualConfirmation.financedEyebrow')}
+              title={t('payments.manualConfirmation.financedTitle')}
+              detail={
+                countdownLabel
+                  ? `${t('payments.manualConfirmation.financedActiveNow')} ${countdownLabel}`
+                  : t('payments.manualConfirmation.financedGranted')
+              }
+              celebrate={justHappened}
+              celebrateKey={`financed-order-${orderId}`}
+              haptic={justHappened}
+            />
+            {canGoToProfile ? (
+              <button
+                type="button"
+                className="manual-payment-confirmation__profile-cta"
+                onClick={goToProfile}
+              >
+                {t('payments.manualConfirmation.goProfile')}
+                <ArrowRight size={14} aria-hidden />
+              </button>
+            ) : null}
+          </div>
         ) : (
           <div
             className="manual-payment-confirmation manual-payment-confirmation--done"

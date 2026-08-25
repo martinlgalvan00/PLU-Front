@@ -42,6 +42,7 @@
   --color-border-subtle: var(--admin-modal-hairline);
   --color-border-light: var(--admin-modal-border-light);
   --color-bg-muted: var(--admin-modal-bg-muted);
+  --color-bg-secondary: var(--admin-modal-bg-muted);
   --color-bg-surface: var(--admin-modal-bg-surface);
   --color-bg-elevated: var(--admin-modal-bg-surface);
   --color-danger-text: var(--admin-modal-danger-text);
@@ -57,9 +58,12 @@
   color: var(--admin-modal-ink);
 }
 
-/* El editor tenía satin propio en dark (dark-atmosphere.css): el
-   material nuevo lo reemplaza — misma especificidad, cascada última. */
-[data-theme='dark'] .admin-event-editor-modal__panel {
+/* Editor + consola: grafito en ambos temas. Misma especificidad que
+   cualquier [data-theme] legado, cascada última vía AdminPage. */
+[data-theme='light'] .admin-event-editor-modal__panel,
+[data-theme='dark'] .admin-event-editor-modal__panel,
+[data-theme='light'] .admin-event-console-modal__panel,
+[data-theme='dark'] .admin-event-console-modal__panel {
   background: var(--admin-modal-bg);
   border-color: var(--admin-modal-border);
   box-shadow:
@@ -67,6 +71,13 @@
     var(--admin-modal-shadow);
   -webkit-backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
   backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
+}
+
+[data-theme='light'] .admin-event-editor-modal__backdrop,
+[data-theme='dark'] .admin-event-editor-modal__backdrop,
+[data-theme='light'] .admin-event-console-modal__backdrop,
+[data-theme='dark'] .admin-event-console-modal__backdrop {
+  background: var(--admin-modal-backdrop);
 }
 
 /* ---- Backdrop: un solo velo ---- */

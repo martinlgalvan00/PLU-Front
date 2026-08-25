@@ -398,10 +398,8 @@ export default function AdminFilterBar({
     return (
       <div ref={rootRef} className={popoverRootClassName}>
         <div className="admin-filter-popoverbar">
-          <div className="admin-filter-popoverbar__row1">
+          <div className="admin-filter-popoverbar__toolbar">
             <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
-            {filters.length > 0 ? <AdminFilterPillRow filters={filters} /> : null}
-            <div className="admin-filter-popoverbar__spacer" />
             {activeCount > 0 ? (
               <button type="button" className="admin-filter-popoverbar__clear" onClick={clearAll}>
                 <X size={12} aria-hidden />
@@ -415,6 +413,11 @@ export default function AdminFilterBar({
               </span>
             ) : null}
           </div>
+          {filters.length > 0 ? (
+            <div className="admin-filter-popoverbar__facets">
+              <AdminFilterPillRow filters={filters} />
+            </div>
+          ) : null}
         </div>
       </div>
     )

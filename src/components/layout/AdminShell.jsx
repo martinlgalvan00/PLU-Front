@@ -359,7 +359,11 @@ export default function AdminShell({
       </div>
 
       <div className="admin-shell__footer">
-        <Space orientation="vertical" style={{ width: '100%' }}>
+        <Space
+          orientation="vertical"
+          align={collapsed && !isPhoneViewport ? 'center' : 'start'}
+          style={{ width: '100%' }}
+        >
           <div
             style={{
               display: 'flex',
@@ -372,7 +376,12 @@ export default function AdminShell({
               <Button
                 type="text"
                 onClick={onOpenAccount}
-                style={{ padding: 0, height: 'auto', textAlign: 'left', width: '100%' }}
+                style={{
+                  padding: 0,
+                  height: 'auto',
+                  textAlign: !collapsed || isPhoneViewport ? 'left' : 'center',
+                  width: !collapsed || isPhoneViewport ? '100%' : 'auto',
+                }}
               >
                 <Space>
                   <div

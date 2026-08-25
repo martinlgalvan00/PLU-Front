@@ -98,23 +98,17 @@
 }
 
 .audit-health-bento {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: auto auto;
+  gap: 0;
   margin-bottom: 0;
-  padding: var(--space-md) var(--space-lg);
+  padding: 8px 12px;
 }
 
 @media (max-width: 900px) {
   .audit-flow-guide__content {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 1024px) {
-  .audit-health-bento {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -127,115 +121,87 @@
   .audit-flow-guide__content {
     gap: var(--space-lg);
   }
-
-  .audit-health-bento {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .admin-shell .admin-list-section--audit .audit-health-bento {
-  margin: 0 0 16px;
-  padding: 0 var(--admin-events-gutter, 18px);
+  margin: 0 0 10px;
+  padding: 8px var(--admin-events-gutter, 18px);
 }
 
-.bento-card {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  box-shadow: var(--elevation-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 20px;
-  position: relative;
-  transition:
-    background-color var(--motion-fast, 160ms) var(--ease-out),
-    border-color var(--motion-fast, 160ms) var(--ease-out);
-}
-
-.bento-card:hover {
-  background: color-mix(in srgb, var(--color-bg-surface) 95%, var(--color-brand-celeste) 5%);
-  border-color: color-mix(in oklab, var(--color-brand-celeste) 40%, transparent);
-}
-
-/* Header spans full width */
-.bento-card--header {
+.audit-health__strip {
   align-items: center;
-  flex-direction: row;
-  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   justify-content: space-between;
-  padding: 24px;
 }
 
-.bento-card--header::before {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, var(--color-brand-celeste) 20%, transparent),
-    transparent
-  );
-  content: '';
-  height: 2px;
-  inset: 0 0 auto 0;
-  position: absolute;
+.audit-health__intro {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 
-.audit-health__eyebrow {
-  color: var(--color-brand-celeste);
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.15em;
+.audit-health__intro h3 {
+  color: var(--color-text-primary);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.audit-health__metrics {
+  display: grid;
+  flex: 1 1 360px;
+  gap: 4px 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  min-width: 0;
+}
+
+.audit-health__metric {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.audit-health__metric dt {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
   text-transform: uppercase;
 }
 
-.bento-card--header h3 {
+.audit-health__metric dd {
   color: var(--color-text-primary);
   font-family: var(--font-display, var(--font-family));
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  margin: 4px 0 0;
-}
-
-/* Metrics */
-.bento-card--metric {
-  gap: 16px;
-}
-
-.bento-icon {
-  color: var(--color-brand-celeste);
-}
-
-.bento-card--metric.is-attention {
-  background: color-mix(in srgb, var(--color-brand-red) 6%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-red) 20%, transparent);
-}
-.bento-card--metric.is-attention .bento-icon {
-  color: var(--color-brand-red);
-}
-.bento-card--metric.is-attention:hover {
-  border-color: color-mix(in srgb, var(--color-brand-red) 40%, transparent);
-}
-
-.bento-metric__data dt {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.bento-metric__data dd {
-  color: var(--color-text-primary);
-  font-family: var(--font-display, var(--font-family));
-  font-size: 32px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  line-height: 1;
-  margin: 8px 0 0;
+  font-weight: 550;
+  line-height: 1.15;
+  margin: 0;
 }
-.bento-card--metric.is-attention .bento-metric__data dd {
+
+.audit-health__metric.is-attention dd {
   color: var(--color-brand-red);
+}
+
+.audit-health__metric.is-soft dd {
+  color: var(--plu-warning-500);
+}
+
+.audit-health__metric-note {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .audit-health__metric-action {
@@ -245,110 +211,38 @@
   color: inherit;
   cursor: pointer;
   font: inherit;
-  margin: -4px;
-  padding: 4px;
+  margin: -2px;
+  padding: 2px;
   text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
   text-decoration-line: underline;
   text-decoration-thickness: 2px;
-  text-underline-offset: 4px;
+  text-underline-offset: 3px;
   transition: transform var(--motion-fast, 160ms) var(--ease-spring);
 }
+
 .audit-health__metric-action:hover {
   text-decoration-color: currentColor;
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
+
 .audit-health__metric-action:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
+
 .audit-health__metric-action:focus-visible {
   outline: 2px solid var(--color-brand-red);
   outline-offset: 2px;
 }
 
-/* Notice spans full width if incidents exist */
-.bento-card--notice {
-  background: color-mix(in srgb, var(--color-brand-red) 4%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-red) 15%, transparent);
-  grid-column: 1 / -1;
-  padding: 24px;
-}
-
-.audit-health__breakdown,
-.audit-health__detail {
-  display: grid;
-  gap: 16px;
-  margin: 0;
-}
-
-.audit-health__breakdown {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.audit-health__breakdown > div,
-.audit-health__detail > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.audit-health__breakdown dt,
-.audit-health__detail dt {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.audit-health__breakdown dd,
-.audit-health__detail dd {
-  color: var(--color-brand-red);
-  font-family: var(--font-display, var(--font-family));
-  font-size: 20px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  margin: 0;
-}
-
-.audit-health__detail {
-  border-top: 1px solid color-mix(in srgb, var(--color-brand-red) 15%, transparent);
-  margin-top: 20px;
-  padding-top: 20px;
-}
-
-/* Staggered Animations */
-@media (prefers-reduced-motion: no-preference) {
-  .bento-card {
-    animation: bento-fade-in var(--motion-cinematic, 700ms) var(--ease-out) both;
-  }
-  .bento-card--header {
-    animation-delay: 50ms;
-  }
-  .bento-card--stagger-1 {
-    animation-delay: 100ms;
-  }
-  .bento-card--stagger-2 {
-    animation-delay: 150ms;
-  }
-  .bento-card--stagger-3 {
-    animation-delay: 200ms;
-  }
-  .bento-card--stagger-4 {
-    animation-delay: 250ms;
-  }
-  .bento-card--stagger-5 {
-    animation-delay: 300ms;
+@media (max-width: 900px) {
+  .audit-health__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@keyframes bento-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.98);
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
+@media (max-width: 520px) {
+  .audit-health__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -356,15 +250,15 @@
    vista, y acción/actor/entidad detrás de «Más filtros». El auto-fit de
    cinco selects apilaba una pared de opciones en viewports de ~600px. */
 .admin-shell .admin-filters--audit.admin-filters--inline.admin-filters--compact {
-  gap: 10px;
+  gap: 8px;
 }
 
 .admin-shell .admin-filters--audit .admin-filters__groups--multi,
 .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
-  align-items: stretch;
+  align-items: end;
   display: grid !important;
-  gap: 10px 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(9rem, 0.8fr)) auto;
 }
 
 /* -------------------------------------
@@ -392,22 +286,43 @@
     flex: 1 1 100%;
     justify-content: flex-start;
   }
-  /* Apilar los filtros secundarios (Estado, Categoría) */
   .admin-shell .admin-filters--audit .admin-filters__groups--multi,
   .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr 1fr auto !important;
+  }
+
+  .admin-shell .admin-filters--audit .admin-filter-group:first-child,
+  .admin-shell .admin-list-section--audit .admin-filter-group:first-child {
+    grid-column: 1 / -1;
   }
 }
 
 .admin-shell .admin-filters--audit .admin-filter-group,
 .admin-shell .admin-list-section--audit .admin-filter-group {
-  grid-column: 1 / -1;
   min-width: 0;
   width: 100%;
 }
 
+/* Fuente (chips): una sola fila con scroll horizontal en vez de wrap alto. */
+.admin-shell .admin-filters--audit .admin-filter-chips,
+.admin-shell .admin-list-section--audit .admin-filter-chips {
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.admin-shell .admin-filters--audit .admin-filter-chip,
+.admin-shell .admin-list-section--audit .admin-filter-chip {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
 .admin-shell .admin-filters--audit .admin-filters__select,
 .admin-shell .admin-list-section--audit .admin-filters__select {
+  min-height: 34px;
   min-width: 0;
   width: 100%;
 }
@@ -470,7 +385,7 @@
 @media (min-width: 900px) {
   .admin-shell .admin-filters--audit .admin-filters__groups--multi,
   .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(9rem, 0.7fr)) auto;
   }
 
   .admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
@@ -483,6 +398,11 @@
   .admin-shell .admin-filters--audit .admin-filters__groups--multi,
   .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-shell .admin-filters--audit .admin-filter-group:first-child,
+  .admin-shell .admin-list-section--audit .admin-filter-group:first-child {
+    grid-column: auto;
   }
 
   .admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
@@ -858,14 +778,16 @@
   }
 }
 
-/* Auditoría usa un único scroll para las filas. La cabecera (búsqueda,
-   filtros y acciones) queda fuera de ese scroll: las operaciones pasan por
-   debajo, como una mesa de trabajo estable, sin crear un segundo scroll dentro
-   de los filtros. La guía desplegable evita que el chrome consuma el viewport. */
+/* Auditoría: un scroll para las filas. El chrome (guía + salud + filtros)
+   queda fuera de ese scroll, con tope de altura para que no recorte el
+   viewport cuando la guía se abre o hay muchos filtros. */
 .admin-shell .admin-list-section--audit > .admin-list-section__chrome {
   box-shadow: 0 10px 18px color-mix(in srgb, var(--admin-canvas, var(--color-bg-primary)) 82%, transparent);
   flex: none;
-  overflow: visible;
+  max-height: min(38vh, 360px);
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
   z-index: 6;
 }
@@ -880,61 +802,12 @@
    La card compacta genérica aplasta entidad/actor/detalle en una sola línea
    con separadores; acá cada bloque recupera su filas y el espacio horizontal. */
 @media (max-width: 720px) {
-  .audit-health {
-    padding: var(--space-md);
-  }
-
-  .audit-health__header {
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .audit-health__header h3 {
-    font-size: 15px;
+  .audit-health__intro {
+    width: 100%;
   }
 
   .audit-health__metrics {
-    gap: 8px 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .audit-health__metrics > div,
-  .audit-health__metrics > div:first-child {
-    border-left: 0;
-    gap: 1px 8px;
-    padding: 4px 8px 4px 0;
-  }
-
-  .audit-health__metrics > div:nth-child(even) {
-    border-left: 1px solid var(--color-border-subtle);
-    padding-left: 10px;
-  }
-
-  .audit-health__metrics svg {
-    height: 15px;
-    width: 15px;
-  }
-
-  .audit-health__metrics dt {
-    font-size: 10.5px;
-  }
-
-  .audit-health__metrics dd {
-    font-size: 17px;
-  }
-
-  .audit-health__breakdown {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .audit-health__breakdown > div {
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  .audit-health__detail > div {
-    flex-direction: column;
-    gap: 1px;
+    flex-basis: 100%;
   }
 
   .admin-shell .admin-list-shell--audit .data-table-cards--admin {
@@ -1122,23 +995,12 @@
 }
 
 @media (max-width: 430px) {
-  .audit-health__header {
-    align-items: stretch;
+  .audit-health__intro {
     flex-direction: column;
   }
 
-  .audit-health__header .status-pill {
+  .audit-health__intro .status-pill {
     align-self: flex-start;
-  }
-
-  .audit-health__breakdown {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .audit-health__breakdown > div {
-    align-items: baseline;
-    flex-direction: row;
-    justify-content: space-between;
   }
 
   .admin-shell .admin-list-shell--audit .data-table-card--admin.data-table-card--compact {

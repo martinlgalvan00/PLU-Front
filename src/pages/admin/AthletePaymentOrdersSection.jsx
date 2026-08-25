@@ -299,6 +299,7 @@ export default function AthletePaymentOrdersSection({
         manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
         financedEntitlementsAt: order.financedEntitlementsAt ?? null,
         financedPaymentDueAt: order.financedPaymentDueAt ?? null,
+        discountCode: order.discountCode ?? null,
       })),
     [orders, validationEnabled],
   )
@@ -445,8 +446,8 @@ export default function AthletePaymentOrdersSection({
   }
 
   return (
-    <section id="admin-athlete-payments" className="admin-orders-block" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+    <section id="admin-athlete-payments" className="admin-orders-block">
+      <div className="admin-orders-block__toolbar">
         <AdminFilterChipGroup
           id="athlete-orders-status"
           label={t('admin.filters.status')}
@@ -460,7 +461,7 @@ export default function AthletePaymentOrdersSection({
           hideEmpty
           options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
         />
-        <div className="admin-orders-block__actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="admin-orders-block__actions">
           <span className="admin-orders-block__amount">
             {t(
               counts.openAmountTruncated
@@ -471,19 +472,17 @@ export default function AthletePaymentOrdersSection({
           </span>
           <button
             type="button"
-            className="btn btn--secondary btn--small"
+            className="btn btn--ghost btn--small"
             disabled={refreshing}
             onClick={() => void load(status)}
           >
-            <RefreshCw size={15} aria-hidden />
+            <RefreshCw size={14} aria-hidden />
             {refreshing
               ? t('admin.athletePayments.refreshing')
               : t('admin.athletePayments.refresh')}
           </button>
         </div>
       </div>
-
-
 
       {error ? (
         <ErrorState
@@ -536,6 +535,13 @@ export default function AthletePaymentOrdersSection({
               key: 'concept',
               label: t('admin.columns.concept'),
               mobile: 'default',
+            },
+            {
+              key: 'discountCode',
+              label: t('admin.athletePayments.columnCode'),
+              mobile: 'hidden',
+              sortable: true,
+              render: (row) => <AdminMonoCell>{row.discountCode}</AdminMonoCell>,
             },
             {
               key: 'amount',

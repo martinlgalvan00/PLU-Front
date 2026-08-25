@@ -417,6 +417,46 @@
   padding-top: 14px;
 }
 
+.manual-payment-confirmation__granted {
+  display: grid;
+  gap: 14px;
+}
+
+/* Única acción que queda una vez estampado el sello: vuelve al perfil cuando
+   la persona esté lista, sin apurarla con una navegación automática que
+   se llevaba puesta la lectura del plazo. */
+.manual-payment-confirmation__profile-cta {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 650 13.5px/1 var(--font-family);
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  transition: background var(--motion-fast, 160ms) var(--ease-out);
+  width: 100%;
+}
+
+.manual-payment-confirmation__profile-cta:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+}
+
+.manual-payment-confirmation__profile-cta:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manual-payment-confirmation__profile-cta {
+    transition: none;
+  }
+}
+
 .manual-payment-confirmation__spinner {
   animation: manual-payment-confirmation-spin 0.8s linear infinite;
 }

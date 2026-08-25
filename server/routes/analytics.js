@@ -211,30 +211,38 @@ export function createAnalyticsRoutes({
           path: normalizePath(event.path ?? context.path ?? '/'),
         }))
 
-        const result = await repo().ingest({
-          visitorId: resolveVisitorId(req, { env }),
-          athleteId: athleteSession?.athleteId ?? null,
-          events: normalizedEvents,
-          context: {
-            path: normalizePath(context.path ?? '/'),
-            referrerHost: normalizeReferrerHost(context.referrer, appUrl),
-            utmSource: context.utmSource ?? null,
-            utmMedium: context.utmMedium ?? null,
-            utmCampaign: context.utmCampaign ?? null,
-            deviceType: agent.deviceType,
-            browser: agent.browser,
-            os: agent.os,
-            viewportWidth: context.viewportWidth ?? null,
-            viewportHeight: context.viewportHeight ?? null,
-            language: context.language ?? null,
-            activeMs: context.activeMs ?? 0,
-            // Vercel resuelve el pais en el edge; sin el header queda nulo y el
-            // informe simplemente no segmenta por geografia.
-            country: req.get('x-vercel-ip-country') ?? null,
-          },
-        })
+        try {
+          const result = await repo().ingest({
+            visitorId: resolveVisitorId(req, { env }),
+            athleteId: athleteSession?.athleteId ?? null,
+            events: normalizedEvents,
+            context: {
+              path: normalizePath(context.path ?? '/'),
+              referrerHost: normalizeReferrerHost(context.referrer, appUrl),
+              utmSource: context.utmSource ?? null,
+              utmMedium: context.utmMedium ?? null,
+              utmCampaign: context.utmCampaign ?? null,
+              deviceType: agent.deviceType,
+              browser: agent.browser,
+              os: agent.os,
+              viewportWidth: context.viewportWidth ?? null,
+              viewportHeight: context.viewportHeight ?? null,
+              language: context.language ?? null,
+              activeMs: context.activeMs ?? 0,
+              // Vercel resuelve el pais en el edge; sin el header queda nulo y el
+              // informe simplemente no segmenta por geografia.
+              country: req.get('x-vercel-ip-country') ?? null,
+            },
+          })
 
-        res.status(202).json({ accepted: result?.accepted ?? normalizedEvents.length })
+          res.status(202).json({ accepted: result?.accepted ?? normalizedEvents.length })
+        } catch (writeError) {
+          // El lote ya pasó validación. Un fallo de escritura (RPC vieja que
+          // rechaza lotes vacíos con activeMs, Supabase caído, etc.) no puede
+          // devolver 5xx al visitante: la analítica es best-effort.
+          console.warn('[analytics:collect] no se pudo registrar', writeError?.message ?? writeError)
+          res.status(202).json({ accepted: 0, deferred: true })
+        }
       } catch (error) {
         next(error)
       }

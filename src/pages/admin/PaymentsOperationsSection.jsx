@@ -507,7 +507,7 @@ export default function PaymentsOperationsSection({
       ) : null}
 
       <header className="admin-orders-block__header admin-payments-ops-top">
-        <div>
+        <div className="admin-payments-ops-top__copy">
           <span className="admin-orders-block__eyebrow">{t('admin.dashboard.financePending')}</span>
           <h2 className="admin-orders-block__title">{t('admin.paymentOperations.title')}</h2>
           <p className="admin-orders-block__lead">{t('admin.paymentOperations.subtitle')}</p>

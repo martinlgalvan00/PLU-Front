@@ -574,6 +574,99 @@ export function createAthleteRoutes({
   }
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
+
+  const stopWords = [
+    'gym', 'club', 'barbell', 'crossfit', 'box', 'team',
+    'powerlifting', 'fitness', 'centro', 'entrenamiento',
+    'strength', 'de', 'el', 'la', 'los', 'las',
+  ]
+  const normalizeGym = (name) =>
+    String(name)
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+  const getCoreName = (norm) => {
+    const words = norm.split(' ').filter(Boolean)
+    const filtered = words.filter((w) => !stopWords.includes(w))
+    return filtered.length > 0 ? filtered.join(' ') : norm
+  }
+  const levenshtein = (a, b) => {
+    if (a === b) return 0
+    const matrix = []
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i]
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1]
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          )
+        }
+      }
+    }
+    return matrix[b.length][a.length]
+  }
+  const isSimilarCore = (coreA, coreB) => {
+    if (coreA === coreB) return true
+    const aNoSpace = coreA.replace(/\s+/g, '')
+    const bNoSpace = coreB.replace(/\s+/g, '')
+    if (aNoSpace === bNoSpace) return true
+    const dist = levenshtein(coreA, coreB)
+    const maxLen = Math.max(coreA.length, coreB.length)
+    if (maxLen >= 10 && dist <= 2) return true
+    if (maxLen >= 5 && dist <= 1) return true
+    if (coreA.length >= 4 && coreB.startsWith(coreA)) return true
+    if (coreB.length >= 4 && coreA.startsWith(coreB)) return true
+    return false
+  }
+
+  const resolveGymName = async (rawName) => {
+    if (!rawName || !rawName.trim()) return rawName
+    const cleanName = String(rawName).trim()
+    const norm = normalizeGym(cleanName)
+    const core = getCoreName(norm)
+    
+    // Asumimos un solo tenant operativo (PLU) por ahora para Prisma
+    const org = await prisma.organization.findFirst()
+    if (!org) return cleanName
+    const organizationId = org.id
+    
+    // Buscar todos los gyms existentes
+    const existing = await prisma.gym.findMany({ where: { organizationId } })
+    
+    for (const gym of existing) {
+      if (isSimilarCore(core, gym.coreName)) {
+        return gym.name
+      }
+    }
+    
+    // Si no existe ninguno similar, se registra
+    try {
+      const created = await prisma.gym.upsert({
+        where: {
+          organizationId_coreName: {
+            organizationId,
+            coreName: core,
+          }
+        },
+        update: {},
+        create: {
+          organizationId,
+          name: cleanName,
+          coreName: core,
+        }
+      })
+      return created.name
+    } catch (e) {
+      // Ignorar carrera de inserción concurrente
+      return cleanName
+    }
+  }
   const adminGuard = requirePermission(
     [
       'admin.athletes.read',
@@ -876,6 +969,9 @@ export function createAthleteRoutes({
           })
           throw conflict
         }
+        if (form.gym) {
+          form.gym = await resolveGymName(form.gym)
+        }
         const row = await repo().register(form, await hashPassword(password))
         const session = await createAthleteSession({ client: client(), athleteId: row.id, req })
         res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
@@ -924,6 +1020,116 @@ export function createAthleteRoutes({
       }
     },
   )
+
+  /**
+   * Colección consolidada de gimnasios para autocompletado en el front.
+   */
+  router.get('/gyms', publicReadLimiter, async (req, res, next) => {
+    try {
+      const rows = await prisma.organizationAthlete.groupBy({
+        by: ['gym'],
+        _count: { gym: true },
+        where: { gym: { not: null, not: '' } },
+      })
+      const normalize = (name) =>
+        String(name)
+          .trim()
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+
+      const stopWords = [
+        'gym', 'club', 'barbell', 'crossfit', 'box', 'team',
+        'powerlifting', 'fitness', 'centro', 'entrenamiento',
+        'strength', 'de', 'el', 'la', 'los', 'las',
+      ]
+      
+      const getCoreName = (norm) => {
+        const words = norm.split(' ').filter(Boolean)
+        const filtered = words.filter(w => !stopWords.includes(w))
+        return filtered.length > 0 ? filtered.join(' ') : norm
+      }
+
+      const levenshtein = (a, b) => {
+        if (a === b) return 0
+        const matrix = []
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i]
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j
+        for (let i = 1; i <= b.length; i++) {
+          for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+              matrix[i][j] = matrix[i - 1][j - 1]
+            } else {
+              matrix[i][j] = Math.min(
+                matrix[i - 1][j - 1] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j] + 1
+              )
+            }
+          }
+        }
+        return matrix[b.length][a.length]
+      }
+
+      const isSimilarCore = (coreA, coreB) => {
+        if (coreA === coreB) return true
+        
+        // Ignorar espacios para casos como "power house" vs "powerhouse"
+        const aNoSpace = coreA.replace(/\s+/g, '')
+        const bNoSpace = coreB.replace(/\s+/g, '')
+        if (aNoSpace === bNoSpace) return true
+
+        const dist = levenshtein(coreA, coreB)
+        const maxLen = Math.max(coreA.length, coreB.length)
+        if (maxLen >= 10 && dist <= 2) return true
+        if (maxLen >= 5 && dist <= 1) return true
+        
+        if (coreA.length >= 4 && coreB.startsWith(coreA + ' ')) return true
+        if (coreB.length >= 4 && coreA.startsWith(coreB + ' ')) return true
+        
+        return false
+      }
+
+      // Paso 1: Agrupar exactamente
+      const exactGrouped = {}
+      for (const row of rows) {
+        if (!row.gym) continue
+        const norm = normalize(row.gym)
+        if (!exactGrouped[norm]) {
+          exactGrouped[norm] = { name: row.gym, count: row._count.gym }
+        } else {
+          if (row._count.gym > exactGrouped[norm].count) {
+            exactGrouped[norm].name = row.gym
+          }
+          exactGrouped[norm].count += row._count.gym
+        }
+      }
+
+      // Paso 2: Ordenar por uso descendente para usar los más grandes como anclas
+      const sortedGroups = Object.entries(exactGrouped).sort((a, b) => b[1].count - a[1].count)
+      const anchors = []
+
+      for (const [norm, data] of sortedGroups) {
+        const core = getCoreName(norm)
+        let merged = false
+        for (const anchor of anchors) {
+          if (isSimilarCore(core, anchor.core)) {
+            anchor.count += data.count
+            merged = true
+            break
+          }
+        }
+        if (!merged) {
+          anchors.push({ core, name: data.name, count: data.count })
+        }
+      }
+
+      const gyms = anchors.map((g) => g.name).sort((a, b) => a.localeCompare(b))
+      res.json({ gyms })
+    } catch (error) {
+      next(error)
+    }
+  })
 
   /**
    * Foto firmada para la página pública de verificación QR. Sin sesión: el
@@ -1202,6 +1408,9 @@ export function createAthleteRoutes({
   router.patch('/me', athleteWriteLimiter, validateBody(updateSchema), async (req, res, next) => {
     try {
       const auth = await athlete(req)
+      if (req.validatedBody.gym) {
+        req.validatedBody.gym = await resolveGymName(req.validatedBody.gym)
+      }
       res.json({ athlete: await repo().update(auth.athleteId, req.validatedBody) })
     } catch (error) {
       next(error)
