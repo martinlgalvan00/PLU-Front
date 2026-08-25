@@ -3570,7 +3570,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
-  margin: 14px auto 0;
+  margin: 24px auto 32px;
   max-width: 1080px;
   overflow: visible;
   padding: 10px 14px 10px 16px;
@@ -3661,6 +3661,7 @@
 }
 
 .account-verify__otp-row {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -3675,10 +3676,18 @@
   font-size: 16px;
   font-weight: 650;
   letter-spacing: 0.28em;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 12px;
   text-align: center;
-  width: 8.5rem;
+  width: 13.5rem;
+}
+
+.account-verify__otp-input::placeholder {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: normal;
+  opacity: 0.5;
 }
 
 .account-verify__otp-input:focus-visible {
@@ -3695,7 +3704,7 @@
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 700;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 14px;
 }
 
@@ -3719,8 +3728,7 @@
   flex-shrink: 0;
   font-size: 12.5px;
   font-weight: 600;
-  margin-top: 10px;
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 14px;
   transition:
     background var(--motion-fast) var(--ease-standard),
@@ -3764,17 +3772,18 @@
   -webkit-backdrop-filter: none;
   background: var(--color-bg-surface);
   display: grid;
-  gap: 12px 14px;
+  gap: 16px 20px;
   grid-template-columns: auto minmax(0, 1fr);
   overflow: visible;
-  padding: 14px 16px 14px 18px;
+  padding: 24px 28px;
 }
 
 .account-verify--email .account-verify__copy {
   display: grid;
   flex: none;
-  gap: 6px;
+  gap: 12px;
   justify-items: start;
+  width: 100%;
 }
 
 .account-verify--email .account-verify__lead {
@@ -3782,10 +3791,21 @@
 }
 
 .account-verify--email .account-verify__email {
-  color: var(--color-text-primary);
-  display: block;
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 24%, transparent);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-brand-celeste);
+  display: inline-flex;
   font-size: 12.5px;
-  margin: 0;
+  margin: 2px 0 6px 0;
+  padding: 4px 10px;
+}
+
+[data-theme='light'] .account-verify--email .account-verify__email {
+  background: color-mix(in srgb, var(--color-brand-celeste) 15%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 30%, transparent);
+  color: color-mix(in srgb, var(--color-brand-celeste) 70%, #000);
 }
 
 .account-verify--email .account-verify__email::before {
@@ -3794,7 +3814,7 @@
 }
 
 .account-verify--email .account-verify__otp {
-  margin-top: 6px;
+  margin-top: 12px;
   max-width: none;
   width: 100%;
 }
@@ -3802,11 +3822,11 @@
 .account-verify--email .account-verify__otp-input,
 .account-verify--email .account-verify__otp-submit,
 .account-verify--email .account-verify__action {
-  min-height: 44px;
+  min-height: 38px;
 }
 
 .account-verify--email .account-verify__action {
-  margin-top: 4px;
+  margin: 0;
 }
 
 .account-verify--email .account-verify__action--ghost {

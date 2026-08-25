@@ -1,0 +1,155 @@
+/* =========================================================
+   ADMIN MODALS — material grafito unificado
+   =========================================================
+   Un solo material para todos los modales del panel: grafito
+   profundo translúcido + blur + filete de luz superior, en ambos
+   temas (en light el modal se oscurece a propósito — misma decisión
+   que --admin-attention-*: la superficie de decisión es piedra
+   oscura). Los tokens viven en themes/{light,dark}.css porque los
+   modales se portalean a document.body, fuera de .admin-shell.
+
+   El bloque remapea las custom properties de tinta DENTRO del scope
+   del panel: así el contenido (texto, botones, inputs anidados)
+   invierte solo en light sin tocar cada componente. Carga al final
+   de la cadena de AdminPage para ganar la cascada por orden, sin
+   subir especificidad salvo donde un override temático ya jugaba
+   (editor en dark, credential en light). */
+
+/* ---- Panel: material + inversión de tinta ---- */
+
+.admin-user-delete-dialog__panel,
+.payment-validation-dialog__panel,
+.admin-status-dialog__panel,
+.admin-account-dialog__panel,
+.admin-event-editor-modal__panel,
+.admin-event-quick__panel,
+.admin-event-console-modal__panel,
+.security-credential-modal__panel,
+.membership-credential-modal__panel,
+.admin-shop-modal__panel,
+.admin-action-drawer {
+  --admin-ink: var(--admin-modal-ink);
+  --admin-muted: var(--admin-modal-text-muted);
+  --admin-text-secondary: var(--admin-modal-text-secondary);
+  --admin-hairline: var(--admin-modal-hairline);
+  --admin-hairline-strong: var(--admin-modal-border-light);
+  --admin-surface: var(--admin-modal-bg-surface);
+  --admin-surface-raised: var(--admin-modal-bg-muted);
+  --admin-control-bg: var(--admin-modal-bg-surface);
+  --color-text-primary: var(--admin-modal-ink);
+  --color-text-secondary: var(--admin-modal-text-secondary);
+  --color-text-muted: var(--admin-modal-text-muted);
+  --color-border-subtle: var(--admin-modal-hairline);
+  --color-border-light: var(--admin-modal-border-light);
+  --color-bg-muted: var(--admin-modal-bg-muted);
+  --color-bg-surface: var(--admin-modal-bg-surface);
+  --color-bg-elevated: var(--admin-modal-bg-surface);
+  --color-danger-text: var(--admin-modal-danger-text);
+  --color-danger-bg: var(--admin-modal-danger-bg);
+
+  -webkit-backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
+  backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
+  background: var(--admin-modal-bg);
+  border-color: var(--admin-modal-border);
+  box-shadow:
+    inset 0 1px 0 var(--admin-modal-highlight),
+    var(--admin-modal-shadow);
+  color: var(--admin-modal-ink);
+}
+
+/* El editor tenía satin propio en dark (dark-atmosphere.css): el
+   material nuevo lo reemplaza — misma especificidad, cascada última. */
+[data-theme='dark'] .admin-event-editor-modal__panel {
+  background: var(--admin-modal-bg);
+  border-color: var(--admin-modal-border);
+  box-shadow:
+    inset 0 1px 0 var(--admin-modal-highlight),
+    var(--admin-modal-shadow);
+  -webkit-backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
+  backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
+}
+
+/* ---- Backdrop: un solo velo ---- */
+
+.admin-user-delete-dialog__backdrop,
+.payment-validation-dialog__backdrop,
+.admin-status-dialog__backdrop,
+.admin-account-dialog__backdrop,
+.admin-event-editor-modal__backdrop,
+.admin-event-quick__backdrop,
+.admin-event-console-modal__backdrop,
+.security-credential-modal__backdrop,
+.admin-shop-modal__backdrop,
+.admin-action-drawer__backdrop {
+  -webkit-backdrop-filter: blur(var(--admin-modal-backdrop-blur));
+  backdrop-filter: blur(var(--admin-modal-backdrop-blur));
+  background: var(--admin-modal-backdrop);
+}
+
+/* Override light puntual del backdrop y panel de credenciales
+   (admin-audit): misma especificidad, este archivo carga después. */
+[data-theme='light'] .membership-credential-modal__backdrop {
+  background: var(--admin-modal-backdrop);
+}
+
+[data-theme='light'] .membership-credential-modal__panel {
+  background: var(--admin-modal-bg);
+  box-shadow:
+    inset 0 1px 0 var(--admin-modal-highlight),
+    var(--admin-modal-shadow);
+}
+
+/* ---- Detalles de lujo por familia (no cambia forma ni layout) ---- */
+
+/* Filete superior de luz: la firma del material, ya viene en el
+   box-shadow; el editor y la consola son full-bleed y refuerzan el
+   borde superior explícito. */
+.admin-event-console-modal__panel,
+.admin-event-editor-modal__panel {
+  border: 1px solid var(--admin-modal-border);
+}
+
+/* El botón de cierre de la consola y controles flotantes usan tinta
+   admin — ya heredan el remapeo. Nada extra. */
+
+/* ---- Sin transparencia: material sólido, misma jerarquía ---- */
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-theme='light'] {
+    --admin-modal-bg: var(--plu-cool-900);
+    --admin-modal-backdrop: var(--plu-cool-950);
+    --admin-modal-blur: 0px;
+    --admin-modal-backdrop-blur: 0px;
+  }
+
+  [data-theme='dark'] {
+    --admin-modal-bg: var(--plu-cool-950);
+    --admin-modal-blur: 0px;
+    --admin-modal-backdrop-blur: 0px;
+  }
+
+  .admin-user-delete-dialog__panel,
+  .payment-validation-dialog__panel,
+  .admin-status-dialog__panel,
+  .admin-account-dialog__panel,
+  .admin-event-editor-modal__panel,
+  .admin-event-quick__panel,
+  .admin-event-console-modal__panel,
+  .security-credential-modal__panel,
+  .membership-credential-modal__panel,
+  .admin-shop-modal__panel,
+  .admin-action-drawer,
+  .admin-user-delete-dialog__backdrop,
+  .payment-validation-dialog__backdrop,
+  .admin-status-dialog__backdrop,
+  .admin-account-dialog__backdrop,
+  .admin-event-editor-modal__backdrop,
+  .admin-event-quick__backdrop,
+  .admin-event-console-modal__backdrop,
+  .security-credential-modal__backdrop,
+  .admin-shop-modal__backdrop,
+  .admin-action-drawer__backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

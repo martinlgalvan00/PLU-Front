@@ -138,7 +138,9 @@
   --admin-sidebar: color-mix(in srgb, white 96%, var(--plu-warm-100));
   --admin-sidebar-surface: color-mix(in srgb, var(--plu-warm-100) 62%, white);
   --admin-sidebar-text: var(--plu-ink-900);
-  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-900) 48%, transparent);
+  /* 64% de ink-900 sobre el sidebar claro ≈ 5.0:1 — AA para texto chico
+     (con 48% quedaba en ~3.1:1 y el subtítulo del sidebar fallaba). */
+  --admin-sidebar-muted: color-mix(in srgb, var(--plu-ink-900) 64%, transparent);
   --admin-sidebar-hover: color-mix(in srgb, var(--plu-ink-900) 4.5%, transparent);
   --admin-sidebar-border: color-mix(in srgb, var(--plu-ink-900) 10%, transparent);
   --admin-sidebar-shadow: 10px 0 32px rgba(26, 28, 34, 0.06);
@@ -181,6 +183,27 @@
   --admin-shadow-panel: 0 18px 48px rgba(26, 28, 34, 0.09);
   --admin-attention-bg: var(--plu-cool-900);
   --admin-attention-text: var(--plu-ink-inverse);
+
+  /* Material de modal admin — grafito profundo en ambos temas: el modal
+     es la superficie de decisión, y se lee como una pieza de piedra oscura
+     flotando sobre la operación (mismo rol que --admin-attention-*).
+     La tinta "on-modal" invierte en light porque el panel es oscuro. */
+  --admin-modal-bg: color-mix(in srgb, var(--plu-cool-900) 95%, transparent);
+  --admin-modal-border: color-mix(in srgb, var(--plu-ink-inverse) 12%, transparent);
+  --admin-modal-highlight: rgba(255, 255, 255, 0.07);
+  --admin-modal-blur: 16px;
+  --admin-modal-shadow: 0 28px 80px rgba(9, 11, 14, 0.5);
+  --admin-modal-backdrop: color-mix(in srgb, var(--plu-cool-950) 58%, transparent);
+  --admin-modal-backdrop-blur: 4px;
+  --admin-modal-ink: var(--plu-ink-inverse);
+  --admin-modal-text-secondary: rgba(236, 236, 232, 0.78);
+  --admin-modal-text-muted: rgba(236, 236, 232, 0.58);
+  --admin-modal-hairline: color-mix(in srgb, var(--plu-ink-inverse) 12%, transparent);
+  --admin-modal-bg-muted: color-mix(in srgb, var(--plu-ink-inverse) 8%, transparent);
+  --admin-modal-bg-surface: color-mix(in srgb, var(--plu-ink-inverse) 5%, transparent);
+  --admin-modal-border-light: color-mix(in srgb, var(--plu-ink-inverse) 22%, transparent);
+  --admin-modal-danger-text: #ff8b86;
+  --admin-modal-danger-bg: rgba(153, 27, 27, 0.2);
 
   /* Liquid glass — light: vidrio esmerilado cálido sobre el canvas.
      Sin atmósfera en light (decisión de tema), el vidrio se lee por

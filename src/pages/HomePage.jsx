@@ -70,6 +70,7 @@ export default function HomePage({
     registered: liveRegistered,
     slots: liveSlots,
     recent: recentRegistrants,
+    progressPublic,
   } = useEventRegistrationCapacity(launchEvent?.slug ?? 'pitbull-classic-2026', {
     // El contador solo refresca mientras la banda del torneo está a la vista:
     // en el resto del scroll de la landing no hay polling.
@@ -163,6 +164,7 @@ export default function HomePage({
             onJoin={() => onNavigate?.('members')}
             onProfile={() => onNavigate?.('profile')}
             onResults={() => onNavigate?.('results')}
+            progressPublic={progressPublic}
             registrationCheckoutEnabled={registrationCheckoutEnabled}
             recent={recentRegistrants}
             registered={liveRegistered}

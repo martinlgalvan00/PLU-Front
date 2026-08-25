@@ -92,6 +92,44 @@ function formatDateTime(value, locale) {
   })
 }
 
+/**
+ * A cuántos días de calendario está el vencimiento del plazo de financiamiento.
+ *
+ * Se cuenta por fecha y no por múltiplos de 24 h: el plazo es un timestamptz,
+ * así que dividir la diferencia por 86.400.000 corría todas las etiquetas un
+ * casillero —un vencimiento de esta tarde daba `ceil(0,4) = 1` y el panel decía
+ * "vence mañana", y uno de esta mañana daba `ceil(-0,4) = 0` y decía "vence
+ * hoy" cuando ya estaba vencido—. Normalizar a medianoche local hace que "hoy",
+ * "mañana" y "ayer" signifiquen lo que dicen para quien mira el panel.
+ */
+function calendarDaysUntil(due, now) {
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const to = new Date(due.getFullYear(), due.getMonth(), due.getDate())
+  // `round` y no división exacta: un cambio de horario de verano entre las dos
+  // fechas deja la diferencia en 23 o 25 horas.
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000)
+}
+
+function financingDueInfo(dueAt, t) {
+  if (!dueAt) return null
+  const due = new Date(dueAt)
+  if (Number.isNaN(due.getTime())) return null
+  const days = calendarDaysUntil(due, new Date())
+  if (days === 0) {
+    return { tone: 'warning', label: t('admin.athletePayments.financingDueToday') }
+  }
+  if (days === 1) {
+    return { tone: 'warning', label: t('admin.athletePayments.financingDueTomorrow') }
+  }
+  if (days === -1) {
+    return { tone: 'danger', label: t('admin.athletePayments.financingOverdueYesterday') }
+  }
+  if (days < 0) {
+    return { tone: 'danger', label: t('admin.athletePayments.financingOverdue', { days: -days }) }
+  }
+  return { tone: 'info', label: t('admin.athletePayments.financingDueIn', { days }) }
+}
+
 const TOGGLE_KEY_BY_CODE = {
   [VALIDATION_DISABLED_CODES.membership]: 'membership',
   [VALIDATION_DISABLED_CODES.registration]: 'registration',
@@ -260,6 +298,7 @@ export default function AthletePaymentOrdersSection({
         financingAllowed: order.financingAllowed === true,
         manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
         financedEntitlementsAt: order.financedEntitlementsAt ?? null,
+        financedPaymentDueAt: order.financedPaymentDueAt ?? null,
       })),
     [orders, validationEnabled],
   )
@@ -585,6 +624,15 @@ export default function AthletePaymentOrdersSection({
               mobile: 'badge',
               render: (row) => {
                 const actorLine = closureActorLine(row)
+                // Sólo mientras la orden sigue abierta: una vez rechazada o
+                // cancelada el plazo ya no cuenta nada, sea por vencimiento o
+                // por cualquier otro motivo.
+                const dueInfo =
+                  row.financingAllowed &&
+                  row.financedEntitlementsAt &&
+                  OPEN_ORDER_STATUSES.includes(row.status)
+                    ? financingDueInfo(row.financedPaymentDueAt, t)
+                    : null
                 return (
                   <div className="admin-orders-block__status-cell">
                     {/* Rechazada o cancelada: el badge se acompaña del motivo real
@@ -602,6 +650,11 @@ export default function AthletePaymentOrdersSection({
                             ? 'admin.athletePayments.financedActive'
                             : 'admin.athletePayments.declared',
                         )}
+                      </span>
+                    ) : null}
+                    {dueInfo ? (
+                      <span className={`status-pill status-pill--${dueInfo.tone}`}>
+                        {dueInfo.label}
                       </span>
                     ) : null}
                     {actorLine ? <p className="admin-state-cell__note">{actorLine}</p> : null}

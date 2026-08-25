@@ -131,12 +131,6 @@ export default function DigitalCredential({ athlete, membership }) {
           label: t('account.credential.location'),
           value: location || t('account.credential.noData'),
         },
-        { key: 'sex', label: t('account.credential.sex'), value: athlete.sex },
-        {
-          key: 'expiration',
-          label: t('account.credential.expiration'),
-          value: expiration,
-        },
       ]
     : []
 

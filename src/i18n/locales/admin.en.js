@@ -16,6 +16,8 @@ export default {
     showSidebar: 'Show sidebar',
     defaultSection: 'Panel',
     breadcrumbRoot: 'Admin',
+    breadcrumbAria: 'Panel breadcrumb',
+    skipToContent: 'Skip to main content',
     navAria: 'Operations navigation',
     navBadgeAria: '{{label}}, {{count}} pending',
     goToDashboard: 'Go to overview',
@@ -603,13 +605,32 @@ export default {
       scheduleRetirement: 'Schedule retirement',
       discountCodesTitle: 'Discount and promo codes',
       discountCodesLead:
-        'Three types: a percentage discount, a fixed promotional price, or a combo — membership + registration — with its own price. Everything is set here: nothing to configure beforehand.',
+        'Three types: a percentage discount, a fixed promotional price, or a combo — membership + registration — with its own price. Everything is set here: the combo is built inside the code, not before it.',
       discountCodesEmpty: 'No codes yet.',
       codeSearchLabel: 'Search code',
       codeSearchPlaceholder: 'Code, description or event',
       codeSearchNoResults: 'No code matches "{{query}}".',
-      comboScopeUnavailable:
-        'There is no current combo for this scope: the code can be saved, but redemption will reject it until the event combo reopens.',
+      comboBlocker: {
+        noPlan:
+          'There is no active one-time membership to bundle. Activate one under membership plans and come back.',
+        noEvent:
+          'Choose which registration the combo applies to: price and redemption resolve against that event.',
+        pickPlan:
+          'There is more than one active one-time membership: choose which one the combo bundles.',
+        noSavings:
+          'The combo price must be lower than buying membership and registration separately.',
+      },
+      comboDeal: '{{combo}} against {{separate}} separately.',
+      comboDealSavings: 'Saves {{amount}} ({{percent}}%).',
+      bundlePlanLabel: 'Bundled membership',
+      bundlePlanHint:
+        'Which membership the athlete buys along with the registration. Only active one-time plans are listed.',
+      bundlePlanAuto: 'Automatic — {{plan}}',
+      bundlePlanPick: 'Choose a membership',
+      comboEventLabel: 'Bundled registration',
+      comboEventPick: 'Choose a registration',
+      comboEventHint:
+        'Required: the combo is built against one event, and that is where it is redeemed.',
       newDiscountCode: 'New code',
       publishDiscountCode: 'Publish code',
       formTitleNewCode: 'New code',
@@ -624,10 +645,11 @@ export default {
       percentOffInvalid: 'The discount must be a whole number between 1 and 99.',
       codeKindLabel: 'Code type',
       codeKindHint:
-        'A percentage discounts the current price; a fixed price replaces it. For the combo: fixed price with "Combo" scope.',
+        'A percentage discounts the current price; a fixed price replaces it. The combo sells membership and registration together at its own price.',
       codeKind: {
         percent: 'Percentage discount',
         fixed_price: 'Fixed promotional price',
+        combo: 'Combo (membership + registration)',
       },
       codeEventLabel: 'Limit to one registration',
       codeEventAny: 'Any registration',
@@ -689,21 +711,14 @@ export default {
         'Not used on a public promotion: opening or closing a channel for everyone is done from Access and availability, not here.',
       manualChannelsLegend: 'Payment methods it unlocks',
       codeChannelsLegend: 'Payment and entitlement',
-      codePaymentModeLabel: 'How it is paid',
-      codePaymentMode: {
-        mercado_pago: 'Mercado Pago',
-        manual: 'Cash or transfer only',
-        manual_financed: 'Cash or transfer, enabled when they report the payment',
-      },
-      codePaymentModeHint: {
-        mercado_pago:
-          'Paid online and credited automatically. The normal case: nobody on the team has to validate anything.',
-        manual:
-          'Whoever uses the code pays by transfer or in cash, and is enabled once Finance confirms the payment. The channels are unlocked for this code only, even if they are off globally.',
-        manual_financed:
-          'Whoever uses the code reports the transfer or the cash handover and is enabled right then, for both membership and registration. The debt stays open until Finance validates it.',
-      },
-      codeAlsoMercadoPago: 'Also accept Mercado Pago',
+      advancedOptions: 'More options — redemption limit, window and description',
+      codeFinancingToggle: 'Enable when they report the payment',
+      codeFinancingToggleHint:
+        'Whoever uses the code reports the transfer or the cash handover and is enabled right then, for both membership and registration. The debt stays open until Finance validates it.',
+      codeFinancingTerm: 'Payment deadline (days)',
+      codeFinancingTermHint:
+        "If Finance doesn't credit the payment within this deadline, the platform revokes the membership and registration it had enabled on its own.",
+      codeFinancingTermInvalid: 'The payment deadline must be a whole number between 1 and 90 days.',
       batchPartialError:
         '{{created}} of {{total}} codes were created. The rest did not go through: {{reason}}',
       codeChannelsEmpty:
@@ -713,6 +728,8 @@ export default {
       codeFinancingPublicInvalid:
         'A public promo cannot defer payment: it applies to every purchase on its own. Hand it out as a code instead.',
       codeFinancedBadge: 'Deferred payment',
+      codeFinancedBadgeWithTerm: 'Deferred payment · {{days}} days',
+      codeFinancedBadgeWithTermOne: 'Deferred payment · 1 day',
       manualChannel: {
         mercado_pago: 'Mercado Pago',
         bank_transfer: 'Bank transfer',
@@ -1128,6 +1145,12 @@ export default {
     statusSaved: 'Status updated.',
     publishedSaved: 'The event is now visible on the site.',
     unpublishedSaved: 'The event is no longer shown on the site.',
+    changesSaved: 'Changes saved.',
+    pendingOne: 'One unsaved change.',
+    pendingMany: '{{count}} unsaved changes.',
+    save: 'Save',
+    saving: 'Saving…',
+    discard: 'Discard',
     overridden:
       'The event is still full, so it stayed as "Full". Raise the capacity from the editor to reopen registration.',
     fullNote:
@@ -1654,6 +1677,33 @@ export default {
     spotlightSubtitleLive: '{{date}} · {{location}} · {{fill}}% filled',
     spotlightEyebrow: 'Flagship event',
     spotlightEmpty: 'No active flagship event on the calendar.',
+    spotlightClosesIn: 'Registration closes in {{count}} days',
+    spotlightClosesToday: 'Registration closes today',
+    focusEyebrow: 'Priorities',
+    focusTitle: "Today's attention",
+    focusSubtitleOne: 'One topic needs review',
+    focusSubtitleMany: '{{count}} topics need review',
+    focusOpen: 'Open',
+    focusEmpty: 'All clear: nothing needs review right now.',
+    reminder: {
+      manualPaymentsOne: 'payment awaits manual validation',
+      manualPayments: 'payments await manual validation',
+      observedRegistrationsOne: 'registration flagged for review',
+      observedRegistrations: 'registrations flagged for review',
+      eventConsistencyOne: 'event with contradictory dates or capacity',
+      eventConsistency: 'events with contradictory dates or capacity',
+      ticketOrdersOne: 'ticket order to collect',
+      ticketOrders: 'ticket orders to collect',
+      gateRegistrationsOne: 'registrant without an active membership',
+      gateRegistrations: 'registrants without an active membership',
+      expiringMembershipsOne: 'membership expiring soon',
+      expiringMemberships: 'memberships expiring soon',
+      expiresOn: 'the first one expires on {{date}}',
+      closingEvent: 'registration closing',
+      closingToday: 'closes today',
+      closingInDays: 'closes in {{count}} days',
+      nearlyFull: 'capacity almost full',
+    },
     slots: 'Slots',
     slotsLeft: 'Slots left',
     registrationCloses: 'Registration closes',
@@ -1937,6 +1987,8 @@ export default {
     settleReferencePlaceholder: 'E.g.: operation ID, transfer number',
     settleConfirm: 'Settle the charge',
     reject: 'Reject',
+    rejectRevokesFinancing:
+      'This order already enabled membership and registration through financing. Rejecting it revokes them right now.',
     rejectReasonLabel: 'Rejection reason',
     rejectReasonPlaceholder: "E.g.: the receipt doesn't match the order amount.",
     rejectConfirm: 'Confirm rejection',
@@ -1991,8 +2043,20 @@ export default {
     colDetail: 'Detail',
     colAmount: 'Amount',
     colReference: 'Reference',
+    colActions: 'Actions',
     kindIncome: 'Income',
     kindExpense: 'Expense',
+    editExpense: 'Edit expense',
+    editExpenseHint: 'Fix the date, amount or detail of the entry.',
+    newExpenseHint: 'The entry is audited with your user.',
+    cancel: 'Cancel',
+    saveChanges: 'Save changes',
+    deleteExpense: 'Delete expense',
+    deleteExpenseTitle: 'Delete expense',
+    deleteExpenseDescription: '"{{description}}" ({{amount}}) is removed from the period cash.',
+    deleteExpenseWarning: 'The audit trail keeps the original entry.',
+    deleteExpenseConfirm: 'Delete',
+    deleteExpenseBusy: 'Deleting…',
   },
   paymentOperations: {
     title: 'Payment Operations & Reconciliation',
@@ -2371,6 +2435,9 @@ export default {
     laneSpectators: 'Spectator tickets',
     laneSpectatorsLead: 'Ticket sales for spectators, independent from athlete registration.',
     slotsRemaining: '{{count}} spots left',
+    capacityVisibilityTitle: 'Show occupancy on the site',
+    capacityVisibilityHint:
+      'When off, the site does not publish how many signed up or the capacity progress. The panel always sees it.',
     liveSummary: 'Link, platform and status of the livestream.',
     consistency: {
       title: 'The public status does not match the configuration',
@@ -2656,6 +2723,9 @@ export default {
       'payment_brick.error': 'Mercado Pago Brick failed to load',
       'payment.approved_manually': 'Payment approved manually',
       'payment.rejected_manually': 'Payment rejected manually',
+      'payment.financing_term_expired': 'Financing term expired — revoked automatically',
+      'payment.financing_expiry_failed': 'Could not revoke the expired financing',
+      'payment.financing_term_backfilled': 'Financing term added to the clock',
       'payment.proof_uploaded': 'Receipt uploaded',
       'ticket_order.created': 'Ticket order created',
       'ticket_order.approved': 'Ticket order approved',
@@ -2799,6 +2869,11 @@ export default {
     proofMissing: 'No receipt',
     declared: 'Declared by athlete',
     financedActive: 'Financed · access active',
+    financingDueIn: 'Due in {{days}} days',
+    financingDueToday: 'Due today',
+    financingDueTomorrow: 'Due tomorrow',
+    financingOverdue: 'Overdue by {{days}} days',
+    financingOverdueYesterday: 'Overdue since yesterday',
     proofError: 'Could not open the receipt.',
     webhookOnly: 'Mercado Pago settles through the webhook',
     forceSettle: 'Settle manually',
@@ -2930,6 +3005,8 @@ export default {
     ticketApproved: 'Ticket order approved',
     ticketRejected: 'Ticket order rejected',
     expenseSaved: 'Expense recorded',
+    expenseUpdated: 'Expense updated',
+    expenseDeleted: 'Expense deleted',
     actionError: 'The action could not be completed',
   },
 }

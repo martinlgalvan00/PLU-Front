@@ -12,6 +12,13 @@ const expenseSchema = z.object({
   eventId: z.string().uuid().nullable().optional(),
   receiptPath: z.string().trim().max(500).optional(),
 })
+const expenseIdSchema = z.string().uuid()
+
+/** Traduce los errores de la RPC (PLU01/PLU02) al status HTTP correcto. */
+function rpcHttpError(error) {
+  if (error?.message?.includes('PLU02')) return new HttpError(404, 'El egreso no existe.')
+  return new Error(error?.message ?? 'Error al operar el egreso.')
+}
 export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
   const router = Router()
   const prisma = getPrisma()
@@ -111,6 +118,42 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
       })
       if (error) throw new Error(error.message)
       res.status(201).json({ expense: data })
+    } catch (e) {
+      next(e)
+    }
+  })
+  router.patch('/expenses/:id', ...write, staffLimiter, async (req, res, next) => {
+    try {
+      const id = expenseIdSchema.safeParse(req.params.id)
+      if (!id.success) throw new HttpError(400, 'Identificador de egreso inválido.')
+      const parsed = expenseSchema.safeParse(req.body)
+      if (!parsed.success) throw new HttpError(400, 'Datos de egreso inválidos.')
+      const { data, error } = await client().rpc('update_financial_expense', {
+        p_id: id.data,
+        p_occurred_on: parsed.data.occurredOn,
+        p_category: parsed.data.category,
+        p_description: parsed.data.description,
+        p_amount: parsed.data.amount,
+        p_event_id: parsed.data.eventId ?? null,
+        p_receipt_path: parsed.data.receiptPath ?? null,
+        p_actor_id: req.auth.user.id,
+      })
+      if (error) throw rpcHttpError(error)
+      res.json({ expense: data })
+    } catch (e) {
+      next(e)
+    }
+  })
+  router.delete('/expenses/:id', ...write, staffLimiter, async (req, res, next) => {
+    try {
+      const id = expenseIdSchema.safeParse(req.params.id)
+      if (!id.success) throw new HttpError(400, 'Identificador de egreso inválido.')
+      const { error } = await client().rpc('delete_financial_expense', {
+        p_id: id.data,
+        p_actor_id: req.auth.user.id,
+      })
+      if (error) throw rpcHttpError(error)
+      res.status(204).end()
     } catch (e) {
       next(e)
     }

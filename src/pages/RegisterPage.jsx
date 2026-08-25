@@ -22,6 +22,7 @@ import {
   KeyRound,
   LockKeyhole,
   ShieldCheck,
+  Sparkles,
   Tag,
   CalendarClock,
 } from 'lucide-react'
@@ -30,6 +31,7 @@ import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFiel
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
+import PromotionRevealModal from '../components/ui/PromotionRevealModal.jsx'
 import CodeScanButton from '../components/ui/CodeScanButton.jsx'
 import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
@@ -55,7 +57,10 @@ import {
 import { shouldTrySecretOfferFallback } from '../services/secretOfferRedemptionService.js'
 import {
   clearPendingPromotionCode,
+  promotionBenefitPresentation,
   promotionDestination,
+  promotionPaymentPresentation,
+  promotionScarcityPresentation,
   readPendingPromotionCode,
   redeemPromotionCode,
   savePendingPromotionCode,
@@ -140,6 +145,35 @@ function ageAtEvent(birthDate, eventDate) {
   )
   if (event < birthdayThisYear) age -= 1
   return age >= 0 ? age : null
+}
+
+/**
+ * El paquete que muestra `RegisterSettle` en la tarjeta de combo, armado desde
+ * el preview de un código de combo (20260918100000): la modalidad retirada
+ * ('offer'/'access') traía un `comboOffer` propio con precio por canal; la
+ * actual es un precio fijo que el código nombra directo, sin ese objeto.
+ *
+ * El preview ya resuelve `fixedPrice` para el canal que se le pidió
+ * (`paymentMethod`), así que se lo copia en las dos columnas: en el canal que
+ * se acaba de cotizar, mostrar el mismo número en cualquiera de las dos no
+ * cambia nada, y cambiar de canal vuelve a pedir el preview (ver el
+ * `useEffect` de `[form.paymentMethod]`), que llama de nuevo a esta función
+ * con el número ya actualizado.
+ */
+function comboOfferFromPreview(preview) {
+  // `finalAmount` y no `fixedPrice`: es lo que de verdad se cobra
+  // (`baseAmount - descuento`) y el único de los dos que la RPC garantiza en
+  // cualquier modalidad — `fixedPrice` sólo viaja para 'fixed_price'/'offer'.
+  const price = Number(preview?.finalAmount ?? preview?.fixedPrice) || 0
+  return {
+    price,
+    manualPrice: price,
+    currency: 'ARS',
+    audience: 'code',
+    accessCode: null,
+    financed: preview?.financed === true,
+    active: true,
+  }
 }
 
 function RegisterLiveCredential({ form, t }) {
@@ -455,6 +489,13 @@ export default function RegisterPage({
   const [purchaseType, setPurchaseType] = useState('combo')
   const [discountCodeInput, setDiscountCodeInput] = useState('')
   const [discountPreview, setDiscountPreview] = useState(null)
+  // Qué anunciar cuando el código resultó ser una promo con identidad propia.
+  // Es el payload del resolvedor, no el preview económico: el preview dice
+  // cuánto se paga, el resolvedor dice QUÉ se canjeó. El dato y "está abierto"
+  // son dos cosas distintas: cerrar el anuncio no puede borrar lo anunciado, o
+  // no queda nada para reabrir.
+  const [revealPromotion, setRevealPromotion] = useState(null)
+  const [revealOpen, setRevealOpen] = useState(false)
   const pendingPromotionAppliedRef = useRef(null)
   // Promoción que corre para todos y se aplica sola dentro de la transacción de
   // compra. Va aparte del cupón tipeado: el cupón se puede quitar y manda sobre
@@ -626,7 +667,15 @@ export default function RegisterPage({
     if (!preview?.valid) return preview ?? { valid: false }
     // Algunas versiones de la RPC no adjuntan `kind` en el preview; el resumen
     // del checkout lo usa para explicar el importe.
-    commitUnlockedCode(code, { ...preview, kind: preview.kind ?? offer?.kind ?? null }, { offer })
+    commitUnlockedCode(
+      code,
+      { ...preview, kind: preview.kind ?? offer?.kind ?? null },
+      // `comboOffer` se recalcula en cada repreciado: es el número que acaba
+      // de cotizar el canal actual, no el que traía el `offer` del canje
+      // original. Sin esto, cambiar de Mercado Pago a transferencia dejaba la
+      // tarjeta del combo mostrando el precio del canal anterior.
+      { offer: { ...offer, comboOffer: comboOfferFromPreview(preview) } },
+    )
     return preview
   }
 
@@ -720,7 +769,19 @@ export default function RegisterPage({
             paymentMethod: toApiPaymentMethod(form.paymentMethod),
           })
           if (comboPreview.valid) {
-            commitUnlockedCode(code, comboPreview)
+            // Sin este `comboOffer` sintético, `comboAvailability.offer` queda
+            // en null y la tarjeta del combo nunca se ofrece: el atleta llega
+            // al evento, el código se acepta, pero no aparece nada para pagar.
+            commitUnlockedCode(code, comboPreview, {
+              offer: { comboOffer: comboOfferFromPreview(comboPreview) },
+            })
+            // El código que destraba el paquete es el que más tiene que
+            // anunciar: sin esto el atleta ve aparecer una tarjeta de combo y
+            // ningún relato de por qué.
+            if (resolution?.accepted) {
+              setRevealPromotion(resolution)
+              setRevealOpen(true)
+            }
             return
           }
           setDiscountError(describeDiscountError(comboPreview))
@@ -730,6 +791,13 @@ export default function RegisterPage({
         return
       }
       setDiscountPreview(preview)
+      // Después del preview a propósito: si el preview rebota, no se
+      // anuncia nada. Sólo cuando el resolvedor reconoció una promo — un
+      // cupón suelto no tiene identidad que contar.
+      if (resolution?.accepted) {
+        setRevealPromotion(resolution)
+        setRevealOpen(true)
+      }
       clearPendingPromotionCode()
     } catch (error) {
       setDiscountError(error?.message ?? t('pages.register.discountError.not_found'))
@@ -771,6 +839,8 @@ export default function RegisterPage({
     setComboCode('')
     setDiscountCodeInput('')
     setDiscountPreview(null)
+    setRevealPromotion(null)
+    setRevealOpen(false)
     setDiscountError('')
     setUnlockedOffer(null)
   }
@@ -1722,13 +1792,15 @@ export default function RegisterPage({
                 {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
                   <>
                     <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
-                    <ManualPaymentConfirmation
-                      channel="cash_pitbull"
-                      financedEntitlementsAt={visibleOrder.financedEntitlementsAt}
-                      financingAllowed={visibleOrder.financingAllowed}
-                      manualPaymentDeclaredAt={visibleOrder.manualPaymentDeclaredAt}
-                      orderId={visibleOrder.paymentId ?? visibleOrder.id ?? null}
-                    />
+                    {/* La acción de confirmar vive una sola vez, en el panel de
+                        pago principal: acá solo se dice en qué queda el
+                        beneficio, para no repetir el mismo botón dos veces en
+                        la misma pantalla. */}
+                    <p className="manual-note">
+                      {visibleOrder.financingAllowed
+                        ? t('pages.register.cashFinancingActiveNote')
+                        : t('pages.register.cashFinancingPendingNote')}
+                    </p>
                   </>
                 ) : flow === 'competition' ? (
                   <button
@@ -1977,9 +2049,12 @@ export default function RegisterPage({
                 <ManualPaymentConfirmation
                   channel="cash_pitbull"
                   financedEntitlementsAt={visibleOrder.financedEntitlementsAt}
+                  financedPaymentDueAt={visibleOrder.financedPaymentDueAt}
                   financingAllowed={visibleOrder.financingAllowed}
                   manualPaymentDeclaredAt={visibleOrder.manualPaymentDeclaredAt}
                   orderId={visibleOrder.paymentId ?? visibleOrder.id ?? null}
+                  onNavigate={onNavigate}
+                  profileTab="account-events"
                 />
               ) : (
                 <div className="register-settle__toolbar">
@@ -2497,7 +2572,25 @@ export default function RegisterPage({
                           {discountPreview.financed &&
                           (codeChannels.includes('bank_transfer') ||
                             codeChannels.includes('cash_pitbull')) ? (
-                            <p className="code-band-hint">{t('pages.register.discountFinanced')}</p>
+                            <p className="code-band-hint">
+                              {t('pages.register.discountFinanced', {
+                                days: discountPreview.financingTermDays,
+                              })}
+                            </p>
+                          ) : null}
+                          {/* El anuncio del canje se puede volver a abrir:
+                              sale una sola vez al aplicar el código y ahí están
+                              los canales, el cupo y la ventana, que no entran
+                              en la banda. */}
+                          {revealPromotion ? (
+                            <button
+                              type="button"
+                              className="code-band-detail"
+                              onClick={() => setRevealOpen(true)}
+                            >
+                              <Sparkles size={12} aria-hidden />
+                              {t('promotionReveal.reopen')}
+                            </button>
                           ) : null}
                           <button
                             type="button"
@@ -2824,6 +2917,28 @@ export default function RegisterPage({
           eventSlug={event?.slug ?? null}
           onUnlock={handleAccessUnlock}
           onCancel={() => setAccessGateOpen(false)}
+        />
+      ) : null}
+
+      {/* El momento del canje. Acá la acción principal no navega —el atleta ya
+          está en el checkout que va a cobrar el código—: cierra el anuncio y
+          deja abajo el precio recalculado y, si el código destrabó el paquete,
+          la tarjeta del combo. */}
+      {revealPromotion && revealOpen ? (
+        <PromotionRevealModal
+          campaignDescription={revealPromotion.campaign?.description ?? ''}
+          campaignName={revealPromotion.campaign?.name ?? ''}
+          code={revealPromotion.code}
+          continueLabel={t('promotionReveal.continueHere')}
+          expiresAt={promotionScarcityPresentation(revealPromotion)?.expiresAt ?? null}
+          headline={(() => {
+            const benefit = promotionBenefitPresentation(revealPromotion)
+            return t(`secretOfferRedeemer.benefit.${benefit.type}`, benefit)
+          })()}
+          onClose={() => setRevealOpen(false)}
+          onContinue={() => setRevealOpen(false)}
+          payment={promotionPaymentPresentation(revealPromotion)}
+          remaining={promotionScarcityPresentation(revealPromotion)?.remaining ?? null}
         />
       ) : null}
     </main>

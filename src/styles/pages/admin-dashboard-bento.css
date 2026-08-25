@@ -662,27 +662,27 @@
   padding: 0;
 }
 
-/* ---- Circuitos operativos ---- */
+/* ---- Atención de hoy (mesa de prioridades) ---- */
 
-.admin-ops__flows {
+.admin-ops__focus {
   border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
   display: grid;
   gap: 14px;
   padding: 18px 0 2px;
 }
 
-.admin-ops__flows-head {
+.admin-ops__focus-head {
   border-bottom: 1px solid var(--admin-hairline);
   padding-bottom: 12px;
 }
 
-.admin-ops__flows-head > div {
+.admin-ops__focus-head > div {
   display: grid;
   gap: 4px;
   max-width: 62ch;
 }
 
-.admin-ops__flows-head h3 {
+.admin-ops__focus-head h3 {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
   font-size: clamp(1.05rem, 2vw, 1.25rem);
@@ -692,78 +692,107 @@
   margin: 0;
 }
 
-.admin-ops__flows-head p {
+/* Firma de marca del bloque: filete corto de oro bajo el título — el
+   único acento metálico de la mesa de prioridades. */
+.admin-ops__focus-head h3::after {
+  background: var(--admin-premium, var(--color-brand-gold));
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 8px;
+  width: 28px;
+}
+
+.admin-ops__focus-head p {
   color: var(--admin-muted);
   font-size: 12px;
   line-height: 1.45;
   margin: 0;
 }
 
-.admin-ops__flows-list {
+.admin-ops__focus-list {
   display: grid;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.admin-ops__flows-list li {
+.admin-ops__focus-item {
   align-items: center;
   border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 82%, transparent);
   column-gap: 12px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  min-height: 64px;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  min-height: 60px;
   padding: 8px 0;
 }
 
-.admin-ops__flows-list li:first-child {
+.admin-ops__focus-item:first-child {
   border-top: 0;
 }
 
-.admin-ops__flow-state {
+.admin-ops__focus-icon {
   align-items: center;
-  color: var(--admin-status-success);
   display: inline-flex;
   height: 28px;
   justify-content: center;
-  width: 28px;
+  width: 22px;
 }
 
-.admin-ops__flows-list li.is-attention .admin-ops__flow-state,
-.admin-ops__flows-list li.is-attention .admin-ops__flow-attention strong {
+/* Un acento por fila: severidad en ícono y dato, el resto es tinta. */
+.admin-ops__focus-item--urgent .admin-ops__focus-icon,
+.admin-ops__focus-item--urgent .admin-ops__focus-stat {
+  color: var(--admin-status-danger);
+}
+
+.admin-ops__focus-item--warning .admin-ops__focus-icon,
+.admin-ops__focus-item--warning .admin-ops__focus-stat {
   color: var(--admin-status-warning);
 }
 
-.admin-ops__flow-copy,
-.admin-ops__flow-attention {
+.admin-ops__focus-item--info .admin-ops__focus-icon,
+.admin-ops__focus-item--info .admin-ops__focus-stat {
+  color: var(--admin-accent);
+}
+
+.admin-ops__focus-stat {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  min-width: 2ch;
+  text-align: right;
+}
+
+.admin-ops__focus-copy {
   display: grid;
   gap: 3px;
   min-width: 0;
 }
 
-.admin-ops__flow-copy strong,
-.admin-ops__flow-attention strong {
+.admin-ops__focus-label {
   color: var(--admin-ink);
   font-size: 13px;
-  font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.015em;
-  line-height: 1.2;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.admin-ops__flow-copy span,
-.admin-ops__flow-attention span {
+.admin-ops__focus-meta {
   color: var(--admin-muted);
   font-size: 11px;
-  line-height: 1.25;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.admin-ops__flow-attention {
-  min-width: 92px;
-  text-align: right;
-}
-
-.admin-ops__flow-open {
+.admin-ops__focus-open {
   align-items: center;
   background: transparent;
   border: 0;
@@ -780,38 +809,68 @@
   padding: 0 4px 0 8px;
 }
 
-.admin-ops__flow-open:hover {
+.admin-ops__focus-open:hover {
   color: var(--admin-ink);
 }
 
-.admin-ops__flow-open:focus-visible {
+.admin-ops__focus-open:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
 
+.admin-ops__focus-clear {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  gap: 10px;
+  padding: 14px 0 6px;
+}
+
+.admin-ops__focus-clear-icon {
+  color: var(--admin-status-success);
+  display: inline-flex;
+}
+
+.admin-ops__focus-clear p {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.admin-ops__spotlight-countdown {
+  color: var(--admin-status-warning);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 2px 0 0;
+}
+
 @container admin-ops (max-width: 500px) {
-  .admin-ops__flows-list li {
-    column-gap: 8px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    min-height: 74px;
+  .admin-ops__focus-item {
+    column-gap: 10px;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    min-height: 68px;
   }
 
-  .admin-ops__flow-state {
+  .admin-ops__focus-icon {
     grid-row: 1 / span 2;
   }
 
-  .admin-ops__flow-attention {
-    align-items: baseline;
-    display: flex;
-    gap: 5px;
-    grid-column: 2;
-    min-width: 0;
-    text-align: left;
+  .admin-ops__focus-stat {
+    grid-row: 1;
   }
 
-  .admin-ops__flow-open {
+  .admin-ops__focus-copy {
     grid-column: 3;
-    grid-row: 1 / span 2;
+  }
+
+  .admin-ops__focus-open {
+    align-items: flex-start;
+    grid-column: 3;
+    grid-row: 2;
+    justify-content: flex-start;
+    min-height: 34px;
+    padding: 0;
   }
 }
 

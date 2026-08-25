@@ -103,7 +103,7 @@ export default function EmailVerificationBanner({ athlete }) {
         {athlete.email ? <p className="account-verify__email">{athlete.email}</p> : null}
         {showOtp ? (
           <form className="account-verify__otp" onSubmit={submitCode}>
-            <label className="account-verify__otp-label" htmlFor="account-verify-otp">
+            <label className="visually-hidden" htmlFor="account-verify-otp">
               {t('account.emailVerification.otpLabel')}
             </label>
             <div className="account-verify__otp-row">
@@ -113,7 +113,7 @@ export default function EmailVerificationBanner({ athlete }) {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 pattern="\d{8}"
-                placeholder="00000000"
+                placeholder={t('account.emailVerification.otpLabel')}
                 value={code}
                 disabled={otpState === 'verifying'}
                 onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
@@ -127,19 +127,17 @@ export default function EmailVerificationBanner({ athlete }) {
                   ? t('account.emailVerification.otpVerifying')
                   : t('account.emailVerification.otpSubmit')}
               </button>
+              <button
+                type="button"
+                className={resendClass}
+                disabled={state === 'sending'}
+                onClick={resend}
+              >
+                {t('account.emailVerification.resend')}
+              </button>
             </div>
             {otpError ? <p className="account-verify__otp-error">{otpError}</p> : null}
           </form>
-        ) : null}
-        {showActions ? (
-          <button
-            type="button"
-            className={resendClass}
-            disabled={state === 'sending'}
-            onClick={resend}
-          >
-            {t('account.emailVerification.resend')}
-          </button>
         ) : null}
       </div>
     </aside>

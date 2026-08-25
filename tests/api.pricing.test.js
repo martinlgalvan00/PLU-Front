@@ -205,12 +205,17 @@ describe('configuración económica administrativa', () => {
         kind: 'fixed_price',
         fixedPrice: 120000,
         appliesTo: 'combo',
+        // El combo se arma contra una inscripción concreta: es de donde salen
+        // el precio de lista de esa parte y la llave que canjea el atleta
+        // (20260918100000).
+        eventId: '11111111-2222-4333-8444-555555555555',
         percentOff: 25,
       }),
     )
 
     expect(parsed.success).toBe(true)
     expect(parsed.data.fixedPrice).toBe(120000)
+    expect(parsed.data.eventId).toBe('11111111-2222-4333-8444-555555555555')
     // El porcentaje viaja en el payload pero no llega a la base: cada
     // modalidad guarda sólo su propio campo.
     expect(parsed.data.percentOff).toBeUndefined()
@@ -219,7 +224,12 @@ describe('configuración económica administrativa', () => {
   it('rechaza una promo de precio fijo sin importe o con alcance combinado', () => {
     expect(
       discountCodeSchema.safeParse(
-        discountCodePayload({ kind: 'fixed_price', appliesTo: 'combo', percentOff: undefined }),
+        discountCodePayload({
+          kind: 'fixed_price',
+          appliesTo: 'combo',
+          eventId: '11111111-2222-4333-8444-555555555555',
+          percentOff: undefined,
+        }),
       ).success,
     ).toBe(false)
     expect(
@@ -227,6 +237,46 @@ describe('configuración económica administrativa', () => {
         discountCodePayload({ kind: 'fixed_price', fixedPrice: 120000, appliesTo: 'both' }),
       ).success,
     ).toBe(false)
+  })
+
+  // Un combo sin inscripción se guardaba y después no se podía canjear por
+  // ningún camino: `plu_private.athlete_unlocked_offer_code` busca la llave
+  // del atleta por evento. Ver la cabecera de 20260918100000.
+  it('rechaza un combo sin inscripción o repartido como promo pública', () => {
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({ kind: 'fixed_price', fixedPrice: 120000, appliesTo: 'combo' }),
+      ).success,
+    ).toBe(false)
+    expect(
+      discountCodeSchema.safeParse(
+        discountCodePayload({
+          kind: 'fixed_price',
+          fixedPrice: 120000,
+          appliesTo: 'combo',
+          eventId: '11111111-2222-4333-8444-555555555555',
+          audience: 'public',
+        }),
+      ).success,
+    ).toBe(false)
+  })
+
+  // El séptimo dato del paquete —qué afiliación se empaqueta— es el único que
+  // el código no podía deducir, y por eso antes había que cargar el combo del
+  // evento primero.
+  it('acepta la afiliación que empaqueta el combo', () => {
+    const planId = '99999999-8888-4777-8666-555555555555'
+    const parsed = discountCodeSchema.safeParse(
+      discountCodePayload({
+        kind: 'fixed_price',
+        fixedPrice: 120000,
+        appliesTo: 'combo',
+        eventId: '11111111-2222-4333-8444-555555555555',
+        membershipPlanId: planId,
+      }),
+    )
+    expect(parsed.success).toBe(true)
+    expect(parsed.data.membershipPlanId).toBe(planId)
   })
 
   it('exige el porcentaje cuando el código es un descuento', () => {

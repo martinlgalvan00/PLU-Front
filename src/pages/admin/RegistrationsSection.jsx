@@ -477,6 +477,7 @@ export default function RegistrationsSection({
         variant="registrations"
         eyebrow={t('admin.sections.registrations.eyebrow')}
         filteredCount={registrationRows.length}
+        filterLayout="popover"
         placeholder={t('admin.search.registration')}
         query={filters.query ?? ''}
         showHeader

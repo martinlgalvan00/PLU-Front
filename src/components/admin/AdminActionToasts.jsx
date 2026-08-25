@@ -73,8 +73,10 @@ export default function AdminActionToasts() {
     )
   }
 
-  if (toasts.length === 0) return null
-
+  // El contenedor vive montado desde el arranque (vacío no pinta nada):
+  // los ítems role="alert"/"status" deben insertarse en una región ya
+  // existente para que los lectores de pantalla anuncien también el
+  // primer toast de la sesión.
   return (
     <div className="admin-toasts">
       {toasts.map((toast) => (

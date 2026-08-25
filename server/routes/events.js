@@ -40,7 +40,7 @@ const CATALOG_EVENT_SELECT = `
   starts_at, ends_at,
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
-  capacity, status, published, requires_membership, price, manual_price, currency, rules,
+  capacity, status, published, requires_membership, capacity_progress_public, price, manual_price, currency, rules,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventRegistrations:event_registrations(count),
   eventDays:event_days(id, day_index, label, date),
@@ -155,6 +155,9 @@ export const eventSchema = z
     status: z.enum(EVENT_STATUSES),
     published: z.boolean(),
     requiresMembership: z.boolean().default(true),
+    // Si el sitio público muestra cuántos se anotaron y el progreso del cupo.
+    // El panel lo ve siempre: sólo gobierna la proyección pública.
+    capacityProgressPublic: z.boolean().default(true),
     slots: z.coerce.number().int().min(1).max(5000),
     pricing: pricingSchema,
     featured: z.boolean().optional(),
@@ -248,12 +251,16 @@ const eventStateSchema = z
     // upsert: era el único flag de la operación diaria que obligaba a
     // reescribir el evento entero (y con él la grilla ya asignada).
     requiresMembership: z.boolean().optional(),
+    // Mostrar/ocultar la ocupación pública (contador y barra) sin reescribir
+    // el evento: misma clase de decisión operativa que los dos de arriba.
+    capacityProgressPublic: z.boolean().optional(),
   })
   .refine(
     (body) =>
       body.status !== undefined ||
       body.published !== undefined ||
-      body.requiresMembership !== undefined,
+      body.requiresMembership !== undefined ||
+      body.capacityProgressPublic !== undefined,
     'No hay ningún cambio para aplicar.',
   )
 
@@ -501,6 +508,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
             p_published: req.validatedBody.published ?? null,
             p_requires_membership: req.validatedBody.requiresMembership ?? null,
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
+            p_capacity_progress_public: req.validatedBody.capacityProgressPublic ?? null,
           }),
           'No se pudo cambiar el estado del evento.',
         )

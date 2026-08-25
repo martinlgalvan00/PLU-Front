@@ -2909,8 +2909,11 @@ html.plu-drawer-open body {
     gap: 6px;
   }
 
+  /* Tema/idioma quedan visibles acá (el nav completo ya está arriba) — sin
+     esto, la única forma de cambiarlos era abrir el drawer entero. */
   .plu-global-nav__preferences {
-    display: none;
+    gap: 4px;
+    padding-right: 8px;
   }
 
   .plu-global-nav__login {
@@ -3066,6 +3069,15 @@ html.plu-drawer-open body {
 
   .institutional-hero__inner {
     padding-top: 34px;
+  }
+}
+
+/* 800–1099: el nav completo ya está arriba y tema/idioma vuelven a mostrarse
+   inline — el hamburguesa (visible por defecto hasta 1099px) queda sin
+   ninguna función acá y solo duplica la navegación. */
+@media (min-width: 800px) and (max-width: 1099px) {
+  .plu-global-nav__menu-button {
+    display: none;
   }
 }
 

@@ -78,8 +78,16 @@ export const discountCodeSchema = z
     fixedPriceManual: money.optional(),
     appliesTo: z.enum(['membership', 'registration', 'combo', 'both']),
     // A qué inscripción aplica el código. Vacío = cualquiera, que es como se
-    // comportaban todos los códigos antes de 20260902100000.
+    // comportaban todos los códigos antes de 20260902100000. Con alcance
+    // 'combo' deja de ser opcional: el paquete se arma contra una inscripción
+    // concreta (ver el superRefine de más abajo).
     eventId: z.string().uuid().optional(),
+    // Qué afiliación empaqueta el combo. Sólo lo lee un precio promocional con
+    // alcance 'combo' —la modalidad que ES el paquete desde 20260918100000—;
+    // vacío lo resuelve la RPC (el plan del combo del evento si hay, o la única
+    // afiliación de pago único vigente), así que el panel sólo lo manda cuando
+    // hay una elección real que hacer.
+    membershipPlanId: z.string().uuid().optional(),
     maxRedemptions: z.coerce.number().int().positive().optional(),
     // Ventana de la promo. `startsAt` vacío = vigente desde que se enciende,
     // que es como se comportaban todas las promos antes de tener apertura.
@@ -119,6 +127,11 @@ export const discountCodeSchema = z
     // queda habilitado en forma provisional mientras Finanzas valida el saldo.
     // No acredita nada: la deuda sigue abierta y auditable.
     financed: z.boolean().default(false),
+    // Plazo de pago del financiamiento (20260922100000): días desde que el
+    // atleta declara el pago hasta que, sin acreditación de Finanzas, la
+    // plataforma da de baja sola lo que había habilitado. Sólo importa con
+    // `financed` encendido; default 7 si el panel no manda uno explícito.
+    financingTermDays: z.coerce.number().int().min(1).max(90).default(7),
   })
   .superRefine((code, context) => {
     // Una promo que corre para todos y ademas abre transferencia o efectivo es
@@ -194,6 +207,28 @@ export const discountCodeSchema = z
         code: z.ZodIssueCode.custom,
         path: ['eventId'],
         message: 'Sólo una inscripción o un combo pueden limitarse a un evento.',
+      })
+    }
+    // El combo se arma contra UNA inscripción: es de donde salen el precio de
+    // lista de la parte de evento y la llave que el atleta canjea
+    // (`plu_private.athlete_unlocked_offer_code` matchea por `event_id`). Sin
+    // inscripción el código se guarda y no se puede canjear nunca — que es
+    // exactamente el agujero que cerró 20260918100000.
+    if (code.kind === 'fixed_price' && code.appliesTo === 'combo' && !code.eventId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['eventId'],
+        message: 'Elegí a qué inscripción aplica el combo: sin inscripción no hay paquete que armar.',
+      })
+    }
+    // Y por el mismo motivo se reparte como código: una promo pública no puede
+    // limitarse a una inscripción, así que un combo público no tendría de dónde
+    // sacar el paquete.
+    if (code.kind === 'fixed_price' && code.appliesTo === 'combo' && code.audience === 'public') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['audience'],
+        message: 'El combo se reparte como código: no puede ser una promoción pública.',
       })
     }
     // Ver `discount_codes_public_event_check` en 20260902100000: el resolver de

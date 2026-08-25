@@ -101,6 +101,7 @@ export function buildAdminEventDraft(event) {
     liveStatus: event.liveStatus ?? 'offline',
     published: event.published === true,
     requiresMembership: event.requiresMembership !== false,
+    capacityProgressPublic: event.capacityProgressPublic !== false,
   }
 }
 
@@ -514,6 +515,8 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   liveStatus: 'offline',
   published: false,
   requiresMembership: true,
+  // El sitio muestra la ocupación salvo decisión contraria del organizador.
+  capacityProgressPublic: true,
 }
 
 /**
@@ -610,6 +613,7 @@ export function mapSupabaseEventRow(row) {
     status: row.status,
     published: row.published,
     requiresMembership: row.requires_membership !== false,
+    capacityProgressPublic: row.capacity_progress_public !== false,
     comboOffer: comboOfferRow
       ? {
           id: comboOfferRow.id,
@@ -789,13 +793,17 @@ export async function fetchAdminEvents() {
  * (reabrir un evento que sigue lleno lo devuelve a `agotado`). El panel lo
  * necesita para explicar por qué el badge no dice lo que el operador eligió.
  */
-export async function setEventStateRequest(slug, { status, published, requiresMembership } = {}) {
+export async function setEventStateRequest(
+  slug,
+  { status, published, requiresMembership, capacityProgressPublic } = {},
+) {
   if (!slug) throw new Error('Falta el slug del evento.')
 
   const payload = {}
   if (status !== undefined) payload.status = status
   if (published !== undefined) payload.published = published
   if (requiresMembership !== undefined) payload.requiresMembership = requiresMembership
+  if (capacityProgressPublic !== undefined) payload.capacityProgressPublic = capacityProgressPublic
 
   const response = await apiPost(`/api/events/${encodeURIComponent(slug)}/state`, payload)
 

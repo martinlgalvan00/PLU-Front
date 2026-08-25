@@ -2083,18 +2083,24 @@
   gap: 24px;
 }
 
-/* Tres superficies (resumen / egreso / movimientos) en vez de una franja
+/* Tres superficies (resumen / movimientos) en vez de una franja
    continua de secciones separadas por líneas — mismo criterio que el resto
    del panel: cada bloque funcional es su propia tarjeta con aire y sombra
-   propios. */
+   propios. El alta/edición de egresos vive en AdminExpenseDialog. */
 .admin-finance--ledger .admin-finance__summary,
-.admin-finance--ledger .admin-finance__ledger,
-.admin-finance--ledger .admin-finance__expense {
+.admin-finance--ledger .admin-finance__ledger {
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: var(--border-radius-xl);
   box-shadow: var(--elevation-sm);
   padding: 24px 26px;
+}
+
+.admin-finance__header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .admin-finance--ledger .admin-finance__summary {
@@ -2285,13 +2291,9 @@
   white-space: nowrap;
 }
 
-.admin-finance--ledger .admin-finance__toolbar,
-.admin-finance--ledger .admin-finance__expense-grid {
+.admin-finance--ledger .admin-finance__toolbar {
   display: grid;
   gap: 12px;
-}
-
-.admin-finance--ledger .admin-finance__toolbar {
   grid-template-columns: repeat(2, minmax(9rem, 11rem)) minmax(0, 1fr);
 }
 
@@ -2324,41 +2326,147 @@
   outline-offset: 2px;
 }
 
-.admin-finance--ledger .admin-finance__expense {
-  display: grid;
-  gap: 14px;
-}
-
-.admin-finance--ledger .admin-finance__expense h3 {
-  font-size: 13px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.admin-finance--ledger .admin-finance__expense-grid {
-  align-items: end;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.admin-finance--ledger .admin-finance__field--wide {
-  grid-column: 1 / -1;
-}
-
-.admin-finance--ledger .admin-finance__expense-grid .btn {
-  justify-self: start;
-  min-height: 40px;
+@media (max-width: 720px) {
+  .admin-finance--ledger .admin-finance__overview,
+  .admin-finance--ledger .admin-finance__toolbar {
+    grid-template-columns: 1fr;
+  }
 }
 
 [data-theme='light'] .admin-finance--ledger .admin-finance__balance-value {
   color: var(--plu-gold-600, var(--color-brand-gold));
 }
 
-@media (max-width: 720px) {
-  .admin-finance--ledger .admin-finance__overview,
-  .admin-finance--ledger .admin-finance__toolbar,
-  .admin-finance--ledger .admin-finance__expense-grid {
+/* ── Diálogo de egreso (alta/edición) ──
+   Mismo shell que admin-status-dialog (backdrop, panel, head, acciones):
+   la maquinaria es idéntica, lo que cambia es el contenido. */
+.admin-expense-dialog {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md);
+  position: fixed;
+  z-index: 1300;
+}
+
+.admin-expense-dialog__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.admin-expense-dialog__panel {
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
+  gap: var(--space-md);
+  max-height: min(92vh, 880px);
+  overflow: auto;
+  padding: clamp(var(--space-lg), 3.5vw, calc(var(--space-lg) + var(--space-sm)));
+  position: relative;
+  width: min(100%, 560px);
+}
+
+.admin-expense-dialog__head {
+  align-items: start;
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: auto 1fr;
+}
+
+.admin-expense-dialog__head h2 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.admin-expense-dialog__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 8%, transparent);
+  border-radius: 10px;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.admin-expense-dialog__lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.admin-expense-dialog__form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-expense-dialog__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-expense-dialog__field--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-expense-dialog__field span {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-expense-dialog__field input {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.admin-expense-dialog__field input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-expense-dialog__error {
+  color: var(--admin-status-danger, var(--color-status-danger));
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.admin-expense-dialog__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 560px) {
+  .admin-expense-dialog__form {
     grid-template-columns: 1fr;
+  }
+
+  .admin-expense-dialog__actions {
+    flex-direction: column-reverse;
+  }
+
+  .admin-expense-dialog__actions .btn {
+    width: 100%;
   }
 }
 
@@ -3084,7 +3192,9 @@
 }
 
 .admin-event-editor-modal__backdrop {
-  background: rgba(4, 6, 10, 0.78);
+  -webkit-appearance: none;
+  appearance: none;
+  background: color-mix(in srgb, var(--admin-canvas, #04060a) 80%, transparent);
   border: 0;
   cursor: pointer;
   inset: 0;
@@ -3092,9 +3202,11 @@
 }
 
 .admin-event-editor-modal__panel {
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(var(--admin-glass-blur, 16px)) saturate(1.15);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur, 16px)) saturate(1.15);
+  background: var(--admin-glass-bg-strong, rgba(10, 10, 12, 0.95));
+  border: 1px solid var(--admin-glass-border, rgba(255, 255, 255, 0.08));
+  box-shadow: var(--admin-shadow-panel, 0 24px 64px rgba(0, 0, 0, 0.48));
   display: flex;
   flex-direction: column;
   inset: 0;
@@ -3112,7 +3224,7 @@
 }
 
 .admin-event-editor-modal__panel .admin-event-form--editor {
-  border-right: 0;
+  border-right: 1px solid var(--admin-hairline, rgba(255, 255, 255, 0.04));
   flex: 1;
   height: 100%;
   max-height: 100%;
@@ -3121,8 +3233,7 @@
 }
 
 .admin-event-editor-modal__panel .admin-event-preview--live {
-  border-left: 0;
-  border-top: 1px solid var(--color-border-subtle);
+  background: transparent;
   max-height: none;
   overflow: visible;
 }
@@ -3137,7 +3248,7 @@
 
   .admin-event-editor-modal__panel {
     border-radius: 14px;
-    height: min(880px, calc(100dvh - 40px));
+    height: min(1080px, calc(100dvh - 48px));
     inset: auto;
     max-width: 1120px;
     position: relative;
@@ -8132,6 +8243,28 @@
   line-height: 1.5;
   margin: 0;
   padding: var(--space-sm) var(--space-md);
+}
+
+/* Rechazar una orden financiada y ya declarada revoca afiliación/inscripción
+   de verdad: a diferencia de la nota de acreditación manual, esto sí es una
+   consecuencia que puede sorprender, así que va en tono de alerta real. */
+.payment-validation-dialog__financing-warning {
+  align-items: flex-start;
+  background: var(--color-danger-bg);
+  border-left: 2px solid var(--color-danger-text);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-danger-text);
+  display: flex;
+  font-size: 12.5px;
+  gap: var(--space-xs, 6px);
+  line-height: 1.5;
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.payment-validation-dialog__financing-warning svg {
+  flex: none;
+  margin-top: 1px;
 }
 
 .payment-validation-dialog__settle-hint {
@@ -19204,8 +19337,8 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-filter-popoverbar__row1 .admin-filters__search {
-  flex: 1 1 320px;
-  max-width: 440px;
+  flex: 0 1 320px;
+  min-width: 200px;
 }
 
 .admin-filter-popoverbar__spacer {

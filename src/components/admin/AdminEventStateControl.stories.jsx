@@ -113,6 +113,9 @@ export const CupoLleno = {
 /**
  * El operador reabre un evento que sigue lleno y la base lo devuelve a
  * `agotado`. Es el caso que más confunde si la pantalla no lo dice.
+ *
+ * Flujo staged: tocá un chip de estado (pre-selecciona, sin guardar) y después
+ * "Guardar" -- el notice explica que la base corrigió el estado pedido.
  */
 export const ReaperturaRevertida = {
   args: {

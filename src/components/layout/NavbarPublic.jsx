@@ -7,6 +7,8 @@ import {
   CalendarDays,
   ChevronDown,
   CircleHelp,
+  FolderOpen,
+  Handshake,
   IdCard,
   ListChecks,
   LogOut,
@@ -39,9 +41,11 @@ const NAV_ICON = {
   help: CircleHelp,
   mail: Mail,
   member: IdCard,
+  resources: FolderOpen,
   results: ListChecks,
   records: Scale,
   shop: ShoppingBag,
+  sponsors: Handshake,
   standards: Target,
   trophy: Trophy,
 }
@@ -82,12 +86,19 @@ function computeProfileMenuPosition(rect, viewportWidth) {
   return { top, left }
 }
 
-/** Línea utilitaria horizontal del drawer (Reglamento vive acá, no en el top-level). */
+/**
+ * Línea utilitaria horizontal del drawer (Reglamento vive acá, no en el top-level).
+ * Mismo set y orden que el grupo "Más" de desktop (`PUBLIC_NAVIGATION`) — Comunidad
+ * y Recursos deben estar acá también, si no un usuario mobile solo los encuentra
+ * bajando hasta el footer.
+ */
 const DRAWER_SECONDARY = [
   { key: 'rulebook', labelKey: 'nav.rulebook' },
   { key: 'team', labelKey: 'nav.team' },
   { key: 'sponsors', labelKey: 'nav.sponsors' },
   { key: 'standards', labelKey: 'nav.standards' },
+  { key: 'community', labelKey: 'nav.community' },
+  { key: 'resources', labelKey: 'nav.resources' },
   { key: 'faq', labelKey: 'nav.faq' },
   { key: 'contact', labelKey: 'nav.contact' },
 ]

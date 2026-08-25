@@ -199,10 +199,11 @@ export default {
 export const Operativa = {}
 
 /**
- * El alta quedó reducida a los dos descuentos: crear la oferta exclusiva desde
- * el panel se revocó (20260915100000) —el paquete y su precio viven en el
- * código—. La historia fija el select para que `offer_access` no reaparezca
- * por un merge distraído.
+ * Los tres tipos que se pueden dar de alta. La oferta exclusiva por código se
+ * revocó (20260915100000) y el paquete pasó a vivir dentro del código: desde
+ * 20260918100000 el combo es un tipo del panel —`fixed_price` con alcance
+ * `combo`— y no un alcance escondido en "Aplica a". La historia fija el select
+ * para que `offer_access` no reaparezca por un merge distraído.
  */
 export const AltaSoloDescuentos = {
   args: {
@@ -217,7 +218,12 @@ export const AltaSoloDescuentos = {
     await userEvent.click(canvas.getByRole('button', { name: /nuevo código/i }))
     const kindSelect = await canvas.findByLabelText(/^tipo de código/i)
     const kinds = Array.from(kindSelect.options).map((option) => option.value)
-    await expect(kinds).toEqual(['percent', 'fixed_price'])
+    await expect(kinds).toEqual(['percent', 'fixed_price', 'combo'])
+    // Y el combo deja de ofrecerse por duplicado: elegirlo como tipo arrastra
+    // su alcance, su audiencia y la inscripción que empaqueta.
+    await expect(canvas.queryByLabelText(/^aplica a/i)).toBeTruthy()
+    await userEvent.selectOptions(kindSelect, 'combo')
+    await expect(canvas.queryByLabelText(/^aplica a/i)).toBeNull()
   },
 }
 

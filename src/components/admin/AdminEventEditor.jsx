@@ -770,6 +770,32 @@ export default function AdminEventEditor({
                       </FormField>
                     </div>
 
+                    {/* La ocupación es información del organizador; exhibirla en
+                        el sitio es una decisión. El panel sigue viendo la
+                        barra y los números acá y en la lista pase lo que pase. */}
+                    <label className="admin-event-form__toggle">
+                      <input
+                        checked={draft.capacityProgressPublic !== false}
+                        className="admin-event-form__toggle-input"
+                        type="checkbox"
+                        onChange={(event) =>
+                          patchDraft({
+                            ...draft,
+                            capacityProgressPublic: event.target.checked,
+                          })
+                        }
+                        disabled={!canEdit}
+                      />
+                      <span className="admin-event-form__toggle-ui" aria-hidden />
+                      <span className="admin-event-form__toggle-copy">
+                        <strong>
+                          <Eye size={13} aria-hidden />
+                          {t('admin.eventEditor.capacityVisibilityTitle')}
+                        </strong>
+                        <small>{t('admin.eventEditor.capacityVisibilityHint')}</small>
+                      </span>
+                    </label>
+
                     <div className="admin-event-form__rate-cards">
                       <label
                         className={`admin-event-form__rate-card${err('pricing.registration') ? ' is-invalid' : ''}`}

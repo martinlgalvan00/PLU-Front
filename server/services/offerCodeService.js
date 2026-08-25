@@ -6,15 +6,38 @@ import { HttpError } from '../lib/errors.js'
  *   * 'access' — destraba el combo restringido sin tocar el precio.
  *   * 'offer'  — la oferta exclusiva: destraba Y fija el importe final.
  *
- * Un 'percent' o un 'fixed_price' se aplican en el checkout y no abren ninguna
- * pantalla, así que no entran acá. La lista vive en un solo lugar porque la
- * consultan tres cosas distintas: la puerta del combo, el canje de la llave y
- * la decisión de la UI de mostrar la ficha.
+ * Un 'percent' se aplica en el checkout y no abre ninguna pantalla, así que no
+ * entra acá. La lista vive en un solo lugar porque la consultan tres cosas
+ * distintas: la puerta del combo, el canje de la llave y la decisión de la UI
+ * de mostrar la ficha.
+ *
+ * Las dos modalidades están RETIRADAS del alta (20260915100000): sólo quedan
+ * filas históricas. Lo que se puede crear hoy es `isComboBundleCode`.
  */
 export const OFFER_UNLOCK_KINDS = ['offer', 'access']
 
 export function isOfferUnlockKind(kind) {
   return OFFER_UNLOCK_KINDS.includes(kind)
+}
+
+/**
+ * El combo tal como se da de alta hoy: un precio promocional cuyo alcance ES el
+ * paquete de afiliación + inscripción.
+ *
+ * No es una modalidad aparte a propósito. 20260913100000 movió los seis datos
+ * del combo adentro del código y 20260918100000 le dio el séptimo (qué
+ * afiliación empaqueta), así que un `fixed_price` con `appliesTo: 'combo'`
+ * describe el paquete entero. Desbloquea igual que un 'offer' —el checkout
+ * necesita la llave para resolver el paquete sin combo del evento— pero se
+ * aplica en el checkout como cualquier precio promocional.
+ */
+export function isComboBundleCode({ kind, appliesTo } = {}) {
+  return kind === 'fixed_price' && appliesTo === 'combo'
+}
+
+/** Cualquier código que destrabe el paquete, histórico o actual. */
+export function unlocksComboBundle(code = {}) {
+  return isOfferUnlockKind(code.kind) || isComboBundleCode(code)
 }
 
 /**

@@ -250,20 +250,47 @@ La declaración cambia la orden a `validacion_manual`, evita su vencimiento
 automático y genera auditoría, pero **no acredita el pago** ni crea un asiento
 en `athlete_payments`: la aprobación sigue siendo exclusiva de Finanzas. Si la
 orden fotografió `financing_allowed = true`, esa declaración habilita
-provisionalmente afiliación e inscripción mientras la deuda permanece abierta.
-Un rechazo de Finanzas revoca ambos derechos provisionales.
+provisionalmente afiliación e inscripción mientras la deuda permanece abierta,
+y calcula `financed_payment_due_at` (ese momento + `financing_term_days`, el
+plazo que trae el código/combo, 7 días si no trae uno propio). Un rechazo de
+Finanzas revoca ambos derechos provisionales — y, desde 20260922100000, lo
+mismo hace el reloj: `expire_financed_payment_orders`, corrida cada 3 minutos
+por `pg_cron` junto al resto del barrido de vencimientos, revoca sola toda
+orden financiada y declarada cuyo plazo venció sin que Finanzas acreditara.
+Las dos vías comparten una única regla (`plu_private.revoke_financed_order`);
+sólo cambian el `cancellation_code` (`cancelled_by_staff` vs.
+`financing_term_expired`) y quién figura como actor.
 
-El financiamiento es una condición **del código** (`discount_codes.financed`) y,
-para el combo restringido, también de la oferta (`event_combo_offers.financed`).
+20260923100000 cierra los tres huecos que esa migración dejó abiertos:
+el vencimiento se **backfillea** en toda orden financiada que ya había
+declarado el pago (esas órdenes tenían `financed_payment_due_at` en null y
+por lo tanto quedaban exentas del reloj para siempre), resolviendo el plazo
+con la misma precedencia que `settle_order_financing` —foto de la orden,
+código, combo, 7 días—; las que ya estaban vencidas reciben un piso de
+**3 días de gracia** desde el deploy, para que Finanzas pueda revisar el
+listado (`payment.financing_term_backfilled`) antes de que la baja se
+ejecute. La bitácora ahora distingue quién cortó: el reloj asienta
+`payment.financing_term_expired` y la persona sigue asentando
+`payment.rejected_manually` — el asiento se elige por el `cancellation_code`,
+así que la fila de la orden y la bitácora no pueden contradecirse. Y el
+barrido dejó de descartar sus errores: devuelve `failedOrders` junto a
+`expiredOrders` y asienta cada fallo con su `sqlstate`
+(`payment.financing_expiry_failed`), en vez de reintentar en silencio cada
+3 minutos.
+
+El financiamiento es una condición **del código** (`discount_codes.financed`,
+con su propio `financing_term_days`) y, para el combo restringido, también de
+la oferta (`event_combo_offers.financed`/`financing_term_days`).
 `plu_private.settle_order_financing` es la única regla que lo decide, y corre en
 los tres checkouts —afiliación, inscripción y combo— después de que el canal
-quedó escrito: sólo fotografía `financing_allowed` sobre transferencia o efectivo,
-porque son los únicos canales donde existe una declaración del atleta. Mercado
-Pago acredita solo y Wise tiene su propia validación en USD. Un código no puede
-financiar sin declarar al menos un canal manual —sería un interruptor inerte— ni
-siendo una promo pública, que se aplica sola a todas las compras del concepto. La
-bandera nunca se apaga sola: habilitar es automático, revocar es una decisión de
-Finanzas al rechazar.
+quedó escrito: sólo fotografía `financing_allowed` y el plazo sobre
+transferencia o efectivo, porque son los únicos canales donde existe una
+declaración del atleta. Mercado Pago acredita solo y Wise tiene su propia
+validación en USD. Un código no puede financiar sin declarar al menos un canal
+manual —sería un interruptor inerte— ni siendo una promo pública, que se
+aplica sola a todas las compras del concepto. La bandera nunca se apaga sola:
+habilitar es automático, revocar es una decisión de Finanzas al rechazar o del
+plazo al vencer.
 
 En el panel esas tres columnas —`mercado_pago_enabled`, `manual_channels`,
 `financed`— se cargan como **una sola decisión**, "cómo se cobra", con tres
