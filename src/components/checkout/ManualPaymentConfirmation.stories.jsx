@@ -51,3 +51,17 @@ export const AvisoSinHabilitacion = {
 export const EfectivoPorDeclarar = {
   args: { orderId: 'order-4', channel: 'cash_pitbull', financingAllowed: true },
 }
+
+/** Efectivo ya habilitado con plazo: cuenta regresiva y vuelta al perfil. */
+export const EfectivoHabilitadoConPlazo = {
+  args: {
+    orderId: 'order-5',
+    channel: 'cash_pitbull',
+    financingAllowed: true,
+    manualPaymentDeclaredAt: '2026-08-21T12:00:00.000Z',
+    financedEntitlementsAt: '2026-08-21T12:00:00.000Z',
+    financedPaymentDueAt: '2026-08-28T12:00:00.000Z',
+    onNavigate: () => {},
+    profileTab: 'account-events',
+  },
+}

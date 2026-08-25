@@ -15,6 +15,7 @@ import {
 import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatShortDate, money } from '../../lib/format.js'
+import { describeDiscountPreviewError } from '../../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
@@ -417,7 +418,9 @@ export default function MembershipPurchaseSection({
         paymentMethod: toApiPaymentMethod(paymentMethod),
       })
       if (!preview.valid) {
-        setDiscountError(t(`account.membership.discountError.${preview.reason ?? 'not_found'}`))
+        setDiscountError(
+          describeDiscountPreviewError(t, preview, 'account.membership.discountError'),
+        )
         return
       }
       setDiscountPreview(preview)

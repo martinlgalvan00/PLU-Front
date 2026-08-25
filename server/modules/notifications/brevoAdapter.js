@@ -54,11 +54,23 @@ const PUBLIC_EMAIL_DOMAINS = new Set([
   'yahoo.com',
 ])
 
+/**
+ * Casillas de dominio público validadas a mano en Brevo (Senders & IP ->
+ * Senders) como remitente individual, no por autenticación de dominio. El
+ * bloqueo de `PUBLIC_EMAIL_DOMAINS` existe para evitar el 201-que-rechaza-
+ * después de un remitente nunca validado; estas direcciones ya pasaron esa
+ * validación, así que quedan exceptuadas.
+ */
+const VERIFIED_SINGLE_SENDERS = new Set(['powerliftingunited.soporte@gmail.com'])
+
 function senderConfigurationIssue(senderEmail) {
   if (!senderEmail) return 'Falta BREVO_SENDER_EMAIL en el servidor.'
   const match = senderEmail.match(/^[^\s@]+@([^\s@]+\.[^\s@]+)$/)
   if (!match) return 'BREVO_SENDER_EMAIL no tiene un formato de correo válido.'
-  if (PUBLIC_EMAIL_DOMAINS.has(match[1].toLowerCase())) {
+  if (
+    PUBLIC_EMAIL_DOMAINS.has(match[1].toLowerCase()) &&
+    !VERIFIED_SINGLE_SENDERS.has(senderEmail.toLowerCase())
+  ) {
     return 'BREVO_SENDER_EMAIL debe usar un dominio institucional verificado en Brevo; no se puede enviar desde una casilla pública.'
   }
   return null

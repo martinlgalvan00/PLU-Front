@@ -80,7 +80,7 @@ describe('AdminFilterChipGroup — riel', () => {
 })
 
 describe('Afiliaciones — toggle de vencimiento', () => {
-  it('muestra el pill corto con el conteo de las que vencen pronto', () => {
+  it('muestra el pill corto con el conteo de las que vencen pronto', async () => {
     render(
       <I18nProvider>
         <MembershipsSection
@@ -100,12 +100,14 @@ describe('Afiliaciones — toggle de vencimiento', () => {
       </I18nProvider>,
     )
 
-    const toggle = screen.getByRole('group', { name: 'Vencen en 30 días' })
-    expect(toggle.textContent).toMatch(/Vencen pronto/)
-    expect(toggle.querySelector('.admin-filter-chip__count')?.textContent).toBe('1')
+    // layout="popover": el toggle vive detrás del pill; hay que abrirlo.
+    fireEvent.click(screen.getByRole('button', { name: 'Vencen en 30 días' }))
+    const chip = await screen.findByRole('button', { name: /Vencen pronto/ })
+    expect(chip.textContent).toMatch(/Vencen pronto/)
+    expect(chip.querySelector('.admin-filter-chip__count')?.textContent).toBe('1')
   })
 
-  it('oculta el toggle si no hay afiliaciones por vencer', () => {
+  it('oculta el toggle si no hay afiliaciones por vencer', async () => {
     render(
       <I18nProvider>
         <MembershipsSection
@@ -125,8 +127,10 @@ describe('Afiliaciones — toggle de vencimiento', () => {
       </I18nProvider>,
     )
 
-    expect(screen.queryByRole('group', { name: 'Vencen en 30 días' })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Vencen pronto/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Vencen en 30 días' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Vencen pronto/ })).toBeNull()
+    })
   })
 })
 

@@ -27,7 +27,7 @@ import {
   CalendarClock,
 } from 'lucide-react'
 import FormSection from '../components/ui/FormSection.jsx'
-import { DateField, Field, Select, ChoiceField } from '../components/ui/FormFields.jsx'
+import { AutocompleteField, DateField, Field, Select, ChoiceField } from '../components/ui/FormFields.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
@@ -41,6 +41,7 @@ import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, money } from '../lib/format.js'
+import { describeDiscountPreviewError } from '../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
@@ -53,6 +54,7 @@ import {
   checkAthleteAvailability,
   previewDiscountCode,
   verifyAthleteEmailCode,
+  fetchGyms,
 } from '../services/athleteApi.js'
 import { shouldTrySecretOfferFallback } from '../services/secretOfferRedemptionService.js'
 import {
@@ -460,6 +462,11 @@ export default function RegisterPage({
   const [touched, setTouched] = useState({})
   const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  const [gyms, setGyms] = useState([])
+
+  useEffect(() => {
+    fetchGyms().then(setGyms).catch(console.error)
+  }, [])
   // El checkout se corta si el correo no está confirmado. La acción de reenvío
   // vivía solo en el banner del perfil, así que acá el atleta leía "confirmá tu
   // correo" y no tenía nada que tocar.
@@ -680,9 +687,7 @@ export default function RegisterPage({
   }
 
   function describeDiscountError(preview) {
-    return preview.reason === 'other_event' && preview.eventTitle
-      ? t('pages.register.discountError.other_event_named', { event: preview.eventTitle })
-      : t(`pages.register.discountError.${preview.reason ?? 'not_found'}`)
+    return describeDiscountPreviewError(t, preview, 'pages.register.discountError')
   }
 
   /**
@@ -2332,13 +2337,14 @@ export default function RegisterPage({
                             onBlur={blurField}
                             onChange={changeField}
                           />
-                          <Field
+                          <AutocompleteField
                             error={visibleErrors.gym}
                             icon={Dumbbell}
                             label={t('pages.register.gym')}
                             name="gym"
                             placeholder={t('pages.register.gymPlaceholder')}
                             value={form.gym}
+                            options={gyms}
                             onBlur={blurField}
                             onChange={changeField}
                           />

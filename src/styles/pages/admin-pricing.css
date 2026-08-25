@@ -1770,8 +1770,9 @@ ul.admin-pricing__redemptions li > strong {
     }
 
     .admin-pricing__promo-state {
-      justify-self: stretch;
-      width: 100%;
+      justify-self: center;
+      max-width: 90%;
+      width: 90%;
     }
 
     .admin-pricing__promo-state-option {

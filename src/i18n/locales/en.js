@@ -217,8 +217,16 @@ export default {
       financedTitle: 'You are a member and you are registered',
       financedGranted:
         'Your membership and registration are enabled. The balance is still pending validation.',
-      financedGrantedWithDeadline:
-        'Your membership and registration are enabled. You have until {{date}} for Finance to credit the payment — if it does not arrive, both are revoked automatically.',
+      financedActiveNow: 'Your benefits are already active.',
+      financedCountdownDaysHours: 'You have {{days}} and {{hours}} left for Finance to credit your payment.',
+      financedCountdownDaysOnly: 'You have {{days}} left for Finance to credit your payment.',
+      financedCountdownHoursOnly: 'You have {{hours}} left for Finance to credit your payment.',
+      financedCountdownExpiring: 'The window for Finance to credit your payment is about to close.',
+      financedDaysUnit_one: '{{count}} day',
+      financedDaysUnit_other: '{{count}} days',
+      financedHoursUnit_one: '{{count}} hour',
+      financedHoursUnit_other: '{{count}} hours',
+      goProfile: 'Back to my profile',
       pendingReview: 'Finance has been notified. The payment is still pending validation.',
       error: 'We could not record the notice. Please try again.',
     },
@@ -1451,6 +1459,12 @@ export default {
         inactive: 'That code is no longer available.',
         expired: 'That code expired.',
         not_applicable: 'That code does not apply to this payment.',
+        not_applicable_membership: 'That code is only for membership.',
+        not_applicable_registration: 'That code is only for registration.',
+        not_applicable_combo:
+          'That code is for the combo (membership + registration together). Use it on the combo package, not on each payment separately.',
+        not_applicable_both:
+          'That code applies to membership or registration, not to this checkout.',
         limit_reached: 'That code reached its use limit.',
         already_used: 'You already used that code.',
         no_savings: 'That code does not improve the price of this purchase.',
@@ -3145,6 +3159,12 @@ export default {
         inactive: 'That code is no longer available.',
         expired: 'That code expired.',
         not_applicable: 'That code does not apply to this payment.',
+        not_applicable_membership: 'That code is only for membership.',
+        not_applicable_registration: 'That code is only for registration.',
+        not_applicable_combo:
+          'That code is for the combo (membership + registration together). Use it on the combo package, not on each payment separately.',
+        not_applicable_both:
+          'That code applies to membership or registration, not to this checkout.',
         limit_reached: 'That code reached its use limit.',
         already_used: 'You already used that code.',
         no_savings: 'That code does not improve the price of this purchase.',

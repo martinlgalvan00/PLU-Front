@@ -1148,6 +1148,18 @@
   padding: 8px 6px max(10px, env(safe-area-inset-bottom, 0px));
 }
 
+/* Ant Space del footer: en rail colapsado los hijos (cuenta + salida) van al
+   eje, no pegados al padding izquierdo del sider de 88px. */
+.admin-shell--collapsed .admin-shell__footer .ant-space {
+  align-items: center;
+}
+
+.admin-shell--collapsed .admin-shell__footer .ant-space-item {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .admin-shell--collapsed .admin-shell__session {
   align-items: center;
   background: transparent;

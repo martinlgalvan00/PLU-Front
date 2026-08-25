@@ -169,48 +169,41 @@ describe('ManualPaymentConfirmation', () => {
     expect(await screen.findByText('Aviso recibido')).toBeTruthy()
   })
 
-  it('tras confirmar efectivo financiado, vuelve sola al perfil una vez leido el sello', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
-    try {
-      const onNavigate = vi.fn()
-      confirmAthleteManualPayment.mockResolvedValue({
-        order: {
-          id: 'order-cash-2',
-          status: 'validacion_manual',
-          financingAllowed: true,
-          manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
-          financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
-        },
-        entitlementsGranted: true,
-      })
+  it('tras confirmar efectivo financiado, ofrece un boton para volver al perfil', async () => {
+    const onNavigate = vi.fn()
+    confirmAthleteManualPayment.mockResolvedValue({
+      order: {
+        id: 'order-cash-2',
+        status: 'validacion_manual',
+        financingAllowed: true,
+        manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
+        financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
+      },
+      entitlementsGranted: true,
+    })
 
-      render(
-        <I18nProvider>
-          <ManualPaymentConfirmation
-            channel="cash_pitbull"
-            financingAllowed
-            orderId="order-cash-2"
-            onNavigate={onNavigate}
-            profileTab="account-events"
-          />
-        </I18nProvider>,
-      )
+    render(
+      <I18nProvider>
+        <ManualPaymentConfirmation
+          channel="cash_pitbull"
+          financingAllowed
+          orderId="order-cash-2"
+          onNavigate={onNavigate}
+          profileTab="account-events"
+        />
+      </I18nProvider>,
+    )
 
-      fireEvent.click(screen.getByRole('button', { name: 'Ya entregué el efectivo' }))
-      await waitFor(() => expect(screen.getByText('Ya estás afiliado e inscripto')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Ya entregué el efectivo' }))
+    await waitFor(() => expect(screen.getByText('Ya estás afiliado e inscripto')).toBeTruthy())
 
-      // No navega junto con el sello: se lee primero.
-      expect(onNavigate).not.toHaveBeenCalled()
-      await act(async () => {
-        vi.advanceTimersByTime(2300)
-      })
-      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-events' })
-    } finally {
-      vi.useRealTimers()
-    }
+    // No navega sola: la persona decide cuándo dejar la pantalla.
+    expect(onNavigate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a mi perfil' }))
+    expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-events' })
   })
 
-  it('sin financiamiento, el aviso en efectivo no navega: se queda con el acuse frio', async () => {
+  it('sin financiamiento, el aviso en efectivo no ofrece volver al perfil: se queda con el acuse frio', async () => {
     const onNavigate = vi.fn()
     confirmAthleteManualPayment.mockResolvedValue({
       order: { id: 'order-cash-3', status: 'validacion_manual', financingAllowed: false },
@@ -274,37 +267,45 @@ describe('ManualPaymentConfirmation', () => {
  * sello la use.
  */
 describe('ManualPaymentConfirmation — plazo del financiamiento', () => {
-  it('el sello dice hasta cuándo, con la fecha que devolvió la declaración', async () => {
-    confirmAthleteManualPayment.mockResolvedValue({
-      order: {
-        id: 'order-due',
-        status: 'validacion_manual',
-        financingAllowed: true,
-        manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
-        financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
-        financedPaymentDueAt: '2026-08-27T12:00:00.000Z',
-      },
-      financed: true,
-      entitlementsGranted: true,
-    })
+  it('el sello dice la cuenta regresiva, con la fecha que devolvió la declaración', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-08-20T12:00:00.000Z'))
+      confirmAthleteManualPayment.mockResolvedValue({
+        order: {
+          id: 'order-due',
+          status: 'validacion_manual',
+          financingAllowed: true,
+          manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
+          financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
+          financedPaymentDueAt: '2026-08-27T12:00:00.000Z',
+        },
+        financed: true,
+        entitlementsGranted: true,
+      })
 
-    render(
-      <I18nProvider>
-        {/* Sin `financedPaymentDueAt`: es el estado real de la orden antes de
-            declarar, y es donde estaba el agujero. */}
-        <ManualPaymentConfirmation orderId="order-due" financingAllowed />
-      </I18nProvider>,
-    )
+      render(
+        <I18nProvider>
+          {/* Sin `financedPaymentDueAt`: es el estado real de la orden antes de
+              declarar, y es donde estaba el agujero. */}
+          <ManualPaymentConfirmation orderId="order-due" financingAllowed />
+        </I18nProvider>,
+      )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ya transferí' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Ya transferí' }))
 
-    const detail = await screen.findByText(/Tenés hasta el 27 de agosto de 2026/i)
-    // Y dice la consecuencia, no sólo la fecha: sin eso el plazo es un dato
-    // suelto y la baja automática llega como una sorpresa.
-    expect(detail.textContent).toMatch(/se dan de baja solas/i)
+      // A la fecha de la declaración, el plazo de 7 días queda entero.
+      const detail = await screen.findByText(/Te quedan 7 días/i)
+      // Y dice que los beneficios ya están activos, no sólo la cuenta
+      // regresiva: sin eso el plazo es un dato suelto sin contexto.
+      expect(detail.textContent).toMatch(/beneficios ya están activos/i)
+      expect(detail.textContent).toMatch(/para que Finanzas acredite tu pago/i)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('sin plazo en la respuesta cae al detalle de siempre, no a una fecha inventada', async () => {
+  it('sin plazo en la respuesta cae al detalle de siempre, no a una cuenta regresiva inventada', async () => {
     confirmAthleteManualPayment.mockResolvedValue({
       order: {
         id: 'order-no-due',
@@ -327,25 +328,31 @@ describe('ManualPaymentConfirmation — plazo del financiamiento', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ya transferí' }))
 
     expect(await screen.findByText(/saldo sigue pendiente de validación/i)).toBeTruthy()
-    expect(screen.queryByText(/Tenés hasta el/i)).toBeNull()
+    expect(screen.queryByText(/Te quedan/i)).toBeNull()
   })
 
   it('al volver a la pantalla el plazo sale de la orden ya declarada', async () => {
-    // Acá la prop sí trae la fecha (la orden ya la tiene sellada) y no hay
-    // declaración nueva que la devuelva.
-    render(
-      <I18nProvider>
-        <ManualPaymentConfirmation
-          orderId="order-back"
-          financingAllowed
-          manualPaymentDeclaredAt="2026-08-20T12:00:00.000Z"
-          financedEntitlementsAt="2026-08-20T12:00:00.000Z"
-          financedPaymentDueAt="2026-09-03T12:00:00.000Z"
-        />
-      </I18nProvider>,
-    )
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-08-25T12:00:00.000Z'))
+      // Acá la prop sí trae la fecha (la orden ya la tiene sellada) y no hay
+      // declaración nueva que la devuelva.
+      render(
+        <I18nProvider>
+          <ManualPaymentConfirmation
+            orderId="order-back"
+            financingAllowed
+            manualPaymentDeclaredAt="2026-08-20T12:00:00.000Z"
+            financedEntitlementsAt="2026-08-20T12:00:00.000Z"
+            financedPaymentDueAt="2026-09-03T12:00:00.000Z"
+          />
+        </I18nProvider>,
+      )
 
-    expect(await screen.findByText(/Tenés hasta el 03 de septiembre de 2026/i)).toBeTruthy()
-    expect(confirmAthleteManualPayment).not.toHaveBeenCalled()
+      expect(await screen.findByText(/Te quedan 9 días/i)).toBeTruthy()
+      expect(confirmAthleteManualPayment).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

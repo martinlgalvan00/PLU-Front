@@ -189,7 +189,7 @@ describe('sección de auditoría', () => {
     expect(await screen.findByText('Supabase caído')).toBeTruthy()
   })
 
-  it('visibiliza las incidencias de emails, pagos y afiliaciones en el resumen', async () => {
+  it('visibiliza críticas y emails por separado en el resumen de salud', async () => {
     fetchAuditOverview.mockResolvedValue(healthyOverview({
       status: 'attention',
       emailAttention: 290,
@@ -203,16 +203,75 @@ describe('sección de auditoría', () => {
     renderWithI18n(<AuditSection />)
 
     expect(await screen.findByText('Requiere revisión')).toBeTruthy()
-    expect(screen.getAllByText('294').length).toBeGreaterThan(0)
-    expect(screen.getByText('Emails')).toBeTruthy()
-    expect(screen.getByText('290')).toBeTruthy()
-    expect(screen.getByText('Pagos')).toBeTruthy()
-    expect(screen.getByText('3')).toBeTruthy()
-    expect(screen.getByText('Afiliaciones')).toBeTruthy()
-    expect(screen.getByText('Órdenes aprobadas sin afiliación activa')).toBeTruthy()
-    expect(screen.getByText('Afiliaciones activas sin confirmación entregada (30 d)')).toBeTruthy()
-    // El "1" aparece en el subtotal de afiliaciones y en el detalle de confirmación.
-    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(2)
+    // Críticas = pagos + afiliaciones (3 + 1), sin sumar emails.
+    expect(screen.getByText('Críticas')).toBeTruthy()
+    expect(screen.getAllByText('4').length).toBeGreaterThan(0)
+    expect(screen.getByText('Emails a revisar')).toBeTruthy()
+    expect(screen.getAllByText('290').length).toBeGreaterThan(0)
+    // Desglose compacto bajo críticas (sin chips duplicados).
+    expect(screen.getByText(/Pagos 3/)).toBeTruthy()
+    expect(screen.getByText(/Afiliaciones 1/)).toBeTruthy()
+  })
+
+  it('trata emails solos como atención menor, no como revisión crítica', async () => {
+    fetchAuditOverview.mockResolvedValue(
+      healthyOverview({ status: 'attention', emailAttention: 181 }),
+    )
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({ entries: [], nextCursor: null })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findByText('Atención menor')).toBeTruthy()
+    expect(screen.queryByText('Requiere revisión')).toBeNull()
+    expect(screen.getByText('Críticas')).toBeTruthy()
+    expect(screen.getByText('Emails a revisar')).toBeTruthy()
+    expect(screen.getAllByText('181').length).toBeGreaterThan(0)
+  })
+
+  it('incluye warnings en Solo errores y deja activar el toggle con filas cargadas', async () => {
+    fetchAuditOverview.mockResolvedValue(healthyOverview())
+    fetchAuditFacets.mockResolvedValue({ actions: [], entityTypes: [], actorTypes: [] })
+    fetchAuditEntries.mockResolvedValue({
+      entries: [
+        normalizeAuditEntry({
+          id: 'ok-1',
+          action: 'membership.activated',
+          entity_type: 'membership',
+          entity_id: 'mem-ok',
+          actor_type: 'webhook',
+          source: 'domain',
+          status: 'approved',
+          created_at: '2026-08-16T12:00:00.000Z',
+        }),
+        normalizeAuditEntry({
+          id: 'warn-1',
+          action: 'email.rejected',
+          entity_type: 'email_delivery',
+          entity_id: 'mail-1',
+          actor_type: 'system',
+          source: 'email',
+          status: 'rejected',
+          created_at: '2026-08-16T12:01:00.000Z',
+        }),
+      ],
+      nextCursor: null,
+    })
+
+    renderWithI18n(<AuditSection />)
+
+    expect(await screen.findAllByText('Afiliación activada')).not.toHaveLength(0)
+    const toggle = screen.getByRole('button', { name: /Solo errores/i })
+    expect(toggle.disabled).toBe(false)
+    expect(toggle.textContent).toMatch(/1/)
+
+    fireEvent.click(toggle)
+
+    await waitFor(() => {
+      expect(toggle.getAttribute('aria-pressed')).toBe('true')
+    })
+    expect(screen.queryAllByText('Afiliación activada')).toHaveLength(0)
+    expect(screen.getAllByText('Email rechazado por Brevo').length).toBeGreaterThan(0)
   })
 
   it('deja fuente y estado a la vista y pliega acción, actor y entidad', async () => {
@@ -431,8 +490,8 @@ describe('sección de auditoría', () => {
 
     await waitFor(() => expect(getPaymentOrderAudit).toHaveBeenCalledWith('order-99'))
     expect(await screen.findByText('La orden vencio automaticamente sin un pago iniciado.')).toBeTruthy()
-    expect(await screen.findByText(/Vencimiento/)).toBeTruthy()
-    expect(await screen.findByText(/La ventana de pago venc/)).toBeTruthy()
+    expect(await screen.findByText('Cerrada')).toBeTruthy()
+    expect(await screen.findByText('Detalle del vencimiento')).toBeTruthy()
     expect(screen.queryByText(/\{expiresAt\}/)).toBeNull()
     expect(await screen.findByText(/No se registr/)).toBeTruthy()
   })

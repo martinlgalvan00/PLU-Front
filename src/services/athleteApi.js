@@ -372,6 +372,12 @@ export function loginAthleteSession(credentials) {
   return apiPost('/api/athletes/login', credentials)
 }
 
+export async function fetchGyms() {
+  const result = await apiGet('/api/athletes/gyms')
+  return result.gyms ?? []
+}
+
+
 export function forgotAthletePassword(email) {
   return apiPost('/api/athletes/forgot-password', { email })
 }

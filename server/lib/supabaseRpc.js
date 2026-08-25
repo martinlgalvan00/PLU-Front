@@ -35,6 +35,15 @@ const STATUS_BY_CODE = {
   PLU26: 409,
   PLU27: 409,
   PLU28: 409,
+  // Analítica / defensa: input inválido. Varias RPCs levantan estos códigos
+  // con `errcode = '22023'` (Postgres) y el mensaje `PLU9x · …`; sin mapeo
+  // caían al 503 y el tracker pintaba "servicio no disponible" en consola.
+  PLU90: 400,
+  PLU91: 400,
+  PLU92: 400,
+  PLU95: 400,
+  PLU96: 400,
+  22023: 400,
   23505: 409,
   23503: 409,
   23514: 400,
@@ -66,14 +75,29 @@ const STATUS_BY_CODE = {
 // Postgres viaja en `details` para que quede en el log del errorHandler y no
 // en la pantalla.
 const RAW_INTEGRITY_CODES = new Set(['23505', '23503', '23514'])
+const PLU_CODE_IN_MESSAGE = /\b(PLU\d{2})\b/
+
+/**
+ * PostgREST a veces devuelve el `errcode` de Postgres (`22023`) aunque el
+ * mensaje ya traiga el código de producto (`PLU91 · …`). Preferimos el PLU
+ * del mensaje cuando el code crudo no tiene mapeo propio.
+ */
+function resolveErrorCode(error) {
+  const rawCode = error?.code != null ? String(error.code) : null
+  if (rawCode && STATUS_BY_CODE[rawCode] != null) return rawCode
+  const fromMessage = String(error?.message ?? '').match(PLU_CODE_IN_MESSAGE)
+  if (fromMessage && STATUS_BY_CODE[fromMessage[1]] != null) return fromMessage[1]
+  return rawCode
+}
 
 export function assertSupabaseResult(result, fallback = 'No se pudo completar la operacion.') {
   if (!result?.error) return result?.data
-  const status = STATUS_BY_CODE[result.error.code] ?? 503
+  const code = resolveErrorCode(result.error)
+  const status = STATUS_BY_CODE[code] ?? 503
   const raw = result.error.message
-  const leaksConstraintName = RAW_INTEGRITY_CODES.has(String(result.error.code))
+  const leaksConstraintName = RAW_INTEGRITY_CODES.has(String(code))
   throw new HttpError(status, (!leaksConstraintName && raw) || fallback, {
-    code: result.error.code,
+    code,
     details: result.error.details,
     ...(leaksConstraintName && raw ? { raw } : {}),
   })

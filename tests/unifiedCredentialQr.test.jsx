@@ -83,6 +83,73 @@ describe('QR único por atleta', () => {
     expect(scannedUrl.searchParams.has('evento')).toBe(false)
   })
 
+  it('con financiamiento pendiente, la credencial suma el cartel del plazo', async () => {
+    // La credencial ya sale habilitada (afiliación 'activa', inscripción
+    // 'confirmada' — 20260909100000): el cartel es lo único que dice que ese
+    // derecho sigue provisorio mientras Finanzas no acredite.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-08-20T12:00:00.000Z'))
+      render(
+        <I18nProvider>
+          <QrCredentialSection
+            athlete={{
+              id: 'athlete-1',
+              fullName: 'Ana Torres',
+              credentialToken: 'credential-token-1',
+            }}
+            membership={{
+              id: 'membership-1',
+              status: 'activa',
+              memberCode: 'PLU-ARG-2026-014',
+              startDate: '2026-01-01',
+              expirationDate: '2099-12-31',
+            }}
+            registrations={[{
+              id: 'registration-1',
+              status: 'confirmada',
+              event: 'Pitbull Classic 2026',
+              eventSlug: 'pitbull-classic-2026',
+              requiresMembership: true,
+            }]}
+            pendingFinancedPayment={{ financedPaymentDueAt: '2026-08-27T12:00:00.000Z' }}
+            onNavigateSection={vi.fn()}
+          />
+        </I18nProvider>,
+      )
+
+      expect(await screen.findByText(/Te quedan 7 días/i)).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('sin financiamiento pendiente, no hay cartel de plazo', async () => {
+    render(
+      <I18nProvider>
+        <QrCredentialSection
+          athlete={{
+            id: 'athlete-1',
+            fullName: 'Ana Torres',
+            credentialToken: 'credential-token-1',
+          }}
+          membership={{
+            id: 'membership-1',
+            status: 'activa',
+            memberCode: 'PLU-ARG-2026-014',
+            startDate: '2026-01-01',
+            expirationDate: '2099-12-31',
+          }}
+          registrations={[]}
+          onNavigateSection={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByTestId('credential-status')).toBeTruthy()
+    expect(screen.queryByText(/Te quedan/i)).toBeNull()
+  })
+
   it('usa el mismo payload en la tarjeta del torneo y reserva el evento para tickets', async () => {
     const athleteCard = render(
       <I18nProvider>
