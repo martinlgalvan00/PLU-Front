@@ -42,6 +42,12 @@ const PAYMENT_ORDER_LIST_COLUMNS = [
   'manual_payment_declared_at',
   'financed_entitlements_at',
   'financed_entitlements_revoked_at',
+  // El vencimiento del plazo (20260922100000). La bandeja ya pintaba la cuenta
+  // regresiva —`financingDueInfo(row.financedPaymentDueAt)` en
+  // AthletePaymentOrdersSection— pero la columna nunca viajaba, así que Finanzas
+  // veía "habilitado sin cobrar" sin la única fecha que dice cuánto falta para
+  // que el reloj (`expire_financed_payment_orders`) dé de baja lo habilitado.
+  'financed_payment_due_at',
   'discount_code',
   'discount_amount',
   'notes',
@@ -836,6 +842,21 @@ export function createSupabaseAthleteRepository(
         },
         'No se pudo registrar el aviso de pago.',
       ),
+    /**
+     * La otra mitad del financiamiento: quedar habilitado sin declarar un pago
+     * que todavía no se hizo (20260926100000). No es un alias de la de arriba —
+     * no marca pago declarado ni manda la orden a validación— así que Finanzas
+     * no recibe nada que revisar hasta que la persona pague de verdad.
+     */
+    deferFinancedPayment: (athleteId, orderId) =>
+      rpc(
+        'athlete_defer_financed_payment',
+        {
+          p_order_id: orderId,
+          p_athlete_id: athleteId,
+        },
+        'No se pudo activar el pago diferido.',
+      ),
     async paymentProofUrl(orderId) {
       const order = assertSupabaseResult(
         await client
@@ -1228,7 +1249,11 @@ export function createSupabaseAthleteRepository(
                 // /mi-cuenta -- que lee el snapshot completo -- sí explicaba el
                 // motivo al atleta. El operador que atiende el reclamo veía
                 // menos que la persona que lo hacía.
-                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at',
+                // `financed_payment_due_at` por el mismo motivo que en
+                // PAYMENT_ORDER_LIST_COLUMNS: el dashboard ordena las órdenes
+                // financiadas por vencimiento y sin la fecha todas le empataban
+                // en "sin plazo".
+                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at, financed_payment_due_at',
               )
               .eq('organization_id', organizationId)
               .order('created_at', { ascending: false })

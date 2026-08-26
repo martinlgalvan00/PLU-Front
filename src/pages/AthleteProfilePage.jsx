@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import '../styles/pages/design-phase2.css'
 import '../styles/pages/account.css'
 import { UPCOMING_EVENTS } from '../lib/events.js'
@@ -27,7 +27,9 @@ import HistorySection from './profile/HistorySection.jsx'
 import MembershipPurchaseSection from './profile/MembershipPurchaseSection.jsx'
 import PaymentsSection from './profile/PaymentsSection.jsx'
 import PersonalDataSection from './profile/PersonalDataSection.jsx'
+import SecretBundleSection from './profile/SecretBundleSection.jsx'
 import SecuritySection from './profile/SecuritySection.jsx'
+import { fetchOfferUnlocks } from '../services/athleteApi.js'
 
 export default function AthleteProfilePage({
   athlete,
@@ -35,6 +37,7 @@ export default function AthleteProfilePage({
   onActivateMembership,
   onCancelMembership,
   onStartMembershipPayment,
+  onStartOfferPayment,
   demoMode = false,
   onNavigate,
   onSelectEvent,
@@ -52,6 +55,16 @@ export default function AthleteProfilePage({
   const [activeTab, setActiveTab] = useState(initialTab || DEFAULT_ACCOUNT_TAB)
   const mainRef = useRef(null)
   const isFirstTabRef = useRef(true)
+  /**
+   * Códigos-paquete canjeados por esta persona. Deciden dos cosas: si la ficha
+   * existe en la cinta y qué muestra adentro.
+   *
+   * Se leen acá y no en la sección porque la cinta se dibuja antes que el panel:
+   * pedirlo abajo dejaría la ficha apareciendo un frame después del resto de la
+   * navegación. `null` es "todavía no sé" y no "no hay" — con `[]` la ficha
+   * parpadearía al entrar directo desde un canje.
+   */
+  const [bundleOffers, setBundleOffers] = useState(null)
 
   // El panel entra desde el lado de la cinta por el que se movió el foco: hacia
   // adelante entra por la derecha, hacia atrás por la izquierda. No es adorno —
@@ -132,6 +145,40 @@ export default function AthleteProfilePage({
     setActiveTab(initialTab)
   }, [initialTab, tabNonce])
 
+  /**
+   * La ficha del paquete se relee cuando cambia un pago, no sólo al montar: el
+   * estado del trámite —reservado, habilitado, acreditado— vive en la orden, y
+   * declarar o diferir el pago dispara `plu:payment-updated`. Sin esto la ficha
+   * seguía ofreciendo comprar algo que la persona acababa de comprar.
+   */
+  const reloadBundleOffers = useCallback(() => {
+    if (!athleteId) {
+      setBundleOffers([])
+      return undefined
+    }
+    let cancelled = false
+    void fetchOfferUnlocks()
+      .then((offers) => {
+        if (!cancelled) setBundleOffers(offers)
+      })
+      .catch(() => {
+        // Una ficha que no se pudo leer no rompe la cuenta: se comporta como si
+        // no hubiera ningún código canjeado, que es el caso de casi todos.
+        if (!cancelled) setBundleOffers([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [athleteId])
+
+  useEffect(() => reloadBundleOffers(), [reloadBundleOffers])
+
+  useEffect(() => {
+    const onPaymentUpdated = () => reloadBundleOffers()
+    window.addEventListener('plu:payment-updated', onPaymentUpdated)
+    return () => window.removeEventListener('plu:payment-updated', onPaymentUpdated)
+  }, [reloadBundleOffers])
+
   // Si la afiliación acaba de activarse y todavía no se vio el ritual de
   // fusión, saltamos al tab QR para mostrarlo (p.ej. tras pagar desde
   // Afiliación o volver desde el checkout).
@@ -157,9 +204,15 @@ export default function AthleteProfilePage({
 
   if (!athlete) return null
 
-  const visibleTabIds = ACCOUNT_TAB_IDS
-  // Los enlaces históricos a `account-offer` se redirigen a Torneos: ese tab
-  // fue retirado y ninguna oferta generada por código puede renderizarse.
+  // La ficha del paquete es condicional: existe sólo para quien canjeó un
+  // código de combo. Una pestaña vacía anunciando algo que no está sería peor
+  // que no tenerla, así que se saca de la cinta cuando no hay nada que mostrar.
+  const hasBundle = (bundleOffers?.length ?? 0) > 0
+  const visibleTabIds = hasBundle
+    ? ACCOUNT_TAB_IDS
+    : ACCOUNT_TAB_IDS.filter((id) => id !== ACCOUNT_OFFER_TAB)
+  // Un enlace a `account-offer` sin paquete canjeado —o mientras se resuelve la
+  // lectura— cae en Torneos en vez de abrir una ficha que no tiene contenido.
   const resolvedTab = visibleTabIds.includes(activeTab)
     ? activeTab
     : activeTab === ACCOUNT_OFFER_TAB
@@ -178,6 +231,15 @@ export default function AthleteProfilePage({
         onNavigate={onNavigate}
       />
     ),
+    'account-offer': (
+      <SecretBundleSection
+        athlete={athlete}
+        offers={bundleOffers ?? []}
+        onStartOfferPayment={onStartOfferPayment}
+        onNavigate={onNavigate}
+        onSelectEvent={onSelectEvent}
+      />
+    ),
     'account-events': (
       <UpcomingEventsSection
         availableEvents={availableEvents}
@@ -188,6 +250,7 @@ export default function AthleteProfilePage({
         athlete={athlete}
         onNavigateSection={setActiveTab}
         checkoutAvailability={checkoutAvailability}
+        pendingFinancedPayment={pendingFinancedPayment}
       />
     ),
     'account-history': (
@@ -210,6 +273,7 @@ export default function AthleteProfilePage({
         checkoutAvailability={checkoutAvailability}
         onNavigateSection={setActiveTab}
         onNavigate={onNavigate}
+        pendingFinancedPayment={pendingFinancedPayment}
       />
     ),
     'account-payments': (

@@ -17,15 +17,56 @@
    primera versión— en desktop se leía como polvo.
    ──────────────────────────────────────────────────────────────────── */
 
+/* Alcance de la ráfaga: cuánto viaja el papel desde el sello.
+
+   24vw y no un mínimo fijo: en 360px el sello vive a ~88px del borde izquierdo,
+   así que un alcance mayor manda un tercio del papel fuera de pantalla antes de
+   que se vea. El vw ata el alcance al ancho real y el máximo evita que en 1920
+   la ráfaga cruce media pantalla.
+
+   Vive en `:root` y no en `.celebration-burst` para que el componente pueda
+   leer su valor resuelto ANTES de montar la capa: el sesgo horizontal necesita
+   saber cuánto viaja el papel para calcular cuánto tiene que correr el abanico,
+   y duplicar el clamp() en JS habría dejado dos fuentes de verdad que se
+   desincronizan en el primer ajuste.
+
+   Va registrada con `@property` por la misma razón: `getPropertyValue()` sobre
+   una custom property sin registrar devuelve el valor *especificado* —el texto
+   `clamp(86px, 24vw, 300px)`, no el resultado—, así que el componente leía NaN
+   y el sesgo quedaba siempre en 0. Registrada con `syntax: '<length>'` la
+   propiedad computa a píxeles y se puede leer. Si un navegador no soporta
+   `@property`, el clamp sigue funcionando para el dibujo y el sesgo cae a 0:
+   el comportamiento previo, nunca peor. */
+@property --celebration-reach {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 96px;
+}
+
+/* El sesgo también se registra: así queda tipado como número para el calc() de
+   los keyframes y tiene un valor inicial válido si la capa se monta sin ancla
+   medida. */
+@property --celebration-bias-x {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+:root {
+  --celebration-reach: clamp(86px, 24vw, 300px);
+}
+
 .celebration-burst {
   /* Sin ancla medida, la ráfaga sale del tercio superior del viewport. */
   --celebration-origin-x: 50vw;
   --celebration-origin-y: 32vh;
-  /* 24vw y no un mínimo fijo: en 360px el sello vive a ~88px del borde
-     izquierdo, así que un alcance mayor manda un tercio del papel fuera de
-     pantalla antes de que se vea. El vw ata el alcance al ancho real y el
-     máximo evita que en 1920 la ráfaga cruce media pantalla. */
-  --celebration-reach: clamp(86px, 24vw, 300px);
+  /* Corrimiento horizontal del abanico completo, en múltiplos del alcance. Lo
+     pone el componente cuando el sello está tan cerca de un borde que la mitad
+     del papel saldría de pantalla — el caso real: el sello abre el bloque de
+     confirmación contra el margen izquierdo, y en 390px eso dejaba media ráfaga
+     afuera. Corre el abanico entero en vez de recortarlo o de encogerlo: se lee
+     como viento, no como una explosión a la que le falta un lado. */
+  --celebration-bias-x: 0;
   /* Unidad de papel: el ancho y el alto de cada pieza son múltiplos de esto. */
   --celebration-unit: clamp(3.4px, 0.5vw, 6.6px);
 
@@ -87,11 +128,16 @@
     opacity: 1;
   }
 
-  /* Apex: la pieza llegó a lo más alto de su arco y todavía no cae. */
+  /* Apex: la pieza llegó a lo más alto de su arco y todavía no cae. El sesgo
+     entra con el mismo factor 0.68 que la componente horizontal para que el
+     abanico corrido siga siendo el mismo arco y no se quiebre a mitad de vuelo. */
   46% {
     opacity: 1;
     transform: translate3d(
-        calc(var(--burst-px) * var(--burst-reach) * var(--celebration-reach) * 0.68),
+        calc(
+          (var(--burst-px) * var(--burst-reach) + var(--celebration-bias-x)) *
+            var(--celebration-reach) * 0.68
+        ),
         calc(var(--burst-py) * var(--burst-reach) * var(--celebration-reach)),
         0
       )
@@ -105,7 +151,10 @@
   100% {
     opacity: 0;
     transform: translate3d(
-        calc(var(--burst-px) * var(--burst-reach) * var(--celebration-reach)),
+        calc(
+          (var(--burst-px) * var(--burst-reach) + var(--celebration-bias-x)) *
+            var(--celebration-reach)
+        ),
         calc(
           var(--burst-py) * var(--burst-reach) * var(--celebration-reach) + var(--burst-fall) *
             var(--celebration-reach)

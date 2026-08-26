@@ -18,6 +18,7 @@ import { formatShortDate, money } from '../../lib/format.js'
 import { describeDiscountPreviewError } from '../../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
+import { ACCOUNT_OFFER_TAB, ACCOUNT_PAYMENTS_TAB } from '../../lib/navigation.js'
 import { listMembershipPlans } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
 import {
@@ -52,6 +53,7 @@ import Reveal from '../../components/ui/Reveal.jsx'
 import SeasonComboOffer from '../../components/ui/SeasonComboOffer.jsx'
 import TransferPayModal from '../../components/checkout/TransferPayModal.jsx'
 import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentConfirmation.jsx'
+import FinancedDebtNotice from '../../components/ui/FinancedDebtNotice.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
@@ -70,6 +72,11 @@ export default function MembershipPurchaseSection({
   onSelectEvent,
   checkoutAvailability = {},
   onNavigate,
+  onNavigateSection,
+  // Orden financiada abierta de esta persona: sostiene la afiliación que se ve
+  // arriba y la puede dar de baja si vence. Se resuelve en AthleteProfilePage,
+  // que es quien tiene la lista de pagos completa.
+  pendingFinancedPayment = null,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -400,13 +407,26 @@ export default function MembershipPurchaseSection({
           // existente sigue operativo aunque el resolvedor nuevo aún no responda.
         }
         const resolvedDestination = promotionDestination(resolution)
-        if (resolution?.accepted && resolvedDestination?.view === 'competition') {
+        // Un código de combo abre su propia ficha (20260926100000): no se puede
+        // previsualizar contra una afiliación suelta —el preview lo rechaza por
+        // alcance— y su beneficio no cabe en la banda de este checkout. Se
+        // acompaña al destino que resolvió el servidor, sea el torneo o la ficha
+        // del paquete, con el código guardado para que llegue aplicado.
+        const opensElsewhere =
+          resolvedDestination?.view === 'competition' ||
+          (resolvedDestination?.view === 'profile' &&
+            resolvedDestination.options?.tab === ACCOUNT_OFFER_TAB)
+        if (resolution?.accepted && opensElsewhere) {
           savePendingPromotionCode(resolution.code, {
             surface: 'membership',
             destination: resolution.destination,
             resolved: true,
           })
-          onNavigate?.(resolvedDestination.view, resolvedDestination.options)
+          if (resolvedDestination.view === 'profile') {
+            onNavigateSection?.(resolvedDestination.options.tab)
+          } else {
+            onNavigate?.(resolvedDestination.view, resolvedDestination.options)
+          }
           return
         }
       }
@@ -769,6 +789,17 @@ export default function MembershipPurchaseSection({
           </div>
         </header>
       )}
+
+      {/* La afiliación puede estar activa porque PLU la financió, no porque
+          esté paga. El aviso va debajo del estado —el derecho que se puede
+          perder— y no en la ficha de Pagos, donde habría que ir a buscarlo.
+          Va fuera de las dos ramas del encabezado a propósito: la deuda existe
+          igual esté la afiliación activa o todavía en compra. */}
+      <FinancedDebtNotice
+        payment={pendingFinancedPayment}
+        scope="membership"
+        onSettle={() => onNavigateSection?.(ACCOUNT_PAYMENTS_TAB)}
+      />
 
       {!membershipCanPurchase && !transferUnderReview ? (
         <div className={`account-membership-status account-membership-status--${statusTone}`}>

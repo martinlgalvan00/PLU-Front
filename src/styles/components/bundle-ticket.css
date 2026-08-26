@@ -1,0 +1,245 @@
+/* El paquete como documento emitido — PLU ARG
+   ---------------------------------------------------------------------------
+   Un código de combo es un acuerdo privado entre la federación y una persona.
+   Cuando se aplicaba adentro del checkout del torneo, sus seis condiciones
+   —afiliación, inscripción, precio, canales, financiamiento y plazo— quedaban
+   como renglones entre el formulario competitivo y el selector de medio de
+   pago: todo cierto, todo al mismo peso, y lo que decide sin distinguirse.
+
+   El material es el mismo que la app ya usa para lo que emite la federación
+   (`credential-card.css`, `code-band.css`, `promotion-reveal.css`): cara en
+   degradé 158deg, filo de oro al 34 %, marco interior al 7 % de blanco, grano
+   estático y el código en el mono espaciado 0.18em del número de socio. No hay
+   lenguaje nuevo — hay el de la credencial aplicado a otro documento.
+
+   Presupuesto: un solo acento (oro; el celeste queda para el foco, que es
+   navegación), cero cards anidadas —el ticket ES la pieza, las condiciones van
+   en filas regladas—, un efecto atmosférico estático y ninguna secuencia de
+   entrada propia: la pieza entra con el panel de la ficha
+   (`MotionContentSwap`), no con una animación aparte. */
+
+.bundle-ticket {
+  /* Espejo de promotion-reveal.css. Local y no global: el rol es "documento del
+     paquete", no un color de marca nuevo. */
+  --ticket-face: linear-gradient(158deg, #161820 0%, #0c0d12 52%, #08090c 100%);
+  --ticket-wash-gold: color-mix(in oklab, var(--plu-gold-500) 15%, transparent);
+  --ticket-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 8%, transparent);
+  --ticket-edge: color-mix(in oklab, var(--plu-gold-500) 34%, rgba(255, 255, 255, 0.1));
+  --ticket-frame: color-mix(in oklab, #fff 7%, transparent);
+  --ticket-lip: rgba(255, 255, 255, 0.08);
+  --ticket-grain-a: rgba(255, 255, 255, 0.03);
+  --ticket-grain-b: rgba(255, 255, 255, 0.01);
+  --ticket-ink: color-mix(in oklab, var(--plu-gold-400) 88%, #fff);
+  --ticket-label: color-mix(in oklab, #fff 38%, transparent);
+  --ticket-copy: color-mix(in oklab, #fff 92%, transparent);
+  --ticket-body: color-mix(in oklab, #fff 62%, transparent);
+  --ticket-rule: rgba(255, 255, 255, 0.08);
+
+  background:
+    radial-gradient(70% 55% at 100% 0%, var(--ticket-wash-gold) 0%, transparent 55%),
+    radial-gradient(55% 45% at 0% 100%, var(--ticket-wash-celeste) 0%, transparent 50%),
+    var(--ticket-face);
+  border: 1px solid var(--ticket-edge);
+  border-radius: var(--institution-radius-surface);
+  box-shadow:
+    inset 0 1px 0 var(--ticket-lip),
+    0 24px 70px -32px rgba(0, 0, 0, 0.72);
+  /* `isolation` y no `overflow: hidden`: el grano y el marco se recortan solos
+     con su propio border-radius, y aplanar el contexto acá rompería cualquier
+     transform del panel que la contiene. */
+  isolation: isolate;
+  padding: 4px;
+  position: relative;
+}
+
+/* La credencial es oscura por definición; en light se traduce a papel cálido
+   conservando el filo de oro y el marco interior, que son lo que la identifica.
+   Mismos valores que `[data-theme='light'] .promotion-reveal`. */
+[data-theme='light'] .bundle-ticket {
+  --ticket-face: linear-gradient(158deg, #fdfbf6 0%, #f6f1e6 54%, #efe7d7 100%);
+  --ticket-wash-gold: color-mix(in oklab, var(--plu-gold-500) 18%, transparent);
+  --ticket-wash-celeste: color-mix(in oklab, var(--color-brand-celeste) 10%, transparent);
+  --ticket-edge: color-mix(in oklab, var(--plu-gold-600) 42%, rgba(0, 0, 0, 0.08));
+  --ticket-frame: color-mix(in oklab, #1c1a15 8%, transparent);
+  --ticket-lip: rgba(255, 255, 255, 0.7);
+  --ticket-grain-a: rgba(28, 26, 21, 0.028);
+  --ticket-grain-b: rgba(28, 26, 21, 0.012);
+  --ticket-ink: var(--plu-gold-700);
+  --ticket-label: color-mix(in oklab, #1c1a15 46%, transparent);
+  --ticket-copy: color-mix(in oklab, #1c1a15 92%, transparent);
+  --ticket-body: color-mix(in oklab, #1c1a15 66%, transparent);
+  --ticket-rule: rgba(28, 26, 21, 0.1);
+
+  box-shadow:
+    inset 0 1px 0 var(--ticket-lip),
+    0 24px 60px -34px rgba(28, 26, 21, 0.36);
+}
+
+/* Grano y marco: dos capas estáticas, sin animación ni blur. Son el acabado
+   del papel, no un efecto. */
+.bundle-ticket__grain {
+  background-image: repeating-linear-gradient(
+    0deg,
+    var(--ticket-grain-a) 0px,
+    var(--ticket-grain-a) 1px,
+    var(--ticket-grain-b) 1px,
+    var(--ticket-grain-b) 2px
+  );
+  border-radius: inherit;
+  inset: 0;
+  opacity: 0.6;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.bundle-ticket__frame {
+  border: 1px solid var(--ticket-frame);
+  border-radius: calc(var(--institution-radius-surface) - 4px);
+  inset: 4px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.bundle-ticket__body {
+  display: grid;
+  gap: var(--space-sm);
+  padding: clamp(20px, 4vw, 30px);
+  position: relative;
+  z-index: 1;
+}
+
+.bundle-ticket__head {
+  align-items: baseline;
+  border-bottom: 1px solid var(--ticket-rule);
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: space-between;
+  padding-bottom: var(--space-sm);
+}
+
+.bundle-ticket__mark {
+  color: var(--ticket-ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* El estado se dice, no se pinta: es la misma ficha de un documento emitido. */
+.bundle-ticket__status {
+  color: var(--ticket-label);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.bundle-ticket__code {
+  color: var(--ticket-copy);
+  font-family: var(--font-mono);
+  font-size: clamp(15px, 2.4vw, 18px);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  margin: 0;
+}
+
+.bundle-ticket__headline {
+  color: var(--ticket-copy);
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 27px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.bundle-ticket__amount {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-sm);
+  margin: 0;
+}
+
+.bundle-ticket__amount strong {
+  color: var(--ticket-ink);
+  font-family: var(--font-display);
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.bundle-ticket__amount s {
+  color: var(--ticket-label);
+  font-size: 14px;
+  text-decoration-thickness: 1px;
+}
+
+.bundle-ticket__amount span {
+  color: var(--ticket-body);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bundle-ticket__lead {
+  color: var(--ticket-body);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 52ch;
+}
+
+/* Las condiciones son el registro reglado del documento: etiqueta a la
+   izquierda, valor a la derecha, una regla entre filas. No son cards. */
+.bundle-ticket__terms {
+  border-top: 1px solid var(--ticket-rule);
+  display: grid;
+  margin: var(--space-xs) 0 0;
+  padding-top: var(--space-sm);
+}
+
+.bundle-ticket__terms > div {
+  align-items: baseline;
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: minmax(84px, 0.4fr) 1fr;
+  padding: 7px 0;
+}
+
+.bundle-ticket__terms > div + div {
+  border-top: 1px solid var(--ticket-rule);
+}
+
+.bundle-ticket__terms dt {
+  color: var(--ticket-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.bundle-ticket__terms dd {
+  color: var(--ticket-copy);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.bundle-ticket__footer {
+  border-top: 1px solid var(--ticket-rule);
+  color: var(--ticket-body);
+  font-size: 12px;
+  line-height: 1.5;
+  padding-top: var(--space-sm);
+}
+
+/* Mobile: la etiqueta pasa arriba del valor. Apilar la grilla de dos columnas a
+   360px dejaba `dt` en dos líneas y `dd` en una columna de 9 caracteres. */
+@media (max-width: 420px) {
+  .bundle-ticket__terms > div {
+    gap: 2px;
+    grid-template-columns: 1fr;
+  }
+}

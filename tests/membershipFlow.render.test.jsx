@@ -47,6 +47,11 @@ vi.mock('@mercadopago/sdk-react', () => ({
 }))
 
 vi.mock('../src/services/athleteApi.js', () => ({
+  // El alta y la ficha personal piden el listado de gimnasios al montar
+  // (RegisterPage / PersonalDataSection). Omitirlo en el doble no desvia el
+  // test a otra rama: revienta el render entero con "No fetchGyms export is
+  // defined on the mock".
+  fetchGyms: vi.fn(async () => []),
   resendAthleteVerification: vi.fn(),
 }))
 

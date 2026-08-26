@@ -7,7 +7,31 @@ import {
   generateCredentialQr,
 } from '../../lib/credentialQr.js'
 import { inlineImageAsDataUrl } from '../../services/eventCardService.js'
+import { formatShortDate } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+
+/**
+ * La fecha del evento llega en dos formas distintas según quién arme la card:
+ * ya escrita para humanos ("12-13 Dic 2026", un rango de dos días que no se
+ * puede derivar de una sola fecha) o cruda desde la base — `event.date`
+ * ("2026-12-12", inscripción a meet) o `starts_at` con hora
+ * ("2026-12-12T20:00:00Z", entradas de espectador).
+ *
+ * Los dos llamadores crudos estaban imprimiendo el ISO tal cual en la pieza que
+ * el atleta sube a redes. No se veía porque la card sólo existía detrás de un
+ * botón: al ponerla a la vista en la confirmación quedó a la vista el
+ * "2026-12-12".
+ *
+ * Se normaliza acá y no en cada llamador para que ninguna superficie nueva
+ * pueda volver a filtrar un ISO, y respetando el string ya humano: cualquier
+ * valor que no empiece con `YYYY-MM-DD` se imprime sin tocar.
+ */
+function humanEventDate(value, locale) {
+  if (!value) return value
+  const isoDay = /^(\d{4}-\d{2}-\d{2})/.exec(String(value))
+  if (!isoDay) return value
+  return formatShortDate(isoDay[1], locale)
+}
 
 /**
  * EventShareCard — PLU ARG
@@ -354,7 +378,7 @@ export default function EventShareCard({
               <p className="share-card__event-title">{resolvedEventTitle}</p>
               {eventDate && eventVenue && (
                 <p className="share-card__event-meta">
-                  {eventDate} · {eventVenue}
+                  {humanEventDate(eventDate, locale)} · {eventVenue}
                   {eventLocation ? `, ${eventLocation}` : ''}
                 </p>
               )}

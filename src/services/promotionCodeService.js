@@ -73,8 +73,10 @@ export async function redeemPromotionCode(
   if (!CODE_PATTERN.test(code))
     return { accepted: false, status: 'rejected', reason: 'not_found', code }
   const result = await redeem({ code, context })
-  // Defensa ante una API aún sin migrar: una oferta por código nunca puede
-  // abrir una pantalla ni llegar a mostrarse.
+  // Defensa ante una API aún sin migrar: las modalidades retiradas
+  // (`offer`/`access`, 20260915100000) nunca pueden abrir una pantalla ni llegar
+  // a mostrarse. `open_bundle` es otra cosa y sí abre la suya: es el código-
+  // paquete vivo (20260926100000), un `fixed_price` con alcance de combo.
   if (result?.kind === 'offer' || result?.kind === 'access' || result?.action === 'open_exclusive_offer') {
     return { accepted: false, status: 'rejected', reason: 'offer_unavailable', code }
   }

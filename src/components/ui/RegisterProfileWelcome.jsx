@@ -84,7 +84,7 @@ export default function RegisterProfileWelcome({ athleteName, onNavigate }) {
       <Block {...riseProps}>
         <button
           type="button"
-          className="register-membership-confirmation__cta register-membership-confirmation__cta--primary"
+          className="register-confirmation__cta register-confirmation__cta--primary"
           onClick={() => onNavigate?.('profile')}
         >
           {t('pages.register.profileWelcomeCta')}
