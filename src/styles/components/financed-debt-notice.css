@@ -1,0 +1,98 @@
+/* La deuda del financiamiento, pegada al derecho que sostiene — PLU ARG
+   ---------------------------------------------------------------------------
+   Aparece debajo del estado de la afiliación y debajo de la inscripción, no en
+   una pantalla aparte: es la condición de ese derecho, no una notificación.
+
+   Material: la nota ámbar que la app ya usa para los pagos manuales
+   (`--color-manual-note-bg` / `--color-manual-note-border`). No es rojo a
+   propósito — mientras el plazo corre no hay nada roto, hay un acuerdo con
+   fecha. El rojo entra sólo cuando el plazo venció y la baja es inminente.
+
+   Presupuesto: un acento, una acción secundaria, cero cards anidadas (es una
+   fila reglada dentro de la sección que la contiene) y ningún motion. */
+
+.financed-debt {
+  align-items: center;
+  background: var(--color-manual-note-bg);
+  border: 1px solid var(--color-manual-note-border);
+  border-radius: var(--institution-radius-control);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: 12px 14px;
+}
+
+.financed-debt__icon {
+  align-items: center;
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  flex: none;
+}
+
+.financed-debt__copy {
+  display: grid;
+  flex: 1 1 220px;
+  gap: 2px;
+  min-width: 0;
+}
+
+.financed-debt__copy strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.financed-debt__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.financed-debt__action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--institution-radius-control);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  /* Target táctil completo: la fila es angosta y el botón es lo único que se
+     toca. */
+  min-height: 44px;
+  padding: 0 14px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.financed-debt__action:hover {
+  border-color: var(--color-border-strong);
+}
+
+.financed-debt__action:focus-visible {
+  outline: var(--institution-focus-width) solid var(--color-brand-celeste);
+  outline-offset: var(--institution-focus-offset);
+}
+
+/* Plazo vencido: la baja ya corre por cuenta del reloj, así que acá sí es un
+   estado de peligro real. */
+.financed-debt--overdue {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-text);
+}
+
+.financed-debt--overdue .financed-debt__icon,
+.financed-debt--overdue .financed-debt__copy strong,
+.financed-debt--overdue .financed-debt__copy p {
+  color: var(--color-danger-text);
+}
+
+@media (max-width: 480px) {
+  .financed-debt__action {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

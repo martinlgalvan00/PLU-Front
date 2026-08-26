@@ -645,11 +645,49 @@ export async function redeemPromotionCodeRequest({ code, context = {} }) {
   }
 }
 
-/** Ofertas exclusivas que este atleta ya canjeó. Sostiene la ficha de Mi cuenta. */
+/**
+ * Códigos-paquete que este atleta ya canjeó. Sostiene la ficha de Mi cuenta.
+ *
+ * El filtro no es cosmético. Las modalidades `offer` y `access` —las ofertas
+ * exclusivas de 20260902100000— están retiradas del producto (20260915100000) y
+ * ninguna pantalla sabe dibujarlas: un servidor que todavía devolviera una fila
+ * histórica no puede terminar renderizada por accidente. Lo único que llega a la
+ * ficha es la modalidad viva, el precio promocional con alcance de combo, que ES
+ * el paquete desde 20260918100000.
+ *
+ * Se filtra acá y no en la RPC porque la RPC también alimenta la auditoría del
+ * panel, donde las filas históricas sí tienen que seguir siendo legibles.
+ */
+export function isBundleOffer(offer) {
+  return offer?.kind === 'fixed_price' && offer?.appliesTo === 'combo'
+}
+
 export async function fetchOfferUnlocks() {
-  // Las ofertas exclusivas por código están retiradas: no consultar ni
-  // transportar datos que puedan terminar renderizados por accidente.
-  return []
+  const result = await apiGet('/api/athletes/me/offer-unlocks')
+  return (result?.offers ?? []).filter(isBundleOffer)
+}
+
+/**
+ * Pago diferido: quedar habilitado sin declarar un pago que todavía no se hizo.
+ *
+ * No es lo mismo que `confirmAthleteManualPayment`, y la diferencia importa del
+ * lado de Finanzas: acá no se marca ninguna declaración, así que la orden no
+ * entra a la cola de validación. Lo que sí arranca es el reloj del plazo.
+ */
+export async function deferAthleteFinancedPayment(orderId) {
+  const result = await apiPost(
+    `/api/athletes/me/payment-orders/${orderId}/financing-deferral`,
+    {},
+  )
+  return {
+    order: toCamelPaymentOrder(result.order),
+    membership: result.membership ? toCamelMembership(result.membership) : null,
+    registration: result.registration
+      ? toCamelRegistrationEntry({ registration: result.registration })
+      : null,
+    entitlementsGranted: result.entitlementsGranted === true,
+    duplicate: result.duplicate === true,
+  }
 }
 
 export async function createCompetitionRegistrationCombo({

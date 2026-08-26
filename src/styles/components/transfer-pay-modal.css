@@ -515,3 +515,41 @@
     padding: 16px 18px calc(14px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Pagar dentro del plazo — la segunda salida del financiamiento
+   ---------------------------------------------------------------------------
+   Sólo aparece con financiamiento encendido. Es secundaria por jerarquía —
+   pagar sigue siendo lo que cierra el trámite— pero no está escondida:
+   esconderla era lo que empujaba a declarar un pago inexistente para poder
+   competir. Fantasma sobre la misma columna que la acción plena, sin acento de
+   color propio: el oro ya está usado arriba. */
+.manual-payment-confirmation__defer {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 13px/1 var(--font-family);
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  transition: border-color var(--motion-fast) var(--ease-out);
+  width: 100%;
+}
+
+.manual-payment-confirmation__defer:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+
+.manual-payment-confirmation__defer:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.manual-payment-confirmation__defer:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}

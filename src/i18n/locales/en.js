@@ -201,6 +201,9 @@ export default {
   },
   payments: {
     manualConfirmation: {
+      deferAction: 'I will pay within the term',
+      deferredTitle: 'You are enabled',
+      deferredHint: 'You are already enabled: PLU fronted your membership and registration. Once you pay, let us know here so Finance can credit it.',
       transferAction: 'I sent the transfer',
       cashAction: 'I handed over the cash',
       financingHint:
@@ -484,7 +487,7 @@ export default {
     stateClosed: 'Closed',
     stateUnavailable: 'No open date',
     steps: {
-      account: {
+  account: {
         title: 'Create your account',
         done: 'You already have an account.',
         todo: 'You enter your details once: name, ID, date of birth and a password.',
@@ -1067,6 +1070,18 @@ export default {
     tokenLoadingLeadWithEvent: 'Verifying your gate access for {{event}}…',
     tokenError: 'This credential is invalid or expired. Sign in with your email and password.',
   },
+  financedDebt: {
+    membership: {
+      title: 'Your membership is financed by PLU',
+    },
+    registration: {
+      title: 'Your registration is financed by PLU',
+    },
+    remaining: 'You have {{countdown}} left to complete the payment.',
+    overdue: 'The term is over. It will be cancelled within hours unless you complete the payment.',
+    noDeadline: 'Complete the payment to have it credited.',
+    settle: 'Finish paying',
+  },
   account: {
     eyebrow: 'My account',
     membershipActive: 'Active membership',
@@ -1076,7 +1091,7 @@ export default {
     nav: {
       qr: 'Credential',
       benefits: 'Benefits',
-      offer: 'Exclusive offer',
+      offer: 'Your code',
       events: 'Events',
       history: 'History',
       membership: 'Membership',
@@ -1084,6 +1099,60 @@ export default {
       personalData: 'My details',
       security: 'Security',
       needsAttention: 'You have something to resolve here',
+    },
+    bundle: {
+      eyebrow: 'Exclusive code',
+      title: 'Your bundle',
+      lead: {
+        ready:
+          'This code holds your membership and your meet registration together at an agreed price. Fill in your details and choose how to pay.',
+        manual: 'Your bundle is on hold. Finish the payment below to confirm it.',
+        granted:
+          'You are already a member and registered: PLU enabled you up front. You still need to complete the payment within the term.',
+        settled: 'Finance credited the payment. The bundle is closed and nothing is pending.',
+      },
+      mark: 'Exclusive code',
+      headline: '{{plan}} + {{event}}',
+      fallbackPlan: 'PLU membership',
+      fallbackEvent: 'the registration',
+      savings: 'You save {{amount}}',
+      status: {
+        ready: 'Available',
+        reserved: 'On hold',
+        granted: 'Enabled, balance due',
+        settled: 'Credited',
+      },
+      terms: {
+        payment: 'Paid with',
+        financing: 'Term',
+        remaining: 'Spots',
+        window: 'Closes',
+      },
+      paymentWith: 'With {{channels}}',
+      paymentOnly: 'Only with {{channels}}',
+      noChannel: 'No payment method enabled. Get in touch so we can sort it out.',
+      financingTerm: '{{days}} days to pay from the moment you activate it',
+      financingTermOne: '1 day to pay from the moment you activate it',
+      remaining: '{{count}} spots left',
+      remainingOne: '1 spot left',
+      dueIn: '{{countdown}} Once the term is over, membership and registration are cancelled.',
+      settled: 'Nothing is pending. Your credential and registration are in their usual tabs.',
+      form: {
+        competitionLegend: 'Your competition details',
+        competitionHint: 'We pulled them from your profile. You can correct them here for this registration.',
+        division: 'Division',
+        category: 'Category',
+        weight: 'Declared bodyweight (kg)',
+        choose: 'Choose an option',
+        paymentLegend: 'How you pay',
+        gatewayNote: 'Paid at the meet checkout, with a card or account money.',
+        transferNote: 'We give you the bank details and you let us know once you transferred.',
+        cashNote: 'Paid in cash to the PLU staff.',
+        financedHint: 'With this code you can pay now or later: you are enabled either way while the term runs.',
+        submit: 'Confirm and pay {{amount}}',
+        goToGateway: 'Pay with Mercado Pago',
+        incomplete: 'Fill in division, category and declared bodyweight to continue.',
+      },
     },
     benefits: {
       eyebrow: 'Codes and promotions',
@@ -3242,6 +3311,10 @@ export default {
       sealMembershipTitle: 'You’re part of PLU Argentina',
       sealMembershipDetail: 'Your credential is issued and you can register for meets.',
       sealRegistrationEyebrow: 'Registration confirmed',
+      sealRegistrationSlot: 'You compete in {{slot}}.',
+      competitionConfirmedTitle: 'You’re in',
+      competitionConfirmedDesc: 'Your spot at the meet is taken.',
+      competitionGoMyEvents: 'View my registrations',
       membershipGoProfile: 'Go to my profile',
       membershipGoProfileCredential: 'View unified credential',
       membershipRequiredTitle: 'Membership for gate access',

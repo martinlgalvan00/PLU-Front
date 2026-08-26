@@ -54,6 +54,10 @@ export const ACCOUNT_PAYMENTS_TAB = 'account-payments'
  */
 export const ACCOUNT_TAB_IDS = [
   DEFAULT_ACCOUNT_TAB,
+  // Condicional: la ficha del código-paquete existe sólo para quien canjeó uno.
+  // Está en el orden porque de acá sale la dirección de la transición del
+  // panel; qué fichas se dibujan lo decide `visibleIds` en AccountNav.
+  ACCOUNT_OFFER_TAB,
   ACCOUNT_EVENTS_TAB,
   'account-history',
   ACCOUNT_MEMBERSHIP_TAB,
@@ -79,8 +83,12 @@ const ACCOUNT_TAB_BY_SECTION = Object.freeze({
   // sin ninguna pista.
   benefits: ACCOUNT_MEMBERSHIP_TAB,
   beneficios: ACCOUNT_MEMBERSHIP_TAB,
-  // Enlaces históricos no deben abrir ni anunciar una oferta por código.
-  offer: ACCOUNT_MEMBERSHIP_TAB,
+  // La ficha del código-paquete volvió (20260926100000). Si el atleta no tiene
+  // ninguno canjeado, `AthleteProfilePage` resuelve el destino a otra ficha en
+  // vez de abrir una pestaña vacía.
+  offer: ACCOUNT_OFFER_TAB,
+  codigo: ACCOUNT_OFFER_TAB,
+  bundle: ACCOUNT_OFFER_TAB,
   history: 'account-history',
   security: 'account-security',
   profile: 'account-personal-data',

@@ -625,45 +625,60 @@ export function createAthleteRoutes({
     return false
   }
 
+  /**
+   * Normaliza el gimnasio declarado contra el catálogo de Prisma.
+   *
+   * Es una mejora de dato, no un requisito del alta: si el catálogo no está
+   * disponible —falta `DATABASE_URL`, las tablas del esquema legado no existen
+   * (local y CI corren sólo el corpus de Supabase), Prisma no conecta— el alta
+   * tiene que seguir con el nombre que escribió la persona. Sin esta guarda
+   * cualquiera de esos casos devolvía 500 en `POST /api/athletes/register`, que
+   * es la puerta de entrada del producto.
+   */
   const resolveGymName = async (rawName) => {
     if (!rawName || !rawName.trim()) return rawName
     const cleanName = String(rawName).trim()
     const norm = normalizeGym(cleanName)
     const core = getCoreName(norm)
-    
-    // Asumimos un solo tenant operativo (PLU) por ahora para Prisma
-    const org = await prisma.organization.findFirst()
-    if (!org) return cleanName
-    const organizationId = org.id
-    
-    // Buscar todos los gyms existentes
-    const existing = await prisma.gym.findMany({ where: { organizationId } })
-    
-    for (const gym of existing) {
-      if (isSimilarCore(core, gym.coreName)) {
-        return gym.name
-      }
-    }
-    
-    // Si no existe ninguno similar, se registra
+
     try {
+      // Asumimos un solo tenant operativo (PLU) por ahora para Prisma
+      const org = await prisma.organization.findFirst()
+      if (!org) return cleanName
+      const organizationId = org.id
+
+      // Buscar todos los gyms existentes
+      const existing = await prisma.gym.findMany({ where: { organizationId } })
+
+      for (const gym of existing) {
+        if (isSimilarCore(core, gym.coreName)) {
+          return gym.name
+        }
+      }
+
+      // Si no existe ninguno similar, se registra
       const created = await prisma.gym.upsert({
         where: {
           organizationId_coreName: {
             organizationId,
             coreName: core,
-          }
+          },
         },
         update: {},
         create: {
           organizationId,
           name: cleanName,
           coreName: core,
-        }
+        },
       })
       return created.name
-    } catch (e) {
-      // Ignorar carrera de inserción concurrente
+    } catch (error) {
+      // Carrera de inserción concurrente, catálogo ausente o Prisma sin
+      // configurar: en los tres casos el alta sigue con lo que se escribió.
+      logger.warn('athlete.gym_normalization_skipped', {
+        err: error,
+        gym: cleanName,
+      })
       return cleanName
     }
   }
@@ -1930,6 +1945,30 @@ export function createAthleteRoutes({
         const orderId = z.string().uuid().safeParse(req.params.orderId)
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
         res.json(await repo().confirmManualPayment(auth.athleteId, orderId.data))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * Pago diferido de una orden financiada.
+   *
+   * Hermana de la declaración de arriba y deliberadamente distinta: acá la
+   * persona no dice "ya pagué", dice "voy a pagar dentro del plazo". Queda
+   * habilitada igual —para eso existe el financiamiento— pero la orden no entra
+   * a la cola de Finanzas, y el reloj de `financed_payment_due_at` arranca. Si
+   * vence sin acreditar, `expire_financed_payment_orders` da de baja lo
+   * otorgado, igual que en cualquier otra orden financiada.
+   */
+  router.post(
+    '/me/payment-orders/:orderId/financing-deferral',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(await repo().deferFinancedPayment(auth.athleteId, orderId.data))
       } catch (error) {
         next(error)
       }

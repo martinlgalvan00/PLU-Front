@@ -1,0 +1,226 @@
+/* La ficha del código-paquete — el trámite debajo del documento — PLU ARG
+   ---------------------------------------------------------------------------
+   La sección tiene dos piezas y una sola jerarquía: arriba el documento
+   (`bundle-ticket.css`, que es lo que la persona vino a ver) y debajo lo que
+   falta para tenerlo. El trámite no compite con el documento —no es otra card,
+   no tiene fondo propio ni filo de oro— sino que se lee como el formulario al
+   pie de un papel emitido: fieldsets con regla superior, etiquetas chicas y una
+   sola acción plena al final.
+
+   Presupuesto: el acento de oro es del ticket; acá el único color es el foco
+   celeste, que es navegación. Cero cards anidadas: los fieldsets son bloques
+   reglados, no superficies elevadas. Sin motion propio — la sección entra con
+   el panel de la cuenta (`MotionContentSwap`). */
+
+.bundle-section {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.bundle-section__form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.bundle-section__fieldset {
+  border: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md) 0 0;
+}
+
+.bundle-section__fieldset legend {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.bundle-section__hint {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 60ch;
+}
+
+.bundle-section__grid {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.bundle-section__grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.bundle-section__grid label > span {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bundle-section__grid select,
+.bundle-section__grid input {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--institution-radius-control);
+  color: var(--color-text-primary);
+  font: inherit;
+  /* 44px de alto real: el mínimo táctil, no un padding que lo aproxime. */
+  min-height: 44px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.bundle-section__grid select:focus-visible,
+.bundle-section__grid input:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* Los medios de pago son una elección entre pocas opciones comparables: fila
+   seleccionable con el radio visible, no cards. */
+.bundle-section__methods {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.bundle-section__method {
+  align-items: flex-start;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--institution-radius-control);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 12px 14px;
+}
+
+.bundle-section__method:has(input:checked) {
+  border-color: color-mix(in oklab, var(--color-brand-gold) 55%, var(--color-border-subtle));
+}
+
+.bundle-section__method:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.bundle-section__method input {
+  accent-color: var(--color-brand-gold);
+  margin-top: 3px;
+}
+
+.bundle-section__method span {
+  display: grid;
+  gap: 2px;
+}
+
+.bundle-section__method strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bundle-section__method small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bundle-section__action {
+  align-items: center;
+  background: var(--color-brand-action);
+  border: 0;
+  border-radius: var(--institution-radius-control);
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 700;
+  gap: var(--space-sm);
+  justify-content: center;
+  justify-self: start;
+  min-height: 46px;
+  padding: 0 22px;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    filter var(--motion-fast) var(--ease-out);
+}
+
+.bundle-section__action:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.bundle-section__action:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.bundle-section__action:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.bundle-section__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.bundle-section__spinner {
+  animation: bundle-section-spin 900ms linear infinite;
+}
+
+@keyframes bundle-section-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bundle-section__error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+  margin: 0;
+}
+
+.bundle-section__settle {
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+}
+
+.bundle-section__settled {
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  padding-top: var(--space-md);
+}
+
+@media (max-width: 480px) {
+  .bundle-section__action {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+/* El spinner es el único loop de la sección y comunica estado operativo real
+   (una orden creándose). Bajo reduced motion se apaga: la etiqueta del botón y
+   su estado `disabled` ya dicen lo mismo. */
+@media (prefers-reduced-motion: reduce) {
+  .bundle-section__spinner {
+    animation: none;
+  }
+
+  .bundle-section__action:hover:not(:disabled) {
+    transform: none;
+  }
+}
