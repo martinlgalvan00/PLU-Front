@@ -158,6 +158,11 @@ describe('cupo y ventana de un código contra Supabase', () => {
         code,
         kind: 'fixed_price',
         appliesTo: 'combo',
+        // Un precio promocional con alcance 'combo' ES el paquete y se arma
+        // contra UNA inscripción (20260918100000): sin evento el código se
+        // guarda y después no se puede canjear por ningún camino, así que la
+        // RPC lo rechaza en el alta. Mismo criterio que el schema de Express.
+        eventId: event.id,
         fixedPrice: Math.max(1, comboPrice - 20000),
         manualChannels: ['bank_transfer'],
         active: true,

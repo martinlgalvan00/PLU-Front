@@ -91,43 +91,63 @@ export function PaymentStateCell({ payment }) {
 /**
  * Estado de un derecho (afiliación o inscripción) con su procedencia.
  *
- * `backing` viene de `resolveEntitlementBacking`. Cuando el estado lo puso una
+ * `backing` viene de `resolveStateBacking`. Cuando el estado lo puso una
  * persona, la fila lo dice con nombre y fecha: es lo que convierte "Activa" en
  * "Activa porque alguien decidió que sí, el 20/08, por este motivo".
+ *
+ * `badge` es para las listas que ya acompañaban el estado con otra marca (el
+ * "inscripto a un torneo" de Afiliaciones): va al lado del badge de estado, no
+ * debajo, porque es otro hecho del socio y no una explicación del estado.
  */
-export function EntitlementStateCell({ status, backing }) {
+export function EntitlementStateCell({ status, backing, badge = null }) {
   const { locale, t } = useI18n()
   const manual = backing?.manualOverride ?? null
 
+  const head = badge ? (
+    <div className="admin-state-cell__head">
+      <StatusBadge value={status} />
+      {badge}
+    </div>
+  ) : (
+    <StatusBadge value={status} />
+  )
+
   if (!manual) {
-    return <StatusBadge value={status} />
+    return head
   }
 
-  const actor = actorLabel(manual.by)
-  const when = formatStateDateTime(manual.at, locale)
+  const actor = actorLabel(manual.by) ?? t('admin.paymentState.manual.unknownActor')
+  const when = formatStateDateTime(manual.at, locale) ?? '—'
   const placeholder = isPlaceholderReason(manual.reason)
+  const channelLabel = manual.channel
+    ? t(`admin.paymentState.manual.channel.${manual.channel}`)
+    : null
+  // Firma corta en la fila; el mail completo vive en `title` (hover) y en un
+  // span oculto para Ctrl+F / lectores, sin estirar la celda.
+  const stampShort = t('admin.paymentState.manual.stampShort', { date: when })
+  const stampFull = t('admin.paymentState.manual.stamp', { actor, date: when })
+  const metaTitle = channelLabel ? `${stampFull} · ${channelLabel}` : stampFull
+  const noteText = placeholder ? t('admin.paymentState.manual.missingReason') : manual.reason
 
   return (
     <div className="admin-state-cell">
-      <StatusBadge value={status} />
-      <p className="admin-state-cell__reason">
-        {t('admin.paymentState.manual.stamp', {
-          actor: actor ?? t('admin.paymentState.manual.unknownActor'),
-          date: when ?? '—',
-        })}
-        {manual.channel ? ` · ${t(`admin.paymentState.manual.channel.${manual.channel}`)}` : ''}
+      {head}
+      <p className="admin-state-cell__reason" title={metaTitle}>
+        <span className="admin-state-cell__stamp">
+          {stampShort}
+          {channelLabel ? ` · ${channelLabel}` : ''}
+        </span>
+        <span className="admin-state-cell__actor-search">{actor}</span>
       </p>
-      {/* Un motivo de relleno del backfill es un pendiente, no una explicación:
-          se marca como hueco en vez de presentarse como si alguien lo hubiera
-          escrito. */}
       <p
         className={
           placeholder
             ? 'admin-state-cell__note admin-state-cell__note--gap'
-            : 'admin-state-cell__note'
+            : 'admin-state-cell__note admin-state-cell__note--written'
         }
+        title={noteText}
       >
-        {placeholder ? t('admin.paymentState.manual.missingReason') : manual.reason}
+        {noteText}
       </p>
     </div>
   )

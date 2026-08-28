@@ -17,9 +17,16 @@ afterEach(() => {
 const columns = [
   { key: 'name', label: 'Nombre', mobile: 'primary' },
   { key: 'document', label: 'Documento', mobile: 'hidden' },
+  { key: 'status', label: 'Estado', mobile: 'badge', render: (row) => row.status },
+  {
+    key: 'action',
+    label: 'Acción',
+    mobile: 'action',
+    render: () => <button type="button">Validar</button>,
+  },
 ]
 
-const rows = [{ id: '1', name: 'Juana Pérez', document: '12345678' }]
+const rows = [{ id: '1', name: 'Juana Pérez', document: '12345678', status: 'activo' }]
 
 /**
  * `AdminDataTable` ocultaba columnas `mobile: 'hidden'` leyendo
@@ -49,5 +56,41 @@ describe('AdminDataTable — columnas responsive', () => {
     await waitFor(() =>
       expect(screen.getByRole('columnheader', { name: 'Documento' })).toBeTruthy(),
     )
+  })
+
+  it('en viewport angosto renderiza cards compactas con primary/badge/action', async () => {
+    setViewportWidth(480)
+
+    const { container } = render(
+      <AdminDataTable columns={columns} rows={rows} pagination={false} />,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.admin-data-table-shell--cards')).toBeTruthy()
+      expect(container.querySelector('.data-table-card--compact')).toBeTruthy()
+    })
+
+    expect(screen.queryByRole('columnheader', { name: 'Documento' })).toBeNull()
+    expect(screen.getByText('Juana Pérez')).toBeTruthy()
+    expect(screen.getByText('activo')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Validar' })).toBeTruthy()
+    expect(screen.queryByText('12345678')).toBeNull()
+  })
+
+  it('acepta getRowClassName legacy y lo aplica a la fila', async () => {
+    setViewportWidth(1024)
+
+    const { container } = render(
+      <AdminDataTable
+        columns={columns}
+        rows={rows}
+        pagination={false}
+        getRowClassName={(row) => (row.id === '1' ? 'data-table__row--selected' : '')}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.data-table__row--selected')).toBeTruthy()
+    })
   })
 })

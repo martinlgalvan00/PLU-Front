@@ -206,3 +206,24 @@ describe('plazo de financiamiento en la fila', () => {
     expect(screen.queryByText(/Vencido hace/)).toBeNull()
   })
 })
+
+/**
+ * Código canjeado en la fila.
+ *
+ * Finanzas necesita distinguir a quién financió ONLY-PITBULL-GOLD de quien
+ * financió cualquier otro código sin abrir cada orden: el chip "Financiado"
+ * ya agrupaba las filas, pero ninguna columna decía CON QUÉ código.
+ */
+describe('código de descuento en la fila', () => {
+  it('muestra el código que canjeó la orden', async () => {
+    await renderSection([order({ discountCode: 'ONLY-PITBULL-GOLD' })])
+
+    expect(screen.getByText('ONLY-PITBULL-GOLD')).toBeTruthy()
+  })
+
+  it('sin código aplicado, la celda queda vacía en vez de inventar uno', async () => {
+    await renderSection([order({ discountCode: null })])
+
+    expect(screen.queryByText('ONLY-PITBULL-GOLD')).toBeNull()
+  })
+})

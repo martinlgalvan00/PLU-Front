@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Activity,
   ArrowUpRight,
-  BadgeCheck,
   CircleAlert,
-  MailCheck,
   RefreshCw,
   Route,
 } from 'lucide-react'
@@ -26,7 +23,9 @@ import {
   fetchAuditEntries,
   fetchAuditFacets,
   fetchAuditOverview,
+  isAuditIncidentEntry,
 } from '../../services/auditService.js'
+import { buildAuditStatusFilterOptions } from '../../lib/auditFilterHelpers.js'
 
 /** `entity_type` que `paymentAuditTrail.js` usa para órdenes de cobro: cubre
  * afiliación, combo, inscripción (`athlete_payment_order`) y entradas
@@ -99,7 +98,10 @@ function AuditMobileList({
   return (
     <div className="audit-mobile-list" aria-label={t('admin.audit.mobileListLabel')}>
       {entries.map((entry) => (
-        <article className="audit-mobile-entry" key={entry.id}>
+        <article
+          className={`audit-mobile-entry${isAuditIncidentEntry(entry) ? ' audit-mobile-entry--incident' : ''}`}
+          key={entry.id}
+        >
           <div className="audit-mobile-entry__head">
             <div className="audit-mobile-entry__action">
               <span
@@ -190,6 +192,7 @@ export default function AuditSection() {
   // errores" (el tono sale de `severity` o de un mapa de acción → tono en el
   // browser, no es una columna filtrable). Se aplica sobre lo ya cargado.
   const [onlyIncidents, setOnlyIncidents] = useState(false)
+  const [onlyIncidentsTouched, setOnlyIncidentsTouched] = useState(false)
   const [detailEventId, setDetailEventId] = useState(null)
   const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('audit')
 
@@ -342,18 +345,6 @@ export default function AuditSection() {
           ...facets.sources.map((value) => [value, sourceLabel(value)]),
         ],
       },
-      {
-        id: 'status',
-        label: t('admin.audit.filterStatus'),
-        value: status,
-        onChange: setStatus,
-        variant: 'select',
-        showLabel: true,
-        options: [
-          ['all', t('admin.audit.filterAll')],
-          ...facets.statuses.map((value) => [value, statusLabel(value)]),
-        ],
-      },
       /*
         Va antes que el filtro de acción y sin `advanced`: agrupa los nombres
         que describen el mismo hecho con distinta convención
@@ -372,6 +363,15 @@ export default function AuditSection() {
           ['all', t('admin.audit.filterAll')],
           ...facets.categories.map((value) => [value, categoryLabel(value)]),
         ],
+      },
+      {
+        id: 'status',
+        label: t('admin.audit.filterStatus'),
+        value: status,
+        onChange: setStatus,
+        showLabel: true,
+        allLabel: t('admin.audit.filterAll'),
+        options: buildAuditStatusFilterOptions(facets, statusLabel, t('admin.audit.filterAll')),
       },
       {
         id: 'action',
@@ -519,19 +519,42 @@ export default function AuditSection() {
 
   const affiliationIncidents =
     overview.activeMembershipsWithoutConfirmation + overview.approvedOrdersWithoutActiveMembership
-  const attentionCount = overview.emailAttention + overview.paymentAttention + affiliationIncidents
+  // Solo pagos y afiliaciones disparan semántica crítica en UI. Los emails
+  // del overview siguen visibles, pero como ruido operativo (tono soft).
+  const criticalCount = overview.paymentAttention + affiliationIncidents
+  const emailAttentionCount = overview.emailAttention
+  const displayStatus =
+    overview.status === 'unknown'
+      ? 'unknown'
+      : criticalCount > 0
+        ? 'attention'
+        : emailAttentionCount > 0
+          ? 'soft'
+          : 'healthy'
 
-  // `attentionCount` es el conteo real del servidor (toda la bitácora); esto
-  // es cuántas de esas filas están además en lo que ya bajamos a pantalla.
-  // Los nombres del toggle dejan claro que el recorte es sobre lo cargado.
+  // “Solo errores” recorta lo ya cargado: danger + warning + estados fallidos.
+  // El overview (críticas/emails) viene de otra RPC y no garantiza filas en
+  // esta página — el toggle no promete ese conteo.
   const loadedErrorCount = useMemo(
-    () => entries.filter((entry) => entry.tone === 'danger').length,
+    () => entries.filter(isAuditIncidentEntry).length,
     [entries],
   )
   const displayedEntries = useMemo(
-    () => (onlyIncidents ? entries.filter((entry) => entry.tone === 'danger') : entries),
+    () => (onlyIncidents ? entries.filter(isAuditIncidentEntry) : entries),
     [entries, onlyIncidents],
   )
+
+  function toggleOnlyIncidents() {
+    setOnlyIncidentsTouched(true)
+    setOnlyIncidents((current) => !current)
+  }
+
+  useEffect(() => {
+    if (onlyIncidentsTouched || loading || entries.length === 0) return
+    if (displayStatus === 'attention') {
+      setOnlyIncidents(true)
+    }
+  }, [displayStatus, entries.length, loading, onlyIncidentsTouched])
 
   const auditGuide = (
     <details className="audit-flow-guide">
@@ -559,115 +582,86 @@ export default function AuditSection() {
     </details>
   )
 
+  const healthPillTone =
+    displayStatus === 'healthy' ? 'success' : displayStatus === 'attention' ? 'danger' : 'warning'
+  const healthPillLabel =
+    displayStatus === 'healthy'
+      ? t('admin.audit.healthHealthy')
+      : displayStatus === 'attention'
+        ? t('admin.audit.healthAttention')
+        : displayStatus === 'soft'
+          ? t('admin.audit.healthSoftAttention')
+          : t('admin.audit.healthUnknown')
+
+  const criticalBreakdown =
+    criticalCount > 0
+      ? [
+          overview.paymentAttention > 0
+            ? `${t('admin.audit.healthBreakdownPayments')} ${overview.paymentAttention}`
+            : null,
+          affiliationIncidents > 0
+            ? `${t('admin.audit.healthBreakdownAffiliation')} ${affiliationIncidents}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : ''
+
+  const affiliationDetailTitle =
+    affiliationIncidents > 0
+      ? [
+          `${t('admin.audit.healthBreakdownOrdersGap')}: ${overview.approvedOrdersWithoutActiveMembership}`,
+          `${t('admin.audit.healthBreakdownMembershipEmails')}: ${overview.activeMembershipsWithoutConfirmation}`,
+        ].join(' · ')
+      : undefined
+
   const health = (
     <section
-      className={`audit-health-bento audit-health--${overview.status}`}
+      className={`audit-health-bento audit-health--${displayStatus}`}
       aria-label={t('admin.audit.healthTitle')}
       aria-live="polite"
     >
-      <div className="bento-card bento-card--header">
-        <div>
-          <span className="audit-health__eyebrow">{t('admin.audit.healthEyebrow')}</span>
+      <div className="audit-health__summary">
+        <div className="audit-health__intro">
           <h3>{t('admin.audit.healthTitle')}</h3>
+          <span className={`status-pill status-pill--${healthPillTone}`}>{healthPillLabel}</span>
         </div>
-        <span
-          className={`status-pill status-pill--${
-            overview.status === 'healthy'
-              ? 'success'
-              : overview.status === 'attention'
-                ? 'danger'
-                : 'warning'
-          }`}
-        >
-          {overview.status === 'healthy'
-            ? t('admin.audit.healthHealthy')
-            : overview.status === 'attention'
-              ? t('admin.audit.healthAttention')
-              : t('admin.audit.healthUnknown')}
-        </span>
+
+        {criticalCount > 0 ? (
+          <p className="audit-health__critical-line" title={affiliationDetailTitle}>
+            {t('admin.audit.healthCriticalLine', { count: criticalCount })}
+            {criticalBreakdown ? (
+              <span className="audit-health__critical-breakdown"> · {criticalBreakdown}</span>
+            ) : null}
+          </p>
+        ) : emailAttentionCount > 0 ? (
+          <p className="audit-health__critical-line audit-health__critical-line--soft">
+            {t('admin.audit.healthEmailLine', { count: emailAttentionCount })}
+          </p>
+        ) : null}
       </div>
 
-      <div className="bento-card bento-card--metric bento-card--stagger-1">
-        <Activity size={20} className="bento-icon" aria-hidden />
-        <div className="bento-metric__data">
+      <dl className="audit-health__volume">
+        <div className="audit-health__metric">
           <dt>{t('admin.audit.healthEvents')}</dt>
           <dd>{overview.eventsLast24h}</dd>
         </div>
-      </div>
 
-      <div className="bento-card bento-card--metric bento-card--stagger-2">
-        <MailCheck size={20} className="bento-icon" aria-hidden />
-        <div className="bento-metric__data">
+        <div className="audit-health__metric">
           <dt>{t('admin.audit.healthDelivered')}</dt>
           <dd>{overview.emailsDeliveredLast24h}</dd>
         </div>
-      </div>
 
-      <div className="bento-card bento-card--metric bento-card--stagger-3">
-        <RefreshCw size={20} className="bento-icon" aria-hidden />
-        <div className="bento-metric__data">
-          <dt>{t('admin.audit.healthRetrying')}</dt>
-          <dd>{overview.emailsRetrying}</dd>
+        <div className={`audit-health__metric${emailAttentionCount > 0 ? ' is-soft' : ''}`}>
+          <dt>{t('admin.audit.healthEmailsAttention')}</dt>
+          <dd>{emailAttentionCount}</dd>
         </div>
-      </div>
 
-      <div
-        className={`bento-card bento-card--metric bento-card--stagger-4 ${attentionCount > 0 ? 'is-attention' : ''}`}
-      >
-        {attentionCount > 0 ? (
-          <CircleAlert size={20} className="bento-icon" aria-hidden />
-        ) : (
-          <BadgeCheck size={20} className="bento-icon" aria-hidden />
-        )}
-        <div className="bento-metric__data">
-          <dt>{t('admin.audit.healthIncidents')}</dt>
-          {loadedErrorCount > 0 ? (
-            <dd>
-              <button
-                type="button"
-                className="audit-health__metric-action"
-                aria-pressed={onlyIncidents}
-                onClick={() => setOnlyIncidents((current) => !current)}
-              >
-                {attentionCount}
-              </button>
-            </dd>
-          ) : (
-            <dd>{attentionCount}</dd>
-          )}
+        <div className={`audit-health__metric${loadedErrorCount > 0 ? ' is-attention' : ''}`}>
+          <dt>{t('admin.audit.onlyIncidents')}</dt>
+          <dd>{loadedErrorCount}</dd>
         </div>
-      </div>
-
-      {attentionCount > 0 ? (
-        <div className="bento-card bento-card--notice bento-card--stagger-5">
-          <dl className="audit-health__breakdown" aria-label={t('admin.audit.healthIncidents')}>
-            <div>
-              <dt>{t('admin.audit.healthBreakdownEmails')}</dt>
-              <dd>{overview.emailAttention}</dd>
-            </div>
-            <div>
-              <dt>{t('admin.audit.healthBreakdownPayments')}</dt>
-              <dd>{overview.paymentAttention}</dd>
-            </div>
-            <div>
-              <dt>{t('admin.audit.healthBreakdownAffiliation')}</dt>
-              <dd>{affiliationIncidents}</dd>
-            </div>
-          </dl>
-          {affiliationIncidents > 0 ? (
-            <dl className="audit-health__detail">
-              <div>
-                <dt>{t('admin.audit.healthBreakdownOrdersGap')}</dt>
-                <dd>{overview.approvedOrdersWithoutActiveMembership}</dd>
-              </div>
-              <div>
-                <dt>{t('admin.audit.healthBreakdownMembershipEmails')}</dt>
-                <dd>{overview.activeMembershipsWithoutConfirmation}</dd>
-              </div>
-            </dl>
-          ) : null}
-        </div>
-      ) : null}
+      </dl>
     </section>
   )
 
@@ -710,8 +704,8 @@ export default function AuditSection() {
             type="button"
             className={`audit-incidents-toggle${onlyIncidents ? ' is-active' : ''}`}
             aria-pressed={onlyIncidents}
-            disabled={loadedErrorCount === 0 && !onlyIncidents}
-            onClick={() => setOnlyIncidents((current) => !current)}
+            disabled={entries.length === 0}
+            onClick={toggleOnlyIncidents}
           >
             <CircleAlert size={14} aria-hidden />
             {t('admin.audit.onlyIncidents')}
@@ -762,6 +756,13 @@ export default function AuditSection() {
               columns={columns}
               rows={displayedEntries}
               pagination={false}
+              rowClassName={(row) =>
+                row.tone === 'danger'
+                  ? 'data-table__row--audit-incident data-table__row--audit-danger'
+                  : row.tone === 'warning'
+                    ? 'data-table__row--audit-incident data-table__row--audit-warning'
+                    : ''
+              }
               emptyMessage={
                 onlyIncidents && entries.length > 0
                   ? t('admin.audit.onlyIncidentsEmpty')

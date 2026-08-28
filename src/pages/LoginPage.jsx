@@ -327,6 +327,12 @@ export default function LoginPage({ onLogin, onNavigate }) {
           ? t('login.resetLead')
           : t('login.subtitle')
 
+  const visualSignals = [
+    { n: '01', label: t('login.featureProfile') },
+    { n: '02', label: t('login.featureMembership') },
+    { n: '03', label: t('login.featureEvents') },
+  ]
+
   const capsLockHint = capsLock ? (
     <span className="login-field__hint" role="status">
       <AlertCircle size={13} aria-hidden />
@@ -359,18 +365,28 @@ export default function LoginPage({ onLogin, onNavigate }) {
         />
         <div className="auth-layout__visual-scrim" />
         <div className="auth-layout__visual-content">
-          <BrandLogo variant="letterhead" height={40} imgClassName="auth-layout__emblem" />
-          <h2 className="auth-layout__slogan">
-            {t('login.visualSlogan')}
-            <span className="auth-layout__slogan-line">{t('login.visualSloganAccent')}</span>
-          </h2>
-          <p className="auth-layout__lead">{t('login.visualLead')}</p>
-          <span className="auth-layout__rule" aria-hidden="true" />
-          <ul className="auth-layout__signals">
-            <li>{t('login.featureProfile')}</li>
-            <li>{t('login.featureMembership')}</li>
-            <li>{t('login.featureEvents')}</li>
-          </ul>
+          <div className="auth-layout__editorial">
+            <BrandLogo variant="letterhead" height={34} imgClassName="auth-layout__emblem" />
+            <p className="auth-layout__kicker">{t('login.eyebrow')}</p>
+            <h2 className="auth-layout__slogan">
+              {t('login.visualSlogan')}
+              <span className="auth-layout__slogan-line">{t('login.visualSloganAccent')}</span>
+            </h2>
+            <p className="auth-layout__lead">{t('login.visualLead')}</p>
+            <ul className="auth-layout__signals">
+              {visualSignals.map(({ n, label }) => (
+                <li key={n} className="auth-layout__signal">
+                  <span className="auth-layout__signal-n" aria-hidden>
+                    {n}
+                  </span>
+                  <span className="auth-layout__signal-sep" aria-hidden>
+                    —
+                  </span>
+                  <span className="auth-layout__signal-label">{label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
           <p className="auth-layout__meta">{t('login.visualMeta')}</p>
         </div>
       </aside>

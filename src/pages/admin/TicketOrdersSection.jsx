@@ -128,9 +128,9 @@ export default function TicketOrdersSection({
   )
 
   return (
-    <section id="admin-ticket-orders" className="admin-orders-block" style={{ marginTop: 0, paddingTop: 0, borderTop: 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+    <section id="admin-ticket-orders" className="admin-orders-block">
+      <div className="admin-orders-block__toolbar">
+        <div className="admin-orders-block__toolbar-filters">
           <AdminFilterBar
             className="admin-filters--external"
             compact
@@ -140,17 +140,10 @@ export default function TicketOrdersSection({
             onQueryChange={setQuery}
           />
         </div>
-        <div className="admin-orders-block__actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span className="admin-orders-block__amount">
+        <div className="admin-orders-block__actions">
+          <span className="admin-orders-block__amount admin-orders-block__amount--hero">
             {withProofCount} {t('admin.ticketOrders.statsWithProof')}
           </span>
-          <button
-            type="button"
-            className="btn btn--secondary btn--small"
-            onClick={() => void onRefresh?.()}
-          >
-            {t('common.retry')}
-          </button>
         </div>
       </div>
 

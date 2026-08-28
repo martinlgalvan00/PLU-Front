@@ -991,3 +991,135 @@ describe('Tarifas — plazo del financiamiento', () => {
     expect(screen.queryByText(/Pago delegable/)).toBeNull()
   })
 })
+
+describe('Tarifas — precio de inscripción por torneo', () => {
+  const eventoConPrecio = {
+    id: 'event-1',
+    slug: 'pitbull-classic',
+    title: 'Pitbull Classic',
+    startsAt: '2026-11-07T12:00:00.000Z',
+    registrationPrice: 45000,
+    registrationManualPrice: 42000,
+    scheduledPrice: null,
+    scheduledManualPrice: null,
+    priceEffectiveAt: null,
+    currency: 'ARS',
+    status: 'inscripcion_abierta',
+    comboOffer: null,
+  }
+
+  it('cambia el precio en el momento: precio, precio manual y sin fecha', async () => {
+    const onSetEventRegistrationPrice = vi.fn(async () => ({ event: {} }))
+    renderPricing({
+      onSetEventRegistrationPrice,
+      configuration: { ...configuration, events: [eventoConPrecio] },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar precio de Pitbull Classic' }))
+    const form = screen.getByRole('form', { name: 'Cambiar precio de Pitbull Classic' })
+    const inputs = within(form)
+    fireEvent.change(inputs.getByLabelText('Precio'), { target: { value: '52000' } })
+    fireEvent.change(inputs.getByLabelText('Precio por transferencia/efectivo'), {
+      target: { value: '50000' },
+    })
+    fireEvent.click(inputs.getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => expect(onSetEventRegistrationPrice).toHaveBeenCalledTimes(1))
+    expect(onSetEventRegistrationPrice).toHaveBeenCalledWith('pitbull-classic', {
+      price: 52000,
+      manualPrice: 50000,
+      effectiveAt: '',
+    })
+    expect(await screen.findByText('Configuración actualizada.')).toBeTruthy()
+  })
+
+  it('con fecha futura el cambio viaja programado', async () => {
+    const onSetEventRegistrationPrice = vi.fn(async () => ({ event: {} }))
+    renderPricing({
+      onSetEventRegistrationPrice,
+      configuration: { ...configuration, events: [eventoConPrecio] },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar precio de Pitbull Classic' }))
+    const form = screen.getByRole('form', { name: 'Cambiar precio de Pitbull Classic' })
+    fireEvent.change(within(form).getByLabelText('Precio'), { target: { value: '60000' } })
+    fireEvent.change(within(form).getByLabelText('Rige desde'), {
+      target: { value: '2026-09-01T00:00' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() =>
+      expect(onSetEventRegistrationPrice).toHaveBeenCalledWith('pitbull-classic', {
+        price: 60000,
+        manualPrice: 42000,
+        effectiveAt: '2026-09-01T00:00',
+      }),
+    )
+  })
+
+  it('un cambio pendiente se anuncia en la fila y se puede cancelar', async () => {
+    const onClearEventPriceSchedule = vi.fn(async () => ({ event: {} }))
+    renderPricing({
+      onClearEventPriceSchedule,
+      configuration: {
+        ...configuration,
+        events: [
+          {
+            ...eventoConPrecio,
+            scheduledPrice: 60000,
+            scheduledManualPrice: 58000,
+            priceEffectiveAt: '2026-09-01T03:00:00.000Z',
+          },
+        ],
+      },
+    })
+
+    // El estado se lee de la fila: badge de programado y el término completo.
+    expect(screen.getByText('Programado')).toBeTruthy()
+    expect(screen.getByText(/Desde .*: .*60\.000.*manual.*58\.000/)).toBeTruthy()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Cancelar el cambio de precio programado de Pitbull Classic',
+      }),
+    )
+    await waitFor(() => expect(onClearEventPriceSchedule).toHaveBeenCalledWith('pitbull-classic'))
+  })
+
+  it('un torneo finalizado no se tarifa', () => {
+    renderPricing({
+      configuration: {
+        ...configuration,
+        events: [{ ...eventoConPrecio, status: 'finalizado' }],
+      },
+    })
+    expect(screen.getByText('No hay torneos con inscripción para tarifar.')).toBeTruthy()
+  })
+
+  it('el cambio rápido de un plan publica una versión con las mismas condiciones', async () => {
+    const onCreatePlanVersion = vi.fn(async () => ({}))
+    renderPricing({ onCreatePlanVersion })
+
+    // Dos planes en el fixture: se apunta por aria-label a la versión activa.
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Cambiar precio de Afiliacion PLU anual' })[0],
+    )
+    const form = screen.getByRole('form', { name: 'Cambiar precio de Afiliacion PLU anual' })
+    fireEvent.change(within(form).getByLabelText('Precio'), { target: { value: '95000' } })
+    fireEvent.change(within(form).getByLabelText('Rige desde'), {
+      target: { value: '2026-09-01T00:00' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => expect(onCreatePlanVersion).toHaveBeenCalledTimes(1))
+    const payload = onCreatePlanVersion.mock.calls[0][0]
+    // Lo que cambia…
+    expect(payload.price).toBe(95000)
+    expect(payload.effectiveFrom).toBe('2026-09-01T00:00')
+    // …y lo que no puede cambiar: viaja igual desde la versión de origen.
+    expect(payload.sourcePlanId).toBe('plan-active')
+    expect(payload.familyCode).toBe('plu-annual')
+    expect(payload.billingFrequency).toBe('annual')
+    expect(payload.collectionMode).toBe('one_time')
+  })
+})

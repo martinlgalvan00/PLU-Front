@@ -148,6 +148,29 @@ export function auditEntryTone({ action, severity, metadata }) {
   return severity ?? auditActionTone(action)
 }
 
+/** Estados de fila que un operador espera ver con “Solo errores”. */
+const INCIDENT_STATUSES = new Set([
+  'failed',
+  'rejected',
+  'bounced',
+  'error',
+  'partial',
+  'cancelled',
+  'canceled',
+  'suppressed',
+])
+
+/**
+ * Recorte cliente del toggle “Solo errores”: danger/warning y estados fallidos.
+ * No usa el overview de salud (otra RPC); solo filas ya cargadas.
+ */
+export function isAuditIncidentEntry(entry) {
+  if (!entry) return false
+  if (entry.tone === 'danger' || entry.tone === 'warning') return true
+  const status = String(entry.status ?? '').toLowerCase()
+  return INCIDENT_STATUSES.has(status)
+}
+
 /**
  * `paymentAuditTrail.recordFailure` guarda `metadata.error` como objeto
  * ({message, code, stack, origin, cause}), no como string: la traza completa

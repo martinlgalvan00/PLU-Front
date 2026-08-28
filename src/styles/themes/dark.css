@@ -312,7 +312,7 @@
   --admin-modal-blur: 20px;
   --admin-modal-shadow: 0 32px 90px rgba(0, 0, 0, 0.6);
   --admin-modal-backdrop: color-mix(in srgb, var(--plu-cool-950) 72%, transparent);
-  --admin-modal-backdrop-blur: 6px;
+  --admin-modal-backdrop-blur: 14px;
   --admin-modal-ink: var(--plu-ink-inverse);
   --admin-modal-text-secondary: rgba(236, 236, 232, 0.78);
   --admin-modal-text-muted: rgba(236, 236, 232, 0.6);

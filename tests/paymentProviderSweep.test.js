@@ -124,4 +124,57 @@ describe('barrido de órdenes cerradas contra el proveedor', () => {
     const summary = await sweepClosedOrdersAgainstProvider({ repository: {}, mercadoPago: {} })
     expect(summary).toEqual({ checked: 0, recovered: 0, failures: [] })
   })
+
+  // La orden que reportó la organización no está cancelada: está `pendiente`.
+  // El barrido miraba sólo cancelado/rechazado, así que ese caso -- "pagó por
+  // Mercado Pago, figura pendiente y no da de alta" -- no tenía ningún camino de
+  // rescate hasta que el cron de dominio la cerrara.
+  it('barre también las pendientes con la ventana vencida', async () => {
+    const ordenPendiente = { ...ORDEN_CANCELADA, status: 'pendiente' }
+    const repository = {
+      listOrdersWithoutLocalPayment: vi.fn().mockResolvedValue([ordenPendiente.id]),
+      getOrder: vi.fn().mockResolvedValue(ordenPendiente),
+      applyPayment: vi.fn().mockResolvedValue({ order: { ...ordenPendiente, status: 'aprobado' } }),
+    }
+    const mercadoPago = {
+      searchPaymentsForOrder: vi.fn().mockResolvedValue([
+        {
+          id: '555',
+          external_reference: ordenPendiente.id,
+          status: 'approved',
+          status_detail: 'accredited',
+          transaction_amount: 120000,
+          currency_id: 'ARS',
+        },
+      ]),
+    }
+
+    const summary = await sweepClosedOrdersAgainstProvider({ repository, mercadoPago })
+
+    expect(repository.listOrdersWithoutLocalPayment).toHaveBeenCalled()
+    expect(summary).toMatchObject({ checked: 1, recovered: 1 })
+  })
+
+  // Un repositorio que todavía exponga el nombre viejo tiene que seguir
+  // funcionando: el barrido se degradaba a "desactivado" en silencio, que es la
+  // peor forma de romperse para una red de contención.
+  it('acepta el nombre anterior del listado', async () => {
+    const { repository, mercadoPago } = contexto({
+      providerPayments: [
+        {
+          id: '666',
+          external_reference: ORDEN_CANCELADA.id,
+          status: 'approved',
+          status_detail: 'accredited',
+          transaction_amount: 120000,
+          currency_id: 'ARS',
+        },
+      ],
+    })
+
+    const summary = await sweepClosedOrdersAgainstProvider({ repository, mercadoPago })
+
+    expect(repository.listClosedOrdersWithoutPayments).toHaveBeenCalled()
+    expect(summary).toMatchObject({ checked: 1, recovered: 1 })
+  })
 })

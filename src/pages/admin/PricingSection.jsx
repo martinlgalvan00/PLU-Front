@@ -318,6 +318,8 @@ export default function PricingSection({
   onRefresh,
   onSetPlanActive,
   onSetPlanRetirement,
+  onSetEventRegistrationPrice,
+  onClearEventPriceSchedule,
   onUpsertDiscountCode,
   onSetDiscountCodeState,
   onDeleteDiscountCode,
@@ -350,6 +352,17 @@ export default function PricingSection({
   const [pendingAction, setPendingAction] = useState('')
   const [retirementPlanId, setRetirementPlanId] = useState(null)
   const [retirementDraft, setRetirementDraft] = useState('')
+  // Cambio rápido de precio de un plan: mismo alta que "Nueva versión" pero
+  // sólo con lo que cambia — precio, precio manual y desde cuándo. El resto de
+  // las condiciones viaja igual desde la versión de origen.
+  const [quickPricePlanId, setQuickPricePlanId] = useState(null)
+  const [quickPriceDraft, setQuickPriceDraft] = useState(null)
+  // El precio de inscripción de un torneo, inline en su fila: precio, precio
+  // manual y desde cuándo. Vacío = rige desde ahora; con fecha futura queda
+  // programado y lo aplica el barrido del servidor.
+  const [eventPriceSlug, setEventPriceSlug] = useState(null)
+  const [eventPriceDraft, setEventPriceDraft] = useState(null)
+  const [eventPriceError, setEventPriceError] = useState({ slug: null, message: '' })
   const [codeDraft, setCodeDraft] = useState(null)
   // Si "Límite de canjes", ventana o descripción ya traen algo cargado, el
   // bloque nace abierto: nada de lo que el operador ya escribió puede quedar
@@ -519,6 +532,12 @@ export default function PricingSection({
       return new Date(right.createdAt ?? 0) - new Date(left.createdAt ?? 0)
     })
   }, [configuration.discountCodes, now])
+  // Los torneos que todavía cobran inscripción: uno finalizado no tiene precio
+  // que tarifar. El orden del servidor (por fecha del evento) se conserva.
+  const pricingEvents = useMemo(
+    () => (configuration.events ?? []).filter((event) => event.status !== 'finalizado'),
+    [configuration.events],
+  )
   // Búsqueda local sobre la lista: con lotes por invitado la sección puede
   // tener cientos de códigos y encontrar uno a ojo deja de ser razonable.
   // Filtra por código, descripción y torneo, sin distinguir mayúsculas.
@@ -692,8 +711,126 @@ export default function PricingSection({
   function openRetirementEditor(plan) {
     setNotice('')
     setPlanError('')
+    setQuickPricePlanId(null)
     setRetirementPlanId(plan.id)
     setRetirementDraft(toLocalDateTime(plan.retiredAt))
+  }
+
+  function openQuickPrice(plan) {
+    setNotice('')
+    setPlanError('')
+    setRetirementPlanId(null)
+    setQuickPricePlanId(plan.id)
+    setQuickPriceDraft({
+      price: String(plan.price ?? ''),
+      manualPrice: plan.manualPrice != null ? String(plan.manualPrice) : '',
+      effectiveFrom: '',
+    })
+  }
+
+  async function submitQuickPrice(event, plan) {
+    event.preventDefault()
+    setPlanError('')
+    const price = Number(quickPriceDraft.price)
+    const manualPrice =
+      quickPriceDraft.manualPrice === '' ? undefined : Number(quickPriceDraft.manualPrice)
+    if (!Number.isInteger(price) || price <= 0) {
+      setPlanError(t('admin.sections.pricing.loadError'))
+      return
+    }
+    if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
+      setPlanError(t('admin.sections.pricing.loadError'))
+      return
+    }
+    setPendingAction(`quick-price-${plan.id}`)
+    // El resto de las condiciones viaja desde la versión de origen: cambiar el
+    // precio no puede cambiar la modalidad, la vigencia ni los días de gracia.
+    const result = await onCreatePlanVersion?.({
+      sourcePlanId: plan.id,
+      familyCode: plan.familyCode,
+      name: plan.name,
+      description: plan.description ?? '',
+      price,
+      manualPrice,
+      currency: 'ARS',
+      billingFrequency: plan.billingFrequency,
+      collectionMode: plan.collectionMode,
+      intervalCount: plan.intervalCount,
+      graceDays: plan.graceDays,
+      effectiveFrom: quickPriceDraft.effectiveFrom,
+      retiresAt: '',
+    })
+    setPendingAction('')
+    if (result?.error) {
+      setPlanError(result.error)
+      return
+    }
+    setQuickPricePlanId(null)
+    setQuickPriceDraft(null)
+    setNotice(t('admin.sections.pricing.saved'))
+  }
+
+  function openEventPriceForm(pricingEvent) {
+    setNotice('')
+    setEventPriceError({ slug: null, message: '' })
+    setEventPriceSlug(pricingEvent.slug)
+    setEventPriceDraft({
+      price: String(pricingEvent.registrationPrice ?? ''),
+      manualPrice:
+        pricingEvent.registrationManualPrice != null
+          ? String(pricingEvent.registrationManualPrice)
+          : '',
+      effectiveAt: toLocalDateTime(pricingEvent.priceEffectiveAt),
+    })
+  }
+
+  async function submitEventPrice(event, pricingEvent) {
+    event.preventDefault()
+    setEventPriceError({ slug: null, message: '' })
+    const price = Number(eventPriceDraft.price)
+    const manualPrice =
+      eventPriceDraft.manualPrice === '' ? undefined : Number(eventPriceDraft.manualPrice)
+    if (!Number.isInteger(price) || price <= 0) {
+      setEventPriceError({
+        slug: pricingEvent.slug,
+        message: t('admin.sections.pricing.loadError'),
+      })
+      return
+    }
+    if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
+      setEventPriceError({
+        slug: pricingEvent.slug,
+        message: t('admin.sections.pricing.loadError'),
+      })
+      return
+    }
+    setPendingAction(`event-price-${pricingEvent.slug}`)
+    const result = await onSetEventRegistrationPrice?.(pricingEvent.slug, {
+      price,
+      manualPrice,
+      effectiveAt: eventPriceDraft.effectiveAt,
+    })
+    setPendingAction('')
+    if (result?.error) {
+      setEventPriceError({ slug: pricingEvent.slug, message: result.error })
+      return
+    }
+    setEventPriceSlug(null)
+    setEventPriceDraft(null)
+    setNotice(t('admin.sections.pricing.saved'))
+  }
+
+  async function clearEventPriceSchedule(pricingEvent) {
+    setNotice('')
+    setEventPriceError({ slug: null, message: '' })
+    setPendingAction(`event-price-clear-${pricingEvent.slug}`)
+    const result = await onClearEventPriceSchedule?.(pricingEvent.slug)
+    setPendingAction('')
+    if (result?.error) {
+      setEventPriceError({ slug: pricingEvent.slug, message: result.error })
+      return
+    }
+    setNotice(t('admin.sections.pricing.saved'))
   }
 
   async function submitRetirement(event, plan) {
@@ -1119,6 +1256,16 @@ export default function PricingSection({
                   <button
                     type="button"
                     className="admin-pricing__btn admin-pricing__btn--quiet"
+                    onClick={() => openQuickPrice(plan)}
+                    disabled={locked || pendingAction === `quick-price-${plan.id}`}
+                    aria-label={t('admin.sections.pricing.changePriceFor', { name: plan.name })}
+                  >
+                    <BadgeDollarSign size={14} aria-hidden />
+                    {t('admin.sections.pricing.changePrice')}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet"
                     onClick={() => openRetirementEditor(plan)}
                     disabled={locked}
                   >
@@ -1172,6 +1319,84 @@ export default function PricingSection({
                     </strong>
                   </label>
                 </div>
+
+                {quickPricePlanId === plan.id && quickPriceDraft ? (
+                  <form
+                    className="admin-pricing__retirement-form"
+                    onSubmit={(event) => submitQuickPrice(event, plan)}
+                    aria-label={t('admin.sections.pricing.changePriceFor', { name: plan.name })}
+                    noValidate
+                  >
+                    <label>
+                      <span>{t('admin.sections.pricing.price')}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000000"
+                        step="1"
+                        value={quickPriceDraft.price}
+                        onChange={(event) =>
+                          setQuickPriceDraft({ ...quickPriceDraft, price: event.target.value })
+                        }
+                        disabled={locked || pendingAction === `quick-price-${plan.id}`}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>{t('admin.sections.pricing.manualPrice')}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000000"
+                        step="1"
+                        placeholder={t('admin.sections.pricing.manualPricePlaceholder')}
+                        value={quickPriceDraft.manualPrice}
+                        onChange={(event) =>
+                          setQuickPriceDraft({
+                            ...quickPriceDraft,
+                            manualPrice: event.target.value,
+                          })
+                        }
+                        disabled={locked || pendingAction === `quick-price-${plan.id}`}
+                      />
+                    </label>
+                    <label>
+                      <span>{t('admin.sections.pricing.effectiveAt')}</span>
+                      <input
+                        type="datetime-local"
+                        value={quickPriceDraft.effectiveFrom}
+                        onChange={(event) =>
+                          setQuickPriceDraft({
+                            ...quickPriceDraft,
+                            effectiveFrom: event.target.value,
+                          })
+                        }
+                        disabled={locked || pendingAction === `quick-price-${plan.id}`}
+                      />
+                    </label>
+                    <div className="admin-pricing__retirement-actions">
+                      <button
+                        type="button"
+                        className="admin-pricing__btn admin-pricing__btn--ghost"
+                        onClick={() => setQuickPricePlanId(null)}
+                      >
+                        {t('admin.sections.pricing.cancel')}
+                      </button>
+                      <button
+                        type="submit"
+                        className="admin-pricing__btn admin-pricing__btn--primary"
+                        disabled={locked || pendingAction === `quick-price-${plan.id}`}
+                      >
+                        {pendingAction === `quick-price-${plan.id}`
+                          ? t('admin.sections.pricing.saving')
+                          : t('admin.sections.pricing.save')}
+                      </button>
+                    </div>
+                    <small className="admin-pricing__quick-price-hint">
+                      {t('admin.sections.pricing.quickPriceHint')}
+                    </small>
+                  </form>
+                ) : null}
 
                 {retirementPlanId === plan.id ? (
                   <form
@@ -1407,6 +1632,213 @@ export default function PricingSection({
           onConfirm={confirmDeletePlan}
         />
       ) : null}
+
+      <section className="admin-pricing__block" aria-labelledby="pricing-registrations-title">
+        <header className="admin-pricing__block-head">
+          <div>
+            <h2 id="pricing-registrations-title">
+              {t('admin.sections.pricing.registrationsTitle')}
+            </h2>
+            <p>{t('admin.sections.pricing.registrationsLead')}</p>
+          </div>
+        </header>
+
+        <div
+          className="admin-pricing__plan-list"
+          role="list"
+          aria-label={t('admin.sections.pricing.registrationsTitle')}
+        >
+          {pricingEvents.map((pricingEvent) => {
+            // El cambio pendiente decide el acento de la fila y sus términos:
+            // es la única condición que el operador tiene que poder auditar de
+            // un vistazo ("¿quedó programado o no?").
+            const hasSchedule = Boolean(pricingEvent.priceEffectiveAt)
+            const pendingKey = `event-price-${pricingEvent.slug}`
+            const dateLabel = pricingEvent.startsAt
+              ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(
+                  new Date(pricingEvent.startsAt),
+                )
+              : null
+            const scheduleLabel = hasSchedule
+              ? t(
+                  pricingEvent.scheduledManualPrice != null
+                    ? 'admin.sections.pricing.scheduledFromWithManual'
+                    : 'admin.sections.pricing.scheduledFrom',
+                  {
+                    date: new Intl.DateTimeFormat(locale, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    }).format(new Date(pricingEvent.priceEffectiveAt)),
+                    amount: money(pricingEvent.scheduledPrice, locale),
+                    manual:
+                      pricingEvent.scheduledManualPrice != null
+                        ? money(pricingEvent.scheduledManualPrice, locale)
+                        : undefined,
+                  },
+                )
+              : null
+
+            return (
+              <article
+                className={`admin-pricing__plan-row${hasSchedule ? ' admin-pricing__plan-row--scheduled' : ''}`}
+                key={pricingEvent.slug}
+                role="listitem"
+              >
+                <div className="admin-pricing__plan-main">
+                  <div className="admin-pricing__plan-title-row">
+                    <h3>{pricingEvent.title}</h3>
+                    {hasSchedule ? (
+                      <span className="admin-pricing__status admin-pricing__status--scheduled">
+                        {t('admin.sections.pricing.scheduled')}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="admin-pricing__plan-meta">
+                    {dateLabel ? (
+                      <span className="admin-pricing__plan-meta-date">
+                        <CalendarClock size={12} aria-hidden />
+                        {dateLabel}
+                      </span>
+                    ) : null}
+                    {pricingEvent.registrationManualPrice != null ? (
+                      <span>
+                        {t('admin.sections.pricing.manualPriceShort', {
+                          amount: money(pricingEvent.registrationManualPrice, locale),
+                        })}
+                      </span>
+                    ) : null}
+                    {scheduleLabel ? <span>{scheduleLabel}</span> : null}
+                  </p>
+                </div>
+
+                <strong className="admin-pricing__plan-amount">
+                  {money(pricingEvent.registrationPrice, locale)}
+                </strong>
+
+                <div className="admin-pricing__plan-actions">
+                  <button
+                    type="button"
+                    className="admin-pricing__btn admin-pricing__btn--quiet"
+                    onClick={() => openEventPriceForm(pricingEvent)}
+                    disabled={locked || pendingAction === pendingKey}
+                    aria-label={t('admin.sections.pricing.changePriceFor', {
+                      name: pricingEvent.title,
+                    })}
+                  >
+                    <BadgeDollarSign size={14} aria-hidden />
+                    {t('admin.sections.pricing.changePrice')}
+                  </button>
+                  {hasSchedule ? (
+                    <button
+                      type="button"
+                      className="admin-pricing__btn admin-pricing__btn--quiet"
+                      onClick={() => clearEventPriceSchedule(pricingEvent)}
+                      disabled={locked || pendingAction === `event-price-clear-${pricingEvent.slug}`}
+                      aria-label={t('admin.sections.pricing.cancelScheduledAria', {
+                        name: pricingEvent.title,
+                      })}
+                    >
+                      <CalendarOff size={14} aria-hidden />
+                      {t('admin.sections.pricing.cancelScheduled')}
+                    </button>
+                  ) : null}
+                </div>
+
+                {eventPriceSlug === pricingEvent.slug && eventPriceDraft ? (
+                  <form
+                    className="admin-pricing__retirement-form"
+                    onSubmit={(event) => submitEventPrice(event, pricingEvent)}
+                    aria-label={t('admin.sections.pricing.changePriceFor', {
+                      name: pricingEvent.title,
+                    })}
+                    noValidate
+                  >
+                    <label>
+                      <span>{t('admin.sections.pricing.price')}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000000"
+                        step="1"
+                        value={eventPriceDraft.price}
+                        onChange={(event) =>
+                          setEventPriceDraft({ ...eventPriceDraft, price: event.target.value })
+                        }
+                        disabled={locked || pendingAction === pendingKey}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>{t('admin.sections.pricing.manualPrice')}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000000"
+                        step="1"
+                        placeholder={t('admin.sections.pricing.manualPricePlaceholder')}
+                        value={eventPriceDraft.manualPrice}
+                        onChange={(event) =>
+                          setEventPriceDraft({
+                            ...eventPriceDraft,
+                            manualPrice: event.target.value,
+                          })
+                        }
+                        disabled={locked || pendingAction === pendingKey}
+                      />
+                    </label>
+                    <label>
+                      <span>{t('admin.sections.pricing.effectiveAt')}</span>
+                      <input
+                        type="datetime-local"
+                        value={eventPriceDraft.effectiveAt}
+                        onChange={(event) =>
+                          setEventPriceDraft({
+                            ...eventPriceDraft,
+                            effectiveAt: event.target.value,
+                          })
+                        }
+                        disabled={locked || pendingAction === pendingKey}
+                      />
+                    </label>
+                    <div className="admin-pricing__retirement-actions">
+                      <button
+                        type="button"
+                        className="admin-pricing__btn admin-pricing__btn--ghost"
+                        onClick={() => setEventPriceSlug(null)}
+                      >
+                        {t('admin.sections.pricing.cancel')}
+                      </button>
+                      <button
+                        type="submit"
+                        className="admin-pricing__btn admin-pricing__btn--primary"
+                        disabled={locked || pendingAction === pendingKey}
+                      >
+                        {pendingAction === pendingKey
+                          ? t('admin.sections.pricing.saving')
+                          : t('admin.sections.pricing.save')}
+                      </button>
+                    </div>
+                    <small className="admin-pricing__quick-price-hint">
+                      {t('admin.sections.pricing.effectiveAtHint')}
+                    </small>
+                  </form>
+                ) : null}
+
+                {eventPriceError.slug === pricingEvent.slug && eventPriceError.message ? (
+                  <p className="admin-pricing__form-error" role="alert">
+                    {eventPriceError.message}
+                  </p>
+                ) : null}
+              </article>
+            )
+          })}
+          {!isLoading && pricingEvents.length === 0 ? (
+            <p className="admin-pricing__empty">
+              {t('admin.sections.pricing.registrationsEmpty')}
+            </p>
+          ) : null}
+        </div>
+      </section>
 
       <section className="admin-pricing__block" aria-labelledby="pricing-codes-title">
         <header className="admin-pricing__block-head">

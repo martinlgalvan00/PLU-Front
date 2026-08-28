@@ -13,6 +13,12 @@
 .help-dock {
   /* `--sticky-cta-clearance` lo publica StickyMobileCta mientras su barra está
      visible en la portada: sin esto el botón quedaba pisado por el CTA fijo. */
+  --help-dock-glass-bg: color-mix(in srgb, #0c0f14 64%, transparent);
+  --help-dock-glass-bg-hover: color-mix(in srgb, #12161e 72%, transparent);
+  --help-dock-glass-border: color-mix(in srgb, #ffffff 15%, transparent);
+  --help-dock-glass-highlight: color-mix(in srgb, #ffffff 11%, transparent);
+  --help-dock-glass-shadow: 0 16px 40px color-mix(in srgb, #000 34%, transparent);
+  --help-dock-ink: #f4f6f9;
   bottom: calc(var(--space-lg) + var(--sticky-cta-clearance, 0px));
   position: fixed;
   right: var(--space-lg);
@@ -22,30 +28,90 @@
 .help-dock__button {
   align-items: center;
   animation: help-dock-in var(--motion-slow) var(--ease-standard) both;
-  background: var(--color-bg-elevated);
-  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 34%, transparent);
+  backdrop-filter: blur(16px) saturate(145%);
+  -webkit-backdrop-filter: blur(16px) saturate(145%);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #ffffff 7%, transparent) 0%,
+      transparent 38%
+    ),
+    var(--help-dock-glass-bg);
+  border: 1px solid var(--help-dock-glass-border);
   border-radius: var(--border-radius-pill);
-  box-shadow: var(--elevation-md);
-  color: var(--color-text-primary);
+  box-shadow:
+    inset 0 1px 0 var(--help-dock-glass-highlight),
+    var(--help-dock-glass-shadow);
+  color: var(--help-dock-ink);
   cursor: pointer;
   display: inline-flex;
-  font-family: var(--font-family);
-  font-size: 13.5px;
-  font-weight: 600;
-  gap: 9px;
-  letter-spacing: 0.01em;
-  min-height: 48px;
-  padding: 0 18px;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 500;
+  gap: 8px;
+  isolation: isolate;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  overflow: hidden;
+  padding: 0 16px 0 14px;
   position: relative;
   transition:
     background var(--transition-fast),
     border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
     transform var(--transition-fast);
 }
 
+/* Brillo superior — cristal, no glow decorativo */
+.help-dock__button::before {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #ffffff 14%, transparent) 0%,
+    transparent 72%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.help-dock__icon,
+.help-dock__label {
+  position: relative;
+  z-index: 1;
+}
+
+.help-dock__button.has-pending:not(.is-open) {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 46%, var(--help-dock-glass-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-brand-gold) 28%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-brand-gold) 14%, transparent),
+    var(--help-dock-glass-shadow);
+}
+
 .help-dock__button:hover {
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 62%, transparent);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, #ffffff 9%, transparent) 0%,
+      transparent 40%
+    ),
+    var(--help-dock-glass-bg-hover);
+  border-color: color-mix(in srgb, #ffffff 22%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent),
+    0 18px 44px color-mix(in srgb, #000 38%, transparent);
   transform: translateY(-1px);
+}
+
+.help-dock__button.has-pending:not(.is-open):hover {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 56%, var(--help-dock-glass-border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--color-brand-gold) 34%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-brand-gold) 18%, transparent),
+    0 18px 44px color-mix(in srgb, #000 38%, transparent);
 }
 
 .help-dock__button:focus-visible {
@@ -54,25 +120,35 @@
 }
 
 .help-dock__button.is-open {
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 62%, transparent);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-brand-celeste) 12%, transparent) 0%,
+      transparent 42%
+    ),
+    var(--help-dock-glass-bg-hover);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 34%, var(--help-dock-glass-border));
+}
+
+.help-dock__icon {
+  color: color-mix(in srgb, var(--color-brand-celeste) 90%, #ffffff);
+  flex: none;
+  opacity: 0.96;
 }
 
 .help-dock__label {
   line-height: 1;
 }
 
-/* Indicador de "te falta un paso", no un contador de notificaciones: por eso
-   es un punto y no un número, y el motivo va escrito en el nombre accesible
-   del botón para no depender del color. */
-.help-dock__dot {
-  background: var(--color-brand-gold);
-  border: 2px solid var(--color-bg-elevated);
-  border-radius: 999px;
-  height: 11px;
-  position: absolute;
-  right: 10px;
-  top: 8px;
-  width: 11px;
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .help-dock__button {
+    background: #101318;
+  }
+
+  .help-dock__button:hover,
+  .help-dock__button.is-open {
+    background: #161b22;
+  }
 }
 
 @keyframes help-dock-in {
@@ -102,7 +178,7 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-lg);
   /* Nace desde el botón: alto del botón (48px) más aire. */
-  bottom: calc(var(--space-lg) + 48px + var(--space-sm) + var(--sticky-cta-clearance, 0px));
+  bottom: calc(var(--space-lg) + 44px + var(--space-sm) + var(--sticky-cta-clearance, 0px));
   box-shadow: var(--elevation-lg);
   display: grid;
   gap: var(--space-md);
@@ -472,22 +548,15 @@
 
 /* ── Tema claro ──────────────────────────────── */
 
-[data-theme='light'] .help-dock__button {
-  /* Grafito sobre el canvas cálido: se lee como un objeto puesto a propósito y
-     no compite con el oro, que es el color de acción de la página. */
-  background: #14181f;
-  border-color: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+[data-theme='light'] .help-dock {
+  --help-dock-glass-bg: color-mix(in srgb, #0e1117 74%, transparent);
+  --help-dock-glass-bg-hover: color-mix(in srgb, #141922 80%, transparent);
+  --help-dock-glass-border: color-mix(in srgb, #ffffff 18%, transparent);
+  --help-dock-glass-shadow: 0 16px 40px color-mix(in srgb, #000 26%, transparent);
 }
 
-[data-theme='light'] .help-dock__button:hover,
-[data-theme='light'] .help-dock__button.is-open {
-  background: #1d232d;
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
-}
-
-[data-theme='light'] .help-dock__dot {
-  border-color: #14181f;
+[data-theme='light'] .help-dock__icon {
+  color: color-mix(in srgb, var(--color-brand-celeste) 88%, #ffffff);
 }
 
 [data-theme='light'] .help-panel__scrim {

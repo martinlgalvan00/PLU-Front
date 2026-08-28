@@ -137,12 +137,20 @@ const webhookSchema = z
     // algunas notificaciones llegan con el body vacío o sin `data`. Exigirlo
     // acá rechazaba la request antes de que `processPaymentWebhook` pudiera
     // registrar el rechazo en la auditoría (ver su validación de `data.id`).
+    // El `topic` del formato IPN también puede venir en el body además de la
+    // query; `processPaymentWebhook` lo lee de las dos partes.
+    topic: z.string().optional(),
     data: z
       .object({ id: z.union([z.string(), z.number()]).optional() })
       .passthrough()
       .optional(),
   })
   .passthrough()
+  // Una IPN puede llegar con el cuerpo vacío o con un content-type que
+  // `express.json` no parsea: ahí `req.body` es `undefined` y el schema
+  // rebotaba con 400 antes de que nadie mirara la query, que es donde esa
+  // notificación trae todo lo que importa (`?topic=payment&id=…`).
+  .default({})
 
 const subscriptionsQuerySchema = z.object({
   status: z.enum(['pending', 'authorized', 'paused', 'past_due', 'cancelled', 'ended']).optional(),
@@ -845,7 +853,13 @@ export function createPaymentRoutes(deps = {}) {
           deferProcessing: PAYMENT_WEBHOOK_DEFER_PROCESSING,
         },
       )
-      res.status(200).json({ received: true, duplicate: result.duplicate })
+      res.status(200).json({
+        received: true,
+        duplicate: Boolean(result.duplicate),
+        // Descarte deliberado (p.ej. merchant_order): se confirma con 200 para
+        // que MP no lo reintente, y se dice que se ignoro para el diagnostico.
+        ...(result.ignored ? { ignored: true } : {}),
+      })
     } catch (error) {
       next(error)
     }

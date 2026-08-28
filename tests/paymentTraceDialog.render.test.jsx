@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -67,6 +67,35 @@ const REPORT = {
   ],
 }
 
+const CLOSED_REPORT = {
+  verdict: {
+    state: 'closed',
+    summary: 'La orden vencio automaticamente sin un pago iniciado.',
+    action:
+      'No acreditar manualmente. Generar una orden nueva; si la persona informa un debito, revalidar primero contra Mercado Pago.',
+  },
+  stageReached: 'checkout_opened',
+  cancellation: {
+    code: 'expired_without_payment',
+    expiresAt: '2026-08-24T21:48:46.000Z',
+    cancelledAt: '2026-08-24T21:51:00.000Z',
+    checkoutOpenedAt: '2026-08-24T21:18:47.000Z',
+    paymentEvidence: false,
+    providerPaymentStarted: false,
+  },
+  timeline: [
+    {
+      at: '2026-08-24T21:18:47.000Z',
+      source: 'orden',
+      event: 'checkout.opened',
+      status: 'pendiente',
+      severity: 'info',
+      sincePrevious: null,
+      failure: null,
+    },
+  ],
+}
+
 describe('PaymentTraceDialog', () => {
   it('no renderiza nada sin orderId', () => {
     const { container } = renderWithI18n(<PaymentTraceDialog orderId={null} onClose={() => {}} />)
@@ -101,7 +130,11 @@ describe('PaymentTraceDialog', () => {
     renderWithI18n(<PaymentTraceDialog orderId="order-1" onClose={() => {}} />)
 
     expect(await screen.findByText('El cobro se cortó por una falla.')).toBeTruthy()
+    expect(screen.getByText('Bloqueado')).toBeTruthy()
+    expect(screen.getByText('Qué hacer')).toBeTruthy()
     expect(screen.getByText('Reintentar la conciliación desde Panel > Pagos.')).toBeTruthy()
+    expect(screen.getByText(/Enviado a Mercado Pago/)).toBeTruthy()
+    expect(screen.getByText('Recorrido')).toBeTruthy()
     expect(screen.getByText('El monto no coincide con la preferencia.')).toBeTruthy()
     expect(screen.getByText('El monto enviado no coincide con la preferencia')).toBeTruthy()
 
@@ -110,6 +143,28 @@ describe('PaymentTraceDialog', () => {
     const stackToggle = screen.getByText('Stack completo')
     expect(stackToggle.closest('details')).toBeTruthy()
     expect(stackToggle.closest('details').textContent).toContain('createPayment (mercadoPagoAdapter.js:128:11)')
+  })
+
+  it('en vencimiento automático muestra acción una sola vez y hechos compactos', async () => {
+    getPaymentOrderAudit.mockResolvedValue(CLOSED_REPORT)
+
+    renderWithI18n(<PaymentTraceDialog orderId="order-expired" onClose={() => {}} />)
+
+    expect(await screen.findByText('Cerrada')).toBeTruthy()
+    expect(screen.getByText('La orden vencio automaticamente sin un pago iniciado.')).toBeTruthy()
+
+    const actionHeading = screen.getByText('Qué hacer')
+    const actionBlock = actionHeading.closest('.payment-trace__action')
+    expect(actionBlock).toBeTruthy()
+    expect(within(actionBlock).getByText(/No acreditar manualmente/)).toBeTruthy()
+
+    // La instrucción no se repite en el bloque de hechos.
+    expect(screen.getAllByText(/No acreditar manualmente/).length).toBe(1)
+    expect(screen.queryByText('Vencimiento automático sin pago')).toBeNull()
+
+    expect(screen.getByText('Detalle del vencimiento')).toBeTruthy()
+    expect(screen.getByText('No se registró intento ni cobro.')).toBeTruthy()
+    expect(screen.getAllByText('Checkout abierto').length).toBeGreaterThanOrEqual(1)
   })
 
   it('copia el reporte completo como JSON', async () => {

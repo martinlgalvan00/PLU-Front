@@ -113,45 +113,36 @@
   max-width: min(92vw, 520px);
 }
 
-/* ---- Toast de cierre de sesión ----
-   Pieza compacta editorial: filete dorado, despedida tipográfica y una
-   acción de reingreso. Contador y cerrar viven juntos en la esquina, fuera
-   de la lectura. El dorado aparece una sola vez. */
+/* ---- Toast de sesión ----
+   Franja compacta de una fila: avatar chico, copy, CTA textual y cierre.
+   Filete dorado = cuenta regresiva. Sin foot ni hint redundante.
+   Centrado arriba en todos los viewports. */
 .session-notice {
   align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
 }
 
 .session-notice__card {
-  /* Filete dorado suavizado y estirado para mayor elegancia */
   --session-notice-rule: linear-gradient(
     90deg,
     transparent,
-    color-mix(in oklab, var(--color-brand-gold) 60%, transparent) 15%,
+    color-mix(in oklab, var(--color-brand-gold) 55%, transparent) 12%,
     var(--color-brand-gold) 50%,
-    color-mix(in oklab, var(--color-brand-gold) 60%, transparent) 85%,
+    color-mix(in oklab, var(--color-brand-gold) 55%, transparent) 88%,
     transparent
   );
 
-  /* Superficie tipo glassmorphism muy sutil, propia de interfaces high-end */
-  background: color-mix(
-    in oklab,
-    var(--color-bg-elevated, var(--color-bg-surface)) 85%,
-    transparent
-  );
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
-  border-radius: 16px;
-  box-shadow:
-    0 24px 48px -12px rgba(0, 0, 0, 0.6),
-    0 4px 16px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 var(--theme-surface-highlight);
-  max-width: min(92vw, 440px);
+  background: var(--color-bg-elevated, var(--color-bg-surface));
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-radius: 10px;
+  box-shadow: var(--elevation-md);
+  max-width: min(92vw, 380px);
   overflow: hidden;
-  padding: 20px 24px;
+  padding: 10px 10px 10px 12px;
   pointer-events: auto;
   position: relative;
+  width: min(92vw, 380px);
 }
 
 .session-notice__card::before {
@@ -162,9 +153,8 @@
   position: absolute;
 }
 
-/* El filete duplicado es la cuenta regresiva del auto-cierre: retrocede al
-   ritmo de DISMISS_MS y se congela cuando el cursor o el foco entran, igual
-   que el timer de JS. Solo existe si hay motion habilitado. */
+/* Filete de cuenta regresiva: retrocede con DISMISS_MS y se congela en
+   hover/foco, igual que el timer de JS. Solo con motion habilitado. */
 .session-notice__timer {
   background: var(--session-notice-rule);
   display: none;
@@ -174,126 +164,76 @@
   transform-origin: left center;
 }
 
-.session-notice__corner {
+.session-notice__body {
   align-items: center;
   display: flex;
-  gap: 4px;
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  z-index: 1;
-}
-
-.session-notice__countdown {
-  color: var(--color-text-secondary);
-  display: inline-flex;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  justify-content: center;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  min-width: 1.4ch;
-  opacity: 0.6;
-  text-align: center;
-}
-
-.session-notice__countdown-digit {
-  display: inline-block;
-}
-
-/* Fila principal: iniciales de la persona + eyebrow/título. */
-.session-notice__body {
-  align-items: center; /* Alineación centrada para equilibrio visual */
-  display: flex;
-  gap: 16px;
-  padding-right: 44px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .session-notice__avatar {
   align-items: center;
-  background: linear-gradient(
-    135deg,
-    color-mix(in oklab, var(--color-text-primary) 12%, transparent),
-    color-mix(in oklab, var(--color-text-primary) 4%, transparent)
-  );
+  background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
   border-radius: 50%;
   color: var(--color-text-primary);
   display: inline-flex;
   flex: none;
   font-family: var(--font-display, var(--font-family));
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
-  height: 42px;
+  height: 28px;
   justify-content: center;
   letter-spacing: 0.02em;
-  width: 42px;
+  width: 28px;
 }
 
 .session-notice__copy {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .session-notice__eyebrow {
   color: var(--color-brand-gold);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .session-notice__title {
   color: var(--color-text-primary);
-  font-family: var(--font-display, var(--font-family));
-  font-size: 18px;
-  font-weight: 500; /* 500 en display se ve más premium que 600 */
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  margin-top: 6px;
-  text-wrap: balance;
-}
-
-.session-notice__foot {
-  align-items: center;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 12px 16px;
-  justify-content: space-between;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
-}
-
-.session-notice__meta {
-  color: var(--color-text-secondary);
-  flex: 1 1 auto;
+  font-family: var(--font-family);
   font-size: 13px;
-  line-height: 1.4;
-  min-width: 0;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .session-notice__login {
   align-items: center;
-  background: color-mix(in oklab, var(--color-text-primary) 4%, transparent);
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  border-radius: var(--border-radius-pill, 999px);
-  color: var(--color-text-primary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-brand-celeste);
   cursor: pointer;
   display: inline-flex;
   flex: none;
   font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 4px;
   letter-spacing: 0.01em;
-  margin-left: auto;
-  min-height: 32px;
-  padding: 0 16px;
+  min-height: 28px;
+  padding: 0 6px;
   transition:
+    color var(--motion-fast, 160ms) var(--ease-standard, ease),
     background-color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
     transform var(--motion-fast, 160ms) var(--ease-spring);
   white-space: nowrap;
 }
@@ -303,16 +243,46 @@
 }
 
 .session-notice__login svg {
-  transition: transform 180ms var(--ease-standard, ease);
+  transition: transform var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .session-notice__login:hover {
-  background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  border-color: color-mix(in oklab, var(--color-text-primary) 15%, transparent);
+  background: color-mix(in oklab, var(--color-brand-celeste) 10%, transparent);
 }
 
 .session-notice__login:hover svg {
   transform: translateX(2px);
+}
+
+.session-notice__corner {
+  align-items: center;
+  border-inline-start: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin-inline-start: 2px;
+  padding-inline-start: 8px;
+}
+
+.session-notice__countdown {
+  align-items: center;
+  background: color-mix(in oklab, var(--color-text-primary) 6%, transparent);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  height: 26px;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  min-width: 26px;
+  text-align: center;
+}
+
+.session-notice__countdown-digit {
+  display: inline-block;
 }
 
 .session-notice__login:focus-visible,
@@ -325,19 +295,19 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   color: color-mix(in oklab, var(--color-text-secondary) 72%, transparent);
   cursor: pointer;
   display: inline-flex;
   flex: none;
-  height: 24px;
+  height: 26px;
   justify-content: center;
   position: relative;
   transition:
     background-color var(--motion-fast, 160ms) var(--ease-standard, ease),
     color var(--motion-fast, 160ms) var(--ease-standard, ease),
     transform var(--motion-fast, 160ms) var(--ease-spring);
-  width: 24px;
+  width: 26px;
 }
 
 .session-notice__close:active {
@@ -349,24 +319,22 @@
   color: var(--color-text-primary);
 }
 
-/* El cerrar se ve de 24px pero se toca en 44: el área crece por fuera del
-   dibujo para no engordar la esquina de la card. */
+/* Cerrar visual 28px; hit area ~44px sin engordar el toast. */
 .session-notice__close::after {
   content: '';
-  inset: -10px;
+  inset: -8px;
   position: absolute;
 }
 
 @media (pointer: coarse) {
   .session-notice__login {
-    min-height: 44px;
+    min-height: 36px;
+    padding: 0 8px;
   }
 }
 
 [data-theme='light'] .session-notice__card {
-  box-shadow:
-    0 14px 28px -18px rgba(15, 17, 21, 0.24),
-    0 1px 4px rgba(15, 17, 21, 0.06);
+  box-shadow: var(--elevation-sm);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -380,7 +348,6 @@
     animation: session-notice-out var(--motion-base, 240ms) var(--ease-standard, ease) both;
   }
 
-  /* Con cuenta regresiva visible, el filete de base pasa a ser el riel. */
   .session-notice__card::before {
     opacity: 0.24;
   }
@@ -409,21 +376,18 @@
 @keyframes session-notice-in {
   0% {
     opacity: 0;
-    transform: translateY(-12px) scale(0.985);
-    filter: blur(var(--motion-blur-sm, 2px));
+    transform: translateY(-10px) scale(0.98);
   }
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    filter: blur(0);
   }
 }
 
 @keyframes session-notice-out {
   to {
     opacity: 0;
-    transform: translateY(-8px) scale(0.99);
-    filter: blur(var(--motion-blur-sm, 2px));
+    transform: translateY(-6px) scale(0.99);
   }
 }
 
@@ -439,11 +403,11 @@
 
 @keyframes session-notice-countdown-fade {
   from {
-    opacity: 0.75;
+    color: var(--color-text-secondary);
   }
 
   to {
-    opacity: 0.2;
+    color: color-mix(in oklab, var(--color-text-secondary) 28%, transparent);
   }
 }
 
@@ -460,16 +424,21 @@
 }
 
 @media (max-width: 480px) {
-  .session-notice__foot {
-    align-items: stretch;
-    flex-direction: column;
-    flex-wrap: wrap;
-    gap: 10px;
+  .session-notice {
+    padding: var(--space-3, 12px);
+  }
+
+  .session-notice__card {
+    max-width: min(100%, 380px);
+    width: 100%;
   }
 
   .session-notice__login {
-    justify-content: center;
-    margin-left: 0;
+    padding: 0 4px;
+  }
+
+  .session-notice__title {
+    white-space: normal;
   }
 }
 

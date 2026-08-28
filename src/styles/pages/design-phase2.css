@@ -3556,8 +3556,13 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   .auth-layout__visual {
     align-items: center;
     align-self: stretch;
-    background: var(--color-page-canvas);
-    border-right: 1px solid color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+    /* Tinta fija: la portada fotográfica es siempre oscura, independiente del tema */
+    --auth-visual-ink: #f3f5f8;
+    --auth-visual-ink-muted: color-mix(in srgb, var(--auth-visual-ink) 74%, transparent);
+    --auth-visual-ink-faint: color-mix(in srgb, var(--auth-visual-ink) 46%, transparent);
+    --auth-visual-gold: var(--plu-gold-400);
+    background: var(--plu-cool-950, #0a0c10);
+    border-right: 1px solid color-mix(in srgb, var(--auth-visual-ink) 8%, transparent);
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -3573,7 +3578,7 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   .auth-layout__visual-photo {
     inset: 0;
     object-fit: cover;
-    object-position: 42% 28%;
+    object-position: 38% 22%;
     pointer-events: none;
     position: absolute;
     z-index: 0;
@@ -3582,7 +3587,7 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     animation: auth-visual-photo var(--motion-slow) var(--ease-out) both;
   }
 
-  /* Scrim editorial: legibilidad sobre foto + un acento oro contenido */
+  /* Scrim editorial: siempre oscuro — el copy va en tinta clara */
   .auth-layout__visual-scrim {
     inset: 0;
     pointer-events: none;
@@ -3590,29 +3595,24 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     z-index: 0;
     background:
       linear-gradient(
-        105deg,
-        color-mix(in srgb, var(--color-page-canvas) 92%, transparent) 0%,
-        color-mix(in srgb, var(--color-page-canvas) 72%, transparent) 42%,
-        color-mix(in srgb, var(--color-page-canvas) 38%, transparent) 72%,
-        color-mix(in srgb, var(--color-page-canvas) 22%, transparent) 100%
+        98deg,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 92%, transparent) 0%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 78%, transparent) 38%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 42%, transparent) 66%,
+        transparent 100%
       ),
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--color-page-canvas) 55%, transparent) 0%,
-        transparent 28%,
-        transparent 58%,
-        color-mix(in srgb, var(--color-page-canvas) 78%, transparent) 100%
-      ),
-      radial-gradient(
-        ellipse 48% 36% at 28% 18%,
-        color-mix(in oklab, var(--plu-gold-500) 10%, transparent),
-        transparent 72%
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 55%, transparent) 0%,
+        transparent 30%,
+        transparent 70%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 78%, transparent) 100%
       );
   }
 
   .auth-layout__visual-content {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     text-align: left;
     display: flex;
     flex-direction: column;
@@ -3626,132 +3626,162 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     height: 100%;
   }
 
-  .auth-layout__emblem {
-    height: 36px;
-    width: auto;
-    filter: drop-shadow(0 6px 18px color-mix(in srgb, #000 30%, transparent));
-    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+  .auth-layout__editorial {
+    display: grid;
+    gap: clamp(12px, 2vh, 18px);
+    position: relative;
+    width: 100%;
   }
 
-  .auth-layout__slogan {
+  .auth-layout__kicker {
+    color: var(--auth-visual-ink-faint);
     font-family: var(--font-display);
-    font-size: clamp(2.35rem, 4.2vw, 3.4rem);
-    font-weight: 700;
-    letter-spacing: -0.042em;
-    line-height: 1;
-    text-transform: none;
-    color: var(--color-text-primary);
-    margin: clamp(20px, 3vh, 32px) 0 0;
-    max-width: 8ch;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    line-height: 1.4;
+    margin: 0;
+    max-width: 28ch;
+    text-transform: uppercase;
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
     animation-delay: 60ms;
   }
 
+  .auth-layout__emblem {
+    height: 30px;
+    width: auto;
+    filter: brightness(0) invert(1);
+    opacity: 0.94;
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 20ms;
+  }
+
+  .auth-layout__editorial .auth-layout__emblem {
+    margin: 0;
+  }
+
+  .auth-layout__slogan {
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 5vw, 4.1rem);
+    font-weight: 700;
+    letter-spacing: -0.048em;
+    line-height: 0.94;
+    text-transform: none;
+    color: var(--auth-visual-ink);
+    margin: clamp(4px, 0.8vh, 8px) 0 0;
+    max-width: 10ch;
+    animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    animation-delay: 100ms;
+  }
+
+  .auth-layout__visual-content > .auth-layout__slogan {
+    margin: clamp(20px, 3vh, 32px) 0 0;
+  }
+
   .auth-layout__slogan-line {
     display: block;
-    margin-top: 0.02em;
-    color: color-mix(in srgb, var(--plu-gold-500) 78%, var(--color-text-primary));
+    margin-top: 0.06em;
+    color: color-mix(in srgb, var(--auth-visual-gold) 88%, var(--auth-visual-ink));
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
-    animation-delay: 120ms;
+    animation-delay: 160ms;
   }
 
   .auth-layout__lead {
-    margin: clamp(14px, 2.2vh, 20px) 0 0;
+    margin: clamp(6px, 1vh, 10px) 0 0;
     max-width: 34ch;
     font-family: var(--font-display);
-    font-size: clamp(0.9375rem, 1.35vw, 1.0625rem);
+    font-size: clamp(0.9375rem, 1.25vw, 1.0625rem);
     font-weight: 400;
-    line-height: 1.55;
-    letter-spacing: -0.012em;
-    color: color-mix(in srgb, var(--color-text-muted) 88%, var(--color-text-primary));
+    line-height: 1.58;
+    letter-spacing: -0.01em;
+    color: var(--auth-visual-ink-muted);
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
-    animation-delay: 180ms;
+    animation-delay: 220ms;
   }
 
-  .auth-layout__rule {
-    display: block;
-    width: 28px;
-    height: 1.5px;
-    margin-top: clamp(18px, 2.8vh, 28px);
-    background: var(--plu-gold-500);
-    opacity: 0.9;
-    transform-origin: left center;
-    animation: auth-visual-rule var(--motion-slow) var(--ease-out) both;
-    animation-delay: 240ms;
+  .auth-layout__visual-content > .auth-layout__lead {
+    margin: clamp(14px, 2.2vh, 20px) 0 0;
   }
 
   .auth-layout__signals {
     list-style: none;
-    margin: clamp(16px, 2.4vh, 22px) 0 0;
+    margin: clamp(20px, 3.2vh, 28px) 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: clamp(8px, 1.2vh, 11px);
     width: 100%;
-    max-width: 30ch;
+    max-width: 34ch;
   }
 
-  .auth-layout__signals li {
-    margin: 0;
+  .auth-layout__visual-content > .auth-layout__signals {
+    margin: clamp(16px, 2.4vh, 22px) 0 0;
+  }
+
+  .auth-layout__signal {
+    align-items: baseline;
+    column-gap: 0.55rem;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    font-family: var(--font-display);
-    font-size: 13.5px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    line-height: 1.35;
-    color: color-mix(in srgb, var(--color-text-primary) 88%, transparent);
-    padding: 11px 0;
-    border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
     position: relative;
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
   }
 
-  .auth-layout__signals li:last-child {
-    border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
-  }
-
-  .auth-layout__signals li:nth-child(1) {
+  .auth-layout__signal:nth-child(1) {
     animation-delay: 300ms;
   }
 
-  .auth-layout__signals li:nth-child(2) {
-    animation-delay: 360ms;
+  .auth-layout__signal:nth-child(2) {
+    animation-delay: 350ms;
   }
 
-  .auth-layout__signals li:nth-child(3) {
-    animation-delay: 420ms;
+  .auth-layout__signal:nth-child(3) {
+    animation-delay: 400ms;
   }
 
-  /* Marca editorial: trazo oro corto, no bullet genérico */
-  .auth-layout__signals li::before {
-    content: '';
-    flex: 0 0 auto;
-    width: 14px;
-    height: 1.5px;
-    border-radius: 0;
-    background: var(--plu-gold-500);
-    opacity: 0.85;
-    position: static;
+  .auth-layout__signal-n {
+    color: color-mix(in srgb, var(--auth-visual-gold) 78%, var(--auth-visual-ink-faint));
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    line-height: 1;
+  }
+
+  .auth-layout__signal-sep {
+    color: var(--auth-visual-ink-faint);
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .auth-layout__signal-label {
+    color: color-mix(in srgb, var(--auth-visual-ink) 88%, transparent);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.008em;
+    line-height: 1.35;
   }
 
   .auth-layout__meta {
     margin-top: auto;
-    padding-top: clamp(24px, 4vh, 40px);
+    padding-top: clamp(28px, 4.5vh, 44px);
     font-family: var(--font-display);
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    line-height: 1.45;
-    color: color-mix(in srgb, var(--color-text-muted) 78%, transparent);
+    line-height: 1.5;
+    color: var(--auth-visual-ink-faint);
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
-    animation-delay: 480ms;
+    animation-delay: 460ms;
   }
 
   .auth-layout__statement,
-  .auth-layout__eyebrow {
+  .auth-layout__eyebrow,
+  .auth-layout__rule {
     display: none;
   }
 
@@ -3980,12 +4010,12 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
 @media (prefers-reduced-motion: reduce) {
   .auth-layout__visual-photo,
+  .auth-layout__kicker,
   .auth-layout__emblem,
   .auth-layout__slogan,
   .auth-layout__slogan-line,
   .auth-layout__lead,
-  .auth-layout__rule,
-  .auth-layout__signals li,
+  .auth-layout__signal,
   .auth-layout__meta,
   .auth-layout__content .auth-immersive-glass {
     animation: none;
@@ -4010,68 +4040,9 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   }
 }
 
-/* Light: la portada conserva su material oscuro en lugar de seguir al tema.
-   Con el lavado claro (canvas al 94%) la foto perdía todo el contraste y el
-   eslogan flotaba sobre una imagen desteñida. Se comporta como tapa impresa:
-   el panel fotográfico es siempre oscuro, el panel de formulario sí sigue el
-   tema. Así light y dark terminan con el mismo nivel de contraste. */
-[data-theme='light'] .auth-layout__visual-scrim {
-  background:
-    linear-gradient(
-      105deg,
-      color-mix(in srgb, var(--plu-cool-950) 88%, transparent) 0%,
-      color-mix(in srgb, var(--plu-cool-950) 66%, transparent) 44%,
-      color-mix(in srgb, var(--plu-cool-950) 32%, transparent) 74%,
-      color-mix(in srgb, var(--plu-cool-950) 18%, transparent) 100%
-    ),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--plu-cool-950) 52%, transparent) 0%,
-      transparent 30%,
-      transparent 56%,
-      color-mix(in srgb, var(--plu-cool-950) 74%, transparent) 100%
-    ),
-    radial-gradient(
-      ellipse 48% 36% at 28% 18%,
-      color-mix(in oklab, var(--plu-gold-500) 10%, transparent),
-      transparent 72%
-    );
-}
-
+/* Light: el panel fotográfico ya usa tinta clara fija; sólo ajustes de borde. */
 [data-theme='light'] .auth-layout__visual {
   border-right-color: color-mix(in srgb, var(--plu-cool-950) 14%, transparent);
-}
-
-/* El letterhead se pinta en negro en light (brightness(0)); sobre la portada
-   oscura tiene que volver a su versión clara. */
-[data-theme='light'] .auth-layout__emblem {
-  filter: drop-shadow(0 6px 18px color-mix(in srgb, #000 30%, transparent));
-  opacity: 1;
-}
-
-[data-theme='light'] .auth-layout__slogan {
-  color: var(--plu-ink-inverse);
-}
-
-[data-theme='light'] .auth-layout__slogan-line {
-  color: color-mix(in srgb, var(--plu-gold-400) 92%, var(--plu-ink-inverse));
-}
-
-[data-theme='light'] .auth-layout__lead {
-  color: color-mix(in srgb, var(--plu-ink-inverse) 82%, transparent);
-}
-
-[data-theme='light'] .auth-layout__signals li {
-  border-top-color: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
-  color: color-mix(in srgb, var(--plu-ink-inverse) 92%, transparent);
-}
-
-[data-theme='light'] .auth-layout__signals li:last-child {
-  border-bottom-color: color-mix(in srgb, var(--plu-ink-inverse) 16%, transparent);
-}
-
-[data-theme='light'] .auth-layout__meta {
-  color: color-mix(in srgb, var(--plu-ink-inverse) 62%, transparent);
 }
 
 /* =========================================================================

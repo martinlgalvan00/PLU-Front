@@ -75,6 +75,17 @@ describe('Atletas — barra de filtros (pills + popover)', () => {
     expect(within(filterBar).queryByText('Afiliado activo')).toBeNull()
   })
 
+  it('abre opciones de inscripción como menú vertical en el popover', () => {
+    const { filterBar } = renderAthletes()
+
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^Inscripción/ }))
+    const popover = filterBar.querySelector('.admin-filter-popover')
+    expect(popover).toBeTruthy()
+    expect(popover.querySelector('.admin-filter-group--menu')).toBeTruthy()
+    expect(popover.querySelector('.admin-filter-chips--menu')).toBeTruthy()
+    expect(within(popover).getByRole('button', { name: /^Todos/ })).toBeTruthy()
+  })
+
   it('elige un gimnasio desde el popover y lo refleja en el pill', () => {
     const { filterBar } = renderAthletes()
 

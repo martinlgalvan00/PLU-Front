@@ -14,12 +14,11 @@ const TICK_MS = 250
 const MIN_RESUME_MS = 800
 
 /**
- * Toast de cierre de sesión. El flag vive en sessionStorage para sobrevivir el
+ * Toast compacto de sesión. El flag vive en sessionStorage para sobrevivir el
  * cambio de layout privado → público; el evento cubre el logout sin remount.
  *
- * Composición editorial compacta: eyebrow dorado, despedida tipográfica y una
- * sola acción de reingreso. El filete superior y el número de esquina marcan
- * la cuenta regresiva; DISMISS_MS viaja a CSS como custom property.
+ * Una sola fila: iniciales, eyebrow + mensaje, acción opcional y cierre.
+ * El filete superior marca la cuenta regresiva; DISMISS_MS viaja a CSS.
  */
 export default function SessionNotice({ onNavigate }) {
   const { t } = useI18n()
@@ -157,6 +156,7 @@ export default function SessionNotice({ onNavigate }) {
   const title = notice.name
     ? t(isLogin ? 'nav.loginWelcomeNamed' : 'nav.logoutByeNamed', { name: notice.name })
     : t(isLogin ? 'nav.loginWelcome' : 'nav.logoutBye')
+  const showLogin = Boolean(onNavigate && !isLogin)
 
   return (
     <div
@@ -170,21 +170,6 @@ export default function SessionNotice({ onNavigate }) {
         style={{ '--session-notice-duration': `${DISMISS_MS}ms` }}
       >
         <span className="session-notice__timer" aria-hidden />
-        <div className="session-notice__corner">
-          <span className="session-notice__countdown" aria-hidden>
-            <span key={secondsLeft} className="session-notice__countdown-digit">
-              {secondsLeft}
-            </span>
-          </span>
-          <button
-            type="button"
-            className="session-notice__close"
-            aria-label={t('nav.logoutDismissAria')}
-            onClick={dismiss}
-          >
-            <X size={14} strokeWidth={1.75} aria-hidden />
-          </button>
-        </div>
         <div className="session-notice__body">
           {notice.name ? (
             <span className="session-notice__avatar" aria-hidden>
@@ -197,12 +182,7 @@ export default function SessionNotice({ onNavigate }) {
             </p>
             <p className="session-notice__title">{title}</p>
           </div>
-        </div>
-        <div className="session-notice__foot">
-          <span className="session-notice__meta">
-            {t(isLogin ? 'nav.loginHint' : 'nav.logoutHint')}
-          </span>
-          {onNavigate && !isLogin ? (
+          {showLogin ? (
             <button
               type="button"
               className="session-notice__login"
@@ -212,9 +192,24 @@ export default function SessionNotice({ onNavigate }) {
               }}
             >
               {t('nav.loginAgain')}
-              <ArrowRight size={13} strokeWidth={2} aria-hidden />
+              <ArrowRight size={12} strokeWidth={2} aria-hidden />
             </button>
           ) : null}
+          <div className="session-notice__corner">
+            <span className="session-notice__countdown" aria-hidden>
+              <span key={secondsLeft} className="session-notice__countdown-digit">
+                {secondsLeft}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="session-notice__close"
+              aria-label={t('nav.logoutDismissAria')}
+              onClick={dismiss}
+            >
+              <X size={14} strokeWidth={1.75} aria-hidden />
+            </button>
+          </div>
         </div>
       </div>
     </div>

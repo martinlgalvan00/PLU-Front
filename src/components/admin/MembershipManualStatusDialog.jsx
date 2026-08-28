@@ -191,11 +191,10 @@ export default function MembershipManualStatusDialog({
               value={reason}
               disabled={busy}
               maxLength={500}
-              rows={3}
+              rows={2}
               placeholder={t('admin.sections.memberships.manual.reasonPlaceholder')}
               onChange={(event) => setReason(event.target.value)}
             />
-            <small>{t('admin.sections.memberships.manual.reasonHint')}</small>
           </div>
 
           {/* Al activar: la orden de Mercado Pago no se toca -- activar a mano

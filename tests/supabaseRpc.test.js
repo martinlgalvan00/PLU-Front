@@ -20,6 +20,22 @@ describe('assertSupabaseResult', () => {
     expect(statusOf('PLU02')).toBe(404)
     expect(statusOf('PLU06')).toBe(409)
     expect(statusOf('42501')).toBe(403)
+    // Analítica: input inválido, no indisponibilidad.
+    expect(statusOf('PLU91')).toBe(400)
+    expect(statusOf('22023')).toBe(400)
+  })
+
+  it('rescata el PLU del mensaje cuando Postgres manda errcode generico', () => {
+    try {
+      assertSupabaseResult({
+        error: { code: 'P0001', message: 'PLU91 · lote de eventos vacio' },
+      })
+      throw new Error('deberia haber lanzado')
+    } catch (error) {
+      expect(error.status).toBe(400)
+      expect(error.details.code).toBe('PLU91')
+      expect(error.message).toContain('PLU91')
+    }
   })
 
   // Una migracion sin aplicar no es una caida: si sale como 503 el frontend le

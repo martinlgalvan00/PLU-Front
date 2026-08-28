@@ -11,10 +11,11 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { DateField, Field, Select } from '../../components/ui/FormFields.jsx'
+import { AutocompleteField, DateField, Field, Select } from '../../components/ui/FormFields.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
 import { getFormOptions } from '../../lib/formOptions.js'
+import { fetchGyms } from '../../services/athleteApi.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RING_RADIUS = 48
@@ -61,7 +62,12 @@ export default function PersonalDataSection({
       emergency: false,
     }
   })
+  const [gyms, setGyms] = useState([])
   const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    fetchGyms().then(setGyms).catch(console.error)
+  }, [])
 
   // Libera el object URL del preview anterior cada vez que cambia o al desmontar.
   useEffect(() => {
@@ -517,10 +523,11 @@ export default function PersonalDataSection({
             className="form-grid form-grid--account account-data-group__content"
             hidden={!openGroups.sports}
           >
-            <Field
+            <AutocompleteField
               label={`${t('account.personalData.gym')} *`}
               name="gym"
               value={form.gym}
+              options={gyms}
               onChange={changeField}
             />
             <Select

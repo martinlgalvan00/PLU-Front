@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { discountCodeSchema } from '../server/routes/pricing.js'
-import { ACCOUNT_TAB_IDS } from '../src/lib/navigation.js'
+import { isBundleOffer } from '../src/services/athleteApi.js'
 import { mapPricingConfiguration } from '../src/services/pricingAdminService.js'
 import { redeemPromotionCode } from '../src/services/promotionCodeService.js'
 
@@ -25,7 +25,14 @@ describe('ofertas exclusivas por código retiradas', () => {
         ],
       }).discountCodes.map((code) => code.code),
     ).toEqual(['AHORRO'])
-    expect(ACCOUNT_TAB_IDS).not.toContain('account-offer')
+    // La ficha de Mi cuenta volvió para el código-paquete (20260926100000),
+    // así que "no está el tab" dejó de ser la prueba. La prueba ahora es el
+    // filtro que la alimenta: una fila histórica `offer`/`access` no llega
+    // nunca a renderizarse, aunque el servidor la devuelva.
+    expect(isBundleOffer({ kind: 'offer', appliesTo: 'combo' })).toBe(false)
+    expect(isBundleOffer({ kind: 'access', appliesTo: 'combo' })).toBe(false)
+    expect(isBundleOffer({ kind: 'fixed_price', appliesTo: 'membership' })).toBe(false)
+    expect(isBundleOffer({ kind: 'fixed_price', appliesTo: 'combo' })).toBe(true)
   })
 
   it('bloquea la respuesta de un backend todavía no migrado antes de navegar', async () => {

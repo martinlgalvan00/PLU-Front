@@ -42,6 +42,43 @@ export function Field({
   )
 }
 
+export function AutocompleteField({ options = [], onBlur, onChange, ...props }) {
+  const listId = `${props.name}-autocomplete-list`
+
+  const handleBlur = (e) => {
+    const val = e.target.value.trim()
+    if (val && val.length >= 4 && onChange) {
+      const valNormalized = val.toLowerCase().replace(/[^a-z0-9]/g, '')
+      // Find all options that start with the normalized typed text
+      const matches = options.filter((opt) =>
+        opt.toLowerCase().replace(/[^a-z0-9]/g, '').startsWith(valNormalized)
+      )
+
+      // If there's exactly ONE match, it's safe to auto-complete
+      if (matches.length === 1 && matches[0] !== e.target.value) {
+        onChange({
+          target: { name: props.name, value: matches[0], type: 'text' },
+        })
+      }
+    }
+
+    if (onBlur) {
+      onBlur(e)
+    }
+  }
+
+  return (
+    <>
+      <Field {...props} onChange={onChange} onBlur={handleBlur} list={listId} />
+      <datalist id={listId}>
+        {options.map((opt) => (
+          <option key={opt} value={opt} />
+        ))}
+      </datalist>
+    </>
+  )
+}
+
 /**
  * Fecha con date picker nativo (YYYY-MM-DD).
  * El calendario del browser evita errores de parseo DD/MM vs MM/DD.

@@ -42,6 +42,12 @@ const PAYMENT_ORDER_LIST_COLUMNS = [
   'manual_payment_declared_at',
   'financed_entitlements_at',
   'financed_entitlements_revoked_at',
+  // El vencimiento del plazo (20260922100000). La bandeja ya pintaba la cuenta
+  // regresiva —`financingDueInfo(row.financedPaymentDueAt)` en
+  // AthletePaymentOrdersSection— pero la columna nunca viajaba, así que Finanzas
+  // veía "habilitado sin cobrar" sin la única fecha que dice cuánto falta para
+  // que el reloj (`expire_financed_payment_orders`) dé de baja lo habilitado.
+  'financed_payment_due_at',
   'discount_code',
   'discount_amount',
   'notes',
@@ -721,6 +727,55 @@ export function createSupabaseAthleteRepository(
         'No se pudo cambiar el estado de la inscripción.',
       )
     },
+    /**
+     * Observaciones sobre una inscripción o una afiliación.
+     *
+     * Existen aparte del cambio de estado porque son otra cosa: anotar "el pago
+     * llegó a nombre del padre" no debería costar una corrección de estado, que
+     * es lo que pasaba cuando el único lugar donde escribir era el motivo del
+     * diálogo. El motivo de un cambio de estado sigue entrando al mismo hilo
+     * (lo asienta la RPC), así que las dos formas de dejar algo escrito se leen
+     * juntas y en orden.
+     */
+    async addObservation(entityType, entityId, body, actor = null) {
+      return rpc(
+        'staff_add_observation',
+        {
+          p_entity_type: entityType,
+          p_entity_id: entityId,
+          p_body: body,
+          p_actor: actor,
+        },
+        'No se pudo guardar la observación.',
+      )
+    },
+    async deleteObservation(observationId, actor = null) {
+      return rpc(
+        'staff_delete_observation',
+        { p_observation_id: observationId, p_actor: actor },
+        'No se pudo borrar la observación.',
+      )
+    },
+    /**
+     * El hilo de un lote de entidades en una sola consulta: la lista del panel
+     * muestra hasta 200 filas y pedir el historial de cada una sería 200
+     * roundtrips contra una instancia que tiene 15 slots de pooler.
+     */
+    async listObservations(entityType, entityIds, { limitPerEntity = 50 } = {}) {
+      const ids = [...new Set((entityIds ?? []).filter(Boolean))]
+      if (!ids.length) return []
+      return (
+        (await rpc(
+          'list_domain_observations',
+          {
+            p_entity_type: entityType,
+            p_entity_ids: ids,
+            p_limit_per_entity: limitPerEntity,
+          },
+          'No se pudieron leer las observaciones.',
+        )) ?? []
+      )
+    },
     async rejectPayment(orderId, reason = null, actor = null) {
       const order = assertSupabaseResult(
         await client
@@ -835,6 +890,21 @@ export function createSupabaseAthleteRepository(
           p_athlete_id: athleteId,
         },
         'No se pudo registrar el aviso de pago.',
+      ),
+    /**
+     * La otra mitad del financiamiento: quedar habilitado sin declarar un pago
+     * que todavía no se hizo (20260926100000). No es un alias de la de arriba —
+     * no marca pago declarado ni manda la orden a validación— así que Finanzas
+     * no recibe nada que revisar hasta que la persona pague de verdad.
+     */
+    deferFinancedPayment: (athleteId, orderId) =>
+      rpc(
+        'athlete_defer_financed_payment',
+        {
+          p_order_id: orderId,
+          p_athlete_id: athleteId,
+        },
+        'No se pudo activar el pago diferido.',
       ),
     async paymentProofUrl(orderId) {
       const order = assertSupabaseResult(
@@ -1228,7 +1298,11 @@ export function createSupabaseAthleteRepository(
                 // /mi-cuenta -- que lee el snapshot completo -- sí explicaba el
                 // motivo al atleta. El operador que atiende el reclamo veía
                 // menos que la persona que lo hacía.
-                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at',
+                // `financed_payment_due_at` por el mismo motivo que en
+                // PAYMENT_ORDER_LIST_COLUMNS: el dashboard ordena las órdenes
+                // financiadas por vencimiento y sin la fecha todas le empataban
+                // en "sin plazo".
+                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at, financed_payment_due_at',
               )
               .eq('organization_id', organizationId)
               .order('created_at', { ascending: false })

@@ -24,6 +24,8 @@ const SEVERITY_ICON = {
   info: Info,
 }
 
+const VERDICT_STATES = new Set(['ok', 'critical', 'blocked', 'expected', 'closed', 'pending'])
+
 function formatWhen(value, locale) {
   if (!value) return '—'
   const date = new Date(value)
@@ -32,6 +34,18 @@ function formatWhen(value, locale) {
     dateStyle: 'short',
     timeStyle: 'medium',
   })
+}
+
+function stageLabel(stage, t) {
+  if (!stage) return null
+  const key = `admin.paymentTrace.stages.${stage}`
+  const label = t(key)
+  return label === key ? stage : label
+}
+
+function stateLabel(state, t) {
+  if (!state || !VERDICT_STATES.has(state)) return null
+  return t(`admin.paymentTrace.states.${state}`)
 }
 
 function TraceFailure({ failure, t }) {
@@ -138,18 +152,17 @@ function CancellationSummary({ cancellation, locale, t }) {
       className="payment-trace__cancellation"
       aria-labelledby="payment-trace-cancellation-title"
     >
-      <strong id="payment-trace-cancellation-title">
-        {t('admin.paymentTrace.cancellation.expiredWithoutPayment.title')}
-      </strong>
-      <p>
-        {t('admin.paymentTrace.cancellation.expiredWithoutPayment.summary', {
-          expiresAt: formatWhen(cancellation.expiresAt, locale),
-        })}
-      </p>
-      <dl>
+      <h3 id="payment-trace-cancellation-title" className="payment-trace__section-title">
+        {t('admin.paymentTrace.cancellation.detailTitle')}
+      </h3>
+      <dl className="payment-trace__facts">
         <div>
           <dt>{t('admin.paymentTrace.cancellation.checkoutOpened')}</dt>
           <dd>{formatWhen(cancellation.checkoutOpenedAt, locale)}</dd>
+        </div>
+        <div>
+          <dt>{t('admin.paymentTrace.cancellation.expiresAt')}</dt>
+          <dd>{formatWhen(cancellation.expiresAt, locale)}</dd>
         </div>
         <div>
           <dt>{t('admin.paymentTrace.cancellation.cancelledAt')}</dt>
@@ -164,9 +177,6 @@ function CancellationSummary({ cancellation, locale, t }) {
           </dd>
         </div>
       </dl>
-      <p className="payment-trace__cancellation-action">
-        {t('admin.paymentTrace.cancellation.expiredWithoutPayment.action')}
-      </p>
     </section>
   )
 }
@@ -174,6 +184,7 @@ function CancellationSummary({ cancellation, locale, t }) {
 export default function PaymentTraceDialog({ orderId, onClose }) {
   const { locale, t } = useI18n()
   const titleId = useId()
+  const timelineTitleId = useId()
   const panelRef = useRef(null)
   const closeRef = useRef(onClose)
   closeRef.current = onClose
@@ -240,6 +251,10 @@ export default function PaymentTraceDialog({ orderId, onClose }) {
 
   if (!orderId) return null
 
+  const verdictState = report?.verdict?.state
+  const reachedStage = stageLabel(report?.stageReached, t)
+  const statusLabel = stateLabel(verdictState, t)
+
   return createPortal(
     <div className="payment-validation-dialog payment-trace">
       <button
@@ -255,13 +270,14 @@ export default function PaymentTraceDialog({ orderId, onClose }) {
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <header className="payment-validation-dialog__head">
+        <header className="payment-validation-dialog__head payment-trace__head">
           <span className="payment-validation-dialog__eyebrow">
             {t('admin.paymentTrace.eyebrow')}
           </span>
           <h2 id={titleId}>{t('admin.paymentTrace.title')}</h2>
-          <p className="payment-validation-dialog__lead">
-            <code>{orderId}</code>
+          <p className="payment-trace__order-id">
+            <span className="payment-trace__order-id-label">{t('admin.paymentTrace.orderIdLabel')}</span>
+            <code title={orderId}>{orderId}</code>
           </p>
         </header>
 
@@ -275,44 +291,61 @@ export default function PaymentTraceDialog({ orderId, onClose }) {
         {report ? (
           <>
             <div
-              className={`payment-trace__verdict payment-trace__verdict--${report.verdict.state}`}
+              className={`payment-trace__verdict payment-trace__verdict--${verdictState ?? 'pending'}`}
               role="status"
             >
-              <strong>{report.verdict.summary}</strong>
-              {report.verdict.action ? <p>{report.verdict.action}</p> : null}
-              <span className="payment-trace__stage">
-                {t('admin.paymentTrace.stageReached')}: <code>{report.stageReached}</code>
-              </span>
+              {statusLabel ? (
+                <span className="payment-trace__state-chip">{statusLabel}</span>
+              ) : null}
+              <strong className="payment-trace__summary">{report.verdict.summary}</strong>
+              {reachedStage ? (
+                <p className="payment-trace__stage">
+                  {t('admin.paymentTrace.stageReached')}: {reachedStage}
+                </p>
+              ) : null}
             </div>
+
+            {report.verdict.action ? (
+              <div className="payment-trace__action" role="note">
+                <h3 className="payment-trace__section-title">{t('admin.paymentTrace.whatToDo')}</h3>
+                <p>{report.verdict.action}</p>
+              </div>
+            ) : null}
+
             <CancellationSummary cancellation={report.cancellation} locale={locale} t={t} />
 
-            <ol className="payment-trace__timeline">
-              {report.timeline.map((item, index) => {
-                const Icon = SEVERITY_ICON[item.severity] ?? Clock3
-                return (
-                  <li
-                    key={`${item.event}-${item.at}-${index}`}
-                    className={`payment-trace__step payment-trace__step--${item.severity}`}
-                  >
-                    <span className="payment-trace__step-icon" aria-hidden>
-                      <Icon size={14} strokeWidth={1.8} />
-                    </span>
-                    <div className="payment-trace__step-body">
-                      <p className="payment-trace__step-head">
-                        <code className="payment-trace__step-source">{item.source}</code>
-                        <strong>{item.event}</strong>
-                        {item.status ? <span>{item.status}</span> : null}
-                        {item.sincePrevious ? (
-                          <em className="payment-trace__step-gap">+{item.sincePrevious}</em>
-                        ) : null}
-                      </p>
-                      <p className="payment-trace__step-when">{formatWhen(item.at, locale)}</p>
-                      {item.failure ? <TraceFailure failure={item.failure} t={t} /> : null}
-                    </div>
-                  </li>
-                )
-              })}
-            </ol>
+            <section className="payment-trace__timeline-section" aria-labelledby={timelineTitleId}>
+              <h3 id={timelineTitleId} className="payment-trace__section-title">
+                {t('admin.paymentTrace.timelineTitle')}
+              </h3>
+              <ol className="payment-trace__timeline">
+                {report.timeline.map((item, index) => {
+                  const Icon = SEVERITY_ICON[item.severity] ?? Clock3
+                  return (
+                    <li
+                      key={`${item.event}-${item.at}-${index}`}
+                      className={`payment-trace__step payment-trace__step--${item.severity}`}
+                    >
+                      <span className="payment-trace__step-icon" aria-hidden>
+                        <Icon size={14} strokeWidth={1.8} />
+                      </span>
+                      <div className="payment-trace__step-body">
+                        <p className="payment-trace__step-head">
+                          <code className="payment-trace__step-source">{item.source}</code>
+                          <strong>{item.event}</strong>
+                          {item.status ? <span>{item.status}</span> : null}
+                          {item.sincePrevious ? (
+                            <em className="payment-trace__step-gap">+{item.sincePrevious}</em>
+                          ) : null}
+                        </p>
+                        <p className="payment-trace__step-when">{formatWhen(item.at, locale)}</p>
+                        {item.failure ? <TraceFailure failure={item.failure} t={t} /> : null}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
           </>
         ) : null}
 

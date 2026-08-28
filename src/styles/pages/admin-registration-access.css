@@ -40,6 +40,7 @@
 .admin-registration-access h1,
 .admin-registration-access h2,
 .admin-registration-access h3,
+.admin-registration-access h4,
 .admin-registration-access p {
   margin: 0;
 }
@@ -215,6 +216,12 @@
   min-width: 0;
 }
 
+/* Cabecera del concepto: mismo aire horizontal que las filas primary para que
+   el indicador no quede pegado al margen del article. */
+.admin-registration-access__rule--intake {
+  padding: 0.8rem 1rem;
+}
+
 /* El alta es el título del bloque: gana escala y no lleva regla arriba. */
 .admin-registration-access__rule--intake .admin-registration-access__rule-copy h3 {
   font-size: 0.95rem;
@@ -290,11 +297,18 @@
 }
 
 /* La validación cierra el bloque: regla propia porque responde otra pregunta
-   —si Finanzas acredita— y no es un medio de pago más. */
-.admin-registration-access__rule--validation {
+   —si Finanzas acredita— y no es un medio de pago más. Título + lead cortos:
+   se centran con el switch; el margen del h4 (antes sin reset) los empujaba.
+   Doble clase para ganarle a los reflows mobile que pisan align-items. */
+.admin-registration-access__rule.admin-registration-access__rule--validation {
+  align-items: center;
   border-bottom: 0;
   border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 9%, transparent);
   padding: 0.7rem 1rem;
+}
+
+.admin-registration-access__rule--validation .admin-registration-access__dot {
+  margin-top: 0;
 }
 
 .admin-registration-access__rule--validation .admin-registration-access__rule-copy h4 {
