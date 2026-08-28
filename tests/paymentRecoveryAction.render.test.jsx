@@ -82,16 +82,18 @@ describe('PaymentRecoveryAction', () => {
     renderAction()
 
     fireEvent.click(screen.getByRole('button', { name: 'Validar N.º de operación' }))
-    fireEvent.change(screen.getByLabelText('N.º de operación de Mercado Pago'), {
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('N.º de operación'), {
       target: { value: '174125987189' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Validar operación' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
 
     await waitFor(() =>
       expect(revalidatePaymentOrder).toHaveBeenCalledWith('ord-1', {
         providerPaymentId: '174125987189',
       }),
     )
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
   it('no refresca si la revalidación no encontró nada para corregir', async () => {

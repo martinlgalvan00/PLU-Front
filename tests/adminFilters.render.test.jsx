@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import AdminFilterChipGroup from '../src/components/admin/AdminFilterChipGroup.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
@@ -80,7 +80,7 @@ describe('AdminFilterChipGroup — riel', () => {
 })
 
 describe('Afiliaciones — toggle de vencimiento', () => {
-  it('muestra el pill corto con el conteo de las que vencen pronto', () => {
+  it('muestra el pill corto con el conteo de las que vencen pronto', async () => {
     render(
       <I18nProvider>
         <MembershipsSection
@@ -100,12 +100,14 @@ describe('Afiliaciones — toggle de vencimiento', () => {
       </I18nProvider>,
     )
 
-    const toggle = screen.getByRole('group', { name: 'Vencen en 30 días' })
-    expect(toggle.textContent).toMatch(/Vencen pronto/)
-    expect(toggle.querySelector('.admin-filter-chip__count')?.textContent).toBe('1')
+    // layout="popover": el toggle vive detrás del pill; hay que abrirlo.
+    fireEvent.click(screen.getByRole('button', { name: 'Vencen en 30 días' }))
+    const chip = await screen.findByRole('button', { name: /Vencen pronto/ })
+    expect(chip.textContent).toMatch(/Vencen pronto/)
+    expect(chip.querySelector('.admin-filter-chip__count')?.textContent).toBe('1')
   })
 
-  it('oculta el toggle si no hay afiliaciones por vencer', () => {
+  it('oculta el toggle si no hay afiliaciones por vencer', async () => {
     render(
       <I18nProvider>
         <MembershipsSection
@@ -125,8 +127,10 @@ describe('Afiliaciones — toggle de vencimiento', () => {
       </I18nProvider>,
     )
 
-    expect(screen.queryByRole('group', { name: 'Vencen en 30 días' })).toBeNull()
-    expect(screen.queryByRole('button', { name: /Vencen pronto/ })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Vencen en 30 días' }))
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Vencen pronto/ })).toBeNull()
+    })
   })
 })
 
@@ -317,5 +321,55 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
     // El chip vive dentro del popover del pill "Estado".
     fireEvent.click(screen.getByRole('button', { name: /^Estado/ }))
     expect(screen.getByRole('button', { name: /Confirmada sin afiliación/ })).toBeTruthy()
+  })
+
+  it('expone la pill de fecha de inscripción con presets en el popover', () => {
+    const registrations = [
+      {
+        id: 'reg-1',
+        athleteId: 'ath-1',
+        athlete: { fullName: 'Ana Torres', documentId: '30111222' },
+        event: 'Pitbull Classic 2026',
+        eventSlug: 'pitbull-classic-2026',
+        category: 'Raw',
+        division: 'Open',
+        status: 'confirmada',
+        createdAt: '2026-08-10T12:00:00Z',
+      },
+    ]
+
+    const { container } = render(
+      <I18nProvider>
+        <RegistrationsSection
+          canEdit
+          filters={{
+            event: 'all',
+            status: 'all',
+            affiliationStatus: 'all',
+            query: '',
+            createdAtRange: { from: '', to: '' },
+          }}
+          filteredRegistrations={registrations}
+          payments={[]}
+          registrations={registrations}
+          registrationsCount={1}
+          onExportAdmin={() => {}}
+          onExportPluUsa={() => {}}
+          onSetFilters={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    const filterBar = container.querySelector('.admin-filters')
+    expect(filterBar).toBeTruthy()
+    fireEvent.click(within(filterBar).getByRole('button', { name: /^Fecha de inscripción/ }))
+    expect(screen.getByRole('button', { name: 'Últimos 7 días' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Últimos 30' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Este mes' })).toBeTruthy()
+    expect(container.querySelector('.admin-filters__date-range--popover')).toBeTruthy()
+    expect(container.querySelector('.admin-filters__date-range-fields--popover')).toBeTruthy()
+    expect(screen.getByLabelText('Desde')).toBeTruthy()
+    expect(screen.getByLabelText('Hasta')).toBeTruthy()
+    expect(container.querySelector('.admin-filters__date-range-field-label')).toBeNull()
   })
 })

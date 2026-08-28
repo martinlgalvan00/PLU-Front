@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, PencilLine, QrCode, Trash2 } from 'lucide-react'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
-import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import { EntitlementStateCell } from '../../components/admin/AdminStateCell.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminSavedViews from '../../components/admin/AdminSavedViews.jsx'
@@ -39,7 +40,10 @@ import {
   projectMembershipStatus,
 } from '../../services/membershipService.js'
 import { groupRegistrationsByAthlete } from '../../services/registrationAdminService.js'
-import { findEntitlementOrder } from '../../services/stateCoherenceService.js'
+import {
+  findEntitlementOrder,
+  resolveStateBacking,
+} from '../../services/stateCoherenceService.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 
 // Una inscripción cancelada o todavía en borrador no cuenta como "inscripto
@@ -276,6 +280,10 @@ export default function MembershipsSection({
         operationalStatus: item.operationalStatus,
         lifecycle: item.lifecycle,
         hasTournamentRegistration: item.hasTournamentRegistration,
+        // Una activación o una baja hecha a mano deja motivo, autor y fecha. La
+        // ficha del atleta ya los mostraba; la lista, que es donde se opera,
+        // mostraba sólo el badge y obligaba a entrar socio por socio.
+        stateBacking: resolveStateBacking(item, payments),
         startDate: item.startDate,
         expirationDate: item.expirationDate,
         payment: findEntitlementOrder(item, payments),
@@ -309,6 +317,7 @@ export default function MembershipsSection({
       ) : null}
       <AdminListSection
         filteredCount={rows.length}
+        filterLayout="popover"
         placeholder={t('admin.search.membership')}
         query={query}
         showHeader
@@ -426,14 +435,17 @@ export default function MembershipsSection({
               sortAccessor: (row) =>
                 `${row.operationalStatus}${row.hasTournamentRegistration ? '-1' : '-0'}`,
               render: (row) => (
-                <div className="admin-membership-status-cell">
-                  <StatusBadge value={row.operationalStatus} />
-                  {row.hasTournamentRegistration ? (
-                    <Pill tone="info">
-                      {t('admin.sections.memberships.registeredToTournamentBadge')}
-                    </Pill>
-                  ) : null}
-                </div>
+                <EntitlementStateCell
+                  backing={row.stateBacking}
+                  badge={
+                    row.hasTournamentRegistration ? (
+                      <Pill tone="info">
+                        {t('admin.sections.memberships.registeredToTournamentBadge')}
+                      </Pill>
+                    ) : null
+                  }
+                  status={row.operationalStatus}
+                />
               ),
             },
             {

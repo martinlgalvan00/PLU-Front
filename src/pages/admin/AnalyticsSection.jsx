@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -12,14 +12,14 @@ import {
   UserSearch,
   Users,
 } from 'lucide-react'
-import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
+import AnalyticsStatTile from '../../components/admin/AnalyticsStatTile.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import LivePresenceBar from '../../components/admin/LivePresenceBar.jsx'
-import { AdminMonoCell } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { formatAnalyticsPath } from '../../lib/analyticsPathLabels.js'
 import {
   fetchAccessMetrics,
   fetchAnalyticsElements,
@@ -123,6 +123,31 @@ function currentRange(days) {
   }
 }
 
+/** Un bloque opcional no debería tumbar el informe entero. */
+async function fetchOptional(promise, fallback) {
+  try {
+    return await promise
+  } catch {
+    return fallback
+  }
+}
+
+function hasAccessMetrics(access) {
+  if (!access) return false
+  return (
+    Number(access.succeeded?.events ?? 0) > 0 ||
+    Number(access.failed?.events ?? 0) > 0 ||
+    Number(access.accountsCreated ?? 0) > 0 ||
+    (access.failureReasons?.length ?? 0) > 0
+  )
+}
+
+function translateAccessReason(reason, t) {
+  const key = `admin.analytics.access.reasons.${reason}`
+  const label = t(key)
+  return label === key ? String(reason ?? '').replace(/_/g, ' ') : label
+}
+
 const FAILURE_SEVERITY_TONE = { blocker: 'danger', degraded: 'warning', expected: 'neutral' }
 
 /** `null` sin base de comparación (período anterior en cero o sin dato). */
@@ -147,14 +172,182 @@ function MetricDelta({ current, previous, locale, t }) {
   if (change === null) return null
   const label = percentChangeLabel(change, locale)
   const direction = change > 0 ? 'up' : change < 0 ? 'down' : 'flat'
+  const absolute = Number(current ?? 0) - Number(previous ?? 0)
+  const absoluteLabel = new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+    signDisplay: 'exceptZero',
+    maximumFractionDigits: 0,
+  }).format(absolute)
+  const previousLabel = count(previous, locale)
+  const currentLabel = count(current, locale)
+
   return (
-    <span
-      className={`admin-analytics__metric-delta admin-analytics__metric-delta--${direction}`}
-      title={t('admin.analytics.metricsDeltaCaption')}
-      aria-label={t('admin.analytics.metricsDeltaAria', { value: label })}
-    >
-      {label}
+    <span className="admin-analytics__stat-delta-wrap">
+      <span
+        className={`admin-analytics__stat-delta admin-analytics__stat-delta--${direction}`}
+        title={t('admin.analytics.metricsDeltaDetail', {
+          previous: previousLabel,
+          current: currentLabel,
+        })}
+        aria-label={t('admin.analytics.metricsDeltaAriaRich', {
+          value: label,
+          absolute: absoluteLabel,
+          previous: previousLabel,
+          current: currentLabel,
+        })}
+      >
+        {label}
+        <span className="admin-analytics__stat-delta-abs"> ({absoluteLabel})</span>
+      </span>
     </span>
+  )
+}
+
+function metricDeltaNode(current, previous, locale, t) {
+  if (percentChange(current, previous) === null) return null
+  return <MetricDelta current={current} previous={previous} locale={locale} t={t} />
+}
+
+function RelativeBarList({ items, getKey, getLabel, getWeight, renderValue, mono = false }) {
+  if (!items?.length) return null
+  const max = Math.max(...items.map((item) => Number(getWeight(item) ?? 0)), 1)
+
+  return (
+    <ul className="admin-analytics__bar-list">
+      {items.map((item) => {
+        const weight = Number(getWeight(item) ?? 0)
+        return (
+          <li key={getKey(item)}>
+            <div className="admin-analytics__bar-list-head">
+              <span
+                className={`admin-analytics__bar-list-label${mono ? ' admin-analytics__bar-list-label--mono' : ''}`}
+              >
+                {getLabel(item)}
+              </span>
+              <strong className="admin-analytics__bar-list-value">{renderValue(item)}</strong>
+            </div>
+            <div className="admin-analytics__bar-list-track" aria-hidden>
+              <span
+                className="admin-analytics__bar-list-fill"
+                style={{ '--bar-fill': weight / max }}
+              />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+function AnalyticsInsightStrip({ overview, locale, t }) {
+  const hasActiveTime = Boolean(overview?.avgActiveSeconds)
+
+  return (
+    <div className="admin-analytics__insight">
+      <div className="admin-analytics__insight-highlights">
+        <div className="admin-analytics__insight-item">
+          <p className="admin-analytics__insight-value">{count(overview?.sessions, locale)}</p>
+          <p className="admin-analytics__insight-label">
+            {t('admin.analytics.summaryHighlightSessions')}
+          </p>
+        </div>
+        <div className="admin-analytics__insight-item">
+          <p className="admin-analytics__insight-value">
+            {hasActiveTime
+              ? duration(overview.avgActiveSeconds)
+              : duration(overview?.avgDurationSeconds)}
+          </p>
+          <p className="admin-analytics__insight-label">
+            {hasActiveTime
+              ? t('admin.analytics.summaryHighlightActiveTime')
+              : t('admin.analytics.summaryHighlightDuration')}
+          </p>
+        </div>
+        <div className="admin-analytics__insight-item">
+          <p className="admin-analytics__insight-value">{count(overview?.interactions, locale)}</p>
+          <p className="admin-analytics__insight-label">
+            {t('admin.analytics.summaryHighlightInteractions')}
+          </p>
+        </div>
+      </div>
+      {!hasActiveTime ? (
+        <p className="admin-analytics__insight-note admin-analytics__summary">
+          {t('admin.analytics.summaryFootnoteNoActiveTime')}
+        </p>
+      ) : (
+        <p className="admin-analytics__insight-note admin-analytics__summary">
+          {t('admin.analytics.summaryFootnoteActiveTime', {
+            duration: duration(overview?.avgDurationSeconds),
+          })}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function AnalyticsBlockHead({ id, icon: Icon, title, subtitle }) {
+  return (
+    <header className="admin-analytics__block-head">
+      <h3 id={id}>
+        <Icon size={16} aria-hidden /> {title}
+      </h3>
+      {subtitle ? <p className="admin-analytics__block-subtitle">{subtitle}</p> : null}
+    </header>
+  )
+}
+
+function PageRankingList({ pages, locale, t, selectedPath, onSelect }) {
+  if (!pages?.length) {
+    return <p className="admin-analytics__empty">{t('admin.analytics.pagesEmpty')}</p>
+  }
+
+  const maxPageviews = Math.max(...pages.map((page) => Number(page.pageviews ?? 0)), 1)
+
+  return (
+    <ol className="admin-analytics__page-ranking">
+      {pages.map((page, index) => {
+        const pathMeta = formatAnalyticsPath(page.path, t)
+        const isSelected = page.path === selectedPath
+        return (
+          <li key={page.path}>
+            <button
+              type="button"
+              className={`admin-analytics__page-rank${isSelected ? ' is-selected' : ''}`}
+              onClick={() => onSelect(page.path)}
+              aria-pressed={isSelected}
+            >
+              <span className="admin-analytics__page-rank-index" aria-hidden>
+                {index + 1}
+              </span>
+              <span className="admin-analytics__page-rank-body">
+                <span className="admin-analytics__page-rank-head">
+                  <strong>{pathMeta.label}</strong>
+                  {!pathMeta.mono ? (
+                    <code className="admin-analytics__page-rank-path">{page.path}</code>
+                  ) : null}
+                </span>
+                <span className="admin-analytics__page-rank-metrics">
+                  <span>
+                    {count(page.pageviews, locale)} {t('admin.analytics.columns.pageviews')}
+                  </span>
+                  <span>
+                    {count(page.visitors, locale)} {t('admin.analytics.columns.visitors')}
+                  </span>
+                  <span>
+                    {count(page.clicks, locale)} {t('admin.analytics.columns.clicks')}
+                  </span>
+                </span>
+                <span className="admin-analytics__page-rank-track" aria-hidden>
+                  <span
+                    className="admin-analytics__page-rank-fill"
+                    style={{ '--bar-fill': Number(page.pageviews ?? 0) / maxPageviews }}
+                  />
+                </span>
+              </span>
+            </button>
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
@@ -293,9 +486,12 @@ function AthleteJourney({ athletes, days, locale, t }) {
 
   return (
     <section className="admin-analytics__block" aria-labelledby="analytics-journey">
-      <h3 id="analytics-journey">
-        <UserSearch size={16} aria-hidden /> {t('admin.analytics.journeyTitle')}
-      </h3>
+      <AnalyticsBlockHead
+        id="analytics-journey"
+        icon={UserSearch}
+        title={t('admin.analytics.journeyTitle')}
+        subtitle={t('admin.analytics.journeySubtitle')}
+      />
 
       <p className="admin-analytics__notice" role="note">
         <ShieldAlert size={14} aria-hidden />
@@ -333,16 +529,30 @@ function AthleteJourney({ athletes, days, locale, t }) {
 
       {!loading && !error && selected && summary ? (
         <div className="admin-analytics__journey">
-          <header className="admin-analytics__journey-head">
-            <strong>{selected.fullName}</strong>
-            <span>
-              {t('admin.analytics.journeySummary', {
-                sessions: count(summary.sessions, locale),
-                pageviews: count(summary.pageviews, locale),
-                clicks: count(summary.clicks, locale),
-              })}
-            </span>
+          <header className="admin-analytics__journey-profile">
+            <div>
+              <strong>{selected.fullName}</strong>
+              <span>{selected.documentId}</span>
+            </div>
           </header>
+
+          <div className="admin-analytics__stat-grid admin-analytics__stat-grid--secondary">
+            <AnalyticsStatTile
+              compact
+              label={t('admin.analytics.journeyMetricSessions')}
+              value={summary.sessions ?? 0}
+            />
+            <AnalyticsStatTile
+              compact
+              label={t('admin.analytics.journeyMetricPageviews')}
+              value={summary.pageviews ?? 0}
+            />
+            <AnalyticsStatTile
+              compact
+              label={t('admin.analytics.journeyMetricClicks')}
+              value={summary.clicks ?? 0}
+            />
+          </div>
 
           {summary.pageviews === 0 && summary.clicks === 0 ? (
             <p className="admin-analytics__empty">{t('admin.analytics.journeyEmpty')}</p>
@@ -350,29 +560,49 @@ function AthleteJourney({ athletes, days, locale, t }) {
             <div className="admin-analytics__journey-grid">
               <div>
                 <h4>{t('admin.analytics.journeyPages')}</h4>
-                <ul className="admin-analytics__journey-list">
-                  {(journey.pages ?? []).map((page) => (
-                    <li key={page.path}>
-                      <code title={page.path}>{page.path}</code>
-                      <strong>{count(page.pageviews, locale)}</strong>
-                    </li>
-                  ))}
-                </ul>
+                {(journey.pages ?? []).length === 0 ? (
+                  <p className="admin-analytics__empty">{t('admin.analytics.journeyPagesEmpty')}</p>
+                ) : (
+                  <RelativeBarList
+                    items={journey.pages}
+                    getKey={(page) => page.path}
+                    getLabel={(page) => formatAnalyticsPath(page.path, t).label}
+                    getWeight={(page) => page.pageviews}
+                    renderValue={(page) =>
+                      t('admin.analytics.journeyPageviews', {
+                        count: count(page.pageviews, locale),
+                      })
+                    }
+                  />
+                )}
               </div>
               <div>
                 <h4>{t('admin.analytics.journeyElements')}</h4>
-                <ul className="admin-analytics__journey-list">
-                  {(journey.elements ?? []).map((element) => (
-                    <li key={element.element_selector}>
-                      <span>{element.label || element.element_selector}</span>
-                      <strong>{count(element.clicks, locale)}</strong>
-                    </li>
-                  ))}
-                </ul>
+                {(journey.elements ?? []).length === 0 ? (
+                  <p className="admin-analytics__empty">{t('admin.analytics.journeyElementsEmpty')}</p>
+                ) : (
+                  <RelativeBarList
+                    items={journey.elements}
+                    getKey={(element) => element.element_selector}
+                    getLabel={(element) => element.label || element.element_selector}
+                    getWeight={(element) => element.clicks}
+                    renderValue={(element) =>
+                      t('admin.analytics.journeyElementClicks', {
+                        count: count(element.clicks, locale),
+                      })
+                    }
+                  />
+                )}
               </div>
             </div>
           )}
         </div>
+      ) : !loading && !error && selected && !summary ? (
+        <p className="admin-analytics__empty">{t('admin.analytics.journeyEmpty')}</p>
+      ) : !loading && !error && !selected ? (
+        <p className="admin-analytics__empty admin-analytics__journey-idle">
+          {t('admin.analytics.journeyIdle')}
+        </p>
       ) : null}
     </section>
   )
@@ -402,18 +632,40 @@ export default function AnalyticsSection({
   const [heatmap, setHeatmap] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [refreshError, setRefreshError] = useState('')
   const [usageLoaded, setUsageLoaded] = useState(false)
   const [usageLoading, setUsageLoading] = useState(false)
+  const [usageError, setUsageError] = useState('')
+  const [heatmapError, setHeatmapError] = useState('')
+  const overviewRef = useRef(null)
+
+  useEffect(() => {
+    overviewRef.current = overview
+  }, [overview])
 
   const load = useCallback(async () => {
-    setLoading(true)
-    setError('')
+    const isInitial = !overviewRef.current
+    if (isInitial) {
+      setLoading(true)
+      setError('')
+    }
+    setRefreshError('')
     setUsageLoaded(false)
+    setUsageError('')
+    setHeatmapError('')
     try {
-      // Primer pintado: overview, paginas, embudo y operativos. Recorridos y
-      // ranking esperan al tab Uso; el mapa espera al tab Paginas.
+      let overviewResult
+      try {
+        overviewResult = await fetchAnalyticsOverview({ days })
+      } catch (overviewError) {
+        if (overviewRef.current) {
+          setRefreshError(overviewError?.message ?? t('admin.analytics.refreshError'))
+          return
+        }
+        throw overviewError
+      }
+
       const [
-        overviewResult,
         previousOverviewResult,
         pagesResult,
         funnelResult,
@@ -422,18 +674,15 @@ export default function AnalyticsSection({
         alertsResult,
         failureReasonsResult,
       ] = await Promise.all([
-        fetchAnalyticsOverview({ days }),
-        // Mismo largo, tramo inmediatamente anterior: sin esto un numero
-        // absoluto no dice si mejoro o empeoro respecto de lo de siempre.
-        fetchAnalyticsOverview(previousRange(days)),
-        fetchAnalyticsPages({ days, limit: 25 }),
-        fetchAnalyticsFunnel({ days }),
-        fetchAccessMetrics({ days }),
-        fetchAnalyticsOperationalSummary({ days }),
-        fetchAnalyticsOperationalAlerts(),
-        // Vive bajo `admin.payments.read`, no `admin.analytics.read`: sin el
-        // permiso ni se pide, para no ofrecer un panel que iba a responder 403.
-        canViewPaymentFailures ? getPaymentFailureReasons(currentRange(days)) : Promise.resolve([]),
+        fetchOptional(fetchAnalyticsOverview(previousRange(days)), null),
+        fetchOptional(fetchAnalyticsPages({ days, limit: 25 }), []),
+        fetchOptional(fetchAnalyticsFunnel({ days }), []),
+        fetchOptional(fetchAccessMetrics({ days }), null),
+        fetchOptional(fetchAnalyticsOperationalSummary({ days }), null),
+        fetchOptional(fetchAnalyticsOperationalAlerts(), []),
+        canViewPaymentFailures
+          ? fetchOptional(getPaymentFailureReasons(currentRange(days)), [])
+          : Promise.resolve([]),
       ])
       setOverview(overviewResult)
       setPreviousOverview(previousOverviewResult)
@@ -443,8 +692,6 @@ export default function AnalyticsSection({
       setOperational(operationalResult)
       setOperationalAlerts(alertsResult)
       setFailureReasons(failureReasonsResult)
-      // La ruta mas vista es el mapa de calor por defecto: es la que el equipo
-      // va a querer mirar primero y evita una pantalla vacia.
       setHeatmapPath((current) => current ?? pagesResult[0]?.path ?? null)
     } catch (loadError) {
       setError(loadError?.message ?? t('admin.analytics.error'))
@@ -462,6 +709,7 @@ export default function AnalyticsSection({
 
     let cancelled = false
     setUsageLoading(true)
+    setUsageError('')
 
     Promise.all([
       fetchAnalyticsFlows({ days, limit: 20 }),
@@ -473,8 +721,9 @@ export default function AnalyticsSection({
         setElements(elementsResult)
         setUsageLoaded(true)
       })
-      .catch(() => {
+      .catch((usageLoadError) => {
         if (cancelled) return
+        setUsageError(usageLoadError?.message ?? t('admin.analytics.usageError'))
         setFlows([])
         setElements([])
         setUsageLoaded(true)
@@ -486,70 +735,26 @@ export default function AnalyticsSection({
     return () => {
       cancelled = true
     }
-  }, [activeTab, days, usageLoaded])
+  }, [activeTab, days, t, usageLoaded])
 
   useEffect(() => {
     if (!heatmapPath || activeTab !== TABS.pages) return undefined
     let cancelled = false
+    setHeatmapError('')
     fetchAnalyticsHeatmap({ days, path: heatmapPath, deviceType: heatmapDevice || undefined })
       .then((result) => {
         if (!cancelled) setHeatmap(result)
       })
-      .catch(() => {
-        if (!cancelled) setHeatmap(null)
+      .catch((heatmapLoadError) => {
+        if (!cancelled) {
+          setHeatmap(null)
+          setHeatmapError(heatmapLoadError?.message ?? t('admin.analytics.heatmapError'))
+        }
       })
     return () => {
       cancelled = true
     }
-  }, [activeTab, days, heatmapDevice, heatmapPath])
-
-  // DataTable identifica cada fila por `row.id`; la RPC agrega por ruta y no
-  // devuelve uno.
-  const pageRows = useMemo(() => pages.map((page) => ({ ...page, id: page.path })), [pages])
-
-  const pageColumns = useMemo(
-    () => [
-      {
-        key: 'path',
-        label: t('admin.analytics.columns.path'),
-        mobile: 'primary',
-        render: (row) => <AdminMonoCell>{row.path}</AdminMonoCell>,
-      },
-      {
-        key: 'pageviews',
-        label: t('admin.analytics.columns.pageviews'),
-        desktop: 'numeric',
-        render: (row) => count(row.pageviews, locale),
-      },
-      {
-        key: 'visitors',
-        label: t('admin.analytics.columns.visitors'),
-        desktop: 'numeric',
-        render: (row) => count(row.visitors, locale),
-      },
-      {
-        key: 'clicks',
-        label: t('admin.analytics.columns.clicks'),
-        desktop: 'numeric',
-        render: (row) => count(row.clicks, locale),
-      },
-      {
-        key: 'scroll',
-        label: t('admin.analytics.columns.scroll'),
-        desktop: 'numeric',
-        mobile: 'hidden',
-        render: (row) => percent(row.avg_scroll_depth, locale),
-      },
-      {
-        key: 'exits',
-        label: t('admin.analytics.columns.exits'),
-        desktop: 'numeric',
-        mobile: 'hidden',
-        render: (row) => count(row.exits, locale),
-      },
-    ],
-    [locale, t],
-  )
+  }, [activeTab, days, heatmapDevice, heatmapPath, t])
 
   const tabs = useMemo(() => {
     const items = [
@@ -611,6 +816,12 @@ export default function AnalyticsSection({
         }
       />
 
+      {refreshError ? (
+        <p className="admin-analytics__refresh-error" role="status">
+          {refreshError}
+        </p>
+      ) : null}
+
       {/*
         Arriba del pulso historico y no en una pestaña propia: cuando hay un
         evento en curso, "ahora" manda sobre "los ultimos 30 dias". Se refresca
@@ -619,99 +830,76 @@ export default function AnalyticsSection({
       <LivePresenceBar />
 
       <section className="admin-analytics__pulse" aria-label={t('admin.analytics.metricsAria')}>
-        <dl className="admin-analytics__metrics">
-          <div>
-            <dt>{t('admin.analytics.metrics.visitors')}</dt>
-            <dd>
-              {count(overview?.visitors, locale)}
-              <MetricDelta
-                current={overview?.visitors}
-                previous={previousOverview?.visitors}
-                locale={locale}
-                t={t}
-              />
-            </dd>
-          </div>
-          <div>
-            <dt>{t('admin.analytics.metrics.pageviews')}</dt>
-            <dd>
-              {count(overview?.pageviews, locale)}
-              <MetricDelta
-                current={overview?.pageviews}
-                previous={previousOverview?.pageviews}
-                locale={locale}
-                t={t}
-              />
-            </dd>
-          </div>
-          <div>
-            <dt>{t('admin.analytics.metrics.identified')}</dt>
-            <dd>
-              {count(overview?.identifiedVisitors, locale)}
-              <MetricDelta
-                current={overview?.identifiedVisitors}
-                previous={previousOverview?.identifiedVisitors}
-                locale={locale}
-                t={t}
-              />
-            </dd>
-          </div>
-          {/*
-            Ocupa el lugar que tenía la tasa de rebote, que ahora es exactamente
-            su complemento (1 − engagement): mostrar las dos sería decir dos
-            veces lo mismo, y de las dos ésta es la que se puede accionar.
-          */}
-          <div>
-            <dt>{t('admin.analytics.metrics.engaged')}</dt>
-            <dd>
-              {count(overview?.engagedSessions, locale)}
-              <MetricDelta
-                current={overview?.engagedSessions}
-                previous={previousOverview?.engagedSessions}
-                locale={locale}
-                t={t}
-              />
-            </dd>
-            <p className="admin-analytics__metric-hint">
-              {t('admin.analytics.metricsEngagedHint', {
-                rate: percent(overview?.engagementRate, locale),
-              })}
-            </p>
-          </div>
-        </dl>
-        <dl className="admin-analytics__metrics admin-analytics__metrics--secondary">
-          <div>
-            <dt>{t('admin.analytics.metrics.sessions')}</dt>
-            <dd>{count(overview?.sessions, locale)}</dd>
-          </div>
-          <div>
-            <dt>{t('admin.analytics.metrics.duration')}</dt>
-            <dd>{duration(overview?.avgDurationSeconds)}</dd>
-          </div>
-          <div>
-            <dt>{t('admin.analytics.metrics.interactions')}</dt>
-            <dd>{count(overview?.interactions, locale)}</dd>
-          </div>
-        </dl>
-        <p className="admin-analytics__summary">
-          {/*
-            Sin tiempo activo el resumen no puede decir "0s de atención media":
-            el histórico anterior a la medición no lo tiene, y un cero ahí se
-            lee como un dato y no como una ausencia.
-          */}
-          {overview?.avgActiveSeconds
-            ? t('admin.analytics.summary', {
-                sessions: count(overview?.sessions, locale),
-                activeTime: duration(overview.avgActiveSeconds),
-                duration: duration(overview?.avgDurationSeconds),
-                interactions: count(overview?.interactions, locale),
-              })
-            : t('admin.analytics.summaryNoActiveTime', {
-                sessions: count(overview?.sessions, locale),
-                duration: duration(overview?.avgDurationSeconds),
-                interactions: count(overview?.interactions, locale),
-              })}
+        <div className="admin-analytics__stat-grid">
+          <AnalyticsStatTile
+            label={t('admin.analytics.metrics.visitors')}
+            value={overview?.visitors ?? 0}
+            tone="celeste"
+            delta={metricDeltaNode(
+              overview?.visitors,
+              previousOverview?.visitors,
+              locale,
+              t,
+            )}
+          />
+          <AnalyticsStatTile
+            label={t('admin.analytics.metrics.pageviews')}
+            value={overview?.pageviews ?? 0}
+            delta={metricDeltaNode(
+              overview?.pageviews,
+              previousOverview?.pageviews,
+              locale,
+              t,
+            )}
+          />
+          <AnalyticsStatTile
+            label={t('admin.analytics.metrics.identified')}
+            value={overview?.identifiedVisitors ?? 0}
+            delta={metricDeltaNode(
+              overview?.identifiedVisitors,
+              previousOverview?.identifiedVisitors,
+              locale,
+              t,
+            )}
+          />
+          <AnalyticsStatTile
+            label={t('admin.analytics.metrics.engaged')}
+            value={overview?.engagedSessions ?? 0}
+            hint={t('admin.analytics.metricsEngagedHint', {
+              rate: percent(overview?.engagementRate, locale),
+            })}
+            delta={metricDeltaNode(
+              overview?.engagedSessions,
+              previousOverview?.engagedSessions,
+              locale,
+              t,
+            )}
+          />
+        </div>
+
+        <p className="admin-analytics__comparison-note">
+          {t('admin.analytics.metricsComparisonNote', { days })}
         </p>
+
+        <div className="admin-analytics__stat-grid admin-analytics__stat-grid--secondary">
+          <AnalyticsStatTile
+            compact
+            label={t('admin.analytics.metrics.sessions')}
+            value={overview?.sessions ?? 0}
+          />
+          <AnalyticsStatTile
+            compact
+            label={t('admin.analytics.metrics.duration')}
+            value={duration(overview?.avgDurationSeconds)}
+          />
+          <AnalyticsStatTile
+            compact
+            label={t('admin.analytics.metrics.interactions')}
+            value={overview?.interactions ?? 0}
+          />
+        </div>
+
+        <AnalyticsInsightStrip overview={overview} locale={locale} t={t} />
       </section>
 
       {operationalAlerts.length ? (
@@ -760,44 +948,38 @@ export default function AnalyticsSection({
             es el error mas facil de cometer con este dato.
           */}
           <section className="admin-analytics__block" aria-labelledby="analytics-access">
-            <h3 id="analytics-access">
-              <LogIn size={16} aria-hidden /> {t('admin.analytics.access.title')}
-            </h3>
-            {!access || (!access.succeeded?.events && !access.failed?.events) ? (
+            <AnalyticsBlockHead
+              id="analytics-access"
+              icon={LogIn}
+              title={t('admin.analytics.access.title')}
+              subtitle={t('admin.analytics.access.subtitle')}
+            />
+            {!hasAccessMetrics(access) ? (
               <p className="admin-analytics__empty">{t('admin.analytics.access.empty')}</p>
             ) : (
               <>
-                <dl className="admin-analytics__metrics admin-analytics__metrics--secondary">
-                  <div>
-                    <dt>{t('admin.analytics.access.peopleIn')}</dt>
-                    <dd>{count(access.succeeded?.people, locale)}</dd>
-                    <p className="admin-analytics__metric-hint">
-                      {t('admin.analytics.access.athletes')}{' '}
-                      {count(access.succeeded?.athletes, locale)}
-                      {' · '}
-                      {t('admin.analytics.access.staff')} {count(access.succeeded?.staff, locale)}
-                    </p>
-                  </div>
-                  <div>
-                    <dt>{t('admin.analytics.access.failed')}</dt>
-                    <dd>{count(access.failed?.events, locale)}</dd>
-                    <p className="admin-analytics__metric-hint">
-                      {t('admin.analytics.access.failureRate')}{' '}
-                      {percent(access.failureRate, locale)}
-                    </p>
-                  </div>
-                  <div>
-                    <dt>{t('admin.analytics.access.blocked')}</dt>
-                    <dd>{count(access.blockedPeople, locale)}</dd>
-                    <p className="admin-analytics__metric-hint">
-                      {t('admin.analytics.access.blockedHint')}
-                    </p>
-                  </div>
-                  <div>
-                    <dt>{t('admin.analytics.access.accountsCreated')}</dt>
-                    <dd>{count(access.accountsCreated, locale)}</dd>
-                  </div>
-                </dl>
+                <div className="admin-analytics__stat-grid">
+                  <AnalyticsStatTile
+                    label={t('admin.analytics.access.peopleIn')}
+                    value={access.succeeded?.people ?? 0}
+                    hint={`${t('admin.analytics.access.athletes')} ${count(access.succeeded?.athletes, locale)} · ${t('admin.analytics.access.staff')} ${count(access.succeeded?.staff, locale)}`}
+                  />
+                  <AnalyticsStatTile
+                    label={t('admin.analytics.access.failed')}
+                    value={access.failed?.events ?? 0}
+                    hint={`${t('admin.analytics.access.failureRate')} ${percent(access.failureRate, locale)}`}
+                    tone="alert"
+                  />
+                  <AnalyticsStatTile
+                    label={t('admin.analytics.access.blocked')}
+                    value={access.blockedPeople ?? 0}
+                    hint={t('admin.analytics.access.blockedHint')}
+                  />
+                  <AnalyticsStatTile
+                    label={t('admin.analytics.access.accountsCreated')}
+                    value={access.accountsCreated ?? 0}
+                  />
+                </div>
 
                 <h4>{t('admin.analytics.access.reasonsTitle')}</h4>
                 {(access.failureReasons ?? []).length === 0 ? (
@@ -805,61 +987,59 @@ export default function AnalyticsSection({
                     {t('admin.analytics.access.reasonsEmpty')}
                   </p>
                 ) : (
-                  <ul className="admin-analytics__journey-list">
-                    {access.failureReasons.map((reason) => {
-                      // El motivo lo escribe el backend; si aparece uno todavia
-                      // sin traducir se muestra crudo en vez de la clave.
-                      const key = `admin.analytics.access.reasons.${reason.reason}`
-                      const label = t(key)
-                      return (
-                        <li key={reason.reason}>
-                          <span>{label === key ? reason.reason : label}</span>
-                          <strong>
-                            {t('admin.analytics.access.reasonsCount', {
-                              attempts: count(reason.attempts, locale),
-                              people: count(reason.people, locale),
-                            })}
-                          </strong>
-                        </li>
-                      )
-                    })}
-                  </ul>
+                  <RelativeBarList
+                    items={access.failureReasons}
+                    getKey={(reason) => reason.reason}
+                    getLabel={(reason) => translateAccessReason(reason.reason, t)}
+                    getWeight={(reason) => reason.attempts}
+                    renderValue={(reason) =>
+                      t('admin.analytics.access.reasonsCount', {
+                        attempts: count(reason.attempts, locale),
+                        people: count(reason.people, locale),
+                      })
+                    }
+                  />
                 )}
               </>
             )}
           </section>
 
           <section className="admin-analytics__block" aria-labelledby="analytics-funnel">
-            <h3 id="analytics-funnel">
-              <Activity size={16} aria-hidden /> {t('admin.analytics.funnelTitle')}
-            </h3>
+            <AnalyticsBlockHead
+              id="analytics-funnel"
+              icon={Activity}
+              title={t('admin.analytics.funnelTitle')}
+            />
             {funnel.length === 0 ? (
               <p className="admin-analytics__empty">{t('admin.analytics.funnelEmpty')}</p>
             ) : (
               <ol className="admin-analytics__funnel">
                 {funnel.map((step) => (
-                  <li key={step.step_name}>
-                    <div className="admin-analytics__funnel-head">
-                      <span className="admin-analytics__funnel-name">
-                        {funnelLabel(step.step_name, t)}
-                      </span>
-                      <strong>{count(step.visitors, locale)}</strong>
-                    </div>
+                  <li
+                    key={step.step_name}
+                    className="admin-analytics__funnel-step"
+                    style={{ '--funnel-width': step.totalRate ?? 0 }}
+                  >
                     <div
-                      className="admin-analytics__funnel-bar"
+                      className="admin-analytics__funnel-step-inner"
                       role="img"
                       aria-label={t('admin.analytics.funnelBarAlt', {
                         rate: percent(step.totalRate, locale),
                       })}
                     >
-                      <span style={{ '--funnel-fill': step.totalRate ?? 0 }} />
+                      <span className="admin-analytics__funnel-name">
+                        {funnelLabel(step.step_name, t)}
+                      </span>
+                      <strong className="admin-analytics__funnel-value">
+                        {count(step.visitors, locale)}
+                      </strong>
+                      <p className="admin-analytics__funnel-meta">
+                        {t('admin.analytics.funnelStepRate', {
+                          rate: percent(step.stepRate, locale),
+                          dropoff: count(step.dropoff, locale),
+                        })}
+                      </p>
                     </div>
-                    <small>
-                      {t('admin.analytics.funnelStepRate', {
-                        rate: percent(step.stepRate, locale),
-                        dropoff: count(step.dropoff, locale),
-                      })}
-                    </small>
                   </li>
                 ))}
               </ol>
@@ -867,39 +1047,54 @@ export default function AnalyticsSection({
           </section>
 
           <section className="admin-analytics__block" aria-labelledby="analytics-activity">
-            <h3 id="analytics-activity">
-              <Users size={16} aria-hidden /> {t('admin.analytics.activityTitle')}
-            </h3>
-            <p className="admin-analytics__summary">
-              {t('admin.analytics.activitySummary', {
-                people: count(operational?.engagedVisitors, locale),
-                entries: count(operational?.access?.total, locale),
-              })}
-            </p>
+            <AnalyticsBlockHead
+              id="analytics-activity"
+              icon={Users}
+              title={t('admin.analytics.activityTitle')}
+            />
+            <div className="admin-analytics__stat-grid admin-analytics__stat-grid--secondary admin-analytics__stat-grid--duo">
+              <AnalyticsStatTile
+                compact
+                label={t('admin.analytics.activityEngaged')}
+                value={operational?.engagedVisitors ?? 0}
+              />
+              <AnalyticsStatTile
+                compact
+                label={t('admin.analytics.activityEntries')}
+                value={operational?.access?.total ?? 0}
+              />
+            </div>
             <div className="admin-analytics__journey-grid">
               <div>
                 <h4>{t('admin.analytics.activityActions')}</h4>
-                <ul className="admin-analytics__journey-list">
-                  {(operational?.keyActions ?? []).map((item) => (
-                    <li key={item.action}>
-                      <span>{item.action}</span>
-                      <strong>
-                        {t('admin.analytics.activityPeople', { count: count(item.people, locale) })}
-                      </strong>
-                    </li>
-                  ))}
-                </ul>
+                {(operational?.keyActions ?? []).length === 0 ? (
+                  <p className="admin-analytics__empty">{t('admin.analytics.activityActionsEmpty')}</p>
+                ) : (
+                  <RelativeBarList
+                    items={operational.keyActions}
+                    getKey={(item) => item.action}
+                    getLabel={(item) => item.action}
+                    getWeight={(item) => item.people}
+                    mono
+                    renderValue={(item) =>
+                      t('admin.analytics.activityPeople', { count: count(item.people, locale) })
+                    }
+                  />
+                )}
               </div>
               <div>
                 <h4>{t('admin.analytics.activityGates')}</h4>
-                <ul className="admin-analytics__journey-list">
-                  {(operational?.access?.byGate ?? []).map((item) => (
-                    <li key={item.gate}>
-                      <span>{item.gate}</span>
-                      <strong>{count(item.entries, locale)}</strong>
-                    </li>
-                  ))}
-                </ul>
+                {(operational?.access?.byGate ?? []).length === 0 ? (
+                  <p className="admin-analytics__empty">{t('admin.analytics.activityGatesEmpty')}</p>
+                ) : (
+                  <RelativeBarList
+                    items={operational.access.byGate}
+                    getKey={(item) => item.gate}
+                    getLabel={(item) => item.gate}
+                    getWeight={(item) => item.entries}
+                    renderValue={(item) => count(item.entries, locale)}
+                  />
+                )}
               </div>
             </div>
           </section>
@@ -938,27 +1133,34 @@ export default function AnalyticsSection({
         <div className="admin-analytics__panel" role="tabpanel">
           <div className="admin-analytics__pages">
             <section className="admin-analytics__block" aria-labelledby="analytics-pages">
-              <h3 id="analytics-pages">
-                <MousePointerClick size={16} aria-hidden /> {t('admin.analytics.pagesTitle')}
-              </h3>
-              <div className="admin-analytics__pages-table">
-                <AdminDataTable
-                  ariaLabel={t('admin.analytics.pagesTitle')}
-                  columns={pageColumns}
-                  rows={pageRows}
-                  emptyMessage={t('admin.analytics.pagesEmpty')}
-                  onRowClick={(row) => setHeatmapPath(row.path)}
-                  getRowClassName={(row) =>
-                    row.path === heatmapPath ? 'data-table__row--selected' : ''
-                  }
-                />
-              </div>
+              <AnalyticsBlockHead
+                id="analytics-pages"
+                icon={MousePointerClick}
+                title={t('admin.analytics.pagesTitle')}
+                subtitle={t('admin.analytics.pagesSubtitle')}
+              />
+              <PageRankingList
+                pages={pages}
+                locale={locale}
+                t={t}
+                selectedPath={heatmapPath}
+                onSelect={setHeatmapPath}
+              />
             </section>
 
             <section className="admin-analytics__block" aria-labelledby="analytics-heatmap">
-              <h3 id="analytics-heatmap">
-                <Flame size={16} aria-hidden /> {t('admin.analytics.heatmapTitle')}
-              </h3>
+              <AnalyticsBlockHead
+                id="analytics-heatmap"
+                icon={Flame}
+                title={t('admin.analytics.heatmapTitle')}
+                subtitle={
+                  heatmapPath
+                    ? t('admin.analytics.heatmapSubtitle', {
+                        path: formatAnalyticsPath(heatmapPath, t).label,
+                      })
+                    : null
+                }
+              />
               <div
                 className="admin-analytics__devices"
                 role="group"
@@ -976,21 +1178,24 @@ export default function AnalyticsSection({
                   </button>
                 ))}
               </div>
-              <Heatmap data={heatmap} locale={locale} t={t} />
+              {heatmapError ? (
+                <p className="admin-analytics__empty" role="alert">
+                  {heatmapError}
+                </p>
+              ) : (
+                <Heatmap data={heatmap} locale={locale} t={t} />
+              )}
               {heatmap?.elements?.length ? (
-                <ul className="admin-analytics__elements">
-                  {heatmap.elements.slice(0, 8).map((element) => (
-                    <li key={element.element_selector}>
-                      <span
-                        className="admin-analytics__element-label"
-                        title={element.label || element.element_selector}
-                      >
-                        {element.label || element.element_selector}
-                      </span>
-                      <strong>{count(element.clicks, locale)}</strong>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <h4>{t('admin.analytics.heatmapElementsTitle')}</h4>
+                  <RelativeBarList
+                    items={heatmap.elements.slice(0, 8)}
+                    getKey={(element) => element.element_selector}
+                    getLabel={(element) => element.label || element.element_selector}
+                    getWeight={(element) => element.clicks}
+                    renderValue={(element) => count(element.clicks, locale)}
+                  />
+                </>
               ) : null}
             </section>
           </div>
@@ -999,7 +1204,11 @@ export default function AnalyticsSection({
 
       {activeTab === TABS.usage ? (
         <div className="admin-analytics__panel" role="tabpanel">
-          {usageLoading && !usageLoaded ? (
+          {usageError ? (
+            <p className="admin-analytics__empty" role="alert">
+              {usageError}
+            </p>
+          ) : usageLoading && !usageLoaded ? (
             <LoadingState label={t('admin.analytics.usageLoading')} />
           ) : (
             <div className="admin-analytics__split">

@@ -149,8 +149,10 @@ import {
 } from '../services/eventAdminService.js'
 import { enrichMemberships } from '../services/membershipService.js'
 import { matchesRegistrationStatusFilter } from '../services/registrationAdminService.js'
+import { matchesDateRange } from '../lib/adminDateRangeFilter.js'
 import {
   cancelBillingSubscriptionRequest,
+  clearEventRegistrationPriceScheduleRequest,
   createMembershipPlanVersionRequest,
   fetchBillingSubscriptionsRequest,
   deleteDiscountCodeRequest,
@@ -158,6 +160,7 @@ import {
   discountCodeStatePayload,
   fetchDiscountCodeRedemptionsRequest,
   fetchPricingConfigurationRequest,
+  setEventRegistrationPriceRequest,
   simulatePromotionCodeRequest,
   setDiscountCodeStateRequest,
   setMembershipPlanActiveRequest,
@@ -293,6 +296,7 @@ export function useAppData() {
     event: 'all',
     affiliationStatus: 'all',
     query: '',
+    createdAtRange: { from: '', to: '' },
   })
   const membershipAttemptRef = useRef(null)
   const registrationAttemptRef = useRef(null)
@@ -874,6 +878,7 @@ export function useAppData() {
         !filters.affiliationStatus ||
         filters.affiliationStatus === 'all' ||
         registration.athlete?.status === filters.affiliationStatus
+      const dateMatch = matchesDateRange(registration.createdAt, filters.createdAtRange)
       const query = filters.query.trim().toLowerCase()
       const queryMatch =
         !query ||
@@ -883,8 +888,13 @@ export function useAppData() {
         registration.athlete?.gym?.toLowerCase().includes(query) ||
         registration.event?.toLowerCase().includes(query) ||
         registration.category?.toLowerCase().includes(query) ||
-        registration.division?.toLowerCase().includes(query)
-      return statusMatch && eventMatch && affiliationMatch && queryMatch
+        registration.division?.toLowerCase().includes(query) ||
+        // La observación escrita por la organización también se busca: cuando
+        // alguien reclama por "el pago de Gabriel Carrizo", el nombre que
+        // resuelve el caso está en la observación y no en ningún otro campo de
+        // la fila. Sin esto había que abrir inscripción por inscripción.
+        registration.manualOverride?.reason?.toLowerCase().includes(query)
+      return statusMatch && eventMatch && affiliationMatch && dateMatch && queryMatch
     })
   }, [enrichedRegistrations, filters, gatePendingIds])
 
@@ -2795,6 +2805,47 @@ export function useAppData() {
     [refreshPricingConfiguration, session],
   )
 
+  // El precio de inscripción de un torneo, inmediato o programado. Es la misma
+  // familia de escritura que el catálogo de planes: mismo permiso, misma
+  // relectura del catálogo al terminar.
+  const setEventRegistrationPrice = useCallback(
+    async (eventSlug, payload) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const event = await setEventRegistrationPriceRequest(eventSlug, payload)
+        await refreshPricingConfiguration()
+        return { event }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo cambiar el precio de la inscripción.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
+
+  const clearEventRegistrationPriceSchedule = useCallback(
+    async (eventSlug) => {
+      if (
+        !hasPermission(session, 'admin.pricing.write') ||
+        !isFeatureEnabled(FEATURE_KEYS.pricingWrites)
+      ) {
+        return { error: 'La configuración económica está disponible próximamente.' }
+      }
+      try {
+        const event = await clearEventRegistrationPriceScheduleRequest(eventSlug)
+        await refreshPricingConfiguration()
+        return { event }
+      } catch (error) {
+        return { error: error?.message ?? 'No se pudo cancelar el cambio de precio programado.' }
+      }
+    },
+    [refreshPricingConfiguration, session],
+  )
+
   const upsertDiscountCode = useCallback(
     async (code) => {
       if (
@@ -3105,6 +3156,8 @@ export function useAppData() {
     deleteDiscountCode,
     simulatePromotionCode,
     fetchDiscountCodeRedemptions,
+    setEventRegistrationPrice,
+    clearEventRegistrationPriceSchedule,
     billingSubscriptions,
     billingSubscriptionsLoading,
     billingSubscriptionsError,

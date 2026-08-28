@@ -333,8 +333,22 @@ model Organization {
   outboxEvents           OutboxEvent[]
   exportJobs             ExportJob[]
   auditLogs              AuditLog[]
+  gyms                   Gym[]
 
   @@index([status])
+}
+
+model Gym {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  coreName       String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, coreName])
+  @@index([organizationId])
 }
 
 model OrganizationMember {

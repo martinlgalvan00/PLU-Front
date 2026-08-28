@@ -209,6 +209,26 @@
   padding: 12px 12px max(14px, env(safe-area-inset-bottom, 0px));
 }
 
+/* Rail colapsado: el footer institucional (grid + padding 12px) no debe
+   desalinear cuenta/salida; gana al selector base de arriba. */
+.admin-shell.admin-shell--collapsed .admin-shell__footer {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 6px max(10px, env(safe-area-inset-bottom, 0px));
+}
+
+.admin-shell.admin-shell--collapsed .admin-shell__footer .ant-space {
+  align-items: center;
+}
+
+.admin-shell.admin-shell--collapsed .admin-shell__footer .ant-space-item {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .admin-shell__account {
   align-items: center;
   display: grid;
@@ -1772,11 +1792,27 @@
 }
 
 .admin-shell .admin-payments-operations > .admin-orders-block,
+.admin-shell .admin-payments-operations > * > .admin-orders-block,
 .admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
   background: var(--admin-surface);
   border: 1px solid var(--admin-hairline);
   border-radius: 14px;
   box-shadow: none;
+}
+
+.admin-shell .admin-payments-operations > .admin-list-section__chrome.admin-payments-ops-chrome {
+  background: transparent;
+  border-bottom-color: var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow {
+  color: var(--admin-accent, var(--admin-brand));
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__toolbar {
+  border-bottom-color: var(--admin-hairline);
 }
 
 .admin-shell .admin-payment-ops {

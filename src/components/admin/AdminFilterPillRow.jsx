@@ -89,7 +89,16 @@ export default function AdminFilterPillRow({ filters }) {
             ) : null}
 
             {open ? (
-              <div className="admin-filter-popover" role="dialog" aria-label={accessibleName}>
+              <div
+                className={[
+                  'admin-filter-popover',
+                  filter.variant === 'dateRange' ? 'admin-filter-popover--date' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                role="dialog"
+                aria-label={accessibleName}
+              >
                 {filter.variant === 'select' ? (
                   <AdminFilterCombobox
                     filter={filter}
@@ -105,6 +114,7 @@ export default function AdminFilterPillRow({ filters }) {
                     value={filter.value}
                     onChange={filter.onChange}
                     disabled={filter.disabled}
+                    presentation="popover"
                   />
                 ) : (
                   <AdminFilterChipGroup
@@ -122,6 +132,7 @@ export default function AdminFilterPillRow({ filters }) {
                     allLabel={filter.allLabel ?? t('admin.filters.showingAll')}
                     clearable
                     hideEmpty
+                    presentation="menu"
                   />
                 )}
               </div>

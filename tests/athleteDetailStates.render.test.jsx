@@ -122,10 +122,15 @@ describe('ficha del atleta: afiliación activa con el pago cancelado', () => {
 
     const notice = document.querySelector('.athlete-detail__divergence')
     expect(notice).toBeTruthy()
-    expect(notice.textContent).toContain('Afiliación Activa con el pago en Cancelado')
+    expect(notice.textContent).toContain('Afiliación')
+    expect(notice.textContent).toContain('Activa')
+    expect(notice.textContent).toContain('Cancelado')
     // Quién lo resolvió y por qué: el mail, no el id interno.
     expect(notice.textContent).toContain('maximalstrengthcorp@gmail.com')
     expect(notice.textContent).toContain('Pagó por transferencia el 20/08')
+    expect(document.querySelector('.athlete-detail__divergence-quote p')?.textContent).toContain(
+      'Pagó por transferencia el 20/08',
+    )
   })
 
   it('marca como pendiente la divergencia que nadie explicó', () => {
@@ -204,9 +209,8 @@ describe('ficha del atleta: afiliación activa con el pago cancelado', () => {
     const stamps = [...document.querySelectorAll('.admin-state-cell__reason')].map(
       (node) => node.textContent,
     )
-    expect(stamps.some((text) => text.includes('A mano por maximalstrengthcorp@gmail.com'))).toBe(
-      true,
-    )
+    expect(stamps.some((text) => text.includes('A mano'))).toBe(true)
+    expect(stamps.some((text) => text.includes('maximalstrengthcorp@gmail.com'))).toBe(true)
     expect(stamps.some((text) => text.includes('Transferencia bancaria'))).toBe(true)
   })
 

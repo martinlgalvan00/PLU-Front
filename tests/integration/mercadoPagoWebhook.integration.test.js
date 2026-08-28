@@ -35,13 +35,13 @@ let paymentId
  * Manifiesto y firma tal como los arma Mercado Pago: `ts=<ts>,v1=<hmac>` sobre
  * `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`.
  *
- * `ts` va en **milisegundos**: el validador del SDK compara
- * `Math.abs(Date.now() - Number(ts)) / 1000` contra la tolerancia, asi que
- * firmarlo en segundos da una deriva de decadas y rebota por timestamp, no por
- * firma.
+ * MP documenta el `ts` en SEGUNDOS (`ts=1704908010`); el validador del SDK
+ * 3.2.0 asumia milisegundos y rebotaba toda firma real por timestamp — por eso
+ * la verificacion propia detecta la unidad (webhookVerifier.js). El default en
+ * segundos deja este archivo firmando como el header real de produccion; se
+ * puede pasar un `ts` explicito para los casos de deriva.
  */
-function signedHeaders(dataId, requestId = randomUUID()) {
-  const ts = Date.now()
+function signedHeaders(dataId, requestId = randomUUID(), ts = Math.floor(Date.now() / 1000)) {
   const manifest = `id:${String(dataId).toLowerCase()};request-id:${requestId};ts:${ts};`
   const v1 = createHmac('sha256', WEBHOOK_SECRET).update(manifest).digest('hex')
   return {
@@ -250,6 +250,24 @@ describe('webhook de Mercado Pago end-to-end', () => {
     expect(athlete.data.status).toBe('afiliado_activo')
   })
 
+  it('acepta la firma tambien con ts en milisegundos (tolerancia unit-agnostica)', async () => {
+    // El formato viejo de algunos entornos: mismo manifiesto, ts de 13 digitos.
+    // La tolerancia detecta la unidad por la cantidad de digitos, asi que las
+    // dos variantes del header conviven sin configuracion.
+    const response = await postWebhook(target, paymentId, {
+      headers: signedHeaders(paymentId, randomUUID(), Date.now()),
+    })
+    expect(response.status).toBe(200)
+  })
+
+  it('un ts en segundos vencido rebota por tolerancia aunque la firma sea autentica', async () => {
+    const response = await postWebhook(target, paymentId, {
+      headers: signedHeaders(paymentId, randomUUID(), Math.floor(Date.now() / 1000) - 600),
+      body: { ...notification(paymentId), id: 987654321 },
+    })
+    expect(response.status).toBe(401)
+  })
+
   it('la misma notificacion repetida no duplica el pago', async () => {
     // Mercado Pago reintenta hasta recibir 200. Sin idempotencia, cada reintento
     // sumaria una fila al ledger y el reporte financiero cobraria de mas.
@@ -261,6 +279,30 @@ describe('webhook de Mercado Pago end-to-end', () => {
 
     const cycles = await admin.from('membership_cycles').select('id').eq('order_id', orderId)
     expect(cycles.data.length).toBeLessThanOrEqual(1)
+  })
+
+  it('una IPN sin firma del mismo pago responde 200 y no duplica nada', async () => {
+    // El formato viejo (`?topic=payment&id=…`) no viene firmado: se acepta, el
+    // pago se relee del proveedor y la idempotencia lo colapsa con lo ya
+    // acreditado.
+    const response = await fetch(
+      `${target.url}/api/payments/webhook/mercadopago?topic=payment&id=${paymentId}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+    )
+    expect(response.status).toBe(200)
+
+    const payments = await admin.from('athlete_payments').select('id').eq('order_id', orderId)
+    expect(payments.data).toHaveLength(1)
+  })
+
+  it('una merchant_order se descarta confirmando la entrega', async () => {
+    const response = await fetch(
+      `${target.url}/api/payments/webhook/mercadopago?topic=merchant_order&id=43954117155`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+    )
+    const body = await response.json()
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({ received: true, ignored: true })
   })
 
   it('no acredita un pago cuyo monto no coincide con la orden', async () => {

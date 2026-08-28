@@ -46,6 +46,9 @@ export const PAYMENT_TRAIL_ACTIONS = {
   webhookReceived: 'payment.webhook_received',
   webhookProcessed: 'payment.webhook_processed',
   webhookFailed: 'payment.webhook_failed',
+  // Descarte deliberado (tipo/topic no procesable, p.ej. merchant_order): se
+  // asienta como evento y no como falla, porque no hay nada que revisar.
+  webhookDiscarded: 'payment.webhook_discarded',
   manualRejection: 'payment.manual_rejection',
   forceSettled: 'payment.force_settled',
   reconciled: 'payment.reconciled',

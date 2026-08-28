@@ -107,6 +107,59 @@ export function buildCelebrationPieces(count = 30, seed = 0x504c55) {
   return pieces
 }
 
+/**
+ * Alcance resuelto de la ráfaga, en píxeles.
+ *
+ * `--celebration-reach` es un clamp() que vive en `:root`
+ * (celebration-burst.css) justamente para poder leerse desde acá: replicar el
+ * clamp en JS habría dejado dos fuentes de verdad que se desincronizan en el
+ * primer ajuste del alcance.
+ *
+ * Devuelve 0 si no hay ventana o si el valor no resuelve a px — el sesgo queda
+ * en 0 y la ráfaga se comporta como antes.
+ */
+export function celebrationReachPx() {
+  if (typeof window === 'undefined' || typeof getComputedStyle !== 'function') return 0
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--celebration-reach')
+    .trim()
+  const value = Number.parseFloat(raw)
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
+/** Cuánto papel se deja entrar del borde antes de considerarlo perdido. */
+const EDGE_MARGIN_PX = 10
+
+/**
+ * Corrimiento horizontal del abanico, en múltiplos del alcance.
+ *
+ * El sello abre el bloque de confirmación contra el margen izquierdo, así que
+ * en pantallas angostas vive a ~70px del borde mientras el papel viaja ~94px:
+ * la mitad de la ráfaga salía de pantalla y lo que se veía parecía confeti
+ * entrando desde afuera, no saliendo del sello.
+ *
+ * Corre el abanico completo lo justo para que el extremo entre, en vez de
+ * recortarlo (queda un lado plano) o encogerlo (en desktop se lee como polvo).
+ * El tope de 0.92 evita el caso degenerado: un sesgo de 1 empujaría todas las
+ * piezas hacia el mismo lado y el abanico dejaría de ser un abanico.
+ *
+ * @param {number} originX       Centro del sello en coordenadas de viewport.
+ * @param {number} viewportWidth Ancho del viewport.
+ * @param {number} reachPx       Alcance resuelto (ver `celebrationReachPx`).
+ * @returns {number} Positivo empuja a la derecha, negativo a la izquierda.
+ */
+export function celebrationBiasX(originX, viewportWidth, reachPx) {
+  if (!reachPx || !viewportWidth) return 0
+
+  const missingLeft = reachPx + EDGE_MARGIN_PX - originX
+  if (missingLeft > 0) return Math.min(missingLeft / reachPx, 0.92)
+
+  const missingRight = originX + reachPx + EDGE_MARGIN_PX - viewportWidth
+  if (missingRight > 0) return -Math.min(missingRight / reachPx, 0.92)
+
+  return 0
+}
+
 function storageKey(key) {
   return `${STORAGE_PREFIX}${key}`
 }

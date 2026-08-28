@@ -100,10 +100,20 @@ function storyUrl(id, theme) {
  *   - Chromium loguea la política de gesto de usuario de `navigator.vibrate`
  *     aunque haptics.js la capture.
  *   - Storybook monta las pantallas sin backend, así que el chequeo de tanda
- *     privada 404ea a propósito.
+ *     privada y el catálogo de gimnasios 404ean a propósito.
+ *
+ * El `ApiError` hace falta además del `Failed to load resource`: son dos
+ * mensajes distintos por el mismo 404 —el del recurso lo emite Chromium y el
+ * otro es el rechazo que `api.js` loguea— y sin la segunda condición la corrida
+ * cerraba con 13 fallas de consola que no tenían nada que ver con el festejo,
+ * dejando el gate inservible para lo que existe.
  */
 function isExpectedNoise(text) {
-  return text.includes('navigator.vibrate') || text.includes('Failed to load resource')
+  return (
+    text.includes('navigator.vibrate') ||
+    text.includes('Failed to load resource') ||
+    /ApiError: Error 404/.test(text)
+  )
 }
 
 async function openStory(browser, { id, theme, viewport, reducedMotion = false, clearStorage }) {

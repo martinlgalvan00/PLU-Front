@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, Check, Pencil, Route, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, CircleAlert, Pencil, Route, Trash2, X } from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import AdminAthleteActivity from '../../components/admin/AdminAthleteActivity.jsx'
 import AdminMembershipCredential from '../../components/admin/AdminMembershipCredential.jsx'
-import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { EntitlementStateCell, PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
+import ObservationsThread from '../../components/admin/ObservationsThread.jsx'
 import PaymentTraceDialog from '../../components/admin/PaymentTraceDialog.jsx'
 import PaymentValidationAction from '../../components/admin/PaymentValidationAction.jsx'
 import MemberProfileCard from '../../components/ui/MemberProfileCard.jsx'
@@ -16,12 +17,12 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
-import { actorLabel } from '../../lib/stateProvenance.js'
+import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
 import { canValidateManualOrder } from '../../services/paymentValidationService.js'
 import {
   findAthleteStateDivergences,
   isPlaceholderReason,
-  resolveEntitlementBacking,
+  resolveStateBacking,
 } from '../../services/stateCoherenceService.js'
 
 function formatDateTime(value, locale) {
@@ -87,10 +88,15 @@ export default function AthleteDetailSection({
     () => divergences.filter((item) => !item.backing.explained),
     [divergences],
   )
+  // `resolveStateBacking` y no `resolveEntitlementBacking`: la divergencia sólo
+  // existe sobre un derecho otorgado, pero el motivo escrito a mano existe en
+  // cualquier estado -- y `observada` es justamente el que se pone para dejarlo
+  // escrito. Con la versión anterior la observación se guardaba y la ficha
+  // mostraba un badge pelado.
   const backingByEntityId = useMemo(() => {
     const index = new Map()
     for (const entity of [...memberships, ...registrations]) {
-      const backing = resolveEntitlementBacking(entity, payments)
+      const backing = resolveStateBacking(entity, payments)
       if (backing) index.set(entity.id, backing)
     }
     return index
@@ -267,38 +273,70 @@ export default function AthleteDetailSection({
           data-unexplained={unexplainedDivergences.length ? 'true' : 'false'}
           aria-labelledby="athlete-detail-divergence-title"
         >
-          <h3
-            id="athlete-detail-divergence-title"
-            className="athlete-detail__divergence-title"
-          >
-            {t(
-              unexplainedDivergences.length
-                ? 'admin.athleteDetail.divergence.titleUnexplained'
-                : 'admin.athleteDetail.divergence.title',
-            )}
-          </h3>
+          <header className="athlete-detail__divergence-head">
+            <CircleAlert size={16} aria-hidden />
+            <h3
+              id="athlete-detail-divergence-title"
+              className="athlete-detail__divergence-title"
+            >
+              {t(
+                unexplainedDivergences.length
+                  ? 'admin.athleteDetail.divergence.titleUnexplained'
+                  : 'admin.athleteDetail.divergence.title',
+              )}
+            </h3>
+          </header>
           <ul className="athlete-detail__divergence-list">
             {divergences.map(({ kind, entity, backing }) => {
-              const actor = actorLabel(backing.manualOverride?.by)
-              const hasReason =
-                backing.manualOverride?.reason &&
-                !isPlaceholderReason(backing.manualOverride.reason)
+              const manual = backing.manualOverride ?? null
+              const actor = actorLabel(manual?.by)
+              const hasReason = manual?.reason && !isPlaceholderReason(manual.reason)
+              const when = formatStateDateTime(manual?.at, locale) ?? '—'
+              const channelLabel = manual?.channel
+                ? t(`admin.paymentState.manual.channel.${manual.channel}`)
+                : null
+              const attribution = [
+                actor ?? t('admin.paymentState.manual.unknownActor'),
+                when,
+                channelLabel,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+
               return (
                 <li key={entity.id} className="athlete-detail__divergence-item">
-                  <span className="athlete-detail__divergence-what">
-                    {t(`admin.athleteDetail.divergence.kind.${kind}`, {
-                      status: t(`status.${entity.status}`),
-                      orderStatus: t(`status.${backing.order?.status}`),
-                    })}
-                  </span>{' '}
-                  <span className="athlete-detail__divergence-why">
-                    {hasReason
-                      ? t('admin.athleteDetail.divergence.explained', {
-                          actor: actor ?? t('admin.paymentState.manual.unknownActor'),
-                          reason: backing.manualOverride.reason,
-                        })
-                      : t('admin.athleteDetail.divergence.unexplained')}
-                  </span>
+                  <div className="athlete-detail__divergence-compare">
+                    <div className="athlete-detail__divergence-side">
+                      <span className="athlete-detail__divergence-side-label">
+                        {t(`admin.athleteDetail.divergence.kindLabel.${kind}`)}
+                      </span>
+                      <StatusBadge value={entity.status} />
+                    </div>
+                    <span className="athlete-detail__divergence-bridge" aria-hidden>
+                      ↔
+                    </span>
+                    <div className="athlete-detail__divergence-side">
+                      <span className="athlete-detail__divergence-side-label">
+                        {t('admin.athleteDetail.divergence.paymentLabel')}
+                      </span>
+                      <StatusBadge value={backing.order?.status} />
+                    </div>
+                  </div>
+                  {hasReason ? (
+                    <blockquote className="athlete-detail__divergence-quote">
+                      <span className="athlete-detail__divergence-quote-label">
+                        {t('admin.observations.title')}
+                      </span>
+                      <p>{manual.reason}</p>
+                      <footer>
+                        <cite title={attribution}>{attribution}</cite>
+                      </footer>
+                    </blockquote>
+                  ) : (
+                    <p className="athlete-detail__divergence-note athlete-detail__divergence-note--gap">
+                      {t('admin.athleteDetail.divergence.unexplained')}
+                    </p>
+                  )}
                 </li>
               )
             })}
@@ -446,6 +484,23 @@ export default function AthleteDetailSection({
             rows={registrations}
             emptyMessage={t('admin.athleteDetail.emptyRegistrations')}
           />
+          {/* El hilo de cada inscripción, debajo de la tabla. Va acá y no en un
+              modal porque la ficha es donde se estudia un caso: se lee la
+              inscripción y lo que se dijo sobre ella sin abrir nada. Con varias
+              inscripciones se apilan, encabezada cada una por su evento. */}
+          {registrations.map((registration) => (
+            <section className="athlete-detail__observations" key={registration.id}>
+              <h4 className="athlete-detail__observations-title">
+                {t('admin.observations.title')}
+                <span>{registration.event}</span>
+              </h4>
+              <ObservationsThread
+                canWrite={canEdit}
+                entityId={registration.id}
+                entityType="registration"
+              />
+            </section>
+          ))}
         </div>
       )}
 

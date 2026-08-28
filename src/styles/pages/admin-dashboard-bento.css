@@ -923,13 +923,13 @@
   border-radius: 999px;
   color: var(--admin-ink);
   display: inline-flex;
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
   line-height: 1;
-  min-height: 20px;
-  padding: 0 7px;
+  min-height: 22px;
+  padding: 0 8px;
 }
 
 .admin-ops__work-head h3 {
@@ -947,7 +947,7 @@
   font-size: 12px;
   line-height: 1.35;
   margin: 0;
-  max-width: 42ch;
+  max-width: 56ch;
 }
 
 .admin-ops__work-cta {
@@ -1182,7 +1182,7 @@
   outline-offset: 2px;
 }
 
-@container admin-ops (min-width: 481px) {
+@container admin-ops (min-width: 900px) {
   .admin-ops__work-head {
     align-items: flex-start;
     flex-wrap: nowrap;
@@ -1193,9 +1193,39 @@
     align-self: center;
   }
 
-  /* La cola vive en un rail angosto: conserva tipo + tarea como lectura
-     vertical y deja la acción alineada a la derecha, sin convertir cada fila
-     en una card alta de cuatro renglones. */
+  .admin-ops__work .action-queue__card {
+    align-items: center;
+    gap: 8px 16px;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    padding-block: 12px;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__type {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__card-body {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__amount {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    padding-top: 0;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__actions {
+    align-self: center;
+    grid-column: 4;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+}
+
+@container admin-ops (max-width: 899px) {
   .admin-ops__work .action-queue__card {
     align-items: center;
     gap: 3px 16px;
@@ -1206,6 +1236,14 @@
   .admin-ops__work .action-queue__card .action-queue__type,
   .admin-ops__work .action-queue__card .action-queue__card-body {
     grid-column: 1;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__type {
+    grid-row: 1;
+  }
+
+  .admin-ops__work .action-queue__card .action-queue__card-body {
+    grid-row: 2;
   }
 
   .admin-ops__work .action-queue__card .action-queue__amount {
@@ -1232,6 +1270,174 @@
   .admin-ops__work-cta {
     margin-left: 0;
     width: 100%;
+  }
+}
+
+/* ---- Avisos de apertura (lista operativa, no clone de altas recientes) ---- */
+
+.admin-ops__launch {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+  box-shadow: none;
+  display: grid;
+  gap: 0;
+  padding: 16px 0 4px;
+}
+
+.admin-ops__launch-head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 0 0 12px;
+}
+
+.admin-ops__launch-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-ops__launch-title-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-ops__launch-head h3 {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.05rem, 2vw, 1.28rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.admin-ops__launch-head p {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.admin-ops__launch-count {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink) 6%, transparent);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 999px;
+  color: var(--admin-ink);
+  display: inline-flex;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  min-height: 22px;
+  padding: 0 8px;
+}
+
+.admin-ops__launch-list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-ops__launch-item {
+  align-items: center;
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 90%, transparent);
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 52px;
+  padding: 12px 0;
+}
+
+.admin-ops__launch-item:first-child {
+  border-top: 0;
+  padding-top: 8px;
+}
+
+.admin-ops__launch-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-ops__launch-body strong {
+  color: var(--admin-ink);
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-ops__launch-body span {
+  color: var(--admin-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-ops__launch-notify {
+  align-items: center;
+  align-self: center;
+  background: color-mix(in srgb, var(--admin-ink) 3%, transparent);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 9px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.admin-ops__launch-notify:hover:not(:disabled) {
+  background: var(--admin-row-hover);
+  border-color: var(--admin-hairline-strong);
+}
+
+.admin-ops__launch-notify:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-ops__launch-notify:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+@media (max-width: 430px) {
+  .admin-ops__launch-notify {
+    min-height: 44px;
+  }
+}
+
+@container admin-ops (max-width: 430px) {
+  .admin-ops__launch-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-ops__launch-notify {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -2216,7 +2422,8 @@
   .admin-ops__link,
   .admin-ops__work-cta,
   .admin-ops__work-idle-link,
-  .admin-ops__pending-action {
+  .admin-ops__pending-action,
+  .admin-ops__launch-notify {
     transition: none;
   }
 
@@ -2243,6 +2450,7 @@
   .admin-ops__kpi,
   .admin-ops__kpis,
   .admin-ops__work,
+  .admin-ops__launch,
   .admin-ops__recent,
   .admin-ops__spotlight {
     -webkit-backdrop-filter: none;

@@ -266,7 +266,7 @@ describe('códigos de descuento y promoción en el checkout', () => {
     const plan = await activePlan()
     const comboPrice = plan.price + 45000
     const promoPrice = Math.max(1, comboPrice - 20000)
-    const { slug } = await createEventWithCombo(plan, { comboPrice })
+    const { slug, event: comboEvent } = await createEventWithCombo(plan, { comboPrice })
     const code = `TEST-FIX-${randomBytes(3).toString('hex').toUpperCase()}`
     await createDiscountCode({
       organizationId: plan.organization_id,
@@ -274,6 +274,10 @@ describe('códigos de descuento y promoción en el checkout', () => {
       kind: 'fixed_price',
       fixedPrice: promoPrice,
       appliesTo: 'combo',
+      // Un precio promocional con alcance combo ES el paquete y se arma
+      // contra UNA inscripcion (20260918100000): la RPC y el schema de
+      // Express lo exigen, porque sin evento no se puede canjear.
+      eventId: comboEvent.id,
       active: true,
       manualChannels: ['bank_transfer', 'cash_pitbull'],
     })
@@ -306,7 +310,7 @@ describe('códigos de descuento y promoción en el checkout', () => {
     const plan = await activePlan()
     const comboPrice = plan.price + 45000
     const promoPrice = Math.max(1, comboPrice - 15000)
-    const { slug } = await createEventWithCombo(plan, { comboPrice })
+    const { slug, event: comboEvent } = await createEventWithCombo(plan, { comboPrice })
     const code = `TEST-PRV-${randomBytes(3).toString('hex').toUpperCase()}`
     await createDiscountCode({
       organizationId: plan.organization_id,
@@ -314,6 +318,10 @@ describe('códigos de descuento y promoción en el checkout', () => {
       kind: 'fixed_price',
       fixedPrice: promoPrice,
       appliesTo: 'combo',
+      // Un precio promocional con alcance combo ES el paquete y se arma
+      // contra UNA inscripcion (20260918100000): la RPC y el schema de
+      // Express lo exigen, porque sin evento no se puede canjear.
+      eventId: comboEvent.id,
       active: true,
     })
 
@@ -429,7 +437,7 @@ describe('códigos de descuento y promoción en el checkout', () => {
       const plan = await activePlan()
       const comboPrice = plan.price + 45000
       const promoPrice = 120000
-      const { slug } = await createEventWithCombo(plan, { comboPrice })
+      const { slug, event: comboEvent } = await createEventWithCombo(plan, { comboPrice })
       const code = `TEST-CASH-${randomBytes(3).toString('hex').toUpperCase()}`
       await createDiscountCode({
         organizationId: plan.organization_id,
@@ -437,6 +445,10 @@ describe('códigos de descuento y promoción en el checkout', () => {
         kind: 'fixed_price',
         fixedPrice: promoPrice,
         appliesTo: 'combo',
+        // Un precio promocional con alcance combo ES el paquete y se arma
+        // contra UNA inscripcion (20260918100000): la RPC y el schema de
+        // Express lo exigen, porque sin evento no se puede canjear.
+        eventId: comboEvent.id,
         active: true,
         manualChannels: ['bank_transfer'],
       })

@@ -3,8 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 const confirmAthleteManualPayment = vi.fn()
+const deferAthleteFinancedPayment = vi.fn()
 
-vi.mock('../src/services/athleteApi.js', () => ({ confirmAthleteManualPayment }))
+vi.mock('../src/services/athleteApi.js', () => ({
+  confirmAthleteManualPayment,
+  deferAthleteFinancedPayment,
+}))
 
 const ManualPaymentConfirmation = (
   await import('../src/components/checkout/ManualPaymentConfirmation.jsx')
@@ -14,6 +18,7 @@ const TransferReceipt = (await import('../src/components/checkout/TransferReceip
 afterEach(cleanup)
 beforeEach(() => {
   confirmAthleteManualPayment.mockReset()
+  deferAthleteFinancedPayment.mockReset()
   window.sessionStorage.clear()
 })
 
@@ -169,48 +174,41 @@ describe('ManualPaymentConfirmation', () => {
     expect(await screen.findByText('Aviso recibido')).toBeTruthy()
   })
 
-  it('tras confirmar efectivo financiado, vuelve sola al perfil una vez leido el sello', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true })
-    try {
-      const onNavigate = vi.fn()
-      confirmAthleteManualPayment.mockResolvedValue({
-        order: {
-          id: 'order-cash-2',
-          status: 'validacion_manual',
-          financingAllowed: true,
-          manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
-          financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
-        },
-        entitlementsGranted: true,
-      })
+  it('tras confirmar efectivo financiado, ofrece un boton para volver al perfil', async () => {
+    const onNavigate = vi.fn()
+    confirmAthleteManualPayment.mockResolvedValue({
+      order: {
+        id: 'order-cash-2',
+        status: 'validacion_manual',
+        financingAllowed: true,
+        manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
+        financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
+      },
+      entitlementsGranted: true,
+    })
 
-      render(
-        <I18nProvider>
-          <ManualPaymentConfirmation
-            channel="cash_pitbull"
-            financingAllowed
-            orderId="order-cash-2"
-            onNavigate={onNavigate}
-            profileTab="account-events"
-          />
-        </I18nProvider>,
-      )
+    render(
+      <I18nProvider>
+        <ManualPaymentConfirmation
+          channel="cash_pitbull"
+          financingAllowed
+          orderId="order-cash-2"
+          onNavigate={onNavigate}
+          profileTab="account-events"
+        />
+      </I18nProvider>,
+    )
 
-      fireEvent.click(screen.getByRole('button', { name: 'Ya entregué el efectivo' }))
-      await waitFor(() => expect(screen.getByText('Ya estás afiliado e inscripto')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Ya entregué el efectivo' }))
+    await waitFor(() => expect(screen.getByText('Ya estás afiliado e inscripto')).toBeTruthy())
 
-      // No navega junto con el sello: se lee primero.
-      expect(onNavigate).not.toHaveBeenCalled()
-      await act(async () => {
-        vi.advanceTimersByTime(2300)
-      })
-      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-events' })
-    } finally {
-      vi.useRealTimers()
-    }
+    // No navega sola: la persona decide cuándo dejar la pantalla.
+    expect(onNavigate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a mi perfil' }))
+    expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-events' })
   })
 
-  it('sin financiamiento, el aviso en efectivo no navega: se queda con el acuse frio', async () => {
+  it('sin financiamiento, el aviso en efectivo no ofrece volver al perfil: se queda con el acuse frio', async () => {
     const onNavigate = vi.fn()
     confirmAthleteManualPayment.mockResolvedValue({
       order: { id: 'order-cash-3', status: 'validacion_manual', financingAllowed: false },
@@ -274,37 +272,45 @@ describe('ManualPaymentConfirmation', () => {
  * sello la use.
  */
 describe('ManualPaymentConfirmation — plazo del financiamiento', () => {
-  it('el sello dice hasta cuándo, con la fecha que devolvió la declaración', async () => {
-    confirmAthleteManualPayment.mockResolvedValue({
-      order: {
-        id: 'order-due',
-        status: 'validacion_manual',
-        financingAllowed: true,
-        manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
-        financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
-        financedPaymentDueAt: '2026-08-27T12:00:00.000Z',
-      },
-      financed: true,
-      entitlementsGranted: true,
-    })
+  it('el sello dice la cuenta regresiva, con la fecha que devolvió la declaración', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-08-20T12:00:00.000Z'))
+      confirmAthleteManualPayment.mockResolvedValue({
+        order: {
+          id: 'order-due',
+          status: 'validacion_manual',
+          financingAllowed: true,
+          manualPaymentDeclaredAt: '2026-08-20T12:00:00.000Z',
+          financedEntitlementsAt: '2026-08-20T12:00:00.000Z',
+          financedPaymentDueAt: '2026-08-27T12:00:00.000Z',
+        },
+        financed: true,
+        entitlementsGranted: true,
+      })
 
-    render(
-      <I18nProvider>
-        {/* Sin `financedPaymentDueAt`: es el estado real de la orden antes de
-            declarar, y es donde estaba el agujero. */}
-        <ManualPaymentConfirmation orderId="order-due" financingAllowed />
-      </I18nProvider>,
-    )
+      render(
+        <I18nProvider>
+          {/* Sin `financedPaymentDueAt`: es el estado real de la orden antes de
+              declarar, y es donde estaba el agujero. */}
+          <ManualPaymentConfirmation orderId="order-due" financingAllowed />
+        </I18nProvider>,
+      )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ya transferí' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Ya transferí' }))
 
-    const detail = await screen.findByText(/Tenés hasta el 27 de agosto de 2026/i)
-    // Y dice la consecuencia, no sólo la fecha: sin eso el plazo es un dato
-    // suelto y la baja automática llega como una sorpresa.
-    expect(detail.textContent).toMatch(/se dan de baja solas/i)
+      // A la fecha de la declaración, el plazo de 7 días queda entero.
+      const detail = await screen.findByText(/Te quedan 7 días/i)
+      // Y dice que los beneficios ya están activos, no sólo la cuenta
+      // regresiva: sin eso el plazo es un dato suelto sin contexto.
+      expect(detail.textContent).toMatch(/beneficios ya están activos/i)
+      expect(detail.textContent).toMatch(/para que Finanzas acredite tu pago/i)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('sin plazo en la respuesta cae al detalle de siempre, no a una fecha inventada', async () => {
+  it('sin plazo en la respuesta cae al detalle de siempre, no a una cuenta regresiva inventada', async () => {
     confirmAthleteManualPayment.mockResolvedValue({
       order: {
         id: 'order-no-due',
@@ -327,25 +333,93 @@ describe('ManualPaymentConfirmation — plazo del financiamiento', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ya transferí' }))
 
     expect(await screen.findByText(/saldo sigue pendiente de validación/i)).toBeTruthy()
-    expect(screen.queryByText(/Tenés hasta el/i)).toBeNull()
+    expect(screen.queryByText(/Te quedan/i)).toBeNull()
   })
 
   it('al volver a la pantalla el plazo sale de la orden ya declarada', async () => {
-    // Acá la prop sí trae la fecha (la orden ya la tiene sellada) y no hay
-    // declaración nueva que la devuelva.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      vi.setSystemTime(new Date('2026-08-25T12:00:00.000Z'))
+      // Acá la prop sí trae la fecha (la orden ya la tiene sellada) y no hay
+      // declaración nueva que la devuelva.
+      render(
+        <I18nProvider>
+          <ManualPaymentConfirmation
+            orderId="order-back"
+            financingAllowed
+            manualPaymentDeclaredAt="2026-08-20T12:00:00.000Z"
+            financedEntitlementsAt="2026-08-20T12:00:00.000Z"
+            financedPaymentDueAt="2026-09-03T12:00:00.000Z"
+          />
+        </I18nProvider>,
+      )
+
+      expect(await screen.findByText(/Te quedan 9 días/i)).toBeTruthy()
+      expect(confirmAthleteManualPayment).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+/**
+ * Las dos maneras de cerrar una orden financiada (20260926100000).
+ *
+ * Hasta acá había una sola: "ya pagué". Quien pensaba pagar dentro del plazo
+ * —que es para lo que existe el financiamiento— tenía que declarar un pago
+ * inexistente para quedar habilitado, y Finanzas recibía esa declaración como si
+ * hubiera una transferencia que revisar.
+ */
+describe('ManualPaymentConfirmation — pagar dentro del plazo', () => {
+  it('ofrece diferir sólo cuando el código financia', () => {
+    const { unmount } = render(
+      <I18nProvider>
+        <ManualPaymentConfirmation orderId="order-x" financingAllowed />
+      </I18nProvider>,
+    )
+    expect(screen.getByRole('button', { name: /Voy a pagar dentro del plazo/i })).toBeTruthy()
+    unmount()
+
     render(
       <I18nProvider>
-        <ManualPaymentConfirmation
-          orderId="order-back"
-          financingAllowed
-          manualPaymentDeclaredAt="2026-08-20T12:00:00.000Z"
-          financedEntitlementsAt="2026-08-20T12:00:00.000Z"
-          financedPaymentDueAt="2026-09-03T12:00:00.000Z"
-        />
+        <ManualPaymentConfirmation orderId="order-y" />
+      </I18nProvider>,
+    )
+    // Sin plazo que correr, "pagar después" no habilita nada: sería una promesa
+    // vacía y la orden quedaría igual de pendiente.
+    expect(screen.queryByRole('button', { name: /Voy a pagar dentro del plazo/i })).toBe(null)
+  })
+
+  it('difiere sin declarar el pago y sella la habilitación con su plazo', async () => {
+    deferAthleteFinancedPayment.mockResolvedValue({
+      order: {
+        id: 'order-defer',
+        status: 'pendiente',
+        financingAllowed: true,
+        manualPaymentDeclaredAt: null,
+        financedEntitlementsAt: '2026-08-25T12:00:00.000Z',
+        financedPaymentDueAt: '2026-09-01T12:00:00.000Z',
+      },
+      entitlementsGranted: true,
+      duplicate: false,
+    })
+
+    render(
+      <I18nProvider>
+        <ManualPaymentConfirmation orderId="order-defer" financingAllowed />
       </I18nProvider>,
     )
 
-    expect(await screen.findByText(/Tenés hasta el 03 de septiembre de 2026/i)).toBeTruthy()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Voy a pagar dentro del plazo/i }))
+    })
+
+    await waitFor(() => expect(deferAthleteFinancedPayment).toHaveBeenCalledWith('order-defer'))
+    // La otra acción no se toca: diferir no es declarar, y confundirlas es
+    // justamente lo que mandaba a Finanzas a revisar pagos que no existieron.
     expect(confirmAthleteManualPayment).not.toHaveBeenCalled()
+    // El sello no puede decir "recibimos tu aviso de pago" a quien avisó que va
+    // a pagar después.
+    expect(await screen.findByText(/Quedás habilitado/i)).toBeTruthy()
   })
 })

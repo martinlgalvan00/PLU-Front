@@ -99,7 +99,7 @@ describe('operación de afiliaciones', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Corregir estado' })[0])
 
-    const confirm = () => screen.getByRole('button', { name: 'Activar y registrar el motivo' })
+    const confirm = () => screen.getByRole('button', { name: 'Activar' })
     expect(confirm().disabled).toBe(true)
 
     // Con motivo pero sin canal sigue bloqueado: activar a mano atribuye plata
@@ -107,7 +107,7 @@ describe('operación de afiliaciones', () => {
     fillReason('Pagó por transferencia, comprobante en el grupo.')
     expect(confirm().disabled).toBe(true)
 
-    fireEvent.change(screen.getByLabelText('¿Por dónde se resolvió?'), {
+    fireEvent.change(screen.getByLabelText('Canal'), {
       target: { value: 'bank_transfer' },
     })
     expect(confirm().disabled).toBe(false)
@@ -130,7 +130,7 @@ describe('operación de afiliaciones', () => {
     // Marcar la orden como aprobada falsearía los ingresos: el diálogo lo dice
     // para que nadie espere ver el pago en verde ni intente "arreglarlo".
     expect(screen.getByRole('dialog').textContent).toContain(
-      'La orden de Mercado Pago queda cancelada',
+      'La orden de Mercado Pago no se acredita',
     )
   })
 
