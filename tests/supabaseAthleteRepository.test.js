@@ -54,6 +54,54 @@ describe('supabase athlete repository admin snapshot', () => {
     ])
     expect(second.athletes[0].photo_url).toBe('https://signed.test/cache-test/a1.jpg')
   })
+
+  it('no firma fotos cuando el poll pide photos=0', async () => {
+    const client = {
+      from: () => athleteQuery([{ id: 'a1', full_name: 'Ana', photo_path: 'cache-test/a1.jpg' }]),
+      storage: {
+        from: () => ({
+          createSignedUrls: async () => {
+            throw new Error('el poll no debería firmar fotos')
+          },
+        }),
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    const payload = await repository.adminData(
+      { athletes: true, memberships: false, registrations: false, paymentOrders: false },
+      { photos: '0' },
+    )
+
+    expect(payload.athletes[0].photo_url).toBeUndefined()
+    expect(payload.athletes[0].photo_path).toBe('cache-test/a1.jpg')
+  })
+
+  it('firma solo paths que existen en el padrón', async () => {
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            in: async () => ({
+              data: [{ photo_path: 'cache-test/a1.jpg' }],
+              error: null,
+            }),
+          }),
+        }),
+      }),
+      storage: {
+        from: () => ({
+          createSignedUrls: async (paths) => ({
+            data: paths.map((path) => ({ path, signedUrl: `https://signed.test/${path}` })),
+            error: null,
+          }),
+        }),
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    const urls = await repository.signAthletePhotoPaths(['cache-test/a1.jpg', 'ajeno/x.jpg'])
+
+    expect(urls).toEqual({ 'cache-test/a1.jpg': 'https://signed.test/cache-test/a1.jpg' })
+  })
 })
 
 describe('supabase athlete repository discount code policy', () => {

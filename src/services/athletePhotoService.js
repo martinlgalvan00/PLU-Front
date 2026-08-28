@@ -1,4 +1,5 @@
 import { ApiError, apiPost } from '../lib/api.js'
+import { compressImageFile } from '../lib/compressImageFile.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
@@ -35,15 +36,16 @@ export async function uploadAthletePhoto(_athleteId, file) {
     })
   }
 
+  const prepared = await compressImageFile(file)
   const supabase = await getSupabaseClient()
   const upload = await apiPost('/api/athletes/me/photo-upload', {
-    fileName: sanitizeFileName(file.name),
-    contentType: file.type,
-    size: file.size,
+    fileName: sanitizeFileName(prepared.name),
+    contentType: prepared.type,
+    size: prepared.size,
   })
   const { error: uploadError } = await supabase.storage
     .from(PHOTO_BUCKET)
-    .uploadToSignedUrl(upload.path, upload.token, file, { contentType: file.type })
+    .uploadToSignedUrl(upload.path, upload.token, prepared, { contentType: prepared.type })
 
   if (uploadError) {
     throw new ApiError(uploadError.message ?? 'No se pudo subir la foto.', { status: 400 })
