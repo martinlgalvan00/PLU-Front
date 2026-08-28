@@ -77,11 +77,23 @@ describe('estado de la compra en el payload (migración)', () => {
    * ahí sólo llegaba la condición del combo del evento. 20260913100000 lo
    * redefine para que `membershipPlan` salga del código cuando la oferta trae su
    * propia afiliación: sin eso, una oferta sin combo mostraba la ficha sin
-   * paquete y sin ahorro. Los campos anteriores quedan intactos —lo verifica el
-   * test de arriba, que lee la definición vigente, no este archivo—.
+   * paquete y sin ahorro. 20260926100000 lo redefine para sumar el plazo de
+   * financiamiento del código y el vencimiento real de la compra: la ficha del
+   * paquete promete habilitación al activarlo y sin esos dos campos esa promesa
+   * no tiene fecha. Los campos anteriores quedan intactos —lo verifica el test
+   * de arriba, que lee la definición vigente, no este archivo—.
    */
   it('es esta migración la que está vigente', () => {
-    expect(lastPayloadMigration()).toBe('20260913100000_offer_code_without_combo.sql')
+    expect(lastPayloadMigration()).toBe('20260926100000_bundle_ticket_and_deferred_payment.sql')
+  })
+
+  it('la ficha del paquete recibe el plazo y su vencimiento', () => {
+    const effective = readFileSync(resolve(DIR, lastPayloadMigration()), 'utf8')
+    const payload = effective.slice(
+      effective.lastIndexOf(`create or replace ${PAYLOAD_DEFINITION}`),
+    )
+    expect(payload).toContain("'financingTermDays', p_code.financing_term_days")
+    expect(payload).toContain("'financedPaymentDueAt', po.financed_payment_due_at")
   })
 
   it('la definición vigente también dice qué medios habilita el código', () => {

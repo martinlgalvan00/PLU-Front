@@ -9,10 +9,12 @@ export async function fetchEventRegistrationSummary(eventSlug) {
   const { summary } = await apiGet(
     `/api/events/${encodeURIComponent(eventSlug)}/registration-summary`,
   )
+  const progressPublicRaw = summary?.progressPublic ?? summary?.progress_public
   return {
     capacity: summary?.capacity ?? null,
     registered: Number(summary?.registered ?? 0),
     remaining: summary?.remaining ?? null,
+    progressPublic: progressPublicRaw !== false,
     recent: Array.isArray(summary?.recent)
       ? summary.recent.map((item) => ({
           displayName: String(item.displayName ?? item.display_name ?? '').trim() || 'Atleta',

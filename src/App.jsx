@@ -579,6 +579,8 @@ export default function App() {
           onDeleteMembershipPlan={app.deleteMembershipPlan}
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}
+          onSetEventRegistrationPrice={app.setEventRegistrationPrice}
+          onClearEventPriceSchedule={app.clearEventRegistrationPriceSchedule}
           onUpsertDiscountCode={app.upsertDiscountCode}
           onSetDiscountCodeState={app.setDiscountCodeState}
           onDeleteDiscountCode={app.deleteDiscountCode}

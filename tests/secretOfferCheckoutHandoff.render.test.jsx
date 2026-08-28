@@ -49,6 +49,11 @@ vi.mock('../src/config/env.js', () => ({
 }))
 
 vi.mock('../src/services/athleteApi.js', () => ({
+  // El alta y la ficha personal piden el listado de gimnasios al montar
+  // (RegisterPage / PersonalDataSection). Omitirlo en el doble no desvia el
+  // test a otra rama: revienta el render entero con "No fetchGyms export is
+  // defined on the mock".
+  fetchGyms: vi.fn(async () => []),
   resendAthleteVerification: vi.fn(),
   checkAthleteAvailability: vi.fn(),
   verifyAthleteEmailCode: vi.fn(),
@@ -387,5 +392,107 @@ describe('código tipeado en el checkout con el resolvedor disponible', () => {
 
     await waitFor(() => expect(previewDiscountCode).toHaveBeenCalled())
     expect(onNavigate.mock.calls.filter(([view]) => view === 'profile')).toEqual([])
+  })
+})
+
+/**
+ * El contrato vivo del código de combo: desde 20260926100000 el resolvedor NO
+ * lo aplica en el checkout del torneo — devuelve `open_bundle` y lo manda a su
+ * ficha en Mi cuenta, donde el paquete se lee entero y se termina de pagar.
+ *
+ * Los bloques de arriba siguen valiendo para el otro lado del despliegue: un
+ * backend todavía sin esta migración contesta `apply_to_checkout` y el checkout
+ * tiene que saber cobrarlo ahí mismo.
+ */
+const RESOLVED_BUNDLE = {
+  status: 'accepted',
+  accepted: true,
+  action: 'open_bundle',
+  code: 'ONLY-PITBULL',
+  kind: 'fixed_price',
+  appliesTo: 'combo',
+  destination: {
+    view: 'profile',
+    tab: 'account-offer',
+    eventSlug: 'pitbull-classic-2026',
+  },
+  campaign: { name: 'Solo Pitbull', objective: 'exclusive_offer' },
+  benefit: {
+    fixedPrice: 120000,
+    manualChannels: ['bank_transfer'],
+    mercadoPagoEnabled: false,
+    financed: true,
+    financingTermDays: 14,
+  },
+}
+
+describe('código de combo con el contrato vivo (open_bundle)', () => {
+  it('manda a la ficha del paquete en vez de aplicarse en el torneo', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_BUNDLE)
+    previewByScope()
+    const { onNavigate } = renderCompetition()
+    await waitForAccessValidation()
+    openDiscountField()
+    await typeAndRedeem('only-pitbull')
+
+    await waitFor(() =>
+      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-offer' }),
+    )
+    // El paquete no se cotiza acá: su alcance es el combo y su precio es el
+    // pactado en el código, que la ficha lee del payload del canje.
+    expect(vi.mocked(previewDiscountCode).mock.calls.map(([input]) => input?.code)).not.toContain(
+      'ONLY-PITBULL',
+    )
+  })
+
+  it('deja el código guardado para que la ficha lo encuentre aplicado', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_BUNDLE)
+    previewByScope()
+    renderCompetition()
+    await waitForAccessValidation()
+    openDiscountField()
+    await typeAndRedeem('ONLY-PITBULL')
+
+    await waitFor(() => expect(sessionStorage.getItem('plu:pending-promotion-code')).toBeTruthy())
+    const pending = JSON.parse(sessionStorage.getItem('plu:pending-promotion-code'))
+    expect(pending.code).toBe('ONLY-PITBULL')
+    expect(pending.context.destination.tab).toBe('account-offer')
+  })
+
+  it('el desvío a la pasarela desde la ficha se queda en este checkout y destraba el combo', async () => {
+    // La ficha del paquete no cobra Mercado Pago: guarda el código como
+    // pendiente con destino 'competition' y manda para acá. Ese pendiente viene
+    // A COBRARSE en este checkout — si el resolvedor lo devolviera a la ficha
+    // (open_bundle) sería un ping-pong sin salida, porque la pasarela vive acá.
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_BUNDLE)
+    previewByScope()
+    sessionStorage.setItem(
+      'plu:pending-promotion-code',
+      JSON.stringify({
+        code: 'ONLY-PITBULL',
+        context: {
+          surface: 'bundle-gateway',
+          destination: { view: 'competition', eventSlug: 'pitbull-classic-2026' },
+          resolved: true,
+        },
+        savedAt: '2026-08-27T12:00:00.000Z',
+      }),
+    )
+
+    const { onNavigate } = renderCompetition()
+    await waitForAccessValidation()
+
+    // El código se aplicó al combo de este torneo: el preview corrió con
+    // alcance 'combo' y el pendiente se consumió.
+    await waitFor(() =>
+      expect(
+        vi.mocked(previewDiscountCode).mock.calls.some(
+          ([input]) => input?.code === 'ONLY-PITBULL' && input?.appliesTo === 'combo',
+        ),
+      ).toBe(true),
+    )
+    await waitFor(() => expect(sessionStorage.getItem('plu:pending-promotion-code')).toBe(null))
+    // Y nadie volvió a la ficha.
+    expect(onNavigate).not.toHaveBeenCalledWith('profile', expect.anything())
   })
 })

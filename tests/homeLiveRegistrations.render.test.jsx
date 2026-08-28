@@ -103,6 +103,22 @@ describe('inscriptos reales en la landing', () => {
     expect(fill.style.inlineSize).toBe('29%')
   })
 
+  it('oculta la ocupación cuando el organizador la desactivó en el evento', async () => {
+    fetchSummary.mockResolvedValue({
+      capacity: 180,
+      registered: 50,
+      remaining: 130,
+      progressPublic: false,
+      recent: [{ displayName: 'Virginia G.', gym: '', registeredAt: '2026-08-12T12:00:00-03:00' }],
+    })
+
+    renderHome(eventFor('pitbull-oculto', 'Pitbull oculto'))
+
+    await waitFor(() => expect(fetchSummary).toHaveBeenCalledWith('pitbull-oculto'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(document.querySelector('.pitbull-spotlight__home-live')).toBeNull()
+  })
+
   it('con cero inscriptos no pinta un contador vacío', async () => {
     fetchSummary.mockResolvedValue({ capacity: 80, registered: 0, remaining: 80, recent: [] })
 

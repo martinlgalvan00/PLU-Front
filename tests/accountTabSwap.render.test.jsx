@@ -28,8 +28,13 @@ describe('cinta de la cuenta como fuente única del orden', () => {
       // Sin ficha de canje suelta: Beneficios se retiró de la cinta y el código
       // se canjea dentro del checkout de Afiliación o de Inscripción, que es
       // también donde se escanea su QR. No hay ruta pública de canje.
-      // Sin "Oferta exclusiva": las ofertas generadas por código quedaron
-      // retiradas (20260915100000) y ya no hay ficha que abrir.
+      //
+      // "Tu código" sí está, y es condicional: el orden la incluye porque de
+      // acá sale la dirección de la transición del panel, pero sólo se dibuja
+      // para quien canjeó un código-paquete (`visibleIds` en AthleteProfilePage,
+      // 20260926100000). Las modalidades retiradas `offer`/`access` siguen sin
+      // poder abrirla: `fetchOfferUnlocks` filtra por la modalidad viva.
+      'account-offer',
       'account-events',
       'account-history',
       'account-membership',

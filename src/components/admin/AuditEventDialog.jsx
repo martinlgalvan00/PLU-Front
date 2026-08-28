@@ -39,6 +39,20 @@ function formatDateTime(value) {
   })
 }
 
+function formatAuditTerm(t, group, value) {
+  if (!value) return null
+  const key = `admin.audit.${group}.${String(value).toLowerCase()}`
+  const translated = t(key)
+  return translated === key ? String(value) : translated
+}
+
+function formatSeverity(t, severity) {
+  if (!severity) return '—'
+  const key = `admin.audit.severities.${String(severity).toLowerCase()}`
+  const translated = t(key)
+  return translated === key ? String(severity) : translated
+}
+
 /** Fila `clave: valor` que sólo existe si hay valor. */
 function Fact({ label, children }) {
   if (children === null || children === undefined || children === '') return null
@@ -236,7 +250,9 @@ export default function AuditEventDialog({ eventId, onClose }) {
                 <Fact label={t('admin.auditDetail.factActor')}>
                   {`${labels.actor(event.actorType)}${event.actorId ? ` · ${event.actorId}` : ''}`}
                 </Fact>
-                <Fact label={t('admin.auditDetail.factSeverity')}>{event.severity}</Fact>
+                <Fact label={t('admin.auditDetail.factSeverity')}>
+                  {formatSeverity(t, event.severity)}
+                </Fact>
                 <Fact label={t('admin.auditDetail.factRequestId')}>
                   {failure?.requestId ? <code>{failure.requestId}</code> : null}
                 </Fact>
@@ -249,40 +265,8 @@ export default function AuditEventDialog({ eventId, onClose }) {
                   <TriangleAlert size={15} aria-hidden /> {t('admin.auditDetail.failureTitle')}
                 </h3>
 
-                {/* El titular es el mensaje del error: el operador vino a leer
-                    lo que produjo el servidor. Con una traducción operativa
-                    manda esa y el técnico queda plegado. El título del
-                    diagnóstico NO entra acá: es del bloque "por qué falló", y
-                    ponerlo en los dos lugares repetía la misma frase mientras
-                    el mensaje real desaparecía del diálogo. */}
-                {failure.message ? (
-                  <>
-                    <p className="audit-detail__message">
-                      {failure.operatorMessage ?? failure.message}
-                    </p>
-                    {failure.operatorMessage && failure.operatorMessage !== failure.message ? (
-                      <details className="audit-detail__provider-message">
-                        <summary>{t('admin.auditDetail.providerMessage')}</summary>
-                        <p>{failure.message}</p>
-                      </details>
-                    ) : null}
-                  </>
-                ) : null}
-
-                <dl className="audit-detail__facts">
-                  <Fact label={t('admin.auditDetail.factCode')}>
-                    {failure.code ? <code>{failure.code}</code> : null}
-                  </Fact>
-                  <Fact label={t('admin.auditDetail.factHttp')}>{failure.httpStatus}</Fact>
-                  <Fact label={t('admin.auditDetail.factErrorName')}>{failure.name}</Fact>
-                  <Fact label={t('admin.auditDetail.factStage')}>{failure.stage}</Fact>
-                  <Fact label={t('admin.auditDetail.factEntrypoint')}>{failure.entrypoint}</Fact>
-                  <Fact label={t('admin.auditDetail.factProvider')}>{failure.provider}</Fact>
-                </dl>
-
-                {/* Por qué falló, en lenguaje de negocio y no de stack. */}
                 {failure.diagnosis || failure.reason || failure.statusDetail ? (
-                  <div className="audit-detail__why">
+                  <div className="audit-detail__why audit-detail__why--lead">
                     <h4>{t('admin.auditDetail.whyTitle')}</h4>
 
                     {failure.diagnosis?.title ? (
@@ -308,8 +292,6 @@ export default function AuditEventDialog({ eventId, onClose }) {
                       </p>
                     ) : null}
 
-                    {/* Los pasos que el catálogo de fallas ya tenía escritos y
-                        que el panel nunca mostró. */}
                     {failure.diagnosis?.fix?.length ? (
                       <>
                         <h4>{t('admin.auditDetail.fixTitle')}</h4>
@@ -323,35 +305,67 @@ export default function AuditEventDialog({ eventId, onClose }) {
                   </div>
                 ) : null}
 
-                {failure.origin ? (
-                  <div className="audit-detail__where">
-                    <h4>
-                      <FileCode2 size={14} aria-hidden /> {t('admin.auditDetail.whereTitle')}
-                    </h4>
-                    <OriginLine origin={failure.origin} />
-                  </div>
+                {failure.message ? (
+                  <>
+                    <p className="audit-detail__message">
+                      {failure.operatorMessage ?? failure.message}
+                    </p>
+                    {failure.operatorMessage && failure.operatorMessage !== failure.message ? (
+                      <details className="audit-detail__provider-message">
+                        <summary>{t('admin.auditDetail.providerMessage')}</summary>
+                        <p>{failure.message}</p>
+                      </details>
+                    ) : null}
+                  </>
                 ) : null}
 
-                {failure.causes.length ? (
-                  <div className="audit-detail__causes">
-                    <h4>{t('admin.auditDetail.causesTitle')}</h4>
-                    <ol>
-                      {failure.causes.map((cause, index) => (
-                        <li key={`${cause.message ?? 'cause'}-${index}`}>
-                          {cause.name ? <code>{cause.name}</code> : null}
-                          <span>{cause.message}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ) : null}
+                <details className="audit-detail__technical">
+                  <summary>{t('admin.audit.technicalDetails')}</summary>
+                  <dl className="audit-detail__facts">
+                    <Fact label={t('admin.auditDetail.factCode')}>
+                      {failure.code ? <code>{failure.code}</code> : null}
+                    </Fact>
+                    <Fact label={t('admin.auditDetail.factHttp')}>{failure.httpStatus}</Fact>
+                    <Fact label={t('admin.auditDetail.factErrorName')}>{failure.name}</Fact>
+                    <Fact label={t('admin.auditDetail.factStage')}>
+                      {formatAuditTerm(t, 'stages', failure.stage)}
+                    </Fact>
+                    <Fact label={t('admin.auditDetail.factEntrypoint')}>
+                      {formatAuditTerm(t, 'entrypoints', failure.entrypoint)}
+                    </Fact>
+                    <Fact label={t('admin.auditDetail.factProvider')}>{failure.provider}</Fact>
+                  </dl>
 
-                {failure.stack ? (
-                  <details className="audit-detail__stack" open>
-                    <summary>{t('admin.auditDetail.stackTitle')}</summary>
-                    <pre>{failure.stack}</pre>
-                  </details>
-                ) : null}
+                  {failure.origin ? (
+                    <div className="audit-detail__where">
+                      <h4>
+                        <FileCode2 size={14} aria-hidden /> {t('admin.auditDetail.whereTitle')}
+                      </h4>
+                      <OriginLine origin={failure.origin} />
+                    </div>
+                  ) : null}
+
+                  {failure.causes.length ? (
+                    <div className="audit-detail__causes">
+                      <h4>{t('admin.auditDetail.causesTitle')}</h4>
+                      <ol>
+                        {failure.causes.map((cause, index) => (
+                          <li key={`${cause.message ?? 'cause'}-${index}`}>
+                            {cause.name ? <code>{cause.name}</code> : null}
+                            <span>{cause.message}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+
+                  {failure.stack ? (
+                    <details className="audit-detail__stack">
+                      <summary>{t('admin.auditDetail.stackTitle')}</summary>
+                      <pre>{failure.stack}</pre>
+                    </details>
+                  ) : null}
+                </details>
               </section>
             ) : null}
 

@@ -218,7 +218,19 @@ export function createSupabasePaymentRepository(
       )
     },
 
-    async recordWebhook({ notificationId, resourceId, type, action, requestId, payload }) {
+    // `signatureValid` en false es la marca de una IPN: MP no firma ese formato,
+    // así que el evento se resolvió preguntándole a la API por el recurso en vez
+    // de confiar en el manifiesto HMAC. Queda asentado para poder distinguir en
+    // la bandeja qué entró firmado y qué se verificó contra el proveedor.
+    async recordWebhook({
+      notificationId,
+      resourceId,
+      type,
+      action,
+      requestId,
+      payload,
+      signatureValid = true,
+    }) {
       const existing = assertResult(
         await client
           .from('payment_integration_events')
@@ -241,7 +253,7 @@ export function createSupabasePaymentRepository(
             event_type: type,
             action,
             request_id: requestId,
-            signature_valid: true,
+            signature_valid: signatureValid,
             status: 'received',
             attempts_count: 0,
             // Se reclama inline inmediatamente después de insertar. Dejarlo
@@ -316,8 +328,27 @@ export function createSupabasePaymentRepository(
      * reprocesamiento del historico. Una orden sin preferencia nunca abrio
      * checkout, asi que no hay nada que preguntarle al proveedor.
      */
-    async listClosedOrdersWithoutPayments(limit = 20, { sinceHours = 6 } = {}) {
+    /**
+     * Órdenes de Mercado Pago que ya no deberían seguir esperando y no tienen
+     * un solo asiento de cobro local. Son las candidatas a "en MP figura pagado
+     * y acá no figura nada".
+     *
+     * Incluye dos formas de quedarse sin cobro, no una:
+     *
+     *   - `cancelado`/`rechazado`: el cron de dominio ya las cerró.
+     *   - `pendiente` con la ventana vencida: el checkout se abrió, nadie
+     *     volvió, y el cron de dominio todavía no pasó a cerrarla.
+     *
+     * El segundo caso faltaba, y es justamente el que reporta la organización:
+     * "pagó por Mercado Pago, figura pendiente y no da de alta". Con el webhook
+     * caído esa orden no tenía ningún camino de rescate — se quedaba pendiente
+     * hasta que la cancelaran, y recién ahí, en la próxima pasada, alguien le
+     * preguntaba a MP. Una orden pendiente pero todavía en ventana no entra: el
+     * atleta puede estar pagando en este momento.
+     */
+    async listOrdersWithoutLocalPayment(limit = 20, { sinceHours = 6 } = {}) {
       const since = new Date(Date.now() - sinceHours * 3_600_000).toISOString()
+      const nowIso = new Date().toISOString()
       const candidates =
         assertResult(
           await client
@@ -325,12 +356,14 @@ export function createSupabasePaymentRepository(
             .select('id')
             .eq('organization_id', organizationId)
             .eq('method', 'mercado_pago')
-            .in('status', ['cancelado', 'rechazado'])
             .not('provider_preference_id', 'is', null)
             .gte('updated_at', since)
+            .or(
+              `status.in.(cancelado,rechazado),and(status.eq.pendiente,expires_at.lt.${nowIso})`,
+            )
             .order('updated_at', { ascending: false })
             .limit(limit),
-          'No se pudieron leer las ordenes cerradas.',
+          'No se pudieron leer las ordenes sin cobro local.',
         ) ?? []
       if (!candidates.length) return []
 

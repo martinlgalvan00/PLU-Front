@@ -39,6 +39,11 @@ vi.mock('@mercadopago/sdk-react', () => ({
 }))
 
 vi.mock('../src/services/athleteApi.js', () => ({
+  // El alta y la ficha personal piden el listado de gimnasios al montar
+  // (RegisterPage / PersonalDataSection). Omitirlo en el doble no desvia el
+  // test a otra rama: revienta el render entero con "No fetchGyms export is
+  // defined on the mock".
+  fetchGyms: vi.fn(async () => []),
   previewDiscountCode: vi.fn(),
   unlockOfferCode: vi.fn(),
   resendAthleteVerification: vi.fn(),
@@ -159,7 +164,7 @@ describe('códigos promocionales desde Afiliación', () => {
     expect(screen.queryByText('Redirigiéndote a tu pestaña secreta…')).toBe(null)
   })
 
-  it('un código de combo tampoco desbloquea nada: el error seco es la respuesta', async () => {
+  it('un código de combo no desbloquea nada y dice que es del paquete', async () => {
     vi.mocked(previewDiscountCode).mockResolvedValue({
       valid: false,
       reason: 'not_applicable',
@@ -170,7 +175,12 @@ describe('códigos promocionales desde Afiliación', () => {
 
     await typeCode('COMBO150')
 
-    await waitFor(() => expect(screen.getByText('Ese código no aplica a este pago.')).toBeTruthy())
+    // El preview devuelve el alcance (`appliesTo`) y la pantalla lo usa para
+    // decir de qué es el código, en vez del "no aplica a este pago" seco que
+    // dejaba al atleta sin saber dónde usarlo (`describeDiscountPreviewError`).
+    await waitFor(() =>
+      expect(screen.getByText(/Ese código es del combo \(afiliación \+ inscripción juntas\)/)).toBeTruthy(),
+    )
     expect(unlockOfferCode).not.toHaveBeenCalled()
   })
 

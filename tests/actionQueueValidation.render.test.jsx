@@ -320,3 +320,39 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
     expect(screen.queryByText('Puerta')).toBeNull()
   })
 })
+
+describe('ActionQueue — lectura compacta por tipo', () => {
+  it('agrupa el mismo tipo aunque cambie la prioridad y no arma cajas de encabezado', () => {
+    renderQueue([
+      PAYMENT_ITEM,
+      { ...PAYMENT_ITEM, id: 'action-pay-p3', paymentId: 'p3', priority: 'medium' },
+      {
+        id: 'action-reg-1',
+        type: 'registration',
+        priority: 'high',
+        subject: 'Otra atleta',
+        summary: 'Inscripción observada',
+        detail: 'Pitbull Classic',
+        section: 'registrations',
+      },
+    ])
+
+    expect(document.querySelectorAll('.action-queue__type-head')).toHaveLength(0)
+    expect(document.querySelectorAll('.action-queue__type-block')).toHaveLength(2)
+    expect(screen.getAllByText('Pago')).toHaveLength(2)
+    expect(screen.getAllByText('Inscripción')).toHaveLength(1)
+    expect(screen.queryByText('Urgente')).toBeNull()
+    expect(screen.queryByText('Pendiente')).toBeNull()
+  })
+
+  it('conserva los grupos de prioridad cuando el drawer los pide', () => {
+    renderQueue(
+      [PAYMENT_ITEM, { ...PAYMENT_NO_PROOF, priority: 'medium', subject: 'Otra atleta' }],
+      { showGroupHeads: true },
+    )
+
+    expect(screen.getByText('Urgente')).toBeTruthy()
+    expect(screen.getByText('Pendiente')).toBeTruthy()
+    expect(screen.getAllByText('Pago')).toHaveLength(2)
+  })
+})

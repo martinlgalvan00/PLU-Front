@@ -32,6 +32,7 @@ describe('fetchEventRegistrationSummary', () => {
       capacity: 80,
       registered: 1,
       remaining: 79,
+      progressPublic: true,
       recent: [
         {
           displayName: 'Ana T.',
@@ -42,5 +43,25 @@ describe('fetchEventRegistrationSummary', () => {
       ],
     })
     expect(apiGet).toHaveBeenCalledWith('/api/events/pitbull-classic-2026/registration-summary')
+  })
+
+  it('propaga progressPublic cuando el organizador oculta la ocupación', async () => {
+    apiGet.mockResolvedValue({
+      summary: {
+        capacity: 180,
+        registered: 50,
+        remaining: 130,
+        progressPublic: false,
+        recent: [],
+      },
+    })
+
+    await expect(fetchEventRegistrationSummary('pitbull-classic-2026')).resolves.toEqual({
+      capacity: 180,
+      registered: 50,
+      remaining: 130,
+      progressPublic: false,
+      recent: [],
+    })
   })
 })

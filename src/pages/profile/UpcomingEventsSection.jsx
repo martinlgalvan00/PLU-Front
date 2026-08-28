@@ -14,6 +14,7 @@ import {
 } from '../../lib/athleteEventStatus.js'
 import { isRegistrationAdmitted } from '../../lib/status.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
+import FinancedDebtNotice from '../../components/ui/FinancedDebtNotice.jsx'
 
 function eventRequiresMembership(event) {
   return Boolean(event?.requiresMembership)
@@ -28,9 +29,19 @@ export default function UpcomingEventsSection({
   athlete,
   onNavigateSection,
   checkoutAvailability = {},
+  // Orden financiada abierta. Sólo interesa si otorgó una inscripción: una
+  // afiliación financiada se avisa en su propia ficha, no debajo de un torneo.
+  pendingFinancedPayment = null,
 }) {
   const { locale, t } = useI18n()
   const hasActiveMembership = isMembershipCurrent(membership)
+  // El combo otorga las dos cosas; una afiliación suelta no otorga ninguna
+  // inscripción, así que su deuda no se cuenta acá.
+  const financedRegistration = ['registration', 'combo'].includes(
+    pendingFinancedPayment?.conceptType,
+  )
+    ? pendingFinancedPayment
+    : null
   const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
   const [incompleteWarningEvent, setIncompleteWarningEvent] = useState(null)
 
@@ -172,6 +183,17 @@ export default function UpcomingEventsSection({
                       {t('account.events.membershipRequiredText')}
                     </p>
                   ) : null}
+                  {/* "Inscripto" puede serlo por financiamiento: la deuda se
+                      dice debajo de la inscripción que sostiene, no en otra
+                      pantalla. Sólo en la fila que está admitida — es la única
+                      donde el aviso significa algo. */}
+                  {registered && financedRegistration ? (
+                    <FinancedDebtNotice
+                      payment={financedRegistration}
+                      scope="registration"
+                      onSettle={() => onNavigateSection?.('account-payments')}
+                    />
+                  ) : null}
                 </div>
                 <span className="account-event-status" data-state={registrationState}>
                   {registered
@@ -192,7 +214,7 @@ export default function UpcomingEventsSection({
                   }
                 >
                   {registered
-                    ? t('account.events.alreadyRegistered')
+                    ? t('account.events.alreadyRegistered', { event: event.title })
                     : !registrationCheckoutEnabled
                       ? t('pages.members.ctaCheckoutSoon')
                       : paymentPending

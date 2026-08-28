@@ -141,16 +141,9 @@ export default function TicketOrdersSection({
           />
         </div>
         <div className="admin-orders-block__actions">
-          <span className="admin-orders-block__amount">
+          <span className="admin-orders-block__amount admin-orders-block__amount--hero">
             {withProofCount} {t('admin.ticketOrders.statsWithProof')}
           </span>
-          <button
-            type="button"
-            className="btn btn--ghost btn--small"
-            onClick={() => void onRefresh?.()}
-          >
-            {t('common.retry')}
-          </button>
         </div>
       </div>
 

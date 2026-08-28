@@ -645,11 +645,49 @@ export async function redeemPromotionCodeRequest({ code, context = {} }) {
   }
 }
 
-/** Ofertas exclusivas que este atleta ya canjeó. Sostiene la ficha de Mi cuenta. */
+/**
+ * Códigos-paquete que este atleta ya canjeó. Sostiene la ficha de Mi cuenta.
+ *
+ * El filtro no es cosmético. Las modalidades `offer` y `access` —las ofertas
+ * exclusivas de 20260902100000— están retiradas del producto (20260915100000) y
+ * ninguna pantalla sabe dibujarlas: un servidor que todavía devolviera una fila
+ * histórica no puede terminar renderizada por accidente. Lo único que llega a la
+ * ficha es la modalidad viva, el precio promocional con alcance de combo, que ES
+ * el paquete desde 20260918100000.
+ *
+ * Se filtra acá y no en la RPC porque la RPC también alimenta la auditoría del
+ * panel, donde las filas históricas sí tienen que seguir siendo legibles.
+ */
+export function isBundleOffer(offer) {
+  return offer?.kind === 'fixed_price' && offer?.appliesTo === 'combo'
+}
+
 export async function fetchOfferUnlocks() {
-  // Las ofertas exclusivas por código están retiradas: no consultar ni
-  // transportar datos que puedan terminar renderizados por accidente.
-  return []
+  const result = await apiGet('/api/athletes/me/offer-unlocks')
+  return (result?.offers ?? []).filter(isBundleOffer)
+}
+
+/**
+ * Pago diferido: quedar habilitado sin declarar un pago que todavía no se hizo.
+ *
+ * No es lo mismo que `confirmAthleteManualPayment`, y la diferencia importa del
+ * lado de Finanzas: acá no se marca ninguna declaración, así que la orden no
+ * entra a la cola de validación. Lo que sí arranca es el reloj del plazo.
+ */
+export async function deferAthleteFinancedPayment(orderId) {
+  const result = await apiPost(
+    `/api/athletes/me/payment-orders/${orderId}/financing-deferral`,
+    {},
+  )
+  return {
+    order: toCamelPaymentOrder(result.order),
+    membership: result.membership ? toCamelMembership(result.membership) : null,
+    registration: result.registration
+      ? toCamelRegistrationEntry({ registration: result.registration })
+      : null,
+    entitlementsGranted: result.entitlementsGranted === true,
+    duplicate: result.duplicate === true,
+  }
 }
 
 export async function createCompetitionRegistrationCombo({
@@ -748,6 +786,52 @@ export async function setEventRegistrationStatus(registrationId, status, reason)
       : null,
     duplicate: Boolean(result.duplicate),
   }
+}
+
+/**
+ * Observaciones sobre una inscripción o una afiliación.
+ *
+ * El hilo es independiente del estado: `addObservation` no mueve nada de
+ * dominio, sólo deja escrito. El motivo de un cambio de estado entra al mismo
+ * hilo desde la base (lo asienta `staff_set_registration_status`), así que las
+ * dos formas de anotar se leen juntas y en orden sin que la UI las una a mano.
+ */
+function toCamelObservation(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    entityType: row.entity_type ?? row.entityType,
+    entityId: row.entity_id ?? row.entityId,
+    body: row.body,
+    // `null` = observación suelta. Con valor = la escribió alguien al mover el
+    // estado, y es el estado que puso.
+    statusChange: row.status_change ?? row.statusChange ?? null,
+    author: row.author,
+    createdAt: row.created_at ?? row.createdAt,
+  }
+}
+
+export async function addObservation(entityType, entityId, body) {
+  const result = await apiPost('/api/athletes/admin/observations', {
+    entityType,
+    entityId,
+    body,
+  })
+  return { observation: toCamelObservation(result.observation) }
+}
+
+export async function listObservations(entityType, entityIds = []) {
+  const ids = [...new Set((entityIds ?? []).filter(Boolean))]
+  if (!ids.length) return []
+  const result = await apiPost('/api/athletes/admin/observations/list', {
+    entityType,
+    entityIds: ids,
+  })
+  return (result.observations ?? []).map(toCamelObservation)
+}
+
+export async function deleteObservation(observationId) {
+  return apiDelete(`/api/athletes/admin/observations/${observationId}`)
 }
 
 function toCredentialResult(result, eventSlug) {

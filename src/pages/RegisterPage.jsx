@@ -9,7 +9,6 @@ import {
   Check,
   Eye,
   EyeOff,
-  ImageDown,
   User,
   Mail,
   Phone,
@@ -33,7 +32,7 @@ import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
 import PromotionRevealModal from '../components/ui/PromotionRevealModal.jsx'
 import CodeScanButton from '../components/ui/CodeScanButton.jsx'
-import ConfirmationSeal from '../components/ui/ConfirmationSeal.jsx'
+import RegisterCompetitionConfirmation from '../components/ui/RegisterCompetitionConfirmation.jsx'
 import RegisterMembershipConfirmation from '../components/ui/RegisterMembershipConfirmation.jsx'
 import RegisterProfileWelcome from '../components/ui/RegisterProfileWelcome.jsx'
 import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedCheckout.jsx'
@@ -698,7 +697,7 @@ export default function RegisterPage({
    * Se valida que sea un string: esta función también está cableada directo como
    * `onClick`, así que el primer argumento puede ser el evento del click.
    */
-  async function applyDiscountCode(codeOverride) {
+  async function applyDiscountCode(codeOverride, { stayInCheckout = false } = {}) {
     const override = typeof codeOverride === 'string' ? codeOverride : null
     const code = (override ?? discountCodeInput).trim().toUpperCase()
     if (!code || !event?.slug) return
@@ -738,8 +737,18 @@ export default function RegisterPage({
         }
       }
       const resolvedDestination = promotionDestination(resolution)
+      // El código-paquete de ESTE torneo puede quedarse: la ficha manda para
+      // acá a cobrar con la pasarela (`stayInCheckout`, vía el pendiente que
+      // guarda SecretBundleSection), y rebotar de vuelta a la ficha era un
+      // ping-pong sin salida — la pasarela vive en este checkout y en ningún
+      // otro lado. Quien lo tipea acá a mano sigue yendo a su ficha.
+      const opensBundleForThisEvent =
+        resolution?.accepted &&
+        resolution.action === 'open_bundle' &&
+        resolution.destination?.eventSlug === event.slug
       const opensAnotherCheckout =
         resolution?.accepted &&
+        !(stayInCheckout && opensBundleForThisEvent) &&
         (resolvedDestination?.view === 'profile' ||
           (resolvedDestination?.view === 'competition' &&
             resolvedDestination.options?.eventSlug !== event.slug))
@@ -787,6 +796,10 @@ export default function RegisterPage({
               setRevealPromotion(resolution)
               setRevealOpen(true)
             }
+            // El paquete quedó aplicado en este checkout: el pendiente que lo
+            // trajo ya cumplió y no tiene que volver a disparar en la próxima
+            // pantalla que lea códigos pendientes.
+            clearPendingPromotionCode()
             return
           }
           setDiscountError(describeDiscountError(comboPreview))
@@ -820,7 +833,10 @@ export default function RegisterPage({
     if (destination.eventSlug && destination.eventSlug !== event.slug) return
     pendingPromotionAppliedRef.current = pending.code
     setDiscountCodeInput(pending.code)
-    void applyDiscountCode(pending.code)
+    // `stayInCheckout`: un pendiente con destino 'competition' viene A cobrarse
+    // acá (el desvío a la pasarela de la ficha del paquete incluido), así que
+    // el resolvedor no puede devolverlo a la ficha de la que salió.
+    void applyDiscountCode(pending.code, { stayInCheckout: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event?.slug, flow])
 
@@ -1684,6 +1700,16 @@ export default function RegisterPage({
   const membershipConfirmedActive =
     membershipOrderConfirmed && getStatusMeta(visibleOrder.status, t).tone === 'success'
   const profileOrderConfirmed = flow === 'profile' && Boolean(visibleOrder)
+  /**
+   * La inscripción cierra igual que la afiliación: con el lugar ya admitido la
+   * pantalla deja de ser un checkout y pasa a ser una entrega, así que el
+   * bloque de confirmación se muda a la columna principal y el estado de orden
+   * del aside se apaga. Antes el acuse vivía al pie de esa lista de datos: el
+   * dato administrativo se leía primero, la card no se veía nunca y el papel
+   * salía desde una columna angosta contra el borde de la pantalla.
+   */
+  const competitionOrderConfirmed =
+    flow === 'competition' && Boolean(visibleOrder) && registrationAdmitted
   const competitionSettling = flow === 'competition' && Boolean(visibleOrder) && !changingMethod
   /**
    * "Settling" es el rato en que la orden todavía se está cobrando. Con la
@@ -1732,11 +1758,26 @@ export default function RegisterPage({
       ) : null}
     </header>
   ) : flow === 'competition' ? (
-    <header className="register-intro register-intro--competition">
-      <p className="register-intro__eyebrow">{t('pages.register.competitionEyebrow')}</p>
+    /* Con la inscripción admitida el intro no puede seguir diciendo "definí
+       cómo competís y generá tu orden": ese paso ya está cumplido y la
+       pantalla se contradecía a sí misma junto al acuse. El título del evento
+       se mantiene —es el dato que ubica— y la bajada pasa a nombrar el hecho.
+       Los metadatos (atleta, fecha, sede) siguen igual en los dos estados. */
+    <header
+      className={`register-intro register-intro--competition${
+        competitionOrderConfirmed ? ' register-intro--confirmed' : ''
+      }`}
+    >
+      <p className="register-intro__eyebrow">
+        {competitionOrderConfirmed
+          ? t('pages.register.competitionConfirmedTitle')
+          : t('pages.register.competitionEyebrow')}
+      </p>
       <h1 className="register-intro__title">{event?.title || content[0]}</h1>
       <p className="register-intro__desc">
-        {t('pages.register.competitionDescShort', { name: athlete?.fullName ?? '' })}
+        {competitionOrderConfirmed
+          ? t('pages.register.competitionConfirmedDesc')
+          : t('pages.register.competitionDescShort', { name: athlete?.fullName ?? '' })}
       </p>
       <div className="register-intro__meta register-intro__meta--competition">
         {athlete?.fullName ? (
@@ -1775,10 +1816,16 @@ export default function RegisterPage({
 
   // En competencia sin orden el total vive en el aside + footer: el hint vacío
   // solo sumaba ruido al viewport.
+  //
+  // Con la inscripción ya admitida este bloque se apaga por completo: la
+  // confirmación pasa a la columna principal con su propio ledger, igual que
+  // en afiliación. Dejarlo prendido duplicaba referencia e importe y ponía el
+  // dato administrativo por encima del hecho.
   const registerStatus = flow !== 'profile' &&
     visibleOrder &&
     flow !== 'membership' &&
-    !((mpSettling || changingMethod) && !cardData) && (
+    !competitionOrderConfirmed &&
+    !(mpSettling || changingMethod) && (
       <div className="register-status register-status--settle">
         {visibleOrder ? (
           <div className="register-status__body register-status__body--success">
@@ -1821,38 +1868,10 @@ export default function RegisterPage({
                 ) : null}
               </div>
             )}
-            {cardData && (
-              <>
-                {/* Inscripción admitida: el momento merece una acción propia,
-                    no un botón más en la lista de datos de la orden. El bloque
-                    ocupa la fila completa para no entrar en el grid de dos
-                    columnas que arma el resto del estado. */}
-                <div className="register-status__celebration">
-                  <ConfirmationSeal
-                    variant="registration"
-                    celebrate
-                    eyebrow={t('pages.register.sealRegistrationEyebrow')}
-                    title={t('pages.register.competitionCardEyebrow')}
-                    detail={t('pages.register.competitionCardDesc')}
-                  />
-                  <button
-                    type="button"
-                    className="register-status__celebration-cta"
-                    onClick={openCardModal}
-                    id="register-generate-card-btn"
-                  >
-                    <ImageDown size={16} aria-hidden />
-                    {t('pages.register.competitionShareCard')}
-                  </button>
-                </div>
-                <CardPreviewModal
-                  open={cardOpen}
-                  onClose={() => setCardOpen(false)}
-                  cardData={cardData}
-                  initialFormat={cardInitialFormat}
-                />
-              </>
-            )}
+            {/* El acuse de inscripción admitida se fue de acá: ahora es
+                `RegisterCompetitionConfirmation` en la columna principal. Este
+                bloque quedó siendo lo que dice ser —el estado de una orden en
+                curso— y ya no se monta con la inscripción cerrada. */}
           </div>
         ) : (
           <p className="register-status__hint">{t('pages.register.orderHint')}</p>
@@ -1984,6 +2003,28 @@ export default function RegisterPage({
                   initialFormat={cardInitialFormat}
                 />
               )}
+            </div>
+          ) : competitionOrderConfirmed ? (
+            /* Va antes que los gates de checkout a propósito: si Administración
+               cierra las inscripciones después de que este atleta pagó, la
+               pantalla tiene que seguir mostrándole su lugar confirmado y no un
+               cartel de "inscripciones cerradas" sobre una orden liquidada. */
+            <div className="register-card register-card--confirmation">
+              <RegisterCompetitionConfirmation
+                cardData={cardData}
+                order={visibleOrder}
+                slotLabel={[form.division, form.category].filter(Boolean).join(' · ')}
+                onNavigate={onNavigate}
+                onOpenCard={openCardModal}
+              />
+              {cardData ? (
+                <CardPreviewModal
+                  open={cardOpen}
+                  onClose={() => setCardOpen(false)}
+                  cardData={cardData}
+                  initialFormat={cardInitialFormat}
+                />
+              ) : null}
             </div>
           ) : checkoutFlowsLocked && flow === 'competition' ? (
             <div className="register-card register-card--launch-gate">
