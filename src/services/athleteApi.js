@@ -788,6 +788,52 @@ export async function setEventRegistrationStatus(registrationId, status, reason)
   }
 }
 
+/**
+ * Observaciones sobre una inscripción o una afiliación.
+ *
+ * El hilo es independiente del estado: `addObservation` no mueve nada de
+ * dominio, sólo deja escrito. El motivo de un cambio de estado entra al mismo
+ * hilo desde la base (lo asienta `staff_set_registration_status`), así que las
+ * dos formas de anotar se leen juntas y en orden sin que la UI las una a mano.
+ */
+function toCamelObservation(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    entityType: row.entity_type ?? row.entityType,
+    entityId: row.entity_id ?? row.entityId,
+    body: row.body,
+    // `null` = observación suelta. Con valor = la escribió alguien al mover el
+    // estado, y es el estado que puso.
+    statusChange: row.status_change ?? row.statusChange ?? null,
+    author: row.author,
+    createdAt: row.created_at ?? row.createdAt,
+  }
+}
+
+export async function addObservation(entityType, entityId, body) {
+  const result = await apiPost('/api/athletes/admin/observations', {
+    entityType,
+    entityId,
+    body,
+  })
+  return { observation: toCamelObservation(result.observation) }
+}
+
+export async function listObservations(entityType, entityIds = []) {
+  const ids = [...new Set((entityIds ?? []).filter(Boolean))]
+  if (!ids.length) return []
+  const result = await apiPost('/api/athletes/admin/observations/list', {
+    entityType,
+    entityIds: ids,
+  })
+  return (result.observations ?? []).map(toCamelObservation)
+}
+
+export async function deleteObservation(observationId) {
+  return apiDelete(`/api/athletes/admin/observations/${observationId}`)
+}
+
 function toCredentialResult(result, eventSlug) {
   return {
     // La proyección solo trae documento y fecha de nacimiento cuando el

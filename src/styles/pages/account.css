@@ -2383,8 +2383,18 @@
   background: transparent;
   border-color: var(--color-border-subtle);
   color: var(--color-text-muted);
+  line-height: 1.3;
   opacity: 1;
+  padding-block: 8px;
+  text-align: center;
   transform: none;
+  white-space: normal;
+}
+
+@media (min-width: 721px) {
+  #account-events .account-events-list__cta.is-registered {
+    max-width: 14.5rem;
+  }
 }
 
 #account-events .account-section__empty {
@@ -2412,6 +2422,10 @@
     grid-column: 1 / -1;
     justify-self: stretch;
     width: 100%;
+  }
+
+  #account-events .account-events-list__cta.is-registered {
+    max-width: none;
   }
 
   #account-events .account-events-list__body .pitbull-brand-mark--sm .pitbull-brand-mark__wordmark {

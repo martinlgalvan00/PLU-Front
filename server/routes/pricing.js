@@ -47,6 +47,20 @@ export const membershipPlanVersionSchema = z.object({
 const planStatusSchema = z.object({ active: z.boolean() })
 const planRetirementSchema = z.object({ retiresAt: optionalDateTime })
 
+/**
+ * Cambio de precio de una inscripción, ahora o programado. `effectiveAt`
+ * vacío = rige desde ya; con fecha futura queda pendiente y lo aplica el
+ * barrido de pg_cron (`apply_scheduled_event_registration_prices`). Un evento
+ * tiene a lo sumo UN cambio pendiente: mandar otro lo reemplaza.
+ */
+const eventRegistrationPriceSchema = z.object({
+  price: money,
+  // Precio para transferencia/efectivo. Vacío = cobra igual que `price` en
+  // cualquier canal — mismo contrato que `manualPrice` del plan.
+  manualPrice: money.optional(),
+  effectiveAt: optionalDateTime,
+})
+
 export const discountCodeSchema = z
   .object({
     id: z.string().uuid().optional(),
@@ -466,6 +480,63 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
           actor(req),
         )
         res.json({ plan })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * El precio de inscripción se cambia desde Tarifas, no desde el editor del
+   * evento: mismo permiso (`admin.pricing.write`) que el resto del catálogo
+   * económico, y sin disparar el upsert completo que reescribe jornadas y
+   * tipos de entrada. La RPC aplica en el momento o deja el cambio programado
+   * según `effectiveAt`.
+   */
+  router.patch(
+    '/events/:eventSlug/registration-price',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(eventRegistrationPriceSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const eventSlug = parseRouteParam(
+          z.string().trim().min(1).max(200),
+          req.params.eventSlug,
+          'El identificador del evento es inválido.',
+        )
+        const event = await repository().setEventRegistrationPrice(
+          eventSlug,
+          req.validatedBody,
+          actor(req),
+        )
+        res.json({ event })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  // Cancela el cambio programado que todavía no corrió. Idempotente: sin
+  // cambio pendiente devuelve el estado actual con `duplicate: true`.
+  router.delete(
+    '/events/:eventSlug/registration-price/schedule',
+    ...writeGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const eventSlug = parseRouteParam(
+          z.string().trim().min(1).max(200),
+          req.params.eventSlug,
+          'El identificador del evento es inválido.',
+        )
+        const event = await repository().clearEventRegistrationPriceSchedule(
+          eventSlug,
+          actor(req),
+        )
+        res.json({ event })
       } catch (error) {
         next(error)
       }

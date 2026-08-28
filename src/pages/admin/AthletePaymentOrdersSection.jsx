@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { BadgeCheck, HandCoins, Paperclip, RefreshCw, Route, ScanSearch } from 'lucide-react'
+import { BadgeCheck, HandCoins, Paperclip, Route, ScanSearch } from 'lucide-react'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
 import { PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import {
+  AdminActionOverflow,
   AdminIdentityCell,
   AdminMonoCell,
   AdminTableActions,
@@ -159,7 +160,6 @@ export default function AthletePaymentOrdersSection({
   const [traceOrderId, setTraceOrderId] = useState(null)
   const [revalidatingId, setRevalidatingId] = useState(null)
   const [revalidation, setRevalidation] = useState(null)
-  const [refreshing, setRefreshing] = useState(false)
   const [serverCounts, setServerCounts] = useState(null)
   // URLs firmadas de los comprobantes de las filas que se pueden validar,
   // pedidas en lote al cargar. Sin esto cada apertura del dialogo esperaba dos
@@ -186,10 +186,9 @@ export default function AthletePaymentOrdersSection({
   const load = useCallback(
     async (statusFilterKey) => {
       // El esqueleto es solo para la primera carga: cambiar de chip o releer
-      // despues de aprobar deja las filas en pantalla y avisa aparte, para no
-      // hacer parpadear la tabla que el operador esta mirando.
+      // despues de aprobar deja las filas en pantalla, para no hacer
+      // parpadear la tabla que el operador esta mirando.
       if (!loadedRef.current) setLoading(true)
-      else setRefreshing(true)
       setError('')
       try {
         const result = await listAthletePaymentOrders({
@@ -206,7 +205,6 @@ export default function AthletePaymentOrdersSection({
         setError(loadError?.message ?? t('admin.athletePayments.loadError'))
       } finally {
         setLoading(false)
-        setRefreshing(false)
       }
     },
     [prefetchProofs, t],
@@ -462,7 +460,7 @@ export default function AthletePaymentOrdersSection({
           options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
         />
         <div className="admin-orders-block__actions">
-          <span className="admin-orders-block__amount">
+          <span className="admin-orders-block__amount admin-orders-block__amount--meta">
             {t(
               counts.openAmountTruncated
                 ? 'admin.athletePayments.openAmountPartial'
@@ -470,17 +468,6 @@ export default function AthletePaymentOrdersSection({
               { amount: money(counts.openAmount, locale) },
             )}
           </span>
-          <button
-            type="button"
-            className="btn btn--ghost btn--small"
-            disabled={refreshing}
-            onClick={() => void load(status)}
-          >
-            <RefreshCw size={14} aria-hidden />
-            {refreshing
-              ? t('admin.athletePayments.refreshing')
-              : t('admin.athletePayments.refresh')}
-          </button>
         </div>
       </div>
 
@@ -672,41 +659,11 @@ export default function AthletePaymentOrdersSection({
               key: 'action',
               label: t('admin.columns.action'),
               mobile: 'action',
+              className: 'data-table__column--actions',
               render: (row) => (
-                <AdminTableActions>
-                  {/* La traza está disponible siempre, incluso sin permiso de
-                      aprobación: entender por qué un cobro no acreditó es una
-                      lectura, no una acción sobre la plata. */}
-                  <AdminIconButton
-                    icon={Route}
-                    label={t('admin.paymentTrace.open')}
-                    onClick={() => setTraceOrderId(row.id)}
-                    variant="ghost"
-                  />
-                  {/* Confrontar contra el proveedor es la vía sana cuando el
-                      estado que figura no coincide con la plata: no acredita
-                      nada por sí sola, aplica lo que responde Mercado Pago.
-                      Va antes que la acreditación manual para que sea lo
-                      primero que se prueba. */}
-                  {canEdit && row.method === 'mercado_pago' ? (
-                    <AdminIconButton
-                      disabled={revalidatingId === row.id || approvingId === row.id}
-                      icon={ScanSearch}
-                      label={t('admin.athletePayments.revalidate.action')}
-                      onClick={() => void revalidate(row.id)}
-                      variant="ghost"
-                    />
-                  ) : null}
-                  {/* Falta el comprobante y la orden todavía espera decisión:
-                      se dice, en vez de dejar un botón deshabilitado sin motivo.
-                      Es la mitad que aportaba el otro lado del merge.
-
-                      La condición sale de `paymentValidationService` y no de una
-                      lista de estados escrita acá: la regla completa (Mercado
-                      Pago nunca, estado abierto, comprobante salvo efectivo) ya
-                      vive ahí, es la que aplica el backend, y duplicarla inline
-                      es cómo empezaron a divergir las tres pantallas que ese
-                      servicio unificó. */}
+                <AdminTableActions className="admin-athlete-order-actions">
+                  {/* Validar / forzar quedan visibles; traza y revalidar van al menú
+                      “más” para no saturar la fila en desktop angosto y cards. */}
                   {isManualOrder(row) &&
                   isOpenOrder(row) &&
                   !isCashOrder(row) &&
@@ -734,9 +691,6 @@ export default function AthletePaymentOrdersSection({
                       variant="celeste"
                     />
                   )}
-                  {/* Vía de excepción: sólo aparece en las órdenes que el botón
-                      de validar no puede tocar (Mercado Pago, o rechazadas),
-                      para que no compita con el flujo normal. */}
                   {canForceSettle && canForceSettleOrder(row) ? (
                     <AdminIconButton
                       disabled={!row.validatable || approvingId === row.id}
@@ -750,6 +704,23 @@ export default function AthletePaymentOrdersSection({
                       variant="ghost"
                     />
                   ) : null}
+                  <AdminActionOverflow label={t('admin.actions.more')}>
+                    <AdminIconButton
+                      icon={Route}
+                      label={t('admin.paymentTrace.open')}
+                      onClick={() => setTraceOrderId(row.id)}
+                      variant="ghost"
+                    />
+                    {canEdit && row.method === 'mercado_pago' ? (
+                      <AdminIconButton
+                        disabled={revalidatingId === row.id || approvingId === row.id}
+                        icon={ScanSearch}
+                        label={t('admin.athletePayments.revalidate.action')}
+                        onClick={() => void revalidate(row.id)}
+                        variant="ghost"
+                      />
+                    ) : null}
+                  </AdminActionOverflow>
                 </AdminTableActions>
               ),
             },

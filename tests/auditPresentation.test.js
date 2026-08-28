@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { presentAuditEvent } from '../src/lib/auditPresentation.js'
+import { operatorFailureMessage, presentAuditEvent, resolveAuditHeadline } from '../src/lib/auditPresentation.js'
+import { buildAuditStatusFilterOptions } from '../src/lib/auditFilterHelpers.js'
 
 describe('presentAuditEvent', () => {
   it('pone el error como lead y deja el intento como hecho operativo', () => {
@@ -46,5 +47,53 @@ describe('presentAuditEvent', () => {
     expect(presented.leadKind).toBe('error')
     expect(presented.lead).toBe('El monto no coincide con la preferencia.')
     expect(presented.lead).not.toContain('[object Object]')
+  })
+})
+
+describe('resolveAuditHeadline', () => {
+  it('prioriza el título del diagnóstico sobre el mensaje crudo', () => {
+    const headline = resolveAuditHeadline({
+      summary: [{ field: 'error', value: 'payment not found in provider account' }],
+      errorDetail: {
+        message: 'payment not found in provider account',
+        diagnosis: {
+          title: 'Mercado Pago no reconoce ese pago',
+          cause: 'La consulta devolvió 404.',
+          fix: ['Comparar el id con la misma cuenta de MP.'],
+        },
+      },
+    })
+
+    expect(headline.headline).toBe('Mercado Pago no reconoce ese pago')
+    expect(headline.suggestedAction).toBe('Comparar el id con la misma cuenta de MP.')
+    expect(headline.technicalMessage).toBe('payment not found in provider account')
+  })
+
+  it('traduce patrones conocidos de proveedor', () => {
+    expect(
+      operatorFailureMessage('cc_rejected_high_risk', null, null),
+    ).toContain('prevención de fraude')
+    expect(operatorFailureMessage('Unable to find MX of domain pluarg.test')).toContain('DNS')
+  })
+})
+
+describe('buildAuditStatusFilterOptions', () => {
+  it('deduplica etiquetas de estado y prioriza problemáticos', () => {
+    const statusLabel = (value) =>
+      ({
+        rejected: 'Rechazado',
+        rechazado: 'Rechazado',
+        delivered: 'Entregado',
+        failed: 'Fallido',
+      })[value] ?? value
+
+    const options = buildAuditStatusFilterOptions(
+      { statuses: ['delivered', 'rejected', 'rechazado', 'failed'] },
+      statusLabel,
+      'Todas',
+    )
+
+    expect(options.map(([value]) => value)).toEqual(['all', 'failed', 'rejected', 'delivered'])
+    expect(options.filter(([, label]) => label === 'Rechazado')).toHaveLength(1)
   })
 })

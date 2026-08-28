@@ -1111,6 +1111,8 @@ export default {
         granted:
           'You are already a member and registered: PLU enabled you up front. You still need to complete the payment within the term.',
         settled: 'Finance credited the payment. The bundle is closed and nothing is pending.',
+        refunded:
+          'This purchase was refunded. The bundle stays as a record: if you want to use it again, get in touch.',
       },
       mark: 'Exclusive code',
       headline: '{{plan}} + {{event}}',
@@ -1122,6 +1124,7 @@ export default {
         reserved: 'On hold',
         granted: 'Enabled, balance due',
         settled: 'Credited',
+        refunded: 'Refunded',
       },
       terms: {
         payment: 'Paid with',
@@ -1138,6 +1141,8 @@ export default {
       remainingOne: '1 spot left',
       dueIn: '{{countdown}} Once the term is over, membership and registration are cancelled.',
       settled: 'Nothing is pending. Your credential and registration are in their usual tabs.',
+      refunded:
+        'The amount of this purchase was returned. If the refund was not what you expected, contact PLU staff.',
       form: {
         competitionLegend: 'Your competition details',
         competitionHint: 'We pulled them from your profile. You can correct them here for this registration.',
@@ -1418,7 +1423,7 @@ export default {
       eyebrow: 'Competitions',
       title: 'Upcoming meets',
       registered: 'Registration confirmed',
-      alreadyRegistered: 'Already registered',
+      alreadyRegistered: "You're part of {{event}}",
       register: 'Register',
       paymentPending: 'Payment pending',
       resumePayment: 'Resume payment',
@@ -1540,6 +1545,11 @@ export default {
         no_savings: 'That code does not improve the price of this purchase.',
         not_started: 'That code is not active yet.',
         not_invited: 'That code is reserved for other accounts.',
+        // `describeDiscountError` can derive these two keys here as well: an
+        // event-scoped code typed in the Membership checkout. Without them the
+        // screen showed the raw key.
+        other_event: 'That code belongs to another registration.',
+        other_event_named: 'That code belongs to {{event}}, not to this meet.',
         offer_unavailable: 'That offer is no longer available.',
       },
       paymentLegend: 'Payment method',

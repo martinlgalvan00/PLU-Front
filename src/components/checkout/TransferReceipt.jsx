@@ -73,6 +73,10 @@ export default function TransferReceipt({
   financingAllowed = false,
   manualPaymentDeclaredAt = null,
   financedEntitlementsAt = null,
+  // El vencimiento real del financiamiento. Sin él, el sello de "habilitado"
+  // cae al copy genérico y la cuenta regresiva sólo existía en la rama de
+  // efectivo — los dos canales del mismo paso tienen que contar lo mismo.
+  financedPaymentDueAt = null,
   onConfirmed,
 }) {
   const { t } = useI18n()
@@ -186,6 +190,7 @@ export default function TransferReceipt({
             <ManualPaymentConfirmation
               channel={channel}
               financedEntitlementsAt={financedEntitlementsAt}
+              financedPaymentDueAt={financedPaymentDueAt}
               financingAllowed={financingAllowed}
               manualPaymentDeclaredAt={manualPaymentDeclaredAt}
               orderId={orderId}

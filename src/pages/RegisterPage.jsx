@@ -697,7 +697,7 @@ export default function RegisterPage({
    * Se valida que sea un string: esta función también está cableada directo como
    * `onClick`, así que el primer argumento puede ser el evento del click.
    */
-  async function applyDiscountCode(codeOverride) {
+  async function applyDiscountCode(codeOverride, { stayInCheckout = false } = {}) {
     const override = typeof codeOverride === 'string' ? codeOverride : null
     const code = (override ?? discountCodeInput).trim().toUpperCase()
     if (!code || !event?.slug) return
@@ -737,8 +737,18 @@ export default function RegisterPage({
         }
       }
       const resolvedDestination = promotionDestination(resolution)
+      // El código-paquete de ESTE torneo puede quedarse: la ficha manda para
+      // acá a cobrar con la pasarela (`stayInCheckout`, vía el pendiente que
+      // guarda SecretBundleSection), y rebotar de vuelta a la ficha era un
+      // ping-pong sin salida — la pasarela vive en este checkout y en ningún
+      // otro lado. Quien lo tipea acá a mano sigue yendo a su ficha.
+      const opensBundleForThisEvent =
+        resolution?.accepted &&
+        resolution.action === 'open_bundle' &&
+        resolution.destination?.eventSlug === event.slug
       const opensAnotherCheckout =
         resolution?.accepted &&
+        !(stayInCheckout && opensBundleForThisEvent) &&
         (resolvedDestination?.view === 'profile' ||
           (resolvedDestination?.view === 'competition' &&
             resolvedDestination.options?.eventSlug !== event.slug))
@@ -786,6 +796,10 @@ export default function RegisterPage({
               setRevealPromotion(resolution)
               setRevealOpen(true)
             }
+            // El paquete quedó aplicado en este checkout: el pendiente que lo
+            // trajo ya cumplió y no tiene que volver a disparar en la próxima
+            // pantalla que lea códigos pendientes.
+            clearPendingPromotionCode()
             return
           }
           setDiscountError(describeDiscountError(comboPreview))
@@ -819,7 +833,10 @@ export default function RegisterPage({
     if (destination.eventSlug && destination.eventSlug !== event.slug) return
     pendingPromotionAppliedRef.current = pending.code
     setDiscountCodeInput(pending.code)
-    void applyDiscountCode(pending.code)
+    // `stayInCheckout`: un pendiente con destino 'competition' viene A cobrarse
+    // acá (el desvío a la pasarela de la ficha del paquete incluido), así que
+    // el resolvedor no puede devolverlo a la ficha de la que salió.
+    void applyDiscountCode(pending.code, { stayInCheckout: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event?.slug, flow])
 

@@ -244,10 +244,15 @@ describe('canje del código-paquete desde Afiliación', () => {
       financedEntitlementsAt: null,
       financedPaymentDueAt: null,
     }
-    fetchOfferUnlocks
-      .mockResolvedValueOnce([bundleOffer()])
-      .mockResolvedValue([bundleOffer(purchase)])
-    const onStartOfferPayment = vi.fn(async () => ({ payment: { id: purchase.orderId } }))
+    // La compra existe recién DESPUÉS de crear la orden — como en el servidor.
+    // No se cuenta por número de lectura: la relectura encolada (dos pedidos que
+    // caen juntos ya no se descartan) haría correr el turno.
+    let ordered = false
+    fetchOfferUnlocks.mockImplementation(async () => [bundleOffer(ordered ? purchase : null)])
+    const onStartOfferPayment = vi.fn(async () => {
+      ordered = true
+      return { payment: { id: purchase.orderId } }
+    })
 
     renderAccount({ initialTab: 'account-offer', onStartOfferPayment })
     await waitFor(() => expect(document.querySelector('.bundle-section__form')).toBeTruthy())
@@ -318,6 +323,41 @@ describe('canje del código-paquete desde Afiliación', () => {
     expect(document.querySelector('.bundle-section__form')).toBeTruthy()
   })
 
+  it('la relectura pedida con otra en vuelo no se pierde: corre cuando la primera vuelve', async () => {
+    // La ventana angosta del bug de 7567d1c: la lectura de montaje (pre-canje,
+    // vuelve vacía) sigue en vuelo cuando el canje pide releer. Antes esa
+    // relectura se descartaba, la respuesta vieja ganaba y la ficha caía en
+    // Torneos con el desbloqueo ya hecho. Ahora queda encolada y corre al
+    // terminar la primera.
+    let releaseFirst = null
+    let calls = 0
+    fetchOfferUnlocks.mockImplementation(() => {
+      calls += 1
+      if (calls === 1) {
+        return new Promise((resolve) => {
+          releaseFirst = () => resolve([])
+        })
+      }
+      return Promise.resolve([bundleOffer()])
+    })
+    redeemPromotionCodeRequest.mockResolvedValue(RESOLVED_BUNDLE)
+
+    renderAccount({ initialTab: 'account-membership' })
+
+    const toggle = await screen.findByRole('button', { name: /tengo un código/i })
+    fireEvent.click(toggle)
+    fireEvent.change(screen.getByLabelText(/^Código$/i), { target: { value: 'pitbull-pack' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+    await waitFor(() => expect(redeemPromotionCodeRequest).toHaveBeenCalled())
+
+    // Recién ahora vuelve la lectura vieja: vacía, pre-canje.
+    releaseFirst()
+
+    await waitFor(() =>
+      expect(within(document.querySelector('#account-offer')).getByText('PITBULL-PACK')).toBeTruthy(),
+    )
+  })
+
   it('sin ningún código canjeado la ficha no existe y el destino cae en Torneos', async () => {
     // La contracara: la espera es sólo mientras la lectura no volvió. Resuelta
     // en vacío, una pestaña que anuncia algo que no está sería peor que ninguna.
@@ -326,7 +366,10 @@ describe('canje del código-paquete desde Afiliación', () => {
     renderAccount({ initialTab: 'account-offer' })
     await waitFor(() => expect(fetchOfferUnlocks).toHaveBeenCalled())
     await waitFor(() => expect(document.querySelector('.account-section--events')).toBeTruthy())
-    expect(document.querySelector('#account-offer')).toBe(null)
+    // Dentro del waitFor: el swap de tabs es superpuesto (`sync`), así que el
+    // panel de la ficha sigue montado un tick más mientras sale — assertarlo en
+    // el mismo commit en que entra Torneos era una carrera perdida.
+    await waitFor(() => expect(document.querySelector('#account-offer')).toBe(null))
     expect(screen.queryByRole('tab', { name: /Tu código/i })).toBe(null)
   })
 })

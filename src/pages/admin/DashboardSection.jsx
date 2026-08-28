@@ -36,6 +36,32 @@ import { formatDayMonth, formatShortMemberCode, initials, money } from '../../li
 
 const QUEUE_PREVIEW_LIMIT = 6
 
+const QUEUE_MIX_TYPES = [
+  'payment',
+  'registration',
+  'registration_gate',
+  'membership',
+  'ticket_order',
+]
+
+function formatQueueMix(items, t) {
+  const counts = items.reduce((acc, item) => {
+    const type = item?.type
+    if (!type) return acc
+    acc[type] = (acc[type] ?? 0) + 1
+    return acc
+  }, {})
+
+  return QUEUE_MIX_TYPES.filter((type) => counts[type] > 0)
+    .map((type) => {
+      const count = counts[type]
+      const key =
+        count === 1 ? `admin.dashboard.queueMix.${type}` : `admin.dashboard.queueMix.${type}Many`
+      return t(key, { count })
+    })
+    .join(' · ')
+}
+
 const METRIC_TONES = {
   users: 'celeste',
   badge: 'gold',
@@ -612,60 +638,65 @@ function LaunchInterestWidget() {
       await loadSummary()
       setConfirmSource(null)
     } catch (err) {
-      setNotifyError(err.message || 'Error al notificar')
+      setNotifyError(err.message || t('admin.dashboard.launchInterest.confirmError'))
     } finally {
       setNotifying(null)
     }
   }
 
+  const pendingTotal = summary.reduce((sum, item) => sum + (item.pending ?? 0), 0)
+
   if (loading || summary.length === 0) return null
 
   return (
-    <section className="admin-ops__recent" aria-label="Lanzamientos">
-      <header className="admin-ops__chart-head">
-        <div>
-          <p className="admin-ops__eyebrow">{t('admin.dashboard.launchInterest.eyebrow')}</p>
-          <h3>{t('admin.dashboard.launchInterest.title')}</h3>
-          <p>{t('admin.dashboard.launchInterest.subtitle')}</p>
+    <section className="admin-ops__launch" aria-label={t('admin.dashboard.launchInterest.title')}>
+      <header className="admin-ops__launch-head">
+        <div className="admin-ops__launch-copy">
+          <div className="admin-ops__launch-title-row">
+            <h3>{t('admin.dashboard.launchInterest.title')}</h3>
+            {pendingTotal > 0 ? (
+              <span className="admin-ops__launch-count">{pendingTotal}</span>
+            ) : null}
+          </div>
+          <p>
+            {pendingTotal > 0
+              ? t('admin.dashboard.launchInterest.pendingLead', { count: pendingTotal })
+              : t('admin.dashboard.launchInterest.allNotified')}
+          </p>
         </div>
       </header>
-      <ul className="admin-ops__recent-list">
+      <ul className="admin-ops__launch-list">
         {summary.map((item) => {
           const sourceLabel = humanizeLaunchSource(item.source, t)
           return (
-            <li
-              key={item.source}
-              className="admin-ops__recent-item admin-ops__recent-item--actionable"
-            >
-              <div className="admin-ops__recent-open admin-ops__recent-open--static">
-                <span className="admin-ops__recent-avatar" aria-hidden>
-                  {sourceLabel.charAt(0).toUpperCase()}
-                </span>
-                <span className="admin-ops__recent-body">
-                  <strong>{sourceLabel}</strong>
-                  <span>{t('admin.dashboard.launchInterest.total', { count: item.total })}</span>
-                </span>
-                <span className="admin-ops__recent-date">
-                  <StatusBadge value={item.pending > 0 ? 'pendiente' : 'aprobado'} />
-                  <span>
-                    {t('admin.dashboard.launchInterest.pending', { count: item.pending })}
-                  </span>
+            <li key={item.source} className="admin-ops__launch-item">
+              <div className="admin-ops__launch-body">
+                <strong>{sourceLabel}</strong>
+                <span>
+                  {t('admin.dashboard.launchInterest.total', { count: item.total })}
+                  {' · '}
+                  {item.pending > 0
+                    ? t('admin.dashboard.launchInterest.pending', { count: item.pending })
+                    : t('admin.dashboard.launchInterest.notified')}
                 </span>
               </div>
               {item.pending > 0 ? (
-                <AdminIconButton
-                  icon={Send}
-                  label={t('admin.dashboard.launchInterest.notify', {
+                <button
+                  type="button"
+                  className="admin-ops__launch-notify"
+                  aria-label={t('admin.dashboard.launchInterest.notify', {
                     count: item.pending,
                     source: sourceLabel,
                   })}
+                  disabled={notifying === item.source}
                   onClick={() => {
                     setNotifyError('')
                     setConfirmSource(item.source)
                   }}
-                  disabled={notifying === item.source}
-                  variant="primary"
-                />
+                >
+                  <Send size={13} aria-hidden />
+                  {t('admin.dashboard.launchInterest.notifyAction')}
+                </button>
               ) : null}
             </li>
           )
@@ -687,6 +718,7 @@ function LaunchInterestWidget() {
 }
 
 function LaunchInterestConfirmDialog({ sourceLabel, pending, busy, error, onCancel, onConfirm }) {
+  const { t } = useI18n()
   const panelRef = useAdminModal(onCancel)
 
   return createPortal(
@@ -694,7 +726,7 @@ function LaunchInterestConfirmDialog({ sourceLabel, pending, busy, error, onCanc
       <button
         type="button"
         className="admin-user-delete-dialog__backdrop"
-        aria-label="Cancelar"
+        aria-label={t('admin.dashboard.launchInterest.confirmCancel')}
         disabled={busy}
         onClick={onCancel}
       />
@@ -709,8 +741,15 @@ function LaunchInterestConfirmDialog({ sourceLabel, pending, busy, error, onCanc
           <Send size={19} />
         </span>
         <div className="admin-user-delete-dialog__copy">
-          <h2 id="launch-interest-confirm-title">Enviar aviso de lanzamiento</h2>
-          <p>{`¿Enviar aviso a los ${pending} pendientes de "${sourceLabel}"?`}</p>
+          <h2 id="launch-interest-confirm-title">
+            {t('admin.dashboard.launchInterest.confirmTitle')}
+          </h2>
+          <p>
+            {t('admin.dashboard.launchInterest.confirmDescription', {
+              count: pending,
+              source: sourceLabel,
+            })}
+          </p>
           {error ? (
             <p className="admin-user-delete-dialog__error" role="alert">
               {error}
@@ -719,10 +758,12 @@ function LaunchInterestConfirmDialog({ sourceLabel, pending, busy, error, onCanc
         </div>
         <div className="admin-user-delete-dialog__actions">
           <Button type="button" variant="secondary" disabled={busy} onClick={onCancel}>
-            Cancelar
+            {t('admin.dashboard.launchInterest.confirmCancel')}
           </Button>
           <Button type="button" disabled={busy} onClick={onConfirm}>
-            {busy ? 'Enviando…' : 'Enviar aviso'}
+            {busy
+              ? t('admin.dashboard.launchInterest.confirmBusy')
+              : t('admin.dashboard.launchInterest.confirmSubmit')}
           </Button>
         </div>
       </section>
@@ -813,13 +854,14 @@ export default function DashboardSection({
   const primaryMetrics = useMemo(() => mapMetrics(primary, t, locale), [primary, t, locale])
 
   const queuePreview = useMemo(() => pendingActions.slice(0, QUEUE_PREVIEW_LIMIT), [pendingActions])
+  const queueMix = useMemo(() => formatQueueMix(pendingActions, t), [pendingActions, t])
 
-  const hasMoreQueue = pendingActions.length > QUEUE_PREVIEW_LIMIT
   const hasWork = pendingActions.length > 0 || finance.pendingItems.length > 0
+  const workCount = pendingActions.length > 0 ? pendingActions.length : finance.pendingCount
   const workSubtitle = !hasWork
     ? t('admin.dashboard.noUrgency')
     : pendingActions.length > 0
-      ? t('admin.dashboard.workSubtitle', { count: pendingActions.length })
+      ? queueMix || t('admin.dashboard.workSubtitle', { count: pendingActions.length })
       : t('admin.dashboard.workSubtitlePayments', { count: finance.pendingCount })
 
   function breakdownLabel(item) {
@@ -1006,18 +1048,19 @@ export default function DashboardSection({
           <div className="admin-ops__work" data-tour="dashboard-queue">
             <header className="admin-ops__work-head">
               <div className="admin-ops__work-copy">
-                <span className="admin-ops__eyebrow">{t('admin.dashboard.queueTitle')}</span>
-                <h3>{workSubtitle}</h3>
+                <div className="admin-ops__work-title-row">
+                  <h3>{t('admin.dashboard.queueTitle')}</h3>
+                  {hasWork ? <span className="admin-ops__work-count">{workCount}</span> : null}
+                </div>
+                <p>{workSubtitle}</p>
               </div>
-              {hasWork ? (
+              {pendingActions.length > 0 ? (
                 <button
                   type="button"
                   className="admin-ops__work-cta"
                   onClick={() => setAlertsOpen(true)}
                 >
-                  {hasMoreQueue
-                    ? t('admin.dashboard.queueSeeAll', { count: pendingActions.length })
-                    : t('admin.dashboard.priorityReview')}
+                  {t('admin.dashboard.queueSeeAll', { count: pendingActions.length })}
                   <ArrowRight size={13} aria-hidden />
                 </button>
               ) : null}

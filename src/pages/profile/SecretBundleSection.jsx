@@ -8,7 +8,10 @@ import { FORM_OPTIONS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
 import { computeFinancingRemaining, formatFinancingCountdown } from '../../lib/financingCountdown.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { clearPendingPromotionCode } from '../../services/promotionCodeService.js'
+import {
+  clearPendingPromotionCode,
+  savePendingPromotionCode,
+} from '../../services/promotionCodeService.js'
 import '../../styles/components/bundle-section.css'
 
 /**
@@ -104,6 +107,7 @@ export default function SecretBundleSection({
     manual: t('account.bundle.status.reserved'),
     granted: t('account.bundle.status.granted'),
     settled: t('account.bundle.status.settled'),
+    refunded: t('account.bundle.status.refunded'),
   }[state]
 
   async function submit(submitEvent) {
@@ -115,7 +119,16 @@ export default function SecretBundleSection({
     }
     // La pasarela se cobra donde vive su brick. Se manda al checkout del torneo
     // con el paquete ya destrabado en vez de montar un segundo ciclo de pago.
+    // El código viaja como pendiente con destino 'competition': es lo que el
+    // checkout lee al montar para auto-aplicarlo y destrabar el combo — sin
+    // esto el atleta aterrizaba en una inscripción suelta a precio de lista,
+    // con el paquete invisible (el checkout no consulta unlocks a propósito).
     if (method === 'mercado_pago') {
+      savePendingPromotionCode(offer.code, {
+        surface: 'bundle-gateway',
+        destination: { view: 'competition', eventSlug: offer.event?.slug },
+        resolved: true,
+      })
       if (offer.event?.slug) onSelectEvent?.({ slug: offer.event.slug })
       onNavigate?.('competition', { eventSlug: offer.event?.slug })
       return
@@ -267,6 +280,7 @@ export default function SecretBundleSection({
               financingAllowed={purchase.financingAllowed === true}
               manualPaymentDeclaredAt={purchase.manualPaymentDeclaredAt}
               financedEntitlementsAt={purchase.financedEntitlementsAt}
+              financedPaymentDueAt={purchase.financedPaymentDueAt}
             />
           ) : (
             <ManualPaymentConfirmation
@@ -286,6 +300,12 @@ export default function SecretBundleSection({
       {state === 'settled' ? (
         <p className="bundle-section__settled" role="status">
           {t('account.bundle.settled')}
+        </p>
+      ) : null}
+
+      {state === 'refunded' ? (
+        <p className="bundle-section__settled" role="status">
+          {t('account.bundle.refunded')}
         </p>
       ) : null}
     </section>
@@ -358,7 +378,14 @@ export function apiPaymentMethod(channel) {
 export function bundleState(purchase) {
   if (!purchase) return 'ready'
   if (purchase.status === 'aprobado') return 'settled'
-  if (['cancelado', 'rechazado', 'reembolsado'].includes(purchase.status)) return 'ready'
+  // Un reembolso NO libera el canje: la plata se movió y la redención queda
+  // como registro contable (20260906100000), así que volver a ofrecer el
+  // formulario era prometer una compra que la RPC rechaza con "ya usaste ese
+  // código". La ficha queda como constancia, igual que una acreditada.
+  if (purchase.status === 'reembolsado') return 'refunded'
+  // Cancelada o rechazada sí vuelven al principio: el canje se libera con la
+  // orden (20260906100000) y el código queda disponible de nuevo.
+  if (['cancelado', 'rechazado'].includes(purchase.status)) return 'ready'
   if (purchase.financedEntitlementsAt && !purchase.financedEntitlementsRevokedAt) return 'granted'
   return 'manual'
 }

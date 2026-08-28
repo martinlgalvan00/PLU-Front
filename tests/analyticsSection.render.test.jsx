@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import MotionProvider from '../src/motion/MotionProvider.tsx'
 
 /**
  * Lo que este render protege es la geometría del mapa de calor y el límite del
@@ -54,7 +55,9 @@ const ATHLETES = [{ id: 'a-1', fullName: 'Camila Ruiz', documentId: '30111222' }
 function renderSection(props = {}) {
   return render(
     <I18nProvider>
-      <AnalyticsSection athletes={ATHLETES} {...props} />
+      <MotionProvider>
+        <AnalyticsSection athletes={ATHLETES} {...props} />
+      </MotionProvider>
     </I18nProvider>,
   )
 }
@@ -167,14 +170,14 @@ describe('cabecera y cifras', () => {
     expect(pulse.textContent).toContain('Visitantes únicos')
     expect(pulse.textContent).toContain('40')
 
-    const secondary = pulse.querySelector('.admin-analytics__metrics--secondary')
+    const secondary = pulse.querySelector('.admin-analytics__stat-grid--secondary')
     expect(secondary).toBeTruthy()
     expect(secondary.textContent).toContain('Sesiones')
     expect(secondary.textContent).toContain('55')
     expect(secondary.textContent).toContain('Duración promedio')
     expect(secondary.textContent).toContain('5m 17s')
     expect(secondary.textContent).toContain('Interacciones')
-    expect(secondary.textContent).toContain('5.011')
+    expect(secondary.textContent).toContain('5,011')
   })
 
   it('muestra las sesiones con atención y el criterio con el que se cuentan', async () => {
@@ -202,10 +205,9 @@ describe('cabecera y cifras', () => {
     expect(pulse.textContent).toContain('34')
     expect(pulse.textContent).toContain('61,8%')
     expect(pulse.textContent).toContain('10s a la vista')
-    // El contraste entre atención real y pestaña abierta es el dato: 1m 12s
-    // contra 5m 18s es exactamente lo que la duración vieja escondía.
-    expect(pulse.textContent).toContain('de atención media')
-    expect(pulse.textContent).toContain('con la pestaña abierta')
+    expect(pulse.textContent).toContain('Atención media')
+    expect(pulse.textContent).toContain('1m 12s')
+    expect(pulse.textContent).toContain('Tiempo con la pestaña abierta')
   })
 
   it('sin tiempo activo registrado lo dice, en vez de mostrar cero', async () => {
@@ -232,7 +234,7 @@ describe('cabecera y cifras', () => {
       return node
     })
     expect(summary.textContent).toContain('todavía no lo tiene')
-    expect(summary.textContent).not.toContain('de atención media')
+    expect(summary.textContent).not.toContain('Atención media')
   })
 })
 
@@ -269,7 +271,7 @@ describe('comparación entre períodos', () => {
       expect(node.textContent).toContain('60')
       return node
     })
-    expect(document.querySelector('.admin-analytics__metric-delta')).toBeNull()
+    expect(document.querySelector('.admin-analytics__stat-delta')).toBeNull()
   })
 })
 
@@ -358,7 +360,7 @@ describe('geometría del mapa de calor', () => {
     await openTab('Páginas')
     await waitFor(() => expect(heatmap).toHaveBeenCalled())
 
-    const mobileButton = await screen.findByRole('button', { name: 'Mobile' })
+    const mobileButton = await screen.findByRole('button', { name: 'Móvil' })
     mobileButton.click()
 
     await waitFor(() =>

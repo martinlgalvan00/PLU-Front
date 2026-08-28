@@ -131,13 +131,13 @@ describe('Afiliaciones — recuperar un pago rechazado/cancelado', () => {
     renderSection([membership()], { onSetMembershipStatus })
 
     fireEvent.click(screen.getByRole('button', { name: 'Corregir estado' }))
-    fireEvent.change(screen.getByLabelText('¿Por dónde se resolvió?'), {
+    fireEvent.change(screen.getByLabelText('Canal'), {
       target: { value: 'bank_transfer' },
     })
     fireEvent.change(screen.getByLabelText('Motivo'), {
       target: { value: 'Transferencia recibida y comprobante revisado.' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Activar y registrar el motivo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Activar' }))
 
     await waitFor(() =>
       expect(onSetMembershipStatus).toHaveBeenCalledWith('mem-1', 'activa', {

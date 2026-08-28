@@ -166,6 +166,96 @@ describe('configuración económica administrativa', () => {
     )
   })
 
+  it('cambia el precio de inscripción de un torneo, ahora o programado', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(
+        `${target.url}/api/pricing/events/pitbull-classic/registration-price`,
+        {
+          method: 'PATCH',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({
+            price: 52000,
+            manualPrice: 50000,
+            effectiveAt: '2026-09-01T03:00:00Z',
+          }),
+        },
+      )
+      expect(response.status).toBe(200)
+      expect(rpc).toHaveBeenCalledWith('staff_set_event_registration_price', {
+        p_event_slug: 'pitbull-classic',
+        p_price: 52000,
+        p_manual_price: 50000,
+        p_effective_at: '2026-09-01T03:00:00Z',
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('sin precio manual ni fecha, el cambio viaja inmediato y de un solo canal', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(
+        `${target.url}/api/pricing/events/pitbull-classic/registration-price`,
+        {
+          method: 'PATCH',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ price: 52000 }),
+        },
+      )
+      expect(response.status).toBe(200)
+      expect(rpc).toHaveBeenCalledWith('staff_set_event_registration_price', {
+        p_event_slug: 'pitbull-classic',
+        p_price: 52000,
+        p_manual_price: null,
+        p_effective_at: null,
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un precio de inscripción inválido antes de tocar la base', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(
+        `${target.url}/api/pricing/events/pitbull-classic/registration-price`,
+        {
+          method: 'PATCH',
+          headers: authHeaders(cookie),
+          body: JSON.stringify({ price: 0 }),
+        },
+      )
+      expect(response.status).toBe(400)
+      expect(rpc).not.toHaveBeenCalledWith(
+        'staff_set_event_registration_price',
+        expect.anything(),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('cancela el cambio de precio programado de un torneo', async () => {
+    const { cookie, rpc, target } = await setup()
+    try {
+      const response = await fetch(
+        `${target.url}/api/pricing/events/pitbull-classic/registration-price/schedule`,
+        { method: 'DELETE', headers: authHeaders(cookie) },
+      )
+      expect(response.status).toBe(200)
+      expect(rpc).toHaveBeenCalledWith('staff_clear_event_registration_price_schedule', {
+        p_event_slug: 'pitbull-classic',
+        p_actor: expect.stringContaining('pricing-admin@plu.test'),
+      })
+    } finally {
+      await target.close()
+    }
+  })
+
   it('crea cupones para afiliaciones e inscripciones y conserva sus límites', async () => {
     const { cookie, rpc, target } = await setup()
     try {

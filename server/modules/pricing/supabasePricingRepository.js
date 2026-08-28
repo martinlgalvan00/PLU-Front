@@ -66,6 +66,29 @@ export function createSupabasePricingRepository(client) {
         'No se pudo reprogramar la vigencia del plan.',
       ),
 
+    // El precio de inscripción, ahora o desde una fecha. `effectiveAt` vacío
+    // aplica en el momento; con fecha futura el cambio queda programado y lo
+    // corre el barrido de pg_cron cada minuto.
+    setEventRegistrationPrice: (eventSlug, { price, manualPrice, effectiveAt }, actor) =>
+      rpc(
+        'staff_set_event_registration_price',
+        {
+          p_event_slug: eventSlug,
+          p_price: price,
+          p_manual_price: manualPrice ?? null,
+          p_effective_at: effectiveAt || null,
+          p_actor: actor,
+        },
+        'No se pudo cambiar el precio de la inscripción.',
+      ),
+
+    clearEventRegistrationPriceSchedule: (eventSlug, actor) =>
+      rpc(
+        'staff_clear_event_registration_price_schedule',
+        { p_event_slug: eventSlug, p_actor: actor },
+        'No se pudo cancelar el cambio de precio programado.',
+      ),
+
     upsertDiscountCode: (code, actor) =>
       rpc(
         'staff_upsert_discount_code',

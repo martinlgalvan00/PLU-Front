@@ -77,7 +77,8 @@ const CATALOG = [
       'El HMAC no valida contra el manifiesto id/request-id/ts. Suele ser el secreto de otro entorno, un reenvio con timestamp vencido (>300s) o un intento de falsificacion.',
     fix: [
       'Comparar el secreto configurado con el de la MISMA aplicacion de MP que envia la notificacion.',
-      'Verificar el reloj del servidor: el manifiesto incluye ts y se rechaza fuera de tolerancia.',
+      'MERCADO_PAGO_WEBHOOK_SECRET admite varios secretos separados por coma: para rotar sin ventana de rechazo, o si dos aplicaciones de MP apuntan a esta URL.',
+      'Verificar el reloj del servidor: el manifiesto incluye ts y se rechaza fuera de tolerancia (la unidad del ts se detecta sola: segundos o milisegundos).',
       'Si el secreto era correcto, tratarlo como intento de falsificacion: el evento no se acredito, no hay accion sobre la orden.',
     ],
     severity: 'degraded',

@@ -188,6 +188,95 @@ describe('la ficha del código-paquete', () => {
     expect(screen.getByText(/Te quedan .* Vencido el plazo se dan de baja/)).toBeTruthy()
   })
 
+  it('el desvío a Mercado Pago guarda el código pendiente antes de navegar', async () => {
+    // La pasarela se cobra en el checkout del torneo. El código tiene que
+    // viajar como pendiente con destino 'competition': es lo que ese checkout
+    // lee al montar para auto-aplicarlo y destrabar el combo — sin esto el
+    // atleta aterrizaba en una inscripción suelta a precio de lista.
+    const onStartOfferPayment = vi.fn()
+    const onNavigate = vi.fn()
+    const onSelectEvent = vi.fn()
+    render(
+      <I18nProvider>
+        <SecretBundleSection
+          athlete={ATHLETE}
+          offers={[bundleOffer({ mercadoPagoEnabled: true, manualChannels: [] })]}
+          onStartOfferPayment={onStartOfferPayment}
+          onNavigate={onNavigate}
+          onSelectEvent={onSelectEvent}
+        />
+      </I18nProvider>,
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Ir a pagar con Mercado Pago/i }))
+    })
+
+    expect(onStartOfferPayment).not.toHaveBeenCalled()
+    expect(onSelectEvent).toHaveBeenCalledWith({ slug: 'pitbull-classic-2026' })
+    expect(onNavigate).toHaveBeenCalledWith('competition', { eventSlug: 'pitbull-classic-2026' })
+    const pending = JSON.parse(window.sessionStorage.getItem('plu:pending-promotion-code'))
+    expect(pending.code).toBe('ONLY-PITBULL-GOLD')
+    expect(pending.context.destination).toEqual({
+      view: 'competition',
+      eventSlug: 'pitbull-classic-2026',
+    })
+  })
+
+  it('quien volvió tras declarar por transferencia ve la cuenta regresiva en el sello', () => {
+    // `financedPaymentDueAt` tiene que atravesar TransferReceipt hasta el
+    // sello: quien ya declaró monta directo en 'confirmed' con el plazo de la
+    // prop como único origen — sin él, la rama de transferencia caía al copy
+    // genérico y sólo el efectivo contaba cuánto plazo quedaba.
+    const dueAt = new Date(Date.now() + 3 * 86400000).toISOString()
+    render(
+      <I18nProvider>
+        <SecretBundleSection
+          athlete={ATHLETE}
+          offers={[
+            bundleOffer({
+              purchase: {
+                orderId: 'order-1',
+                status: 'validacion_manual',
+                manualPaymentChannel: 'bank_transfer',
+                financingAllowed: true,
+                manualPaymentDeclaredAt: '2026-08-25T12:00:00.000Z',
+                financedEntitlementsAt: '2026-08-25T12:00:00.000Z',
+                financedEntitlementsRevokedAt: null,
+                financedPaymentDueAt: dueAt,
+              },
+            }),
+          ]}
+        />
+      </I18nProvider>,
+    )
+
+    // El sello del paso de liquidación dice el plazo con la cuenta regresiva,
+    // no el copy genérico sin fecha.
+    expect(screen.getByText(/Tus beneficios ya están activos\. Te quedan/)).toBeTruthy()
+  })
+
+  it('una compra reembolsada queda como constancia, sin volver a ofrecer el formulario', () => {
+    render(
+      <I18nProvider>
+        <SecretBundleSection
+          athlete={ATHLETE}
+          offers={[
+            bundleOffer({
+              purchase: { orderId: 'order-1', status: 'reembolsado' },
+            }),
+          ]}
+        />
+      </I18nProvider>,
+    )
+
+    // Un reembolso no libera el canje (20260906100000): re-ofrecer la compra
+    // terminaba en "ya usaste ese código" al confirmar.
+    expect(screen.queryByRole('button', { name: /Confirmar y pagar/i })).toBe(null)
+    expect(screen.getByText('Reembolsado')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toMatch(/se devolvió/i)
+  })
+
   it('sin ningún código canjeado no renderiza nada', () => {
     const { container } = render(
       <I18nProvider>
@@ -208,6 +297,9 @@ describe('bundleState — el paso del trámite se lee de la compra', () => {
     expect(bundleState({ status: 'cancelado' })).toBe('ready')
     expect(bundleState(null)).toBe('ready')
     expect(bundleState({ status: 'aprobado' })).toBe('settled')
+    // El reembolso NO libera el canje (la redención queda como registro
+    // contable): la ficha es constancia, no una nueva oferta.
+    expect(bundleState({ status: 'reembolsado' })).toBe('refunded')
     expect(bundleState({ status: 'validacion_manual' })).toBe('manual')
     expect(
       bundleState({ status: 'pendiente', financedEntitlementsAt: '2026-08-25T12:00:00.000Z' }),

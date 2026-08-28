@@ -92,6 +92,8 @@ export default function AdminPage({
   onRefreshAthleteData,
   onRefreshPricing,
   onCreateMembershipPlanVersion,
+  onSetEventRegistrationPrice,
+  onClearEventPriceSchedule,
   onDeleteMembershipPlan,
   onSetMembershipPlanActive,
   onSetMembershipPlanRetirement,
@@ -562,6 +564,8 @@ export default function AdminPage({
           onRefresh={onRefreshPricing}
           onSetPlanActive={onSetMembershipPlanActive}
           onSetPlanRetirement={onSetMembershipPlanRetirement}
+          onSetEventRegistrationPrice={onSetEventRegistrationPrice}
+          onClearEventPriceSchedule={onClearEventPriceSchedule}
           onUpsertDiscountCode={onUpsertDiscountCode}
           onSetDiscountCodeState={onSetDiscountCodeState}
           onDeleteDiscountCode={onDeleteDiscountCode}

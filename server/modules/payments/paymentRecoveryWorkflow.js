@@ -190,11 +190,17 @@ const PROVIDER_STATUSES_WITH_MONEY = new Set([
  */
 export async function sweepClosedOrdersAgainstProvider(options = {}) {
   const { repository, mercadoPago, notifyPaymentApplied, auditTrail, limit = 20 } = options
-  if (!repository.listClosedOrdersWithoutPayments || !mercadoPago.searchPaymentsForOrder) {
+  // `listOrdersWithoutLocalPayment` reemplaza a `listClosedOrdersWithoutPayments`
+  // (mismo contrato, criterio más amplio: también barre las que siguen
+  // `pendiente` con la ventana vencida). El nombre viejo se sigue aceptando para
+  // no romper dobles de test ni un repositorio que no se haya actualizado.
+  const listOrders =
+    repository.listOrdersWithoutLocalPayment ?? repository.listClosedOrdersWithoutPayments
+  if (!listOrders || !mercadoPago.searchPaymentsForOrder) {
     return { checked: 0, recovered: 0, failures: [] }
   }
 
-  const orderIds = await repository.listClosedOrdersWithoutPayments(limit)
+  const orderIds = await listOrders.call(repository, limit)
   let recovered = 0
   const failures = []
 

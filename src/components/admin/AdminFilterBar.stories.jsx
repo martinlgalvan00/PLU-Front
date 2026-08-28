@@ -257,21 +257,20 @@ export const ConRangoDeFechaActivo = {
   render: () => <AthletesLikeFilterBar initialRange={{ from: '2026-01-01', to: '2026-03-15' }} />,
 }
 
-/** Rediseño: mismas 5 facetas como pills compactos que abren un popover
- * (`layout="popover"`) en vez de quedar siempre expandidas en el panel. */
+/** Pills editoriales: menú vertical de opciones + date range con presets
+ * (`layout="popover"`). */
 export const CincoFiltrosPopover = {
   render: () => <AthletesLikeFilterBar layout="popover" />,
 }
 
-/** Popover con un rango de fecha ya activo -- confirma el pill activo + botón de limpiar. */
+/** Popover con rango activo -- pill con valor, clear y presets en fecha. */
 export const CincoFiltrosPopoverConRangoActivo = {
   render: () => (
     <AthletesLikeFilterBar layout="popover" initialRange={{ from: '2026-01-01', to: '2026-03-15' }} />
   ),
 }
 
-/** Mismo rediseño en un contenedor angosto -- confirma que el riel de pills
- * scrollea en vez de desbordar. */
+/** Contenedor angosto: riel de pills con scroll horizontal. */
 export const CincoFiltrosPopoverContenedorAngosto = {
   render: () => <AthletesLikeFilterBar layout="popover" containerWidth={390} />,
 }

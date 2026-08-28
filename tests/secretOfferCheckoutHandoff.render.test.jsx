@@ -458,4 +458,41 @@ describe('código de combo con el contrato vivo (open_bundle)', () => {
     expect(pending.code).toBe('ONLY-PITBULL')
     expect(pending.context.destination.tab).toBe('account-offer')
   })
+
+  it('el desvío a la pasarela desde la ficha se queda en este checkout y destraba el combo', async () => {
+    // La ficha del paquete no cobra Mercado Pago: guarda el código como
+    // pendiente con destino 'competition' y manda para acá. Ese pendiente viene
+    // A COBRARSE en este checkout — si el resolvedor lo devolviera a la ficha
+    // (open_bundle) sería un ping-pong sin salida, porque la pasarela vive acá.
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_BUNDLE)
+    previewByScope()
+    sessionStorage.setItem(
+      'plu:pending-promotion-code',
+      JSON.stringify({
+        code: 'ONLY-PITBULL',
+        context: {
+          surface: 'bundle-gateway',
+          destination: { view: 'competition', eventSlug: 'pitbull-classic-2026' },
+          resolved: true,
+        },
+        savedAt: '2026-08-27T12:00:00.000Z',
+      }),
+    )
+
+    const { onNavigate } = renderCompetition()
+    await waitForAccessValidation()
+
+    // El código se aplicó al combo de este torneo: el preview corrió con
+    // alcance 'combo' y el pendiente se consumió.
+    await waitFor(() =>
+      expect(
+        vi.mocked(previewDiscountCode).mock.calls.some(
+          ([input]) => input?.code === 'ONLY-PITBULL' && input?.appliesTo === 'combo',
+        ),
+      ).toBe(true),
+    )
+    await waitFor(() => expect(sessionStorage.getItem('plu:pending-promotion-code')).toBe(null))
+    // Y nadie volvió a la ficha.
+    expect(onNavigate).not.toHaveBeenCalledWith('profile', expect.anything())
+  })
 })
