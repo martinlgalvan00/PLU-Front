@@ -19,6 +19,7 @@ import {
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import DetailTabs from './DetailTabs.jsx'
 import Button from '../ui/Button.jsx'
+import DateTimeLocalInput from '../ui/DateTimeLocalInput.jsx'
 import EventCard from '../ui/EventCard.jsx'
 import CapacityBar from '../ui/CapacityBar.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -601,17 +602,16 @@ export default function AdminEventEditor({
                       />
                     </FormField>
 
-                    <FormField
+                      <FormField
                       htmlFor="event-starts-at"
                       label={t('admin.eventEditor.supabase.startsAt')}
                       error={err('startsAt')}
                     >
-                      <input
+                      <DateTimeLocalInput
                         id="event-starts-at"
                         name="startsAt"
                         data-field="startsAt"
                         required
-                        type="datetime-local"
                         value={draft.startsAt ?? ''}
                         aria-invalid={Boolean(err('startsAt'))}
                         onChange={(event) => patchDraft(withEventStart(draft, event.target.value))}
@@ -624,12 +624,11 @@ export default function AdminEventEditor({
                       label={t('admin.eventEditor.supabase.endsAt')}
                       error={err('endsAt')}
                     >
-                      <input
+                      <DateTimeLocalInput
                         id="event-ends-at"
                         name="endsAt"
                         data-field="endsAt"
                         required
-                        type="datetime-local"
                         value={draft.endsAt ?? ''}
                         aria-invalid={Boolean(err('endsAt'))}
                         onChange={(event) => patchDraft({ ...draft, endsAt: event.target.value })}
@@ -736,11 +735,10 @@ export default function AdminEventEditor({
                         label={t('admin.eventEditor.supabase.registrationOpensAt')}
                         error={err('registrationOpensAt')}
                       >
-                        <input
+                        <DateTimeLocalInput
                           id="event-reg-opens"
                           name="registrationOpensAt"
                           data-field="registrationOpensAt"
-                          type="datetime-local"
                           value={draft.registrationOpensAt ?? ''}
                           aria-invalid={Boolean(err('registrationOpensAt'))}
                           onChange={(event) =>
@@ -755,11 +753,10 @@ export default function AdminEventEditor({
                         label={t('admin.eventEditor.supabase.registrationClosesAt')}
                         error={err('registrationClosesAt')}
                       >
-                        <input
+                        <DateTimeLocalInput
                           id="event-reg-closes"
                           name="registrationClosesAt"
                           data-field="registrationClosesAt"
-                          type="datetime-local"
                           value={draft.registrationClosesAt ?? ''}
                           aria-invalid={Boolean(err('registrationClosesAt'))}
                           onChange={(event) =>
@@ -910,11 +907,10 @@ export default function AdminEventEditor({
                             label={t('admin.eventEditor.supabase.ticketSalesOpensAt')}
                             error={err('ticketSalesOpensAt')}
                           >
-                            <input
+                            <DateTimeLocalInput
                               id="event-ticket-opens"
                               name="ticketSalesOpensAt"
                               data-field="ticketSalesOpensAt"
-                              type="datetime-local"
                               value={draft.ticketSalesOpensAt ?? ''}
                               aria-invalid={Boolean(err('ticketSalesOpensAt'))}
                               onChange={(event) =>
@@ -928,11 +924,10 @@ export default function AdminEventEditor({
                             label={t('admin.eventEditor.supabase.ticketSalesClosesAt')}
                             error={err('ticketSalesClosesAt')}
                           >
-                            <input
+                            <DateTimeLocalInput
                               id="event-ticket-closes"
                               name="ticketSalesClosesAt"
                               data-field="ticketSalesClosesAt"
-                              type="datetime-local"
                               value={draft.ticketSalesClosesAt ?? ''}
                               aria-invalid={Boolean(err('ticketSalesClosesAt'))}
                               onChange={(event) =>

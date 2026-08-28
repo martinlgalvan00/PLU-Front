@@ -6,6 +6,7 @@ import {
   webhookTimestampSkewSeconds,
 } from '../integrations/webhookVerifier.js'
 import { displayPaymentConcept } from '../notifications/paymentNotificationService.js'
+import { describeWebhookDiscard } from './paymentFailureCatalog.js'
 import {
   PAYMENT_TRAIL_ACTIONS,
   paymentTrailMetadata,
@@ -532,6 +533,9 @@ export async function processPaymentWebhook(input, options = {}) {
         notificationType: type,
         topic: isIpn ? ipnTopic : null,
         providerRequestId,
+        // El panel muestra este asiento bajo "Qué falló": sin el diagnóstico,
+        // `unsupported_type` pelado se leía como un pago rechazado.
+        diagnosis: describeWebhookDiscard(type),
       },
     })
     return { accepted: true, ignored: true, reason: 'unsupported_type', type }

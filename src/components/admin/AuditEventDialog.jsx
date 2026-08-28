@@ -285,12 +285,6 @@ export default function AuditEventDialog({ eventId, onClose }) {
                       </p>
                     ) : null}
                     {failure.diagnosis?.cause ? <p>{failure.diagnosis.cause}</p> : null}
-                    {failure.reason ? <p>{String(failure.reason)}</p> : null}
-                    {failure.statusDetail ? (
-                      <p>
-                        <code>{String(failure.statusDetail)}</code>
-                      </p>
-                    ) : null}
 
                     {failure.diagnosis?.fix?.length ? (
                       <>
@@ -301,6 +295,25 @@ export default function AuditEventDialog({ eventId, onClose }) {
                           ))}
                         </ol>
                       </>
+                    ) : null}
+
+                    {/* Los códigos crudos quedan como referencia para cruzar
+                        con el panel de MP, nunca como única explicación. */}
+                    {failure.reason || failure.statusDetail ? (
+                      <p className="audit-detail__codes">
+                        {failure.reason ? (
+                          <span>
+                            {t('admin.auditDetail.reasonCodeLabel')}{' '}
+                            <code>{String(failure.reason)}</code>
+                          </span>
+                        ) : null}
+                        {failure.statusDetail ? (
+                          <span>
+                            {t('admin.auditDetail.providerCodeLabel')}{' '}
+                            <code>{String(failure.statusDetail)}</code>
+                          </span>
+                        ) : null}
+                      </p>
                     ) : null}
                   </div>
                 ) : null}

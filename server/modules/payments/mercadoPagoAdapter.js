@@ -134,6 +134,25 @@ function supportsAutoReturn(returnBase) {
   }
 }
 
+// La preferencia por defecto nace con `expires: false`: el link de pago
+// sobrevive a la orden, que el cron cancela al vencer `expires_at` (30 min en
+// Mercado Pago, 20 en reservas de tickets). El que pagaba tarde dejaba la
+// plata acreditada en MP contra una orden ya cancelada, y el rescate era
+// manual. La preferencia tiene que morir junto con la orden.
+//
+// Mercado Pago rechaza fechas pasadas; si a la orden le queda menos de un
+// minuto se omite la expiracion (el barrido la cancela enseguida) en vez de
+// romper la creacion de la preferencia.
+function preferenceExpiration(expiresAt, now = Date.now()) {
+  if (!expiresAt) return {}
+  const to = new Date(expiresAt)
+  if (Number.isNaN(to.getTime()) || to.getTime() - now < 60_000) return {}
+  return {
+    expires: true,
+    expiration_date_to: to.toISOString().replace('Z', '+00:00'),
+  }
+}
+
 function resolveIntegrationUrl({ explicit, fallback, label, env }) {
   return requireIntegrationUrl(explicit ?? fallback ?? resolveDeploymentAppUrl(env), label, env)
 }
@@ -383,6 +402,7 @@ export function createMercadoPagoAdapter({
           ),
         },
         ...(supportsAutoReturn(returnBase) ? { auto_return: 'approved' } : {}),
+        ...preferenceExpiration(order.expiresAt),
         metadata: {
           payment_order_id: order.id,
           order_kind: order.kind,

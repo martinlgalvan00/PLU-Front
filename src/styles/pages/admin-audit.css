@@ -1922,3 +1922,22 @@
 .audit-detail__fix li {
   text-wrap: pretty;
 }
+
+/*
+ * Códigos crudos del proveedor y del ciclo de webhook. Son referencia para
+ * cruzar con el panel de Mercado Pago, no la explicación: van al pie del
+ * bloque, en tono apagado, después del diagnóstico en castellano.
+ */
+.audit-detail__codes {
+  color: var(--color-text-muted) !important;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11px !important;
+  gap: 4px 16px;
+  margin-top: var(--space-sm) !important;
+}
+
+.audit-detail__codes code {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}

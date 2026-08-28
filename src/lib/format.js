@@ -74,6 +74,27 @@ export function formatShortDate(iso, locale = 'es') {
 }
 
 /**
+ * Fecha corta de un timestamp COMPLETO, siempre en ART. `formatShortDate`
+ * asume 'YYYY-MM-DD' (le agrega T12:00:00) y devuelve un timestamp crudo tal
+ * cual; esta variante es para columnas timestamptz como `price_effective_at`,
+ * donde la medianoche ART serializada en UTC no puede leerse como el día
+ * anterior o siguiente.
+ */
+export function formatShortStamp(iso, locale = 'es') {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return String(iso)
+  return date
+    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-AR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'America/Argentina/Buenos_Aires',
+    })
+    .replace('.', '')
+}
+
+/**
  * Cierre comercial de una promo con día de la semana, siempre en ART.
  * 2026-08-28T23:59:59-03:00 y su equivalente UTC no pueden leerse como sábado 29.
  */

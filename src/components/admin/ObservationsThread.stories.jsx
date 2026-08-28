@@ -88,6 +88,27 @@ function Frame({ canWrite = true }) {
   )
 }
 
+function FichaFrame({ canWrite = true }) {
+  return (
+    <AppConfigProvider>
+      <div
+        className="admin-shell"
+        style={{ background: 'var(--admin-canvas)', maxWidth: '1331px', padding: '24px' }}
+      >
+        <div className="athlete-detail__panel">
+          <section className="athlete-detail__observations">
+            <h4 className="athlete-detail__observations-title">
+              Observaciones
+              <span className="athlete-detail__observations-event">Pitbull Classic</span>
+            </h4>
+            <ObservationsThread canWrite={canWrite} entityId={ENTITY_ID} entityType="registration" />
+          </section>
+        </div>
+      </div>
+    </AppConfigProvider>
+  )
+}
+
 export default {
   title: 'Admin/ObservationsThread',
   component: ObservationsThread,
@@ -110,4 +131,10 @@ export const SoloLectura = {
 export const SinObservaciones = {
   decorators: [withThread([])],
   render: () => <Frame />,
+}
+
+/** El composer en la ficha del atleta, al ancho real del panel: no debe estirarse a 1300px. */
+export const EnFichaDelAtleta = {
+  decorators: [withThread([])],
+  render: () => <FichaFrame />,
 }

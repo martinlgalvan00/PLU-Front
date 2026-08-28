@@ -104,7 +104,7 @@ export default function ObservationsThread({
             <span>{t('admin.observations.newLabel')}</span>
             <textarea
               id={fieldId}
-              rows={2}
+              rows={3}
               maxLength={1000}
               value={draft}
               disabled={saving}
@@ -112,14 +112,16 @@ export default function ObservationsThread({
               onChange={(event) => setDraft(event.target.value)}
             />
           </label>
-          <Button type="submit" disabled={!valid || saving}>
-            {saving ? (
-              <LoaderCircle size={15} aria-hidden className="is-spinning" />
-            ) : (
-              <MessageSquarePlus size={15} aria-hidden />
-            )}
-            {saving ? t('admin.observations.saving') : t('admin.observations.save')}
-          </Button>
+          <div className="admin-observations__actions">
+            <Button type="submit" className="btn--small" disabled={!valid || saving}>
+              {saving ? (
+                <LoaderCircle size={15} aria-hidden className="is-spinning" />
+              ) : (
+                <MessageSquarePlus size={15} aria-hidden />
+              )}
+              {saving ? t('admin.observations.saving') : t('admin.observations.save')}
+            </Button>
+          </div>
         </form>
       ) : null}
 

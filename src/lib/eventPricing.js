@@ -87,8 +87,32 @@ export function resolveComboDeal({ membership, registration, combo } = {}) {
 export const DEFAULT_EVENT_DAYS = []
 export const DEFAULT_TICKET_TYPES = []
 
-export function resolveEventPricing(event) {
-  const liveCombo = resolveLiveComboOffer(event)
+/**
+ * Cambio de precio de inscripción programado (20260929100000), leído desde el
+ * catálogo público.
+ *
+ * Devuelve null si no hay cambio pendiente. Si la fecha ya pasó pero el
+ * barrido del cron (corre cada minuto) todavía no volcó el precio, lo informa
+ * con `live: true`: el que muestra precios debe usar el nuevo, no el viejo —
+ * nunca anunciar un importe que el checkout ya no va a cobrar.
+ */
+export function resolveUpcomingPriceChange(event, now = new Date()) {
+  const price = Number(event?.scheduledPrice)
+  const effectiveAt = event?.priceEffectiveAt
+  if (!effectiveAt || !Number.isFinite(price) || price <= 0) return null
+  const effectiveTime = new Date(effectiveAt).getTime()
+  if (!Number.isFinite(effectiveTime)) return null
+  const manual = Number(event?.scheduledManualPrice)
+  return {
+    price,
+    manualPrice: Number.isFinite(manual) && manual > 0 ? manual : null,
+    effectiveAt,
+    live: effectiveTime <= now.getTime(),
+  }
+}
+
+export function resolveEventPricing(event, now = new Date()) {
+  const liveCombo = resolveLiveComboOffer(event, now)
   const pricing = {
     ...DEFAULT_EVENT_PRICING,
     ...(event?.pricing ?? {}),
@@ -103,6 +127,20 @@ export function resolveEventPricing(event) {
     event?.manualPrice != null && Number.isFinite(Number(event.manualPrice))
       ? Number(event.manualPrice)
       : null
+
+  // Programación de precio: si todavía no llegó, viaja como `upcoming` para
+  // que las superficies anuncien el aumento; si ya llegó (minuto de gracia
+  // hasta que el barrido del cron escriba la columna), el precio vigente ES el
+  // programado y no se anuncia nada.
+  const upcoming = resolveUpcomingPriceChange(event, now)
+  if (upcoming?.live) {
+    pricing.registration = upcoming.price
+    pricing.registrationManual = upcoming.manualPrice
+    pricing.upcoming = null
+  } else {
+    pricing.upcoming = upcoming
+  }
+
   return {
     ...pricing,
     ticketAddons: normalizeTicketAddons(pricing.ticketAddons),
