@@ -418,6 +418,9 @@ const observationsQuerySchema = z.object({
 const proofUrlsSchema = z.object({
   orderIds: z.array(z.string().uuid()).min(1).max(60),
 })
+const photoUrlsSchema = z.object({
+  paths: z.array(z.string().trim().min(3).max(300)).min(1).max(60),
+})
 const paymentOrderStatusEnum = z.enum([
   'pendiente',
   'validacion_manual',
@@ -478,6 +481,9 @@ const adminDataQuerySchema = z.object({
     .optional(),
   limit: z.coerce.number().int().min(1).max(1000).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+  // `0` saltea la firma de fotos: el poll de 60 s no necesita un token nuevo
+  // (cambia el `src` y el browser re-descarga el original desde Storage).
+  photos: z.enum(['0', '1']).optional(),
 })
 
 const FORGOT_OK_MESSAGE =
@@ -2130,6 +2136,23 @@ export function createAthleteRoutes({
       next(error)
     }
   })
+
+  router.post(
+    '/admin/photo-urls',
+    ...adminGuard,
+    staffLimiter,
+    validateBody(photoUrlsSchema),
+    async (req, res, next) => {
+      try {
+        if (!hasPermission(req.auth.user, 'admin.athletes.read')) {
+          throw new HttpError(403, 'Sin permisos para leer fotos de atletas.')
+        }
+        res.json({ urls: await repo().signAthletePhotoPaths(req.validatedBody.paths) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   /**
    * Interruptor de validación: con el concepto congelado desde el panel nadie
    * acredita ni rechaza esa orden, tenga o no `admin.payments.approve`. El corte

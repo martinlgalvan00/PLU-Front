@@ -1216,11 +1216,10 @@ export function createSupabaseAthleteRepository(
       return { path, token: signed.token }
     },
     /**
-     * `filters` es opcional y hoy nadie lo manda desde el frontend (el panel
-     * sigue pidiendo el snapshot completo: dashboard y badges de navegación
-     * necesitan ver todo). Sirve para dejar la capacidad de recorte
-     * server-side lista sin tener que tocar este método de nuevo cuando algún
-     * listado la necesite de verdad.
+     * `filters` recorta el snapshot (status/paginación) y `photos=0` saltea
+     * las URLs firmadas. El panel pide el padrón completo en la primera carga
+     * (dashboard y badges) y en el poll de 60 s manda `photos=0` para no
+     * rotar el token de Storage ni re-bajar los originales.
      */
     async adminData(scope = {}, filters = {}) {
       const read = {
@@ -1382,7 +1381,41 @@ export function createSupabaseAthleteRepository(
         }
       }
 
+      if (filters.photos === '0') return payload
       return addSignedPhotoUrls(payload)
+    },
+
+    /**
+     * Firma solo paths que ya están en el padrón. El poll del panel no pide
+     * todas las fotos: si aparece un retrato nuevo, esta llamada cubre ese
+     * hueco sin rotar el resto de URLs.
+     */
+    async signAthletePhotoPaths(paths = []) {
+      const unique = [...new Set(paths.map((path) => String(path).trim()).filter(Boolean))].slice(
+        0,
+        60,
+      )
+      if (unique.length === 0) return {}
+
+      const rows = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('photo_path')
+          .eq('organization_id', organizationId)
+          .in('photo_path', unique),
+        'No se pudieron leer las fotos.',
+      )
+      const allowed = (rows ?? []).map((row) => row.photo_path).filter(Boolean)
+      if (allowed.length === 0) return {}
+
+      const payload = await addSignedPhotoUrls({
+        athletes: allowed.map((photo_path) => ({ photo_path })),
+      })
+      return Object.fromEntries(
+        payload.athletes
+          .filter((athlete) => athlete.photo_url)
+          .map((athlete) => [athlete.photo_path, athlete.photo_url]),
+      )
     },
 
     /**

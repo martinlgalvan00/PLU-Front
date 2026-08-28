@@ -37,6 +37,11 @@ import { env } from '../config/env.js'
 import { sessionDisplayName } from '../lib/format.js'
 import { markSignedOut, markSignedIn } from '../lib/sessionNotice.js'
 import {
+  applyAthletePhotoUrls,
+  missingAthletePhotoPaths,
+  preserveAthletePhotoUrls,
+} from '../lib/signedPhotoUrls.js'
+import {
   FEATURE_KEYS,
   getFeatureAvailability,
   isFeatureEnabled,
@@ -62,6 +67,7 @@ import {
   deleteMembershipRequest,
   deleteRegistrationRequest,
   fetchAdminAthleteData,
+  fetchAdminPhotoUrls,
   fetchAthleteSession,
   fetchAthleteSnapshot,
   forceSettleAthletePaymentOrder as forceSettleAthletePaymentOrderRequest,
@@ -468,7 +474,9 @@ export function useAppData() {
       if (session.role === 'athlete_plu') {
         try {
           const snapshot = await fetchAthleteSnapshot(session.athleteId)
-          setAthletes(snapshot.athlete ? [snapshot.athlete] : [])
+          setAthletes((current) =>
+            preserveAthletePhotoUrls(current, snapshot.athlete ? [snapshot.athlete] : []),
+          )
           setMemberships(snapshot.memberships)
           setRegistrations(snapshot.registrations)
           setPayments(snapshot.payments)
@@ -507,11 +515,20 @@ export function useAppData() {
           )
         }
         tasks.push(
-          fetchAdminAthleteData()
+          fetchAdminAthleteData({ photos: isInitialLoad })
             .then((data) => {
               athleteDataLoadedRef.current = true
               setAthleteDataSyncedAt(Date.now())
-              setAthletes(data.athletes)
+              setAthletes((current) => {
+                const merged = preserveAthletePhotoUrls(current, data.athletes)
+                const missing = missingAthletePhotoPaths(merged)
+                if (missing.length) {
+                  void fetchAdminPhotoUrls(missing).then((urls) => {
+                    setAthletes((latest) => applyAthletePhotoUrls(latest, urls))
+                  })
+                }
+                return merged
+              })
               setMemberships(data.memberships)
               setRegistrations(data.registrations)
               setPayments(data.payments)

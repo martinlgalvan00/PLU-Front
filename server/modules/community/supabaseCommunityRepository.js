@@ -1,9 +1,5 @@
 import { HttpError } from '../../lib/errors.js'
-
-const PHOTO_BUCKET = 'athlete-photos'
-const PHOTO_SIGNED_TTL_SEC = 3600
-const PHOTO_URL_CACHE_MS = (PHOTO_SIGNED_TTL_SEC - 60) * 1000
-const signedPhotoUrlCache = new Map()
+import { publicPortraitUrl } from '../../lib/publicPortraitUrl.js'
 
 function assertSupabaseResult(result, fallback = 'No se pudo consultar la comunidad.') {
   if (result?.error) {
@@ -33,40 +29,13 @@ function normalizeMember(row) {
     province: String(row.province ?? '—').trim() || '—',
     affiliatedAt: row.affiliatedAt ?? row.affiliated_at ?? null,
     photoPath: photoPath ? String(photoPath) : null,
-    photoUrl: null,
+    photoUrl: publicPortraitUrl(photoPath),
   }
 }
 
-async function attachSignedPhotoUrls(client, members) {
-  const now = Date.now()
-  const paths = [...new Set(members.map((member) => member.photoPath).filter(Boolean))]
-  const missingPaths = paths.filter((path) => {
-    const cached = signedPhotoUrlCache.get(path)
-    return !cached || cached.expiresAt <= now
-  })
-
-  if (missingPaths.length > 0) {
-    try {
-      const signed = assertSupabaseResult(
-        await client.storage
-          .from(PHOTO_BUCKET)
-          .createSignedUrls(missingPaths, PHOTO_SIGNED_TTL_SEC),
-      )
-      for (const item of signed ?? []) {
-        if (!item?.path || !item?.signedUrl) continue
-        signedPhotoUrlCache.set(item.path, {
-          url: item.signedUrl,
-          expiresAt: now + PHOTO_URL_CACHE_MS,
-        })
-      }
-    } catch {
-      // Las fotos son decorativas: el feed sigue disponible sin ellas.
-    }
-  }
-
+function attachPublicPortraitUrls(members) {
   for (const member of members) {
-    const cached = member.photoPath ? signedPhotoUrlCache.get(member.photoPath) : null
-    member.photoUrl = cached?.expiresAt > now ? cached.url : null
+    member.photoUrl = publicPortraitUrl(member.photoPath)
     delete member.photoPath
   }
   return members
@@ -91,7 +60,7 @@ export function createSupabaseCommunityRepository({ getSupabaseAdmin }) {
         ? data.members.map(normalizeMember).filter(Boolean)
         : []
 
-      await attachSignedPhotoUrls(client, members)
+      attachPublicPortraitUrls(members)
 
       const stats = {
         memberCount: Number(data?.stats?.memberCount ?? members.length) || 0,

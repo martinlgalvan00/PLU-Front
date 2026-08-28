@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
+import { publicPortraitUrl } from '../lib/publicPortraitUrl.js'
 import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
@@ -11,9 +12,6 @@ import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogServic
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
-const ATHLETE_PHOTO_BUCKET = 'athlete-photos'
-const RECENT_PORTRAIT_TTL_SECONDS = 3600
-const recentPortraitUrlCache = new Map()
 
 const EVENT_SELECT = `
   *,
@@ -343,43 +341,16 @@ async function readEvents(client) {
   )
 }
 
-async function getRecentPortraitUrl(client, photoPath) {
-  const cached = recentPortraitUrlCache.get(photoPath)
-  if (cached && cached.expiresAt > Date.now()) return cached.url
-
-  try {
-    const signed = assertSupabaseResult(
-      await client.storage
-        .from(ATHLETE_PHOTO_BUCKET)
-        .createSignedUrl(photoPath, RECENT_PORTRAIT_TTL_SECONDS),
-      'No se pudo firmar la foto del inscripto.',
-    )
-    const url = signed?.signedUrl ?? null
-    if (url) {
-      recentPortraitUrlCache.set(photoPath, {
-        expiresAt: Date.now() + (RECENT_PORTRAIT_TTL_SECONDS - 60) * 1000,
-        url,
-      })
-    }
-    return url
-  } catch {
-    // El resumen público sigue disponible aunque una foto haya sido removida.
-    return null
-  }
-}
-
-async function attachRecentRegistrationPortraits(client, summary) {
+function attachRecentRegistrationPortraits(summary) {
   const recent = Array.isArray(summary?.recent) ? summary.recent : []
-  const entries = await Promise.all(
-    recent.map(async (item) => {
-      const { photoPath, photo_path: photoPathSnake, ...entry } = item ?? {}
-      const portraitPath = String(photoPath ?? photoPathSnake ?? '').trim()
-      return {
-        ...entry,
-        photoUrl: portraitPath ? await getRecentPortraitUrl(client, portraitPath) : null,
-      }
-    }),
-  )
+  const entries = recent.map((item) => {
+    const { photoPath, photo_path: photoPathSnake, ...entry } = item ?? {}
+    const portraitPath = String(photoPath ?? photoPathSnake ?? '').trim()
+    return {
+      ...entry,
+      photoUrl: publicPortraitUrl(portraitPath),
+    }
+  })
 
   return { ...summary, recent: entries }
 }
@@ -448,7 +419,7 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       // El hook de cupo la pide cada 30 s por visitante (`LIVE_REGISTRATION_POLL_MS`):
       // en una difusión son cientos de invocaciones por minuto contra el mismo número.
       res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
-      res.json({ summary: await attachRecentRegistrationPortraits(client, summary) })
+      res.json({ summary: attachRecentRegistrationPortraits(summary) })
     } catch (error) {
       next(error)
     }

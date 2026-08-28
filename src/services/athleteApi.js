@@ -402,9 +402,16 @@ export function verifyAthleteEmailCode(code) {
 }
 
 /** Snapshot completo para el panel admin/seguridad. */
-export async function fetchAdminAthleteData() {
-  const result = await apiGet('/api/athletes/admin')
+export async function fetchAdminAthleteData({ photos = true } = {}) {
+  const result = await apiGet(photos ? '/api/athletes/admin' : '/api/athletes/admin?photos=0')
   return mapAthleteData(result)
+}
+
+export async function fetchAdminPhotoUrls(paths = []) {
+  const unique = [...new Set(paths.filter(Boolean))]
+  if (unique.length === 0) return {}
+  const { urls } = await apiPost('/api/athletes/admin/photo-urls', { paths: unique })
+  return urls ?? {}
 }
 
 export async function registerAthlete(form) {

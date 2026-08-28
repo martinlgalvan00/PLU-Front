@@ -41,7 +41,7 @@ function RosterAvatar({ member }) {
   if (member.photoUrl) {
     return (
       <span className="community-spotlight__avatar community-spotlight__avatar--photo" aria-hidden>
-        <img src={member.photoUrl} alt="" />
+        <img src={member.photoUrl} alt="" loading="lazy" decoding="async" />
       </span>
     )
   }

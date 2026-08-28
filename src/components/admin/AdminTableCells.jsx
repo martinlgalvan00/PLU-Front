@@ -20,6 +20,8 @@ export function AdminIdentityCell({ accent = 'celeste', name, photoUrl, sub, sub
             className="data-table__avatar-photo"
             src={photoUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             onError={(event) => {
               event.currentTarget.hidden = true
             }}

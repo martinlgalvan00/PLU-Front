@@ -1,3 +1,4 @@
+import { reuseRecentPortraitsInSummary } from '../lib/signedPhotoUrls.js'
 import { fetchEventRegistrationSummary } from './eventRegistrationApi.js'
 import { fetchTicketAvailability } from './ticketApi.js'
 import {
@@ -29,7 +30,7 @@ import {
 const REGISTRATION_TTL_MS = 15_000
 const AVAILABILITY_TTL_MS = 15_000
 
-function createLiveStore({ fetcher, ttlMs }) {
+function createLiveStore({ fetcher, ttlMs, merge }) {
   /** key → { data, fetchedAt, inFlight, failed, refreshAfterFlight, listeners } */
   const entries = new Map()
 
@@ -86,10 +87,10 @@ function createLiveStore({ fetcher, ttlMs }) {
 
     entry.inFlight = fetcher(key)
       .then((data) => {
-        entry.data = data
+        entry.data = merge ? merge(entry.data, data) : data
         entry.fetchedAt = Date.now()
         entry.failed = false
-        return data
+        return entry.data
       })
       .catch((error) => {
         // Se conserva el último dato bueno: un error de red no debe
@@ -159,6 +160,7 @@ function createLiveStore({ fetcher, ttlMs }) {
 export const registrationSummaryStore = createLiveStore({
   fetcher: fetchEventRegistrationSummary,
   ttlMs: REGISTRATION_TTL_MS,
+  merge: reuseRecentPortraitsInSummary,
 })
 
 export const ticketAvailabilityStore = createLiveStore({
