@@ -33,9 +33,8 @@ export default function HelpDock({ open = false, pending = false, onToggle }) {
         aria-label={t(pending ? 'help.triggerPendingAria' : 'help.triggerAria')}
         onClick={onToggle}
       >
-        <LifeBuoy size={17} strokeWidth={2.25} aria-hidden />
+        <LifeBuoy size={16} strokeWidth={2} className="help-dock__icon" aria-hidden />
         <span className="help-dock__label">{t('help.trigger')}</span>
-        {pending && !open ? <span className="help-dock__dot" aria-hidden /> : null}
       </button>
     </div>
   )
