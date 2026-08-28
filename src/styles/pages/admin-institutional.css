@@ -1800,14 +1800,14 @@
   box-shadow: none;
 }
 
-.admin-shell .admin-payments-operations > .admin-orders-block__header.admin-payments-ops-top {
+.admin-shell .admin-payments-operations > .admin-list-section__chrome.admin-payments-ops-chrome {
   background: transparent;
   border-bottom-color: var(--admin-hairline);
   border-radius: 0;
   box-shadow: none;
 }
 
-.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-orders-block__eyebrow {
+.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow {
   color: var(--admin-accent, var(--admin-brand));
 }
 

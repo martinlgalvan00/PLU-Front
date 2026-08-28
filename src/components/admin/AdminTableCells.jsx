@@ -1,5 +1,6 @@
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatShortDate } from '../../lib/format.js'
+import { MoreHorizontal } from 'lucide-react'
 
 /**
  * Celda de identidad: nombre primario + sublínea secundaria.
@@ -130,6 +131,33 @@ export function AdminTableActions({ children, className = '', 'aria-label': aria
     >
       {children}
     </div>
+  )
+}
+
+/**
+ * Menú “más” para acciones secundarias en filas densas.
+ * Usa <details> nativo para no sumar dependencias de popover.
+ */
+export function AdminActionOverflow({ label, children }) {
+  if (!children) return null
+
+  return (
+    <details
+      className="admin-table-actions__more"
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <summary
+        className="admin-icon-btn admin-icon-btn--ghost"
+        aria-label={label}
+        title={label}
+      >
+        <MoreHorizontal size={15} aria-hidden />
+      </summary>
+      <div className="admin-table-actions__more-menu" role="menu">
+        {children}
+      </div>
+    </details>
   )
 }
 

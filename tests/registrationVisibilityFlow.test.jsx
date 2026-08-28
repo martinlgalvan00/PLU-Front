@@ -102,7 +102,9 @@ describe('cuenta · Próximos torneos', () => {
     renderAccountEvents(['confirmada'])
 
     expect(screen.getByText('Inscripción confirmada')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Ya estás inscripto' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Ya sos parte de Pitbull Classic' }).disabled).toBe(
+      true,
+    )
   })
 
   it('sigue reconociendo la inscripción después de que el staff renombra el meet', () => {
@@ -111,7 +113,9 @@ describe('cuenta · Próximos torneos', () => {
     renderAccountEvents(['confirmada'], { ...CATALOG_EVENT, title: 'Pitbull Classic 2026' })
 
     expect(screen.getByText('Inscripción confirmada')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Ya estás inscripto' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Ya sos parte de Pitbull Classic 2026' }).disabled).toBe(
+      true,
+    )
   })
 
   it('no anuncia como confirmada una inscripción sin pago acreditado', () => {

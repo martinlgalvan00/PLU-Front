@@ -236,7 +236,7 @@ export function getEventsTourSteps(t) {
 export function getPaymentsTourSteps(t) {
   return [
     {
-      target: '.admin-payments-ops-strip__kpis',
+      target: '.admin-payments-ops-chrome',
       placement: 'bottom',
       title: t('admin.tour.payments.kpis.title'),
       body: t('admin.tour.payments.kpis.body'),

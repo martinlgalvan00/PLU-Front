@@ -156,6 +156,13 @@ export function mapPricingConfiguration(payload = {}) {
       registrationPrice: Number(event.registrationPrice) || 0,
       registrationManualPrice:
         event.registrationManualPrice != null ? Number(event.registrationManualPrice) : null,
+      // Cambio de precio pendiente (20260929100000). `priceEffectiveAt` null =
+      // no hay nada programado; `scheduledManualPrice` null con fecha puesta =
+      // desde esa fecha cobra lo mismo por cualquier canal.
+      scheduledPrice: event.scheduledPrice != null ? Number(event.scheduledPrice) : null,
+      scheduledManualPrice:
+        event.scheduledManualPrice != null ? Number(event.scheduledManualPrice) : null,
+      priceEffectiveAt: event.priceEffectiveAt ?? null,
       comboOffer: event.comboOffer
         ? {
             ...event.comboOffer,
@@ -264,6 +271,31 @@ export async function setMembershipPlanRetirementRequest(planId, retiresAt) {
     { retiresAt: dateTimeToIso(retiresAt) },
   )
   return mapMembershipPlan(result.plan)
+}
+
+/**
+ * El precio de inscripción de un evento, ahora o desde una fecha. `effectiveAt`
+ * vacío = rige desde ya. `manualPrice` vacío = cobra igual que `price` en
+ * cualquier canal. Devuelve el snapshot de precios que dejó el servidor.
+ */
+export async function setEventRegistrationPriceRequest(eventSlug, { price, manualPrice, effectiveAt }) {
+  const result = await apiPatch(
+    `/api/pricing/events/${encodeURIComponent(eventSlug)}/registration-price`,
+    {
+      price,
+      ...(manualPrice !== '' && manualPrice != null ? { manualPrice: Number(manualPrice) } : {}),
+      effectiveAt: dateTimeToIso(effectiveAt),
+    },
+  )
+  return result.event
+}
+
+/** Cancela el cambio de precio programado de una inscripción. Idempotente. */
+export async function clearEventRegistrationPriceScheduleRequest(eventSlug) {
+  const result = await apiDelete(
+    `/api/pricing/events/${encodeURIComponent(eventSlug)}/registration-price/schedule`,
+  )
+  return result.event
 }
 
 /** Canales que se liquidan a mano, en el orden en que los ve el atleta. */

@@ -727,6 +727,55 @@ export function createSupabaseAthleteRepository(
         'No se pudo cambiar el estado de la inscripción.',
       )
     },
+    /**
+     * Observaciones sobre una inscripción o una afiliación.
+     *
+     * Existen aparte del cambio de estado porque son otra cosa: anotar "el pago
+     * llegó a nombre del padre" no debería costar una corrección de estado, que
+     * es lo que pasaba cuando el único lugar donde escribir era el motivo del
+     * diálogo. El motivo de un cambio de estado sigue entrando al mismo hilo
+     * (lo asienta la RPC), así que las dos formas de dejar algo escrito se leen
+     * juntas y en orden.
+     */
+    async addObservation(entityType, entityId, body, actor = null) {
+      return rpc(
+        'staff_add_observation',
+        {
+          p_entity_type: entityType,
+          p_entity_id: entityId,
+          p_body: body,
+          p_actor: actor,
+        },
+        'No se pudo guardar la observación.',
+      )
+    },
+    async deleteObservation(observationId, actor = null) {
+      return rpc(
+        'staff_delete_observation',
+        { p_observation_id: observationId, p_actor: actor },
+        'No se pudo borrar la observación.',
+      )
+    },
+    /**
+     * El hilo de un lote de entidades en una sola consulta: la lista del panel
+     * muestra hasta 200 filas y pedir el historial de cada una sería 200
+     * roundtrips contra una instancia que tiene 15 slots de pooler.
+     */
+    async listObservations(entityType, entityIds, { limitPerEntity = 50 } = {}) {
+      const ids = [...new Set((entityIds ?? []).filter(Boolean))]
+      if (!ids.length) return []
+      return (
+        (await rpc(
+          'list_domain_observations',
+          {
+            p_entity_type: entityType,
+            p_entity_ids: ids,
+            p_limit_per_entity: limitPerEntity,
+          },
+          'No se pudieron leer las observaciones.',
+        )) ?? []
+      )
+    },
     async rejectPayment(orderId, reason = null, actor = null) {
       const order = assertSupabaseResult(
         await client

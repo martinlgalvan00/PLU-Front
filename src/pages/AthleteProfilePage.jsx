@@ -148,8 +148,16 @@ export default function AthleteProfilePage({
    * y después de cada pago, y dos de esas pueden caer en el mismo commit — con
    * dos pedidos en vuelo gana el que vuelve último, que no es necesariamente el
    * más nuevo.
+   *
+   * El pedido que llega con otro en vuelo no se descarta: queda ENCOLADO
+   * (`queued`) y corre cuando el actual termina. Descartarlo perdía justamente
+   * la relectura que importaba — el canje o el pago ocurren DESPUÉS de que la
+   * lectura vieja salió, así que la respuesta en vuelo no los trae, y sin la
+   * relectura encolada la ficha se quedaba con el estado anterior (o caía en
+   * Torneos con el desbloqueo ya hecho, el mismo bug de 7567d1c por la ventana
+   * angosta de la red lenta).
    */
-  const bundleReadRef = useRef({ inFlight: false, alive: true })
+  const bundleReadRef = useRef({ inFlight: false, alive: true, queued: false })
   // `alive` se vuelve a prender al montar y no sólo al crear el ref: en
   // StrictMode el efecto corre, se limpia y vuelve a correr, así que un ref que
   // sólo se apaga quedaba apagado desde el primer ciclo — la lectura volvía del
@@ -166,7 +174,10 @@ export default function AthleteProfilePage({
       setBundleOffers([])
       return
     }
-    if (bundleReadRef.current.inFlight) return
+    if (bundleReadRef.current.inFlight) {
+      bundleReadRef.current.queued = true
+      return
+    }
     bundleReadRef.current.inFlight = true
     void fetchOfferUnlocks()
       .then((offers) => {
@@ -179,6 +190,10 @@ export default function AthleteProfilePage({
       })
       .finally(() => {
         bundleReadRef.current.inFlight = false
+        if (bundleReadRef.current.queued) {
+          bundleReadRef.current.queued = false
+          if (bundleReadRef.current.alive) reloadBundleOffers()
+        }
       })
   }, [athleteId])
 

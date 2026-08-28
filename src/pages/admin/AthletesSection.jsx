@@ -15,6 +15,7 @@ import {
   REGISTRATION_FILTER_STATUSES,
 } from '../../lib/constants.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
+import { matchesDateRange } from '../../lib/adminDateRangeFilter.js'
 import {
   createRegistrationPaymentIndex,
   groupRegistrationsByAthlete,
@@ -122,15 +123,6 @@ export default function AthletesSection({
     ],
     [athletes.length, divisionCounts, t],
   )
-
-  function matchesRegisteredRange(createdAt, range) {
-    if (!range.from && !range.to) return true
-    if (!createdAt) return false
-    const createdDate = createdAt.slice(0, 10)
-    if (range.from && createdDate < range.from) return false
-    if (range.to && createdDate > range.to) return false
-    return true
-  }
 
   function formatDateForSummary(isoDate) {
     return new Date(`${isoDate}T00:00:00`).toLocaleDateString('es-AR')
@@ -268,7 +260,7 @@ export default function AthletesSection({
         const registrationMatch = athleteMatchesRegistrationFilter(athlete.id, registrationStatus)
         const gymMatch = gym === 'all' || normalizeGymName(athlete.gym) === gym
         const divisionMatch = division === 'all' || athlete.division === division
-        const dateMatch = matchesRegisteredRange(athlete.createdAt, registeredRange)
+        const dateMatch = matchesDateRange(athlete.createdAt, registeredRange)
         const queryMatch =
           !normalizedQuery ||
           athlete.fullName.toLowerCase().includes(normalizedQuery) ||
@@ -280,7 +272,7 @@ export default function AthletesSection({
         )
       })
       .map((athlete) => ({ ...athlete, id: athlete.id }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- athleteMatchesRegistrationFilter/matchesRegisteredRange dependen de paymentIndex/registrationsByAthlete/gatePendingIds, ya listados
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- athleteMatchesRegistrationFilter depende de paymentIndex/registrationsByAthlete/gatePendingIds, ya listados
   }, [
     athletes,
     query,

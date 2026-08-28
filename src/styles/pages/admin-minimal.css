@@ -258,6 +258,31 @@
   z-index: 5;
 }
 
+/* Rails + popover: título, vistas y filtros como una sola franja editorial
+   (un hairline al final del chrome; sin “tarjeta” de filtros aparte). */
+.admin-shell .admin-list-section--rails > .admin-list-section__chrome {
+  gap: 6px;
+  padding-bottom: 12px;
+}
+
+.admin-shell
+  .admin-list-section--rails
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar {
+  border-bottom: 0;
+  gap: 10px;
+  padding: 2px 2px 0;
+}
+
+.admin-shell
+  .admin-list-section--rails
+  > .admin-list-section__chrome
+  > .admin-filters--external.admin-filters--popover
+  .admin-filter-popoverbar__toolbar {
+  gap: 10px;
+}
+
 .admin-shell .admin-page > .admin-list-section--rails > .admin-list-shell {
   display: flex;
   flex: 1;
@@ -292,9 +317,9 @@
 
 .admin-shell .admin-list-section--rails > .admin-list-section__chrome > .admin-list-section__header,
 .admin-shell .admin-list-section--rails > .admin-list-section__chrome > .admin-list-shell__header {
-  gap: 12px;
-  margin-bottom: 2px;
-  padding: 2px 2px 8px;
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 0 2px 2px;
 }
 
 .admin-shell
@@ -1383,33 +1408,40 @@
   padding: 0;
 }
 
-.admin-shell .admin-payments-operations > .admin-orders-block__header.admin-payments-ops-top {
+.admin-shell .admin-payments-operations > .admin-list-section__chrome.admin-payments-ops-chrome {
   background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--admin-hairline) 60%, transparent);
   border-radius: 0;
   box-shadow: none;
+  gap: 10px;
   margin-bottom: 16px;
-  padding: 2px 2px 16px;
+  padding: 0 2px 14px;
 }
 
-.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-orders-block__eyebrow {
+.admin-shell .admin-payments-operations .admin-payments-ops-top {
+  gap: 8px 24px;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow {
   color: var(--admin-brand);
-  letter-spacing: 0.14em;
 }
 
-.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-orders-block__title {
+.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__title {
   color: var(--admin-ink);
-  font-size: clamp(1.25rem, 2vw, 1.55rem);
-  letter-spacing: -0.035em;
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  letter-spacing: -0.03em;
 }
 
-.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-orders-block__lead {
+.admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__subtitle {
   color: var(--admin-muted);
   font-size: 12.5px;
   max-width: 52ch;
 }
 
 .admin-shell .admin-payments-operations .admin-payments-ops-top__tabs {
-  margin-top: 12px;
+  min-width: 0;
 }
 
 .admin-shell .admin-payments-operations .admin-orders-block__header:not(.admin-payments-ops-top) {
@@ -1429,6 +1461,13 @@
 
 .admin-shell .admin-payments-operations .admin-orders-block__toolbar .admin-orders-block__amount {
   color: var(--admin-muted);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar
+  .admin-orders-block__amount--hero {
+  color: var(--admin-ink);
 }
 
 .admin-shell .admin-payments-operations .admin-list-section--tickets {
@@ -1928,6 +1967,22 @@
 
   .admin-shell .data-table-card .admin-membership-actions {
     flex-wrap: nowrap;
+  }
+
+  /* Atletas: misma densidad compacta que afiliaciones. */
+  .admin-shell .admin-list-section--athletes .data-table-card--admin.data-table-card--compact {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .admin-shell .admin-list-section--athletes .data-table-card__meta--inline {
+    color: var(--admin-muted, var(--color-text-muted));
+    font-size: 12px;
+  }
+
+  .admin-shell .admin-orders-block .data-table-card--admin.data-table-card--compact {
+    gap: 6px;
+    padding: 10px 12px;
   }
 
   .admin-shell .data-table-card__top {
@@ -2844,6 +2899,7 @@
 .admin-shell .admin-people-section .admin-list-section__chrome {
   background: transparent;
   border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 60%, transparent);
   border-radius: 0;
   box-shadow: none;
   overflow: visible;
@@ -2913,6 +2969,30 @@
   flex-wrap: wrap;
   gap: 16px;
   padding: 0 4px;
+}
+
+/* Rails: vistas guardadas más compactas para no sumar un “tercer bloque”. */
+.admin-shell .admin-list-section--rails > .admin-list-section__chrome > .admin-saved-views {
+  gap: 8px;
+  min-height: 0;
+  padding: 0 2px 2px;
+}
+
+.admin-shell
+  .admin-list-section--rails
+  > .admin-list-section__chrome
+  > .admin-saved-views
+  .admin-saved-views__caption {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+}
+
+.admin-shell
+  .admin-list-section--rails
+  > .admin-list-section__chrome
+  > .admin-saved-views
+  .admin-saved-views__list {
+  gap: 8px;
 }
 
 .admin-saved-views__caption {
@@ -3363,6 +3443,14 @@
     box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
+/* El popover trae su propio chrome; no aplicar el control de la barra. */
+.admin-shell .admin-filter-popover .admin-filters__date-range-fields--popover {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
 .admin-shell .admin-filters__date-range-fields:hover {
   border-color: color-mix(in srgb, var(--admin-brand) 28%, var(--admin-hairline));
 }
@@ -3463,6 +3551,70 @@
 }
 
 /* Tabla: jerarquía tipográfica, densidad, columnas semánticas. */
+
+/* Shell dual: cuando JS monta cards, forzar grid (plu-ui las oculta por defecto). */
+.admin-shell .admin-data-table-shell {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-shell .admin-data-table-shell > div:not(.data-table-cards):not(.data-table-cards--admin) {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-shell .admin-data-table-shell--cards .data-table-cards,
+.admin-shell .admin-data-table-shell--cards .data-table-cards--admin {
+  display: grid;
+  gap: 8px;
+  padding: 2px 0 8px;
+}
+
+.admin-shell .admin-data-table-shell__empty {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  margin: 12px 0;
+  text-align: center;
+}
+
+/* Menú “más” en acciones de fila densas. */
+.admin-shell .admin-table-actions__more {
+  position: relative;
+}
+
+.admin-shell .admin-table-actions__more > summary {
+  list-style: none;
+}
+
+.admin-shell .admin-table-actions__more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-shell .admin-table-actions__more > summary.admin-icon-btn {
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.admin-shell .admin-table-actions__more-menu {
+  background: var(--admin-surface, var(--color-bg-elevated));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+}
+
+.admin-shell .admin-table-actions__more-menu .admin-icon-btn {
+  justify-content: flex-start;
+  min-width: 36px;
+  width: 100%;
+}
+
 .admin-shell .admin-data-table.data-table--admin {
   background: transparent;
   border: 0;
@@ -3785,17 +3937,45 @@
 }
 
 .admin-shell .admin-data-table--memberships.data-table--columns-5 table {
-  min-width: 760px;
+  min-width: 720px;
+  table-layout: fixed;
+}
+
+/* Atleta no debe comerse la mitad de la fila: nombre + gym con ellipsis. */
+.admin-shell .admin-data-table--memberships .data-table__column--primary {
+  max-width: 240px;
+  min-width: 160px;
+  width: 22%;
+}
+
+.admin-shell .admin-data-table--memberships .data-table__identity {
+  gap: 8px;
+  max-width: 100%;
+}
+
+.admin-shell .admin-data-table--memberships .data-table__avatar,
+.admin-shell .admin-data-table--memberships .data-table__avatar--gold {
+  border-radius: 7px;
+  font-size: 10px;
+  height: 28px;
+  width: 28px;
+}
+
+.admin-shell .admin-data-table--memberships .data-table__identity-copy {
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-data-table--memberships .data-table__column--period {
-  min-width: 148px;
+  min-width: 132px;
+  width: 18%;
 }
 
 .admin-shell .admin-data-table--memberships .data-table__column--status {
+  max-width: 220px;
   padding-inline-end: 12px;
-  white-space: nowrap;
-  width: 1%;
+  white-space: normal;
+  width: 20%;
 }
 
 .admin-shell .admin-data-table--memberships .data-table__column--actions {

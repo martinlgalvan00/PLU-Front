@@ -1125,6 +1125,8 @@ export default {
         granted:
           'Ya estás afiliado e inscripto: PLU te habilitó por adelantado. Falta que completes el pago dentro del plazo.',
         settled: 'Finanzas acreditó el pago. El paquete está cerrado y no queda nada pendiente.',
+        refunded:
+          'Esta compra se reembolsó. El paquete queda como constancia: si querés volver a usarlo, escribinos.',
       },
       mark: 'Código exclusivo',
       headline: '{{plan}} + {{event}}',
@@ -1136,6 +1138,7 @@ export default {
         reserved: 'Reservado',
         granted: 'Habilitado, con saldo',
         settled: 'Acreditado',
+        refunded: 'Reembolsado',
       },
       terms: {
         payment: 'Se paga',
@@ -1152,6 +1155,8 @@ export default {
       remainingOne: 'Queda 1 lugar',
       dueIn: '{{countdown}} Vencido el plazo se dan de baja la afiliación y la inscripción.',
       settled: 'No queda nada pendiente. Tu credencial y tu inscripción están en las fichas de siempre.',
+      refunded:
+        'El importe de esta compra se devolvió. Si el reembolso no fue lo que esperabas, contactá al staff de PLU.',
       form: {
         competitionLegend: 'Tus datos para competir',
         competitionHint:
@@ -1436,7 +1441,7 @@ export default {
       eyebrow: 'Competencias',
       title: 'Próximos torneos',
       registered: 'Inscripción confirmada',
-      alreadyRegistered: 'Ya estás inscripto',
+      alreadyRegistered: 'Ya sos parte de {{event}}',
       register: 'Inscribirme',
       paymentPending: 'Pago pendiente',
       resumePayment: 'Continuar pago',
@@ -1560,6 +1565,11 @@ export default {
         no_savings: 'Ese código no mejora el precio de esta compra.',
         not_started: 'Ese código todavía no está vigente.',
         not_invited: 'Ese código está reservado para otras cuentas.',
+        // `describeDiscountError` puede derivar a estas dos claves también acá:
+        // un código atado a otra inscripción tipeado en Afiliación. Sin ellas la
+        // pantalla mostraba la clave cruda.
+        other_event: 'Ese código es de otra inscripción.',
+        other_event_named: 'Ese código es de {{event}}, no de este torneo.',
         offer_unavailable: 'Esa oferta ya no está disponible.',
       },
       paymentLegend: 'Método de pago',

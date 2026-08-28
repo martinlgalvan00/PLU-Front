@@ -698,6 +698,28 @@ ul.admin-pricing__redemptions li > strong {
   gap: 0.5rem;
 }
 
+/* La aclaración del cambio rápido (qué publica / desde cuándo rige) ocupa su
+   propia línea debajo de los campos: pegada a un input parecía su error. El
+   form base no envuelve (una fecha + acciones entran siempre), así que el
+   wrap se habilita sólo cuando esta aclaración está presente. */
+.admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) {
+  flex-wrap: wrap;
+}
+
+.admin-pricing__quick-price-hint {
+  color: var(--color-text-muted);
+  flex-basis: 100%;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* Un rechazo del servidor sobre la fila (precio inválido, evento sin permiso)
+   se lee debajo de la fila entera, no apretado en la columna de acciones. */
+.admin-pricing__plan-row > .admin-pricing__form-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 /* Búsqueda local de códigos: con lotes de invitados la lista crece a cientos
    de filas y encontrar una a ojo deja de ser razonable. Mismo trazo que los
    inputs de retiro: línea baja, sin caja. */

@@ -1,3 +1,4 @@
+import { TriangleAlert } from 'lucide-react'
 import { presentAuditEvent } from '../../lib/auditPresentation.js'
 import { AdminMonoCell } from './AdminTableCells.jsx'
 import es from '../../i18n/locales/es.js'
@@ -28,7 +29,8 @@ function FactValue({ field, value }) {
 }
 
 export default function AuditEventBody({ row, labels }) {
-  const { lead, leadKind, facts, hasStory } = presentAuditEvent(row)
+  const { lead, leadKind, suggestedAction, technicalMessage, facts, hasStory } = presentAuditEvent(row)
+  const isIncident = row.tone === 'danger' || row.tone === 'warning'
   const technical = [
     row.entityId
       ? { key: 'entity', label: labels.entity(row.entityType), value: row.entityId }
@@ -41,19 +43,40 @@ export default function AuditEventBody({ row, labels }) {
   }
 
   return (
-    <div className="audit-event">
+    <div className={`audit-event${isIncident ? ' audit-event--incident' : ''}`}>
       {lead ? (
-        <p
-          className={[
-            'audit-event__lead',
-            leadKind === 'error' || leadKind === 'reason' ? 'audit-event__lead--alert' : '',
-            row.tone === 'warning' ? 'audit-event__lead--warning' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          {lead}
+        <div className="audit-event__headline">
+          {isIncident ? (
+            <TriangleAlert size={14} className="audit-event__icon" aria-hidden />
+          ) : null}
+          <p
+            className={[
+              'audit-event__lead',
+              leadKind === 'error' || leadKind === 'reason' ? 'audit-event__lead--alert' : '',
+              row.tone === 'warning' ? 'audit-event__lead--warning' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {lead}
+          </p>
+        </div>
+      ) : null}
+
+      {suggestedAction ? (
+        <p className="audit-event__action">
+          <span className="audit-event__action-label">
+            {translate(es, 'admin.audit.suggestedAction')}
+          </span>
+          {suggestedAction}
         </p>
+      ) : null}
+
+      {technicalMessage ? (
+        <details className="audit-event__technical">
+          <summary>{translate(es, 'admin.audit.headlineTechnical')}</summary>
+          <p className="audit-event__technical-message">{technicalMessage}</p>
+        </details>
       ) : null}
 
       {facts.length > 0 ? (

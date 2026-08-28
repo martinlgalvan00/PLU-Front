@@ -203,14 +203,12 @@ describe('sección de auditoría', () => {
     renderWithI18n(<AuditSection />)
 
     expect(await screen.findByText('Requiere revisión')).toBeTruthy()
-    // Críticas = pagos + afiliaciones (3 + 1), sin sumar emails.
-    expect(screen.getByText('Críticas')).toBeTruthy()
-    expect(screen.getAllByText('4').length).toBeGreaterThan(0)
+    expect(screen.getByText(/4 incidencias de negocio/)).toBeTruthy()
     expect(screen.getByText('Emails a revisar')).toBeTruthy()
     expect(screen.getAllByText('290').length).toBeGreaterThan(0)
-    // Desglose compacto bajo críticas (sin chips duplicados).
     expect(screen.getByText(/Pagos 3/)).toBeTruthy()
     expect(screen.getByText(/Afiliaciones 1/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '4' })).toBeNull()
   })
 
   it('trata emails solos como atención menor, no como revisión crítica', async () => {
@@ -224,7 +222,7 @@ describe('sección de auditoría', () => {
 
     expect(await screen.findByText('Atención menor')).toBeTruthy()
     expect(screen.queryByText('Requiere revisión')).toBeNull()
-    expect(screen.getByText('Críticas')).toBeTruthy()
+    expect(screen.getByText(/181 emails requieren revisión/)).toBeTruthy()
     expect(screen.getByText('Emails a revisar')).toBeTruthy()
     expect(screen.getAllByText('181').length).toBeGreaterThan(0)
   })
@@ -288,7 +286,8 @@ describe('sección de auditoría', () => {
     renderWithI18n(<AuditSection />)
 
     expect(await screen.findByRole('button', { name: 'Negocio' })).toBeTruthy()
-    expect(screen.getByLabelText('Estado')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Estado' })).toBeTruthy()
+    expect(screen.getByLabelText('Categoría')).toBeTruthy()
     expect(screen.queryByLabelText('Acción')).toBeNull()
     expect(screen.queryByLabelText('Actor')).toBeNull()
     expect(screen.queryByLabelText('Entidad')).toBeNull()
@@ -307,7 +306,6 @@ describe('sección de auditoría', () => {
     expect(await screen.findByLabelText('Acción')).toBeTruthy()
     expect(screen.getByLabelText('Actor')).toBeTruthy()
     expect(screen.getByLabelText('Entidad')).toBeTruthy()
-    expect(screen.getByLabelText('Estado')).toBeTruthy()
   })
 
   /**

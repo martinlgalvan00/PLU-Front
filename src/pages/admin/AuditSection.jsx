@@ -25,6 +25,7 @@ import {
   fetchAuditOverview,
   isAuditIncidentEntry,
 } from '../../services/auditService.js'
+import { buildAuditStatusFilterOptions } from '../../lib/auditFilterHelpers.js'
 
 /** `entity_type` que `paymentAuditTrail.js` usa para órdenes de cobro: cubre
  * afiliación, combo, inscripción (`athlete_payment_order`) y entradas
@@ -97,7 +98,10 @@ function AuditMobileList({
   return (
     <div className="audit-mobile-list" aria-label={t('admin.audit.mobileListLabel')}>
       {entries.map((entry) => (
-        <article className="audit-mobile-entry" key={entry.id}>
+        <article
+          className={`audit-mobile-entry${isAuditIncidentEntry(entry) ? ' audit-mobile-entry--incident' : ''}`}
+          key={entry.id}
+        >
           <div className="audit-mobile-entry__head">
             <div className="audit-mobile-entry__action">
               <span
@@ -188,6 +192,7 @@ export default function AuditSection() {
   // errores" (el tono sale de `severity` o de un mapa de acción → tono en el
   // browser, no es una columna filtrable). Se aplica sobre lo ya cargado.
   const [onlyIncidents, setOnlyIncidents] = useState(false)
+  const [onlyIncidentsTouched, setOnlyIncidentsTouched] = useState(false)
   const [detailEventId, setDetailEventId] = useState(null)
   const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('audit')
 
@@ -340,18 +345,6 @@ export default function AuditSection() {
           ...facets.sources.map((value) => [value, sourceLabel(value)]),
         ],
       },
-      {
-        id: 'status',
-        label: t('admin.audit.filterStatus'),
-        value: status,
-        onChange: setStatus,
-        variant: 'select',
-        showLabel: true,
-        options: [
-          ['all', t('admin.audit.filterAll')],
-          ...facets.statuses.map((value) => [value, statusLabel(value)]),
-        ],
-      },
       /*
         Va antes que el filtro de acción y sin `advanced`: agrupa los nombres
         que describen el mismo hecho con distinta convención
@@ -370,6 +363,15 @@ export default function AuditSection() {
           ['all', t('admin.audit.filterAll')],
           ...facets.categories.map((value) => [value, categoryLabel(value)]),
         ],
+      },
+      {
+        id: 'status',
+        label: t('admin.audit.filterStatus'),
+        value: status,
+        onChange: setStatus,
+        showLabel: true,
+        allLabel: t('admin.audit.filterAll'),
+        options: buildAuditStatusFilterOptions(facets, statusLabel, t('admin.audit.filterAll')),
       },
       {
         id: 'action',
@@ -543,8 +545,16 @@ export default function AuditSection() {
   )
 
   function toggleOnlyIncidents() {
+    setOnlyIncidentsTouched(true)
     setOnlyIncidents((current) => !current)
   }
+
+  useEffect(() => {
+    if (onlyIncidentsTouched || loading || entries.length === 0) return
+    if (displayStatus === 'attention') {
+      setOnlyIncidents(true)
+    }
+  }, [displayStatus, entries.length, loading, onlyIncidentsTouched])
 
   const auditGuide = (
     <details className="audit-flow-guide">
@@ -611,53 +621,47 @@ export default function AuditSection() {
       aria-label={t('admin.audit.healthTitle')}
       aria-live="polite"
     >
-      <div className="audit-health__strip">
+      <div className="audit-health__summary">
         <div className="audit-health__intro">
           <h3>{t('admin.audit.healthTitle')}</h3>
           <span className={`status-pill status-pill--${healthPillTone}`}>{healthPillLabel}</span>
         </div>
 
-        <dl className="audit-health__metrics">
-          <div className="audit-health__metric">
-            <dt>{t('admin.audit.healthEvents')}</dt>
-            <dd>{overview.eventsLast24h}</dd>
-          </div>
-
-          <div className="audit-health__metric">
-            <dt>{t('admin.audit.healthDelivered')}</dt>
-            <dd>{overview.emailsDeliveredLast24h}</dd>
-          </div>
-
-          <div
-            className={`audit-health__metric${criticalCount > 0 ? ' is-attention' : ''}`}
-            title={affiliationDetailTitle}
-          >
-            <dt>{t('admin.audit.healthIncidents')}</dt>
-            <dd>
-              {entries.length > 0 ? (
-                <button
-                  type="button"
-                  className="audit-health__metric-action"
-                  aria-pressed={onlyIncidents}
-                  onClick={toggleOnlyIncidents}
-                >
-                  {criticalCount}
-                </button>
-              ) : (
-                criticalCount
-              )}
-            </dd>
+        {criticalCount > 0 ? (
+          <p className="audit-health__critical-line" title={affiliationDetailTitle}>
+            {t('admin.audit.healthCriticalLine', { count: criticalCount })}
             {criticalBreakdown ? (
-              <span className="audit-health__metric-note">{criticalBreakdown}</span>
+              <span className="audit-health__critical-breakdown"> · {criticalBreakdown}</span>
             ) : null}
-          </div>
-
-          <div className={`audit-health__metric${emailAttentionCount > 0 ? ' is-soft' : ''}`}>
-            <dt>{t('admin.audit.healthEmailsAttention')}</dt>
-            <dd>{emailAttentionCount}</dd>
-          </div>
-        </dl>
+          </p>
+        ) : emailAttentionCount > 0 ? (
+          <p className="audit-health__critical-line audit-health__critical-line--soft">
+            {t('admin.audit.healthEmailLine', { count: emailAttentionCount })}
+          </p>
+        ) : null}
       </div>
+
+      <dl className="audit-health__volume">
+        <div className="audit-health__metric">
+          <dt>{t('admin.audit.healthEvents')}</dt>
+          <dd>{overview.eventsLast24h}</dd>
+        </div>
+
+        <div className="audit-health__metric">
+          <dt>{t('admin.audit.healthDelivered')}</dt>
+          <dd>{overview.emailsDeliveredLast24h}</dd>
+        </div>
+
+        <div className={`audit-health__metric${emailAttentionCount > 0 ? ' is-soft' : ''}`}>
+          <dt>{t('admin.audit.healthEmailsAttention')}</dt>
+          <dd>{emailAttentionCount}</dd>
+        </div>
+
+        <div className={`audit-health__metric${loadedErrorCount > 0 ? ' is-attention' : ''}`}>
+          <dt>{t('admin.audit.onlyIncidents')}</dt>
+          <dd>{loadedErrorCount}</dd>
+        </div>
+      </dl>
     </section>
   )
 
@@ -752,6 +756,13 @@ export default function AuditSection() {
               columns={columns}
               rows={displayedEntries}
               pagination={false}
+              rowClassName={(row) =>
+                row.tone === 'danger'
+                  ? 'data-table__row--audit-incident data-table__row--audit-danger'
+                  : row.tone === 'warning'
+                    ? 'data-table__row--audit-incident data-table__row--audit-warning'
+                    : ''
+              }
               emptyMessage={
                 onlyIncidents && entries.length > 0
                   ? t('admin.audit.onlyIncidentsEmpty')

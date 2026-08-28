@@ -403,6 +403,18 @@ const registrationStatusSchema = z.object({
   status: z.enum(['confirmada', 'observada', 'cancelada']),
   reason: z.string().trim().min(3).max(500),
 })
+// Una observación suelta no cambia nada de dominio: sólo deja algo escrito. Por
+// eso no pide estado ni canal, y por eso el largo es más generoso que el motivo
+// de un cambio de estado -- acá es donde se cuenta el caso completo.
+const observationSchema = z.object({
+  entityType: z.enum(['registration', 'membership']),
+  entityId: z.string().uuid(),
+  body: z.string().trim().min(3).max(1000),
+})
+const observationsQuerySchema = z.object({
+  entityType: z.enum(['registration', 'membership']),
+  entityIds: z.array(z.string().uuid()).min(1).max(200),
+})
 const proofUrlsSchema = z.object({
   orderIds: z.array(z.string().uuid()).min(1).max(60),
 })
@@ -2451,6 +2463,87 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Observaciones: el hilo de notas operativas sobre una inscripción o una
+   * afiliación.
+   *
+   * Van por su propia ruta y no colgadas del cambio de estado porque son otra
+   * operación: dejar anotado "el pago llegó a nombre del padre" no debería
+   * obligar a mover el estado, que es lo que pasaba cuando el único lugar donde
+   * escribir era el motivo del diálogo de corrección.
+   *
+   * El permiso es el de escritura de la entidad observada: quien puede corregir
+   * el estado de una inscripción puede anotar sobre ella. No se inventa un
+   * permiso nuevo para algo que es estrictamente menos que lo que ya podía hacer.
+   */
+  const observationGuardFor = (entityType) =>
+    entityType === 'membership' ? 'admin.memberships.write' : 'admin.registrations.write'
+
+  router.post(
+    '/admin/observations',
+    ...adminGuard,
+    staffLimiter,
+    validateBody(observationSchema),
+    async (req, res, next) => {
+      try {
+        const { entityType, entityId, body } = req.validatedBody
+        if (!hasPermission(req.auth.user, observationGuardFor(entityType))) {
+          throw new HttpError(403, 'Sin permisos para observar esta entidad.')
+        }
+        res.status(201).json(
+          await repo().addObservation(entityType, entityId, body, actorLabel(req)),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/admin/observations/list',
+    ...adminGuard,
+    staffLimiter,
+    validateBody(observationsQuerySchema),
+    async (req, res, next) => {
+      try {
+        const { entityType, entityIds } = req.validatedBody
+        // Lectura con el permiso de lectura, no el de escritura: Finanzas mira
+        // la bandeja sin poder corregir inscripciones.
+        const readPermission =
+          entityType === 'membership' ? 'admin.memberships.read' : 'admin.registrations.read'
+        if (!hasPermission(req.auth.user, readPermission)) {
+          throw new HttpError(403, 'Sin permisos para leer estas observaciones.')
+        }
+        res.json({ observations: await repo().listObservations(entityType, entityIds) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.delete(
+    '/admin/observations/:observationId',
+    ...adminGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const observationId = z.string().uuid().safeParse(req.params.observationId)
+        if (!observationId.success) throw new HttpError(400, 'Observación inválida.')
+        // Alcanza con poder escribir sobre cualquiera de las dos entidades: la
+        // RPC ya resuelve a cuál pertenece y audita quién la sacó.
+        if (
+          !hasPermission(req.auth.user, 'admin.registrations.write') &&
+          !hasPermission(req.auth.user, 'admin.memberships.write')
+        ) {
+          throw new HttpError(403, 'Sin permisos para borrar observaciones.')
+        }
+        res.json(await repo().deleteObservation(observationId.data, actorLabel(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   /**
    * Credencial de un socio desde el panel: hasta ahora no había forma de ver
    * el QR emitido, y si un token se filtraba la única salida era editar la

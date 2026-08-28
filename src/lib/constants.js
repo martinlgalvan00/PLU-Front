@@ -199,6 +199,10 @@ export const REGISTRATION_FILTER_STATUSES = [
   ['pendiente_pago', 'status'],
   ['validacion_manual', 'status'],
   ['confirmada', 'status'],
+  // `observada` es el estado con el que la organización marca una inscripción
+  // que necesita revisión y le deja escrito el motivo. Sin chip había que
+  // buscarla a ojo entre todas: el estado existía, la forma de encontrarlo no.
+  ['observada', 'status'],
   ['gate_pending', 'gatePending'],
   ['aprobado', 'paymentApproved'],
 ]

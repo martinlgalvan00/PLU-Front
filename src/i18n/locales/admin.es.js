@@ -267,8 +267,14 @@ export default {
     division: 'División',
     allDivisions: 'Todas las divisiones',
     registeredAt: 'Fecha de alta',
+    registrationDate: 'Fecha de inscripción',
     registeredFrom: 'Desde',
     registeredTo: 'Hasta',
+    dateRangeCustom: 'Personalizado',
+    datePresets: 'Rangos rápidos',
+    datePresetLast7: 'Últimos 7 días',
+    datePresetLast30: 'Últimos 30',
+    datePresetThisMonth: 'Este mes',
     registeredAtFrom: 'Desde {{date}}',
     registeredAtTo: 'Hasta {{date}}',
     allStatuses: 'Todos los estados',
@@ -340,6 +346,7 @@ export default {
   actions: {
     validate: 'Validar',
     view: 'Ver',
+    more: 'Más acciones',
     exportCsvAdmin: 'Exportar inscripciones',
     exportCsvShort: 'CSV',
     hideRegistrationPublic: 'Ocultar del padrón público',
@@ -513,25 +520,25 @@ export default {
        * porque es la que atribuye plata que entró por fuera de la plataforma.
        */
       manual: {
-        activateTitle: 'Activar la afiliación a mano',
+        activateTitle: 'Activar a mano',
         activateDescription:
-          'Vas a dejar activa la afiliación de {{athlete}} sin un cobro acreditado en la plataforma.',
-        cancelTitle: 'Confirmar baja de afiliación',
+          'Vas a dejar activa la afiliación de {{athlete}} sin cobro acreditado en la plataforma.',
+        cancelTitle: 'Dar de baja',
         cancelDescription: 'Vas a dar de baja la afiliación de {{athlete}}.',
-        channelLabel: '¿Por dónde se resolvió?',
+        channelLabel: 'Canal',
         channelPlaceholder: 'Elegí el canal…',
         reasonLabel: 'Motivo',
         reasonPlaceholder: 'Ej.: transferencia recibida el 20/08, comprobante en el grupo.',
-        reasonHint: 'Queda en la ficha del atleta y en la auditoría. Es lo que se lee ante un reclamo.',
+        reasonHint: '',
         orderNotice:
-          'La orden de Mercado Pago queda cancelada: no entró plata por ese canal y marcarla aprobada falsearía los ingresos. Si necesitás el asiento contable, usá la acreditación manual con comprobante.',
+          'La orden de Mercado Pago no se acredita. Para el asiento contable, usá la acreditación manual con comprobante.',
         back: 'Volver',
         close: 'Cerrar',
-        confirmActivate: 'Activar y registrar el motivo',
+        confirmActivate: 'Activar',
         confirmCancel: 'Confirmar baja',
       },
       cancelConfirmWarning:
-        'La credencial deja de habilitar el ingreso y el atleta recibe un email con el cambio.',
+        'La credencial deja de habilitar el ingreso y el atleta recibe un email.',
       registeredToTournamentBadge: 'Torneo',
       validationPaused: 'La validación de afiliaciones está pausada desde Acceso y habilitación.',
       validationPausedLead:
@@ -608,6 +615,24 @@ export default {
       retiresAtHint: 'Opcional. Después de esta fecha el plan deja de ofrecerse.',
       retiresOn: 'Vence {{date}}',
       scheduleRetirement: 'Programar vigencia',
+      // Cambio rápido de precio: publica una versión nueva del plan con el
+      // resto de las condiciones iguales, sin abrir el formulario completo.
+      changePrice: 'Cambiar precio',
+      changePriceFor: 'Cambiar precio de {{name}}',
+      quickPriceHint: 'Publica una nueva versión; el resto de las condiciones no cambia.',
+      // Bloque Inscripciones: el precio vigente de cada torneo, editable y
+      // programable desde acá — sin pasar por el editor completo del evento.
+      registrationsTitle: 'Inscripciones',
+      registrationsLead:
+        'El precio vigente de cada torneo. Cambialo ahora o dejalo programado: se aplica solo cuando llega la fecha.',
+      registrationsEmpty: 'No hay torneos con inscripción para tarifar.',
+      effectiveAt: 'Rige desde',
+      effectiveAtHint: 'Vacío = ahora. Con fecha futura queda programado.',
+      manualPriceShort: 'Manual {{amount}}',
+      scheduledFrom: 'Desde {{date}}: {{amount}}',
+      scheduledFromWithManual: 'Desde {{date}}: {{amount}} · manual {{manual}}',
+      cancelScheduled: 'Cancelar cambio programado',
+      cancelScheduledAria: 'Cancelar el cambio de precio programado de {{name}}',
       discountCodesTitle: 'Códigos de descuento y promoción',
       discountCodesLead:
         'Porcentaje, precio fijo o combo afiliación + inscripción. Se configura todo acá.',
@@ -1631,6 +1656,18 @@ export default {
     workTitle: 'Pendientes',
     workSubtitle: '{{count}} tareas por resolver',
     workSubtitlePayments: '{{count}} pagos a validar',
+    queueMix: {
+      payment: '{{count}} pago',
+      paymentMany: '{{count}} pagos',
+      registration: '{{count}} inscripción',
+      registrationMany: '{{count}} inscripciones',
+      registration_gate: '{{count}} afiliación requerida',
+      registration_gateMany: '{{count}} afiliaciones requeridas',
+      membership: '{{count}} afiliación',
+      membershipMany: '{{count}} afiliaciones',
+      ticket_order: '{{count}} entrada',
+      ticket_orderMany: '{{count}} entradas',
+    },
     workEmpty: 'Nada pendiente. Usá los accesos para administrar.',
     chartTotal: '{{count}} en total',
     kpiHintExpiring: '{{count}} por vencer',
@@ -1651,12 +1688,22 @@ export default {
     recentRegistrationsSubtitle: 'Últimas inscripciones recibidas',
     launchInterest: {
       eyebrow: 'Avisos de apertura',
-      title: 'Personas por notificar',
+      title: 'Avisos de apertura',
       subtitle: 'Contactos que esperan una apertura de inscripciones o ventas.',
+      pendingLead: '{{count}} sin avisar',
+      allNotified: 'Todos los interesados ya fueron avisados.',
       total: '{{count}} interesados',
-      pending: '{{count}} sin notificar',
+      pending: '{{count}} sin avisar',
+      notified: 'Avisados',
       notify: 'Notificar a {{count}} contactos de {{source}}',
+      notifyAction: 'Notificar',
       unknownSource: 'Origen sin identificar',
+      confirmTitle: 'Enviar aviso de lanzamiento',
+      confirmDescription: '¿Enviar aviso a los {{count}} pendientes de “{{source}}”?',
+      confirmSubmit: 'Enviar aviso',
+      confirmBusy: 'Enviando…',
+      confirmCancel: 'Cancelar',
+      confirmError: 'Error al notificar',
       sources: {
         pitbullPage: 'Pitbull Classic',
         launchTeaser: 'Próximo lanzamiento',
@@ -1827,7 +1874,7 @@ export default {
     notRetryable: 'Reintentar no sirve',
     whereTitle: 'Dónde falló',
     causesTitle: 'Cadena de causas',
-    stackTitle: 'Stack trace completo',
+    stackTitle: 'Traza técnica completa',
 
     contextTitle: 'Qué venía pasando',
     axisRequest: 'En la misma operación',
@@ -1854,6 +1901,32 @@ export default {
    * monto"), y en una tabla del panel eso no informa a nadie. Mismo hecho,
    * distinto lector.
    */
+  /**
+   * El hilo de observaciones. "Observación" y no "nota" o "comentario" porque
+   * es la palabra que ya usa la organización, y porque es la misma que nombra
+   * el estado `observada` de una inscripción: las dos cosas son lo mismo visto
+   * desde distinto lado.
+   */
+  observations: {
+    title: 'Observaciones',
+    lead: 'Lo que se anotó sobre este caso, de lo último a lo primero.',
+    newLabel: 'Nueva observación',
+    placeholder: 'Qué pasó, qué falta, con quién se habló',
+    save: 'Anotar',
+    saving: 'Guardando...',
+    delete: 'Borrar observación',
+    empty: 'Todavía no hay observaciones.',
+    loading: 'Cargando observaciones...',
+    loadError: 'No se pudieron leer las observaciones.',
+    saveError: 'No se pudo guardar la observación.',
+    deleteError: 'No se pudo borrar la observación.',
+    open: 'Observaciones',
+    openWithCount: 'Observaciones ({{count}})',
+    dialogTitle: 'Observaciones de la inscripción',
+    dialogLead: 'Anotá sin cambiar el estado. El motivo de cada corrección entra al mismo hilo.',
+    close: 'Cerrar',
+  },
+
   paymentState: {
     state: {
       acreditado: 'Acreditado',
@@ -1909,6 +1982,7 @@ export default {
     },
     manual: {
       stamp: 'A mano por {{actor}} · {{date}}',
+      stampShort: 'A mano · {{date}}',
       unknownActor: 'un operador',
       missingReason:
         'Sin motivo registrado: se activó cuando el panel todavía no lo pedía. Conviene anotarlo.',
@@ -2117,6 +2191,7 @@ export default {
     deleteExpenseBusy: 'Eliminando…',
   },
   paymentOperations: {
+    eyebrow: 'Finanzas',
     title: 'Operación y conciliación de pagos',
     subtitle:
       'Webhooks, reintentos, suscripciones y conciliaciones de Mercado Pago en un solo lugar.',
@@ -2578,6 +2653,9 @@ export default {
     subtitle: 'Tráfico, recorridos e interacciones del sitio público.',
     loading: 'Cargando analítica…',
     error: 'No se pudo cargar la analítica.',
+    refreshError: 'No se pudo actualizar. Se muestran los datos anteriores.',
+    usageError: 'No se pudieron cargar los recorridos ni los elementos más usados.',
+    heatmapError: 'No se pudo cargar el mapa de calor de esta página.',
     refresh: 'Actualizar',
     rangeLabel: 'Período',
     rangeDays: 'Últimos {{days}} días',
@@ -2601,6 +2679,17 @@ export default {
       '{{sessions}} sesiones · {{activeTime}} de atención media, sobre {{duration}} con la pestaña abierta · {{interactions}} interacciones registradas.',
     summaryNoActiveTime:
       '{{sessions}} sesiones · {{duration}} con la pestaña abierta · {{interactions}} interacciones registradas. El tiempo de atención real se mide desde que se publicó la medición, así que este período todavía no lo tiene.',
+    summaryHighlightSessions: 'Sesiones',
+    summaryHighlightActiveTime: 'Atención media',
+    summaryHighlightDuration: 'Pestaña abierta',
+    summaryHighlightInteractions: 'Interacciones',
+    summaryFootnoteNoActiveTime:
+      'El tiempo de atención real se mide desde que se publicó la medición, así que este período todavía no lo tiene.',
+    summaryFootnoteActiveTime: 'Tiempo con la pestaña abierta en el período: {{duration}}.',
+    activityEngaged: 'Personas comprometidas',
+    activityEntries: 'Ingresos registrados',
+    activityActionsEmpty: 'Sin acciones registradas en este período.',
+    activityGatesEmpty: 'Sin ingresos por puerta en este período.',
     live: {
       aria: 'Actividad en vivo',
       now: 'En el sitio ahora',
@@ -2613,9 +2702,20 @@ export default {
       peakHour: 'Pico última hora',
       peakToday: 'Pico de hoy',
       today: 'Visitantes hoy',
+      distribution: 'Distribución en vivo',
       sparkAria: 'Concurrencia de la última hora, con un pico de {{peak}} sesiones simultáneas',
       empty: 'Nadie navegando en los últimos {{minutes}} minutos.',
       staleNote: 'El último refresco falló. Se muestra la lectura anterior.',
+      paths: {
+        home: 'Inicio',
+        profile: 'Perfil',
+        membership: 'Afiliación',
+        events: 'Eventos',
+        pitbull: 'Pitbull Classic',
+        rulebook: 'Reglamento',
+        login: 'Acceder',
+        credential: 'Credencial',
+      },
     },
     access: {
       title: 'Accesos al sistema',
@@ -2635,6 +2735,10 @@ export default {
       reasonsCount: '{{attempts}} intentos · {{people}} personas',
       reasons: {
         invalid_credentials: 'Credenciales inválidas',
+        temporary_credential_expired: 'Invitación o credencial temporal vencida',
+        event_scope_mismatch: 'Cuenta de otro evento',
+        invalid_or_expired_token: 'Token de acceso inválido o vencido',
+        account_or_scope_mismatch: 'Cuenta o alcance no coincide',
         sin_motivo: 'Sin motivo registrado',
       },
       empty: 'Sin accesos registrados en este período.',
@@ -2652,7 +2756,12 @@ export default {
     },
     metricsEngagedHint: '{{rate}} de las sesiones · 10s a la vista, 2 páginas o una conversión',
     metricsDeltaAria: '{{value}} contra el período anterior',
+    metricsDeltaAriaRich:
+      '{{value}} ({{absolute}}). Antes {{previous}}, ahora {{current}}.',
+    metricsDeltaDetail: 'Antes {{previous}} · ahora {{current}}',
     metricsDeltaCaption: 'vs. período anterior',
+    metricsComparisonNote:
+      'Los porcentajes comparan este período con los {{days}} días inmediatamente anteriores.',
     funnelTitle: 'Embudo de afiliación',
     funnelEmpty: 'Todavía no hay eventos del embudo en este período.',
     funnelStepRate: '{{rate}} del paso anterior · {{dropoff}} se cayeron acá',
@@ -2665,6 +2774,7 @@ export default {
       paymentApproved: 'Pago aprobado',
     },
     pagesTitle: 'Páginas más vistas',
+    pagesSubtitle: 'Ranking por tráfico. Elegí una fila para ver su mapa de calor.',
     pagesEmpty: 'Sin páginas registradas en este período.',
     columns: {
       path: 'Ruta',
@@ -2676,6 +2786,8 @@ export default {
     },
     viewHeatmap: 'Mapa de calor',
     heatmapTitle: 'Mapa de calor',
+    heatmapSubtitle: 'Clicks sobre {{path}}',
+    heatmapElementsTitle: 'Elementos más clickeados',
     heatmapEmpty: 'Sin clicks registrados para esta ruta en el período elegido.',
     heatmapCaption: '{{clicks}} clicks sobre {{path}}',
     heatmapAlt: 'Mapa de calor de clicks en {{path}}',
@@ -2684,7 +2796,7 @@ export default {
     devices: {
       all: 'Todos',
       desktop: 'Escritorio',
-      mobile: 'Mobile',
+      mobile: 'Móvil',
       tablet: 'Tablet',
     },
     flowsTitle: 'Recorridos',
@@ -2694,6 +2806,15 @@ export default {
     elementsPaths: 'en {{count}} rutas',
     elementsVisitors: '{{visitors}} personas',
     journeyTitle: 'Recorrido por atleta',
+    journeySubtitle: 'Navegación de una persona identificada en el período elegido',
+    journeyMetricSessions: 'Sesiones',
+    journeyMetricPageviews: 'Páginas vistas',
+    journeyMetricClicks: 'Clicks',
+    journeyPageviews: '{{count}} vistas',
+    journeyElementClicks: '{{count}} clicks',
+    journeyPagesEmpty: 'Sin páginas registradas para esta persona.',
+    journeyElementsEmpty: 'Sin clicks registrados para esta persona.',
+    journeyIdle: 'Buscá un atleta para ver su recorrido.',
     journeyAuditNotice:
       'Muestra la navegación de una persona identificada. Cada consulta queda registrada en Auditoría con tu usuario.',
     journeySearchLabel: 'Buscar atleta',
@@ -2754,10 +2875,37 @@ export default {
     flowEyebrow: 'Cómo leer este registro',
     flowTitle: 'Seguimiento completo de cada operación',
     flowLead:
-      'La bitácora conserva hechos del sistema. Consultala de arriba hacia abajo: primero el estado general, después el evento y por último su contexto verificable.',
+      'Primero la salud de la operación (incidencias de negocio). Después la bitácora: buscá el hecho, abrí el detalle y seguí el contexto.',
+    headlineTechnical: 'Mensaje técnico original',
+    suggestedAction: 'Qué hacer',
+    severities: {
+      info: 'Informativo',
+      success: 'Exitoso',
+      warning: 'Atención',
+      danger: 'Crítico',
+      blocker: 'Bloqueante',
+      degraded: 'Degradado',
+      expected: 'Esperado',
+    },
+    stages: {
+      webhook: 'Webhook',
+      reconciliation: 'Conciliación',
+      checkout: 'Checkout',
+      provider: 'Proveedor',
+      email: 'Correo',
+      delivery: 'Entrega',
+    },
+    entrypoints: {
+      api: 'API',
+      cron: 'Tarea automática',
+      webhook: 'Webhook',
+      panel: 'Panel',
+    },
+    healthCriticalLine: '{{count}} incidencias de negocio',
+    healthEmailLine: '{{count}} emails requieren revisión',
     flowStepHealthTitle: '1. Revisá el estado general',
     flowStepHealthBody:
-      'Las métricas muestran actividad reciente, entregas de correo, críticas (pagos/afiliaciones) y emails a revisar.',
+      'Arriba ves incidencias de negocio (pagos y afiliaciones) separadas del volumen de la bitácora. Son fuentes distintas.',
     flowStepFilterTitle: '2. Encontrá el hecho',
     flowStepFilterBody:
       'Usá la búsqueda y los filtros por fuente, estado o categoría. “Solo errores” acota únicamente los registros ya cargados.',
@@ -2931,9 +3079,12 @@ export default {
   },
   athletePayments: {
     lookupPayment: 'Validar N.º de operación',
-    lookupPaymentHint: 'Pegá el N.º de operación de Mercado Pago. Solo se acredita si coincide con esta orden.',
-    lookupPaymentLabel: 'N.º de operación de Mercado Pago',
-    lookupPaymentSubmit: 'Validar operación',
+    lookupPaymentHint: 'Solo se acredita si el N.º coincide con esta orden.',
+    lookupPaymentLabel: 'N.º de operación',
+    lookupPaymentSubmit: 'Validar',
+    lookupPaymentBack: 'Volver',
+    lookupPaymentClose: 'Cerrar',
+    lookupPaymentBusy: 'Validando…',
     eyebrow: 'Afiliaciones e inscripciones',
     title: 'Órdenes de atleta',
     subtitle: 'Transferencias por validar y acreditaciones de Mercado Pago',
@@ -3012,11 +3163,15 @@ export default {
     divergence: {
       title: 'Estados resueltos por fuera del cobro',
       titleUnexplained: 'Hay un estado sin explicación',
+      kindLabel: {
+        membership: 'Afiliación',
+        registration: 'Inscripción',
+      },
+      paymentLabel: 'Pago',
       kind: {
         membership: 'Afiliación {{status}} con el pago en {{orderStatus}}.',
         registration: 'Inscripción {{status}} con el pago en {{orderStatus}}.',
       },
-      explained: 'Lo resolvió {{actor}}: {{reason}}',
       unexplained:
         'Nadie dejó anotado por qué. Revisá si el pago entró por otro canal y registralo.',
     },

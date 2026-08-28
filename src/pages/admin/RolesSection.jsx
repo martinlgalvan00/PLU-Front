@@ -632,82 +632,84 @@ export default function RolesSection({
         </p>
       )}
 
-      <div className="admin-roles__tabs-bar">
-        <DetailTabs
-          tabs={roleTabs}
-          activeTab={selectedRole?.id}
-          onChange={handleRoleSelect}
-          variant="editorial"
-        />
-        {canCreateRole ? (
-          <button
-            type="button"
-            className="admin-roles__add"
-            aria-controls="admin-role-create"
-            aria-expanded={isCreating}
-            onClick={() => {
-              if (dirty) {
-                setMessage({
-                  tone: 'warning',
-                  text: t('admin.roles.finishChangesFirst'),
-                })
-                return
-              }
-              setIsCreating((current) => !current)
-              setMessage(null)
-            }}
-          >
-            {isCreating ? <X size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
-            <span>{isCreating ? t('admin.roles.cancel') : t('admin.roles.newRole')}</span>
-          </button>
+      <div className="admin-roles__command-rail">
+        <div className="admin-roles__tabs-bar">
+          <DetailTabs
+            tabs={roleTabs}
+            activeTab={selectedRole?.id}
+            onChange={handleRoleSelect}
+            variant="editorial"
+          />
+          {canCreateRole ? (
+            <button
+              type="button"
+              className="admin-roles__add"
+              aria-controls="admin-role-create"
+              aria-expanded={isCreating}
+              onClick={() => {
+                if (dirty) {
+                  setMessage({
+                    tone: 'warning',
+                    text: t('admin.roles.finishChangesFirst'),
+                  })
+                  return
+                }
+                setIsCreating((current) => !current)
+                setMessage(null)
+              }}
+            >
+              {isCreating ? <X size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
+              <span>{isCreating ? t('admin.roles.cancel') : t('admin.roles.newRole')}</span>
+            </button>
+          ) : null}
+        </div>
+
+        {isCreating ? (
+          <form id="admin-role-create" className="admin-roles__create" onSubmit={handleCreateRole}>
+            <label>
+              <span>{t('admin.roles.roleName')}</span>
+              <input
+                type="text"
+                value={roleDraft.name}
+                minLength={3}
+                maxLength={64}
+                autoComplete="off"
+                required
+                autoFocus
+                onChange={(event) =>
+                  setRoleDraft((current) => ({ ...current, name: event.target.value }))
+                }
+              />
+            </label>
+            <label>
+              <span>{t('admin.roles.roleDescription')}</span>
+              <textarea
+                value={roleDraft.description}
+                maxLength={180}
+                rows={3}
+                placeholder={t('admin.roles.descriptionPlaceholder')}
+                onChange={(event) =>
+                  setRoleDraft((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </label>
+            <Button
+              type="submit"
+              className="btn--small"
+              disabled={roleDraft.name.trim().length < 3 || isCreatingRole}
+            >
+              <Plus size={14} aria-hidden />
+              {isCreatingRole ? t('admin.roles.creating') : t('admin.roles.create')}
+            </Button>
+            <p>{t('admin.roles.createHint')}</p>
+          </form>
         ) : null}
+
+        {toolbar}
       </div>
-
-      {isCreating ? (
-        <form id="admin-role-create" className="admin-roles__create" onSubmit={handleCreateRole}>
-          <label>
-            <span>{t('admin.roles.roleName')}</span>
-            <input
-              type="text"
-              value={roleDraft.name}
-              minLength={3}
-              maxLength={64}
-              autoComplete="off"
-              required
-              autoFocus
-              onChange={(event) =>
-                setRoleDraft((current) => ({ ...current, name: event.target.value }))
-              }
-            />
-          </label>
-          <label>
-            <span>{t('admin.roles.roleDescription')}</span>
-            <textarea
-              value={roleDraft.description}
-              maxLength={180}
-              rows={3}
-              placeholder={t('admin.roles.descriptionPlaceholder')}
-              onChange={(event) =>
-                setRoleDraft((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-            />
-          </label>
-          <Button
-            type="submit"
-            className="btn--small"
-            disabled={roleDraft.name.trim().length < 3 || isCreatingRole}
-          >
-            <Plus size={14} aria-hidden />
-            {isCreatingRole ? t('admin.roles.creating') : t('admin.roles.create')}
-          </Button>
-          <p>{t('admin.roles.createHint')}</p>
-        </form>
-      ) : null}
-
-      {toolbar}
 
       <div className="admin-roles__workspace">
         {selectedRole ? (
@@ -742,33 +744,49 @@ export default function RolesSection({
                   total: permissionCatalog.length,
                 })}
               >
-                <p className="admin-roles__meta-line">
-                  <span>{t('admin.roles.usersCount', { count: selectedRole.userCount ?? 0 })}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>{t('admin.roles.modulesCount', { count: roleStats.modules })}</span>
-                  <span aria-hidden="true">·</span>
-                  <span>
+                <div className="admin-roles__meta-stats">
+                  <span className="admin-roles__stat">
+                    {t('admin.roles.usersCount', { count: selectedRole.userCount ?? 0 })}
+                  </span>
+                  <span className="admin-roles__stat">
+                    {t('admin.roles.modulesCount', { count: roleStats.modules })}
+                  </span>
+                  <span className="admin-roles__stat admin-roles__stat--accent">
                     {t('admin.roles.activeCount', {
                       active: activePermissionCount,
                       total: permissionCatalog.length,
                     })}
                   </span>
-                </p>
+                </div>
+                {permissionCatalog.length > 0 ? (
+                  <progress
+                    className="admin-roles__coverage-bar"
+                    max={permissionCatalog.length}
+                    value={activePermissionCount}
+                    aria-label={t('admin.roles.activeCount', {
+                      active: activePermissionCount,
+                      total: permissionCatalog.length,
+                    })}
+                  />
+                ) : null}
               </div>
+
               {editable && onUpdateStatus ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="btn--small"
-                  disabled={dirty || isUpdatingStatus}
-                  onClick={handleRoleStatus}
-                >
-                  {isUpdatingStatus
-                    ? 'Actualizando…'
-                    : selectedRole.active
-                      ? 'Desactivar rol'
-                      : 'Activar rol'}
-                </Button>
+                <div className="admin-roles__matrix-actions">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="btn--small"
+                    disabled={dirty || isUpdatingStatus}
+                    onClick={handleRoleStatus}
+                  >
+                    {isUpdatingStatus
+                      ? 'Actualizando…'
+                      : selectedRole.active
+                        ? 'Desactivar rol'
+                        : 'Activar rol'}
+                  </Button>
+                </div>
               ) : null}
             </header>
 

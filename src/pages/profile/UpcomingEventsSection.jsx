@@ -214,7 +214,7 @@ export default function UpcomingEventsSection({
                   }
                 >
                   {registered
-                    ? t('account.events.alreadyRegistered')
+                    ? t('account.events.alreadyRegistered', { event: event.title })
                     : !registrationCheckoutEnabled
                       ? t('pages.members.ctaCheckoutSoon')
                       : paymentPending
