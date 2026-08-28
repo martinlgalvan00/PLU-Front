@@ -117,7 +117,23 @@ describe('AdminEventEditor — estructura del formulario', () => {
     const labels = ids.map(
       (id) => document.querySelector(`label[for="${id.slice(1)}"] span`)?.textContent,
     )
-    expect(new Set(labels).size).toBe(ids.length)
+
+    expect(labels.filter(Boolean).length).toBe(4)
+    expect(new Set(labels).size).toBe(4)
+  })
+
+  it('en Ventas muestra el día antes que el mes', () => {
+    renderEditor({
+      registrationOpensAt: '2026-09-03T07:48:00.000Z',
+      registrationClosesAt: '2026-09-03T10:00:00.000Z',
+    })
+    activateEditorTab(/ventas y cupos/i)
+
+    expect(document.querySelector('#event-reg-opens')?.value).toMatch(/^\d{2}\/\d{2}\/\d{4}$/)
+    const [day, month] = document.querySelector('#event-reg-opens').value.split('/')
+    // 3 de septiembre, no 9 de marzo.
+    expect(Number(month)).toBe(9)
+    expect(Number(day)).toBe(3)
   })
 
   it('agrupa el cupo de atletas junto a su ventana de inscripción', () => {

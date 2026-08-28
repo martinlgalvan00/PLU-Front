@@ -175,6 +175,56 @@ describe('detalle de un evento de auditoría', () => {
     expect(raw.textContent).toContain('85000')
   })
 
+  it('explica un webhook descartado en vez de mostrar unsupported_type crudo', async () => {
+    // Fila histórica: el backend no guardaba `diagnosis` en los descartes, así
+    // que el panel mostraba "Por qué falló: unsupported_type" — y ni siquiera
+    // es un pago rechazado, es una notificación de merchant_order descartada.
+    fetchContext.mockResolvedValue({
+      event: row({
+        action: 'payment.webhook_discarded',
+        status: 'skipped',
+        severity: 'info',
+        metadata: {
+          reason: 'unsupported_type',
+          notificationType: 'merchant_order',
+          providerRequestId: 'req-mp-1',
+        },
+      }),
+      context: { request: [], actorBefore: [], actorAfter: [], entity: [] },
+    })
+
+    renderDialog()
+
+    expect(
+      await screen.findByText('Notificación descartada: no es un pago rechazado'),
+    ).toBeTruthy()
+    expect(screen.getByText(/descarte es deliberado/)).toBeTruthy()
+    // El código crudo no desaparece: queda como referencia etiquetada.
+    expect(screen.getByText('unsupported_type')).toBeTruthy()
+  })
+
+  it('explica un rechazo de Mercado Pago con causa y pasos, no solo el código', async () => {
+    fetchContext.mockResolvedValue({
+      event: row({
+        action: 'payment.applied',
+        status: 'rechazado',
+        severity: 'info',
+        metadata: {
+          statusDetail: 'cc_rejected_call_for_authorize',
+          providerStatus: 'rejected',
+          externalPaymentId: '9988776655',
+        },
+      }),
+      context: { request: [], actorBefore: [], actorAfter: [], entity: [] },
+    })
+
+    renderDialog()
+
+    expect(await screen.findByText('El banco pide autorización expresa')).toBeTruthy()
+    expect(screen.getByText(/llamar a su banco/)).toBeTruthy()
+    expect(screen.getByText('cc_rejected_call_for_authorize')).toBeTruthy()
+  })
+
   it('sin error no dibuja un bloque de falla vacío', async () => {
     fetchContext.mockResolvedValue({
       event: row({ action: 'account.created', severity: 'success', metadata: { roleKey: 'plu_arg' } }),

@@ -3,12 +3,13 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import { I18nContext } from './context.js'
 import es from './locales/es.js'
 import { translate } from './translate.js'
+import { documentLangForLocale } from '../lib/localDateTime.js'
 
 const LOCALE_STORAGE_KEY = 'plu-arg-locale'
 
 function syncDocumentLocale(locale) {
   if (typeof document === 'undefined') return
-  document.documentElement.lang = locale
+  document.documentElement.lang = documentLangForLocale(locale)
   document.documentElement.dataset.localeRegion = locale === 'es' ? 'ar' : 'us'
 }
 

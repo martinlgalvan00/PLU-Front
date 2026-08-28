@@ -492,7 +492,7 @@ export default function AthleteDetailSection({
             <section className="athlete-detail__observations" key={registration.id}>
               <h4 className="athlete-detail__observations-title">
                 {t('admin.observations.title')}
-                <span>{registration.event}</span>
+                <span className="athlete-detail__observations-event">{registration.event}</span>
               </h4>
               <ObservationsThread
                 canWrite={canEdit}

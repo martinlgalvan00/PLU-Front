@@ -61,9 +61,8 @@ export function buildEventLinks(row, t) {
 
 /**
  * Consola del evento como modal: el listado es la única superficie de la
- * sección y la consola se abre al tocar un evento. Mismo plano de capas que
- * el editor y el alta rápida (280), un escalón abajo (270) para que editar o
- * borrar desde acá siempre se abra encima.
+ * sección y la consola se abre al tocar un evento. Editar reemplaza esta
+ * capa (el editor no se apila encima).
  */
 export default function AdminEventConsoleModal({
   canDelete = false,

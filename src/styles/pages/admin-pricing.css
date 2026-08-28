@@ -654,42 +654,85 @@ ul.admin-pricing__redemptions li > strong {
   border-radius: inherit;
 }
 
+/* Editor inline de precio / vigencia: una superficie compacta bajo la fila,
+   no una cinta de underlines a todo el ancho del tablero. El oro queda en
+   Guardar — un acento —; el foco de los campos es celeste, como el resto
+   del admin. */
 .admin-pricing__retirement-form {
   align-items: end;
   animation: admin-block-enter 0.22s var(--ease-out, ease) backwards;
-  display: flex;
-  gap: 0.75rem 1rem;
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-md);
+  display: grid;
+  gap: 0.65rem 0.85rem;
   grid-column: 1 / -1;
-  padding: 0.5rem 0.15rem 0.85rem 0.7rem;
+  grid-template-columns: minmax(13rem, 16.5rem) auto;
+  justify-self: start;
+  margin: 0.15rem 0 0.4rem;
+  margin-inline-start: 0.7rem;
+  max-width: calc(100% - 0.7rem);
+  padding: 0.75rem 0.85rem 0.8rem;
+  width: max-content;
+}
+
+.admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) {
+  grid-template-areas:
+    'price manual when actions'
+    'hint hint hint hint';
+  grid-template-columns: minmax(7.5rem, 9.5rem) minmax(11rem, 14rem) minmax(14.5rem, 16.5rem) auto;
+}
+
+.admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) > label:nth-of-type(1) {
+  grid-area: price;
+}
+
+.admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) > label:nth-of-type(2) {
+  grid-area: manual;
+}
+
+.admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) > label:nth-of-type(3) {
+  grid-area: when;
+}
+
+.admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint)
+  .admin-pricing__retirement-actions {
+  align-self: end;
+  grid-area: actions;
 }
 
 .admin-pricing__retirement-form label {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   display: grid;
-  flex: 1 1 220px;
-  font-size: 0.7rem;
-  font-weight: 650;
-  gap: 0.35rem;
-  letter-spacing: 0.08em;
-  max-width: 280px;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .admin-pricing__retirement-form input {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  background: var(--admin-canvas, var(--color-bg-base));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
   color: var(--color-text-primary);
   font: inherit;
-  font-size: 0.9rem;
-  min-height: 38px;
-  padding: 0.4rem 0 0.5rem;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  min-height: 40px;
+  padding: 0 0.7rem;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
   width: 100%;
 }
 
+.admin-pricing__retirement-form input[type='datetime-local'] {
+  color-scheme: dark;
+  min-width: 0;
+}
+
 .admin-pricing__retirement-form input:focus-visible {
-  border-bottom-color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
-  outline: none;
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
 }
 
 .admin-pricing__retirement-actions {
@@ -698,19 +741,16 @@ ul.admin-pricing__redemptions li > strong {
   gap: 0.5rem;
 }
 
-/* La aclaración del cambio rápido (qué publica / desde cuándo rige) ocupa su
-   propia línea debajo de los campos: pegada a un input parecía su error. El
-   form base no envuelve (una fecha + acciones entran siempre), así que el
-   wrap se habilita sólo cuando esta aclaración está presente. */
-.admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) {
-  flex-wrap: wrap;
+.admin-pricing__retirement-actions .admin-pricing__btn {
+  min-height: 40px;
 }
 
 .admin-pricing__quick-price-hint {
   color: var(--color-text-muted);
-  flex-basis: 100%;
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.75rem;
+  grid-area: hint;
+  line-height: 1.45;
+  max-width: 52ch;
 }
 
 /* Un rechazo del servidor sobre la fila (precio inválido, evento sin permiso)
@@ -1783,6 +1823,36 @@ ul.admin-pricing__redemptions li > strong {
       min-height: 44px;
     }
 
+    .admin-pricing__retirement-form,
+    .admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) {
+      align-items: stretch;
+      grid-template-areas:
+        'price'
+        'manual'
+        'when'
+        'hint'
+        'actions';
+      grid-template-columns: minmax(0, 1fr);
+      justify-self: stretch;
+      margin-inline-start: 0.7rem;
+      max-width: calc(100% - 0.7rem);
+      width: auto;
+    }
+
+    .admin-pricing__retirement-form:not(:has(.admin-pricing__quick-price-hint)) {
+      grid-template-areas: none;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-pricing__retirement-actions {
+      width: 100%;
+    }
+
+    .admin-pricing__retirement-actions .admin-pricing__btn {
+      flex: 1;
+      min-height: 44px;
+    }
+
     .admin-pricing__plan-row h3 {
       white-space: normal;
     }
@@ -2012,16 +2082,32 @@ ul.admin-pricing__redemptions li > strong {
     width: auto;
   }
 
-  .admin-pricing__retirement-form {
+  .admin-pricing__retirement-form,
+  .admin-pricing__retirement-form:has(.admin-pricing__quick-price-hint) {
     align-items: stretch;
-    flex-direction: column;
+    grid-template-areas:
+      'price'
+      'manual'
+      'when'
+      'hint'
+      'actions';
+    grid-template-columns: minmax(0, 1fr);
+    justify-self: stretch;
+    max-width: calc(100% - 0.7rem);
+    width: auto;
   }
 
-  .admin-pricing__retirement-form label {
-    max-width: none;
+  .admin-pricing__retirement-form:not(:has(.admin-pricing__quick-price-hint)) {
+    grid-template-areas: none;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-pricing__retirement-actions {
+    width: 100%;
   }
 
   .admin-pricing__retirement-actions .admin-pricing__btn {
+    flex: 1;
     min-height: 44px;
   }
 }
@@ -2168,7 +2254,8 @@ ul.admin-pricing__redemptions li > strong {
 
 @media (prefers-reduced-motion: reduce) {
   .admin-pricing > *,
-  .admin-pricing__form {
+  .admin-pricing__form,
+  .admin-pricing__retirement-form {
     animation: none;
   }
 }
@@ -2241,7 +2328,10 @@ ul.admin-pricing__redemptions li > strong {
   );
 }
 
-[data-theme='light'] .admin-pricing__retirement-form input:focus-visible,
+[data-theme='light'] .admin-pricing__retirement-form input[type='datetime-local'] {
+  color-scheme: light;
+}
+
 [data-theme='light'] .admin-pricing__code-search input:focus-visible {
   border-bottom-color: color-mix(
     in srgb,

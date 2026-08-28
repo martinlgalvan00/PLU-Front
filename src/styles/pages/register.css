@@ -5135,6 +5135,15 @@
   margin: 0;
 }
 
+/* Aumento programado de la inscripción: nota operativa en texto secundario,
+   pegada al checkout donde se decide cuándo pagar. */
+.register-price-upcoming {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+}
+
 .register-discount {
   display: grid;
   gap: 10px;

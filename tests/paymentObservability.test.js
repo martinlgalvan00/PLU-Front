@@ -13,6 +13,7 @@ import {
   summarizeFailure,
 } from '../server/modules/payments/paymentAuditTrail.js'
 import {
+  describeWebhookDiscard,
   diagnosePaymentFailure,
   explainPaymentStatusDetail,
   listPaymentFailureCodes,
@@ -218,6 +219,41 @@ describe('catalogo de diagnostico', () => {
     )
     expect(explainPaymentStatusDetail('detalle_inventado')).toMatch(/no catalogado/i)
     expect(explainPaymentStatusDetail('')).toBeNull()
+  })
+
+  it('cubre los rechazos de banco, 3DS y limites que antes caian en "no catalogado"', () => {
+    // Cada codigo del catalogo oficial de MP tiene que salir explicado, no crudo.
+    for (const detail of [
+      'cc_rejected_blacklist',
+      'cc_rejected_card_error',
+      'cc_rejected_3ds_challenge',
+      'cc_rejected_3ds_mandatory',
+      'cc_rejected_time_out',
+      'cc_amount_rate_limit_exceeded',
+      'rejected_by_bank',
+      'rejected_insufficient_data',
+      'rejected_by_regulations',
+      'bank_error',
+      'pending_challenge',
+      'expired',
+    ]) {
+      expect(explainPaymentStatusDetail(detail), detail).not.toMatch(/no catalogado/i)
+    }
+  })
+
+  it('explica el descarte de una notificacion no procesable como lo que es', () => {
+    // `unsupported_type` en el panel parecia un pago rechazado; el diagnostico
+    // tiene que decir que es un descarte deliberado de merchant_order.
+    const merchantOrder = describeWebhookDiscard('merchant_order')
+    expect(merchantOrder.code).toBe('WEBHOOK_TYPE_IGNORED')
+    expect(merchantOrder.title).toMatch(/no es un pago rechazado/i)
+    expect(merchantOrder.cause).toMatch(/merchant_order/)
+    expect(merchantOrder.severity).toBe('expected')
+    expect(merchantOrder.fix.length).toBeGreaterThan(0)
+
+    const other = describeWebhookDiscard('point_integration_wh')
+    expect(other.cause).toMatch(/point_integration_wh/)
+    expect(describeWebhookDiscard(null).cause).toMatch(/desconocido/)
   })
 
   it('no tiene codigos duplicados', () => {

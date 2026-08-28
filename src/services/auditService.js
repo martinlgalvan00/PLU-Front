@@ -1,5 +1,5 @@
 import { apiGet } from '../lib/api.js'
-import { operatorFailureMessage } from '../lib/auditPresentation.js'
+import { operatorFailureMessage, synthesizeAuditDiagnosis } from '../lib/auditPresentation.js'
 
 /**
  * auditService.js — PLU ARG
@@ -136,7 +136,11 @@ function paymentFailureCode(metadata) {
 export function auditEntryTone({ action, severity, metadata }) {
   const diagnosisSeverity = metadata?.diagnosis?.severity
   if (diagnosisSeverity === 'blocker') return 'danger'
-  if (diagnosisSeverity === 'degraded' || diagnosisSeverity === 'expected') return 'warning'
+  if (diagnosisSeverity === 'degraded' || diagnosisSeverity === 'expected') {
+    // Rebaja el falso crítico, pero nunca escala: un descarte deliberado de
+    // webhook (severidad `info`, diagnóstico `expected`) no es un incidente.
+    return severity === 'danger' || severity == null ? 'warning' : severity
+  }
 
   if (
     CONTAINED_PAYMENT_FAILURE_CODES.has(paymentFailureCode(metadata)) ||
@@ -210,6 +214,7 @@ const ERROR_METADATA_FIELDS = new Set([
   'diagnosis',
   'reason',
   'statusDetail',
+  'statusDetailMeaning',
   'errorCode',
   'stage',
   'entrypoint',
@@ -282,7 +287,10 @@ export function describeAuditError(metadata) {
 
   const origin = error?.origin && typeof error.origin === 'object' ? error.origin : null
   const chain = causeChain(error?.cause)
-  const diagnosis = normalizeDiagnosis(metadata.diagnosis)
+  // El asiento manda; si no guardó diagnóstico (filas históricas, códigos
+  // crudos del proveedor), se sintetiza uno en el cliente para que el panel
+  // nunca muestre `unsupported_type` o `cc_rejected_*` sin explicación.
+  const diagnosis = normalizeDiagnosis(metadata.diagnosis) ?? synthesizeAuditDiagnosis(metadata)
 
   const detail = {
     message,

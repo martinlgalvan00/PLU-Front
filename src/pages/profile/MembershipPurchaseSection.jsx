@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { env } from '../../config/env.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { formatShortDate, money } from '../../lib/format.js'
+import { formatShortDate, formatShortStamp, money } from '../../lib/format.js'
 import { describeDiscountPreviewError } from '../../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
@@ -1237,6 +1237,18 @@ export default function MembershipPurchaseSection({
                 selectedOfferId={selectedPlan?.code}
                 onPaymentChange={(event) => changePaymentMethod(event.target.value)}
               />
+              {/* Aumento programado del plan (versión futura ya publicada en
+                  Tarifas): se anuncia mientras rige el precio actual. Cuando
+                  llega la vigencia, /api/payments/plans ya devuelve el plan
+                  nuevo y la nota se retira sola. */}
+              {selectedPlan?.upcomingChange?.price ? (
+                <p className="account-membership__upcoming-price">
+                  {t('account.membership.upcomingPlanChange', {
+                    amount: money(selectedPlan.upcomingChange.price, locale),
+                    date: formatShortStamp(selectedPlan.upcomingChange.effectiveFrom, locale),
+                  })}
+                </p>
+              ) : null}
             </div>
           )}
         </div>

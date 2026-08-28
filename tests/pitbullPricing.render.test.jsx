@@ -132,6 +132,53 @@ describe('precio publico de Pitbull Classic', () => {
     expect(onNavigate).toHaveBeenCalledWith('profile')
   })
 
+  it('anuncia el aumento programado junto al precio vigente, y en el minuto de gracia ya cobra el nuevo', () => {
+    const scheduled = {
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      featured: true,
+      status: 'inscripcion_abierta',
+      price: 75000,
+      scheduledPrice: 90000,
+      priceEffectiveAt: '2099-10-01T03:00:00.000Z',
+      pricing: { membership: 75000, registration: 75000 },
+    }
+    const { container, unmount } = render(
+      <I18nProvider>
+        <PitbullPage events={[scheduled]} onNavigate={vi.fn()} onSelectEvent={vi.fn()} />
+      </I18nProvider>,
+    )
+    const note = container.querySelector('.pitbull-inscription-shell__price-upcoming')
+    expect(note?.textContent).toContain('90.000')
+    // El precio vigente sigue siendo el de hoy: el aumento se anuncia, no rige.
+    const prices = [...container.querySelectorAll('.pitbull-inscription-shell__price dd')]
+      .map((node) => node.textContent)
+      .join(' | ')
+    expect(prices).toContain('75.000')
+    unmount()
+
+    // Fecha ya pasada, barrido del cron pendiente: se muestra el precio nuevo
+    // (que es el que el checkout va a cobrar) y la nota desaparece.
+    const graceView = render(
+      <I18nProvider>
+        <PitbullPage
+          events={[{ ...scheduled, priceEffectiveAt: '2020-01-01T00:00:00.000Z' }]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+    expect(
+      graceView.container.querySelector('.pitbull-inscription-shell__price-upcoming'),
+    ).toBeNull()
+    const gracePrices = [
+      ...graceView.container.querySelectorAll('.pitbull-inscription-shell__price dd'),
+    ]
+      .map((node) => node.textContent)
+      .join(' | ')
+    expect(gracePrices).toContain('90.000')
+  })
+
   it('no revela un combo restringido por código en la página pública', () => {
     const pitbull = {
       slug: 'pitbull-classic-2026',
