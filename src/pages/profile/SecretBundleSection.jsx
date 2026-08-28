@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight, KeyRound, LoaderCircle } from 'lucide-react'
 import BundleTicket, { bundleChannels, bundlePrice } from '../../components/ui/BundleTicket.jsx'
+import LoadingState from '../../components/ui/LoadingState.jsx'
 import TransferReceipt from '../../components/checkout/TransferReceipt.jsx'
 import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentConfirmation.jsx'
 import { FORM_OPTIONS } from '../../lib/constants.js'
@@ -38,6 +39,7 @@ import '../../styles/components/bundle-section.css'
 export default function SecretBundleSection({
   athlete,
   offers = [],
+  pending = false,
   onStartOfferPayment,
   onNavigate,
   onSelectEvent,
@@ -59,11 +61,33 @@ export default function SecretBundleSection({
   const [weight, setWeight] = useState(
     athlete?.estimatedWeight ? String(athlete.estimatedWeight) : '',
   )
-  const [method, setMethod] = useState(manualChannels[0] ?? channels[0] ?? '')
+  // El canal se guarda, pero el que manda es el que el paquete habilita hoy: la
+  // ficha puede haber montado antes de que volviera la lectura de códigos —sin
+  // canales todavía— y un estado inicializado en ese hueco dejaba el botón
+  // deshabilitado para siempre. Vale igual cuando la relectura cambia los
+  // canales: nunca queda seleccionado uno que la RPC va a rechazar.
+  const [selectedMethod, setSelectedMethod] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  if (!offer) return null
+  // La ficha se abre por el destino de un canje, y ese canje creó el desbloqueo
+  // del lado del servidor: puede llegar acá antes que la lectura. Se dice, en la
+  // misma cabecera con la que va a aparecer el paquete, en vez de dejar el panel
+  // en blanco — el `LoadingState` entra a los 140ms, así que una lectura normal
+  // no alcanza a mostrarlo.
+  if (!offer) {
+    if (!pending) return null
+    return (
+      <section className="account-section bundle-section" id="account-offer">
+        <BundleHeading t={t} />
+        <LoadingState label={t('account.bundle.searching')} />
+      </section>
+    )
+  }
+
+  const method = channels.includes(selectedMethod)
+    ? selectedMethod
+    : (manualChannels[0] ?? channels[0] ?? '')
 
   const purchase = offer.purchase ?? null
   const state = bundleState(purchase)
@@ -122,15 +146,7 @@ export default function SecretBundleSection({
 
   return (
     <section className="account-section bundle-section" id="account-offer">
-      <header className="account-section__heading">
-        <span className="account-section__icon account-section__icon--gold" aria-hidden>
-          <KeyRound size={19} />
-        </span>
-        <span className="account-section__heading-copy">
-          <span className="account-section__eyebrow">{t('account.bundle.eyebrow')}</span>
-          <h2>{t('account.bundle.title')}</h2>
-        </span>
-      </header>
+      <BundleHeading t={t} />
       <p className="account-section__lead">{t(`account.bundle.lead.${state}`)}</p>
 
       <BundleTicket
@@ -208,7 +224,7 @@ export default function SecretBundleSection({
                     name="bundle-payment-method"
                     value={item}
                     checked={method === item}
-                    onChange={() => setMethod(item)}
+                    onChange={() => setSelectedMethod(item)}
                   />
                   <span>
                     <strong>{channelName(item, t)}</strong>
@@ -273,6 +289,25 @@ export default function SecretBundleSection({
         </p>
       ) : null}
     </section>
+  )
+}
+
+/**
+ * La cabecera de la ficha. Es la misma mientras se busca el paquete y una vez
+ * que está: quien entra desde un canje ve abrirse la ficha que pidió, y el
+ * contenido aparece debajo sin mover el título de lugar.
+ */
+function BundleHeading({ t }) {
+  return (
+    <header className="account-section__heading">
+      <span className="account-section__icon account-section__icon--gold" aria-hidden>
+        <KeyRound size={19} />
+      </span>
+      <span className="account-section__heading-copy">
+        <span className="account-section__eyebrow">{t('account.bundle.eyebrow')}</span>
+        <h2>{t('account.bundle.title')}</h2>
+      </span>
+    </header>
   )
 }
 

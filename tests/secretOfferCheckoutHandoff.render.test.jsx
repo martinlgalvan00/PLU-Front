@@ -394,3 +394,68 @@ describe('código tipeado en el checkout con el resolvedor disponible', () => {
     expect(onNavigate.mock.calls.filter(([view]) => view === 'profile')).toEqual([])
   })
 })
+
+/**
+ * El contrato vivo del código de combo: desde 20260926100000 el resolvedor NO
+ * lo aplica en el checkout del torneo — devuelve `open_bundle` y lo manda a su
+ * ficha en Mi cuenta, donde el paquete se lee entero y se termina de pagar.
+ *
+ * Los bloques de arriba siguen valiendo para el otro lado del despliegue: un
+ * backend todavía sin esta migración contesta `apply_to_checkout` y el checkout
+ * tiene que saber cobrarlo ahí mismo.
+ */
+const RESOLVED_BUNDLE = {
+  status: 'accepted',
+  accepted: true,
+  action: 'open_bundle',
+  code: 'ONLY-PITBULL',
+  kind: 'fixed_price',
+  appliesTo: 'combo',
+  destination: {
+    view: 'profile',
+    tab: 'account-offer',
+    eventSlug: 'pitbull-classic-2026',
+  },
+  campaign: { name: 'Solo Pitbull', objective: 'exclusive_offer' },
+  benefit: {
+    fixedPrice: 120000,
+    manualChannels: ['bank_transfer'],
+    mercadoPagoEnabled: false,
+    financed: true,
+    financingTermDays: 14,
+  },
+}
+
+describe('código de combo con el contrato vivo (open_bundle)', () => {
+  it('manda a la ficha del paquete en vez de aplicarse en el torneo', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_BUNDLE)
+    previewByScope()
+    const { onNavigate } = renderCompetition()
+    await waitForAccessValidation()
+    openDiscountField()
+    await typeAndRedeem('only-pitbull')
+
+    await waitFor(() =>
+      expect(onNavigate).toHaveBeenCalledWith('profile', { tab: 'account-offer' }),
+    )
+    // El paquete no se cotiza acá: su alcance es el combo y su precio es el
+    // pactado en el código, que la ficha lee del payload del canje.
+    expect(vi.mocked(previewDiscountCode).mock.calls.map(([input]) => input?.code)).not.toContain(
+      'ONLY-PITBULL',
+    )
+  })
+
+  it('deja el código guardado para que la ficha lo encuentre aplicado', async () => {
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue(RESOLVED_BUNDLE)
+    previewByScope()
+    renderCompetition()
+    await waitForAccessValidation()
+    openDiscountField()
+    await typeAndRedeem('ONLY-PITBULL')
+
+    await waitFor(() => expect(sessionStorage.getItem('plu:pending-promotion-code')).toBeTruthy())
+    const pending = JSON.parse(sessionStorage.getItem('plu:pending-promotion-code'))
+    expect(pending.code).toBe('ONLY-PITBULL')
+    expect(pending.context.destination.tab).toBe('account-offer')
+  })
+})

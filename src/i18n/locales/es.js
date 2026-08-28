@@ -1114,6 +1114,9 @@ export default {
     bundle: {
       eyebrow: 'Código exclusivo',
       title: 'Tu paquete',
+      // La ficha puede abrirse antes de que la cuenta sepa qué código tiene:
+      // el canje recién hecho vive del lado del servidor.
+      searching: 'Buscando tu paquete…',
       lead: {
         ready:
           'Este código te reserva la afiliación y la inscripción juntas a un precio pactado. Completá los datos y elegí cómo pagarlo.',

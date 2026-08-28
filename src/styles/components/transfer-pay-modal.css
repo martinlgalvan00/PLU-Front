@@ -3,6 +3,14 @@
  *
  * Lo importa TransferPayModal para que el checkout de inscripción tenga los
  * mismos estilos que la afiliación de cuenta, sin arrastrar account.css.
+ *
+ * Dos scopes alcanzan estas reglas: el modal (`.account-payment-modal--transfer`)
+ * y la liquidación en línea de la ficha del código-paquete
+ * (`.bundle-section__settle`). El segundo apuntaba a `.account-offer__manual`,
+ * el contenedor de la ficha de oferta exclusiva que se retiró: ninguna pantalla
+ * lo emitía más, así que el recibo de la ficha nueva se dibujaba sin sus
+ * reglas — datos bancarios sin grilla, textarea del navegador y el botón de
+ * copiar sin su área táctil de 44px.
  */
 
 .account-payment-modal__overlay {
@@ -118,13 +126,13 @@
 
 .account-payment-modal--transfer .account-payment-modal__close:focus-visible,
 .account-payment-modal--transfer .account-secondary-action:focus-visible,
-:is(.account-payment-modal--transfer, .account-offer__manual)
+:is(.account-payment-modal--transfer, .bundle-section__settle)
   .account-transfer-data__copy:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 3px;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-payment-modal__footnote {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-payment-modal__footnote {
   color: var(--color-text-muted);
   font-size: 12.5px;
   line-height: 1.45;
@@ -153,18 +161,18 @@
   color: var(--color-text-primary);
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-receipt {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-receipt {
   display: grid;
   gap: 0;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data {
   display: grid;
   gap: 0;
   margin: 0;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data div {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data div {
   align-items: center;
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
@@ -173,7 +181,7 @@
   padding: 8px 0;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data dt {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data dt {
   color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
@@ -181,7 +189,7 @@
   text-transform: none;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data dd {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data dd {
   color: var(--color-text-primary);
   font-size: 14px;
   font-weight: 600;
@@ -189,7 +197,7 @@
   overflow-wrap: anywhere;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual)
+:is(.account-payment-modal--transfer, .bundle-section__settle)
   .account-transfer-data__row--alias
   .account-transfer-data__text {
   font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
@@ -198,7 +206,7 @@
   letter-spacing: 0.02em;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__value {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__value {
   align-items: center;
   display: flex;
   gap: 10px;
@@ -206,13 +214,13 @@
   min-width: 0;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__text {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__text {
   display: grid;
   gap: 1px;
   min-width: 0;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__meta {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__meta {
   color: var(--color-text-muted);
   font-family: var(--font-family);
   font-size: 11px;
@@ -220,7 +228,7 @@
   letter-spacing: 0;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy {
   align-items: center;
   background: transparent;
   border: 0;
@@ -235,13 +243,13 @@
   width: 28px;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy::after {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy::after {
   content: '';
   inset: -8px;
   position: absolute;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy::before {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy::before {
   background: var(--color-bg-elevated, var(--color-bg-surface));
   border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
@@ -262,25 +270,25 @@
   z-index: 2;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-data__copy:hover,
-:is(.account-payment-modal--transfer, .account-offer__manual)
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-data__copy:hover,
+:is(.account-payment-modal--transfer, .bundle-section__settle)
   .account-transfer-data__copy:focus-visible {
   color: var(--color-brand-celeste);
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual)
+:is(.account-payment-modal--transfer, .bundle-section__settle)
   .account-transfer-data__copy:focus-visible::before {
   opacity: 1;
 }
 
 @media (hover: hover) {
-  :is(.account-payment-modal--transfer, .account-offer__manual)
+  :is(.account-payment-modal--transfer, .bundle-section__settle)
     .account-transfer-data__copy:hover::before {
     opacity: 1;
   }
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-warning {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-warning {
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
   font-size: 12.5px;
@@ -290,18 +298,18 @@
   padding: 10px 0 0;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-notes {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-notes {
   display: grid;
   gap: 6px;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-notes span {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-notes span {
   color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual) .account-transfer-notes textarea {
+:is(.account-payment-modal--transfer, .bundle-section__settle) .account-transfer-notes textarea {
   background: var(--color-bg-inset, var(--color-bg-surface));
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
@@ -313,7 +321,7 @@
   resize: vertical;
 }
 
-:is(.account-payment-modal--transfer, .account-offer__manual)
+:is(.account-payment-modal--transfer, .bundle-section__settle)
   .account-transfer-notes
   textarea:focus-visible {
   outline: 3px solid var(--color-focus-ring);
@@ -325,7 +333,7 @@
 }
 
 [data-theme='light']
-  :is(.account-payment-modal--transfer, .account-offer__manual)
+  :is(.account-payment-modal--transfer, .bundle-section__settle)
   .account-transfer-data__copy {
   color: var(--color-brand-celeste);
 }
@@ -495,7 +503,7 @@
     animation: none;
   }
 
-  :is(.account-payment-modal--transfer, .account-offer__manual)
+  :is(.account-payment-modal--transfer, .bundle-section__settle)
     .account-transfer-data__copy::before {
     transition: none;
   }
