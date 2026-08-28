@@ -135,3 +135,51 @@ export const Acreditado = {
     await expect(canvas.getByText(/Acreditado/)).toBeInTheDocument()
   },
 }
+
+/**
+ * Reservado: la orden existe y se cobra a mano. Es el paso que cierra el
+ * trámite con transferencia, y el que más importa auditar en los dos temas —
+ * son datos bancarios que alguien va a copiar a mano desde el teléfono.
+ */
+export const Reservado = {
+  args: {
+    offers: [
+      {
+        ...OFFER,
+        purchase: {
+          orderId: '11111111-1111-4111-8111-111111111111',
+          status: 'pendiente',
+          amount: 120000,
+          currency: 'ARS',
+          concept: 'combo',
+          method: 'manual_link',
+          manualPaymentChannel: 'bank_transfer',
+          financingAllowed: true,
+          manualPaymentDeclaredAt: null,
+          financedEntitlementsAt: null,
+          financedPaymentDueAt: null,
+        },
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // El formulario se retira: lo que sigue es pagar, no volver a comprar.
+    await expect(canvas.queryByRole('button', { name: /Confirmar y pagar/i })).toBeNull()
+    await expect(canvas.getByText(/Reservado/)).toBeInTheDocument()
+  },
+}
+
+/**
+ * Buscando: la ficha se abrió por el destino de un canje y la lectura de
+ * códigos todavía no volvió. La cabecera es la misma que va a quedar, así que
+ * el título no se mueve cuando aparece el paquete.
+ */
+export const Buscando = {
+  args: { offers: [], pending: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByText('Tu paquete')).toBeInTheDocument()
+    await expect(canvas.getByRole('status')).toBeInTheDocument()
+  },
+}

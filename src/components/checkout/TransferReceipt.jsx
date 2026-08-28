@@ -5,8 +5,8 @@ import { env } from '../../config/env.js'
 import TransferProofUpload from '../ui/TransferProofUpload.jsx'
 import ManualPaymentConfirmation from './ManualPaymentConfirmation.jsx'
 // Las reglas del recibo viven acá y las alcanzan dos scopes: el modal
-// (`.account-payment-modal--transfer`) y la liquidación en línea de la ficha de
-// la oferta (`.account-offer__manual`). Se importa desde el componente y no
+// (`.account-payment-modal--transfer`) y la liquidación en línea de la ficha del
+// código-paquete (`.bundle-section__settle`). Se importa desde el componente y no
 // sólo desde el modal para que el recibo nunca se renderice sin sus estilos.
 import '../../styles/components/transfer-pay-modal.css'
 

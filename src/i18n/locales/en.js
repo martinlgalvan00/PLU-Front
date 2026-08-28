@@ -1103,6 +1103,7 @@ export default {
     bundle: {
       eyebrow: 'Exclusive code',
       title: 'Your bundle',
+      searching: 'Looking for your bundle…',
       lead: {
         ready:
           'This code holds your membership and your meet registration together at an agreed price. Fill in your details and choose how to pay.',

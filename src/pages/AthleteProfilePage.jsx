@@ -138,40 +138,108 @@ export default function AthleteProfilePage({
   const hasAdmittedMeet = athleteRegistrations.some((item) => isRegistrationAdmitted(item.status))
   const membershipId = membership?.id ?? null
 
-  // Home, Members, Pitbull y el aviso de inscripción mandan `membership`
-  // acá: hay que abrir el tab aunque la cuenta ya estuviera montada.
-  useEffect(() => {
-    if (!initialTab) return
-    setActiveTab(initialTab)
-  }, [initialTab, tabNonce])
-
   /**
    * La ficha del paquete se relee cuando cambia un pago, no sólo al montar: el
    * estado del trámite —reservado, habilitado, acreditado— vive en la orden, y
    * declarar o diferir el pago dispara `plu:payment-updated`. Sin esto la ficha
    * seguía ofreciendo comprar algo que la persona acababa de comprar.
+   *
+   * Una lectura por vez (`bundleReadRef`): la ficha se pide al montar, al abrirla
+   * y después de cada pago, y dos de esas pueden caer en el mismo commit — con
+   * dos pedidos en vuelo gana el que vuelve último, que no es necesariamente el
+   * más nuevo.
    */
+  const bundleReadRef = useRef({ inFlight: false, alive: true })
+  // `alive` se vuelve a prender al montar y no sólo al crear el ref: en
+  // StrictMode el efecto corre, se limpia y vuelve a correr, así que un ref que
+  // sólo se apaga quedaba apagado desde el primer ciclo — la lectura volvía del
+  // servidor y ninguna respuesta se guardaba nunca. La ficha quedaba en
+  // "Buscando tu paquete…" para siempre en desarrollo.
+  useEffect(() => {
+    bundleReadRef.current.alive = true
+    return () => {
+      bundleReadRef.current.alive = false
+    }
+  }, [])
   const reloadBundleOffers = useCallback(() => {
     if (!athleteId) {
       setBundleOffers([])
-      return undefined
+      return
     }
-    let cancelled = false
+    if (bundleReadRef.current.inFlight) return
+    bundleReadRef.current.inFlight = true
     void fetchOfferUnlocks()
       .then((offers) => {
-        if (!cancelled) setBundleOffers(offers)
+        if (bundleReadRef.current.alive) setBundleOffers(offers)
       })
       .catch(() => {
         // Una ficha que no se pudo leer no rompe la cuenta: se comporta como si
         // no hubiera ningún código canjeado, que es el caso de casi todos.
-        if (!cancelled) setBundleOffers([])
+        if (bundleReadRef.current.alive) setBundleOffers([])
       })
-    return () => {
-      cancelled = true
-    }
+      .finally(() => {
+        bundleReadRef.current.inFlight = false
+      })
   }, [athleteId])
 
-  useEffect(() => reloadBundleOffers(), [reloadBundleOffers])
+  useEffect(() => {
+    reloadBundleOffers()
+  }, [reloadBundleOffers])
+
+  /**
+   * Abrir una ficha. Todas menos una son estáticas; la del paquete puede no
+   * existir todavía cuando alguien pide abrirla.
+   *
+   * El canje que la habilita no ocurre acá: pasa dentro del checkout de
+   * Afiliación (y del de Inscripción), y el desbloqueo nace del lado del
+   * servidor. La lectura hecha al montar la cuenta ya está vieja para ese
+   * momento, así que el destino del canje caía en Torneos — la ficha existía,
+   * el código estaba canjeado, y no había manera de llegar sin recargar la
+   * página. Se vuelve a leer al abrirla, y mientras la respuesta no vuelve la
+   * ficha se considera desconocida (`null`) y no inexistente.
+   */
+  const openTab = useCallback(
+    (id) => {
+      if (id === ACCOUNT_OFFER_TAB) {
+        setBundleOffers((current) => (current?.length ? current : null))
+        reloadBundleOffers()
+      }
+      setActiveTab(id)
+    },
+    [reloadBundleOffers],
+  )
+
+  /**
+   * El cobro del paquete, con la relectura pegada al resultado.
+   *
+   * La orden recién creada es la que decide qué muestra la ficha — los datos de
+   * la transferencia, el plazo, las dos maneras de cerrarla — y vive en el
+   * `purchase` del payload, no en el estado local del formulario. Sin releer,
+   * quien terminaba de confirmar volvía a ver el mismo formulario y no llegaba
+   * nunca a los datos bancarios: el alta funcionaba y la pantalla no se movía.
+   */
+  const startBundlePayment = useCallback(
+    async (input) => {
+      const result = await onStartOfferPayment?.(input)
+      if (result && !result.error) reloadBundleOffers()
+      return result
+    },
+    [onStartOfferPayment, reloadBundleOffers],
+  )
+
+  // Home, Members, Pitbull y el aviso de inscripción mandan `membership`
+  // acá: hay que abrir el tab aunque la cuenta ya estuviera montada. Pasa por
+  // `openTab` y no por `setActiveTab` porque uno de esos destinos es la ficha
+  // del paquete (`?section=codigo`, y el canje del checkout de Inscripción):
+  // abrirla implica volver a leer qué códigos tiene esta persona.
+  useEffect(() => {
+    if (!initialTab) return
+    openTab(initialTab)
+    // `openTab` queda afuera a propósito: el efecto abre lo que pidió la
+    // navegación, y volver a correrlo porque cambió la identidad del callback
+    // devolvería al atleta a esa ficha después de haber tocado otra.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTab, tabNonce])
 
   useEffect(() => {
     const onPaymentUpdated = () => reloadBundleOffers()
@@ -208,11 +276,18 @@ export default function AthleteProfilePage({
   // código de combo. Una pestaña vacía anunciando algo que no está sería peor
   // que no tenerla, así que se saca de la cinta cuando no hay nada que mostrar.
   const hasBundle = (bundleOffers?.length ?? 0) > 0
-  const visibleTabIds = hasBundle
-    ? ACCOUNT_TAB_IDS
-    : ACCOUNT_TAB_IDS.filter((id) => id !== ACCOUNT_OFFER_TAB)
-  // Un enlace a `account-offer` sin paquete canjeado —o mientras se resuelve la
-  // lectura— cae en Torneos en vez de abrir una ficha que no tiene contenido.
+  // …pero "todavía no sé" no es "no hay". Mientras la lectura está en vuelo y
+  // el destino pedido es justamente esa ficha, se la mantiene: es el caso del
+  // canje recién hecho, donde el desbloqueo existe del lado del servidor y esta
+  // pantalla todavía no lo leyó. Sin esta espera el atleta caía en Torneos y la
+  // ficha quedaba inalcanzable hasta recargar la página.
+  const bundleAnswerPending = bundleOffers === null && activeTab === ACCOUNT_OFFER_TAB
+  const visibleTabIds =
+    hasBundle || bundleAnswerPending
+      ? ACCOUNT_TAB_IDS
+      : ACCOUNT_TAB_IDS.filter((id) => id !== ACCOUNT_OFFER_TAB)
+  // Un enlace a `account-offer` sin ningún paquete canjeado —ya con la lectura
+  // resuelta— cae en Torneos en vez de abrir una ficha que no tiene contenido.
   const resolvedTab = visibleTabIds.includes(activeTab)
     ? activeTab
     : activeTab === ACCOUNT_OFFER_TAB
@@ -227,7 +302,7 @@ export default function AthleteProfilePage({
         latestMembership={storedMembership}
         registrations={athleteRegistrations}
         pendingFinancedPayment={pendingFinancedPayment}
-        onNavigateSection={setActiveTab}
+        onNavigateSection={openTab}
         onNavigate={onNavigate}
       />
     ),
@@ -235,7 +310,8 @@ export default function AthleteProfilePage({
       <SecretBundleSection
         athlete={athlete}
         offers={bundleOffers ?? []}
-        onStartOfferPayment={onStartOfferPayment}
+        pending={bundleAnswerPending}
+        onStartOfferPayment={startBundlePayment}
         onNavigate={onNavigate}
         onSelectEvent={onSelectEvent}
       />
@@ -248,7 +324,7 @@ export default function AthleteProfilePage({
         onNavigate={onNavigate}
         onSelectEvent={onSelectEvent}
         athlete={athlete}
-        onNavigateSection={setActiveTab}
+        onNavigateSection={openTab}
         checkoutAvailability={checkoutAvailability}
         pendingFinancedPayment={pendingFinancedPayment}
       />
@@ -256,7 +332,7 @@ export default function AthleteProfilePage({
     'account-history': (
       <HistorySection
         athleteRegistrations={athleteRegistrations}
-        onNavigateSection={setActiveTab}
+        onNavigateSection={openTab}
       />
     ),
     'account-membership': (
@@ -271,7 +347,7 @@ export default function AthleteProfilePage({
         events={availableEvents}
         onSelectEvent={onSelectEvent}
         checkoutAvailability={checkoutAvailability}
-        onNavigateSection={setActiveTab}
+        onNavigateSection={openTab}
         onNavigate={onNavigate}
         pendingFinancedPayment={pendingFinancedPayment}
       />
@@ -279,12 +355,12 @@ export default function AthleteProfilePage({
     'account-payments': (
       <PaymentsSection
         payments={athletePayments}
-        onNavigateSection={setActiveTab}
+        onNavigateSection={openTab}
         // Reintentar es volver a la pantalla que abre un cobro nuevo: la orden
         // vieja quedó cerrada y no se reabre. La afiliación y el combo salen de
         // Afiliación; una inscripción suelta, de Torneos.
         onRetryPayment={(payment) =>
-          setActiveTab(
+          openTab(
             payment.conceptType === 'registration' ? ACCOUNT_EVENTS_TAB : ACCOUNT_MEMBERSHIP_TAB,
           )
         }
@@ -311,12 +387,12 @@ export default function AthleteProfilePage({
               membership={membership}
               athleteRegistrations={athleteRegistrations}
               nextEvent={nextEvent}
-              onNavigateSection={setActiveTab}
+              onNavigateSection={openTab}
             />
           </Reveal>
           <AccountNav
             activeId={resolvedTab}
-            onChange={setActiveTab}
+            onChange={openTab}
             visibleIds={visibleTabIds}
             attentionIds={navAttentionIds}
           />
@@ -326,7 +402,7 @@ export default function AthleteProfilePage({
           <EmailVerificationBanner athlete={athlete} />
           <GateMembershipBanner
             pendingEvents={gatePendingRegistrations}
-            onCompleteMembership={() => setActiveTab('account-membership')}
+            onCompleteMembership={() => openTab(ACCOUNT_MEMBERSHIP_TAB)}
           />
           {/* `sync` y no `wait`: el panel saliente sigue montado mientras entra
               el nuevo, así el contenedor no colapsa un frame y la página no da
