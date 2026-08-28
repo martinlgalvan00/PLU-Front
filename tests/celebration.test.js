@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   CELEBRATION_ENABLED,
   buildCelebrationPieces,
+  celebrationBiasX,
   celebrationPieceCount,
   hasCelebrated,
   markCelebrated,
@@ -114,5 +115,50 @@ describe('shouldCelebrate', () => {
   // sello, credencial y QR: la confirmación nunca dependió del papel.
   it('el interruptor general está declarado como booleano', () => {
     expect(typeof CELEBRATION_ENABLED).toBe('boolean')
+  })
+})
+
+/**
+ * El sesgo horizontal del abanico.
+ *
+ * El sello abre el bloque de confirmación contra el margen izquierdo: en 390px
+ * vive a ~70px del borde mientras el papel viaja ~94px, así que media ráfaga
+ * salía de pantalla y lo que quedaba se leía como confeti entrando desde
+ * afuera en vez de saliendo del sello. El sesgo corre el abanico completo lo
+ * justo para que el extremo entre.
+ */
+describe('sesgo horizontal de la ráfaga', () => {
+  it('no corre nada cuando el sello tiene lugar a los dos lados', () => {
+    expect(celebrationBiasX(720, 1440, 300)).toBe(0)
+  })
+
+  it('empuja a la derecha el sello pegado al borde izquierdo', () => {
+    // 390px de ancho, alcance 94px, sello a 70px: faltan 34px de pista.
+    const bias = celebrationBiasX(70, 390, 94)
+
+    expect(bias).toBeGreaterThan(0)
+    // El extremo izquierdo del abanico entra al viewport en vez de salirse.
+    expect(70 - 94 + bias * 94).toBeGreaterThanOrEqual(0)
+  })
+
+  it('empuja a la izquierda el sello pegado al borde derecho', () => {
+    const bias = celebrationBiasX(330, 390, 94)
+
+    expect(bias).toBeLessThan(0)
+    expect(330 + 94 + bias * 94).toBeLessThanOrEqual(390)
+  })
+
+  // Un sesgo de 1 mandaría todas las piezas al mismo lado y el abanico dejaría
+  // de ser un abanico: es papel volando en una dirección.
+  it('nunca vuelca el abanico entero hacia un lado', () => {
+    expect(Math.abs(celebrationBiasX(0, 390, 300))).toBeLessThanOrEqual(0.92)
+    expect(Math.abs(celebrationBiasX(390, 390, 300))).toBeLessThanOrEqual(0.92)
+  })
+
+  // Sin alcance resuelto (jsdom sin el CSS del componente) el sesgo queda en 0
+  // y la ráfaga se comporta como antes: nunca peor que el estado previo.
+  it('queda neutro sin alcance resuelto', () => {
+    expect(celebrationBiasX(70, 390, 0)).toBe(0)
+    expect(celebrationBiasX(70, 0, 94)).toBe(0)
   })
 })

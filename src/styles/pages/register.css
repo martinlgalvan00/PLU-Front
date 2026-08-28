@@ -2274,63 +2274,11 @@
   padding: 0;
 }
 
-/* ── Celebración de inscripción admitida ──────────────────────────
-   El estado de la orden es una lista de datos; esto no. Ocupa la fila
-   completa (el resto del bloque es un grid de dos columnas), se separa
-   con una regla y lleva la única acción principal de la pantalla. */
-
-/* El eyebrow y la bajada los pone ConfirmationSeal: acá quedó solo el
-   asiento del bloque dentro del grid de dos columnas del estado de orden. */
-.register-status__celebration {
-  border-top: 1px solid var(--color-border-subtle);
-  display: grid;
-  gap: 12px;
-  grid-column: 1 / -1;
-  margin-top: 12px;
-  padding-top: 14px;
-}
-
-.register-status__celebration-cta {
-  align-items: center;
-  background: var(--color-brand-action);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  color: #14181f;
-  cursor: pointer;
-  display: inline-flex;
-  font-family: var(--font-family);
-  font-size: 13px;
-  font-weight: 700;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 6px;
-  min-height: 44px;
-  padding: 0 18px;
-  transition:
-    background var(--transition-fast),
-    transform var(--transition-fast);
-  width: 100%;
-}
-
-.register-status__celebration-cta:hover {
-  background: var(--plu-gold-400);
-  transform: translateY(-1px);
-}
-
-.register-status__celebration-cta:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .register-status__celebration-cta {
-    transition: none;
-  }
-
-  .register-status__celebration-cta:hover {
-    transform: none;
-  }
-}
+/* El acuse de inscripción admitida vivía acá, al pie de esta misma lista de
+   datos. Se mudó a `.register-confirmation--competition` en la columna
+   principal: el hecho va antes que la referencia de la orden, la card se ve
+   sin tener que abrir un modal y el papel sale de un sello centrado en vez de
+   uno pegado al borde izquierdo del viewport. */
 
 .register-settle {
   display: grid;
@@ -3940,9 +3888,17 @@
   color: var(--plu-gold-600);
 }
 
-/* ── Membership confirmation (post-order) ───────────────────────────
-   El momento de entrega: primero la card real, la acción de compartir
-   pegada a ella, y los datos administrativos recién al cierre.
+/* ── Confirmación de trámite (post-order) ───────────────────────────
+   El momento de entrega: primero el sello, después la card real, la acción
+   de compartir pegada a ella, y los datos administrativos recién al cierre.
+
+   Bloque compartido. Afiliación e inscripción a un meet cierran el mismo
+   tipo de trámite y por lo tanto usan la misma gramática: `--membership` y
+   `--competition` solo agregan lo propio de cada uno. Antes la afiliación
+   tenía este bloque completo y la inscripción resolvía su acuse metiéndolo
+   al pie de la lista de datos de la orden, en el aside: el dato
+   administrativo se leía antes que el hecho, la card nunca se veía y el
+   papel salía del borde de la pantalla.
 
    Una sola capa de reglas. Antes había dos bloques apilados en esta misma
    hoja que se sobreescribían entre sí (el segundo pisaba radios, tamaños
@@ -3954,54 +3910,82 @@
   padding: clamp(18px, 2.5vw, 24px);
 }
 
-.register-page--membership .register-intro--confirmed .register-intro__title {
+.register-page--membership .register-intro--confirmed .register-intro__title,
+.register-page--competition .register-intro--confirmed .register-intro__title {
   max-width: 20ch;
 }
 
-.register-membership-confirmation {
+.register-confirmation {
   display: grid;
   gap: clamp(16px, 2.4vw, 22px);
+  /* El ancho de la pieza se declara en el bloque, no en `__piece`: así una
+     variante puede ensancharla desde arriba y el override mobile —que sí vive
+     en `__piece`— sigue ganando por proximidad al elemento. */
+  --piece-width: 380px;
 }
 
-/* ── La pieza ──
-   La card a tamaño real, reducida por su propio wrapper (mismo componente
-   que se descarga como PNG). El marco le da apoyo físico para que se lea
-   como un objeto entregado y no como una imagen incrustada en un form. */
-
-/* La card y su acción se leen como una sola unidad: mismo ancho, mismo
-   eje. Un CTA más ancho que la pieza la deja flotando sobre el bloque. */
-/* ── El sello de afiliación acreditada ──
-   Abre la confirmación: es la respuesta a lo que la persona vino a hacer.
-   Va contra el borde izquierdo del bloque aunque la card de abajo esté
-   centrada — el sello se lee, la card se mira. */
-.register-membership-confirmation__seal {
+/* ── El sello ──
+   Abre la confirmación: es la respuesta a lo que la persona vino a hacer,
+   sea afiliarse o tomar su lugar en un meet. Va contra el borde izquierdo
+   del bloque aunque la card de abajo esté centrada — el sello se lee, la
+   card se mira. */
+.register-confirmation__seal {
   border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: clamp(14px, 2vw, 20px);
 }
 
-.register-membership-confirmation__piece {
+/* ── La pieza ──
+   La card a tamaño real, reducida por su propio wrapper (mismo componente que
+   se descarga como PNG). El marco le da apoyo físico para que se lea como un
+   objeto entregado y no como una imagen incrustada en un form.
+
+   La card y su acción se leen como una sola unidad: mismo ancho, mismo eje. Un
+   CTA más ancho que la pieza la deja flotando sobre el bloque. */
+.register-confirmation__piece {
   display: grid;
   gap: 14px;
   justify-items: center;
-  --piece-width: 380px;
 }
 
-.register-membership-confirmation__piece-frame,
-.register-membership-confirmation__piece .register-membership-confirmation__cta {
+.register-confirmation__piece-frame,
+.register-confirmation__piece-lead,
+.register-confirmation__piece .register-confirmation__cta {
   max-width: var(--piece-width);
   width: 100%;
 }
 
-.register-membership-confirmation__piece-frame {
+.register-confirmation__piece-frame {
   border: 1px solid var(--register-card-border);
   border-radius: 14px;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
   overflow: hidden;
 }
 
+/* Qué es la pieza que se está mirando, entre la card y su acción. En
+   afiliación esa explicación no hace falta —el sello ya dijo "sos socio" y la
+   card repite el dato—, pero en un meet la card lleva categoría, división y el
+   QR de ingreso: conviene decirlo antes de que el atleta decida descargarla.
+   El texto queda al ancho de la pieza para no romper el eje del bloque. */
+.register-confirmation__piece-lead {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: -2px 0 0;
+  text-align: center;
+}
+
+/* ── Inscripción a meet ──
+   La página de competencia no usa chrome de card (`.register-page--competition
+   .register-card` deja el bloque transparente y sin padding), así que la
+   confirmación se lee como composición abierta y la pieza puede ocupar más
+   ancho: es la protagonista y no compite con ningún marco. */
+.register-page--competition .register-confirmation--competition {
+  --piece-width: 420px;
+}
+
 /* ── Credencial (fallback sin card emitida) ── */
 
-.register-membership-confirmation__credential {
+.register-confirmation__credential {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--register-card-border);
   border-radius: 12px;
@@ -4010,7 +3994,7 @@
   position: relative;
 }
 
-.register-membership-confirmation__stripe {
+.register-confirmation__stripe {
   background: var(--plu-gradient-stripe);
   display: block;
   height: 2.5px;
@@ -4020,7 +4004,7 @@
   top: 0;
 }
 
-.register-membership-confirmation__credential-main {
+.register-confirmation__credential-main {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
@@ -4028,13 +4012,13 @@
   justify-content: space-between;
 }
 
-.register-membership-confirmation__credential-meta {
+.register-confirmation__credential-meta {
   display: grid;
   gap: 3px;
   min-width: 0;
 }
 
-.register-membership-confirmation__credential-label {
+.register-confirmation__credential-label {
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 700;
@@ -4042,7 +4026,7 @@
   text-transform: uppercase;
 }
 
-.register-membership-confirmation__credential-code {
+.register-confirmation__credential-code {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 15px;
   font-variant-numeric: tabular-nums;
@@ -4050,14 +4034,14 @@
   letter-spacing: 0.02em;
 }
 
-.register-membership-confirmation__credential-name {
+.register-confirmation__credential-name {
   color: var(--color-brand-celeste);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
 }
 
-.register-membership-confirmation__credential-validity {
+.register-confirmation__credential-validity {
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.4;
@@ -4065,14 +4049,14 @@
 
 /* ── Próximo paso / nota manual ── */
 
-.register-membership-confirmation__next-inline {
+.register-confirmation__next-inline {
   color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.55;
   margin: 0;
 }
 
-.register-membership-confirmation__manual {
+.register-confirmation__manual {
   background: var(--color-manual-note-bg);
   border: 1px solid var(--color-manual-note-border);
   border-radius: 10px;
@@ -4085,7 +4069,7 @@
 
 /* ── Cierre administrativo ── */
 
-.register-membership-confirmation__ledger {
+.register-confirmation__ledger {
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
   gap: 12px;
@@ -4094,13 +4078,23 @@
   padding-top: 14px;
 }
 
-.register-membership-confirmation__ledger div {
+/* Sin pieza entre el sello y el cierre administrativo —inscripción admitida a
+   la que todavía no se le emitió la card— las dos reglas horizontales quedaban
+   una encima de la otra, a 12px de distancia, y se leían como un separador
+   roto. El selector apunta exactamente a ese caso: si algo se monta en el medio
+   (la card, o la ficha de credencial de afiliación) la regla no aplica. */
+.register-confirmation__seal + * .register-confirmation__ledger {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.register-confirmation__ledger div {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
-.register-membership-confirmation__ledger dt {
+.register-confirmation__ledger dt {
   color: var(--color-text-muted);
   font-size: 9px;
   font-weight: 700;
@@ -4108,7 +4102,7 @@
   text-transform: uppercase;
 }
 
-.register-membership-confirmation__ledger dd {
+.register-confirmation__ledger dd {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
@@ -4116,7 +4110,7 @@
   min-width: 0;
 }
 
-.register-membership-confirmation__ledger code {
+.register-confirmation__ledger code {
   background: var(--color-bg-code);
   border-radius: var(--border-radius-sm);
   display: inline-block;
@@ -4128,12 +4122,12 @@
 
 /* ── Acciones ── */
 
-.register-membership-confirmation__actions {
+.register-confirmation__actions {
   display: grid;
   gap: 10px;
 }
 
-.register-membership-confirmation__cta {
+.register-confirmation__cta {
   align-items: center;
   border-radius: 10px;
   cursor: pointer;
@@ -4155,23 +4149,23 @@
 
 /* Acción principal en oro: es la acción del bloque, y el oro es el token
    de acción de la marca. El celeste queda para identidad, links y foco. */
-.register-membership-confirmation__cta--primary {
+.register-confirmation__cta--primary {
   background: var(--color-brand-action);
   border: 1px solid rgba(0, 0, 0, 0.1);
   color: #14181f;
 }
 
-.register-membership-confirmation__cta--primary:hover {
+.register-confirmation__cta--primary:hover {
   background: var(--plu-gold-400);
   transform: translateY(-1px);
 }
 
-.register-membership-confirmation__cta--primary:focus-visible {
+.register-confirmation__cta--primary:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
 }
 
-.register-membership-confirmation__cta--ghost {
+.register-confirmation__cta--ghost {
   background: transparent;
   border: none;
   color: var(--color-text-muted);
@@ -4184,37 +4178,37 @@
   width: auto;
 }
 
-.register-membership-confirmation__cta--ghost:hover {
+.register-confirmation__cta--ghost:hover {
   color: var(--color-text-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .register-membership-confirmation__cta {
+  .register-confirmation__cta {
     transition: none;
   }
 
-  .register-membership-confirmation__cta--primary:hover {
+  .register-confirmation__cta--primary:hover {
     transform: none;
   }
 }
 
 @media (max-width: 720px) {
-  .register-membership-confirmation__ledger {
+  .register-confirmation__ledger {
     grid-template-columns: 1fr;
   }
 
-  .register-membership-confirmation__piece {
+  .register-confirmation__piece {
     --piece-width: 320px;
   }
 }
 
-[data-theme='light'] .register-membership-confirmation__credential {
+[data-theme='light'] .register-confirmation__credential {
   background: #fff;
 }
 
 /* La card es siempre oscura (es una pieza de marca, no una superficie de
    la app): en light necesita un filo propio para no flotar sobre blanco. */
-[data-theme='light'] .register-membership-confirmation__piece-frame {
+[data-theme='light'] .register-confirmation__piece-frame {
   border-color: rgba(15, 17, 23, 0.14);
   box-shadow: 0 18px 44px rgba(15, 17, 23, 0.18);
 }

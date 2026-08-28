@@ -103,6 +103,50 @@
   display: grid;
   gap: 0;
   margin-bottom: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.audit-health--attention {
+  border-left: 3px solid var(--color-brand-red);
+}
+
+.audit-health--soft {
+  border-left: 3px solid var(--plu-warning-500);
+}
+
+.audit-health--healthy {
+  border-left: 3px solid color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
+.audit-health__summary {
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.audit-health__critical-line {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.audit-health__critical-line--soft {
+  color: var(--plu-warning-500);
+}
+
+.audit-health__critical-breakdown {
+  color: var(--color-text-muted);
+}
+
+.audit-health__volume {
+  display: grid;
+  gap: 4px 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
   padding: 8px 12px;
 }
 
@@ -125,15 +169,6 @@
 
 .admin-shell .admin-list-section--audit .audit-health-bento {
   margin: 0 0 10px;
-  padding: 8px var(--admin-events-gutter, 18px);
-}
-
-.audit-health__strip {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  justify-content: space-between;
 }
 
 .audit-health__intro {
@@ -153,13 +188,14 @@
   margin: 0;
 }
 
-.audit-health__metrics {
-  display: grid;
-  flex: 1 1 360px;
-  gap: 4px 14px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  min-width: 0;
+.audit-health__volume .audit-health__metric dd {
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .audit-health__volume {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .audit-health__metric {
@@ -204,46 +240,33 @@
   white-space: nowrap;
 }
 
-.audit-health__metric-action {
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
-  color: inherit;
+.admin-shell .admin-filters--audit .admin-filter-chip--hint-danger {
+  border-color: color-mix(in srgb, var(--color-brand-red) 22%, var(--color-border-subtle));
+  color: color-mix(in srgb, var(--color-brand-red) 78%, var(--color-text-secondary));
+}
+
+.audit-detail__why--lead {
+  margin-bottom: var(--space-sm);
+}
+
+.audit-detail__technical {
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-xs);
+}
+
+.audit-detail__technical > summary {
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font: inherit;
-  margin: -2px;
-  padding: 2px;
-  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
-  text-decoration-line: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-  transition: transform var(--motion-fast, 160ms) var(--ease-spring);
+  font-size: 12px;
+  font-weight: 600;
+  list-style: none;
+  min-height: 32px;
+  padding: 4px 0;
 }
 
-.audit-health__metric-action:hover {
-  text-decoration-color: currentColor;
-  transform: scale(1.04);
-}
-
-.audit-health__metric-action:active {
-  transform: scale(0.96);
-}
-
-.audit-health__metric-action:focus-visible {
-  outline: 2px solid var(--color-brand-red);
-  outline-offset: 2px;
-}
-
-@media (max-width: 900px) {
-  .audit-health__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 520px) {
-  .audit-health__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.audit-detail__technical > summary::-webkit-details-marker {
+  display: none;
 }
 
 /* Filtros de auditoría: fuente como recorte operativo (chips), estado a la
@@ -414,14 +437,35 @@
 .admin-shell .admin-data-table--audit tbody tr {
   transition: background-color var(--motion-fast, 160ms) var(--ease-out);
 }
+
+.admin-shell .admin-data-table--audit tbody tr.data-table__row--audit-incident {
+  box-shadow: inset 3px 0 0 transparent;
+}
+
+.admin-shell .admin-data-table--audit tbody tr.data-table__row--audit-danger {
+  background-color: color-mix(in srgb, var(--color-brand-red) 2%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-brand-red) 70%, transparent);
+}
+
+.admin-shell .admin-data-table--audit tbody tr.data-table__row--audit-warning {
+  background-color: color-mix(in srgb, var(--plu-warning-500) 2%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--plu-warning-500) 65%, transparent);
+}
+
 .admin-shell .admin-data-table--audit tbody tr:hover {
   background-color: color-mix(in srgb, var(--color-brand-celeste) 3%, transparent);
 }
-.admin-shell .admin-data-table--audit tbody tr:has(.status-pill--danger) {
-  background-color: color-mix(in srgb, var(--color-brand-red) 2%, transparent);
-}
-.admin-shell .admin-data-table--audit tbody tr:has(.status-pill--danger):hover {
+
+.admin-shell .admin-data-table--audit tbody tr.data-table__row--audit-danger:hover {
   background-color: color-mix(in srgb, var(--color-brand-red) 5%, transparent);
+}
+
+.admin-shell .admin-data-table--audit tbody tr.data-table__row--audit-warning:hover {
+  background-color: color-mix(in srgb, var(--plu-warning-500) 5%, transparent);
+}
+
+.audit-mobile-entry--incident {
+  border-left: 3px solid color-mix(in srgb, var(--color-brand-red) 70%, transparent);
 }
 
 .audit-entry__time {
@@ -501,14 +545,57 @@
 
 .audit-event {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+}
+
+.audit-event--incident {
+  padding-left: 2px;
+}
+
+.audit-event__headline {
+  align-items: flex-start;
+  display: flex;
+  gap: 6px;
+}
+
+.audit-event__icon {
+  color: var(--color-brand-red);
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.audit-event__action {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.audit-event__action-label {
+  color: var(--color-brand-celeste);
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.audit-event__technical-message {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .audit-event__lead {
   color: var(--color-text-primary);
-  font-size: 13px;
-  font-weight: 500;
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 550;
   line-height: 1.45;
   margin: 0;
   overflow-wrap: anywhere;
@@ -527,7 +614,8 @@
 .audit-event__facts,
 .audit-event__technical dl {
   display: grid;
-  gap: 6px 12px;
+  gap: 4px 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
 }
 
@@ -806,7 +894,7 @@
     width: 100%;
   }
 
-  .audit-health__metrics {
+  .audit-health__volume {
     flex-basis: 100%;
   }
 
@@ -1141,18 +1229,16 @@
 /* ---------- Acciones de afiliación en la tabla ---------- */
 
 .admin-membership-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  justify-content: flex-end;
 }
 
-/* Estado de afiliación + badge de "inscripto a un torneo" en la misma celda. */
-.admin-membership-status-cell {
-  align-items: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
+/* El estado de afiliación con el badge de "inscripto a un torneo" pasó a
+   `EntitlementStateCell` (`.admin-state-cell__head`, en admin.css), que además
+   apila debajo el motivo de una activación o baja manual. */
 
 /* ---------- Credencial del socio (modal desde Afiliaciones) ---------- */
 

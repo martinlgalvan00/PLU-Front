@@ -5320,6 +5320,8 @@
 .admin-payments-operations {
   display: grid;
   gap: 28px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 #admin-athlete-payments,
@@ -5334,54 +5336,46 @@
   }
 }
 
-/* Header superior de Operación y conciliación de pagos: chrome editorial
-   fuera del card (eyebrow/título/lead/tabs + actions). Tipografía alineada
-   a admin-list-shell; layout flex con align-items flex-start porque
-   `.admin-orders-block__header` en admin-audit.css usa flex-end. */
+/* Chrome editorial de Operación de pagos: misma composición rails que
+   Inscripciones/Afiliaciones (intro + actions + tabs), fuera del card. */
+.admin-payments-operations > .admin-payments-ops-chrome {
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 0 2px 12px;
+}
+
 .admin-payments-operations .admin-payments-ops-top {
   align-items: flex-start;
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 28px;
+  gap: 12px 24px;
   justify-content: space-between;
-  margin-bottom: 18px;
-  padding: 4px 2px 18px;
+  margin: 0;
+  padding: 0;
 }
 
-.admin-payments-ops-top__copy {
-  display: grid;
-  gap: 0;
-  min-width: 0;
-}
-
-.admin-payments-operations .admin-payments-ops-top .admin-orders-block__eyebrow {
+.admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow {
   color: var(--admin-brand, var(--color-brand-celeste));
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
-.admin-payments-operations .admin-payments-ops-top .admin-orders-block__title {
-  color: var(--admin-ink, var(--color-text-primary));
-  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-  margin: 8px 0 0;
+.admin-payments-operations .admin-payments-ops-top .admin-list-shell__title {
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  letter-spacing: -0.03em;
 }
 
-.admin-payments-operations .admin-payments-ops-top .admin-orders-block__lead {
+.admin-payments-operations .admin-payments-ops-top .admin-list-shell__subtitle {
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 12.5px;
-  line-height: 1.45;
-  margin: 6px 0 0;
   max-width: 52ch;
 }
 
 .admin-payments-ops-top__tabs {
-  margin-top: 12px;
+  min-width: 0;
 }
 
 .admin-payments-operations .admin-payments-ops-top__actions {
@@ -5395,14 +5389,24 @@
 
 .admin-payments-operations .admin-payments-ops-top__actions .btn {
   border-radius: 9px;
-  min-height: 36px;
+  min-height: 34px;
+}
+
+@media (max-width: 1024px) {
+  .admin-payments-operations .admin-payments-ops-top .admin-list-shell__subtitle {
+    display: none;
+  }
 }
 
 @media (max-width: 720px) {
+  .admin-payments-operations > .admin-payments-ops-chrome {
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+
   .admin-payments-operations .admin-payments-ops-top {
     flex-direction: column;
-    gap: 14px;
-    padding-bottom: 16px;
+    gap: 12px;
   }
 
   .admin-payments-operations .admin-payments-ops-top__actions {
@@ -5713,12 +5717,10 @@
   padding: 0;
 }
 
-/* El masthead ops-top no es un card: sin padding de bloque header genérico. */
-.admin-payments-operations > .admin-orders-block__header.admin-payments-ops-top {
+/* El masthead ops-chrome no es un card: tipografía rails, sin padding de bloque. */
+.admin-payments-operations > .admin-list-section__chrome.admin-payments-ops-chrome {
   background: transparent;
   border-radius: 0;
-  margin-bottom: 18px;
-  padding: 4px 2px 18px;
 }
 
 .admin-payments-operations .admin-orders-block__header:not(.admin-payments-ops-top) {
@@ -5732,10 +5734,10 @@
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 16px;
+  gap: 8px 14px;
   justify-content: space-between;
   margin-bottom: 0;
-  padding: 12px clamp(14px, 2.4vw, 22px);
+  padding: 8px clamp(12px, 2.4vw, 20px);
 }
 
 .admin-orders-block__toolbar-filters {
@@ -5755,7 +5757,7 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 12px;
+  gap: 8px 12px;
 }
 
 .admin-orders-block__toolbar .admin-orders-block__amount {
@@ -5766,21 +5768,43 @@
   letter-spacing: -0.01em;
 }
 
+/* Monto abierto como meta operativa, sin competir con el chrome. */
+.admin-orders-block__toolbar .admin-orders-block__amount--meta,
+.admin-orders-block__toolbar .admin-orders-block__amount--hero {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12.5px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.admin-orders-block__toolbar .admin-filter-group .admin-filter-chip {
+  font-size: 12px;
+  min-height: 32px;
+  padding: 4px 10px;
+}
+
 .admin-orders-block__toolbar .admin-orders-block__actions .btn {
   border-radius: 9px;
-  min-height: 36px;
+  min-height: 34px;
 }
 
 @media (max-width: 720px) {
   .admin-orders-block__toolbar {
     align-items: stretch;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    padding-block: 8px 10px;
   }
 
   .admin-orders-block__toolbar .admin-orders-block__actions {
-    justify-content: space-between;
+    justify-content: flex-start;
     width: 100%;
+  }
+
+  .admin-orders-block__toolbar .admin-orders-block__amount--meta,
+  .admin-orders-block__toolbar .admin-orders-block__amount--hero {
+    font-size: 12px;
   }
 
   .admin-orders-block__toolbar .admin-orders-block__actions .btn {
@@ -5803,7 +5827,7 @@
 
   .admin-orders-block__toolbar .admin-filter-group .admin-filter-chip {
     flex: 0 0 auto;
-    min-height: 40px;
+    min-height: 32px;
   }
 }
 
@@ -5815,11 +5839,13 @@
 .admin-payments-operations .admin-orders-block > .state-card,
 .admin-payments-operations .admin-orders-block > .loading-state,
 .admin-payments-operations .admin-orders-block > .admin-data-table,
+.admin-payments-operations .admin-orders-block > .admin-data-table-shell,
 .admin-payments-operations .admin-orders-block .data-table-cards {
   margin: 0;
 }
 
 .admin-payments-operations .admin-orders-block .admin-data-table,
+.admin-payments-operations .admin-orders-block .admin-data-table-shell,
 .admin-payments-operations .admin-orders-block .data-table__empty-wrap {
   padding: 0;
 }
@@ -6195,6 +6221,21 @@
   align-items: start;
   gap: 12px 18px;
   padding-bottom: 14px;
+}
+
+/* Barra de configuración del tab Sistema: meta + worker, sin masthead duplicado. */
+.admin-payment-ops__meta-bar {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+  padding: 12px clamp(14px, 2.4vw, 22px);
+}
+
+.admin-payment-ops__meta-bar .admin-payment-ops__meta-line {
+  margin: 0;
 }
 
 .admin-payment-ops__meta-line {
@@ -7720,9 +7761,31 @@
 
    El foco NO usa el rojo del diálogo de borrado: acá la acción principal es
    activar, que no es destructiva. Va el celeste de foco del resto del panel. */
+.membership-manual-dialog.admin-user-delete-dialog__panel {
+  gap: var(--space-md);
+  max-width: 440px;
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+}
+
+.membership-manual-dialog .admin-user-delete-dialog__copy {
+  gap: var(--space-sm);
+}
+
+.membership-manual-dialog .admin-user-delete-dialog__copy > p {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.membership-manual-dialog .admin-user-delete-dialog__warning {
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: var(--space-2xs);
+}
+
 .membership-manual-dialog__field {
   display: grid;
-  gap: var(--space-xs);
+  gap: 4px;
+  margin-top: var(--space-xs);
 }
 
 .membership-manual-dialog__field label {
@@ -7733,7 +7796,8 @@
 }
 
 .membership-manual-dialog__field select,
-.membership-manual-dialog__field textarea {
+.membership-manual-dialog__field textarea,
+.membership-manual-dialog__field input {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-sm);
@@ -7746,18 +7810,20 @@
 
 /* 44px de alto mínimo: es un control táctil y se opera desde el celular en la
    mesa de acreditación. */
-.membership-manual-dialog__field select {
-  min-height: 44px;
+.membership-manual-dialog__field select,
+.membership-manual-dialog__field input {
+  min-height: 40px;
 }
 
 .membership-manual-dialog__field textarea {
-  line-height: 1.5;
-  min-height: 76px;
+  line-height: 1.45;
+  min-height: 64px;
   resize: vertical;
 }
 
 .membership-manual-dialog__field select:focus-visible,
-.membership-manual-dialog__field textarea:focus-visible {
+.membership-manual-dialog__field textarea:focus-visible,
+.membership-manual-dialog__field input:focus-visible {
   border-color: var(--color-brand-celeste);
   outline: 2px solid color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
   outline-offset: 1px;
@@ -7767,6 +7833,26 @@
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.45;
+}
+
+/* Lookup de N.º de operación MP: mismo shell, panel más chico. */
+.payment-lookup-dialog.admin-user-delete-dialog__panel {
+  gap: var(--space-md);
+  max-width: 400px;
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+}
+
+.payment-lookup-dialog__form {
+  display: contents;
+}
+
+.payment-lookup-dialog .admin-user-delete-dialog__copy {
+  gap: var(--space-sm);
+}
+
+.payment-lookup-dialog .admin-user-delete-dialog__copy > p {
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 /* Revisión de comprobante desde la cola operativa (Validar → Confirmar). */
@@ -8733,33 +8819,6 @@
   margin-top: var(--space-xs);
 }
 
-.payment-recovery-action__lookup {
-  align-items: end;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-  width: min(100%, 440px);
-}
-
-.payment-recovery-action__lookup label {
-  color: var(--color-text-secondary);
-  display: grid;
-  flex: 1 1 220px;
-  font-size: 12px;
-  gap: var(--space-2xs);
-}
-
-.payment-recovery-action__lookup input {
-  min-height: 40px;
-}
-
-.payment-recovery-action__lookup small {
-  color: var(--color-text-secondary);
-  flex-basis: 100%;
-  font-size: 12px;
-}
-
 .admin-status-dialog__field {
   display: grid;
   gap: var(--space-sm);
@@ -9212,9 +9271,16 @@
 /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Roles y permisos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 .admin-roles {
   display: grid;
-  gap: 14px;
+  gap: 18px;
   min-width: 0;
   overflow-x: clip;
+}
+
+.admin-roles__command-rail {
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  gap: 10px;
+  padding-bottom: 12px;
 }
 
 @media (max-width: 1024px) {
@@ -9243,29 +9309,24 @@
 .admin-roles__tabs-bar {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  padding: 0 4px 2px;
+  padding: 0 2px;
   position: relative;
   width: 100%;
 }
 
 .admin-roles__tabs-bar .detail-tabs--editorial {
-  background: color-mix(
-    in srgb,
-    var(--admin-control-bg, var(--color-bg-elevated)) 82%,
-    transparent
-  );
-  border: 1px solid
-    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 88%, transparent);
-  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   flex: 1 1 auto;
-  gap: 2px;
+  gap: 0;
   justify-content: flex-start;
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 3px;
+  padding: 0 0 2px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -9287,33 +9348,32 @@
 .admin-roles__tabs-bar .detail-tabs--editorial .detail-tabs__tab {
   background: transparent;
   border: 0;
-  border-radius: 7px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   box-shadow: none;
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 12.5px;
   font-weight: 550;
   margin-bottom: 0;
-  min-height: 32px;
-  padding: 5px 11px;
+  min-height: 36px;
+  padding: 6px 12px 8px;
   white-space: nowrap;
 }
 
 .admin-roles__tabs-bar .detail-tabs--editorial .detail-tabs__tab:hover {
-  background: color-mix(
+  background: transparent;
+  border-bottom-color: color-mix(
     in srgb,
-    var(--admin-surface-raised, var(--color-bg-elevated)) 72%,
+    var(--admin-brand, var(--color-brand-celeste)) 28%,
     transparent
   );
   color: var(--admin-ink, var(--color-text-primary));
 }
 
 .admin-roles__tabs-bar .detail-tabs--editorial .detail-tabs__tab.is-active {
-  background: var(--admin-surface-raised, var(--color-bg-elevated));
-  border-bottom-color: transparent;
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 6%, transparent),
-    inset 0 0 0 1px
-      color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 30%, transparent);
+  background: transparent;
+  border-bottom-color: var(--admin-brand, var(--color-brand-celeste));
+  box-shadow: none;
   color: var(--admin-ink, var(--color-text-primary));
   font-weight: 650;
 }
@@ -9340,10 +9400,12 @@
 }
 
 .admin-roles__tabs-bar .admin-roles__add {
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 35%, transparent);
+  border-radius: 9px;
   flex: none;
   margin-bottom: 0;
   min-height: 36px;
-  padding: 6px 8px;
+  padding: 6px 12px;
   white-space: nowrap;
 }
 
@@ -9617,9 +9679,9 @@
    Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 /* PANEL: superficie plana (sin card) — head + activity + tabla + footer */
 .admin-roles__matrix-panel {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
+  background: color-mix(in srgb, var(--admin-surface, var(--color-bg-surface)) 98%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 12px;
   container-name: roles-matrix;
   container-type: inline-size;
   display: flex;
@@ -9627,23 +9689,24 @@
   height: auto;
   min-height: 0;
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
-/* Header editorial: título + meta en una franja */
+/* Header editorial: título + meta + acción en una franja */
 .admin-roles__matrix-head {
-  align-items: baseline;
+  align-items: start;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 1.5%, transparent);
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
   flex: 0 0 auto;
-  gap: 8px 20px;
-  grid-template-columns: minmax(0, 1.6fr) minmax(160px, auto);
-  padding: 4px 2px 14px;
+  gap: 14px 24px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.95fr) auto;
+  padding: 20px 22px 18px;
 }
 
 .admin-roles__matrix-title {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -9651,33 +9714,39 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
-/* Chip de nivel — solo texto, sin fondo */
+/* Chip de nivel — acento editorial a la izquierda */
 .admin-roles__matrix-level {
+  border-left: 2px solid var(--admin-brand, var(--color-brand-celeste));
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
+  padding-left: 8px;
   text-transform: uppercase;
 }
 
 .admin-roles__readonly {
   align-items: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 999px;
   color: var(--admin-muted, var(--color-text-muted));
   display: inline-flex;
   font-size: 10px;
   font-weight: 600;
   gap: 5px;
+  padding: 3px 8px;
 }
 
 .admin-roles__matrix-head h2 {
   color: var(--admin-ink, var(--color-text-primary));
-  font-size: clamp(18px, 1.9vw, 24px);
+  font-size: clamp(20px, 2.1vw, 28px);
   font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
   margin: 0;
 }
 
@@ -9691,13 +9760,34 @@
 
 .admin-roles__matrix-meta {
   display: grid;
-  gap: 0;
-  justify-items: end;
+  gap: 10px;
+  justify-items: stretch;
   min-width: 0;
 }
 
 .admin-roles__meta-stats {
-  display: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-roles__stat {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 999px;
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  line-height: 1.2;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.admin-roles__stat--accent {
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 35%, transparent);
+  color: var(--admin-brand, var(--color-brand-celeste));
 }
 
 .admin-roles__meta-line {
@@ -9721,7 +9811,21 @@
 }
 
 .admin-roles__coverage-bar {
-  display: none;
+  appearance: none;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 8%, transparent);
+  border: 0;
+  border-radius: 999px;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.admin-roles__matrix-actions {
+  align-items: start;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
 }
 
 .admin-roles__coverage-bar::-webkit-progress-bar {
@@ -9752,10 +9856,10 @@
 .admin-roles__matrix-scroll {
   flex: 0 0 auto;
   min-height: 0;
-  overflow: visible;
-  overscroll-behavior: auto;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   padding: 0;
-  scrollbar-width: auto;
+  scrollbar-width: thin;
 }
 
 .admin-roles__matrix-scroll:focus-visible {
@@ -9849,13 +9953,14 @@
 .admin-roles__perm-table-icon {
   align-items: center;
   background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 24%, transparent);
   border-radius: 8px;
   color: var(--color-brand-celeste);
   display: inline-flex;
   flex: 0 0 auto;
-  height: 28px;
+  height: 30px;
   justify-content: center;
-  width: 28px;
+  width: 30px;
 }
 
 .admin-roles__perm-table-module-copy {
@@ -10378,27 +10483,25 @@
   font-size: 11px;
   line-height: 1.45;
   margin: 0;
-  padding: 10px 28px 14px;
+  padding: 12px 22px 14px;
 }
 
-/* Changebar: barra de cristal al fondo */
+/* Changebar: barra de guardado sin glass — superficie elevada sobria */
 .admin-roles__changebar {
   align-items: center;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: color-mix(in srgb, var(--color-bg-elevated, #1a1d26) 82%, transparent);
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
   border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 14px 28px;
+  padding: 14px 22px;
   position: relative;
   z-index: 3;
 }
 
 [data-theme='light'] .admin-roles__changebar {
-  background: color-mix(in srgb, #fff 86%, transparent);
+  background: var(--admin-surface-raised, var(--color-bg-elevated));
 }
 
 .admin-roles__changebar-copy {
@@ -10531,11 +10634,11 @@
   border-radius: 0;
   display: grid;
   flex: 0 0 auto;
-  gap: 4px;
+  gap: 6px;
   max-height: none;
   min-height: 0;
   overflow: visible;
-  padding: 10px 2px 12px;
+  padding: 12px 22px 14px;
 }
 
 .admin-roles__activity-head {
@@ -10651,13 +10754,22 @@
 /* Angosto: meta debajo del título (cubre sidebar colapsado ~650–780px). */
 @container roles-matrix (max-width: 780px) {
   .admin-roles__matrix-head {
-    gap: 6px;
+    gap: 10px;
     grid-template-columns: minmax(0, 1fr);
-    padding: 4px 2px 12px;
+    padding: 16px 16px 14px;
   }
 
   .admin-roles__matrix-meta {
     justify-items: start;
+    width: 100%;
+  }
+
+  .admin-roles__meta-stats {
+    justify-content: flex-start;
+  }
+
+  .admin-roles__matrix-actions {
+    justify-content: flex-start;
     width: 100%;
   }
 
@@ -12435,6 +12547,16 @@
   flex: none;
 }
 
+/* En filas densas el ghost transparente desaparece sobre el fondo de tabla. */
+.admin-table-actions .admin-icon-btn--ghost {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme='light'] .admin-table-actions .admin-icon-btn--ghost {
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .admin-table-actions__empty {
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
@@ -13774,42 +13896,45 @@
 }
 
 .action-queue__type-block {
-  margin-bottom: var(--space-md);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
+  margin: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.action-queue__type-block:last-child {
-  margin-bottom: 0;
+.action-queue__type-block + .action-queue__type-block {
+  border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  margin-top: 2px;
+  padding-top: 2px;
 }
 
 .action-queue__type-head {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
   display: flex;
-  align-items: center;
   gap: 8px;
-  padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.02);
-  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 8px 0 4px;
 }
 
 .action-queue__type-count {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--color-text-secondary);
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 99px;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
   line-height: 1;
+  padding: 0;
 }
 
 [data-theme='dark'] .action-queue__type-head {
-  background: rgba(255, 255, 255, 0.015);
+  background: transparent;
 }
 
 [data-theme='dark'] .action-queue__type-count {
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
 }
 
 @keyframes action-queue-enter {
@@ -13837,6 +13962,12 @@
   padding: 16px 2px 16px 14px;
   position: relative;
   transition: background var(--transition-fast);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-queue__card {
+    animation: none;
+  }
 }
 
 .action-queue__card:nth-child(1) { animation-delay: 40ms; }
@@ -13893,12 +14024,13 @@
   color: var(--color-text-muted);
   display: inline-flex;
   flex: none;
-  font-size: 10px;
-  font-weight: 650;
-  gap: 5px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: -0.01em;
+  min-width: 0;
   padding: 0;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -15228,9 +15360,28 @@ button.action-queue__proof:focus-visible {
    operador compara entre filas. */
 .admin-state-cell {
   display: grid;
-  gap: 5px;
+  gap: 2px;
   justify-items: start;
   min-width: 0;
+  position: relative;
+  width: 100%;
+}
+
+/* El badge de estado con otra marca al lado (el "inscripto a un torneo" de
+   Afiliaciones): son dos hechos del mismo renglón, no una explicación arriba de
+   la otra. El motivo sigue yendo debajo, en su propio párrafo. */
+.admin-state-cell__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-state-cell__head .pill,
+.admin-state-cell__head .status-badge {
+  flex: none;
 }
 
 /* La columna de estado se auto-dimensionaba por su contenido más ancho, que era
@@ -15238,43 +15389,67 @@ button.action-queue__proof:focus-visible {
    ~130px y la frase caía en una cinta de dos palabras por línea: la fila crecía
    a diez renglones y la tabla dejaba de poder leerse comparando filas.
 
-   El piso le da al motivo una medida de lectura (~30 caracteres) sin fijarle un
-   ancho, así que la columna sigue cediendo espacio a monto y método cuando la
-   fila no tiene motivo que mostrar. */
-.athlete-detail__panel .data-table__column--status {
-  min-width: 244px;
+   El piso le da al motivo una medida de lectura sin fijarle un ancho; el
+   line-clamp del motivo evita que una frase larga dispare la altura de la fila. */
+.athlete-detail__panel .data-table__column--status,
+.admin-data-table--registrations .data-table__column--status,
+.admin-data-table--memberships .data-table__column--status {
+  min-width: 168px;
+  max-width: 220px;
 }
 
 @media (max-width: 1024px) {
-  .athlete-detail__panel .data-table__column--status {
-    min-width: 200px;
+  .athlete-detail__panel .data-table__column--status,
+  .admin-data-table--registrations .data-table__column--status,
+  .admin-data-table--memberships .data-table__column--status {
+    min-width: 148px;
+    max-width: 200px;
   }
 }
 
 .admin-state-cell__reason,
 .admin-state-cell__note {
   color: var(--color-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.3;
   margin: 0;
-  max-width: 46ch;
-  /* Sin esto una referencia larga o un mail de operador desbordan la celda en
-     lugar de cortar. */
+  max-width: 100%;
+  min-width: 0;
   overflow-wrap: anywhere;
   text-transform: none;
-  /* La celda de estado de la tabla del panel es `white-space: nowrap` -- es lo
-     correcto para un badge, que nunca debe partirse en dos líneas. Un motivo de
-     una frase hereda eso y no envuelve: con `max-width` puesto igual se sale de
-     la celda y termina pintado debajo de la columna FECHA, que es sticky y tiene
-     fondo propio. El texto se leía cortado al medio ("el derecho se otorgó a
-     man…ta orden"). Recupera el flujo normal sólo el párrafo; el badge sigue en
-     una línea. */
   white-space: normal;
 }
 
-.admin-state-cell__note {
+.admin-state-cell__reason {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-state-cell__stamp {
   color: var(--color-text-muted);
-  font-size: 11.5px;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El mail del operador queda en el DOM para Ctrl+F, fuera del layout. */
+.admin-state-cell__actor-search {
+  height: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 0;
+}
+
+.admin-state-cell__note {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  font-size: 11px;
+  overflow: hidden;
 }
 
 /* El hueco que dejó el backfill: es un pendiente, no una explicación, y se
@@ -15283,12 +15458,25 @@ button.action-queue__proof:focus-visible {
   color: var(--color-warning-text);
 }
 
+/* La observación que escribió una persona. Comparte tono con la firma de
+   arriba: el texto es el contenido de la celda y quién lo escribió es el
+   metadato, así que el motivo no puede leerse más apagado que su propia firma.
+   Las notas derivadas del sistema ("quedó activa por otra vía") sí siguen en
+   `muted`: ahí el complemento es la nota, no el motivo. */
+.admin-state-cell__note--written {
+  color: var(--color-text-secondary);
+}
+
 /* En la tarjeta mobile la celda de estado vive en una fila angosta: el motivo
    pasa a ocupar el ancho completo en vez de competir con el badge. */
 @media (max-width: 768px) {
   .admin-state-cell__reason,
   .admin-state-cell__note {
     max-width: none;
+  }
+
+  .admin-state-cell__note {
+    -webkit-line-clamp: 2;
   }
 }
 
@@ -15306,49 +15494,363 @@ button.action-queue__proof:focus-visible {
    fondo pleno, mantiene el presupuesto de superficies: la ficha ya tiene canvas
    y surface, y esto no es una tercera caja. */
 .athlete-detail__divergence {
-  border-left: 2px solid color-mix(in srgb, var(--color-warning-text) 45%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--admin-status-warning, var(--color-warning-text)) 72%, transparent);
   display: grid;
-  gap: 6px;
+  gap: 10px;
   padding: 2px 0 2px 14px;
+}
+
+.athlete-detail__divergence-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.athlete-detail__divergence-head svg {
+  color: var(--admin-status-warning, var(--color-warning-text));
+  flex: none;
 }
 
 .athlete-detail__divergence-title {
   color: var(--color-text-primary);
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 650;
   letter-spacing: -0.01em;
+  line-height: 1.35;
   margin: 0;
 }
 
-/* Sin explicación es lo único accionable del bloque, y se marca en el título
-   -- no con un icono extra ni un segundo acento. */
 .athlete-detail__divergence[data-unexplained='true'] {
-  border-left-color: var(--color-warning-text);
+  border-left-color: var(--admin-status-warning, var(--color-warning-text));
 }
 
+.athlete-detail__divergence[data-unexplained='true'] .athlete-detail__divergence-head svg,
 .athlete-detail__divergence[data-unexplained='true'] .athlete-detail__divergence-title {
-  color: var(--color-warning-text);
+  color: var(--admin-status-warning, var(--color-warning-text));
 }
 
 .athlete-detail__divergence-list {
   display: grid;
-  gap: 5px;
+  gap: 10px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .athlete-detail__divergence-item {
-  color: var(--color-text-secondary);
-  font-size: 12.5px;
-  line-height: 1.55;
-  max-width: 78ch;
+  display: grid;
+  gap: 10px;
+  max-width: min(100%, 52rem);
+}
+
+.athlete-detail__divergence-compare {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  width: fit-content;
+}
+
+.athlete-detail__divergence-side {
+  align-items: flex-start;
+  background: var(--admin-surface-muted, var(--color-surface-subtle));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.athlete-detail__divergence-side-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.athlete-detail__divergence-bridge {
+  align-self: center;
+  color: var(--color-text-muted);
+  flex: none;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.55;
+  padding: 0 2px;
+}
+
+.athlete-detail__divergence-quote {
+  background: var(--admin-surface-muted, var(--color-surface-subtle));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.athlete-detail__divergence-quote-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.athlete-detail__divergence-quote p {
+  color: var(--color-text-primary);
+  font-size: 13.5px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-transform: none;
   white-space: normal;
 }
 
-.athlete-detail__divergence-what {
+.athlete-detail__divergence-quote footer {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.athlete-detail__divergence-quote cite {
+  font-style: normal;
+  overflow-wrap: anywhere;
+}
+
+.athlete-detail__divergence-note {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
+  max-width: min(100%, 52rem);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.athlete-detail__divergence-note--gap {
+  color: var(--color-warning-text);
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  .athlete-detail__divergence-compare {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .athlete-detail__divergence-bridge {
+    align-self: flex-start;
+    transform: rotate(90deg);
+  }
+
+  .athlete-detail__divergence-side {
+    width: 100%;
+  }
+
+  .athlete-detail__divergence-item,
+  .athlete-detail__divergence-quote {
+    max-width: 100%;
+  }
+}
+
+/* =============================================
+   HILO DE OBSERVACIONES
+   =============================================
+
+   Lo que se anotó sobre una inscripción o una afiliación, de lo último a lo
+   primero. Es una lista de texto, no una tabla ni una card por entrada: cada
+   observación es una frase que se lee de corrido, y encerrarlas en cajas
+   agregaría tres bordes por línea sin agregar información.
+
+   La regla vertical a la izquierda hace de hilo — es lo que convierte cinco
+   párrafos sueltos en una conversación con orden. */
+.admin-observations {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-observations__form {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.admin-observations__field {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.admin-observations__field > span {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-observations__field textarea {
+  background: var(--admin-canvas, var(--color-bg-base));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
   color: var(--color-text-primary);
-  font-weight: 550;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+}
+
+.admin-observations__field textarea:focus-visible {
+  border-color: var(--color-brand-celeste);
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+.admin-observations__list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-observations__item {
+  border-left: 2px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  gap: 3px;
+  padding-left: 12px;
+}
+
+.admin-observations__meta {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  gap: 6px;
+}
+
+.admin-observations__author {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.admin-observations__body {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 78ch;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+/* La baja aparece recién al pasar por la entrada o al llegar con el teclado:
+   borrar no es una acción que deba competir por atención en cada renglón de un
+   hilo que se lee de corrido. En touch no hay hover, así que ahí queda visible
+   siempre — esconderla sería dejarla inalcanzable. */
+.admin-observations__delete {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: grid;
+  margin-inline-start: auto;
+  opacity: 0;
+  padding: 4px;
+  place-items: center;
+  position: relative;
+  transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+/* El ícono mide 22px y no puede crecer: en una línea de metadatos de 11.5px un
+   botón de 44px se comería el renglón. El área de toque sí llega a 44×44 por
+   fuera del flujo, así que el dedo tiene dónde caer sin que la fila cambie de
+   alto. */
+.admin-observations__delete::after {
+  block-size: 44px;
+  content: '';
+  inline-size: 44px;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.admin-observations__item:hover .admin-observations__delete,
+.admin-observations__delete:focus-visible {
+  opacity: 1;
+}
+
+.admin-observations__delete:hover {
+  color: var(--color-brand-red);
+}
+
+.admin-observations__delete:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 1px;
+}
+
+@media (hover: none) {
+  .admin-observations__delete {
+    opacity: 1;
+  }
+}
+
+.admin-observations__empty {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+/* El hilo dentro de la ficha del atleta: encabezado con el evento al que
+   pertenece, porque un atleta puede tener varias inscripciones y sin eso los
+   hilos se leerían como uno solo. */
+.athlete-detail__observations {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+}
+
+.athlete-detail__observations-title {
+  align-items: baseline;
+  color: var(--color-text-primary);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0;
+}
+
+.athlete-detail__observations-title span {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.admin-observations__error {
+  color: var(--color-danger-text, var(--color-brand-red));
+  font-size: 12.5px;
+  margin: 0;
 }
 
 .athlete-detail__timeline {
@@ -18106,20 +18608,20 @@ button.action-queue__proof:focus-visible {
   flex-wrap: wrap;
   gap: 10px 14px;
   justify-content: space-between;
-  padding: 2px 4px 4px;
+  padding: 2px 2px 0;
 }
 
 .admin-roles__search-box {
   align-items: center;
-  background: transparent;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 2.5%, transparent);
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 8px;
+  border-radius: 9px;
   display: flex;
-  flex: 1 1 200px;
+  flex: 1 1 220px;
   gap: 8px;
-  max-width: 320px;
+  max-width: 360px;
   min-width: 0;
-  padding: 0 10px;
+  padding: 0 12px;
   transition: border-color var(--motion-fast, 140ms) ease;
 }
 
@@ -19365,13 +19867,47 @@ button.action-queue__proof:focus-visible {
 /* Mismo problema que ya resolvió `.athlete-detail__panel
    .data-table__column--status`: sin un piso, la columna colapsa al ancho del
    badge y el motivo cae en una cinta de una palabra por línea. */
+/* Status de órdenes: piso razonable sin forzar scroll horizontal. */
 .admin-data-table--athlete-orders .data-table__column--status {
-  min-width: 240px;
+  min-width: 160px;
+}
+
+.admin-data-table--athlete-orders .data-table__column--action,
+.admin-data-table--athlete-orders .data-table__column--actions {
+  min-width: 128px;
+  width: 1%;
+}
+
+.admin-data-table--athlete-orders .data-table__column--action .data-table__cell-content,
+.admin-data-table--athlete-orders .data-table__column--actions .data-table__cell-content {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.admin-data-table--athlete-orders .admin-athlete-order-actions {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  justify-content: flex-end;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-data-table--athlete-orders .admin-athlete-order-actions .admin-icon-btn {
+  flex: none;
+}
+
+.admin-data-table--athlete-orders .admin-athlete-order-actions .status-pill {
+  flex: none;
+  max-width: 100%;
 }
 
 @media (max-width: 1024px) {
   .admin-data-table--athlete-orders .data-table__column--status {
-    min-width: 200px;
+    min-width: 140px;
   }
 }
 
@@ -19448,6 +19984,10 @@ button.action-queue__proof:focus-visible {
   padding: 18px 20px;
   width: 100%;
 }
+
+/* En chrome rails el padding/hairline lo define admin-minimal (una sola
+   composición con el header). Este fallback sigue valiendo para panel u
+   otros hosts que aún no usan rails. */
 
 /* Popover/panel: el root hereda `.admin-filters { display:flex; flex-wrap }`
    y el hijo se encogía al contenido (pills) en vez de ocupar el chrome.
@@ -19545,26 +20085,38 @@ button.action-queue__proof:focus-visible {
   white-space: nowrap;
 }
 
+/* Fila de pills: overflow visible para que el popover (absolute) no quede
+   clippeado. En angosto, scroll horizontal; si hay un pill abierto, soltamos
+   el overflow (CSS no permite overflow-x:auto con overflow-y:visible). */
 .admin-filter-pillrow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
+  overflow: visible;
+  padding-bottom: 2px;
+  width: 100%;
 }
 
 .admin-filter-pill {
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-subtle);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 55%, transparent);
   border-radius: var(--border-radius-pill);
   display: inline-flex;
+  flex: none;
+  min-height: 36px;
   position: relative;
   transition:
     background var(--transition-fast),
-    border-color var(--transition-fast);
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+  z-index: 0;
 }
 
 [data-theme='light'] .admin-filter-pill {
-  background: rgba(15, 17, 23, 0.03);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
 }
 
 .admin-filter-pill:hover {
@@ -19572,11 +20124,14 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-filter-pill.is-active {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-border-light) 70%, var(--color-text-primary));
 }
 
 .admin-filter-pill.is-open {
+  background: transparent;
   border-color: var(--color-accent-celeste-border-strong);
+  z-index: 6;
 }
 
 .admin-filter-pill__trigger {
@@ -19590,11 +20145,12 @@ button.action-queue__proof:focus-visible {
   font-size: 12.5px;
   font-weight: 500;
   gap: 8px;
-  padding: 9px 14px;
+  min-height: 36px;
+  padding: 0 14px;
 }
 
 .admin-filter-pill.is-active .admin-filter-pill__trigger {
-  padding-right: 8px;
+  padding-right: 6px;
 }
 
 .admin-filter-pill__trigger:focus-visible {
@@ -19603,31 +20159,62 @@ button.action-queue__proof:focus-visible {
   outline-offset: 2px;
 }
 
+.admin-filter-pill__label {
+  letter-spacing: 0.02em;
+}
+
+.admin-filter-pill.is-active .admin-filter-pill__label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
 .admin-filter-pill__icon {
   color: var(--color-text-muted);
   flex: none;
+  opacity: 0.8;
+}
+
+.admin-filter-pill.is-open .admin-filter-pill__icon {
+  color: var(--color-brand-celeste);
+  opacity: 1;
 }
 
 .admin-filter-pill__divider {
   background: var(--color-border-light);
   flex: none;
   height: 11px;
+  opacity: 0.55;
   width: 1px;
 }
 
 .admin-filter-pill__value {
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-filter-pill.is-open .admin-filter-pill__value {
+  color: color-mix(in srgb, var(--color-brand-celeste) 35%, var(--color-text-primary));
 }
 
 .admin-filter-pill__chevron {
   color: var(--color-text-muted);
   flex: none;
-  transition: transform var(--transition-fast);
+  opacity: 0.65;
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .admin-filter-pill.is-open .admin-filter-pill__chevron {
   color: var(--color-brand-celeste);
+  opacity: 1;
   transform: rotate(180deg);
 }
 
@@ -19640,27 +20227,42 @@ button.action-queue__proof:focus-visible {
   cursor: pointer;
   display: inline-flex;
   flex: none;
-  height: 20px;
+  height: 22px;
   justify-content: center;
-  margin-right: 8px;
+  margin-right: 6px;
+  opacity: 0.75;
   transition:
     background var(--transition-fast),
-    color var(--transition-fast);
-  width: 20px;
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+  width: 22px;
 }
 
 .admin-filter-pill__clear:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   color: var(--color-text-primary);
+  opacity: 1;
 }
 
 [data-theme='light'] .admin-filter-pill__clear:hover {
-  background: rgba(15, 17, 23, 0.08);
+  background: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
 }
 
 .admin-filter-pill__clear:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-filter-pill,
+  .admin-filter-pill__chevron,
+  .admin-filter-pill__clear {
+    transition: none;
+  }
+
+  .admin-filter-pill.is-open .admin-filter-pill__chevron {
+    transform: none;
+  }
 }
 
 .admin-filter-popover {
@@ -19669,17 +20271,314 @@ button.action-queue__proof:focus-visible {
   border-radius: var(--border-radius-lg);
   box-shadow: var(--elevation-lg);
   left: 0;
-  max-width: min(320px, 92vw);
-  min-width: 220px;
-  padding: 10px;
+  max-width: min(300px, 92vw);
+  min-width: 232px;
+  padding: 8px;
   position: absolute;
   top: calc(100% + 8px);
   width: max-content;
   z-index: var(--z-dropdown);
 }
 
-.admin-filter-popover .admin-filter-chips {
-  max-width: 280px;
+.admin-filter-popover--date {
+  max-width: min(300px, 92vw);
+  min-width: 268px;
+  padding: 12px;
+}
+
+/* Menú vertical de opciones dentro del popover (reemplaza chips wrap). */
+.admin-filter-popover .admin-filter-group--menu {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-filter-popover .admin-filter-group--menu .admin-filter-chips-rail {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-filter-popover .admin-filter-chips--menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(320px, 50vh);
+  max-width: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+  scrollbar-width: thin;
+  width: 100%;
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  display: flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 8px 10px 8px 12px;
+  position: relative;
+  text-align: left;
+  width: 100%;
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip::before {
+  background: transparent;
+  border-radius: 1px;
+  bottom: 8px;
+  content: '';
+  left: 4px;
+  position: absolute;
+  top: 8px;
+  width: 2px;
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  color: var(--color-text-primary);
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip.is-active::before {
+  background: var(--color-brand-celeste);
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip__count {
+  background: transparent;
+  color: var(--color-text-muted);
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  min-width: 1.5ch;
+  opacity: 0.9;
+  padding: 0;
+  text-align: right;
+}
+
+.admin-filter-popover .admin-filter-chips--menu .admin-filter-chip.is-active .admin-filter-chip__count {
+  color: color-mix(in srgb, var(--color-brand-celeste) 45%, var(--color-text-muted));
+}
+
+[data-theme='light'] .admin-filter-popover .admin-filter-chips--menu .admin-filter-chip:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+}
+
+[data-theme='light'] .admin-filter-popover .admin-filter-chips--menu .admin-filter-chip.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+}
+
+/* Rango de fechas compacto + presets en el popover.
+   El control dual reusa la misma forma visual que el rango inline, pero con
+   overrides bajo .admin-shell para que no herede el chrome pensado para la
+   barra (ni se estire a cientos de px con labels apilados). */
+.admin-shell .admin-filter-popover .admin-filters__date-range--popover {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 11.5px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  min-height: 28px;
+  padding: 0 10px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset:hover {
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset.is-active {
+  border-color: var(--color-accent-celeste-border-strong);
+  color: color-mix(in srgb, var(--color-brand-celeste) 40%, var(--color-text-primary));
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-custom {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-shell .admin-filter-popover .admin-filters__date-range-custom-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range--popover.is-active
+  .admin-filters__date-range-custom-label {
+  color: color-mix(in srgb, var(--color-brand-celeste) 45%, var(--color-text-muted));
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+[data-theme='light']
+  .admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover {
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover:hover {
+  border-color: var(--color-border-light);
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover:focus-within {
+  border-color: var(--color-accent-celeste-border-strong);
+  box-shadow: none;
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-primary);
+  color-scheme: dark;
+  cursor: pointer;
+  flex: 1 1 0;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  height: 34px;
+  max-height: 34px;
+  min-height: 34px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  width: auto;
+}
+
+[data-theme='light']
+  .admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input {
+  color-scheme: light;
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-sep {
+  color: var(--color-text-muted);
+  flex: none;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.75);
+  opacity: 0.65;
+}
+
+[data-theme='light']
+  .admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.5;
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input:hover::-webkit-calendar-picker-indicator,
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+.admin-shell
+  .admin-filter-popover
+  .admin-filters__date-range--popover.is-active
+  .admin-filters__date-range-fields--popover {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 35%, var(--color-border-subtle));
 }
 
 .admin-filter-popover__combobox {
@@ -20039,7 +20938,7 @@ button.action-queue__proof:focus-visible {
     flex-wrap: nowrap;
     margin: 0 -20px;
     overflow-x: auto;
-    padding: 2px 20px;
+    padding: 2px 20px 2px;
     scrollbar-width: none;
   }
 
@@ -20047,8 +20946,13 @@ button.action-queue__proof:focus-visible {
     display: none;
   }
 
+  /* Con popover abierto no clippear: el scroll horizontal se pausa. */
+  .admin-filter-pillrow:has(.admin-filter-pill.is-open) {
+    overflow: visible;
+  }
+
   .admin-filter-pill {
-    flex: none;
+    min-height: 44px;
   }
 
   .admin-filter-pill__trigger {
@@ -20056,7 +20960,12 @@ button.action-queue__proof:focus-visible {
   }
 
   .admin-filter-popover {
-    max-width: min(320px, calc(100vw - 40px));
+    max-width: min(300px, calc(100vw - 40px));
+  }
+
+  .admin-filter-popover--date {
+    max-width: min(280px, calc(100vw - 40px));
+    min-width: min(260px, calc(100vw - 40px));
   }
 
   .admin-filter-panel-trigger__label {

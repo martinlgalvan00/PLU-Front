@@ -210,6 +210,9 @@ export default {
   },
   payments: {
     manualConfirmation: {
+      deferAction: 'Voy a pagar dentro del plazo',
+      deferredTitle: 'Quedás habilitado',
+      deferredHint: 'Ya estás habilitado: PLU te adelantó la afiliación y la inscripción. Cuando pagues, avisanos acá para que Finanzas lo acredite.',
       transferAction: 'Ya transferí',
       cashAction: 'Ya entregué el efectivo',
       financingHint:
@@ -495,7 +498,7 @@ export default {
     stateClosed: 'Cerrado',
     stateUnavailable: 'Sin fecha abierta',
     steps: {
-      account: {
+  account: {
         title: 'Crear tu cuenta',
         done: 'Ya tenés cuenta.',
         todo: 'Cargás tus datos una sola vez: nombre, documento, fecha de nacimiento y una contraseña.',
@@ -1078,6 +1081,18 @@ export default {
     tokenLoadingLeadWithEvent: 'Verificando tu acceso a la puerta de {{event}}…',
     tokenError: 'La credencial no es válida o venció. Ingresá con tu email y contraseña.',
   },
+  financedDebt: {
+    membership: {
+      title: 'Tu afiliación está financiada por PLU',
+    },
+    registration: {
+      title: 'Tu inscripción está financiada por PLU',
+    },
+    remaining: 'Te queda {{countdown}} para completar el pago.',
+    overdue: 'El plazo venció. Se va a dar de baja en las próximas horas si no completás el pago.',
+    noDeadline: 'Completá el pago para dejarla acreditada.',
+    settle: 'Terminar de pagar',
+  },
   account: {
     eyebrow: 'Mi cuenta',
     membershipActive: 'Afiliación activa',
@@ -1087,7 +1102,7 @@ export default {
     nav: {
       qr: 'Credencial',
       benefits: 'Beneficios',
-      offer: 'Oferta exclusiva',
+      offer: 'Tu código',
       events: 'Torneos',
       history: 'Historial',
       membership: 'Afiliación',
@@ -1095,6 +1110,70 @@ export default {
       personalData: 'Mis datos',
       security: 'Seguridad',
       needsAttention: 'Tenés algo para resolver acá',
+    },
+    bundle: {
+      eyebrow: 'Código exclusivo',
+      title: 'Tu paquete',
+      // La ficha puede abrirse antes de que la cuenta sepa qué código tiene:
+      // el canje recién hecho vive del lado del servidor.
+      searching: 'Buscando tu paquete…',
+      lead: {
+        ready:
+          'Este código te reserva la afiliación y la inscripción juntas a un precio pactado. Completá los datos y elegí cómo pagarlo.',
+        manual:
+          'Tu paquete quedó reservado. Terminá el pago con los datos de abajo para confirmarlo.',
+        granted:
+          'Ya estás afiliado e inscripto: PLU te habilitó por adelantado. Falta que completes el pago dentro del plazo.',
+        settled: 'Finanzas acreditó el pago. El paquete está cerrado y no queda nada pendiente.',
+        refunded:
+          'Esta compra se reembolsó. El paquete queda como constancia: si querés volver a usarlo, escribinos.',
+      },
+      mark: 'Código exclusivo',
+      headline: '{{plan}} + {{event}}',
+      fallbackPlan: 'Afiliación PLU',
+      fallbackEvent: 'la inscripción',
+      savings: 'Ahorrás {{amount}}',
+      status: {
+        ready: 'Disponible',
+        reserved: 'Reservado',
+        granted: 'Habilitado, con saldo',
+        settled: 'Acreditado',
+        refunded: 'Reembolsado',
+      },
+      terms: {
+        payment: 'Se paga',
+        financing: 'Plazo',
+        remaining: 'Cupo',
+        window: 'Cierra',
+      },
+      paymentWith: 'Con {{channels}}',
+      paymentOnly: 'Sólo con {{channels}}',
+      noChannel: 'Sin medio de pago habilitado. Escribinos para resolverlo.',
+      financingTerm: '{{days}} días para pagar desde que lo activás',
+      financingTermOne: '1 día para pagar desde que lo activás',
+      remaining: 'Quedan {{count}} lugares',
+      remainingOne: 'Queda 1 lugar',
+      dueIn: '{{countdown}} Vencido el plazo se dan de baja la afiliación y la inscripción.',
+      settled: 'No queda nada pendiente. Tu credencial y tu inscripción están en las fichas de siempre.',
+      refunded:
+        'El importe de esta compra se devolvió. Si el reembolso no fue lo que esperabas, contactá al staff de PLU.',
+      form: {
+        competitionLegend: 'Tus datos para competir',
+        competitionHint:
+          'Los traemos de tu perfil. Podés corregirlos acá: valen para esta inscripción.',
+        division: 'División',
+        category: 'Categoría',
+        weight: 'Peso declarado (kg)',
+        choose: 'Elegí una opción',
+        paymentLegend: 'Cómo lo pagás',
+        gatewayNote: 'Se paga en el checkout del torneo, con tarjeta o dinero en cuenta.',
+        transferNote: 'Te damos los datos bancarios y avisás cuando transferiste.',
+        cashNote: 'Se paga en efectivo al staff de PLU.',
+        financedHint: 'Con este código podés pagarlo ahora o más tarde: quedás habilitado igual mientras corra el plazo.',
+        submit: 'Confirmar y pagar {{amount}}',
+        goToGateway: 'Ir a pagar con Mercado Pago',
+        incomplete: 'Completá división, categoría y peso declarado para seguir.',
+      },
     },
     benefits: {
       eyebrow: 'Códigos y promociones',
@@ -1362,7 +1441,7 @@ export default {
       eyebrow: 'Competencias',
       title: 'Próximos torneos',
       registered: 'Inscripción confirmada',
-      alreadyRegistered: 'Ya estás inscripto',
+      alreadyRegistered: 'Ya sos parte de {{event}}',
       register: 'Inscribirme',
       paymentPending: 'Pago pendiente',
       resumePayment: 'Continuar pago',
@@ -1486,6 +1565,11 @@ export default {
         no_savings: 'Ese código no mejora el precio de esta compra.',
         not_started: 'Ese código todavía no está vigente.',
         not_invited: 'Ese código está reservado para otras cuentas.',
+        // `describeDiscountError` puede derivar a estas dos claves también acá:
+        // un código atado a otra inscripción tipeado en Afiliación. Sin ellas la
+        // pantalla mostraba la clave cruda.
+        other_event: 'Ese código es de otra inscripción.',
+        other_event_named: 'Ese código es de {{event}}, no de este torneo.',
         offer_unavailable: 'Esa oferta ya no está disponible.',
       },
       paymentLegend: 'Método de pago',
@@ -3274,6 +3358,10 @@ export default {
       sealMembershipTitle: 'Ya sos parte de PLU Argentina',
       sealMembershipDetail: 'Tu credencial ya está emitida y podés inscribirte a los meets.',
       sealRegistrationEyebrow: 'Inscripción confirmada',
+      sealRegistrationSlot: 'Competís en {{slot}}.',
+      competitionConfirmedTitle: 'Estás anotado',
+      competitionConfirmedDesc: 'Tu lugar en el meet quedó tomado.',
+      competitionGoMyEvents: 'Ver mis inscripciones',
       membershipGoProfile: 'Ir a mi perfil',
       membershipGoProfileCredential: 'Ver credencial unificada',
       membershipRequiredTitle: 'Afiliación para el ingreso',

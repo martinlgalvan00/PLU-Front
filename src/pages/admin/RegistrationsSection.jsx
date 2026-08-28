@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ClipboardList, Eye, EyeOff, PencilLine, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  MessageSquare,
+  PencilLine,
+  Trash2,
+} from 'lucide-react'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
+import ObservationsDialog from '../../components/admin/ObservationsDialog.jsx'
 import RegistrationStatusDialog from '../../components/admin/RegistrationStatusDialog.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
 import AdminPaymentReconciliationAlert from '../../components/admin/AdminPaymentReconciliationAlert.jsx'
@@ -15,7 +24,8 @@ import {
   AdminTableActions,
   AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
-import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
+import { EntitlementStateCell } from '../../components/admin/AdminStateCell.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -24,6 +34,7 @@ import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getRegistrationsTourSteps } from '../../lib/adminTourSteps.js'
 import { useEventSchedule } from '../../hooks/useEventSchedule.js'
 import { ATHLETE_FILTER_STATUSES, REGISTRATION_FILTER_STATUSES } from '../../lib/constants.js'
+import { EMPTY_DATE_RANGE } from '../../lib/adminDateRangeFilter.js'
 import { formatScheduleSummary } from '../../lib/eventSchedule.js'
 import { money } from '../../lib/format.js'
 import {
@@ -41,6 +52,7 @@ import {
   fetchPlatformFeatureToggles,
   VALIDATION_DISABLED_CODES,
 } from '../../services/platformSettingsAdminService.js'
+import { resolveStateBacking } from '../../services/stateCoherenceService.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
@@ -140,6 +152,7 @@ export default function RegistrationsSection({
   const [deleting, setDeleting] = useState(false)
   const [visibilityChangingId, setVisibilityChangingId] = useState(null)
   const [statusTarget, setStatusTarget] = useState(null)
+  const [observationsTarget, setObservationsTarget] = useState(null)
   const [statusError, setStatusError] = useState('')
   const [savingStatus, setSavingStatus] = useState(false)
   const [validationEnabled, setValidationEnabled] = useState(true)
@@ -236,6 +249,10 @@ export default function RegistrationsSection({
           publicVisible: reg.publicVisible !== false,
           schedule: reg.schedule ?? null,
           status: reg.status,
+          // La observación que escribió el operador al mover el estado, con su
+          // firma y su fecha. Sin esto la columna pintaba un "Observada" pelado
+          // y el motivo -- que sí se guarda -- no se leía en ninguna pantalla.
+          stateBacking: resolveStateBacking(reg, payments),
           paymentStatus: payment?.status,
           paymentMethod: payment?.method,
           amount: payment ? money(payment.amount) : '—',
@@ -245,7 +262,7 @@ export default function RegistrationsSection({
           payment: payment ?? null,
         }
       }),
-    [filteredRegistrations, resolvePayment],
+    [filteredRegistrations, payments, resolvePayment],
   )
 
   // La selección se limita a las filas que el filtro deja a la vista: seguir
@@ -387,6 +404,10 @@ export default function RegistrationsSection({
     onSetFilters((current) => ({ ...current, affiliationStatus: value }))
   }
 
+  function handleCreatedAtRangeChange(value) {
+    onSetFilters((current) => ({ ...current, createdAtRange: value }))
+  }
+
   function handleClearFilters() {
     onSetFilters((current) => ({
       ...current,
@@ -394,6 +415,7 @@ export default function RegistrationsSection({
       status: 'all',
       affiliationStatus: 'all',
       query: '',
+      createdAtRange: { ...EMPTY_DATE_RANGE },
     }))
   }
 
@@ -418,6 +440,15 @@ export default function RegistrationsSection({
     options: affiliationOptions,
     showLabel: true,
   }
+  const createdAtRange = filters.createdAtRange ?? EMPTY_DATE_RANGE
+  const createdAtFilter = {
+    id: 'createdAtRange',
+    label: t('admin.filters.registrationDate'),
+    value: createdAtRange,
+    onChange: handleCreatedAtRangeChange,
+    variant: 'dateRange',
+    defaultValue: { ...EMPTY_DATE_RANGE },
+  }
 
   const savedViewSnapshot = useMemo(
     () => ({
@@ -425,8 +456,12 @@ export default function RegistrationsSection({
       status: filters.status ?? 'all',
       affiliationStatus: filters.affiliationStatus ?? 'all',
       query: filters.query ?? '',
+      createdAtRange: {
+        from: createdAtRange.from ?? '',
+        to: createdAtRange.to ?? '',
+      },
     }),
-    [filters.event, filters.status, filters.affiliationStatus, filters.query],
+    [filters.event, filters.status, filters.affiliationStatus, filters.query, createdAtRange],
   )
   const activeSavedView = useMemo(
     () => findMatchingView(savedViews, savedViewSnapshot),
@@ -436,7 +471,13 @@ export default function RegistrationsSection({
     savedViewSnapshot.event !== 'all' ||
     savedViewSnapshot.status !== 'all' ||
     savedViewSnapshot.affiliationStatus !== 'all' ||
-    savedViewSnapshot.query.trim() !== ''
+    savedViewSnapshot.query.trim() !== '' ||
+    Boolean(savedViewSnapshot.createdAtRange.from) ||
+    Boolean(savedViewSnapshot.createdAtRange.to)
+
+  function formatDateForSummary(isoDate) {
+    return new Date(`${isoDate}T00:00:00`).toLocaleDateString('es-AR')
+  }
 
   // Resumen legible de filtros activos para el popover
   const filterSummary = useMemo(() => {
@@ -451,11 +492,29 @@ export default function RegistrationsSection({
       const opt = affiliationOptions.find(([v]) => v === savedViewSnapshot.affiliationStatus)
       if (opt) items.push({ label: t('admin.filters.affiliation'), value: opt[1] })
     }
+    const range = savedViewSnapshot.createdAtRange
+    if (range.from || range.to) {
+      const value =
+        range.from && range.to
+          ? `${formatDateForSummary(range.from)} – ${formatDateForSummary(range.to)}`
+          : range.from
+            ? t('admin.filters.registeredAtFrom', { date: formatDateForSummary(range.from) })
+            : t('admin.filters.registeredAtTo', { date: formatDateForSummary(range.to) })
+      items.push({ label: t('admin.filters.registrationDate'), value })
+    }
     return items
   }, [savedViewSnapshot, statusOptions, affiliationOptions, t])
 
   function applySavedView(view) {
-    onSetFilters((current) => ({ ...current, ...view.snapshot }))
+    const snapshot = view.snapshot ?? {}
+    onSetFilters((current) => ({
+      ...current,
+      ...snapshot,
+      createdAtRange: {
+        from: snapshot.createdAtRange?.from ?? '',
+        to: snapshot.createdAtRange?.to ?? '',
+      },
+    }))
   }
 
   return (
@@ -518,6 +577,7 @@ export default function RegistrationsSection({
                   showLabel: true,
                 },
                 affiliationFilter,
+                createdAtFilter,
               ].filter(Boolean)
         }
         onQueryChange={handleQueryChange}
@@ -583,6 +643,7 @@ export default function RegistrationsSection({
               />
             )}
             <AdminDataTable
+              className="admin-data-table--registrations"
               columns={[
                 ...(canAssignSchedule
                   ? [
@@ -681,7 +742,9 @@ export default function RegistrationsSection({
                   label: t('admin.columns.status'),
                   mobile: 'badge',
                   sortable: true,
-                  render: (row) => <StatusBadge value={row.status} />,
+                  render: (row) => (
+                    <EntitlementStateCell backing={row.stateBacking} status={row.status} />
+                  ),
                 },
                 {
                   key: 'payment',
@@ -751,6 +814,16 @@ export default function RegistrationsSection({
                             variant="ghost"
                           />
                         ) : null}
+                        {/* Anotar sin mover el estado. Va antes que "corregir
+                            estado" porque es la acción menos invasiva de las
+                            dos y la que más se usa: la mayoría de los casos se
+                            resuelven anotando qué pasó, no cambiando nada. */}
+                        <AdminIconButton
+                          icon={MessageSquare}
+                          label={t('admin.observations.open')}
+                          onClick={() => setObservationsTarget(row)}
+                          variant="ghost"
+                        />
                         {canSetStatus && onSetRegistrationStatus ? (
                           <AdminIconButton
                             icon={PencilLine}
@@ -814,6 +887,14 @@ export default function RegistrationsSection({
                   if (!savingStatus) setStatusTarget(null)
                 }}
                 onConfirm={saveRegistrationStatus}
+              />
+            ) : null}
+            {observationsTarget ? (
+              <ObservationsDialog
+                canWrite={canSetStatus}
+                registration={observationsTarget}
+                onClose={() => setObservationsTarget(null)}
+                onChange={onRefreshAthleteData}
               />
             ) : null}
           </>

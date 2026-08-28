@@ -3,7 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   buildCelebrationPieces,
+  celebrationBiasX,
   celebrationPieceCount,
+  celebrationReachPx,
   markCelebrated,
   shouldCelebrate,
 } from '../../lib/celebration.js'
@@ -31,6 +33,15 @@ import { useMotionConfig } from '../../motion/MotionProvider.tsx'
  * viewport se aplicaba contra la caja de ese ancestro y la ráfaga salía
  * desplazada. Con portal a `body` la capa vuelve a ser del viewport y las
  * variables de tema siguen llegando: `data-theme` vive en `documentElement`.
+ *
+ * ── Por qué el abanico se corre cerca de un borde ──
+ * El sello abre el bloque de confirmación contra el margen izquierdo, así que
+ * en pantallas angostas queda a ~70px del borde mientras el papel viaja ~94px:
+ * la mitad de la ráfaga salía de pantalla y lo que se veía parecía confeti
+ * entrando desde afuera, no saliendo del sello. `celebrationBiasX` corre el
+ * abanico completo lo justo para que el extremo entre (ver celebration.js).
+ * Correrlo y no recortarlo ni encogerlo: recortado deja un lado plano, y
+ * encogido en desktop se lee como polvo.
  *
  * ── Por qué `position: fixed` ──
  * Una ráfaga que crece dentro del bloque obliga a elegir entre recortarla
@@ -115,7 +126,16 @@ export default function CelebrationBurst({
       // arranca. Después la capa es fija y nada se mueve durante el vuelo.
       const rect = anchorRef?.current?.getBoundingClientRect?.()
       if (rect && rect.width > 0) {
-        setOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
+        const x = rect.left + rect.width / 2
+        // El sesgo se calcula acá y no en el CSS porque depende de dónde cayó
+        // el sello, que es un dato de runtime: en el bloque de confirmación
+        // abre contra el margen izquierdo y en 390px eso dejaba media ráfaga
+        // fuera de pantalla.
+        setOrigin({
+          x,
+          y: rect.top + rect.height / 2,
+          biasX: celebrationBiasX(x, window.innerWidth, celebrationReachPx()),
+        })
       }
       setPhase('playing')
     }
@@ -167,7 +187,13 @@ export default function CelebrationBurst({
       aria-hidden="true"
       style={
         origin
-          ? { '--celebration-origin-x': `${origin.x}px`, '--celebration-origin-y': `${origin.y}px` }
+          ? {
+              '--celebration-origin-x': `${origin.x}px`,
+              '--celebration-origin-y': `${origin.y}px`,
+              // Sin unidad: es un múltiplo de --celebration-reach, igual que
+              // --burst-px. Con `px` acá el calc del CSS quedaría en px².
+              '--celebration-bias-x': origin.biasX,
+            }
           : undefined
       }
     >

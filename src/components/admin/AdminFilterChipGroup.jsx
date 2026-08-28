@@ -10,10 +10,12 @@ function isEmptyCount(count) {
 }
 
 /**
- * Fila de chips con scroll horizontal arrastrable (touch + mouse).
+ * Fila de chips con scroll horizontal arrastrable (touch + mouse), o menú
+ * vertical cuando `presentation="menu"` (popover de pills).
  * Evita convertir filtros a <select> en mobile.
  *
  * @param {object} props
+ * @param {'rail'|'menu'} [props.presentation='rail'] `menu` = lista vertical en popover.
  * @param {boolean} [props.omitNeutral] Oculta la opción neutra larga y usa `allLabel` corto.
  * @param {string} [props.allLabel] Etiqueta corta del valor neutro (ej. "Todos").
  * @param {boolean} [props.clearable] Click en el chip activo vuelve al valor neutro.
@@ -35,7 +37,9 @@ export default function AdminFilterChipGroup({
   allLabel = null,
   clearable = false,
   hideEmpty = false,
+  presentation = 'rail',
 }) {
+  const isMenu = presentation === 'menu'
   const labelId = label ? `${id}-label` : undefined
   const chipsRef = useRef(null)
   const [overflowing, setOverflowing] = useState(false)
@@ -79,6 +83,11 @@ export default function AdminFilterChipGroup({
   const renderAllCount = showAllCount && !allCountIsTwin
 
   useEffect(() => {
+    if (isMenu) {
+      setOverflowing(false)
+      return undefined
+    }
+
     const el = chipsRef.current
     if (!el) return undefined
 
@@ -105,7 +114,7 @@ export default function AdminFilterChipGroup({
         el.removeEventListener('wheel', handleWheel)
       }
     }
-  }, [allLabel, showAllChip, visibleOptions])
+  }, [allLabel, isMenu, showAllChip, visibleOptions])
 
   const endDrag = useCallback((event) => {
     const state = dragRef.current
@@ -135,6 +144,7 @@ export default function AdminFilterChipGroup({
   }, [])
 
   function handlePointerDown(event) {
+    if (isMenu) return
     if (event.button !== 0 && event.pointerType === 'mouse') return
     const el = chipsRef.current
     if (!el || el.scrollWidth <= el.clientWidth + 1) return
@@ -150,6 +160,7 @@ export default function AdminFilterChipGroup({
   }
 
   function handlePointerMove(event) {
+    if (isMenu) return
     const state = dragRef.current
     const el = chipsRef.current
     if (!state.active || !el) return
@@ -172,6 +183,7 @@ export default function AdminFilterChipGroup({
       className={[
         'admin-filter-group',
         'admin-filter-group--rail',
+        isMenu ? 'admin-filter-group--menu' : '',
         compact ? 'admin-filter-group--compact' : '',
         inline ? 'admin-filter-group--inline' : '',
         allActive ? 'admin-filter-group--all' : '',
@@ -194,7 +206,9 @@ export default function AdminFilterChipGroup({
       >
         <div
           ref={chipsRef}
-          className="admin-filter-chips"
+          className={['admin-filter-chips', isMenu ? 'admin-filter-chips--menu' : '']
+            .filter(Boolean)
+            .join(' ')}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endDrag}
@@ -236,6 +250,7 @@ export default function AdminFilterChipGroup({
               showCount ? 'admin-filter-chip--counted' : '',
               zeroCount ? 'admin-filter-chip--zero' : '',
               active && optionTone ? `admin-filter-chip--tone-${optionTone}` : '',
+              !active && optionTone ? `admin-filter-chip--hint-${optionTone}` : '',
             ]
               .filter(Boolean)
               .join(' ')

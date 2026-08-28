@@ -403,6 +403,18 @@ const registrationStatusSchema = z.object({
   status: z.enum(['confirmada', 'observada', 'cancelada']),
   reason: z.string().trim().min(3).max(500),
 })
+// Una observación suelta no cambia nada de dominio: sólo deja algo escrito. Por
+// eso no pide estado ni canal, y por eso el largo es más generoso que el motivo
+// de un cambio de estado -- acá es donde se cuenta el caso completo.
+const observationSchema = z.object({
+  entityType: z.enum(['registration', 'membership']),
+  entityId: z.string().uuid(),
+  body: z.string().trim().min(3).max(1000),
+})
+const observationsQuerySchema = z.object({
+  entityType: z.enum(['registration', 'membership']),
+  entityIds: z.array(z.string().uuid()).min(1).max(200),
+})
 const proofUrlsSchema = z.object({
   orderIds: z.array(z.string().uuid()).min(1).max(60),
 })
@@ -625,45 +637,60 @@ export function createAthleteRoutes({
     return false
   }
 
+  /**
+   * Normaliza el gimnasio declarado contra el catálogo de Prisma.
+   *
+   * Es una mejora de dato, no un requisito del alta: si el catálogo no está
+   * disponible —falta `DATABASE_URL`, las tablas del esquema legado no existen
+   * (local y CI corren sólo el corpus de Supabase), Prisma no conecta— el alta
+   * tiene que seguir con el nombre que escribió la persona. Sin esta guarda
+   * cualquiera de esos casos devolvía 500 en `POST /api/athletes/register`, que
+   * es la puerta de entrada del producto.
+   */
   const resolveGymName = async (rawName) => {
     if (!rawName || !rawName.trim()) return rawName
     const cleanName = String(rawName).trim()
     const norm = normalizeGym(cleanName)
     const core = getCoreName(norm)
-    
-    // Asumimos un solo tenant operativo (PLU) por ahora para Prisma
-    const org = await prisma.organization.findFirst()
-    if (!org) return cleanName
-    const organizationId = org.id
-    
-    // Buscar todos los gyms existentes
-    const existing = await prisma.gym.findMany({ where: { organizationId } })
-    
-    for (const gym of existing) {
-      if (isSimilarCore(core, gym.coreName)) {
-        return gym.name
-      }
-    }
-    
-    // Si no existe ninguno similar, se registra
+
     try {
+      // Asumimos un solo tenant operativo (PLU) por ahora para Prisma
+      const org = await prisma.organization.findFirst()
+      if (!org) return cleanName
+      const organizationId = org.id
+
+      // Buscar todos los gyms existentes
+      const existing = await prisma.gym.findMany({ where: { organizationId } })
+
+      for (const gym of existing) {
+        if (isSimilarCore(core, gym.coreName)) {
+          return gym.name
+        }
+      }
+
+      // Si no existe ninguno similar, se registra
       const created = await prisma.gym.upsert({
         where: {
           organizationId_coreName: {
             organizationId,
             coreName: core,
-          }
+          },
         },
         update: {},
         create: {
           organizationId,
           name: cleanName,
           coreName: core,
-        }
+        },
       })
       return created.name
-    } catch (e) {
-      // Ignorar carrera de inserción concurrente
+    } catch (error) {
+      // Carrera de inserción concurrente, catálogo ausente o Prisma sin
+      // configurar: en los tres casos el alta sigue con lo que se escribió.
+      logger.warn('athlete.gym_normalization_skipped', {
+        err: error,
+        gym: cleanName,
+      })
       return cleanName
     }
   }
@@ -1935,6 +1962,30 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Pago diferido de una orden financiada.
+   *
+   * Hermana de la declaración de arriba y deliberadamente distinta: acá la
+   * persona no dice "ya pagué", dice "voy a pagar dentro del plazo". Queda
+   * habilitada igual —para eso existe el financiamiento— pero la orden no entra
+   * a la cola de Finanzas, y el reloj de `financed_payment_due_at` arranca. Si
+   * vence sin acreditar, `expire_financed_payment_orders` da de baja lo
+   * otorgado, igual que en cualquier otra orden financiada.
+   */
+  router.post(
+    '/me/payment-orders/:orderId/financing-deferral',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(await repo().deferFinancedPayment(auth.athleteId, orderId.data))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
   router.post(
     '/me/payment-orders/:orderId/proof-upload',
     athleteWriteLimiter,
@@ -2412,6 +2463,87 @@ export function createAthleteRoutes({
       }
     },
   )
+  /**
+   * Observaciones: el hilo de notas operativas sobre una inscripción o una
+   * afiliación.
+   *
+   * Van por su propia ruta y no colgadas del cambio de estado porque son otra
+   * operación: dejar anotado "el pago llegó a nombre del padre" no debería
+   * obligar a mover el estado, que es lo que pasaba cuando el único lugar donde
+   * escribir era el motivo del diálogo de corrección.
+   *
+   * El permiso es el de escritura de la entidad observada: quien puede corregir
+   * el estado de una inscripción puede anotar sobre ella. No se inventa un
+   * permiso nuevo para algo que es estrictamente menos que lo que ya podía hacer.
+   */
+  const observationGuardFor = (entityType) =>
+    entityType === 'membership' ? 'admin.memberships.write' : 'admin.registrations.write'
+
+  router.post(
+    '/admin/observations',
+    ...adminGuard,
+    staffLimiter,
+    validateBody(observationSchema),
+    async (req, res, next) => {
+      try {
+        const { entityType, entityId, body } = req.validatedBody
+        if (!hasPermission(req.auth.user, observationGuardFor(entityType))) {
+          throw new HttpError(403, 'Sin permisos para observar esta entidad.')
+        }
+        res.status(201).json(
+          await repo().addObservation(entityType, entityId, body, actorLabel(req)),
+        )
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.post(
+    '/admin/observations/list',
+    ...adminGuard,
+    staffLimiter,
+    validateBody(observationsQuerySchema),
+    async (req, res, next) => {
+      try {
+        const { entityType, entityIds } = req.validatedBody
+        // Lectura con el permiso de lectura, no el de escritura: Finanzas mira
+        // la bandeja sin poder corregir inscripciones.
+        const readPermission =
+          entityType === 'membership' ? 'admin.memberships.read' : 'admin.registrations.read'
+        if (!hasPermission(req.auth.user, readPermission)) {
+          throw new HttpError(403, 'Sin permisos para leer estas observaciones.')
+        }
+        res.json({ observations: await repo().listObservations(entityType, entityIds) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.delete(
+    '/admin/observations/:observationId',
+    ...adminGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const observationId = z.string().uuid().safeParse(req.params.observationId)
+        if (!observationId.success) throw new HttpError(400, 'Observación inválida.')
+        // Alcanza con poder escribir sobre cualquiera de las dos entidades: la
+        // RPC ya resuelve a cuál pertenece y audita quién la sacó.
+        if (
+          !hasPermission(req.auth.user, 'admin.registrations.write') &&
+          !hasPermission(req.auth.user, 'admin.memberships.write')
+        ) {
+          throw new HttpError(403, 'Sin permisos para borrar observaciones.')
+        }
+        res.json(await repo().deleteObservation(observationId.data, actorLabel(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
   /**
    * Credencial de un socio desde el panel: hasta ahora no había forma de ver
    * el QR emitido, y si un token se filtraba la única salida era editar la

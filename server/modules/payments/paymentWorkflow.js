@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto'
 import { HttpError } from '../../lib/errors.js'
 import { addBreadcrumb } from '../../lib/logger.js'
-import { verifyMercadoPagoWebhook } from '../integrations/webhookVerifier.js'
+import {
+  verifyMercadoPagoWebhook,
+  webhookTimestampSkewSeconds,
+} from '../integrations/webhookVerifier.js'
 import { displayPaymentConcept } from '../notifications/paymentNotificationService.js'
 import {
   PAYMENT_TRAIL_ACTIONS,
@@ -103,6 +106,20 @@ export async function createPaymentPreference(input, options = {}) {
 
 function notificationKey(body) {
   return [body.id, body.action, body.date_created].filter(Boolean).join(':')
+}
+
+/**
+ * `topic` (IPN, formato viejo) → `event_type` (el vocabulario con el que
+ * `processClaimedPaymentEvent` decide qué recurso consultar).
+ *
+ * `merchant_order` queda deliberadamente afuera: es la orden comercial, no el
+ * cobro. El pago que la compone llega por su propia notificación, y procesar la
+ * merchant_order sería acreditar dos veces el mismo dinero.
+ */
+const IPN_TOPIC_TO_EVENT_TYPE = {
+  payment: 'payment',
+  preapproval: 'subscription_preapproval',
+  authorized_payment: 'subscription_authorized_payment',
 }
 
 function assertPaymentMatchesOrder(payment, orderId) {
@@ -381,6 +398,37 @@ export async function processPaymentWebhook(input, options = {}) {
   // Una notificacion rechazada antes de persistirse no dejaba ningun rastro:
   // ni en el inbox (todavia no existe la fila) ni en el log. Este asiento es
   // el unico registro de firmas invalidas y payloads mal formados.
+  //
+  // `signature` viaja en el asiento de un rechazo por firma porque sin eso el
+  // rechazo no se puede diagnosticar: "firma invalida" tiene tres causas que se
+  // arreglan en lugares distintos -- el secreto es de otra aplicacion de MP, el
+  // header `x-request-id` no llego (el manifiesto es
+  // `id:…;request-id:…;ts:…;`, asi que sin ese valor el HMAC nunca coincide), o
+  // el reloj quedo fuera de tolerancia. El HMAC y el ts son publicos: viajan en
+  // claro en el header que manda MP, no son material secreto.
+  const signatureDiagnosis = () => {
+    const raw = input.headers?.['x-signature']
+    if (!raw) return { present: false }
+    const parts = Object.fromEntries(
+      String(raw)
+        .split(',')
+        .map((chunk) => chunk.split('=').map((piece) => piece.trim()))
+        .filter((pair) => pair.length === 2),
+    )
+    return {
+      present: true,
+      ts: parts.ts ?? null,
+      // Los primeros caracteres alcanzan para comparar dos corridas entre si
+      // sin volcar el hash entero en la bitacora.
+      v1Prefix: parts.v1 ? String(parts.v1).slice(0, 8) : null,
+      requestIdPresent: Boolean(providerRequestId),
+      // Con la unidad del `ts` detectada, no asumida: MP documenta segundos y
+      // el SDK asumia milisegundos (ver webhookVerifier.js) — este diagnostico
+      // repetia el mismo error y reportaba corrimientos de ~54 anios.
+      skewSeconds: parts.ts ? webhookTimestampSkewSeconds(parts.ts) : null,
+    }
+  }
+
   const rejectWebhook = async (error, reason) => {
     await auditTrail?.recordFailure({
       action: PAYMENT_TRAIL_ACTIONS.webhookFailed,
@@ -388,15 +436,38 @@ export async function processPaymentWebhook(input, options = {}) {
       entityType: 'payment_integration_event',
       entityId: String(queryDataId ?? bodyDataId ?? 'unknown'),
       error,
-      metadata: { reason, providerRequestId, notificationType: body.type ?? null },
+      metadata: {
+        reason,
+        providerRequestId,
+        notificationType: body.type ?? null,
+        ...(reason === 'signature_rejected' ? { signature: signatureDiagnosis() } : {}),
+      },
     })
     throw error
   }
 
-  // Mercado Pago firma el data.id de la URL, no el valor del body. Aceptar el
-  // fallback del body hace ambiguo el manifiesto HMAC y se aparta del contrato
-  // documentado del proveedor.
-  if (!queryDataId) {
+  // Notificacion IPN: el formato viejo de Mercado Pago, que sigue enviandose
+  // cuando la cuenta tiene la seccion IPN configurada ademas de (o en vez de)
+  // Webhooks. Llega como `?topic=payment&id=123` y SIN `x-signature`: MP no
+  // firma las IPN, asi que exigirle el manifiesto HMAC las rechazaba todas.
+  //
+  // En produccion eso dejaba la tabla `payment_integration_events` vacia: cada
+  // acreditacion dependia de que el atleta volviera del checkout con la pestana
+  // abierta. El que pagaba en efectivo, por transferencia desde MP o cerraba el
+  // navegador se quedaba con la orden en `pendiente` hasta que el cron la
+  // cancelaba, con la plata ya adentro.
+  //
+  // Aceptarlas es seguro porque el payload no decide nada: `processClaimedPaymentEvent`
+  // usa el id solo para preguntarle a la API de MP (server-to-server, con
+  // nuestro token) y acredita contra esa respuesta, revalidando referencia,
+  // monto y moneda. Un id inventado devuelve 404 o un pago de otra orden, y en
+  // los dos casos muere en `assertPaymentMatchesOrder`. Lo unico que un tercero
+  // consigue es gastarnos una consulta, y para eso esta el rate limit de la ruta.
+  const ipnTopic = String(input.query?.topic ?? body.topic ?? '').trim()
+  const ipnId = input.query?.id ?? null
+  const isIpn = !queryDataId && Boolean(ipnTopic) && Boolean(ipnId)
+
+  if (!queryDataId && !isIpn) {
     await rejectWebhook(new HttpError(400, 'Webhook sin data.id en la URL.'), 'missing_data_id')
   }
   if (queryDataId && bodyDataId && String(queryDataId) !== String(bodyDataId)) {
@@ -405,30 +476,72 @@ export async function processPaymentWebhook(input, options = {}) {
       'data_id_mismatch',
     )
   }
-  const resourceId = queryDataId
+  const resourceId = queryDataId ?? ipnId
 
-  try {
-    verifyMercadoPagoWebhook({
-      xSignature: input.headers?.['x-signature'],
-      xRequestId: providerRequestId,
-      dataId: resourceId,
-      secret: webhookSecret,
-      toleranceSeconds,
-    })
-    addBreadcrumb('webhook.signature_verified', {
+  if (isIpn) {
+    addBreadcrumb('webhook.ipn_received', {
+      topic: ipnTopic,
       resourceId: String(resourceId),
       providerRequestId,
     })
-  } catch (error) {
-    await rejectWebhook(error, 'signature_rejected')
+  } else {
+    try {
+      verifyMercadoPagoWebhook({
+        xSignature: input.headers?.['x-signature'],
+        xRequestId: providerRequestId,
+        dataId: resourceId,
+        secret: webhookSecret,
+        toleranceSeconds,
+      })
+      addBreadcrumb('webhook.signature_verified', {
+        resourceId: String(resourceId),
+        providerRequestId,
+      })
+    } catch (error) {
+      await rejectWebhook(error, 'signature_rejected')
+    }
   }
 
-  const type = String(input.query?.type ?? body.type ?? '')
+  // El vocabulario de IPN es `topic`; el de Webhooks, `type`. `merchant_order`
+  // no se traduce a ningun tipo procesable: la orden comercial no es el cobro, y
+  // el pago que la compone llega por su propia notificacion.
+  const type = isIpn
+    ? IPN_TOPIC_TO_EVENT_TYPE[ipnTopic] ?? ipnTopic
+    : String(input.query?.type ?? body.type ?? '')
   if (!['payment', 'subscription_preapproval', 'subscription_authorized_payment'].includes(type)) {
-    await rejectWebhook(new HttpError(400, 'Tipo de webhook no soportado.'), 'unsupported_type')
+    // Descarte deliberado, y por eso un 200 y no un 400: para Mercado Pago un
+    // 4xx es una entrega fallida que reintenta con backoff y computa contra la
+    // salud del webhook. Cada checkout genera su `merchant_order`, asi que
+    // rechazarla llenaba la bitacora de "errores" que no eran errores y hacia
+    // reintentar N veces algo que jamas se iba a procesar. El asiento queda en
+    // la auditoria como descarte, no como falla.
+    addBreadcrumb('webhook.discarded', {
+      reason: 'unsupported_type',
+      notificationType: type,
+      resourceId: String(resourceId ?? 'unknown'),
+      providerRequestId,
+    })
+    await auditTrail?.record({
+      action: PAYMENT_TRAIL_ACTIONS.webhookDiscarded,
+      entityType: 'payment_integration_event',
+      entityId: String(resourceId ?? 'unknown'),
+      status: 'skipped',
+      externalPaymentId: resourceId ? String(resourceId) : null,
+      metadata: {
+        reason: 'unsupported_type',
+        notificationType: type,
+        topic: isIpn ? ipnTopic : null,
+        providerRequestId,
+      },
+    })
+    return { accepted: true, ignored: true, reason: 'unsupported_type', type }
   }
 
-  const notificationId = notificationKey(body)
+  // La IPN no trae `id`/`action`/`date_created` en el body -- suele venir vacio
+  // --, asi que la clave de idempotencia se arma con lo unico estable que tiene:
+  // topic y recurso. Dos avisos del mismo pago colapsan en la misma fila, que es
+  // justamente lo que evita acreditar dos veces.
+  const notificationId = isIpn ? `ipn:${ipnTopic}:${resourceId}` : notificationKey(body)
   if (!notificationId) {
     await rejectWebhook(
       new HttpError(400, 'Webhook sin identificador de notificacion.'),
@@ -443,6 +556,7 @@ export async function processPaymentWebhook(input, options = {}) {
     action: body.action,
     requestId: providerRequestId,
     payload: body,
+    signatureValid: !isIpn,
   })
 
   await auditTrail?.record({

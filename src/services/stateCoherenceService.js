@@ -112,6 +112,45 @@ export function resolveEntitlementBacking(entity, payments = []) {
 }
 
 /**
+ * La procedencia de un estado que puso una persona, sin importar si ese estado
+ * otorga un derecho.
+ *
+ * `resolveEntitlementBacking` contesta otra pregunta -- "¿este derecho está
+ * otorgado sin un cobro que lo respalde?" -- y por eso corta en
+ * `GRANTED_STATUSES`. El efecto colateral era que `observada`, que es el estado
+ * con el que la organización deja escrita una observación sobre una inscripción
+ * ("el pago llegó a nombre de otra persona"), se quedaba sin ninguna superficie
+ * que la mostrara: el motivo se guardaba firmado en `manual_override_reason` y
+ * ninguna pantalla lo leía. El operador escribía la observación y al día
+ * siguiente veía un badge "Observada" pelado, sin saber por qué la había puesto.
+ */
+export function resolveStateProvenance(entity) {
+  const manualOverride = entity?.manualOverride ?? null
+  if (!manualOverride) return null
+
+  return {
+    diverges: false,
+    order: null,
+    manualOverride,
+    backing: 'manual',
+    explained:
+      Boolean(manualOverride.reason) && !isPlaceholderReason(manualOverride.reason),
+    closureCode: null,
+  }
+}
+
+/**
+ * Lo que va en la celda de estado de cualquier fila de dominio: la divergencia
+ * contra el cobro si la hay, y si no, la procedencia del estado escrito a mano.
+ *
+ * Las dos cosas se pintan igual (`EntitlementStateCell`), así que las pantallas
+ * preguntan una sola vez en lugar de decidir cuál de las dos les toca.
+ */
+export function resolveStateBacking(entity, payments = []) {
+  return resolveEntitlementBacking(entity, payments) ?? resolveStateProvenance(entity)
+}
+
+/**
  * El backfill de 20260910100000 no le inventó un motivo a las afiliaciones que
  * se activaron cuando la RPC no lo pedía. Ese texto es un pendiente, no una
  * explicación, y la pantalla tiene que poder tratarlo como tal.

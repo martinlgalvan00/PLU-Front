@@ -70,14 +70,14 @@ export default function RegisterMembershipConfirmation({
 
   return (
     <Section
-      className="register-membership-confirmation"
-      aria-labelledby="register-membership-confirmation-title"
+      className="register-confirmation register-confirmation--membership"
+      aria-labelledby="register-confirmation-membership-title"
       {...sequenceProps}
     >
       {/* El título de la pantalla ya vive en el intro de la ruta (aside en
           desktop, contexto en mobile). Acá solo queda el nombre accesible
           del bloque para que el aria-labelledby siga apuntando a algo. */}
-      <h2 id="register-membership-confirmation-title" className="visually-hidden">
+      <h2 id="register-confirmation-membership-title" className="visually-hidden">
         {isActive
           ? t('pages.register.membershipConfirmedActiveTitle')
           : t('pages.register.membershipConfirmedPendingTitle')}
@@ -93,7 +93,7 @@ export default function RegisterMembershipConfirmation({
           Pago acredita, esta pantalla toma el lugar del brick y las dos ráfagas
           saldrían una encima de la otra. La federación festeja una vez. */}
       {isActive ? (
-        <Block className="register-membership-confirmation__seal" {...riseProps}>
+        <Block className="register-confirmation__seal" {...riseProps}>
           <ConfirmationSeal
             variant="membership"
             celebrate
@@ -113,13 +113,13 @@ export default function RegisterMembershipConfirmation({
           Es el mismo componente que se descarga como PNG, así que lo que el
           socio ve acá es exactamente lo que va a subir. */}
       {showCardPreview ? (
-        <Block className="register-membership-confirmation__piece" {...pieceProps}>
-          <div className="register-membership-confirmation__piece-frame">
+        <Block className="register-confirmation__piece" {...pieceProps}>
+          <div className="register-confirmation__piece-frame">
             <EventShareCard {...cardData} preview format="square" />
           </div>
           <button
             type="button"
-            className="register-membership-confirmation__cta register-membership-confirmation__cta--primary"
+            className="register-confirmation__cta register-confirmation__cta--primary"
             onClick={onOpenCard}
           >
             <Share2 size={16} aria-hidden />
@@ -130,21 +130,21 @@ export default function RegisterMembershipConfirmation({
         /* Sin card emitida (afiliación aún pendiente de acreditación) la
            credencial se muestra como ficha: mismo dato, sin prometer una
            pieza que todavía no existe. */
-        <Block className="register-membership-confirmation__credential" {...pieceProps}>
-          <span className="register-membership-confirmation__stripe" aria-hidden />
-          <div className="register-membership-confirmation__credential-main">
-            <div className="register-membership-confirmation__credential-meta">
-              <span className="register-membership-confirmation__credential-label">
+        <Block className="register-confirmation__credential" {...pieceProps}>
+          <span className="register-confirmation__stripe" aria-hidden />
+          <div className="register-confirmation__credential-main">
+            <div className="register-confirmation__credential-meta">
+              <span className="register-confirmation__credential-label">
                 {t('pages.register.membershipCredentialLabel')}
               </span>
-              <strong className="register-membership-confirmation__credential-code">
+              <strong className="register-confirmation__credential-code">
                 {memberCode ?? t('pages.register.membershipCredentialPendingCode')}
               </strong>
-              <span className="register-membership-confirmation__credential-name">
+              <span className="register-confirmation__credential-name">
                 {order.athleteName}
               </span>
               {membershipExpiration && (
-                <span className="register-membership-confirmation__credential-validity">
+                <span className="register-confirmation__credential-validity">
                   {t('shareCard.membershipValidUntil', { date: membershipExpiration })}
                 </span>
               )}
@@ -155,7 +155,7 @@ export default function RegisterMembershipConfirmation({
       )}
 
       {!isActive && (
-        <Block className="register-membership-confirmation__next-inline" {...riseProps}>
+        <Block className="register-confirmation__next-inline" {...riseProps}>
           {nextStep}
         </Block>
       )}
@@ -167,8 +167,8 @@ export default function RegisterMembershipConfirmation({
       )}
 
       {isManual && !isActive && (
-        <Block className="register-membership-confirmation__actions" {...riseProps}>
-          <p className="register-membership-confirmation__manual">
+        <Block className="register-confirmation__actions" {...riseProps}>
+          <p className="register-confirmation__manual">
             {t('pages.register.manualNote')}
           </p>
           {/* Sin esto la pantalla daba los datos bancarios y terminaba ahí:
@@ -176,7 +176,7 @@ export default function RegisterMembershipConfirmation({
               cuenta, y Finanzas aprobaba sin evidencia. */}
           {isCashAtPitbull ? (
             <>
-              <p className="register-membership-confirmation__manual">
+              <p className="register-confirmation__manual">
                 {t('pages.register.cashPitbullCreated')}
               </p>
               <ManualPaymentConfirmation
@@ -190,7 +190,7 @@ export default function RegisterMembershipConfirmation({
           ) : order.paymentId && onOpenTransfer ? (
             <button
               type="button"
-              className="register-membership-confirmation__cta register-membership-confirmation__cta--primary"
+              className="register-confirmation__cta register-confirmation__cta--primary"
               onClick={onOpenTransfer}
             >
               {t('pages.register.transferOpen')}
@@ -203,7 +203,7 @@ export default function RegisterMembershipConfirmation({
           reclamar un pago, pero no son el momento. Antes venían antes de la
           acción principal y enfriaban la confirmación. */}
       <Block {...riseProps}>
-        <dl className="register-membership-confirmation__ledger">
+        <dl className="register-confirmation__ledger">
           <div>
             <dt>{t('pages.register.membershipReferenceLabel')}</dt>
             <dd>
@@ -219,7 +219,7 @@ export default function RegisterMembershipConfirmation({
         {onNavigate && (
           <button
             type="button"
-            className="register-membership-confirmation__cta register-membership-confirmation__cta--ghost"
+            className="register-confirmation__cta register-confirmation__cta--ghost"
             onClick={() => onNavigate('profile')}
           >
             {isActive

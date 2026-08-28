@@ -32,6 +32,13 @@ export async function runPaymentRecoveryJob({ client, env = process.env } = {}) 
       auditTrail: createPaymentAuditTrail({ client }),
       eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
       reconciliationLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,
+      // El barrido contra el proveedor tenía su límite por defecto (20) porque
+      // corría una vez por día: 20 órdenes por jornada alcanzaban mientras el
+      // webhook funcionara. Con el webhook caído es el único rescate, y 20
+      // dejaba afuera al resto hasta el día siguiente. Sale por su propia
+      // variable para poder subirlo sin tocar el tamaño de los otros dos lotes,
+      // que leen de una bandeja local y no gastan API de Mercado Pago.
+      providerSweepLimit: Number(env.PAYMENT_PROVIDER_SWEEP_BATCH_SIZE) || 60,
     }),
   )
 }
