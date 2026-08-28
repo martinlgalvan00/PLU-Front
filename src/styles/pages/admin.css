@@ -8084,7 +8084,18 @@
   gap: 10px;
 }
 
-.payment-trace__timeline {
+.payment-trace__facts dt {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+}
+
+.payment-trace__facts dd {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.payment-trace__timeline-section {
   display: grid;
   gap: 12px;
   list-style: none;
@@ -15364,6 +15375,23 @@ button.action-queue__proof:focus-visible {
   min-width: 0;
   position: relative;
   width: 100%;
+}
+
+/* El badge de estado con otra marca al lado (el "inscripto a un torneo" de
+   Afiliaciones): son dos hechos del mismo renglón, no una explicación arriba de
+   la otra. El motivo sigue yendo debajo, en su propio párrafo. */
+.admin-state-cell__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-state-cell__head .pill,
+.admin-state-cell__head .status-badge {
+  flex: none;
 }
 
 /* El badge de estado con otra marca al lado (el "inscripto a un torneo" de
