@@ -492,6 +492,29 @@ const REJECTION_DETAILS = {
   cc_rejected_other_reason: 'El emisor rechazo el pago sin detalle. Reintentar con otro medio.',
   cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',
   cc_rejected_card_type_not_allowed: 'Ese tipo de tarjeta no esta habilitado para este cobro.',
+  cc_rejected_blacklist:
+    'La tarjeta esta en la lista de bloqueo de Mercado Pago (robo, deuda o contracargos). No insistir con esa tarjeta: usar otro medio.',
+  cc_rejected_card_error:
+    'La tarjeta no pudo procesar el pago (falla de comunicacion con el emisor). Reintentar en unos minutos o probar con otra tarjeta.',
+  cc_rejected_3ds_challenge:
+    'Fallo la verificacion 3DS: el atleta no completo el desafio de seguridad del banco. Reintentar y completar la verificacion.',
+  cc_rejected_3ds_mandatory:
+    'El emisor exige verificacion 3DS y el pago se envio sin ella. Reintentar desde el checkout para que dispare el desafio.',
+  cc_rejected_time_out:
+    'La operacion expiro antes de confirmarse. Reintentar; si se repite, revisar status.mercadopago.com.',
+  cc_amount_rate_limit_exceeded:
+    'El pago supera el limite de monto permitido para la cuenta o el medio (CAP de Mercado Pago). Usar otro medio o pedir a MP ampliar el limite.',
+  rejected_by_bank:
+    'El banco emisor rechazo el pago sin codigo especifico. El atleta debe consultar a su banco o usar otro medio.',
+  rejected_insufficient_data:
+    'Faltan datos obligatorios del pagador. Reintentar completando todos los datos que pide el formulario.',
+  rejected_by_regulations:
+    'Rechazado por regulaciones vigentes (normativa del pais o del emisor). No es una falla de la plataforma: usar otro medio.',
+  bank_error:
+    'Fallo del lado del banco al procesar el pago. Reintentar mas tarde o usar otra tarjeta.',
+  pending_challenge:
+    'Pago pendiente de la verificacion 3DS del banco. Se confirma o cae solo; no reintentar todavia.',
+  expired: 'La operacion vencio sin completarse (cupon o reserva vencida). Emitir un cobro nuevo.',
   pending_contingency: 'MP esta procesando el pago. Se acredita solo por webhook; no reintentar.',
   pending_review_manual:
     'MP lo dejo en revision manual. Se resuelve por webhook en minutos u horas.',
@@ -555,6 +578,32 @@ export function explainPaymentStatusDetail(statusDetail) {
     REJECTION_DETAILS[key] ??
     'Detalle no catalogado: consultar el pago en el panel de Mercado Pago.'
   )
+}
+
+/**
+ * Diagnostico de una notificacion descartada a proposito. No es una falla:
+ * Mercado Pago manda varios tipos de aviso por cada checkout (merchant_order,
+ * contracargos, etc.) y solo los de pago/suscripcion acreditan algo. Sin esto,
+ * el panel mostraba `unsupported_type` pelado y parecia un pago rechazado.
+ */
+export function describeWebhookDiscard(notificationType) {
+  const type = String(notificationType ?? '').trim() || 'desconocido'
+  const isMerchantOrder = type.includes('merchant_order')
+  return {
+    code: 'WEBHOOK_TYPE_IGNORED',
+    title: 'Notificacion descartada: no es un pago rechazado',
+    cause: isMerchantOrder
+      ? `Mercado Pago aviso que cambio la orden comercial ("${type}"). Cada checkout genera este aviso ademas del de pago; no dice nada del cobro en si, que llega por su propia notificacion "payment".`
+      : `Mercado Pago mando una notificacion de tipo "${type}", que esta plataforma no procesa. Solo payment, subscription_preapproval y subscription_authorized_payment acreditan cobros.`,
+    fix: [
+      'No hay nada que arreglar: el descarte es deliberado y no afecta ningun cobro.',
+      'El estado real del pago esta en el evento "payment" de la misma operacion (mismo external_reference en la auditoria).',
+      'Si el pago asociado nunca llego, usar Panel > Pagos > Recuperar operaciones.',
+    ],
+    severity: 'expected',
+    scope: 'proveedor',
+    retryable: false,
+  }
 }
 
 /** Solo para el script de auditoria y los tests: catalogo completo. */

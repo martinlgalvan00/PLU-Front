@@ -39,7 +39,7 @@ import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedChe
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
-import { formatShortDate, money } from '../lib/format.js'
+import { formatShortDate, formatShortStamp, money } from '../lib/format.js'
 import { describeDiscountPreviewError } from '../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../lib/eventPricing.js'
 import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
@@ -2554,6 +2554,20 @@ export default function RegisterPage({
                       showPackage={showComboChoice}
                       showPayment={isPaidCheckout}
                     />
+                  ) : null}
+
+                  {/* Aumento programado de la inscripción: se dice junto al
+                      checkout, donde el atleta decide cuándo pagar. Cuando la
+                      fecha llega, el precio vigente ya es el nuevo y la nota
+                      se retira sola (resolveEventPricing). */}
+                  {(showComboChoice || (isPaidCheckout && flow === 'competition')) &&
+                  eventPricing.upcoming ? (
+                    <p className="register-price-upcoming">
+                      {t('pages.register.priceIncreaseNotice', {
+                        amount: money(eventPricing.upcoming.price, locale),
+                        date: formatShortStamp(eventPricing.upcoming.effectiveAt, locale),
+                      })}
+                    </p>
                   ) : null}
 
                   {isPaidCheckout && ['registration', 'combo'].includes(effectivePurchaseType) ? (

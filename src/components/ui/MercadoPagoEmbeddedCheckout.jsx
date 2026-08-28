@@ -175,6 +175,15 @@ const REJECTION_REASON_KEYS = {
   cc_rejected_invalid_installments: 'paymentRejectedInstallments',
   cc_rejected_max_attempts: 'paymentRejectedMaxAttempts',
   cc_rejected_time_out: 'paymentRejectedTimeout',
+  cc_rejected_card_error: 'paymentRejectedCardError',
+  cc_rejected_card_type_not_allowed: 'paymentRejectedCardType',
+  cc_rejected_3ds_challenge: 'paymentRejected3ds',
+  cc_rejected_3ds_mandatory: 'paymentRejected3ds',
+  cc_amount_rate_limit_exceeded: 'paymentRejectedAmountLimit',
+  rejected_by_bank: 'paymentRejectedByBank',
+  bank_error: 'paymentRejectedByBank',
+  rejected_insufficient_data: 'paymentRejectedBadData',
+  rejected_by_regulations: 'paymentRejectedRegulations',
 }
 
 function resolveRejectionMessage(statusDetail, t) {

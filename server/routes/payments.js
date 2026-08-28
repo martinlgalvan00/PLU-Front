@@ -456,8 +456,35 @@ export function createPaymentRoutes(deps = {}) {
 
   router.get('/plans', publicReadLimiter, async (_req, res, next) => {
     try {
-      const plans = filterPublicMembershipPlans(await repository().listPlans(), env)
-      res.json({ plans: plans.map(serializePlan) })
+      const repo = repository()
+      // El aumento programado viaja junto al plan vigente: una versión futura
+      // ya publicada (effective_from > now) se anuncia como `upcomingChange`
+      // sin volverse comprable — cobrar sigue siendo asunto de listPlans.
+      const [currentPlans, upcomingPlans] = await Promise.all([
+        repo.listPlans(),
+        typeof repo.listUpcomingPlanChanges === 'function' ? repo.listUpcomingPlanChanges() : [],
+      ])
+      const plans = filterPublicMembershipPlans(currentPlans, env)
+      const upcomingByFamily = new Map()
+      for (const plan of upcomingPlans ?? []) {
+        if (!upcomingByFamily.has(plan.family_code)) upcomingByFamily.set(plan.family_code, plan)
+      }
+      res.json({
+        plans: plans.map((plan) => {
+          const next = upcomingByFamily.get(plan.family_code)
+          return {
+            ...serializePlan(plan),
+            upcomingChange: next
+              ? {
+                  price: next.price,
+                  manualPrice: next.manual_price ?? null,
+                  currency: next.currency,
+                  effectiveFrom: next.effective_from,
+                }
+              : null,
+          }
+        }),
+      })
     } catch (error) {
       next(error)
     }

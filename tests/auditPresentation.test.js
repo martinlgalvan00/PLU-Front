@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { operatorFailureMessage, presentAuditEvent, resolveAuditHeadline } from '../src/lib/auditPresentation.js'
+import {
+  operatorFailureMessage,
+  presentAuditEvent,
+  resolveAuditHeadline,
+  synthesizeAuditDiagnosis,
+} from '../src/lib/auditPresentation.js'
 import { buildAuditStatusFilterOptions } from '../src/lib/auditFilterHelpers.js'
 
 describe('presentAuditEvent', () => {
@@ -74,6 +79,58 @@ describe('resolveAuditHeadline', () => {
       operatorFailureMessage('cc_rejected_high_risk', null, null),
     ).toContain('prevención de fraude')
     expect(operatorFailureMessage('Unable to find MX of domain pluarg.test')).toContain('DNS')
+  })
+
+  it('traduce los códigos crudos del ciclo de webhook en el titular', () => {
+    // `unsupported_type` no es un pago rechazado: es una notificación de
+    // merchant_order descartada a propósito, y el titular tiene que decirlo.
+    expect(operatorFailureMessage('unsupported_type', null, null)).toMatch(
+      /no es un pago rechazado/i,
+    )
+    expect(operatorFailureMessage(null, null, 'cc_rejected_call_for_authorize')).toMatch(
+      /autorización/i,
+    )
+  })
+})
+
+describe('synthesizeAuditDiagnosis', () => {
+  it('convierte el reason crudo de un descarte en diagnóstico con pasos', () => {
+    // Cubre las filas históricas, que no guardaron `diagnosis` en la base.
+    const diagnosis = synthesizeAuditDiagnosis({
+      reason: 'unsupported_type',
+      notificationType: 'merchant_order',
+    })
+
+    expect(diagnosis.code).toBe('unsupported_type')
+    expect(diagnosis.title).toMatch(/no es un pago rechazado/i)
+    expect(diagnosis.cause).toMatch(/merchant_order/)
+    expect(diagnosis.fix.length).toBeGreaterThan(0)
+    expect(diagnosis.retryable).toBe(false)
+  })
+
+  it('convierte un status_detail de Mercado Pago en por qué y cómo resolverlo', () => {
+    const diagnosis = synthesizeAuditDiagnosis({ statusDetail: 'cc_rejected_insufficient_amount' })
+
+    expect(diagnosis.title).toMatch(/fondos/i)
+    expect(diagnosis.fix[0]).toMatch(/otro medio de pago|límite/i)
+  })
+
+  it('usa la explicación que guardó el backend para un código no catalogado acá', () => {
+    const diagnosis = synthesizeAuditDiagnosis({
+      statusDetail: 'cc_rejected_algo_nuevo',
+      statusDetailMeaning: 'Explicación que ya dejó el catálogo del servidor.',
+    })
+
+    expect(diagnosis.cause).toBe('Explicación que ya dejó el catálogo del servidor.')
+  })
+
+  it('no inventa una falla sobre un pago acreditado ni sin datos', () => {
+    expect(synthesizeAuditDiagnosis({ statusDetail: 'accredited' })).toBeNull()
+    expect(
+      synthesizeAuditDiagnosis({ statusDetail: 'accredited', statusDetailMeaning: 'Acreditado.' }),
+    ).toBeNull()
+    expect(synthesizeAuditDiagnosis({})).toBeNull()
+    expect(synthesizeAuditDiagnosis(null)).toBeNull()
   })
 })
 

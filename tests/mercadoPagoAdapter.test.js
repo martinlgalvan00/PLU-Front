@@ -128,6 +128,61 @@ describe('adaptador de Mercado Pago', () => {
     )
   })
 
+  it('la preferencia expira junto con la orden para no cobrar ordenes ya canceladas', async () => {
+    mpMocks.preferenceCreate.mockResolvedValueOnce({
+      id: 'pref-exp',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-exp',
+      sandbox_init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-exp',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+      },
+    })
+    const expiresAt = new Date(Date.now() + 30 * 60_000).toISOString()
+
+    await adapter.createPreference({
+      order: { ...order, expiresAt },
+      idempotencyKey: 'membership-order-exp',
+    })
+
+    const body = mpMocks.preferenceCreate.mock.calls.at(-1)[0].body
+    expect(body.expires).toBe(true)
+    // Formato con offset explicito: Mercado Pago documenta ±HH:MM, no la Z.
+    expect(body.expiration_date_to).toBe(new Date(expiresAt).toISOString().replace('Z', '+00:00'))
+  })
+
+  it('omite la expiracion cuando la orden no la tiene o ya esta al borde de vencer', async () => {
+    mpMocks.preferenceCreate.mockResolvedValue({
+      id: 'pref-sin-exp',
+      init_point: 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-sin-exp',
+      sandbox_init_point:
+        'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-sin-exp',
+    })
+    const adapter = createMercadoPagoAdapter({
+      env: {
+        MERCADO_PAGO_ACCESS_TOKEN: 'TEST-access-token',
+        MERCADO_PAGO_ENV: 'production',
+        APP_URL: 'https://powerliftingunited.ar',
+      },
+    })
+
+    await adapter.createPreference({ order, idempotencyKey: 'membership-order-sin-exp' })
+    // A punto de vencer: mandar una fecha casi pasada haria que MP rechace la
+    // preferencia; el barrido de vencimientos la cancela enseguida igual.
+    await adapter.createPreference({
+      order: { ...order, expiresAt: new Date(Date.now() + 30_000).toISOString() },
+      idempotencyKey: 'membership-order-borde',
+    })
+
+    for (const call of mpMocks.preferenceCreate.mock.calls) {
+      expect(call[0].body.expires).toBeUndefined()
+      expect(call[0].body.expiration_date_to).toBeUndefined()
+    }
+  })
+
   it('bloquea crear un checkout si el token no pertenece al collector configurado', async () => {
     vi.stubGlobal(
       'fetch',

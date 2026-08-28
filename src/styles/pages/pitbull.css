@@ -6774,6 +6774,16 @@
   display: none;
 }
 
+/* Aumento programado de la inscripción: nota operativa, no promoción. Va en
+   texto secundario junto a los costos y desaparece sola cuando llega la
+   fecha (resolveEventPricing pasa a mostrar el precio nuevo). */
+.pitbull-inscription-shell__price-upcoming {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
 /* Estado propio del atleta sobre el meet. Vive arriba del contador porque es
    la respuesta a "¿yo estoy inscripto?", que antes esta página no daba: el
    contador informa el cupo del torneo, no el derecho de quien mira. */

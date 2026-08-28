@@ -1113,8 +1113,7 @@
 
 /* ── 6. La consola como modal ──────────────────
    El listado es la única superficie de la sección: la consola se abre al
-   tocar la fila. Un escalón por debajo del editor y del alta rápida (280)
-   para que editar o borrar desde acá siempre se abra encima. */
+   tocar la fila. Editar reemplaza esta capa; el alta rápida sigue encima. */
 .admin-event-console-modal {
   inset: 0;
   position: fixed;
