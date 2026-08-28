@@ -629,6 +629,28 @@ export function createSupabasePaymentRepository(
       )
     },
 
+    /**
+     * Versiones de plan ya publicadas cuya vigencia todavía no llegó. Son el
+     * "aumento programado" de afiliaciones: listPlans las oculta (correcto
+     * para cobrar), pero el catálogo público las necesita para anunciar
+     * "a partir del <fecha> pasa a <precio>". Orden ascendente: la primera de
+     * cada familia es el próximo cambio.
+     */
+    async listUpcomingPlanChanges() {
+      const now = new Date(Date.now() + 5000).toISOString()
+      return assertResult(
+        await client
+          .from('membership_plans')
+          .select('family_code, price, manual_price, currency, effective_from')
+          .eq('organization_id', organizationId)
+          .eq('active', true)
+          .gt('effective_from', now)
+          .or(`retired_at.is.null,retired_at.gt.${now}`)
+          .order('effective_from', { ascending: true }),
+        'No se pudieron leer los cambios de plan programados.',
+      )
+    },
+
     async prepareSubscription({ paymentOrderId, planCode }) {
       const order = await getOrder(paymentOrderId)
       if (order.kind !== 'athlete')

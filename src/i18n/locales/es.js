@@ -318,6 +318,18 @@ export default {
     paymentRejectedMaxAttempts:
       'Llegaste al límite de intentos permitidos. Probá más tarde o con otra tarjeta.',
     paymentRejectedTimeout: 'Se agotó el tiempo de espera de Mercado Pago. Intentá de nuevo.',
+    paymentRejectedCardError:
+      'Tu tarjeta no pudo procesar el pago. Esperá unos minutos e intentá de nuevo, o usá otra.',
+    paymentRejected3ds:
+      'Tu banco pide una verificación de seguridad extra. Intentá de nuevo y completala cuando aparezca.',
+    paymentRejectedAmountLimit:
+      'El monto supera el límite de tu medio de pago. Probá con otra tarjeta u otro medio.',
+    paymentRejectedByBank:
+      'Tu banco rechazó el pago. Consultá con el banco o probá con otro medio de pago.',
+    paymentRejectedRegulations:
+      'El pago no se pudo procesar por regulaciones vigentes. Probá con otro medio de pago.',
+    paymentRejectedCardType:
+      'Ese tipo de tarjeta no está habilitado para este cobro. Probá con otra tarjeta.',
     checkStatus: 'Consultar estado',
     tryAgain: 'Intentar nuevamente',
     reloadCheckout: 'Recargar checkout',
@@ -1273,6 +1285,21 @@ export default {
         cc_rejected_other_reason: 'El banco rechazó el pago sin dar un motivo.',
         cc_rejected_invalid_installments: 'La tarjeta no admite esa cantidad de cuotas.',
         cc_rejected_card_type_not_allowed: 'Ese tipo de tarjeta no está habilitado.',
+        cc_rejected_blacklist: 'Mercado Pago bloqueó esa tarjeta. Usá otro medio de pago.',
+        cc_rejected_card_error: 'La tarjeta no pudo procesar el pago. Probá de nuevo en unos minutos.',
+        cc_rejected_3ds_challenge:
+          'No se completó la verificación de seguridad del banco. Reintentá y completala.',
+        cc_rejected_3ds_mandatory:
+          'Tu banco exige una verificación de seguridad extra. Reintentá desde el checkout.',
+        cc_rejected_time_out: 'La operación expiró antes de confirmarse. Intentá de nuevo.',
+        cc_amount_rate_limit_exceeded:
+          'El monto supera el límite de tu medio de pago. Probá con otro medio.',
+        rejected_by_bank: 'Tu banco rechazó el pago. Consultalo o probá con otro medio.',
+        rejected_insufficient_data: 'Faltaron datos del pagador. Reintentá completando todo.',
+        rejected_by_regulations: 'El pago no se pudo procesar por regulaciones. Probá otro medio.',
+        bank_error: 'Falló el banco al procesar el pago. Intentá más tarde.',
+        pending_challenge: 'Falta completar la verificación de seguridad de tu banco.',
+        expired: 'La operación venció sin completarse.',
         pending_contingency: 'Mercado Pago está procesando el pago. Se acredita solo.',
         pending_review_manual: 'Mercado Pago lo dejó en revisión. Se resuelve en minutos u horas.',
         pending_waiting_transfer: 'Esperando que se acredite la transferencia.',
@@ -1522,6 +1549,7 @@ export default {
       nextScheduled: 'El pago ya está validado; la credencial se habilita al comenzar la vigencia.',
       nextRefunded: 'Si querés volver a afiliarte, generá una nueva orden.',
       comboEyebrow: 'Opción recomendada',
+      upcomingPlanChange: 'Desde el {{date}}, este plan pasa a {{amount}}.',
       comboComingSoon: 'Próximamente',
       comboTitle: 'Afiliación + inscripción al torneo',
       comboLead:
@@ -2610,6 +2638,7 @@ export default {
       costsAria: 'Costos',
       costMembership: 'Afiliación',
       costMeet: 'Inscripción',
+      costMeetIncrease: 'Desde el {{date}}, la inscripción pasa a {{amount}}.',
       costCombo: 'Afiliación + inscripción',
       costComboUntil: 'Hasta el {{date}}',
       costComboSavings: 'Ahorrás {{amount}}',
@@ -3291,6 +3320,7 @@ export default {
         'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
       paymentNoChannelHint:
         'No hay medios de pago disponibles en este momento. Volvé a intentar más tarde o escribinos.',
+      priceIncreaseNotice: 'Desde el {{date}}, la inscripción pasa a {{amount}}.',
       paymentCodeWithoutGatewayHint:
         'Tu código no se paga con Mercado Pago: el precio quedó pactado para los medios que ves acá. El equipo valida el pago a mano.',
       paymentLinkLabel: 'Link de pago',

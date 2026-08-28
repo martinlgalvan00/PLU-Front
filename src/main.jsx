@@ -8,7 +8,7 @@ import { purgeLegacyCreatedOrder } from './services/storageService.js'
 import './styles/index.css'
 
 initTheme()
-document.documentElement.lang = localStorage.getItem('plu-arg-locale') ?? 'es'
+document.documentElement.lang = localStorage.getItem('plu-arg-locale') === 'en' ? 'en' : 'es-AR'
 // La orden en curso pasó a `sessionStorage` porque lleva el token de acceso a
 // una orden de pago. Esto borra la copia que las versiones anteriores dejaron
 // escrita en `localStorage`, que de otro modo se queda ahí para siempre en el

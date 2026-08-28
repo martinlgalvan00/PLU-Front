@@ -40,6 +40,17 @@ beforeAll(() => {
     removeEventListener() {},
   })
   Element.prototype.scrollIntoView ??= () => {}
+  globalThis.IntersectionObserver ??= class {
+    constructor(callback) {
+      this.callback = callback
+    }
+
+    observe() {
+      this.callback?.([{ isIntersecting: true }], this)
+    }
+
+    disconnect() {}
+  }
 })
 
 afterEach(() => cleanup())
@@ -128,6 +139,16 @@ describe('EventsSection — filas de sección de la consola', () => {
 
     await waitFor(() => expect(document.querySelector('.admin-event-drill')).not.toBeNull())
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('al editar reemplaza la consola: un solo modal', () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: 'Editar evento' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
+    expect(screen.getByRole('dialog', { name: /pitbull classic/i })).toBeTruthy()
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
   })
 })
 

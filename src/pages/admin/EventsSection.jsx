@@ -703,15 +703,14 @@ export default function EventsSection({
         </div>
       )}
 
-      {/* La consola del evento se abre al tocar la fila: el listado es la
-          única superficie de la sección y respira a ancho completo. Editar y
-          borrar se abren encima de la consola, no en lugar de ella. */}
+      {/* La consola del evento se abre al tocar la fila. Editar reemplaza
+          esa misma capa: un solo modal, no consola + editor apilados. */}
       <AdminEventConsoleModal
         canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
         canEdit={canEdit}
         canManageUsers={canManageUsers}
         event={selectedEvent}
-        open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent)}
+        open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent) && !formOpen}
         tickets={tickets}
         onClose={closeEventConsole}
         onDelete={openDeleteDialog}

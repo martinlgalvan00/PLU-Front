@@ -1672,6 +1672,15 @@
   margin: 16px 0 0;
 }
 
+/* Aumento programado del plan de afiliación: misma voz que el resto de los
+   mensajes operativos del checkout, sin acento nuevo. */
+.account-membership__upcoming-price {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0 0;
+}
+
 .account-checkout-message--error {
   color: var(--color-brand-red-hover, var(--color-brand-red));
 }

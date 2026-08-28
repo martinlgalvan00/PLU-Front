@@ -38,7 +38,7 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { formatRelativeTime, money } from '../lib/format.js'
+import { formatRelativeTime, formatShortStamp, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
@@ -814,6 +814,20 @@ function PitbullInscriptionSection({
               )}
             </Pricing>
           )}
+
+          {/* Aumento programado (20260929100000): se anuncia mientras rige el
+              precio actual; cuando llega la fecha, resolveEventPricing ya
+              muestra el nuevo y esta línea desaparece sola. También con el
+              combo vivo: la inscripción suelta sigue comprable y su precio
+              aparece en el comparativo del paquete. */}
+          {pricing.upcoming ? (
+            <p className="pitbull-inscription-shell__price-upcoming">
+              {t('pages.pitbull.costMeetIncrease', {
+                amount: money(pricing.upcoming.price, locale),
+                date: formatShortStamp(pricing.upcoming.effectiveAt, locale),
+              })}
+            </p>
+          ) : null}
 
           <Footer
             className={[

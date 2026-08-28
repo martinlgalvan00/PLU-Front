@@ -95,6 +95,324 @@ const AUDIT_OPERATOR_PATTERNS = [
 ]
 
 /**
+ * Motivos internos del ciclo de webhook (`metadata.reason`) explicados en el
+ * lenguaje del negocio. El backend recién empezó a guardar `diagnosis` en los
+ * descartes; las filas históricas solo traen el código crudo, y sin esto el
+ * panel mostraba "Por qué falló: unsupported_type" — que ni siquiera es un
+ * pago rechazado, es una notificación de merchant_order descartada a propósito.
+ */
+const AUDIT_REASON_INSIGHTS = {
+  unsupported_type: {
+    title: 'Notificación descartada: no es un pago rechazado',
+    cause:
+      'Mercado Pago manda un aviso por cada cambio de la orden comercial (merchant_order) además del aviso de pago. Este tipo no se procesa a propósito: no dice nada del cobro en sí, que llega por su propia notificación "payment".',
+    fix: [
+      'No hay nada que arreglar: el descarte es deliberado y no afecta ningún cobro.',
+      'El estado real del pago está en el evento "payment" de la misma operación (mismo external_reference en la auditoría).',
+      'Si el pago asociado nunca llegó, usar Panel > Pagos > Recuperar operaciones.',
+    ],
+    severity: 'expected',
+    retryable: false,
+  },
+  signature_rejected: {
+    title: 'Mercado Pago mandó un webhook con firma inválida',
+    cause:
+      'El HMAC no validó contra el secreto configurado. Suele ser el secreto de otro entorno, un reenvío con timestamp vencido o un intento de falsificación. El evento no se acreditó.',
+    fix: [
+      'Comparar MERCADO_PAGO_WEBHOOK_SECRET con el de la misma aplicación de MP que envía la notificación.',
+      'Si el secreto era correcto, tratarlo como intento de falsificación: no hubo acción sobre ninguna orden.',
+    ],
+    severity: 'degraded',
+    retryable: false,
+  },
+  missing_data_id: {
+    title: 'Notificación sin identificador de pago',
+    cause:
+      'El webhook llegó sin data.id en la URL, así que no hay forma de saber a qué pago se refiere. Suele ser una prueba manual desde el panel de MP o una URL mal registrada.',
+    fix: [
+      'Verificar en MP > Webhooks que la URL registrada sea .../api/payments/webhook/mercadopago.',
+      'Si es un pago real que se perdió, usar Panel > Pagos > Recuperar operaciones.',
+    ],
+    severity: 'degraded',
+    retryable: false,
+  },
+  data_id_mismatch: {
+    title: 'La notificación se contradice a sí misma',
+    cause:
+      'El id de pago de la URL no coincide con el del cuerpo del webhook. Se rechaza porque no se puede saber cuál de los dos es el verdadero.',
+    fix: ['Buscar el pago por external_reference en el panel de MP y conciliarlo desde Panel > Pagos.'],
+    severity: 'degraded',
+    retryable: false,
+  },
+  missing_notification_id: {
+    title: 'Notificación sin clave de idempotencia',
+    cause:
+      'El webhook no trae ningún identificador estable, así que no se puede garantizar que no se acredite dos veces. Se rechaza por seguridad.',
+    fix: ['Si el pago es real, conciliarlo desde Panel > Pagos > Recuperar operaciones.'],
+    severity: 'degraded',
+    retryable: false,
+  },
+  order_already_approved: {
+    title: 'La orden ya estaba acreditada',
+    cause:
+      'Llegó un intento de cobro sobre una orden que ya tiene un pago aprobado. El rechazo evita un doble cobro; no hay plata perdida.',
+    fix: ['Nada que hacer: es la protección contra cobrar dos veces.'],
+    severity: 'expected',
+    retryable: false,
+  },
+  payment_not_found: {
+    title: 'Mercado Pago todavía no expone ese pago',
+    cause:
+      'Al volver del checkout se consultó el pago y MP aún no lo devuelve. La acreditación llega igual por webhook cuando MP lo publique.',
+    fix: ['Esperar la notificación de MP; si en unos minutos no llega, conciliar desde Panel > Pagos.'],
+    severity: 'expected',
+    retryable: true,
+  },
+}
+
+/**
+ * `status_detail` de Mercado Pago traducido a por qué y qué hacer. Es la
+ * respuesta que Finanzas necesita dar cuando un atleta pregunta por qué no le
+ * pasó la tarjeta — sin esto el panel mostraba `cc_rejected_*` crudo.
+ * Espejo operativo de REJECTION_DETAILS del backend (paymentFailureCatalog.js).
+ */
+const STATUS_DETAIL_INSIGHTS = {
+  cc_rejected_insufficient_amount: {
+    title: 'La tarjeta no tenía fondos suficientes',
+    cause: 'El emisor rechazó el monto por falta de saldo o de límite disponible.',
+    fix: ['El atleta debe probar con otro medio de pago o pedir un límite mayor a su banco.'],
+    retryable: true,
+  },
+  cc_rejected_bad_filled_card_number: {
+    title: 'Número de tarjeta mal ingresado',
+    cause: 'El número cargado no pasó la validación del emisor.',
+    fix: ['El atleta debe reintentar cargando el número de nuevo.'],
+    retryable: true,
+  },
+  cc_rejected_bad_filled_date: {
+    title: 'Fecha de vencimiento incorrecta',
+    cause: 'La fecha de vencimiento cargada no coincide con la de la tarjeta.',
+    fix: ['El atleta debe reintentar revisando el vencimiento.'],
+    retryable: true,
+  },
+  cc_rejected_bad_filled_security_code: {
+    title: 'Código de seguridad incorrecto',
+    cause: 'El CVV cargado no coincide con el de la tarjeta.',
+    fix: ['El atleta debe reintentar revisando el código de seguridad.'],
+    retryable: true,
+  },
+  cc_rejected_bad_filled_other: {
+    title: 'Algún dato de la tarjeta quedó mal cargado',
+    cause: 'El emisor rechazó el pago por un dato inválido del formulario.',
+    fix: ['El atleta debe reintentar revisando todos los datos de la tarjeta.'],
+    retryable: true,
+  },
+  cc_rejected_call_for_authorize: {
+    title: 'El banco pide autorización expresa',
+    cause: 'El emisor retiene el pago hasta que el titular autorice ese monto.',
+    fix: ['El atleta tiene que llamar a su banco, autorizar el monto y reintentar.'],
+    retryable: true,
+  },
+  cc_rejected_card_disabled: {
+    title: 'Tarjeta inactiva',
+    cause: 'La tarjeta todavía no fue activada o está dada de baja.',
+    fix: ['El atleta debe activarla con su banco o usar otra tarjeta.'],
+    retryable: true,
+  },
+  cc_rejected_duplicated_payment: {
+    title: 'Pago duplicado',
+    cause: 'Ya existe un pago igual muy reciente; MP frena el segundo por protección.',
+    fix: [
+      'Verificar si el primer pago ya se acreditó antes de reintentar: puede que la orden ya esté paga.',
+    ],
+    retryable: false,
+  },
+  cc_rejected_high_risk: {
+    title: 'Rechazado por la prevención de fraude de Mercado Pago',
+    cause:
+      'El sistema antifraude de MP calificó el pago como riesgoso. No es un dato de la tarjeta: es el perfil de la operación.',
+    fix: [
+      'No acreditar ni reintentar desde el panel.',
+      'El atleta debe usar otro medio de pago (idealmente con su propia cuenta de MP) o consultar con Mercado Pago.',
+    ],
+    retryable: false,
+  },
+  cc_rejected_blacklist: {
+    title: 'Tarjeta en la lista de bloqueo de Mercado Pago',
+    cause: 'La tarjeta figura bloqueada por robo, deuda o contracargos.',
+    fix: ['No insistir con esa tarjeta: el atleta debe usar otro medio de pago.'],
+    retryable: false,
+  },
+  cc_rejected_card_error: {
+    title: 'La tarjeta no pudo procesar el pago',
+    cause: 'Falla de comunicación entre Mercado Pago y el emisor de la tarjeta.',
+    fix: ['Reintentar en unos minutos o probar con otra tarjeta.'],
+    retryable: true,
+  },
+  cc_rejected_max_attempts: {
+    title: 'Se agotaron los intentos permitidos',
+    cause: 'MP corta la tarjeta después de varios intentos fallidos seguidos.',
+    fix: ['Esperar un rato y reintentar, o usar otra tarjeta.'],
+    retryable: true,
+  },
+  cc_rejected_other_reason: {
+    title: 'El banco rechazó el pago sin dar detalle',
+    cause: 'El emisor devolvió un rechazo genérico, sin código específico.',
+    fix: ['El atleta debe consultar a su banco o probar con otro medio de pago.'],
+    retryable: true,
+  },
+  cc_rejected_invalid_installments: {
+    title: 'La tarjeta no admite esas cuotas',
+    cause: 'El emisor no permite la cantidad de cuotas elegida.',
+    fix: ['Reintentar eligiendo menos cuotas o pago en un solo pago.'],
+    retryable: true,
+  },
+  cc_rejected_card_type_not_allowed: {
+    title: 'Ese tipo de tarjeta no está habilitado',
+    cause: 'El medio de pago (p. ej. esa marca o tipo de tarjeta) no está habilitado para este cobro.',
+    fix: ['El atleta debe usar otra tarjeta u otro medio de pago.'],
+    retryable: true,
+  },
+  cc_rejected_3ds_challenge: {
+    title: 'Falló la verificación 3DS del banco',
+    cause: 'El atleta no completó (o falló) el desafío de seguridad que mostró su banco.',
+    fix: ['Reintentar y completar la verificación 3DS cuando aparezca.'],
+    retryable: true,
+  },
+  cc_rejected_3ds_mandatory: {
+    title: 'El emisor exige verificación 3DS',
+    cause: 'El pago se envió sin la verificación 3DS que el banco exige para esa tarjeta.',
+    fix: ['Reintentar desde el checkout para que dispare el desafío de seguridad.'],
+    retryable: true,
+  },
+  cc_rejected_time_out: {
+    title: 'La operación expiró antes de confirmarse',
+    cause: 'Mercado Pago no llegó a confirmar el pago a tiempo.',
+    fix: ['Reintentar; si se repite, revisar status.mercadopago.com.'],
+    retryable: true,
+  },
+  cc_amount_rate_limit_exceeded: {
+    title: 'El monto supera el límite permitido',
+    cause: 'El pago excede el límite de monto (CAP) de la cuenta o del medio de pago en Mercado Pago.',
+    fix: ['El atleta debe usar otro medio o pedir a Mercado Pago que amplíe su límite.'],
+    retryable: false,
+  },
+  rejected_by_bank: {
+    title: 'El banco emisor rechazó el pago',
+    cause: 'El banco devolvió un rechazo sin código específico.',
+    fix: ['El atleta debe consultar a su banco o usar otro medio de pago.'],
+    retryable: true,
+  },
+  rejected_insufficient_data: {
+    title: 'Faltan datos del pagador',
+    cause: 'El pago se envió sin datos obligatorios que el emisor exige.',
+    fix: ['Reintentar completando todos los datos que pide el formulario.'],
+    retryable: true,
+  },
+  rejected_by_regulations: {
+    title: 'Rechazado por regulaciones vigentes',
+    cause: 'Una normativa del país o del emisor impide procesar este pago. No es una falla de la plataforma.',
+    fix: ['El atleta debe usar otro medio de pago.'],
+    retryable: false,
+  },
+  bank_error: {
+    title: 'Falla del banco al procesar el pago',
+    cause: 'El error ocurrió del lado del banco, no de la plataforma ni de Mercado Pago.',
+    fix: ['Reintentar más tarde o usar otra tarjeta.'],
+    retryable: true,
+  },
+  pending_contingency: {
+    title: 'Mercado Pago está procesando el pago',
+    cause: 'MP quedó procesando la operación. Se acredita sola por webhook.',
+    fix: ['No reintentar ni acreditar a mano: el webhook resuelve el estado final.'],
+    retryable: false,
+  },
+  pending_review_manual: {
+    title: 'Mercado Pago lo dejó en revisión manual',
+    cause: 'El equipo de MP revisa la operación. Se resuelve por webhook en minutos u horas.',
+    fix: ['Esperar la resolución de MP; no reintentar ni acreditar a mano.'],
+    retryable: false,
+  },
+  pending_challenge: {
+    title: 'Pendiente de la verificación 3DS del banco',
+    cause: 'El pago espera que el atleta complete el desafío de seguridad de su banco.',
+    fix: ['Esperar: se confirma o cae solo. No reintentar todavía.'],
+    retryable: false,
+  },
+  pending_waiting_transfer: {
+    title: 'Esperando la transferencia del atleta',
+    cause: 'El pago quedó a la espera de que se acredite la transferencia.',
+    fix: ['Esperar la acreditación; llega por webhook.'],
+    retryable: false,
+  },
+  pending_waiting_payment: {
+    title: 'Cupón emitido, esperando el pago en efectivo',
+    cause: 'El atleta generó el cupón pero todavía no lo pagó.',
+    fix: ['Esperar el pago del cupón; si venció, emitir un cobro nuevo.'],
+    retryable: false,
+  },
+  expired: {
+    title: 'La operación venció sin completarse',
+    cause: 'El cupón o la reserva de pago expiró antes de pagarse.',
+    fix: ['Emitir un cobro nuevo si el atleta sigue interesado.'],
+    retryable: true,
+  },
+}
+
+/**
+ * Diagnóstico sintetizado en el cliente cuando el asiento no guardó uno.
+ * Cubre las filas históricas (el backend recién empezó a guardar `diagnosis`
+ * en los descartes de webhook) y cualquier asiento que solo traiga el código
+ * crudo del proveedor. Devuelve la misma forma que `metadata.diagnosis`.
+ */
+export function synthesizeAuditDiagnosis(metadata) {
+  if (!metadata || typeof metadata !== 'object') return null
+
+  const reason = typeof metadata.reason === 'string' ? metadata.reason.trim() : ''
+  const reasonInsight = AUDIT_REASON_INSIGHTS[reason]
+  if (reasonInsight) {
+    return { code: reason, scope: null, ...reasonInsight, fix: [...reasonInsight.fix] }
+  }
+
+  const statusDetail = typeof metadata.statusDetail === 'string' ? metadata.statusDetail.trim() : ''
+  const detailInsight = STATUS_DETAIL_INSIGHTS[statusDetail]
+  if (detailInsight) {
+    return {
+      code: statusDetail,
+      scope: null,
+      severity: null,
+      ...detailInsight,
+      fix: [...detailInsight.fix],
+    }
+  }
+
+  // El backend guarda la explicación del catálogo junto al código; para un
+  // código que este módulo no conoce, esa explicación sigue siendo mejor que
+  // el código pelado. Solo para detalles con pinta de falla: un `accredited`
+  // no necesita diagnóstico.
+  const meaning =
+    typeof metadata.statusDetailMeaning === 'string' ? metadata.statusDetailMeaning.trim() : ''
+  if (
+    statusDetail &&
+    meaning &&
+    !meaning.startsWith('Detalle no catalogado') &&
+    /rejected|error|expired|pending/i.test(statusDetail)
+  ) {
+    return {
+      title: null,
+      cause: meaning,
+      fix: [],
+      code: statusDetail,
+      scope: null,
+      severity: null,
+      retryable: null,
+    }
+  }
+
+  return null
+}
+
+/**
  * Un `value` de metadata casi siempre es texto o número. La excepción es
  * `error`, que `paymentAuditTrail.recordFailure` guarda como objeto
  * ({message, code, stack, ...}) — el stack completo vive en
@@ -127,6 +445,14 @@ function summaryByField(row) {
 
 /** Traducciones de incidentes conocidos que llegaron desde un proveedor. */
 export function operatorFailureMessage(message, code = null, statusDetail = null) {
+  // Cuando el "mensaje" es directamente un código crudo (unsupported_type,
+  // cc_rejected_*), el título del catálogo es la traducción exacta.
+  for (const value of [message, code, statusDetail]) {
+    const key = typeof value === 'string' ? value.trim() : ''
+    const insight = AUDIT_REASON_INSIGHTS[key] ?? STATUS_DETAIL_INSIGHTS[key]
+    if (insight) return insight.title
+  }
+
   const source = [message, code, statusDetail].filter(Boolean).join(' ')
   for (const { match, message: copy } of AUDIT_OPERATOR_PATTERNS) {
     if (match.test(source)) return copy

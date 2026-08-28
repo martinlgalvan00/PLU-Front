@@ -302,6 +302,17 @@ export default {
     paymentRejectedMaxAttempts:
       'You reached the allowed attempt limit. Try again later or with another card.',
     paymentRejectedTimeout: 'Mercado Pago timed out. Please try again.',
+    paymentRejectedCardError:
+      'Your card could not process the payment. Wait a few minutes and try again, or use another one.',
+    paymentRejected3ds:
+      'Your bank requires an extra security verification. Try again and complete it when it appears.',
+    paymentRejectedAmountLimit:
+      'The amount exceeds your payment method limit. Try another card or method.',
+    paymentRejectedByBank:
+      'Your bank rejected the payment. Contact your bank or try another payment method.',
+    paymentRejectedRegulations:
+      'The payment could not be processed due to current regulations. Try another payment method.',
+    paymentRejectedCardType: 'That card type is not enabled for this charge. Try another card.',
     checkStatus: 'Check status',
     tryAgain: 'Try again',
     reloadCheckout: 'Reload checkout',
@@ -1257,6 +1268,21 @@ export default {
         cc_rejected_other_reason: 'The issuer declined the payment without a reason.',
         cc_rejected_invalid_installments: 'The card does not support that number of installments.',
         cc_rejected_card_type_not_allowed: 'That card type is not enabled.',
+        cc_rejected_blacklist: 'Mercado Pago blocked that card. Use another payment method.',
+        cc_rejected_card_error: 'The card could not process the payment. Try again in a few minutes.',
+        cc_rejected_3ds_challenge:
+          'The bank security verification was not completed. Retry and complete it.',
+        cc_rejected_3ds_mandatory:
+          'Your bank requires an extra security verification. Retry from checkout.',
+        cc_rejected_time_out: 'The operation timed out before confirming. Try again.',
+        cc_amount_rate_limit_exceeded:
+          'The amount exceeds your payment method limit. Try another method.',
+        rejected_by_bank: 'Your bank rejected the payment. Contact them or try another method.',
+        rejected_insufficient_data: 'Payer data was missing. Retry filling in everything.',
+        rejected_by_regulations: 'The payment could not be processed due to regulations. Try another method.',
+        bank_error: 'The bank failed while processing the payment. Try later.',
+        pending_challenge: 'Your bank security verification is still pending.',
+        expired: 'The operation expired before completion.',
         pending_contingency: 'Mercado Pago is processing the payment. It credits on its own.',
         pending_review_manual: 'Mercado Pago put it under review. It resolves in minutes or hours.',
         pending_waiting_transfer: 'Waiting for the transfer to clear.',
@@ -1503,6 +1529,7 @@ export default {
       nextScheduled: 'Payment is validated; the credential activates when coverage begins.',
       nextRefunded: 'Create a new order if you want to become a member again.',
       comboEyebrow: 'Recommended option',
+      upcomingPlanChange: 'From {{date}}, this plan moves to {{amount}}.',
       comboComingSoon: 'Coming soon',
       comboTitle: 'Membership + meet registration',
       comboLead:
@@ -2581,6 +2608,7 @@ export default {
       costsAria: 'Costs',
       costMembership: 'Membership',
       costMeet: 'Meet',
+      costMeetIncrease: 'From {{date}}, registration moves to {{amount}}.',
       costCombo: 'Membership + registration',
       costComboUntil: 'Until {{date}}',
       costComboSavings: 'Save {{amount}}',
@@ -3261,6 +3289,7 @@ export default {
         'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash at Pitbull will be available soon.',
       paymentNoChannelHint:
         'No payment methods are available right now. Try again later or get in touch.',
+      priceIncreaseNotice: 'From {{date}}, registration moves to {{amount}}.',
       paymentCodeWithoutGatewayHint:
         'Your code is not paid through Mercado Pago: the price was agreed for the methods you see here. The team validates the payment by hand.',
       paymentLinkLabel: 'Payment link',

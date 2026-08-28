@@ -641,6 +641,13 @@ export function mapSupabaseEventRow(row) {
       : null,
     price: row.price,
     manualPrice: row.manual_price != null ? Number(row.manual_price) : null,
+    // Cambio de precio programado (20260929100000): el público lo necesita para
+    // anunciar el aumento que viene, y resolveEventPricing para no mostrar el
+    // precio viejo en el minuto de gracia entre la fecha y el barrido del cron.
+    scheduledPrice: row.scheduled_price != null ? Number(row.scheduled_price) : null,
+    scheduledManualPrice:
+      row.scheduled_manual_price != null ? Number(row.scheduled_manual_price) : null,
+    priceEffectiveAt: row.price_effective_at ?? null,
     currency: row.currency,
     liveStreamUrl: row.live_stream_url,
     liveStreamProvider: row.live_stream_provider,
@@ -710,6 +717,7 @@ const PUBLISHED_EVENTS_SELECT = `
   registration_opens_at, registration_closes_at,
   ticket_sales_opens_at, ticket_sales_closes_at,
   capacity, status, published, requires_membership, price, manual_price, currency, rules,
+  scheduled_price, scheduled_manual_price, price_effective_at,
   live_stream_url, live_stream_provider, live_status, created_at, updated_at,
   eventDays:event_days(id, day_index, label, date),
   comboOffer:event_combo_offers(id, membership_plan_id, price, manual_price, currency, active, starts_at, ends_at, audience, financed, archived_at),

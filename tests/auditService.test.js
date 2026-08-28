@@ -107,6 +107,18 @@ describe('auditEntryTone', () => {
       }),
     ).toBe('danger')
   })
+
+  it('no escala a advertencia un descarte deliberado de webhook', () => {
+    // El asiento de un merchant_order descartado lleva diagnóstico `expected`
+    // para explicarse, pero sigue siendo informativo: no es un incidente.
+    expect(
+      auditEntryTone({
+        action: 'payment.webhook_discarded',
+        severity: 'info',
+        metadata: { reason: 'unsupported_type', diagnosis: { severity: 'expected' } },
+      }),
+    ).toBe('info')
+  })
 })
 
 /**

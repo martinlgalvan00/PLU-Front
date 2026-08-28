@@ -146,6 +146,50 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
 
       expect(response.status).toBe(200)
       expect(body.plans.map((item) => item.code)).toEqual(['plu-annual', 'plu-annual-auto'])
+      // Un repositorio sin listUpcomingPlanChanges (o sin versiones futuras)
+      // sigue respondiendo: el aumento programado es opcional, no un contrato.
+      expect(body.plans.every((item) => item.upcomingChange === null)).toBe(true)
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('anuncia el aumento programado del plan junto a la versión vigente', async () => {
+    const listPlans = vi.fn().mockResolvedValue([plan('plu-annual', 'one_time')])
+    const listUpcomingPlanChanges = vi.fn().mockResolvedValue([
+      {
+        family_code: 'plu-annual',
+        price: 90000,
+        manual_price: 85000,
+        currency: 'ARS',
+        effective_from: '2026-10-01T03:00:00Z',
+      },
+      // Una segunda versión futura de la misma familia no pisa a la próxima.
+      {
+        family_code: 'plu-annual',
+        price: 99000,
+        manual_price: null,
+        currency: 'ARS',
+        effective_from: '2026-11-01T03:00:00Z',
+      },
+    ])
+    const target = listen(
+      createApp({
+        env: {},
+        paymentRepository: { listPlans, listUpcomingPlanChanges },
+      }),
+    )
+    try {
+      const response = await fetch(`${target.url}/api/payments/plans`)
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.plans[0].upcomingChange).toEqual({
+        price: 90000,
+        manualPrice: 85000,
+        currency: 'ARS',
+        effectiveFrom: '2026-10-01T03:00:00Z',
+      })
     } finally {
       await target.close()
     }
