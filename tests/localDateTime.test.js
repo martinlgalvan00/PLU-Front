@@ -36,6 +36,11 @@ describe('localDateTime', () => {
     expect(toIsoLocal(date, time)).toBe('2026-09-03T07:48')
   })
 
+  it('acepta pegado ISO año-mes-día', () => {
+    expect(parseDateText('2026-09-15', true)).toEqual({ year: 2026, month: 9, day: 15 })
+    expect(parseDateText('20260915', true)).toEqual({ year: 2026, month: 9, day: 15 })
+  })
+
   it('rechaza el 31 de febrero', () => {
     expect(parseDateText('31/02/2026', true)).toBeNull()
   })

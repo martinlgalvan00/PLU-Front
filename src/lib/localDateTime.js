@@ -58,14 +58,7 @@ export function maskTimeInput(raw) {
   return `${digits.slice(0, 2)}:${digits.slice(2)}`
 }
 
-export function parseDateText(text, dayFirst) {
-  const digits = String(text ?? '').replace(/\D/g, '')
-  if (digits.length < 8) return null
-  const first = Number(digits.slice(0, 2))
-  const second = Number(digits.slice(2, 4))
-  const year = Number(digits.slice(4, 8))
-  const day = dayFirst ? first : second
-  const month = dayFirst ? second : first
+function validDateParts(year, month, day) {
   if (!Number.isInteger(year) || year < 1990 || year > 2100) return null
   if (month < 1 || month > 12 || day < 1 || day > 31) return null
   const probe = new Date(year, month - 1, day)
@@ -73,6 +66,26 @@ export function parseDateText(text, dayFirst) {
     return null
   }
   return { year, month, day }
+}
+
+export function parseDateText(text, dayFirst) {
+  const digits = String(text ?? '').replace(/\D/g, '')
+  if (digits.length < 8) return null
+
+  // Pegado ISO (`2026-09-15` / `20260915`): el año va primero y cae fuera del
+  // rango día/mes, así que se intenta antes que dd/mm.
+  const isoYear = Number(digits.slice(0, 4))
+  if (isoYear >= 1990 && isoYear <= 2100) {
+    const iso = validDateParts(isoYear, Number(digits.slice(4, 6)), Number(digits.slice(6, 8)))
+    if (iso) return iso
+  }
+
+  const first = Number(digits.slice(0, 2))
+  const second = Number(digits.slice(2, 4))
+  const year = Number(digits.slice(4, 8))
+  const day = dayFirst ? first : second
+  const month = dayFirst ? second : first
+  return validDateParts(year, month, day)
 }
 
 export function parseTimeText(text) {
