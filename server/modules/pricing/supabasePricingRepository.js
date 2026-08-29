@@ -7,6 +7,17 @@ export function createSupabasePricingRepository(client) {
     assertSupabaseResult(await client.rpc(name, args), fallback)
 
   return {
+    getWiseCatalogPrices: async () => {
+      const [plans, events] = await Promise.all([
+        assertSupabaseResult(await client.from('membership_plans').select('id, wise_price'), 'No se pudieron leer los precios Wise de afiliaciones.'),
+        assertSupabaseResult(await client.from('events').select('slug, wise_price'), 'No se pudieron leer los precios Wise de inscripciones.'),
+      ])
+      return { plans, events }
+    },
+    setMembershipPlanWisePrice: (planId, wisePrice, actor) =>
+      rpc('staff_set_membership_plan_wise_price', { p_plan_id: planId, p_wise_price: wisePrice ?? null, p_actor: actor }, 'No se pudo cambiar el precio Wise de la afiliacion.'),
+    setEventRegistrationWisePrice: (eventSlug, wisePrice, actor) =>
+      rpc('staff_set_event_registration_wise_price', { p_event_slug: eventSlug, p_wise_price: wisePrice ?? null, p_actor: actor }, 'No se pudo cambiar el precio Wise de la inscripcion.'),
     getConfiguration: () =>
       rpc('staff_get_pricing_configuration', {}, 'No se pudo leer la configuración económica.'),
 

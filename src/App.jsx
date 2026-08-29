@@ -98,6 +98,7 @@ const StaffPasswordChangePage = lazy(() => import('./pages/StaffPasswordChangePa
 const StandardsPage = lazy(() => import('./pages/StandardsPage.jsx'))
 const TeamPage = lazy(() => import('./pages/TeamPage.jsx'))
 const TicketsPage = lazy(() => import('./pages/TicketsPage.jsx'))
+const ThankYouPage = lazy(() => import('./pages/ThankYouPage.jsx'))
 
 const PUBLIC_VIEWS = {
   home: HomePage,
@@ -119,6 +120,7 @@ const PUBLIC_VIEWS = {
   standards: StandardsPage,
   register: RegisterPage,
   login: LoginPage,
+  thanks: ThankYouPage,
 }
 
 export default function App() {
@@ -224,11 +226,19 @@ export default function App() {
               },
             }),
           )
-          window.history.replaceState({ view: 'profile' }, '', '/perfil')
+          const thanksTarget = orderStatus === 'rechazado'
+            ? null
+            : `/gracias?payment=${encodeURIComponent(paymentReturn)}&order=${encodeURIComponent(orderId)}`
+          window.history.replaceState(
+            { view: thanksTarget ? 'thanks' : 'profile' },
+            '',
+            thanksTarget ?? '/perfil',
+          )
           setProfileTab(targetProfileTab)
           setProfileTabNonce((current) => current + 1)
-          setTransitionDirection(getTransitionDirection(view, 'profile'))
-          setView('profile')
+          const targetView = thanksTarget ? 'thanks' : 'profile'
+          setTransitionDirection(getTransitionDirection(view, targetView))
+          setView(targetView)
         }
       })
       .catch((error) => {
@@ -610,6 +620,7 @@ export default function App() {
           onSetMembershipPlanActive={app.setMembershipPlanActive}
           onSetMembershipPlanRetirement={app.setMembershipPlanRetirement}
           onSetEventRegistrationPrice={app.setEventRegistrationPrice}
+          onSetEventRegistrationWisePrice={app.setEventRegistrationWisePrice}
           onClearEventPriceSchedule={app.clearEventRegistrationPriceSchedule}
           onUpsertDiscountCode={app.upsertDiscountCode}
           onSetDiscountCodeState={app.setDiscountCodeState}

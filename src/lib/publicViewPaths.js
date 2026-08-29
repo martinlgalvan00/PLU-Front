@@ -23,6 +23,7 @@ const PUBLIC_VIEW_PATHS = Object.freeze({
   profile: '/perfil',
   login: '/acceder',
   register: '/crear-cuenta',
+  thanks: '/gracias',
 })
 
 /**

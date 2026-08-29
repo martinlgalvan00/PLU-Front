@@ -991,7 +991,9 @@ export default function RegisterPage({
       ? discountedTotal
       : checkoutListTotal
   const checkoutTotalLabel =
-    form.paymentMethod === 'wise_transfer' ? wisePriceLabel(checkoutTotal, locale) : checkoutTotal
+    form.paymentMethod === 'wise_transfer'
+      ? wisePriceLabel(checkoutTotal, locale, eventPricing.wisePrice)
+      : checkoutTotal
   // La promo pública se aplica sola al crear la orden. Sin este preview el
   // checkout anunciaría el precio de lista y cobraría otro. Depende del alcance
   // (combo o inscripción suelta) y del canal, igual que el cupón.
