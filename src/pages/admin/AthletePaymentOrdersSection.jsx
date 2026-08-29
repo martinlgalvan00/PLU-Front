@@ -83,6 +83,30 @@ const DB_STATUSES_BY_FILTER = Object.freeze({
   all: null,
 })
 
+/**
+ * Filtro por canal manual: el efectivo se cobra en la puerta y no deja
+ * adjunto, la transferencia se acredita contra comprobante — separarlos hace
+ * que cada circuito vea sólo lo suyo.
+ */
+const CHANNEL_FILTERS = [
+  ['all', 'admin.athletePayments.channelAll'],
+  ['bank_transfer', 'admin.athletePayments.channelBankTransfer'],
+  ['cash_pitbull', 'admin.athletePayments.channelCash'],
+  ['wise_transfer', 'admin.athletePayments.channelWise'],
+]
+
+/**
+ * Orden de la cola por vista. "Por validar" prioriza lo declarado más viejo
+ * —quien avisó primero lleva más tiempo esperando—, y "Financiadas" ordena la
+ * deuda por vencimiento: el riesgo del club es la que vence primero. El resto
+ * conserva la cronología inversa.
+ */
+const SORT_BY_STATUS_FILTER = Object.freeze({
+  pending: 'aging',
+  validacion_manual: 'aging',
+  financed: 'financing_due',
+})
+
 function formatDateTime(value, locale) {
   if (!value) return '—'
   const date = new Date(value)
@@ -153,6 +177,7 @@ export default function AthletePaymentOrdersSection({
   const { locale, t } = useI18n()
   const [orders, setOrders] = useState([])
   const [status, setStatus] = useState('pending')
+  const [channel, setChannel] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [approvingId, setApprovingId] = useState(null)
@@ -184,7 +209,7 @@ export default function AthletePaymentOrdersSection({
   }, [])
 
   const load = useCallback(
-    async (statusFilterKey) => {
+    async (statusFilterKey, channelFilterKey = 'all') => {
       // El esqueleto es solo para la primera carga: cambiar de chip o releer
       // despues de aprobar deja las filas en pantalla, para no hacer
       // parpadear la tabla que el operador esta mirando.
@@ -195,6 +220,10 @@ export default function AthletePaymentOrdersSection({
           limit: 200,
           statuses: DB_STATUSES_BY_FILTER[statusFilterKey] ?? undefined,
           financed: statusFilterKey === 'financed' ? true : undefined,
+          // El canal viaja a la consulta: traer los dos canales y descartar
+          // en el navegador era transferencia que nadie miraba.
+          channel: channelFilterKey === 'all' ? undefined : channelFilterKey,
+          sort: SORT_BY_STATUS_FILTER[statusFilterKey] ?? 'recent',
           withCounts: true,
         })
         loadedRef.current = true
@@ -211,17 +240,19 @@ export default function AthletePaymentOrdersSection({
   )
 
   useEffect(() => {
-    void load(status)
-  }, [load, status])
+    void load(status, channel)
+  }, [load, status, channel])
 
-  // El pedido externo de refresco no puede depender de `status`: ese cambio ya
-  // dispara su propia lectura arriba, y tenerlo en las dependencias hacia dos
-  // consultas por cada cambio de chip.
+  // El pedido externo de refresco no puede depender de `status`/`channel`: ese
+  // cambio ya dispara su propia lectura arriba, y tenerlos en las
+  // dependencias hacia dos consultas por cada cambio de chip.
   const statusRef = useRef(status)
   statusRef.current = status
+  const channelRef = useRef(channel)
+  channelRef.current = channel
   useEffect(() => {
     if (refreshKey === 0) return
-    void load(statusRef.current)
+    void load(statusRef.current, channelRef.current)
   }, [load, refreshKey])
 
   useEffect(() => {
@@ -325,7 +356,7 @@ export default function AthletePaymentOrdersSection({
           current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
         )
       } else {
-        await load(status)
+        await load(status, channel)
       }
       notifySuccess(t('admin.toasts.paymentApproved'))
       return true
@@ -350,7 +381,7 @@ export default function AthletePaymentOrdersSection({
           current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
         )
       } else {
-        await load(status)
+        await load(status, channel)
       }
       return true
     } finally {
@@ -400,7 +431,7 @@ export default function AthletePaymentOrdersSection({
           current.map((order) => (order.id === orderId ? { ...order, ...result.order } : order)),
         )
       } else {
-        await load(status)
+        await load(status, channel)
       }
       notifySuccess(t('admin.toasts.paymentRejected'))
       return true
@@ -459,6 +490,22 @@ export default function AthletePaymentOrdersSection({
           hideEmpty
           options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
         />
+        {/* Canal manual: sin conteos — los chips de estado ya dicen cuántas
+            hay; esto sólo elige cuál de las dos colas se mira. `presentation
+            menu` lo deja como filtro secundario, no compite con el estado. */}
+        <AdminFilterChipGroup
+          id="athlete-orders-channel"
+          label={t('admin.athletePayments.channelLabel')}
+          value={channel}
+          onChange={setChannel}
+          compact
+          defaultValue="all"
+          omitNeutral
+          allLabel={t('admin.athletePayments.channelAll')}
+          clearable
+          presentation="menu"
+          options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
+        />
         <div className="admin-orders-block__actions">
           <span className="admin-orders-block__amount admin-orders-block__amount--meta">
             {t(
@@ -475,7 +522,7 @@ export default function AthletePaymentOrdersSection({
         <ErrorState
           title={t('admin.athletePayments.loadErrorTitle')}
           message={error}
-          onRetry={() => void load()}
+          onRetry={() => void load(status, channel)}
         />
       ) : null}
 

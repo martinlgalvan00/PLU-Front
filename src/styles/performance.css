@@ -183,10 +183,6 @@
   .hm-artifact {
     touch-action: pan-y;
   }
-
-  .community-spotlight__live {
-    animation: none;
-  }
 }
 
 /* =============================================
@@ -209,8 +205,7 @@
 
 [data-motion-tier='low'] .hm-artifact:not(.is-static) .hm-artifact__model,
 [data-motion-tier='low'] .launch-teaser__live,
-[data-motion-tier='low'] .launch-teaser--inauguration .launch-teaser__stage-mark::after,
-[data-motion-tier='low'] .community-spotlight__live {
+[data-motion-tier='low'] .launch-teaser--inauguration .launch-teaser__stage-mark::after {
   animation: none;
 }
 

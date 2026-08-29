@@ -1,5 +1,5 @@
 import { callRpc } from '../lib/rpcErrors.js'
-import { apiDelete, apiGet, apiPatch, apiPost, apiRequest } from '../lib/api.js'
+import { apiDelete, apiGet, apiGetMeta, apiPatch, apiPost, apiRequest } from '../lib/api.js'
 import { toCamelSchedule } from '../lib/eventSchedule.js'
 import { describePaymentConcept } from '../lib/paymentConcept.js'
 import { derivePaymentProgress } from '../lib/paymentProgress.js'
@@ -332,14 +332,21 @@ const EMPTY_ATHLETE_SESSION = {
 }
 
 /** Snapshot público de UN atleta (perfil propio, sin sesión de Supabase Auth). */
-export async function fetchAthleteSnapshot() {
-  const result = await apiGet('/api/athletes/session')
+export async function fetchAthleteSnapshot({ etag = null } = {}) {
+  const { data: result, etag: nextEtag, notModified } = await apiGetMeta('/api/athletes/session', {
+    etag,
+  })
+  if (notModified) {
+    return { notModified: true, etag: nextEtag }
+  }
   if (!result?.user) {
     return {
       athlete: null,
       memberships: [],
       registrations: [],
       payments: [],
+      etag: nextEtag,
+      notModified: false,
     }
   }
   const mapped = mapAthleteData(result)
@@ -348,6 +355,8 @@ export async function fetchAthleteSnapshot() {
     memberships: mapped.memberships,
     registrations: mapped.registrations,
     payments: mapped.payments,
+    etag: nextEtag,
+    notModified: false,
   }
 }
 
@@ -401,10 +410,32 @@ export function verifyAthleteEmailCode(code) {
   return apiPost('/api/athletes/me/verify-email-code', { code })
 }
 
-/** Snapshot completo para el panel admin/seguridad. */
-export async function fetchAdminAthleteData({ photos = true } = {}) {
-  const result = await apiGet(photos ? '/api/athletes/admin' : '/api/athletes/admin?photos=0')
-  return mapAthleteData(result)
+/**
+ * Snapshot operativo para el panel admin/seguridad.
+ *
+ * `q` busca el padrón en el servidor (nombre, documento o email): el snapshot
+ * viene acotado por ventana, así que el filtro del navegador sólo encontraba
+ * a quien ya hubiera entrado en ella. La respuesta trae además `totals` (filas
+ * reales por segmento con los filtros aplicados) y `summary` (agregados del
+ * dashboard contados sobre la tabla entera), para que ningún número del panel
+ * se lea como total cuando es una ventana.
+ */
+export async function fetchAdminAthleteData({ photos = true, etag = null, q = null } = {}) {
+  const params = new URLSearchParams()
+  if (!photos) params.set('photos', '0')
+  if (q) params.set('q', q)
+  const path = `/api/athletes/admin${params.toString() ? `?${params.toString()}` : ''}`
+  const { data: result, etag: nextEtag, notModified } = await apiGetMeta(path, { etag })
+  if (notModified) {
+    return { notModified: true, etag: nextEtag }
+  }
+  return {
+    ...mapAthleteData(result),
+    totals: result?.totals ?? null,
+    summary: result?.summary ?? null,
+    etag: nextEtag,
+    notModified: false,
+  }
 }
 
 export async function fetchAdminPhotoUrls(paths = []) {
@@ -941,6 +972,13 @@ export async function listAthletePaymentOrders(filters = {}) {
   }
   if (filters.method) params.set('method', filters.method)
   if (filters.concept) params.set('concept', filters.concept)
+  // Canal manual (efectivo vs transferencia): quiénes validan cada canal son
+  // circuitos operativos distintos, y la base los separa sin traer filas de
+  // más.
+  if (filters.channel) params.set('channel', filters.channel)
+  // Orden de la cola: `aging` prioriza lo declarado más viejo;
+  // `financing_due` ordena la deuda financiada por vencimiento.
+  if (filters.sort) params.set('sort', filters.sort)
   if (filters.financed) params.set('financed', 'true')
   if (filters.limit) params.set('limit', String(filters.limit))
   if (filters.withCounts) params.set('withCounts', 'true')

@@ -336,6 +336,11 @@ export function buildDashboardOverview({
   events = [],
   pendingTicketOrders = [],
   now = new Date(),
+  // Agregados contados en la base (`adminDataSummary`): el snapshot operativo
+  // viene acotado por ventana, así que los totales del dashboard salen de acá
+  // cuando existen. Sin ellos (demo, backend viejo) se derivan del array como
+  // siempre — mismo número mientras la ventana alcance.
+  serverSummary = null,
 }) {
   const pendingPayments = payments.filter((payment) =>
     PENDING_PAYMENT_STATUSES.includes(payment.status),
@@ -360,7 +365,6 @@ export function buildDashboardOverview({
   const confirmedRegistrations = registrations.filter((registration) =>
     ['confirmada', 'acreditada'].includes(registration.status),
   )
-  const stableActiveMemberships = activeMemberships.length - expiringMemberships.length
   const openEvents = events.filter((event) =>
     ['inscripcion_abierta', 'cupos_limitados'].includes(event.status),
   )
@@ -371,7 +375,36 @@ export function buildDashboardOverview({
     (payment) => payment.status !== 'validacion_manual',
   )
 
-  const pendingAmount = pendingPayments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
+  // Números autoritativos: primero el conteo de la base, después el array.
+  // `pick` no inventa: si el servidor no mandó el número, gana el derivado.
+  const pick = (serverValue, derivedValue) =>
+    Number.isFinite(serverValue) ? serverValue : derivedValue
+  const summaryPayments = serverSummary?.payments ?? null
+  const summaryMemberships = serverSummary?.memberships ?? null
+  const summaryRegistrations = serverSummary?.registrations ?? null
+  const totalAthletes = pick(
+    Number.isFinite(serverSummary?.athletes) ? serverSummary?.athletes : undefined,
+    athletes.length,
+  )
+  const totalActiveMemberships = pick(summaryMemberships?.active, activeMemberships.length)
+  const totalExpiringMemberships = pick(
+    summaryMemberships?.expiringSoon,
+    expiringMemberships.length,
+  )
+  const totalRegistrations = pick(summaryRegistrations?.total, registrations.length)
+  const totalPendingPayments = pick(summaryPayments?.pending, pendingPayments.length)
+  // `openAmount` de la base puede venir truncado por muestra
+  // (`openAmountTruncated`): aún así es una muestra más amplia que la ventana
+  // del array, y la pantalla ya sabe marcar ese importe como parcial.
+  const totalPendingAmount = Number.isFinite(summaryPayments?.openAmount)
+    ? summaryPayments.openAmount
+    : pendingPayments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
+  const totalManualValidation = pick(
+    summaryPayments?.validacion_manual,
+    manualValidationPayments.length,
+  )
+
+  const pendingAmount = totalPendingAmount
   const collectedAmount = approvedPayments.reduce((sum, payment) => sum + (payment.amount ?? 0), 0)
   const totalAmount = pendingAmount + collectedAmount
   const spotlightEvent =
@@ -379,15 +412,30 @@ export function buildDashboardOverview({
       .filter((event) => event.featured && event.status !== 'finalizado')
       .sort((a, b) => new Date(a.dateISO) - new Date(b.dateISO))[0] ?? null
 
-  // `acreditada` se pliega a `confirmada` (alias legacy; el backend no lo escribe).
-  const registrationBreakdown = countByStatus(
-    registrations.map((registration) =>
-      registration.status === 'acreditada'
-        ? { ...registration, status: 'confirmada' }
-        : registration,
-    ),
-    ['confirmada', 'pendiente_pago', 'observada'],
-  )
+  // `acreditada` se pliega a `confirmada` (alias legacy; el backend no lo
+  // escribe). Los conteos de la base ganan cuando existen; los importes
+  // siguen saliendo del array — sumarlos en la base sería una RPC nueva para
+  // un desglose que ya se lee completo en Finanzas.
+  const legacyFold = (status) => (status === 'acreditada' ? 'confirmada' : status)
+  const registrationsByStatus = (status) =>
+    registrations.filter((registration) => legacyFold(registration.status) === status).length
+  const registrationBreakdown = [
+    {
+      status: 'confirmada',
+      value: pick(summaryRegistrations?.confirmed, registrationsByStatus('confirmada')),
+    },
+    {
+      status: 'pendiente_pago',
+      value: pick(
+        summaryRegistrations?.pendingPayment,
+        registrationsByStatus('pendiente_pago'),
+      ),
+    },
+    {
+      status: 'observada',
+      value: pick(summaryRegistrations?.observed, registrationsByStatus('observada')),
+    },
+  ]
   const softPendingAmount = softPendingPayments.reduce(
     (sum, payment) => sum + (payment.amount ?? 0),
     0,
@@ -396,25 +444,33 @@ export function buildDashboardOverview({
     (sum, payment) => sum + (payment.amount ?? 0),
     0,
   )
-  const categorizedPaymentCount =
-    approvedPayments.length + softPendingPayments.length + manualValidationPayments.length
-  const otherPayments = payments.length - categorizedPaymentCount
+  // "Pendientes blandos" = abiertas sin declaración: lo que espera al
+  // webhook, no a una persona. Con conteos de la base sale por diferencia.
+  const totalSoftPending = Number.isFinite(summaryPayments?.pending)
+    ? Math.max(summaryPayments.pending - totalManualValidation, 0)
+    : softPendingPayments.length
+  const totalApprovedPayments = pick(summaryPayments?.aprobado, approvedPayments.length)
+  const totalPaymentsCount = pick(summaryPayments?.all, payments.length)
+  const otherPayments = Math.max(
+    totalPaymentsCount - (totalApprovedPayments + totalSoftPending + totalManualValidation),
+    0,
+  )
   const paymentBreakdown = [
     {
       status: 'aprobado',
-      value: approvedPayments.length,
+      value: totalApprovedPayments,
       amount: collectedAmount,
       tone: 'success',
     },
     {
       status: 'pendiente',
-      value: softPendingPayments.length,
+      value: totalSoftPending,
       amount: softPendingAmount,
       tone: 'warning',
     },
     {
       status: 'validacion_manual',
-      value: manualValidationPayments.length,
+      value: totalManualValidation,
       amount: manualAmount,
       tone: 'alert',
     },
@@ -429,10 +485,22 @@ export function buildDashboardOverview({
   }
 
   const membershipBreakdown = [
-    { status: 'activa', value: Math.max(stableActiveMemberships, 0), tone: 'success' },
-    { status: 'expiringSoon', value: expiringMemberships.length, tone: 'gold' },
-    { status: 'vencida', value: expiredMemberships.length, tone: 'alert' },
-    { status: 'cancelada', value: cancelledMemberships.length, tone: 'default' },
+    {
+      status: 'activa',
+      value: Math.max(totalActiveMemberships - totalExpiringMemberships, 0),
+      tone: 'success',
+    },
+    { status: 'expiringSoon', value: totalExpiringMemberships, tone: 'gold' },
+    {
+      status: 'vencida',
+      value: pick(summaryMemberships?.expired, expiredMemberships.length),
+      tone: 'alert',
+    },
+    {
+      status: 'cancelada',
+      value: pick(summaryMemberships?.cancelled, cancelledMemberships.length),
+      tone: 'default',
+    },
   ]
 
   const eventBreakdown = countByStatus(events, EVENT_BREAKDOWN_STATUSES).map((item) => ({
@@ -545,7 +613,7 @@ export function buildDashboardOverview({
     primary: [
       {
         labelKey: 'athletes',
-        value: athletes.length,
+        value: totalAthletes,
         icon: 'users',
         section: 'athletes',
         tone: 'celeste',
@@ -554,16 +622,16 @@ export function buildDashboardOverview({
       },
       {
         labelKey: 'activeMemberships',
-        value: activeMemberships.length,
+        value: totalActiveMemberships,
         icon: 'badge',
         section: 'memberships',
         tone: 'gold',
         hintKey: 'expiringSoon',
-        hintValue: expiringMemberships.length,
+        hintValue: totalExpiringMemberships,
       },
       {
         labelKey: 'registrations',
-        value: registrations.length,
+        value: totalRegistrations,
         icon: 'clipboard',
         section: 'registrations',
         tone: 'default',
@@ -571,11 +639,11 @@ export function buildDashboardOverview({
         hintValue:
           gatePendingRegistrations.length > 0
             ? gatePendingRegistrations.length
-            : observedRegistrations.length,
+            : pick(summaryRegistrations?.observed, observedRegistrations.length),
       },
       {
         labelKey: 'pendingPayments',
-        value: pendingPayments.length,
+        value: totalPendingPayments,
         icon: 'shield',
         section: 'payments',
         tone: 'alert',
@@ -586,7 +654,7 @@ export function buildDashboardOverview({
     ],
     breakdowns: {
       registrations: {
-        total: registrations.length,
+        total: totalRegistrations,
         section: 'registrations',
         items: registrationBreakdown.map((item) => ({
           ...item,
@@ -597,21 +665,21 @@ export function buildDashboardOverview({
                 ? 'warning'
                 : 'success',
         })),
-        pending: pendingRegistrations.length,
-        observed: observedRegistrations.length,
+        pending: pick(summaryRegistrations?.pendingPayment, pendingRegistrations.length),
+        observed: pick(summaryRegistrations?.observed, observedRegistrations.length),
         gatePending: gatePendingRegistrations.length,
       },
       memberships: {
-        total: memberships.length,
+        total: pick(summaryMemberships?.total, memberships.length),
         section: 'memberships',
         items: membershipBreakdown,
-        expiring: expiringMemberships.length,
+        expiring: totalExpiringMemberships,
       },
       payments: {
-        total: payments.length,
+        total: totalPaymentsCount,
         section: 'payments',
         items: paymentBreakdown,
-        pending: pendingPayments.length,
+        pending: totalPendingPayments,
         pendingAmount,
       },
       events: {
@@ -622,7 +690,7 @@ export function buildDashboardOverview({
       },
     },
     finance: {
-      pendingCount: pendingPayments.length,
+      pendingCount: totalPendingPayments,
       pendingAmount,
       collectedAmount,
       totalAmount,
@@ -641,21 +709,22 @@ export function buildDashboardOverview({
     },
     // Esta proyección no toma decisiones de negocio: concentra los estados
     // que el operador necesita leer juntos para elegir el circuito a abrir.
-    // Sus conteos salen del mismo snapshot que las tablas y la cola de trabajo.
+    // Los conteos de la base ganan sobre el array cuando existen; el snapshot
+    // acotado no puede alimentarlos, o dejan de ser totales pasado el recorte.
     operationalFlows: {
       payments: {
-        manualValidation: manualValidationPayments.length,
-        reconciliationPending: softPendingPayments.length,
+        manualValidation: totalManualValidation,
+        reconciliationPending: totalSoftPending,
       },
       registrations: {
-        confirmed: confirmedRegistrations.length,
-        pendingPayment: pendingRegistrations.length,
-        observed: observedRegistrations.length,
+        confirmed: pick(summaryRegistrations?.confirmed, confirmedRegistrations.length),
+        pendingPayment: pick(summaryRegistrations?.pendingPayment, pendingRegistrations.length),
+        observed: pick(summaryRegistrations?.observed, observedRegistrations.length),
         gatePending: gatePendingRegistrations.length,
       },
       memberships: {
-        active: activeMemberships.length,
-        expiring: expiringMemberships.length,
+        active: totalActiveMemberships,
+        expiring: totalExpiringMemberships,
       },
       events: {
         open: events.filter((event) => event.status === 'inscripcion_abierta').length,

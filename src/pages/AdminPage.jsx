@@ -177,7 +177,6 @@ export default function AdminPage({
       ? preferredSection
       : (allowedSections[0] ?? preferredSection),
   )
-  const [globalSearch, setGlobalSearch] = useState('')
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
   // "Personas" (nav.people) reemplaza los antiguos ítems de menú Atletas /
   // Afiliaciones / Inscripciones por uno solo con pestañas internas. Todo
@@ -333,8 +332,9 @@ export default function AdminPage({
           onDeleteAthlete={onDeleteAthlete}
           onSelectAthlete={handleSelectAthlete}
           getAthleteDetail={getAthleteDetail}
-          globalSearch={globalSearch}
-          onGlobalSearchChange={setGlobalSearch}
+          athletes={athletes}
+          events={adminEvents}
+          onSelectEvent={handleManageEventRegistrations}
           onGlobalSearchSubmit={handleDashboardSearchSubmit}
         />
       )
@@ -681,7 +681,9 @@ export default function AdminPage({
       onOpenAccount={onRequestEmailChange ? () => setAccountOpen(true) : undefined}
       restrictedNav={isPluUsaPartner ? 'pluUsa' : isCheckinOnly ? 'checkin' : false}
       athletes={athletes}
+      events={adminEvents}
       onSelectAthlete={handleSelectAthlete}
+      onSelectEvent={handleManageEventRegistrations}
     >
       {accountOpen ? (
         <AccountDialog

@@ -27,6 +27,7 @@ import {
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
+import { isStaffSession } from '../lib/roles.js'
 import {
   cheapestTicketTypePrice,
   resolveEventPricing,
@@ -513,7 +514,8 @@ export default function EventsPage({
   }
 
   const isAthleteLoggedIn = session?.role === 'athlete_plu'
-  const registerLabel = isAthleteLoggedIn
+  const canRegisterAsAthlete = isAthleteLoggedIn || isStaffSession(session)
+  const registerLabel = canRegisterAsAthlete
     ? t('pages.events.register')
     : t('pages.events.registerAndCreateProfile')
   const hasActiveMembership = hasCurrentMembership(memberships, session?.athleteId)

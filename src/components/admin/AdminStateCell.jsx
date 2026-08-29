@@ -132,23 +132,25 @@ export function EntitlementStateCell({ status, backing, badge = null }) {
   return (
     <div className="admin-state-cell">
       {head}
-      <p className="admin-state-cell__reason" title={metaTitle}>
-        <span className="admin-state-cell__stamp">
-          {stampShort}
-          {channelLabel ? ` · ${channelLabel}` : ''}
-        </span>
-        <span className="admin-state-cell__actor-search">{actor}</span>
-      </p>
-      <p
-        className={
-          placeholder
-            ? 'admin-state-cell__note admin-state-cell__note--gap'
-            : 'admin-state-cell__note admin-state-cell__note--written'
-        }
-        title={noteText}
-      >
-        {noteText}
-      </p>
+      <div className="admin-state-cell__provenance">
+        <p className="admin-state-cell__reason" title={metaTitle}>
+          <span className="admin-state-cell__stamp">
+            {stampShort}
+            {channelLabel ? ` · ${channelLabel}` : ''}
+          </span>
+          <span className="admin-state-cell__actor-search">{actor}</span>
+        </p>
+        <p
+          className={
+            placeholder
+              ? 'admin-state-cell__note admin-state-cell__note--gap'
+              : 'admin-state-cell__note admin-state-cell__note--written'
+          }
+          title={noteText}
+        >
+          {noteText}
+        </p>
+      </div>
     </div>
   )
 }

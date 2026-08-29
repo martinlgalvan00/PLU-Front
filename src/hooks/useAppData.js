@@ -24,6 +24,7 @@ import {
   loginRequest,
   logoutRequest,
   meRequest,
+  createStaffAthleteSessionRequest,
   oauthSessionRequest,
   securityGateRequest,
   updateSecurityUserStatusRequest,
@@ -128,7 +129,7 @@ import {
   updateUserRole,
   updateUserStatus,
 } from '../services/userService.js'
-import { canDeleteAthletes, canDeleteEvents, canDeleteUsers } from '../lib/roles.js'
+import { canDeleteAthletes, canDeleteEvents, canDeleteUsers, isStaffSession } from '../lib/roles.js'
 import {
   buildAdminExportRows,
   buildPluUsaExportRows,
@@ -203,8 +204,8 @@ import {
 // Estos intervalos son sólo red de seguridad para cambios de otro dispositivo
 // o un webhook que no llegó al browser; son deliberadamente conservadores
 // para no convertir cada sesión activa en una lectura continua de Supabase.
-const LIVE_ATHLETE_SYNC_MS = 30_000
-const LIVE_STAFF_SYNC_MS = 60_000
+const LIVE_ATHLETE_SYNC_MS = 60_000
+const LIVE_STAFF_SYNC_MS = 120_000
 // Umbral antes de anunciar una sincronización en background: si el refetch
 // resuelve más rápido, el aviso ni aparece. Evita un parpadeo por cada ciclo
 // de polling cuando la red responde bien.
@@ -242,6 +243,12 @@ export function useAppData() {
   const [athleteDataRefreshing, setAthleteDataRefreshing] = useState(false)
   const [athleteDataSyncedAt, setAthleteDataSyncedAt] = useState(null)
   const [athleteDataError, setAthleteDataError] = useState(null)
+  // Totales reales por segmento y agregados del dashboard contados en la
+  // base: el snapshot operativo viene acotado por ventana, así que contar el
+  // array que viajó deja de ser el total pasado el recorte. El dashboard lee
+  // de acá; los arrays siguen alimentando las tablas y las acciones.
+  const [athleteDataTotals, setAthleteDataTotals] = useState(null)
+  const [adminDataSummary, setAdminDataSummary] = useState(null)
   // Las entradas viven en Postgres, no en localStorage — este estado es
   // solo un cache de lo último que se creó/consultó vía la API real.
   const [tickets, setTickets] = useState([])
@@ -309,6 +316,18 @@ export function useAppData() {
   const ticketAttemptRef = useRef(null)
   const liveRefreshInFlightRef = useRef(false)
   const athleteDataLoadedRef = useRef(false)
+  // ETags del último snapshot 200: el poll manda If-None-Match y en 304
+  // retiene el estado local (cero bytes de body, menos egress a Supabase).
+  const adminSnapshotEtagRef = useRef(null)
+  const athleteSnapshotEtagRef = useRef(null)
+  // Búsqueda activa del padrón, leída al momento de armar cada request: el
+  // poll de 120 s y las invalidaciones tienen que respetarla para no reponer
+  // la ventana completa encima de un resultado acotado.
+  const adminSearchRef = useRef('')
+  adminSearchRef.current = filters.query.trim()
+  // Última búsqueda que viajó al servidor: evita refetchear en el mount y
+  // cuando el efecto de debounce se re-arma sin cambios reales.
+  const lastAdminSearchRef = useRef('')
 
   useEffect(() => {
     const onPaymentUpdated = (event) => {
@@ -468,12 +487,19 @@ export function useAppData() {
   }, [])
 
   const refreshAthleteData = useCallback(
-    async ({ silent = false } = {}) => {
+    async ({ silent = false, onlyAdminData = false } = {}) => {
       if (!session || isDemoSession(session)) return
 
       if (session.role === 'athlete_plu') {
         try {
-          const snapshot = await fetchAthleteSnapshot(session.athleteId)
+          const snapshot = await fetchAthleteSnapshot({
+            etag: silent ? athleteSnapshotEtagRef.current : null,
+          })
+          if (snapshot.notModified) {
+            if (snapshot.etag) athleteSnapshotEtagRef.current = snapshot.etag
+            return
+          }
+          if (snapshot.etag) athleteSnapshotEtagRef.current = snapshot.etag
           setAthletes((current) =>
             preserveAthletePhotoUrls(current, snapshot.athlete ? [snapshot.athlete] : []),
           )
@@ -504,6 +530,9 @@ export function useAppData() {
         // la pantalla que el staff ya está viendo. El aviso de "sincronizando"
         // es diferido: refetch rápidos no lo muestran.
         const isInitialLoad = !athleteDataLoadedRef.current
+        // Término con el que sale esta lectura: la respuesta sólo se aplica
+        // si nadie buscó otra cosa mientras tanto (ver el then).
+        const requestSearch = adminSearchRef.current
         let hintTimerId = null
         if (isInitialLoad) {
           setAthleteDataLoading(true)
@@ -515,10 +544,31 @@ export function useAppData() {
           )
         }
         tasks.push(
-          fetchAdminAthleteData({ photos: isInitialLoad })
+          fetchAdminAthleteData({
+            photos: isInitialLoad,
+            etag: silent && !isInitialLoad ? adminSnapshotEtagRef.current : null,
+            // La búsqueda viaja en cada lectura —poll incluido— para que el
+            // snapshot en pantalla siga siendo el resultado acotado y no la
+            // ventana completa pisándolo a mitad de búsqueda.
+            q: adminSearchRef.current || undefined,
+          })
             .then((data) => {
+              // Si la búsqueda cambió mientras esta respuesta viajaba, ya es
+              // historia: la lectura que viene con el término nuevo la pisa.
+              // Aplicarla igual mostraría la ventana anterior sobre la
+              // búsqueda actual (y su ETag, que dejaría ciega a la siguiente).
+              if (adminSearchRef.current !== requestSearch) return
+              if (data.notModified) {
+                if (data.etag) adminSnapshotEtagRef.current = data.etag
+                setAthleteDataSyncedAt(Date.now())
+                return
+              }
+              if (data.etag) adminSnapshotEtagRef.current = data.etag
               athleteDataLoadedRef.current = true
+              lastAdminSearchRef.current = adminSearchRef.current
               setAthleteDataSyncedAt(Date.now())
+              setAthleteDataTotals(data.totals ?? null)
+              setAdminDataSummary(data.summary ?? null)
               setAthletes((current) => {
                 const merged = preserveAthletePhotoUrls(current, data.athletes)
                 const missing = missingAthletePhotoPaths(merged)
@@ -547,7 +597,7 @@ export function useAppData() {
             .finally(() => {
               if (hintTimerId != null) window.clearTimeout(hintTimerId)
               if (isInitialLoad) setAthleteDataLoading(false)
-              else setAthleteDataRefreshing(false)
+              setAthleteDataRefreshing(false)
             }),
         )
       } else {
@@ -557,6 +607,14 @@ export function useAppData() {
         setMemberships([])
         setRegistrations([])
         setPayments([])
+      }
+
+      // La búsqueda del padrón sólo refresca su propio snapshot: releer
+      // eventos, staff y cola de trabajo en cada tipeo era trabajo que ninguna
+      // pantalla pedía.
+      if (onlyAdminData) {
+        await Promise.all(tasks)
+        return
       }
 
       if (hasPermission(session, 'admin.events.read')) {
@@ -603,6 +661,20 @@ export function useAppData() {
   useEffect(() => {
     refreshAthleteData()
   }, [refreshAthleteData])
+
+  // La búsqueda del padrón viaja al servidor: el snapshot está acotado por
+  // ventana, así que el filtro del navegador sólo encontraba a quien ya
+  // hubiera entrado en ella. Debounce para no convertir cada tecla en una
+  // lectura; `lastAdminSearchRef` evita el refetch en el mount y en los
+  // re-armados del efecto sin cambio real.
+  useEffect(() => {
+    if (!session || isDemoSession(session) || session.role === 'athlete_plu') return undefined
+    if (adminSearchRef.current === lastAdminSearchRef.current) return undefined
+    const timerId = window.setTimeout(() => {
+      void refreshAthleteData({ silent: true, onlyAdminData: true })
+    }, 400)
+    return () => window.clearTimeout(timerId)
+  }, [filters.query, refreshAthleteData, session])
 
   // Sincronización continua, pero consciente de visibilidad. Cubre los
   // webhooks y las acciones de staff que no disparan `plu:payment-updated` en
@@ -783,8 +855,20 @@ export function useAppData() {
         payments,
         events: adminEvents,
         pendingTicketOrders,
+        // Agregados contados en la base sobre la tabla entera: el snapshot
+        // acotado no puede alimentar los números del dashboard, o deja de ser
+        // total pasado el primer recorte sin que ninguna pantalla lo diga.
+        serverSummary: adminDataSummary,
       }),
-    [athletes, memberships, registrations, payments, adminEvents, pendingTicketOrders],
+    [
+      athletes,
+      memberships,
+      registrations,
+      payments,
+      adminEvents,
+      pendingTicketOrders,
+      adminDataSummary,
+    ],
   )
 
   const dashboard = dashboardOverview.primary
@@ -2195,35 +2279,118 @@ export function useAppData() {
     async ({ notify = true } = {}) => {
       const currentSession = session
       setSession(null)
+      adminSnapshotEtagRef.current = null
+      athleteSnapshotEtagRef.current = null
+      athleteDataLoadedRef.current = false
       // El nombre del toast se captura antes de limpiar la sesión: el aviso
       // tiene que decir quién salió, no un genérico.
       if (notify) markSignedOut(sessionDisplayName(currentSession ?? {}, { short: true }))
 
-      if (currentSession?.role === 'athlete_plu' && !isDemoSession(currentSession)) {
+      if (!isDemoSession(currentSession) && currentSession) {
+        // Con el puente staff↔atleta pueden coexistir ambas cookies: limpiar las dos.
         await logoutAthleteSession().catch((error) => {
-          if (error.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
+          if (error?.status !== 401) console.warn('No se pudo cerrar la sesion de atleta.', error)
         })
-      } else if (currentSession?.role !== 'athlete_plu' && currentSession?.id !== 'demo-admin') {
-        if (isSupabaseConfigured) {
-          const supabase = await getSupabaseClient()
-          await supabase.auth.signOut().catch(() => {})
-        }
 
-        try {
-          await logoutRequest()
-        } catch (error) {
-          if (error.status !== 401) {
-            console.warn('No se pudo cerrar la sesion del servidor.', error)
+        if (currentSession.role !== 'athlete_plu' || currentSession.staffAvailable) {
+          if (isSupabaseConfigured) {
+            const supabase = await getSupabaseClient()
+            await supabase.auth.signOut().catch(() => {})
           }
-        }
 
-        if (oauth.configured && oauth.isAuthenticated) {
-          await oauth.logout()
+          try {
+            await logoutRequest()
+          } catch (error) {
+            if (error.status !== 401) {
+              console.warn('No se pudo cerrar la sesion del servidor.', error)
+            }
+          }
+
+          if (oauth.configured && oauth.isAuthenticated) {
+            await oauth.logout()
+          }
         }
       }
     },
     [oauth, session, setSession],
   )
+
+  /**
+   * Staff autenticado → modo atleta (afiliación / inscripción) sin segunda cuenta.
+   * Conserva plu_session; emite plu_athlete_session.
+   */
+  const enterAthleteContext = useCallback(async () => {
+    const current = sessionRef.current
+    if (!current) {
+      throw new ApiError('Tenés que iniciar sesión.', { status: 401 })
+    }
+    if (current.role === 'athlete_plu') {
+      return { ...current, staffAvailable: Boolean(current.staffAvailable) }
+    }
+    if (!isStaffSession(current)) {
+      throw new ApiError('Esta cuenta no puede abrir el flujo de atleta.', { status: 403 })
+    }
+
+    if (env.demoMode || isDemoSession(current)) {
+      const demoAthleteSession = {
+        id: 'demo-athlete-from-staff',
+        role: 'athlete_plu',
+        athleteId: 'ath-001',
+        staffAvailable: true,
+        name: current.name ?? 'Staff PLU',
+        email: current.email,
+      }
+      setSession(demoAthleteSession)
+      return demoAthleteSession
+    }
+
+    const { user } = await createStaffAthleteSessionRequest()
+    const athleteSession = { ...user, staffAvailable: true }
+    setSession(athleteSession)
+
+    try {
+      const snapshot = await fetchAthleteSession()
+      if (snapshot.user) {
+        setAthletes(snapshot.athlete ? [snapshot.athlete] : [])
+        setMemberships(snapshot.memberships)
+        setRegistrations(snapshot.registrations)
+        setPayments(snapshot.payments)
+        setSession({
+          ...athleteSession,
+          name: snapshot.user.name ?? athleteSession.name,
+          photoUrl: snapshot.user.photoUrl ?? null,
+        })
+      }
+    } catch (error) {
+      console.warn('No se pudo cargar el snapshot del atleta tras el puente.', error)
+    }
+
+    return athleteSession
+  }, [setSession])
+
+  /** Vuelve al panel staff sin cerrar la cookie de atleta. */
+  const returnToStaffContext = useCallback(async () => {
+    const current = sessionRef.current
+    if (env.demoMode || isDemoSession(current)) {
+      const demoAdminSession = {
+        id: 'demo-admin',
+        role: 'admin_maximal',
+        roleKey: 'admin_maximal',
+        name: current?.name ?? 'Admin Maximal',
+        email: current?.email ?? 'admin@pluarg.com',
+        permissions: getDefaultPermissionsForRole('admin_maximal'),
+      }
+      setSession(demoAdminSession)
+      return demoAdminSession
+    }
+
+    const { user } = await meRequest()
+    if (!user) {
+      throw new ApiError('No hay sesión de staff activa.', { status: 401 })
+    }
+    setSession(user)
+    return user
+  }, [setSession])
 
   const handleApprovePayment = useCallback(
     async (paymentId) => {
@@ -3126,6 +3293,8 @@ export function useAppData() {
     getSession,
     login,
     logout,
+    enterAthleteContext,
+    returnToStaffContext,
     athletes,
     memberships,
     registrations,
@@ -3134,6 +3303,8 @@ export function useAppData() {
     athleteDataRefreshing,
     athleteDataSyncedAt,
     athleteDataError,
+    athleteDataTotals,
+    adminDataSummary,
     refreshAthleteData,
     tickets,
     pendingTicketOrders,

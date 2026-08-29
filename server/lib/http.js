@@ -1,6 +1,41 @@
+import { createHash } from 'node:crypto'
+
 export function notImplemented(res, feature) {
   return res.status(501).json({ error: `${feature} no disponible` })
 }
+
+/**
+ * ETag débil para snapshots autenticados (panel / mi-cuenta).
+ * El poll repregunta cada 1–2 min: si el revision no cambió respondemos 304
+ * y no mandamos de nuevo el JSON completo (mayor parte del egress).
+ */
+export function weakEtagFromParts(...parts) {
+  const hash = createHash('sha1').update(parts.map((part) => String(part ?? '')).join('|')).digest('hex')
+  return `W/"${hash}"`
+}
+
+function normalizeEtagToken(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/^W\//i, '')
+    .replaceAll('"', '')
+}
+
+/** Compara `If-None-Match` (puede traer varios valores) con un ETag emitido. */
+export function etagMatches(ifNoneMatch, etag) {
+  if (!ifNoneMatch || !etag) return false
+  const expected = normalizeEtagToken(etag)
+  if (!expected) return false
+  return String(ifNoneMatch)
+    .split(',')
+    .some((part) => normalizeEtagToken(part) === expected)
+}
+
+/**
+ * Cache-Control para lecturas privadas con revalidación por ETag.
+ * El browser (y el poll) siempre consulta al origen; si no cambió, 304.
+ */
+export const PRIVATE_REVALIDATE_CACHE = 'private, no-cache'
 
 /**
  * Cache de borde para lecturas públicas.

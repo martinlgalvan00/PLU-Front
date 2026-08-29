@@ -122,4 +122,29 @@ describe('apiRequest', () => {
 
     await expect(apiGet('/api/admin-queue')).rejects.toMatchObject({ requestId: null })
   })
+
+  it('apiGetMeta trata 304 como notModified sin parsear body', async () => {
+    vi.doMock('../src/config/env.js', () => ({
+      env: {
+        apiUrl: '',
+        isDev: false,
+      },
+    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 304,
+        headers: { get: (name) => (name === 'ETag' ? 'W/"abc"' : null) },
+        text: () => Promise.resolve(''),
+      }),
+    )
+
+    const { apiGetMeta } = await import('../src/lib/api.js')
+    await expect(apiGetMeta('/api/athletes/admin?photos=0', { etag: 'W/"abc"' })).resolves.toEqual({
+      notModified: true,
+      etag: 'W/"abc"',
+      data: null,
+    })
+  })
 })
