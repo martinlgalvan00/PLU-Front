@@ -182,7 +182,9 @@ export default function MembershipPurchaseSection({
     !codeClosesMercadoPago && channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
   // Wise tiene interruptor propio, independiente del canal manual local y de
   // los cupones que lo destraban.
-  const wiseOffered = channelOpen(checkoutAvailability, 'membership', 'wise_transfer')
+  // Wise se ofrece únicamente para inscripciones; una afiliación siempre se
+  // cobra en ARS por Mercado Pago, transferencia o efectivo.
+  const wiseOffered = false
   const showPurchaseCheckout = membershipCanPurchase && paidCheckoutOpen
   const showCheckoutSoon = membershipCanPurchase && !paidCheckoutOpen
   // El combo se ofrece antes de vender la afiliación sola: el próximo evento

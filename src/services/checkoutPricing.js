@@ -40,9 +40,19 @@ export function previewWisePrice(amountArs) {
   })
 }
 
-export function wisePriceLabel(amountArs, locale = 'es') {
-  const amount = previewWisePrice(amountArs)
+export function wisePriceLabel(amountArs, locale = 'es', configuredUsd = null) {
+  const amount = Number(configuredUsd) > 0 ? Number(configuredUsd) : previewWisePrice(amountArs)
   if (!amount) return 'USD -'
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
+
+export function formatWisePrice(amountUsd, locale = 'es') {
+  const amount = Number(amountUsd)
+  if (!Number.isFinite(amount) || amount <= 0) return 'USD -'
   return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-AR', {
     style: 'currency',
     currency: 'USD',

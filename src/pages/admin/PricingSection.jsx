@@ -319,6 +319,7 @@ export default function PricingSection({
   onSetPlanActive,
   onSetPlanRetirement,
   onSetEventRegistrationPrice,
+  onSetEventRegistrationWisePrice,
   onClearEventPriceSchedule,
   onUpsertDiscountCode,
   onSetDiscountCodeState,
@@ -658,6 +659,7 @@ export default function PricingSection({
             description: source.description,
             price: source.price,
             manualPrice: source.manualPrice ?? '',
+            wisePrice: source.wisePrice ?? '',
             currency: 'ARS',
             billingFrequency: source.billingFrequency,
             collectionMode: source.collectionMode,
@@ -666,7 +668,7 @@ export default function PricingSection({
             effectiveFrom: '',
             retiresAt: '',
           }
-        : { ...EMPTY_PLAN },
+        : { ...EMPTY_PLAN, wisePrice: '' },
     )
   }
 
@@ -689,7 +691,12 @@ export default function PricingSection({
     }
 
     setPendingAction('plan')
-    const result = await onCreatePlanVersion?.({ ...planDraft, price, manualPrice })
+    const wisePrice = planDraft.wisePrice === '' ? null : Number(planDraft.wisePrice)
+    if (wisePrice !== null && (!Number.isInteger(wisePrice) || wisePrice <= 0)) {
+      setPlanError(t('admin.sections.pricing.loadError'))
+      return
+    }
+    const result = await onCreatePlanVersion?.({ ...planDraft, price, manualPrice, wisePrice })
     setPendingAction('')
     if (result?.error) {
       setPlanError(result.error)
@@ -724,6 +731,7 @@ export default function PricingSection({
     setQuickPriceDraft({
       price: String(plan.price ?? ''),
       manualPrice: plan.manualPrice != null ? String(plan.manualPrice) : '',
+      wisePrice: plan.wisePrice != null ? String(plan.wisePrice) : '',
       effectiveFrom: '',
     })
   }
@@ -734,11 +742,16 @@ export default function PricingSection({
     const price = Number(quickPriceDraft.price)
     const manualPrice =
       quickPriceDraft.manualPrice === '' ? undefined : Number(quickPriceDraft.manualPrice)
+    const wisePrice = quickPriceDraft.wisePrice === '' ? null : Number(quickPriceDraft.wisePrice)
     if (!Number.isInteger(price) || price <= 0) {
       setPlanError(t('admin.sections.pricing.loadError'))
       return
     }
     if (manualPrice !== undefined && (!Number.isInteger(manualPrice) || manualPrice <= 0)) {
+      setPlanError(t('admin.sections.pricing.loadError'))
+      return
+    }
+    if (wisePrice !== null && (!Number.isInteger(wisePrice) || wisePrice <= 0)) {
       setPlanError(t('admin.sections.pricing.loadError'))
       return
     }
@@ -752,6 +765,7 @@ export default function PricingSection({
       description: plan.description ?? '',
       price,
       manualPrice,
+      wisePrice,
       currency: 'ARS',
       billingFrequency: plan.billingFrequency,
       collectionMode: plan.collectionMode,
@@ -780,6 +794,7 @@ export default function PricingSection({
         pricingEvent.registrationManualPrice != null
           ? String(pricingEvent.registrationManualPrice)
           : '',
+      wisePrice: pricingEvent.wisePrice != null ? String(pricingEvent.wisePrice) : '',
       effectiveAt: toLocalDateTime(pricingEvent.priceEffectiveAt),
     })
   }
@@ -790,6 +805,7 @@ export default function PricingSection({
     const price = Number(eventPriceDraft.price)
     const manualPrice =
       eventPriceDraft.manualPrice === '' ? undefined : Number(eventPriceDraft.manualPrice)
+    const wisePrice = eventPriceDraft.wisePrice === '' ? null : Number(eventPriceDraft.wisePrice)
     if (!Number.isInteger(price) || price <= 0) {
       setEventPriceError({
         slug: pricingEvent.slug,
@@ -804,12 +820,24 @@ export default function PricingSection({
       })
       return
     }
+    if (wisePrice !== null && (!Number.isInteger(wisePrice) || wisePrice <= 0)) {
+      setEventPriceError({ slug: pricingEvent.slug, message: t('admin.sections.pricing.loadError') })
+      return
+    }
     setPendingAction(`event-price-${pricingEvent.slug}`)
     const result = await onSetEventRegistrationPrice?.(pricingEvent.slug, {
       price,
       manualPrice,
       effectiveAt: eventPriceDraft.effectiveAt,
     })
+    if (!result?.error) {
+      const wiseResult = await onSetEventRegistrationWisePrice?.(pricingEvent.slug, wisePrice)
+      if (wiseResult?.error) {
+        setEventPriceError({ slug: pricingEvent.slug, message: wiseResult.error })
+        setPendingAction('')
+        return
+      }
+    }
     setPendingAction('')
     if (result?.error) {
       setEventPriceError({ slug: pricingEvent.slug, message: result.error })
@@ -1361,6 +1389,12 @@ export default function PricingSection({
                       />
                     </label>
                     <label>
+                      <span>Wise (USD)</span>
+                      <input type="number" min="1" step="1" value={quickPriceDraft.wisePrice}
+                        onChange={(event) => setQuickPriceDraft({ ...quickPriceDraft, wisePrice: event.target.value })}
+                        disabled={locked || pendingAction === `quick-price-${plan.id}`} />
+                    </label>
+                    <label>
                       <span>{t('admin.sections.pricing.effectiveAt')}</span>
                       <input
                         type="datetime-local"
@@ -1507,6 +1541,12 @@ export default function PricingSection({
                   }
                 />
                 <small>{t('admin.sections.pricing.manualPriceHint')}</small>
+              </label>
+              <label>
+                <span>Wise (USD)</span>
+                <input type="number" min="1" step="1" value={planDraft.wisePrice}
+                  onChange={(event) => setPlanDraft({ ...planDraft, wisePrice: event.target.value })} />
+                <small>Solo se ofrece para inscripciones.</small>
               </label>
               <label>
                 <span>{t('admin.sections.pricing.currency')}</span>
@@ -1785,6 +1825,12 @@ export default function PricingSection({
                         }
                         disabled={locked || pendingAction === pendingKey}
                       />
+                    </label>
+                    <label>
+                      <span>Wise (USD)</span>
+                      <input type="number" min="1" step="1" value={eventPriceDraft.wisePrice}
+                        onChange={(event) => setEventPriceDraft({ ...eventPriceDraft, wisePrice: event.target.value })}
+                        disabled={locked || pendingAction === pendingKey} />
                     </label>
                     <label>
                       <span>{t('admin.sections.pricing.effectiveAt')}</span>

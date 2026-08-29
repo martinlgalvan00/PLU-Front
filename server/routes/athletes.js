@@ -1455,6 +1455,9 @@ export function createAthleteRoutes({
         assertCheckoutEnabled(toggles)
         assertMembershipCheckoutEnabled(toggles)
         const membershipChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        if (membershipChannel === 'wise_transfer') {
+          throw new HttpError(400, 'Wise solo esta disponible para inscripciones.')
+        }
         assertPaymentChannelEnabled(toggles, 'membership', membershipChannel, {
           override: await manualChannelOverride(req.validatedBody, 'membership'),
         })
@@ -1470,7 +1473,7 @@ export function createAthleteRoutes({
         })
         const membershipWisePrice =
           membershipChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'membership', arsAmount: plan.price })
+            ? wisePriceFor({ concept: 'membership', arsAmount: plan.price, configuredUsd: plan.wise_price })
             : null
         const created = await repo().createMembershipOrder(auth.athleteId, {
           ...req.validatedBody,
@@ -1545,7 +1548,7 @@ export function createAthleteRoutes({
         })
         const registrationWisePrice =
           registrationChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'registration', arsAmount: event.price })
+            ? wisePriceFor({ concept: 'registration', arsAmount: event.price, configuredUsd: event.wise_price })
             : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
@@ -1597,6 +1600,9 @@ export function createAthleteRoutes({
         // que estar entre los que el código habilita.
         const comboOverride = await manualChannelOverride(req.validatedBody, 'combo')
         const comboChannel = paymentChannelOf(req.validatedBody.paymentMethod)
+        if (comboChannel === 'wise_transfer') {
+          throw new HttpError(400, 'Wise solo esta disponible para inscripciones individuales.')
+        }
         assertPaymentChannelEnabled(toggles, 'membership', comboChannel, {
           override: comboOverride,
         })

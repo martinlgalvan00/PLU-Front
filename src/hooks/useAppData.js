@@ -168,6 +168,8 @@ import {
   fetchDiscountCodeRedemptionsRequest,
   fetchPricingConfigurationRequest,
   setEventRegistrationPriceRequest,
+  setMembershipPlanWisePriceRequest,
+  setEventRegistrationWisePriceRequest,
   simulatePromotionCodeRequest,
   setDiscountCodeStateRequest,
   setMembershipPlanActiveRequest,
@@ -2919,6 +2921,8 @@ export function useAppData() {
       }
       try {
         const created = await createMembershipPlanVersionRequest(plan)
+        const wiseResult = await setMembershipPlanWisePriceRequest(created.id, plan.wisePrice ?? null)
+        if (wiseResult?.error) throw wiseResult.error
         clearMembershipPlansCache()
         await refreshPricingConfiguration()
         return { plan: created }
@@ -2928,6 +2932,22 @@ export function useAppData() {
     },
     [refreshPricingConfiguration, session],
   )
+
+  const setMembershipPlanWisePrice = useCallback(async (planId, wisePrice) => {
+    try {
+      const plan = await setMembershipPlanWisePriceRequest(planId, wisePrice)
+      await refreshPricingConfiguration()
+      return { plan }
+    } catch (error) { return { error: error?.message ?? 'No se pudo cambiar el precio Wise.' } }
+  }, [refreshPricingConfiguration])
+
+  const setEventRegistrationWisePrice = useCallback(async (eventSlug, wisePrice) => {
+    try {
+      const event = await setEventRegistrationWisePriceRequest(eventSlug, wisePrice)
+      await refreshPricingConfiguration()
+      return { event }
+    } catch (error) { return { error: error?.message ?? 'No se pudo cambiar el precio Wise.' } }
+  }, [refreshPricingConfiguration])
 
   const setMembershipPlanActive = useCallback(
     async (planId, active) => {
@@ -3336,6 +3356,7 @@ export function useAppData() {
     undismissQueueItem,
     refreshPricingConfiguration,
     createMembershipPlanVersion,
+    setMembershipPlanWisePrice,
     setMembershipPlanActive,
     deleteMembershipPlan,
     setMembershipPlanRetirement,
@@ -3345,6 +3366,7 @@ export function useAppData() {
     simulatePromotionCode,
     fetchDiscountCodeRedemptions,
     setEventRegistrationPrice,
+    setEventRegistrationWisePrice,
     clearEventRegistrationPriceSchedule,
     billingSubscriptions,
     billingSubscriptionsLoading,

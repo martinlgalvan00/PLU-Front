@@ -16,6 +16,7 @@ export function mapMembershipPlan(row) {
     description: row.description ?? '',
     price: Number(row.price) || 0,
     manualPrice: row.manual_price != null ? Number(row.manual_price) : (row.manualPrice ?? null),
+    wisePrice: row.wise_price != null ? Number(row.wise_price) : (row.wisePrice ?? null),
     currency: row.currency ?? 'ARS',
     billingFrequency: row.billing_frequency ?? row.billingFrequency ?? 'annual',
     collectionMode: row.collection_mode ?? row.collectionMode ?? 'one_time',
@@ -156,6 +157,7 @@ export function mapPricingConfiguration(payload = {}) {
       registrationPrice: Number(event.registrationPrice) || 0,
       registrationManualPrice:
         event.registrationManualPrice != null ? Number(event.registrationManualPrice) : null,
+      wisePrice: event.wisePrice != null ? Number(event.wisePrice) : null,
       // Cambio de precio pendiente (20260929100000). `priceEffectiveAt` null =
       // no hay nada programado; `scheduledManualPrice` null con fecha puesta =
       // desde esa fecha cobra lo mismo por cualquier canal.
@@ -287,6 +289,16 @@ export async function setEventRegistrationPriceRequest(eventSlug, { price, manua
       effectiveAt: dateTimeToIso(effectiveAt),
     },
   )
+  return result.event
+}
+
+export async function setMembershipPlanWisePriceRequest(planId, wisePrice) {
+  const result = await apiPatch(`/api/pricing/membership-plans/${encodeURIComponent(planId)}/wise-price`, { wisePrice })
+  return result.plan
+}
+
+export async function setEventRegistrationWisePriceRequest(eventSlug, wisePrice) {
+  const result = await apiPatch(`/api/pricing/events/${encodeURIComponent(eventSlug)}/wise-price`, { wisePrice })
   return result.event
 }
 

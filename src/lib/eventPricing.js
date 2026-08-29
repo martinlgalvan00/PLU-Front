@@ -127,6 +127,10 @@ export function resolveEventPricing(event, now = new Date()) {
     event?.manualPrice != null && Number.isFinite(Number(event.manualPrice))
       ? Number(event.manualPrice)
       : null
+  pricing.wisePrice =
+    event?.wisePrice != null && Number.isFinite(Number(event.wisePrice))
+      ? Number(event.wisePrice)
+      : null
 
   // Programación de precio: si todavía no llegó, viaja como `upcoming` para
   // que las superficies anuncien el aumento; si ya llegó (minuto de gracia

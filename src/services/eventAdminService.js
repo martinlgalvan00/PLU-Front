@@ -641,6 +641,7 @@ export function mapSupabaseEventRow(row) {
       : null,
     price: row.price,
     manualPrice: row.manual_price != null ? Number(row.manual_price) : null,
+    wisePrice: row.wise_price != null ? Number(row.wise_price) : null,
     // Cambio de precio programado (20260929100000): el público lo necesita para
     // anunciar el aumento que viene, y resolveEventPricing para no mostrar el
     // precio viejo en el minuto de gracia entre la fecha y el barrido del cron.
@@ -663,6 +664,7 @@ export function mapSupabaseEventRow(row) {
     pricing: normalizeEventPricingInput({
       registration: row.price,
       registrationManual: row.manual_price,
+      wisePrice: row.wise_price,
       membership: rules.membershipPrice,
       combo: isComboOfferLive({
         active: comboOfferRow?.active === true,

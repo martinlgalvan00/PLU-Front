@@ -27,7 +27,7 @@ export function paymentChannelOf(paymentMethod) {
  * como override operativo; si no, se deriva del precio ARS vigente usando el
  * dolar blue configurado y se redondea hacia arriba en saltos de USD 5.
  */
-export function wisePriceFor({ concept, arsAmount }, env = process.env) {
+export function wisePriceFor({ concept, arsAmount, configuredUsd = null }, env = process.env) {
   const key = {
     membership: 'WISE_PRICE_MEMBERSHIP_USD',
     registration: 'WISE_PRICE_REGISTRATION_USD',
@@ -36,7 +36,7 @@ export function wisePriceFor({ concept, arsAmount }, env = process.env) {
   }[concept]
   if (!key) return null
 
-  const amount = configuredNumber(env[key]) ?? arsToWiseUsd(arsAmount, env)
+  const amount = configuredNumber(configuredUsd) ?? configuredNumber(env[key]) ?? arsToWiseUsd(arsAmount, env)
   if (!Number.isInteger(amount) || amount <= 0) {
     throw new HttpError(
       503,

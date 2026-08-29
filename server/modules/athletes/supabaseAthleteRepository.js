@@ -468,7 +468,7 @@ export function createSupabaseAthleteRepository(
           await client
             .from('membership_plans')
             .select(
-              'id, code, family_code, version, collection_mode, active, price, manual_price, currency',
+              'id, code, family_code, version, collection_mode, active, price, manual_price, wise_price, currency',
             )
             .eq('organization_id', organizationId)
             .eq(column, planCode)
@@ -489,7 +489,7 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('events')
-          .select('id, slug, price, manual_price, currency')
+          .select('id, slug, price, manual_price, wise_price, currency')
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
           .maybeSingle(),

@@ -45,6 +45,7 @@ export const membershipPlanVersionSchema = z.object({
 })
 
 const planStatusSchema = z.object({ active: z.boolean() })
+const wisePriceSchema = z.object({ wisePrice: z.coerce.number().int().positive().max(100000).nullable() })
 const planRetirementSchema = z.object({ retiresAt: optionalDateTime })
 
 /**
@@ -345,10 +346,15 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
       // falla, el catálogo entero se caía con ella y Tarifas quedaba en
       // blanco. Ahora degrada a lista vacía y el catálogo sigue llegando.
       const repo = repository()
-      const [configuration, campaignAnalytics] = await Promise.all([
+      const [configuration, campaignAnalytics, wisePrices] = await Promise.all([
         repo.getConfiguration(),
         repo.getCampaignAnalytics().catch(() => []),
+        repo.getWiseCatalogPrices(),
       ])
+      const wiseByPlan = new Map((wisePrices.plans ?? []).map((row) => [row.id, row.wise_price]))
+      const wiseByEvent = new Map((wisePrices.events ?? []).map((row) => [row.slug, row.wise_price]))
+      configuration.plans = (configuration.plans ?? []).map((plan) => ({ ...plan, wisePrice: wiseByPlan.get(plan.id) ?? null }))
+      configuration.events = (configuration.events ?? []).map((event) => ({ ...event, wisePrice: wiseByEvent.get(event.slug) ?? null }))
       const pricingAvailability = getFeatureAvailability(FEATURE_KEYS.pricingWrites, env)
       res.json({
         ...configuration,
@@ -493,6 +499,36 @@ export function createPricingRoutes({ getPrisma, getSupabaseAdmin, env = process
    * tipos de entrada. La RPC aplica en el momento o deja el cambio programado
    * según `effectiveAt`.
    */
+  router.patch(
+    '/membership-plans/:planId/wise-price',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(wisePriceSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const planId = parseRouteParam(z.string().uuid(), req.params.planId, 'El plan es invalido.')
+        const plan = await repository().setMembershipPlanWisePrice(planId, req.validatedBody.wisePrice, actor(req))
+        res.json({ plan })
+      } catch (error) { next(error) }
+    },
+  )
+
+  router.patch(
+    '/events/:eventSlug/wise-price',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(wisePriceSchema),
+    async (req, res, next) => {
+      try {
+        assertPricingWritesEnabled(env)
+        const eventSlug = parseRouteParam(z.string().trim().min(1).max(200), req.params.eventSlug, 'El evento es invalido.')
+        const event = await repository().setEventRegistrationWisePrice(eventSlug, req.validatedBody.wisePrice, actor(req))
+        res.json({ event })
+      } catch (error) { next(error) }
+    },
+  )
+
   router.patch(
     '/events/:eventSlug/registration-price',
     ...writeGuard,
