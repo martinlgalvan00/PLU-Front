@@ -165,10 +165,12 @@ export default function MembershipPurchaseSection({
   // caso general (decisión de producto: la afiliación se cobra por Mercado
   // Pago). Un código que los habilita explícitamente sí los vuelve operables:
   // es exactamente para eso que existe.
-  const transferSelectable = codeChannels.includes('bank_transfer')
-  const cashSelectable = codeChannels.includes('cash_pitbull')
-  const transferOffered = transferSelectable || manualChannelsOpenGlobally
-  const cashOffered = cashSelectable || manualChannelsOpenGlobally
+  const transferEnabledGlobally = checkoutAvailability.paymentChannels?.membership?.bank_transfer === true
+  const cashEnabledGlobally = checkoutAvailability.paymentChannels?.membership?.cash_pitbull === true
+  const transferSelectable = transferEnabledGlobally || codeChannels.includes('bank_transfer')
+  const cashSelectable = cashEnabledGlobally || codeChannels.includes('cash_pitbull')
+  const transferOffered = transferSelectable || (manualChannelsOpenGlobally && transferEnabledGlobally)
+  const cashOffered = cashSelectable || (manualChannelsOpenGlobally && cashEnabledGlobally)
   // La pasarela también se cierra por concepto desde Administración. Un cupón no
   // la reabre —para eso sólo sirven los canales manuales—, pero sí la puede
   // cerrar: un código pactado a un precio que sólo cierra por transferencia o

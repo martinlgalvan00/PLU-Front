@@ -15824,6 +15824,23 @@ button.action-queue__proof:focus-visible {
   flex: none;
 }
 
+/* El badge de estado con otra marca al lado (el "inscripto a un torneo" de
+   Afiliaciones): son dos hechos del mismo renglón, no una explicación arriba de
+   la otra. El motivo sigue yendo debajo, en su propio párrafo. */
+.admin-state-cell__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.admin-state-cell__head .pill,
+.admin-state-cell__head .status-badge {
+  flex: none;
+}
+
 .admin-state-cell__provenance {
   display: grid;
   gap: 3px;
