@@ -45,7 +45,7 @@ function renderNav(session, { onLogout = vi.fn(), onNavigate = vi.fn() } = {}) {
 }
 
 describe('NavbarPublic profile menu', () => {
-  it('opens Mi perfil and logout when tapping the account mark', () => {
+  it('opens Perfil and logout when tapping the account mark', () => {
     renderNav({ name: 'Agustin Di Santo', role: 'athlete_plu' })
 
     const trigger = document.getElementById('plu-profile-menu-trigger')
@@ -55,7 +55,7 @@ describe('NavbarPublic profile menu', () => {
     fireEvent.click(trigger)
 
     expect(screen.getByRole('menu')).toBeTruthy()
-    expect(screen.getByRole('menuitem', { name: /mi perfil/i })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: /^perfil$/i })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: /cerrar sesión/i })).toBeTruthy()
     expect(screen.getByText('Atleta oficial')).toBeTruthy()
   })

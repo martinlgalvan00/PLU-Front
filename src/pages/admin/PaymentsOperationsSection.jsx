@@ -89,7 +89,7 @@ export default function PaymentsOperationsSection({
   const [validation, setValidation] = useState(VALIDATION_OPEN)
   const [athleteRefreshKey, setAthleteRefreshKey] = useState(0)
   const [athleteStatusRequest, _setAthleteStatusRequest] = useState(null)
-  const [_athleteSummary, setAthleteSummary] = useState({
+  const [athleteSummary, setAthleteSummary] = useState({
     pending: null,
     openAmount: null,
     loading: true,
@@ -216,6 +216,12 @@ export default function PaymentsOperationsSection({
     setAthleteSummary(summary)
   }, [])
 
+  const ticketsPending = pendingTicketOrders?.length ?? 0
+  const ticketsWithProof = useMemo(
+    () => (pendingTicketOrders ?? []).filter((order) => Boolean(order.paymentProofPath)).length,
+    [pendingTicketOrders],
+  )
+
   const summary = data?.summary ?? {}
   const health = summary.health ?? null
   const healthIssues = health
@@ -236,6 +242,16 @@ export default function PaymentsOperationsSection({
     pendingReconciliations === 0 &&
     pastDue === 0 &&
     health?.healthy !== false
+
+  function openDiagnostics() {
+    setActiveTab('ledger')
+    window.requestAnimationFrame(() => scrollToId('admin-payment-ledger'))
+  }
+
+  function openDiagnosticsAndCompare() {
+    openDiagnostics()
+    void handleRevalidate()
+  }
 
   const primaryMetrics = [
     {
@@ -384,6 +400,30 @@ export default function PaymentsOperationsSection({
                 </ul>
               </>
             ) : null}
+            <div className="admin-payments-ops-callout__actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--small"
+                onClick={openDiagnostics}
+              >
+                {t('admin.paymentOperations.healthCalloutCta')}
+              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={openDiagnosticsAndCompare}
+                  disabled={revalidating}
+                >
+                  {revalidating ? (
+                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                  ) : (
+                    <ScanSearch size={14} aria-hidden />
+                  )}{' '}
+                  {t('admin.paymentOperations.healthCalloutCompare')}
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -522,33 +562,73 @@ export default function PaymentsOperationsSection({
             >
               <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
             </button>
-            {canEdit ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--small"
-                  onClick={() => void handleRevalidate()}
-                  disabled={revalidating || recovering}
-                >
-                  {revalidating ? (
-                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
-                  ) : (
-                    <ScanSearch size={14} aria-hidden />
-                  )}{' '}
-                  {t('admin.paymentOperations.revalidate')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={() => void handleRecover()}
-                  disabled={recovering}
-                >
-                  <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
-                </button>
-              </>
-            ) : null}
           </div>
         </header>
+
+        <div className="admin-payments-ops-strip" aria-label={t('admin.paymentOperations.opsStripAria')}>
+          <div className="admin-payments-ops-strip__kpis">
+            <button
+              type="button"
+              className={`admin-payments-ops-strip__kpi${
+                (athleteSummary.pending ?? 0) > 0 ? ' admin-payments-ops-strip__kpi--warning' : ''
+              }`}
+              onClick={() => setActiveTab('athletes')}
+            >
+              <div className="admin-payments-ops-strip__kpi-body">
+                <span className="admin-payments-ops-strip__kpi-value">
+                  {athleteSummary.loading && athleteSummary.pending == null
+                    ? '—'
+                    : (athleteSummary.pending ?? 0)}
+                </span>
+                <span className="admin-payments-ops-strip__kpi-label">
+                  {t('admin.paymentOperations.kpiAthletes')}
+                </span>
+                <span className="admin-payments-ops-strip__kpi-hint">
+                  {t('admin.paymentOperations.kpiAthletesHint', {
+                    amount: money(athleteSummary.openAmount ?? 0, locale),
+                  })}
+                </span>
+              </div>
+            </button>
+            <button
+              type="button"
+              className={`admin-payments-ops-strip__kpi${
+                ticketsPending > 0 ? ' admin-payments-ops-strip__kpi--warning' : ''
+              }`}
+              onClick={() => setActiveTab('tickets')}
+            >
+              <div className="admin-payments-ops-strip__kpi-body">
+                <span className="admin-payments-ops-strip__kpi-value">{ticketsPending}</span>
+                <span className="admin-payments-ops-strip__kpi-label">
+                  {t('admin.paymentOperations.kpiTickets')}
+                </span>
+                <span className="admin-payments-ops-strip__kpi-hint">
+                  {t('admin.paymentOperations.kpiTicketsHint', { count: ticketsWithProof })}
+                </span>
+              </div>
+            </button>
+            {(failedCount > 0 || pendingReconciliations > 0 || !isLedgerHealthy) && data ? (
+              <button
+                type="button"
+                className="admin-payments-ops-strip__kpi admin-payments-ops-strip__kpi--danger"
+                onClick={openDiagnostics}
+              >
+                <div className="admin-payments-ops-strip__kpi-body">
+                  <span className="admin-payments-ops-strip__kpi-value">
+                    {failedCount + pendingReconciliations + (healthIssues || 0)}
+                  </span>
+                  <span className="admin-payments-ops-strip__kpi-label">
+                    {t('admin.paymentOperations.kpiIntegrity')}
+                  </span>
+                  <span className="admin-payments-ops-strip__kpi-hint">
+                    {t('admin.paymentOperations.kpiIntegrityHintIssue')}
+                  </span>
+                </div>
+              </button>
+            ) : null}
+          </div>
+        </div>
+
         <div className="admin-payments-ops-top__tabs">
           <SegmentedSwitch
             className="segmented-switch--luxury"
@@ -599,6 +679,32 @@ export default function PaymentsOperationsSection({
         aria-label={t('admin.paymentOperations.tabLedger')}
         style={{ display: activeTab === 'ledger' ? 'block' : 'none' }}
       >
+        {canEdit ? (
+          <div className="admin-payment-ops__tools" aria-label={t('admin.paymentOperations.toolsLabel')}>
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              onClick={() => void handleRevalidate()}
+              disabled={revalidating || recovering}
+            >
+              {revalidating ? (
+                <LoaderCircle size={14} aria-hidden className="is-spinning" />
+              ) : (
+                <ScanSearch size={14} aria-hidden />
+              )}{' '}
+              {t('admin.paymentOperations.revalidate')}
+            </button>
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => void handleRecover()}
+              disabled={recovering || revalidating}
+            >
+              <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+            </button>
+          </div>
+        ) : null}
+
         {data?.configuration ? (
           <div className="admin-payment-ops__meta-bar">
             <p className="admin-payment-ops__meta-line">
@@ -703,17 +809,20 @@ export default function PaymentsOperationsSection({
         ) : loading && !data ? (
           <LoadingState label={t('admin.paymentOperations.loading')} />
         ) : showHealthyEmpty ? (
-          <p className="admin-payment-ops__healthy-line" role="status">
-            <ShieldCheck size={16} aria-hidden />
-            <span>
-              {t('admin.paymentOperations.emptyHealthyCompact')}
-              {summary.updatedAt
-                ? ` · ${t('admin.paymentOperations.updatedAt', {
+          <div className="admin-payment-ops__healthy" role="status">
+            <ShieldCheck size={20} aria-hidden />
+            <div>
+              <strong>{t('admin.paymentOperations.emptyHealthyTitle')}</strong>
+              <p>{t('admin.paymentOperations.emptyHealthyLead')}</p>
+              {summary.updatedAt ? (
+                <small>
+                  {t('admin.paymentOperations.updatedAt', {
                     date: formatDate(summary.updatedAt, locale),
-                  })}`
-                : null}
-            </span>
-          </p>
+                  })}
+                </small>
+              ) : null}
+            </div>
+          </div>
         ) : (
           <AdminDataTable
             variant="admin"

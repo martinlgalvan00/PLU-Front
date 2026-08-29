@@ -3577,6 +3577,13 @@
   text-align: center;
 }
 
+.admin-shell .admin-data-table-shell__pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  padding-top: 4px;
+}
+
 /* Menú “más” en acciones de fila densas. */
 .admin-shell .admin-table-actions__more {
   position: relative;

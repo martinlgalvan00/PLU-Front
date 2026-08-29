@@ -8,8 +8,14 @@ export default {
     title: 'Dashboard',
     subtitle: 'Resumen general de la plataforma',
     eyebrow: 'Panel',
-    searchValue: '',
-    onSearchChange: () => {},
+    athletes: [
+      { id: '1', fullName: 'Iara Méndez', documentId: '40111222', gym: 'Titanium Gym' },
+      { id: '2', fullName: 'Franco Robledo', documentId: '40887213', gym: 'Fuerza Bruta CABA' },
+    ],
+    events: [{ id: 'e1', title: 'Pitbull Classic', slug: 'pitbull-classic', venue: 'CABA' }],
+    onSelectAthlete: () => {},
+    onSelectEvent: () => {},
+    onSearchSubmit: () => {},
     onAlertClick: () => {},
   },
 }

@@ -22,6 +22,7 @@ import { getFeaturedEvent, getPitbullClassicEvent } from '../lib/eventNavigation
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
 import { listMembershipPlans } from '../services/paymentService.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
+import { isStaffSession } from '../lib/roles.js'
 
 function mapLivePlan(plan, featureTemplate, t) {
   const isRecurring = plan.collectionMode === 'recurring'
@@ -160,6 +161,7 @@ export default function MembersPage({
   }, [billingMode, billingSwitchEnabled, catalogPlans, oneTimePlans, recurringPlans])
 
   const isLoggedInAthlete = session?.role === 'athlete_plu'
+  const canUseAthleteCheckout = isLoggedInAthlete || isStaffSession(session)
   // Vigencia, no solo estado: una afiliación marcada activa pero vencida
   // deshabilitaba el CTA de afiliarse sin que el atleta pudiera renovar.
   const hasActiveMembership =
@@ -194,7 +196,7 @@ export default function MembersPage({
   const livePlansUnavailable = !plansLoaded || catalogPlans.length === 0
   const affiliationCta = checkoutLocked
     ? t('pages.members.ctaCheckoutSoon')
-    : isLoggedInAthlete
+    : canUseAthleteCheckout
       ? hasActiveMembership
         ? t('pages.members.ctaAlreadyAffiliated')
         : t('pages.members.ctaAuthenticated')
@@ -204,7 +206,7 @@ export default function MembersPage({
     if (billingSwitchEnabled && typeof sessionStorage !== 'undefined') {
       sessionStorage.setItem('plu.membership.billingMode', billingMode)
     }
-    onNavigate(isLoggedInAthlete ? 'membership' : 'register')
+    onNavigate(canUseAthleteCheckout ? 'membership' : 'register')
   }
   const goToCombo = () => {
     if (hasActiveMembership || comboLocked) return
@@ -212,7 +214,7 @@ export default function MembersPage({
       onSelectEvent(featuredEvent)
       return
     }
-    onNavigate(isLoggedInAthlete ? 'competition' : 'register')
+    onNavigate(canUseAthleteCheckout ? 'competition' : 'register')
   }
 
   const gridClassName = [

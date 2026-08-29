@@ -38,7 +38,7 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { formatRelativeTime, formatShortStamp, money } from '../lib/format.js'
+import { formatRelativeTime, formatShortStamp, isCalendarTodayInArgentina, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
@@ -211,18 +211,22 @@ function PitbullInscriptionCounter({
 }) {
   const { reducedMotion } = useMotionConfig()
   const showMeter = capacityLive && !softLaunch && progressPublic
+  const progressHidden = capacityLive && !softLaunch && !progressPublic
   const pct = showMeter && slots > 0 ? Math.round((registered / slots) * 100) : 0
   const isCompact = variant === 'compact'
-  const ariaLabel = softLaunch
+  const ariaLabel = softLaunch || !capacityLive
     ? t('pages.pitbull.inscriptionCounterPendingAria')
-    : t('pages.pitbull.inscriptionCounterAria', { registered, slots })
+    : progressHidden
+      ? t('pages.pitbull.inscriptionCounterHiddenAria', { slots })
+      : t('pages.pitbull.inscriptionCounterAria', { registered, slots })
 
   return (
     <div
       className={[
         'pitbull-inscription-counter',
         isCompact ? 'pitbull-inscription-counter--compact' : '',
-        softLaunch ? 'pitbull-inscription-counter--soon' : '',
+        softLaunch || !capacityLive ? 'pitbull-inscription-counter--soon' : '',
+        progressHidden ? 'pitbull-inscription-counter--hidden' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -238,23 +242,20 @@ function PitbullInscriptionCounter({
             <>
               <AnimatedNumber className="pitbull-inscription-counter__value" value={registered} />
               <span className="pitbull-inscription-counter__of">/ {slots}</span>
+              <span className="pitbull-inscription-counter__unit">{t('pages.pitbull.slots')}</span>
+            </>
+          ) : progressHidden && slots > 0 ? (
+            <>
+              <span className="pitbull-inscription-counter__value">{slots}</span>
+              <span className="pitbull-inscription-counter__unit">{t('pages.pitbull.slots')}</span>
             </>
           ) : (
-            <>
-              <span
-                className="pitbull-inscription-counter__value pitbull-inscription-counter__value--pending"
-                aria-hidden
-              >
-                —
-              </span>
-              {slots > 0 ? (
-                <span className="pitbull-inscription-counter__of">/ {slots}</span>
-              ) : null}
-            </>
+            <span className="pitbull-inscription-counter__unit">
+              {softLaunch || !capacityLive
+                ? t('pages.pitbull.slotsPending')
+                : t('pages.pitbull.slots')}
+            </span>
           )}
-          <span className="pitbull-inscription-counter__unit">
-            {softLaunch ? t('pages.pitbull.slotsPending') : t('pages.pitbull.slots')}
-          </span>
         </div>
         {reducedMotion ? (
           <span
@@ -295,7 +296,9 @@ function PitbullInscriptionCounter({
         </div>
       ) : (
         <p className="pitbull-inscription-counter__hint">
-          {t('pages.pitbull.inscriptionCounterPending')}
+          {progressHidden
+            ? t('pages.pitbull.inscriptionCounterHidden')
+            : t('pages.pitbull.inscriptionCounterPending')}
         </p>
       )}
     </div>
@@ -595,9 +598,10 @@ function PitbullTicketsBand({ onOpen, t }) {
   )
 }
 
-function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
+function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredToday = 0, t }) {
   const isEmpty = recent.length === 0
   const isLive = capacityStatus === 'live'
+  const todayCount = Number(registeredToday) || 0
 
   return (
     <div
@@ -606,12 +610,22 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
     >
       <div className="pitbull-recent__head">
         <h3 className="pitbull-recent__title">{t('pages.pitbull.recentRegistrantsTitle')}</h3>
-        {isLive ? (
-          <p className="pitbull-recent__hint pitbull-recent__hint--live">
-            <span className="pitbull-recent__hint-dot" aria-hidden />
-            {t('pages.pitbull.recentRegistrantsLiveHint')}
-          </p>
-        ) : null}
+        <div className="pitbull-recent__meta">
+          {todayCount > 0 ? (
+            <p
+              className="pitbull-recent__hint pitbull-recent__hint--today"
+              aria-label={t('pages.pitbull.recentRegistrantsTodayBadge', { count: todayCount })}
+            >
+              {t('pages.pitbull.recentRegistrantsToday', { count: todayCount })}
+            </p>
+          ) : null}
+          {isLive ? (
+            <p className="pitbull-recent__hint pitbull-recent__hint--live">
+              <span className="pitbull-recent__hint-dot" aria-hidden />
+              {t('pages.pitbull.recentRegistrantsLiveHint')}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {isEmpty ? (
@@ -627,10 +641,11 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
         <ol className="pitbull-recent__list">
           {recent.map((item, index) => {
             const initial = item.displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?'
+            const isToday = isCalendarTodayInArgentina(item.registeredAt)
             return (
               <li
                 key={`${item.displayName}-${item.registeredAt ?? index}`}
-                className="pitbull-recent__row"
+                className={`pitbull-recent__row${isToday ? ' pitbull-recent__row--today' : ''}`}
               >
                 <span className="pitbull-recent__portrait" aria-hidden="true">
                   {item.photoUrl ? (
@@ -650,9 +665,16 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, t }) {
                   <strong className="pitbull-recent__name">{item.displayName}</strong>
                   {item.gym ? <span className="pitbull-recent__gym">{item.gym}</span> : null}
                 </span>
-                <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
-                  {formatRelativeTime(item.registeredAt, locale)}
-                </time>
+                <span className="pitbull-recent__when">
+                  {isToday ? (
+                    <span className="pitbull-recent__today-mark">
+                      {t('pages.pitbull.recentRegistrantsTodayMark')}
+                    </span>
+                  ) : null}
+                  <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
+                    {formatRelativeTime(item.registeredAt, locale)}
+                  </time>
+                </span>
               </li>
             )
           })}
@@ -678,6 +700,7 @@ function PitbullInscriptionSection({
   progressPublic = true,
   recent,
   registered,
+  registeredToday = 0,
   slots,
   t,
 }) {
@@ -938,11 +961,12 @@ function PitbullInscriptionSection({
         </Body>
       </div>
 
-      {!softLaunch && capacityLive && progressPublic ? (
+      {!softLaunch && capacityLive ? (
         <PitbullRecentRegistrants
           capacityStatus={capacityStatus}
           locale={locale}
           recent={recent}
+          registeredToday={registeredToday}
           t={t}
         />
       ) : null}
@@ -1131,6 +1155,7 @@ export default function PitbullPage({
   const {
     status: capacityStatus,
     registered: liveRegistered,
+    registeredToday: liveRegisteredToday,
     slots: liveSlots,
     recent: recentRegistrants,
     progressPublic,
@@ -1246,6 +1271,7 @@ export default function PitbullPage({
             progressPublic={progressPublic}
             recent={recentRegistrants}
             registered={liveRegistered}
+            registeredToday={liveRegisteredToday}
             slots={liveSlots}
             t={t}
           />

@@ -64,7 +64,7 @@ export function createApp(deps = {}) {
   // El CDN de Vercel comprime los estáticos, pero **no** la salida de la
   // función: las respuestas de la API viajaban en texto plano. El panel
   // repregunta el snapshot completo (atletas, membresías, inscripciones y
-  // órdenes) cada minuto, y ese JSON es la mayor parte del egress del proyecto
+  // órdenes) cada dos minutos, y ese JSON es la mayor parte del egress del proyecto
   // -- comprimido baja alrededor de un 85 %. El umbral por defecto (1 KB) deja
   // pasar sin tocar las respuestas chicas, donde comprimir costaría más CPU de
   // lo que ahorra en bytes.

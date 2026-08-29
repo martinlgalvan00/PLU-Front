@@ -39,11 +39,26 @@ describe('communityService', () => {
       }),
     }))
 
-    const { fetchCommunitySpotlight, getRecentMembers } =
+    const { fetchCommunitySpotlight, getRecentMembers, pickSpotlightMembers } =
       await import('../src/services/communityService.js')
     const spotlight = await fetchCommunitySpotlight(5, 'es')
 
     expect(spotlight.source).toBe('fallback')
-    expect(spotlight.members).toEqual(getRecentMembers(5, 'es'))
+    expect(spotlight.members).toEqual(pickSpotlightMembers(getRecentMembers(5, 'es'), 5))
+  })
+
+  it('prioriza afiliados con foto sin inventar filas', async () => {
+    const { pickSpotlightMembers } = await import('../src/services/communityService.js')
+    const picked = pickSpotlightMembers(
+      [
+        { id: '1', name: 'Sin foto', photoUrl: null },
+        { id: '2', name: 'Con foto', photoUrl: '/api/community/portrait?p=a' },
+        { id: '3', name: 'Otra foto', photoUrl: '/api/community/portrait?p=b' },
+        { id: '4', name: 'Tambien sin', photoUrl: '' },
+      ],
+      3,
+    )
+
+    expect(picked.map((member) => member.id)).toEqual(['2', '3', '1'])
   })
 })

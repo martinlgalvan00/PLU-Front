@@ -14,6 +14,29 @@ const expenseSchema = z.object({
 })
 const expenseIdSchema = z.string().uuid()
 
+/** Categorías humanas para conceptos de cobro de atletas. */
+const ATHLETE_INCOME_CATEGORY = {
+  membership: 'Afiliación',
+  registration: 'Inscripción',
+  combo: 'Afiliación + inscripción',
+}
+
+function cleanText(value) {
+  const text = String(value ?? '').trim()
+  return text || null
+}
+
+function athleteIncomeCategory(concept) {
+  const key = cleanText(concept)
+  if (!key) return 'Cobro'
+  return ATHLETE_INCOME_CATEGORY[key] ?? key
+}
+
+function incomeDescription(category, party) {
+  const name = cleanText(party)
+  return name ? `${category} — ${name}` : category
+}
+
 /** Traduce los errores de la RPC (PLU01/PLU02) al status HTTP correcto. */
 function rpcHttpError(error) {
   if (error?.message?.includes('PLU02')) return new HttpError(404, 'El egreso no existe.')
@@ -48,14 +71,16 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
         client()
           .from('athlete_payments')
           .select(
-            'id,amount,currency,confirmed_at,order_id,athlete_payment_orders!inner(concept,reference)',
+            'id,amount,currency,confirmed_at,order_id,athlete_payment_orders!inner(concept,reference,athlete:athletes(full_name))',
           )
           .eq('status', 'aprobado')
           .gte('confirmed_at', from)
           .lte('confirmed_at', `${to}T23:59:59Z`),
         client()
           .from('ticket_payments')
-          .select('id,amount,currency,confirmed_at,order_id,ticket_orders!inner(reference)')
+          .select(
+            'id,amount,currency,confirmed_at,order_id,ticket_orders!inner(reference,buyer_name)',
+          )
           .eq('status', 'aprobado')
           .gte('confirmed_at', from)
           .lte('confirmed_at', `${to}T23:59:59Z`),
@@ -66,17 +91,42 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
             athletePayments.error?.message ||
             ticketPayments.error?.message,
         )
-      const income = [...athletePayments.data, ...ticketPayments.data].map((x) => ({
-        id: `income-${x.id}`,
-        kind: 'income',
-        occurredOn: x.confirmed_at,
-        category: 'Cobro aprobado',
-        description: x.athlete_payment_orders?.concept || 'Entrada',
-        amount: x.amount,
-        currency: x.currency,
-        reference: x.athlete_payment_orders?.reference || x.ticket_orders?.reference,
-      }))
-      const outgoings = expenses.data.map((x) => ({
+
+      const athleteIncome = (athletePayments.data ?? []).map((x) => {
+        const order = x.athlete_payment_orders
+        const party = cleanText(order?.athlete?.full_name)
+        const category = athleteIncomeCategory(order?.concept)
+        return {
+          id: `income-${x.id}`,
+          kind: 'income',
+          occurredOn: x.confirmed_at,
+          category,
+          description: incomeDescription(category, party),
+          amount: x.amount,
+          currency: x.currency,
+          reference: order?.reference ?? null,
+          party,
+        }
+      })
+
+      const ticketIncome = (ticketPayments.data ?? []).map((x) => {
+        const order = x.ticket_orders
+        const party = cleanText(order?.buyer_name)
+        const category = 'Entrada'
+        return {
+          id: `income-${x.id}`,
+          kind: 'income',
+          occurredOn: x.confirmed_at,
+          category,
+          description: incomeDescription(category, party),
+          amount: x.amount,
+          currency: x.currency,
+          reference: order?.reference ?? null,
+          party,
+        }
+      })
+
+      const outgoings = (expenses.data ?? []).map((x) => ({
         id: x.id,
         kind: 'expense',
         occurredOn: x.occurred_on,
@@ -86,12 +136,17 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
         currency: x.currency,
         eventId: x.event_id,
         receiptPath: x.receipt_path,
+        party: null,
+        reference: null,
       }))
-      const rows = [...income, ...outgoings]
+
+      const rows = [...athleteIncome, ...ticketIncome, ...outgoings]
         .filter(
           (x) =>
             !term ||
-            `${x.category} ${x.description} ${x.reference ?? ''}`.toLowerCase().includes(term),
+            `${x.category} ${x.description} ${x.reference ?? ''} ${x.party ?? ''}`
+              .toLowerCase()
+              .includes(term),
         )
         .sort((a, b) => String(b.occurredOn).localeCompare(String(a.occurredOn)))
       const totals = rows.reduce((a, x) => ({ ...a, [x.kind]: a[x.kind] + Number(x.amount) }), {

@@ -206,3 +206,87 @@ describe('buildDashboardOverview — desglose de eventos', () => {
     )
   })
 })
+
+describe('buildDashboardOverview — agregados del servidor', () => {
+  // El snapshot operativo viene acotado por ventana: los totales del
+  // dashboard salen del conteo de la base cuando existe y del array cuando
+  // no (demo, backend viejo). Estos tests fijan las dos cosas: que el
+  // servidor gana, y que sin servidor el número no cambia.
+  const truncatedArrays = {
+    athletes: [
+      { id: 'a1', fullName: 'Ana Test', createdAt: '2026-08-20T10:00:00Z' },
+      { id: 'a2', fullName: 'Bruno Test', createdAt: '2026-08-21T10:00:00Z' },
+    ],
+    memberships: [
+      { id: 'm1', athleteId: 'a1', status: 'activa', startDate: '2026-01-01' },
+    ],
+    registrations: [
+      { id: 'r1', athleteId: 'a1', status: 'confirmada', createdAt: '2026-08-10T10:00:00Z' },
+    ],
+    payments: [
+      { id: 'p1', athleteId: 'a1', status: 'validacion_manual', amount: 75000 },
+    ],
+    events: [],
+  }
+
+  it('prefiere los conteos de la base sobre el array acotado', () => {
+    const overview = buildDashboardOverview({
+      ...truncatedArrays,
+      serverSummary: {
+        athletes: 532,
+        memberships: {
+          total: 510,
+          active: 480,
+          expiringSoon: 12,
+          expired: 20,
+          cancelled: 10,
+        },
+        registrations: {
+          total: 210,
+          confirmed: 150,
+          pendingPayment: 40,
+          observed: 5,
+        },
+        payments: {
+          pending: 45,
+          validacion_manual: 8,
+          financed: 3,
+          rechazado: 6,
+          aprobado: 190,
+          all: 241,
+          openAmount: 412000,
+          openAmountTruncated: false,
+        },
+      },
+    })
+
+    expect(overview.primary.find((item) => item.labelKey === 'athletes').value).toBe(532)
+    expect(overview.primary.find((item) => item.labelKey === 'registrations').value).toBe(210)
+    expect(overview.primary.find((item) => item.labelKey === 'pendingPayments').value).toBe(45)
+    expect(overview.finance.pendingAmount).toBe(412000)
+    // "Pendiente" del desglose = abiertas sin declaración: 45 - 8.
+    expect(
+      overview.breakdowns.payments.items.find((item) => item.status === 'pendiente').value,
+    ).toBe(37)
+    expect(
+      overview.breakdowns.payments.items.find((item) => item.status === 'validacion_manual')
+        .value,
+    ).toBe(8)
+    // Afiliadas activas = activa estable + por vencer, del conteo de la base.
+    expect(overview.breakdowns.memberships.items.find((item) => item.status === 'activa').value).toBe(468)
+    expect(overview.breakdowns.memberships.items.find((item) => item.status === 'expiringSoon').value).toBe(12)
+    expect(overview.operationalFlows.payments.manualValidation).toBe(8)
+    expect(overview.operationalFlows.registrations.observed).toBe(5)
+  })
+
+  it('sin summary deriva del array como siempre — mismo número en ventana chica', () => {
+    const overview = buildDashboardOverview({ ...truncatedArrays })
+
+    expect(overview.primary.find((item) => item.labelKey === 'athletes').value).toBe(2)
+    expect(overview.primary.find((item) => item.labelKey === 'pendingPayments').value).toBe(1)
+    expect(overview.finance.pendingAmount).toBe(75000)
+    expect(
+      overview.breakdowns.registrations.items.find((item) => item.status === 'confirmada').value,
+    ).toBe(1)
+  })
+})

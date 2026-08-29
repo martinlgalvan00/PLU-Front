@@ -25,11 +25,12 @@ const ROWS = [
     id: 'income-1',
     kind: 'income',
     occurredOn: '2026-08-10',
-    category: 'Cobro aprobado',
-    description: 'Afiliación anual — Ana Torres',
+    category: 'Afiliación',
+    description: 'Afiliación — Ana Torres',
     amount: 42000,
     currency: 'ARS',
     reference: 'ORD-1042',
+    party: 'Ana Torres',
   },
   {
     id: 'expense-1',
@@ -40,6 +41,7 @@ const ROWS = [
     amount: 38000,
     currency: 'ARS',
     reference: null,
+    party: null,
   },
 ]
 

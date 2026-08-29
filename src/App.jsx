@@ -67,6 +67,7 @@ import {
   getRoleLabel,
   isCheckinOnly,
   isPluUsaPartner,
+  isStaffSession,
 } from './lib/roles.js'
 import { getAllowedAdminSections } from './lib/permissions.js'
 import HomePage from './pages/HomePage.jsx'
@@ -282,9 +283,9 @@ export default function App() {
   }, [getSession])
 
   const navigate = useCallback(
-    (nextView, options = {}) => {
-      const currentSession = getSession()
-      const currentRole = currentSession?.role
+    async (nextView, options = {}) => {
+      let currentSession = getSession()
+      let currentRole = currentSession?.role
       const afterLogin = resolveAfterLoginDestination(
         nextView,
         currentRole,
@@ -295,6 +296,29 @@ export default function App() {
       const requestedOptions = resumedAthleteDestination ? afterLogin.options : options
       const adminRequired = requestedView === 'admin'
       const athleteRequired = ['profile', 'membership', 'competition'].includes(requestedView)
+
+      // Staff logueado que pide afiliación/inscripción: un request abre el modo atleta.
+      if (athleteRequired && currentRole !== 'athlete_plu' && isStaffSession(currentSession)) {
+        try {
+          await app.enterAthleteContext()
+          currentSession = getSession()
+          currentRole = currentSession?.role
+        } catch (error) {
+          console.warn('No se pudo abrir el contexto de atleta para el staff.', error)
+        }
+      }
+
+      // Staff en modo atleta que vuelve al panel.
+      if (adminRequired && currentRole === 'athlete_plu' && currentSession?.staffAvailable) {
+        try {
+          await app.returnToStaffContext()
+          currentSession = getSession()
+          currentRole = currentSession?.role
+        } catch (error) {
+          console.warn('No se pudo volver al panel staff.', error)
+        }
+      }
+
       const blocked =
         (adminRequired && !canViewAdmin(currentSession)) ||
         (athleteRequired && currentRole !== 'athlete_plu')
@@ -375,16 +399,22 @@ export default function App() {
       setTransitionDirection(getTransitionDirection(view, resolvedView))
       setView(resolvedView)
     },
-    [publicEvents, getSession, pendingAthleteDestination, view],
+    [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext],
   )
 
-  function selectEvent(event) {
+  async function selectEvent(event) {
     setSelectedEvent(event)
     if (app.checkoutAvailability?.registrationEnabled === false) {
       navigate('events', event?.slug ? { eventSlug: event.slug } : {})
       return
     }
-    if (getSession()?.role !== 'athlete_plu') {
+    const current = getSession()
+    if (current?.role !== 'athlete_plu') {
+      if (isStaffSession(current)) {
+        // Staff: puente a atleta e inscripción directa, sin /crear-cuenta.
+        navigate('competition')
+        return
+      }
       // Conserva el evento elegido mientras la persona crea su ficha. Al
       // terminar el alta, `navigate('profile')` retoma automáticamente la
       // inscripción en vez de mandarla a empezar de nuevo desde el calendario.

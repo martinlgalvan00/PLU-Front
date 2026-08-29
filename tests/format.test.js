@@ -3,6 +3,7 @@ import {
   documentKind,
   formatDocumentWithKind,
   formatPromoDeadline,
+  isCalendarTodayInArgentina,
   money,
   splitFullName,
   generateId,
@@ -43,5 +44,14 @@ describe('format', () => {
     expect(formatDocumentWithKind('30111222')).toBe('DNI 30111222')
     expect(formatDocumentWithKind('X1234567')).toBe('ID X1234567')
     expect(formatDocumentWithKind(null)).toBe('')
+  })
+
+  it('detecta inscritos del día calendario en Argentina', () => {
+    const now = Date.parse('2026-08-28T18:00:00-03:00')
+    expect(isCalendarTodayInArgentina('2026-08-28T10:00:00-03:00', now)).toBe(true)
+    // 23:00 AR del día anterior (= 02:00 UTC del 28) sigue siendo ayer en AR
+    expect(isCalendarTodayInArgentina('2026-08-28T02:00:00.000Z', now)).toBe(false)
+    expect(isCalendarTodayInArgentina('2026-08-28T03:30:00.000Z', now)).toBe(true)
+    expect(isCalendarTodayInArgentina(null, now)).toBe(false)
   })
 })

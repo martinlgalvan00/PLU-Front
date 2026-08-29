@@ -8,6 +8,7 @@ import {
   formatMemberSince,
   getCommunityStats,
   getRecentMembers,
+  pickSpotlightMembers,
 } from '../../services/communityService.js'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 import {
@@ -69,12 +70,9 @@ function RosterList({ members, recentLabel, emptyLabel, locale, reducedMotion, l
   if (reducedMotion) {
     return (
       <ul className="community-spotlight__list" aria-label={recentLabel}>
-        {members.map((member, index) => (
+        {members.map((member) => (
           <li key={member.id} className="community-spotlight__row">
             <RosterAvatar member={member} />
-            <span className="community-spotlight__index" aria-hidden>
-              {String(index + 1).padStart(2, '0')}
-            </span>
             <span className="community-spotlight__row-main">
               <strong className="community-spotlight__row-name">{member.name}</strong>
               <span className="community-spotlight__row-meta">
@@ -107,12 +105,9 @@ function RosterList({ members, recentLabel, emptyLabel, locale, reducedMotion, l
       }}
       variants={listVariants}
     >
-      {members.map((member, index) => (
+      {members.map((member) => (
         <m.li key={member.id} className="community-spotlight__row" variants={rosterItem}>
           <RosterAvatar member={member} />
-          <span className="community-spotlight__index" aria-hidden>
-            {String(index + 1).padStart(2, '0')}
-          </span>
           <span className="community-spotlight__row-main">
             <strong className="community-spotlight__row-name">{member.name}</strong>
             <span className="community-spotlight__row-meta">
@@ -136,7 +131,9 @@ export default function CommunitySpotlight({ onNavigate }) {
   const { HOME_COMMUNITY } = useContent()
   const { locale, t } = useI18n()
   const { reducedMotion } = useMotionConfig()
-  const [members, setMembers] = useState(() => getRecentMembers(FEED_LIMIT, locale))
+  const [members, setMembers] = useState(() =>
+    pickSpotlightMembers(getRecentMembers(FEED_LIMIT, locale), FEED_LIMIT),
+  )
   const [stats, setStats] = useState(() => getCommunityStats(locale))
 
   useEffect(() => {
@@ -199,10 +196,7 @@ export default function CommunitySpotlight({ onNavigate }) {
       </header>
 
       <div className="community-spotlight__roster">
-        <p className="community-spotlight__roster-label">
-          <span className="community-spotlight__live" aria-hidden />
-          {HOME_COMMUNITY.recentLabel}
-        </p>
+        <p className="community-spotlight__roster-label">{HOME_COMMUNITY.recentLabel}</p>
 
         <RosterList
           members={members}

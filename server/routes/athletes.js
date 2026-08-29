@@ -11,6 +11,7 @@ import {
   resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
+import { etagMatches, PRIVATE_REVALIDATE_CACHE, weakEtagFromParts } from '../lib/http.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
@@ -63,6 +64,12 @@ import {
 } from '../modules/payments/paymentAuditTrail.js'
 import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
 import { logger } from '../lib/logger.js'
+import {
+  getCoreName,
+  isSimilarCore,
+  mergeGymVariants,
+  preferGymName,
+} from '../lib/gymNormalize.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import {
   createPasswordResetToken,
@@ -451,6 +458,13 @@ const paymentOrdersQuerySchema = z.object({
     .optional(),
   method: z.enum(['mercado_pago', 'manual_link']).optional(),
   concept: z.enum(['membership', 'registration', 'combo']).optional(),
+  // Canal manual (efectivo vs transferencia): quiénes validan cada canal son
+  // decisiones operativas distintas — el efectivo se cobra en la puerta, la
+  // transferencia se acredita contra comprobante.
+  channel: z.enum(['bank_transfer', 'cash_pitbull', 'wise_transfer']).optional(),
+  // Orden de la cola: `recent` (default) es cronología; `aging` prioriza lo
+  // declarado más viejo; `financing_due` ordena la deuda por vencimiento.
+  sort: z.enum(['recent', 'aging', 'financing_due']).optional().default('recent'),
   // Sólo las que ya habilitaron derechos sin cobrar (combo financiado).
   financed: z
     .union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')])
@@ -463,11 +477,10 @@ const paymentOrdersQuerySchema = z.object({
 })
 /**
  * Filtros/paginación opcionales del snapshot admin. Sin query params el
- * comportamiento es idéntico al actual (trae todo, sin `.range()`): el
- * dashboard y los badges de navegación siguen necesitando el snapshot
- * completo. Esto solo deja la capacidad lista en el backend para cuando
- * algún listado quiera pedir un recorte filtrado en vez de filtrar en el
- * cliente sobre el array completo.
+ * snapshot viene acotado por `ADMIN_SNAPSHOT_DEFAULT_LIMIT` con `totals` y
+ * `summary`: el dashboard y los badges leen los agregados de la base y las
+ * tablas operan sobre la ventana — exportaciones o auditorías piden un
+ * `limit` explícito más alto.
  */
 const adminDataQuerySchema = z.object({
   athleteStatus: z
@@ -479,9 +492,13 @@ const adminDataQuerySchema = z.object({
   registrationStatus: z
     .enum(['borrador', 'pendiente_pago', 'pagada', 'confirmada', 'observada', 'cancelada'])
     .optional(),
+  // Búsqueda del padrón por nombre, documento o email. Va al servidor: con el
+  // snapshot acotado, el filtro del navegador sólo encontraba a quien ya
+  // hubiera entrado en la ventana.
+  q: z.string().trim().min(1).max(80).optional(),
   limit: z.coerce.number().int().min(1).max(1000).optional(),
   offset: z.coerce.number().int().min(0).optional(),
-  // `0` saltea la firma de fotos: el poll de 60 s no necesita un token nuevo
+  // `0` salta la firma de fotos: el poll de 120 s no necesita un token nuevo
   // (cambia el `src` y el browser re-descarga el original desde Storage).
   photos: z.enum(['0', '1']).optional(),
 })
@@ -593,56 +610,6 @@ export function createAthleteRoutes({
   const athlete = async (req) => requireAthleteSession({ client: client(), req })
   const prisma = getPrisma()
 
-  const stopWords = [
-    'gym', 'club', 'barbell', 'crossfit', 'box', 'team',
-    'powerlifting', 'fitness', 'centro', 'entrenamiento',
-    'strength', 'de', 'el', 'la', 'los', 'las',
-  ]
-  const normalizeGym = (name) =>
-    String(name)
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-  const getCoreName = (norm) => {
-    const words = norm.split(' ').filter(Boolean)
-    const filtered = words.filter((w) => !stopWords.includes(w))
-    return filtered.length > 0 ? filtered.join(' ') : norm
-  }
-  const levenshtein = (a, b) => {
-    if (a === b) return 0
-    const matrix = []
-    for (let i = 0; i <= b.length; i++) matrix[i] = [i]
-    for (let j = 0; j <= a.length; j++) matrix[0][j] = j
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        if (b.charAt(i - 1) === a.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1]
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          )
-        }
-      }
-    }
-    return matrix[b.length][a.length]
-  }
-  const isSimilarCore = (coreA, coreB) => {
-    if (coreA === coreB) return true
-    const aNoSpace = coreA.replace(/\s+/g, '')
-    const bNoSpace = coreB.replace(/\s+/g, '')
-    if (aNoSpace === bNoSpace) return true
-    const dist = levenshtein(coreA, coreB)
-    const maxLen = Math.max(coreA.length, coreB.length)
-    if (maxLen >= 10 && dist <= 2) return true
-    if (maxLen >= 5 && dist <= 1) return true
-    if (coreA.length >= 4 && coreB.startsWith(coreA)) return true
-    if (coreB.length >= 4 && coreA.startsWith(coreB)) return true
-    return false
-  }
-
   /**
    * Normaliza el gimnasio declarado contra el catálogo de Prisma.
    *
@@ -652,29 +619,36 @@ export function createAthleteRoutes({
    * tiene que seguir con el nombre que escribió la persona. Sin esta guarda
    * cualquiera de esos casos devolvía 500 en `POST /api/athletes/register`, que
    * es la puerta de entrada del producto.
+   *
+   * Preferencia de nombre: entre variantes del mismo core, gana el más completo
+   * (más largo). Si el input es más largo que el canónico guardado, se actualiza.
    */
   const resolveGymName = async (rawName) => {
     if (!rawName || !rawName.trim()) return rawName
     const cleanName = String(rawName).trim()
-    const norm = normalizeGym(cleanName)
-    const core = getCoreName(norm)
+    const core = getCoreName(cleanName)
 
     try {
-      // Asumimos un solo tenant operativo (PLU) por ahora para Prisma
       const org = await prisma.organization.findFirst()
       if (!org) return cleanName
       const organizationId = org.id
 
-      // Buscar todos los gyms existentes
       const existing = await prisma.gym.findMany({ where: { organizationId } })
 
       for (const gym of existing) {
-        if (isSimilarCore(core, gym.coreName)) {
-          return gym.name
+        if (!isSimilarCore(core, gym.coreName)) continue
+
+        const preferred = preferGymName(gym.name, cleanName)
+        if (preferred !== gym.name) {
+          const updated = await prisma.gym.update({
+            where: { id: gym.id },
+            data: { name: preferred },
+          })
+          return updated.name
         }
+        return gym.name
       }
 
-      // Si no existe ninguno similar, se registra
       const created = await prisma.gym.upsert({
         where: {
           organizationId_coreName: {
@@ -691,8 +665,6 @@ export function createAthleteRoutes({
       })
       return created.name
     } catch (error) {
-      // Carrera de inserción concurrente, catálogo ausente o Prisma sin
-      // configurar: en los tres casos el alta sigue con lo que se escribió.
       logger.warn('athlete.gym_normalization_skipped', {
         err: error,
         gym: cleanName,
@@ -1056,108 +1028,38 @@ export function createAthleteRoutes({
 
   /**
    * Colección consolidada de gimnasios para autocompletado en el front.
+   * Preferencia: catálogo canónico `Gym`; fallback: strings de atletas fusionados.
    */
   router.get('/gyms', publicReadLimiter, async (req, res, next) => {
     try {
-      const rows = await prisma.organizationAthlete.groupBy({
-        by: ['gym'],
-        _count: { gym: true },
-        where: { gym: { not: null, not: '' } },
-      })
-      const normalize = (name) =>
-        String(name)
-          .trim()
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
+      let gyms = []
 
-      const stopWords = [
-        'gym', 'club', 'barbell', 'crossfit', 'box', 'team',
-        'powerlifting', 'fitness', 'centro', 'entrenamiento',
-        'strength', 'de', 'el', 'la', 'los', 'las',
-      ]
-      
-      const getCoreName = (norm) => {
-        const words = norm.split(' ').filter(Boolean)
-        const filtered = words.filter(w => !stopWords.includes(w))
-        return filtered.length > 0 ? filtered.join(' ') : norm
-      }
-
-      const levenshtein = (a, b) => {
-        if (a === b) return 0
-        const matrix = []
-        for (let i = 0; i <= b.length; i++) matrix[i] = [i]
-        for (let j = 0; j <= a.length; j++) matrix[0][j] = j
-        for (let i = 1; i <= b.length; i++) {
-          for (let j = 1; j <= a.length; j++) {
-            if (b.charAt(i - 1) === a.charAt(j - 1)) {
-              matrix[i][j] = matrix[i - 1][j - 1]
-            } else {
-              matrix[i][j] = Math.min(
-                matrix[i - 1][j - 1] + 1,
-                matrix[i][j - 1] + 1,
-                matrix[i - 1][j] + 1
-              )
-            }
-          }
+      try {
+        const org = await prisma.organization.findFirst()
+        if (org) {
+          const catalog = await prisma.gym.findMany({
+            where: { organizationId: org.id },
+            select: { name: true },
+            orderBy: { name: 'asc' },
+          })
+          gyms = catalog.map((g) => g.name).filter(Boolean)
         }
-        return matrix[b.length][a.length]
+      } catch (catalogError) {
+        logger.warn('athlete.gyms_catalog_unavailable', { err: catalogError })
       }
 
-      const isSimilarCore = (coreA, coreB) => {
-        if (coreA === coreB) return true
-        
-        // Ignorar espacios para casos como "power house" vs "powerhouse"
-        const aNoSpace = coreA.replace(/\s+/g, '')
-        const bNoSpace = coreB.replace(/\s+/g, '')
-        if (aNoSpace === bNoSpace) return true
-
-        const dist = levenshtein(coreA, coreB)
-        const maxLen = Math.max(coreA.length, coreB.length)
-        if (maxLen >= 10 && dist <= 2) return true
-        if (maxLen >= 5 && dist <= 1) return true
-        
-        if (coreA.length >= 4 && coreB.startsWith(coreA + ' ')) return true
-        if (coreB.length >= 4 && coreA.startsWith(coreB + ' ')) return true
-        
-        return false
+      if (gyms.length === 0) {
+        const rows = await prisma.organizationAthlete.groupBy({
+          by: ['gym'],
+          _count: { gym: true },
+          where: { gym: { not: null, not: '' } },
+        })
+        const anchors = mergeGymVariants(
+          rows.map((row) => ({ name: row.gym, count: row._count.gym })),
+        )
+        gyms = anchors.map((g) => g.name).sort((a, b) => a.localeCompare(b, 'es'))
       }
 
-      // Paso 1: Agrupar exactamente
-      const exactGrouped = {}
-      for (const row of rows) {
-        if (!row.gym) continue
-        const norm = normalize(row.gym)
-        if (!exactGrouped[norm]) {
-          exactGrouped[norm] = { name: row.gym, count: row._count.gym }
-        } else {
-          if (row._count.gym > exactGrouped[norm].count) {
-            exactGrouped[norm].name = row.gym
-          }
-          exactGrouped[norm].count += row._count.gym
-        }
-      }
-
-      // Paso 2: Ordenar por uso descendente para usar los más grandes como anclas
-      const sortedGroups = Object.entries(exactGrouped).sort((a, b) => b[1].count - a[1].count)
-      const anchors = []
-
-      for (const [norm, data] of sortedGroups) {
-        const core = getCoreName(norm)
-        let merged = false
-        for (const anchor of anchors) {
-          if (isSimilarCore(core, anchor.core)) {
-            anchor.count += data.count
-            merged = true
-            break
-          }
-        }
-        if (!merged) {
-          anchors.push({ core, name: data.name, count: data.count })
-        }
-      }
-
-      const gyms = anchors.map((g) => g.name).sort((a, b) => a.localeCompare(b))
       res.json({ gyms })
     } catch (error) {
       next(error)
@@ -1406,6 +1308,15 @@ export function createAthleteRoutes({
       })
       if (!auth) {
         res.json({ user: null })
+        return
+      }
+
+      const revision = await repo().snapshotRevision(auth.athleteId)
+      const etag = weakEtagFromParts('athlete-session', auth.athleteId, revision)
+      res.set('ETag', etag)
+      res.set('Cache-Control', PRIVATE_REVALIDATE_CACHE)
+      if (etagMatches(req.headers['if-none-match'], etag)) {
+        res.status(304).end()
         return
       }
 
@@ -2113,15 +2024,43 @@ export function createAthleteRoutes({
       // No leemos segmentos que el rol no puede recibir. Antes se cargaban
       // las cuatro tablas y luego se descartaban del JSON: costaba base y
       // transferencia aun para perfiles de alcance acotado.
-      const data = await repo().adminData(
-        {
-          athletes: canReadAthletes,
-          memberships: canReadMemberships,
-          registrations: canReadRegistrations,
-          paymentOrders: canReadPayments,
-        },
-        parsedFilters.data,
+      const scope = {
+        athletes: canReadAthletes,
+        memberships: canReadMemberships,
+        registrations: canReadRegistrations,
+        paymentOrders: canReadPayments,
+      }
+      const revision = await repo().adminDataRevision(scope)
+      const etag = weakEtagFromParts(
+        'admin-data',
+        parsedFilters.data.photos ?? '1',
+        parsedFilters.data.athleteStatus ?? '',
+        parsedFilters.data.membershipStatus ?? '',
+        parsedFilters.data.registrationStatus ?? '',
+        parsedFilters.data.q ?? '',
+        parsedFilters.data.limit ?? '',
+        parsedFilters.data.offset ?? '',
+        canReadAthletes,
+        canReadMemberships,
+        canReadRegistrations,
+        canReadPayments,
+        revision,
       )
+      res.set('ETag', etag)
+      res.set('Cache-Control', PRIVATE_REVALIDATE_CACHE)
+      if (etagMatches(req.headers['if-none-match'], etag)) {
+        res.status(304).end()
+        return
+      }
+
+      // Los agregados del dashboard se calculan en la base sin importar la
+      // ventana: con el snapshot acotado, contar el array que viaja dejaría de
+      // ser el total pasado el primer recorte sin que ninguna pantalla lo
+      // dijera. Van sólo con los segmentos que el rol puede leer.
+      const [data, summary] = await Promise.all([
+        repo().adminData(scope, parsedFilters.data),
+        repo().adminDataSummary(scope),
+      ])
 
       res.json({
         athletes: canReadAthletes ? data.athletes : [],
@@ -2131,6 +2070,8 @@ export function createAthleteRoutes({
         // agregaba `payments: []`, pero `...data` seguía exponiendo las
         // órdenes aunque el rol no tuviera admin.payments.read.
         paymentOrders: canReadPayments ? data.paymentOrders : [],
+        totals: data.totals ?? null,
+        summary: summary ?? null,
       })
     } catch (error) {
       next(error)
