@@ -3795,15 +3795,15 @@ html.plu-drawer-open body {
 
 .plu-profile-menu__info {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
 .plu-profile-menu__eyebrow {
-  color: var(--institution-text-muted);
+  color: color-mix(in srgb, var(--institution-gold) 72%, var(--institution-text-muted));
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   margin: 0;
   text-transform: uppercase;
 }
@@ -3811,14 +3811,23 @@ html.plu-drawer-open body {
 .plu-profile-menu__name {
   color: var(--institution-text);
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   line-height: 1.2;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.plu-profile-menu__role-hint {
+  color: var(--institution-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  margin: 0;
 }
 
 .plu-profile-menu__actions {
@@ -3851,6 +3860,18 @@ html.plu-drawer-open body {
 
 .plu-profile-menu__actions button span {
   min-width: 0;
+}
+
+.plu-profile-menu__actions button.plu-profile-menu__admin {
+  color: var(--institution-text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.plu-profile-menu__actions button.plu-profile-menu__admin:hover,
+.plu-profile-menu__actions button.plu-profile-menu__admin:focus-visible {
+  background: color-mix(in srgb, var(--institution-gold) 12%, transparent);
+  color: var(--institution-text);
 }
 
 .plu-profile-menu__actions button:hover,

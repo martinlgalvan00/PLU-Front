@@ -88,7 +88,7 @@ describe('EventsSection — filas de sección de la consola', () => {
     })
     const panel = consolePanel()
 
-    expect(within(panel).getByRole('button', { name: /entradas/i })).toBeTruthy()
+    expect(within(panel).getByRole('button', { name: /ventas y cupos/i })).toBeTruthy()
     // El valor sale del evento, no de un número decorativo.
     expect(panel.textContent).toContain('1 tipos activos')
     expect(panel.textContent).toContain('1 días')
@@ -102,23 +102,43 @@ describe('EventsSection — filas de sección de la consola', () => {
     ).toBeNull()
   })
 
-  it('abre la grilla a ancho completo, sin el editor modal', async () => {
+  it('abre la grilla de tandas en acordeón, sin salir de la consola', async () => {
     renderEvents()
     const panel = consolePanel()
     fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    expect(
+      within(dialog).getByRole('button', { name: /estructura/i }).getAttribute('aria-expanded'),
+    ).toBe('true')
+    expect(dialog.querySelector('.admin-event-console__fold--structure')).not.toBeNull()
+    expect(document.querySelector('.admin-event-drill')).toBeNull()
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
+      expect(dialog.querySelector('.admin-event-sessions--embedded')).not.toBeNull()
     })
-    // El editor reescribe el evento entero al guardar: la grilla no pasa por ahí.
-    expect(screen.queryByRole('dialog')).toBeNull()
-    expect(document.querySelector('.admin-event-drill')).not.toBeNull()
   })
 
-  it('vuelve a la lista desde la vista de detalle', async () => {
+  it('cierra Estructura al volver a tocar la fila', () => {
     renderEvents()
     const panel = consolePanel()
     fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
+    expect(
+      within(panel).getByRole('button', { name: /estructura/i }).getAttribute('aria-expanded'),
+    ).toBe('true')
+
+    fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
+    expect(
+      within(panel).getByRole('button', { name: /estructura/i }).getAttribute('aria-expanded'),
+    ).toBe('false')
+    expect(panel.querySelector('.admin-event-console__fold--structure')).toBeNull()
+  })
+
+  it('vuelve a la lista desde la vista de zonas', async () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /zonas y seguridad/i }))
     await waitFor(() => expect(document.querySelector('.admin-event-drill')).not.toBeNull())
 
     fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
@@ -126,7 +146,6 @@ describe('EventsSection — filas de sección de la consola', () => {
     await waitFor(() => {
       expect(document.querySelector('.admin-event-drill')).toBeNull()
     })
-    // Al volver, la consola vuelve a estar a un toque de la fila.
     expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
     fireEvent.click(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/))
     expect(screen.getByRole('dialog', { name: 'Evento seleccionado' })).toBeTruthy()
@@ -141,14 +160,42 @@ describe('EventsSection — filas de sección de la consola', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('al editar reemplaza la consola: un solo modal', () => {
+  it('al tocar Datos abre el editor en acordeón dentro de la consola', () => {
     renderEvents()
     const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: 'Editar evento' }))
+    fireEvent.click(within(panel).getByRole('button', { name: /datos/i }))
 
-    expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
-    expect(screen.getByRole('dialog', { name: /pitbull classic/i })).toBeTruthy()
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    expect(dialog).toBeTruthy()
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(
+      within(dialog).getByRole('button', { name: /datos/i }).getAttribute('aria-expanded'),
+    ).toBe('true')
+    expect(within(dialog).queryByRole('button', { name: /volver a la consola/i })).toBeNull()
+    expect(within(dialog).queryByRole('tablist', { name: /secciones del detalle/i })).toBeNull()
+    expect(within(dialog).getByRole('button', { name: /cerrar sección/i })).toBeTruthy()
+    expect(dialog.querySelector('.admin-event-console-modal__head')).not.toBeNull()
+    expect(dialog.querySelector('.admin-event-console__fold')).not.toBeNull()
+    expect(dialog.querySelector('.admin-event-editor--accordion')).not.toBeNull()
+  })
+
+  it('al cambiar de sección mantiene un solo editor montado', () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /datos/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    const fold = dialog.querySelector('.admin-event-console__fold')
+    expect(fold).not.toBeNull()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /ventas y cupos/i }))
+    expect(
+      within(dialog).getByRole('button', { name: /ventas y cupos/i }).getAttribute('aria-expanded'),
+    ).toBe('true')
+    expect(
+      within(dialog).getByRole('button', { name: /datos/i }).getAttribute('aria-expanded'),
+    ).toBe('false')
+    expect(dialog.querySelectorAll('.admin-event-editor--accordion')).toHaveLength(1)
+    expect(dialog.querySelector('.admin-event-console__fold')).toBe(fold)
   })
 })
 

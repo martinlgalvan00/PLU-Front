@@ -42,7 +42,11 @@ function toFormSession(session) {
  * los días, que recién existen una vez que el evento está guardado. Por eso el
  * bloque solo aparece para un evento ya creado.
  */
-export default function AdminEventSessionsEditor({ canEdit = false, eventSlug }) {
+export default function AdminEventSessionsEditor({
+  canEdit = false,
+  embedded = false,
+  eventSlug,
+}) {
   const { t } = useI18n()
   const { days, saveSessions, sessions, status } = useEventSchedule(eventSlug)
   const [draft, setDraft] = useState([])
@@ -113,25 +117,33 @@ export default function AdminEventSessionsEditor({ canEdit = false, eventSlug })
   const hasBlankName = draft.some((session) => !session.name.trim())
 
   if (status === 'loading') {
-    return <p className="admin-event-form__section-note">{t('admin.schedule.sessions.loading')}</p>
+    return (
+      <div className={`admin-event-sessions${embedded ? ' admin-event-sessions--embedded' : ''}`}>
+        <p className="admin-event-form__section-note">{t('admin.schedule.sessions.loading')}</p>
+      </div>
+    )
   }
 
   if (status === 'error') {
     return (
-      <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
-        {t('admin.schedule.loadError')}
-      </p>
+      <div className={`admin-event-sessions${embedded ? ' admin-event-sessions--embedded' : ''}`}>
+        <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
+          {t('admin.schedule.loadError')}
+        </p>
+      </div>
     )
   }
 
   if (days.length === 0) {
     return (
-      <p className="admin-event-form__section-note">{t('admin.schedule.sessions.needsDays')}</p>
+      <div className={`admin-event-sessions${embedded ? ' admin-event-sessions--embedded' : ''}`}>
+        <p className="admin-event-form__section-note">{t('admin.schedule.sessions.needsDays')}</p>
+      </div>
     )
   }
 
   return (
-    <div className="admin-event-sessions">
+    <div className={`admin-event-sessions${embedded ? ' admin-event-sessions--embedded' : ''}`}>
       <div className="admin-event-sessions__intro">
         <span className="admin-event-sessions__icon" aria-hidden>
           <CalendarClock size={16} strokeWidth={1.8} />

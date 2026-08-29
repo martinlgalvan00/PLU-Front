@@ -8,7 +8,10 @@ import {
   resolvePaidCheckoutOverride,
 } from '../lib/featureAvailability.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
+import { sendPortraitBinary } from '../lib/portraitBinaryCache.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
+import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
+import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
@@ -76,11 +79,17 @@ import { logger } from '../lib/logger.js'
 import { createSupabasePlatformSettingsRepository } from '../modules/settings/supabasePlatformSettingsRepository.js'
 import {
   assertCheckoutEnabled,
-  assertPaymentChannelEnabled,
   assertTicketCheckoutEnabled,
   assertValidationEnabled,
   resolvePublicCheckoutAvailability,
 } from '../services/platformFeatureToggleService.js'
+import {
+  applyEventPaymentChannelOverrides,
+  assertEventPaymentChannelEnabled,
+  resolveBankTransferDetails,
+} from '../modules/payments/eventPaymentProfile.js'
+import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
+import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import { wisePriceFor } from '../modules/pricing/checkoutPricePolicy.js'
 
 const attendeeSchema = z.object({
@@ -172,6 +181,17 @@ export function createTicketRoutes({
     if (!parsed.success) throw new HttpError(400, 'Orden invalida.')
     return parsed.data
   }
+
+  /**
+   * Perfil de cobro del evento (overrides + banco). Sin Supabase (tests locales
+   * con repo mock) se hereda la plataforma: mismo comportamiento que antes de
+   * Fase A.
+   */
+  async function loadEventPaymentProfile(eventSlug) {
+    if (!getSupabaseAdmin?.()) return null
+    return athleteRepo().findEventPricing(eventSlug)
+  }
+
   const verifiedTicketEventId = (result) => result?.ticket?.event_id ?? result?.event_id
 
   // El alcance vive en la cuenta, no en el nombre del rol. Cualquier usuario
@@ -212,7 +232,13 @@ export function createTicketRoutes({
           req.validatedBody.provider === 'manual'
             ? (req.validatedBody.manualPaymentChannel ?? 'bank_transfer')
             : 'mercado_pago'
-        assertPaymentChannelEnabled(toggles, 'ticket', ticketChannel)
+        const eventPricing = await loadEventPaymentProfile(req.validatedBody.eventSlug)
+        if (getSupabaseAdmin?.() && !eventPricing) {
+          throw new HttpError(404, 'Evento no encontrado.')
+        }
+        assertEventPaymentChannelEnabled(toggles, 'ticket', ticketChannel, {
+          eventOverrides: eventPricing?.payment_channel_overrides ?? null,
+        })
         const ticketArsTotal =
           ticketChannel === 'wise_transfer'
             ? await resolveTicketOrderArsTotal(getSupabaseAdmin?.(), req.validatedBody)
@@ -221,16 +247,24 @@ export function createTicketRoutes({
           ticketChannel === 'wise_transfer'
             ? wisePriceFor({ concept: 'ticket', arsAmount: ticketArsTotal })
             : null
-        res.status(201).json(
-          await repo().createOrder({
-            ...req.validatedBody,
-            // Precio calculado por la API, nunca por el cliente: el monto
-            // por asistente (`wisePriceFor`) se multiplica acá y viaja como
-            // total ya cerrado, igual que el resto de las órdenes manuales.
-            wiseAmount: ticketWisePrice ? ticketWisePrice.amount : null,
-            wiseCurrency: ticketWisePrice?.currency ?? null,
-          }),
+        const created = await repo().createOrder({
+          ...req.validatedBody,
+          // Precio calculado por la API, nunca por el cliente: el monto
+          // por asistente (`wisePriceFor`) se multiplica acá y viaja como
+          // total ya cerrado, igual que el resto de las órdenes manuales.
+          wiseAmount: ticketWisePrice ? ticketWisePrice.amount : null,
+          wiseCurrency: ticketWisePrice?.currency ?? null,
+        })
+        const mercadoPagoPublicKey = await resolveMercadoPagoPublicKeyForProfileId(
+          getSupabaseAdmin?.(),
+          eventPricing?.mercado_pago_profile_id,
+          env,
         )
+        res.status(201).json({
+          ...created,
+          mercadoPagoPublicKey,
+          mercadoPagoProfileId: eventPricing?.mercado_pago_profile_id ?? null,
+        })
       } catch (error) {
         next(error)
       }
@@ -247,7 +281,7 @@ export function createTicketRoutes({
           .number()
           .int()
           .positive()
-          .max(5 * 1024 * 1024),
+          .max(2 * 1024 * 1024),
       }),
     ),
     async (req, res, next) => {
@@ -297,19 +331,45 @@ export function createTicketRoutes({
    */
   router.get('/availability/:eventSlug', publicReadLimiter, async (req, res, next) => {
     try {
-      const [availability, toggles] = await Promise.all([
-        repo().availability(req.params.eventSlug),
+      const eventSlug = String(req.params.eventSlug ?? '').trim()
+      const [availability, toggles, eventPricing] = await Promise.all([
+        repo().availability(eventSlug),
         platformSettingsRepo().get(),
+        loadEventPaymentProfile(eventSlug),
       ])
-      const { ticketEnabled, ticketManualEnabled, paymentChannels } =
-        resolvePublicCheckoutAvailability(toggles, env)
+      const platformAvailability = resolvePublicCheckoutAvailability(toggles, env)
+      const scoped = applyEventPaymentChannelOverrides(
+        platformAvailability,
+        eventPricing?.payment_channel_overrides,
+      )
+      let bankProfile = null
+      if (eventPricing?.bank_transfer_profile_id) {
+        const supabase = getSupabaseAdmin?.()
+        if (supabase) {
+          bankProfile = await createSupabasePaymentProfileRepository(supabase)
+            .findById(eventPricing.bank_transfer_profile_id)
+            .catch(() => null)
+        }
+      }
       // Ventana corta: el stock que se muestra acá decide una compra. La
       // reserva real se valida igual al crear la orden, así que 10 s de atraso
       // no habilitan una venta de más -- como mucho un 409 al confirmar.
       res.set('Cache-Control', publicReadCache(PUBLIC_CACHE_SECONDS.LIVE))
       res.json({
         availability,
-        checkout: { ticketEnabled, ticketManualEnabled, channels: paymentChannels.ticket },
+        checkout: {
+          ticketEnabled: scoped.ticketEnabled,
+          ticketManualEnabled: scoped.ticketManualEnabled,
+          channels: scoped.paymentChannels.ticket,
+          bankTransfer: resolveBankTransferDetails(eventPricing, env, bankProfile),
+          bankTransferProfileId: eventPricing?.bank_transfer_profile_id ?? null,
+          mercadoPagoProfileId: eventPricing?.mercado_pago_profile_id ?? null,
+          mercadoPagoPublicKey: await resolveMercadoPagoPublicKeyForProfileId(
+            getSupabaseAdmin?.(),
+            eventPricing?.mercado_pago_profile_id,
+            env,
+          ),
+        },
       })
     } catch (error) {
       next(error)
@@ -393,6 +453,38 @@ export function createTicketRoutes({
     async (req, res, next) => {
       try {
         res.json({ url: await repo().proofUrl(parseOrderId(req)) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  router.get(
+    '/orders/:orderId/proof',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const orderId = parseOrderId(req)
+        const supabase = getSupabaseAdmin?.()
+        if (!supabase) {
+          throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+        }
+
+        const path = await repo().proofPath(orderId)
+        void touchProofAccessed(supabase, {
+          table: 'ticket_orders',
+          orderId,
+        }).catch(() => {})
+
+        await sendPortraitBinary({
+          req,
+          res,
+          client: supabase,
+          path,
+          bucket: PROOF_BUCKET,
+          cacheControl: 'private, max-age=300, stale-while-revalidate=60',
+        })
       } catch (error) {
         next(error)
       }

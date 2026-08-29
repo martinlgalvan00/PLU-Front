@@ -403,6 +403,7 @@ export default function AthleteProfilePage({
               athleteRegistrations={athleteRegistrations}
               nextEvent={nextEvent}
               onNavigateSection={openTab}
+              session={session}
             />
           </Reveal>
           <AccountNav

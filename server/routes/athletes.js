@@ -12,6 +12,15 @@ import {
 } from '../lib/featureAvailability.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { etagMatches, PRIVATE_REVALIDATE_CACHE, weakEtagFromParts } from '../lib/http.js'
+import {
+  AUTH_PORTRAIT_CACHE_CONTROL,
+  isSafeStoragePhotoPath,
+} from '../lib/publicPortraitUrl.js'
+import {
+  PUBLIC_PORTRAIT_CACHE_CONTROL,
+  sendPortraitBinary,
+} from '../lib/portraitBinaryCache.js'
+import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
@@ -23,6 +32,7 @@ async function resolveScopedRegistrationOpensAt(env, supabase, eventSlug) {
 }
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
+import { readSessionFromRequest } from '../services/sessionService.js'
 import {
   athleteAuthLimiter,
   athleteWriteLimiter,
@@ -116,6 +126,13 @@ import {
   assertValidationEnabled,
   resolvePublicCheckoutAvailability,
 } from '../services/platformFeatureToggleService.js'
+import {
+  applyEventPaymentChannelOverrides,
+  assertEventPaymentChannelEnabled,
+  resolveBankTransferDetails,
+} from '../modules/payments/eventPaymentProfile.js'
+import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
+import { resolveMercadoPagoPublicKeyForProfileId } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import {
   ATHLETE_SESSION_COOKIE_NAME,
   createAthleteSession,
@@ -383,7 +400,7 @@ const uploadSchema = z.object({
     .number()
     .int()
     .positive()
-    .max(3 * 1024 * 1024),
+    .max(1 * 1024 * 1024),
 })
 const proofUploadSchema = z.object({
   fileName: z.string().trim().min(1).max(120),
@@ -392,7 +409,7 @@ const proofUploadSchema = z.object({
     .number()
     .int()
     .positive()
-    .max(5 * 1024 * 1024),
+    .max(2 * 1024 * 1024),
 })
 const proofSchema = z.object({
   proofPath: z.string().trim().min(3).max(300),
@@ -1067,9 +1084,8 @@ export function createAthleteRoutes({
   })
 
   /**
-   * Foto firmada para la página pública de verificación QR. Sin sesión: el
-   * código tiene que ser el token del QR (la RPC no expone photo_path por
-   * member_code). Rate-limited como el resto de lecturas públicas.
+   * URL estable del retrato para verificación QR (JSON). El binario lo sirve
+   * `/public/credential-portrait` con ETag/LRU — sin signed URL de Storage.
    */
   router.get('/public/credential-photo', publicReadLimiter, async (req, res, next) => {
     try {
@@ -1370,11 +1386,29 @@ export function createAthleteRoutes({
         if (eventSlug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(eventSlug)) {
           throw new HttpError(400, 'El identificador del evento es inválido.')
         }
-        const [codeRequirements, toggles] = await Promise.all([
+        const [codeRequirements, toggles, event] = await Promise.all([
           resolveRegistrationAccessRequirements(accessRepo(), { eventSlug }),
           platformSettingsRepo().get(),
+          eventSlug ? repo().findEventPricing(eventSlug) : Promise.resolve(null),
         ])
-        const availability = resolvePublicCheckoutAvailability(toggles)
+        const platformAvailability = resolvePublicCheckoutAvailability(toggles)
+        // Con eventSlug la matriz de inscripción/ticket se intersecta con el
+        // perfil del evento; membership sigue siendo solo plataforma.
+        const availability = event
+          ? applyEventPaymentChannelOverrides(
+              platformAvailability,
+              event.payment_channel_overrides,
+            )
+          : platformAvailability
+        let bankProfile = null
+        if (event?.bank_transfer_profile_id) {
+          const supabase = client()
+          if (supabase) {
+            bankProfile = await createSupabasePaymentProfileRepository(supabase)
+              .findById(event.bank_transfer_profile_id)
+              .catch(() => null)
+          }
+        }
         res.json({
           ...codeRequirements,
           membershipEnabled: availability.membershipEnabled,
@@ -1387,6 +1421,14 @@ export function createAthleteRoutes({
           // para cada concepto, incluida la pasarela, que ahora también se
           // puede cerrar desde el panel.
           paymentChannels: availability.paymentChannels,
+          bankTransfer: resolveBankTransferDetails(event, env, bankProfile),
+          bankTransferProfileId: event?.bank_transfer_profile_id ?? null,
+          mercadoPagoProfileId: event?.mercado_pago_profile_id ?? null,
+          mercadoPagoPublicKey: await resolveMercadoPagoPublicKeyForProfileId(
+            client(),
+            event?.mercado_pago_profile_id,
+            env,
+          ),
         })
       } catch (error) {
         next(error)
@@ -1519,15 +1561,16 @@ export function createAthleteRoutes({
         assertCheckoutEnabled(toggles)
         assertRegistrationCheckoutEnabled(toggles)
         const registrationChannel = paymentChannelOf(req.validatedBody.paymentMethod)
-        assertPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
-          override: await manualChannelOverride(req.validatedBody, 'registration'),
-        })
-        await assertCodeAcceptsMercadoPago(req.validatedBody, 'registration')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
         const event = await repo().findEventPricing(eventSlug)
         if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        assertEventPaymentChannelEnabled(toggles, 'registration', registrationChannel, {
+          override: await manualChannelOverride(req.validatedBody, 'registration'),
+          eventOverrides: event.payment_channel_overrides,
+        })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'registration')
         const accessGate = await assertRegistrationAccessCode(accessRepo(), {
           scope: 'registration',
           eventSlug,
@@ -1561,7 +1604,16 @@ export function createAthleteRoutes({
           concept: 'registration',
         })
         await recordOrderCreated(req, { concept: 'registration', result: created, eventSlug })
-        res.status(201).json(created)
+        const mercadoPagoPublicKey = await resolveMercadoPagoPublicKeyForProfileId(
+          client(),
+          event.mercado_pago_profile_id,
+          env,
+        )
+        res.status(201).json({
+          ...created,
+          mercadoPagoPublicKey,
+          mercadoPagoProfileId: event.mercado_pago_profile_id ?? null,
+        })
       } catch (error) {
         await recordOrderFailure(req, { concept: 'registration', error, eventSlug })
         next(error)
@@ -1600,13 +1652,16 @@ export function createAthleteRoutes({
         assertPaymentChannelEnabled(toggles, 'membership', comboChannel, {
           override: comboOverride,
         })
-        assertPaymentChannelEnabled(toggles, 'registration', comboChannel, {
-          override: comboOverride,
-        })
-        await assertCodeAcceptsMercadoPago(req.validatedBody, 'combo')
         const auth = await athlete(req)
         await assertEmailVerified(auth.athleteId)
         await assertCompetitionProfileComplete(await repo().findCompetitionProfile(auth.athleteId))
+        const event = await repo().findEventPricing(eventSlug)
+        if (!event) throw new HttpError(404, 'Evento no encontrado.')
+        assertEventPaymentChannelEnabled(toggles, 'registration', comboChannel, {
+          override: comboOverride,
+          eventOverrides: event.payment_channel_overrides,
+        })
+        await assertCodeAcceptsMercadoPago(req.validatedBody, 'combo')
         // Sin combo vigente el paquete puede ser el de una oferta que este
         // atleta ya canjeó: la llave trae su propia afiliación y se cotiza
         // contra la suma de las partes. Es la misma regla que aplica la RPC.
@@ -1696,7 +1751,16 @@ export function createAthleteRoutes({
           concept: 'combo',
         })
         await recordOrderCreated(req, { concept: 'combo', result: created, eventSlug })
-        res.status(201).json(created)
+        const mercadoPagoPublicKey = await resolveMercadoPagoPublicKeyForProfileId(
+          client(),
+          event?.mercado_pago_profile_id,
+          env,
+        )
+        res.status(201).json({
+          ...created,
+          mercadoPagoPublicKey,
+          mercadoPagoProfileId: event?.mercado_pago_profile_id ?? null,
+        })
       } catch (error) {
         await recordOrderFailure(req, { concept: 'combo', error, eventSlug })
         next(error)
@@ -1959,6 +2023,88 @@ export function createAthleteRoutes({
       }
     },
   )
+
+  /**
+   * Binario del retrato autenticado. URL estable + ETag/LRU: If-None-Match
+   * responde 304 sin tocar Storage (mayor parte del egress del panel).
+   */
+  router.get('/portrait', publicReadLimiter, async (req, res, next) => {
+    try {
+      const path = String(req.query.p ?? '').trim()
+      if (!isSafeStoragePhotoPath(path)) {
+        res.status(400).json({ error: 'Retrato inválido.' })
+        return
+      }
+
+      const staff = await readSessionFromRequest({ prisma, req })
+      const staffAllowed =
+        staff?.user && hasPermission(staff.user, 'admin.athletes.read')
+      if (!staffAllowed) {
+        const athleteAuth = await readAthleteSession({
+          client: client(),
+          token: req.cookies?.[ATHLETE_SESSION_COOKIE_NAME],
+        })
+        if (!athleteAuth) {
+          res.status(401).json({ error: 'No autenticado.' })
+          return
+        }
+        try {
+          assertAthleteOwnsPath(athleteAuth.athleteId, path)
+        } catch {
+          res.status(403).json({ error: 'Sin permisos para este retrato.' })
+          return
+        }
+      }
+
+      const supabase = getSupabaseAdmin?.()
+      if (!supabase) {
+        throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+      }
+
+      await sendPortraitBinary({
+        req,
+        res,
+        client: supabase,
+        path,
+        cacheControl: AUTH_PORTRAIT_CACHE_CONTROL,
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Retrato de verificación QR (público). URL estable por código: el browser
+   * cachea; ya no se firma Storage ni se manda el binario por URL de un solo uso.
+   */
+  router.get('/public/credential-portrait', publicReadLimiter, async (req, res, next) => {
+    try {
+      const code = String(req.query.code ?? '').trim()
+      if (!code) throw new HttpError(400, 'Falta el código de credencial.')
+
+      const supabase = getSupabaseAdmin?.()
+      if (!supabase) {
+        throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+      }
+
+      const resolved = await repo().resolveCredentialPhotoPath(code)
+      if (!resolved?.photoPath) {
+        res.status(404).end()
+        return
+      }
+
+      await sendPortraitBinary({
+        req,
+        res,
+        client: supabase,
+        path: resolved.photoPath,
+        cacheControl: PUBLIC_PORTRAIT_CACHE_CONTROL,
+      })
+    } catch (error) {
+      next(error)
+    }
+  })
+
   router.post(
     '/me/photo',
     athleteWriteLimiter,
@@ -2256,12 +2402,8 @@ export function createAthleteRoutes({
     }
   })
   /**
-   * Comprobantes de varias órdenes de una vez. La bandeja de validación los
-   * pide para las filas abiertas al cargar, así que el diálogo abre con la
-   * imagen ya resuelta en vez de dispararle dos llamadas por cada revisión.
-   *
-   * Es una lectura, pero va por POST: la lista de ids no entra cómoda en una
-   * query string y el límite lo fija el schema, no el largo de la URL.
+   * Comprobantes: URLs estables al proxy. El lote de la bandeja ya no firma
+   * Storage; el binario se sirve con cookie de staff + cache privada corta.
    */
   router.post(
     '/admin/payment-orders/proof-urls',
@@ -2285,6 +2427,40 @@ export function createAthleteRoutes({
         const orderId = z.string().uuid().safeParse(req.params.orderId)
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
         res.json({ url: await repo().paymentProofUrl(orderId.data) })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  router.get(
+    '/admin/payment-orders/:orderId/proof',
+    ...financeReadGuard,
+    staffLimiter,
+    async (req, res, next) => {
+      try {
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+
+        const supabase = getSupabaseAdmin?.()
+        if (!supabase) {
+          throw new HttpError(503, 'Supabase no está configurado en el servidor.')
+        }
+
+        const path = await repo().paymentProofPath(orderId.data)
+        // Best-effort: registro de acceso para auditoría de retención.
+        void touchProofAccessed(supabase, {
+          table: 'athlete_payment_orders',
+          orderId: orderId.data,
+        }).catch(() => {})
+        await sendPortraitBinary({
+          req,
+          res,
+          client: supabase,
+          path,
+          bucket: 'athlete-payment-proofs',
+          // Corto: el comprobante es evidencia operativa, no un asset público.
+          cacheControl: 'private, max-age=300, stale-while-revalidate=60',
+        })
       } catch (error) {
         next(error)
       }

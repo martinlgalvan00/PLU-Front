@@ -14,7 +14,7 @@ function athleteQuery(rows) {
 }
 
 describe('supabase athlete repository admin snapshot', () => {
-  it('firma fotos en lote y reutiliza las URLs mientras siguen vigentes', async () => {
+  it('adjunta URLs estables al proxy sin firmar Storage', async () => {
     let signedUrlCalls = 0
     const client = {
       from: (table) => {
@@ -25,18 +25,12 @@ describe('supabase athlete repository admin snapshot', () => {
         ])
       },
       storage: {
-        from: (bucket) => {
-          expect(bucket).toBe('athlete-photos')
-          return {
-            createSignedUrls: async (paths) => {
-              signedUrlCalls += 1
-              return {
-                data: paths.map((path) => ({ path, signedUrl: `https://signed.test/${path}` })),
-                error: null,
-              }
-            },
-          }
-        },
+        from: () => ({
+          createSignedUrls: async () => {
+            signedUrlCalls += 1
+            throw new Error('no debería firmar fotos del padrón')
+          },
+        }),
       },
     }
     const repository = createSupabaseAthleteRepository(client)
@@ -50,15 +44,15 @@ describe('supabase athlete repository admin snapshot', () => {
     const first = await repository.adminData(scope)
     const second = await repository.adminData(scope)
 
-    expect(signedUrlCalls).toBe(1)
+    expect(signedUrlCalls).toBe(0)
     expect(first.athletes.map((athlete) => athlete.photo_url)).toEqual([
-      'https://signed.test/cache-test/a1.jpg',
-      'https://signed.test/cache-test/a2.jpg',
+      '/api/athletes/portrait?p=cache-test%2Fa1.jpg',
+      '/api/athletes/portrait?p=cache-test%2Fa2.jpg',
     ])
-    expect(second.athletes[0].photo_url).toBe('https://signed.test/cache-test/a1.jpg')
+    expect(second.athletes[0].photo_url).toBe('/api/athletes/portrait?p=cache-test%2Fa1.jpg')
   })
 
-  it('no firma fotos cuando el poll pide photos=0', async () => {
+  it('también adjunta URL estable cuando el poll pide photos=0', async () => {
     const client = {
       from: () => athleteQuery([{ id: 'a1', full_name: 'Ana', photo_path: 'cache-test/a1.jpg' }]),
       storage: {
@@ -75,7 +69,7 @@ describe('supabase athlete repository admin snapshot', () => {
       { photos: '0' },
     )
 
-    expect(payload.athletes[0].photo_url).toBeUndefined()
+    expect(payload.athletes[0].photo_url).toBe('/api/athletes/portrait?p=cache-test%2Fa1.jpg')
     expect(payload.athletes[0].photo_path).toBe('cache-test/a1.jpg')
   })
 
@@ -298,7 +292,38 @@ describe('supabase athlete repository admin snapshot', () => {
     const repository = createSupabaseAthleteRepository(client)
     const urls = await repository.signAthletePhotoPaths(['cache-test/a1.jpg', 'ajeno/x.jpg'])
 
-    expect(urls).toEqual({ 'cache-test/a1.jpg': 'https://signed.test/cache-test/a1.jpg' })
+    expect(urls).toEqual({
+      'cache-test/a1.jpg': '/api/athletes/portrait?p=cache-test%2Fa1.jpg',
+    })
+  })
+
+  it('devuelve URLs estables de comprobantes sin firmar Storage', async () => {
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            in: async () => ({
+              data: [
+                { id: 'order-1', payment_proof_path: 'order-1/comprobante.jpg' },
+                { id: 'order-2', payment_proof_path: null },
+              ],
+              error: null,
+            }),
+          }),
+        }),
+      }),
+      storage: {
+        from: () => ({
+          createSignedUrls: async () => {
+            throw new Error('no debería firmar comprobantes en lote')
+          },
+        }),
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    await expect(repository.paymentProofUrls(['order-1', 'order-2'])).resolves.toEqual({
+      'order-1': '/api/athletes/admin/payment-orders/order-1/proof',
+    })
   })
 })
 

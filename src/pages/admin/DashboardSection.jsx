@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import AdminTopBar from '../../components/layout/AdminTopBar.jsx'
 import AdminActionDrawer from '../../components/admin/AdminActionDrawer.jsx'
+import { LazyPhoto } from '../../components/ui/LazyPhoto.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminPriorityBoard from '../../components/admin/AdminPriorityBoard.jsx'
@@ -328,7 +329,7 @@ function RecentAthletesCard({ athletes, locale, onNavigate, onSelectAthlete, t }
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
                 {athlete.photoUrl ? (
-                  <img
+                  <LazyPhoto
                     className="admin-ops__recent-avatar-photo"
                     src={athlete.photoUrl}
                     alt=""
@@ -433,7 +434,7 @@ function RecentMembershipsCard({
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
                 {membership.photoUrl ? (
-                  <img
+                  <LazyPhoto
                     className="admin-ops__recent-avatar-photo"
                     src={membership.photoUrl}
                     alt=""
@@ -529,7 +530,7 @@ function RecentRegistrationsCard({ registrations, locale, onNavigate, onSelectAt
             >
               <span className="admin-ops__recent-avatar" aria-hidden>
                 {registration.photoUrl ? (
-                  <img
+                  <LazyPhoto
                     className="admin-ops__recent-avatar-photo"
                     src={registration.photoUrl}
                     alt=""

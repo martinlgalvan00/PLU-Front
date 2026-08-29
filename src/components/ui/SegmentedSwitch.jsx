@@ -2,6 +2,16 @@ import { useId } from 'react'
 import { m } from 'framer-motion'
 import { useMotionConfig } from '../../motion/MotionProvider.tsx'
 
+function resolveBadge(badge) {
+  if (badge == null || badge === false) return null
+  if (typeof badge === 'object' && !Array.isArray(badge)) {
+    const value = badge.value
+    if (value == null || value === false || value === '') return null
+    return { value, tone: badge.tone || null }
+  }
+  return { value: badge, tone: null }
+}
+
 export default function SegmentedSwitch({ active, ariaLabel, className = '', onChange, options }) {
   const layoutId = useId()
   const { reducedMotion } = useMotionConfig()
@@ -15,9 +25,10 @@ export default function SegmentedSwitch({ active, ariaLabel, className = '', onC
         '--switch-count': options.length,
       }}
     >
-      {options.map(([key, label, shortLabel]) => {
+      {options.map(([key, label, shortLabel, badge]) => {
         const displayShort = shortLabel ?? label
         const isActive = active === key
+        const resolved = resolveBadge(badge)
 
         return (
           <button
@@ -25,7 +36,9 @@ export default function SegmentedSwitch({ active, ariaLabel, className = '', onC
             type="button"
             role="tab"
             aria-selected={isActive}
-            className={`segmented-switch__option ${isActive ? 'is-active' : ''}`}
+            className={`segmented-switch__option ${isActive ? 'is-active' : ''}${
+              resolved?.tone ? ` segmented-switch__option--${resolved.tone}` : ''
+            }`}
             onClick={() => onChange(key)}
             style={{ position: 'relative' }}
           >
@@ -53,6 +66,16 @@ export default function SegmentedSwitch({ active, ariaLabel, className = '', onC
             >
               {displayShort}
             </span>
+            {resolved ? (
+              <span
+                className={`segmented-switch__badge${
+                  resolved.tone ? ` segmented-switch__badge--${resolved.tone}` : ''
+                }`}
+                style={{ position: 'relative', zIndex: 1 }}
+              >
+                {resolved.value}
+              </span>
+            ) : null}
           </button>
         )
       })}

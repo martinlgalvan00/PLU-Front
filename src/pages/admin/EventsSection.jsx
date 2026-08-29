@@ -15,7 +15,9 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import AdminEventConsoleModal, {
   formatEventVenueLine,
 } from '../../components/admin/AdminEventConsoleModal.jsx'
-import AdminEventEditor from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventEditor, {
+  getAdminEventDraftSignature,
+} from '../../components/admin/AdminEventEditor.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
 import AdminEventSessionsEditor from '../../components/admin/AdminEventSessionsEditor.jsx'
@@ -214,12 +216,15 @@ export default function EventsSection({
   /** Consola del evento seleccionado, abierta como modal al tocar la fila. */
   const [consoleOpen, setConsoleOpen] = useState(false)
   /**
-   * Vista de la consola del evento. La configuración que se guarda sola --
-   * grilla y zonas -- se abre acá, a ancho completo y sin modal: el editor
-   * reescribe el evento entero al guardar, y usarlo para agregar una tanda o
-   * mover a alguien de zona costaba ese precio.
+   * Vista de la consola del evento. Zonas se abre a ancho completo: el editor
+   * reescribe el evento entero al guardar, y usarlo para mover a alguien de zona
+   * costaba ese precio. Estructura (tandas) vive en acordeón dentro del modal.
    */
   const [consoleView, setConsoleView] = useState('list')
+  /** Sección del acordeón abierta en la consola: basics | sales | visibility. */
+  const [consoleSection, setConsoleSection] = useState(null)
+  /** Firma del draft al abrir el acordeón: el dirty sobrevive al cambiar de sección. */
+  const [editorBaselineSignature, setEditorBaselineSignature] = useState(null)
   const [zonesReloadToken, setZonesReloadToken] = useState(0)
   const [draft, setDraft] = useState(createAdminEventDraft)
   const [editorFocus, setEditorFocus] = useState('details')
@@ -232,6 +237,10 @@ export default function EventsSection({
   // Slug del diálogo abierto: el impacto llega por red y no puede pisar el
   // estado si mientras tanto se cerró o se abrió el de otro evento.
   const deleteTargetRef = useRef(null)
+  /** Cierre dirty-aware del editor embebido en la consola. */
+  const exitEditRef = useRef(null)
+  /** Si el editor dirty pide confirmación, abrir esta sección al descartar. */
+  const pendingConsoleSectionRef = useRef(null)
 
   function handleSelectEvent(id) {
     setSelectedId(id)
@@ -240,12 +249,15 @@ export default function EventsSection({
 
   function closeEventConsole() {
     setConsoleOpen(false)
+    setConsoleSection(null)
+    pendingConsoleSectionRef.current = null
   }
 
-  /** Grilla y zonas reemplazan al listado: la consola se cierra para dejar
-   *  el ancho completo a la tabla de operación. */
+  /** Zonas reemplazan al listado: la consola se cierra para dejar el ancho
+   *  completo a la tabla de operación. */
   function openDrillFromConsole(view) {
     setConsoleOpen(false)
+    setConsoleSection(null)
     setConsoleView(view)
   }
 
@@ -366,18 +378,86 @@ export default function EventsSection({
     setFormOpen(true)
   }
 
-  function openEditForm(event, focus = 'details') {
+  function resolveConsoleSection(focus = 'basics') {
+    if (focus === 'sales' || focus === 'tickets') return 'sales'
+    if (focus === 'visibility') return 'visibility'
+    if (focus === 'structure') return 'structure'
+    return 'basics'
+  }
+
+  function openStructureSection() {
+    setFormOpen(false)
+    setEditorBaselineSignature(null)
+    setDraft(createAdminEventDraft())
+    setConsoleSection('structure')
+    setConsoleView('list')
+    setConsoleOpen(true)
+  }
+
+  function openEditForm(event, focus = 'basics') {
     if (!event) return
+    const section = resolveConsoleSection(focus)
+    if (section === 'structure') {
+      openStructureSection()
+      return
+    }
+    const nextDraft = buildAdminEventDraft(event)
     setSelectedId(event.id)
-    setEditorFocus(focus)
-    setDraft(buildAdminEventDraft(event))
+    setEditorFocus(section)
+    setConsoleSection(section)
+    setDraft(nextDraft)
+    setEditorBaselineSignature(getAdminEventDraftSignature(nextDraft))
     setMessage(null)
+    setConsoleView('list')
+    setConsoleOpen(true)
     setFormOpen(true)
   }
 
+  /** Abre o cierra una sección del acordeón sin remountar el editor al cambiar. */
+  function toggleConsoleSection(event, section) {
+    if (!event) return
+    if (section === 'structure') {
+      if (consoleSection === 'structure') {
+        setConsoleSection(null)
+        return
+      }
+      if (formOpen && draft.id) {
+        pendingConsoleSectionRef.current = 'structure'
+        exitEditRef.current?.()
+        return
+      }
+      openStructureSection()
+      return
+    }
+
+    if (!canEdit) return
+    if (consoleSection === section && formOpen && draft.id) {
+      exitEditRef.current?.()
+      return
+    }
+    if (formOpen && draft.id) {
+      setEditorFocus(section)
+      setConsoleSection(section)
+      return
+    }
+    openEditForm(event, section)
+  }
+
   function closeForm() {
+    const wasEditingExisting = Boolean(draft.id)
+    const pendingSection = pendingConsoleSectionRef.current
+    pendingConsoleSectionRef.current = null
     setFormOpen(false)
+    setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
+    if (pendingSection === 'structure') {
+      setConsoleSection('structure')
+      setConsoleOpen(true)
+      return
+    }
+    setConsoleSection(null)
+    // Volver a la consola del mismo evento, no cerrar el modal.
+    if (wasEditingExisting) setConsoleOpen(true)
   }
 
   /**
@@ -399,8 +479,13 @@ export default function EventsSection({
   async function handleSubmit(submittedDraft) {
     const saved = await onSaveEvent?.(submittedDraft)
     if (saved?.error) throw new Error(saved.error)
+    const wasCreate = !submittedDraft.id
     closeForm()
     if (saved?.event?.id) setSelectedId(saved.event.id)
+    if (wasCreate) {
+      setConsoleView('list')
+      setConsoleOpen(true)
+    }
     setMessage({
       tone: 'success',
       text: submittedDraft.id
@@ -545,21 +630,21 @@ export default function EventsSection({
       role="group"
       aria-label={t('admin.sections.events.kpisAria')}
     >
-      <div className="admin-events-kpi">
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiUpcoming')}</span>
+      <div className="admin-events-kpi admin-events-kpi--primary">
         <strong className="admin-events-kpi__value">{kpiStats.upcomingCount}</strong>
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiUpcoming')}</span>
       </div>
       <div className="admin-events-kpi">
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiRegistered')}</span>
         <strong className="admin-events-kpi__value">{kpiStats.totalRegistered}</strong>
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiRegistered')}</span>
       </div>
       <div className="admin-events-kpi">
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
         <strong className="admin-events-kpi__value">{kpiStats.fillPercent}%</strong>
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiFill')}</span>
       </div>
-      <div className="admin-events-kpi">
-        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiTotal')}</span>
+      <div className="admin-events-kpi admin-events-kpi--quiet">
         <strong className="admin-events-kpi__value">{adminEvents.length}</strong>
+        <span className="admin-events-kpi__label">{t('admin.sections.events.kpiTotal')}</span>
       </div>
     </div>
   )
@@ -576,7 +661,7 @@ export default function EventsSection({
       title={t('admin.sections.events.title')}
       totalCount={adminEvents.length}
       variant="events"
-      beforeShell={eventsKpis}
+      beforeFilters={eventsKpis}
       filters={[
         {
           id: 'status',
@@ -629,10 +714,6 @@ export default function EventsSection({
               {[selectedDateLabel, selectedVenueLine].filter(Boolean).join(' · ')}
             </span>
           </div>
-
-          {consoleView === 'structure' ? (
-            <AdminEventSessionsEditor canEdit={canEdit} eventSlug={selectedEvent.slug} />
-          ) : null}
 
           {consoleView === 'zones' ? (
             <>
@@ -703,24 +784,59 @@ export default function EventsSection({
         </div>
       )}
 
-      {/* La consola del evento se abre al tocar la fila. Editar reemplaza
-          esa misma capa: un solo modal, no consola + editor apilados. */}
+      {/* Consola: Datos / Ventas / Publicación / Estructura en acordeón inline. */}
       <AdminEventConsoleModal
         canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
         canEdit={canEdit}
         canManageUsers={canManageUsers}
+        editor={
+          formOpen && draft.id && consoleSection && consoleSection !== 'structure' ? (
+            <AdminEventEditor
+              key={draft.id}
+              accordion
+              embedded
+              baselineSignature={editorBaselineSignature}
+              canEdit={canEdit}
+              draft={draft}
+              forcedTab={consoleSection}
+              sourceEvent={editingSource}
+              onCancel={closeForm}
+              onChange={setDraft}
+              onRegisterClose={(fn) => {
+                exitEditRef.current = fn
+              }}
+              onSubmit={handleSubmit}
+            />
+          ) : null
+        }
         event={selectedEvent}
-        open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent) && !formOpen}
+        open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent)}
+        openSection={consoleSection}
+        structureEditor={
+          consoleSection === 'structure' && selectedEvent ? (
+            <AdminEventSessionsEditor
+              embedded
+              canEdit={canEdit}
+              eventSlug={selectedEvent.slug}
+            />
+          ) : null
+        }
         tickets={tickets}
         onClose={closeEventConsole}
         onDelete={openDeleteDialog}
-        onEdit={openEditForm}
+        onExitSection={() => {
+          if (consoleSection === 'structure') {
+            setConsoleSection(null)
+            return
+          }
+          exitEditRef.current?.()
+        }}
         onManageCheckin={onManageCheckin}
         onManagePayments={onManagePayments}
         onManageRegistrations={onManageRegistrations}
-        onOpenStructure={() => openDrillFromConsole('structure')}
         onOpenZones={() => openDrillFromConsole('zones')}
         onSetEventState={onSetEventState}
+        onToggleSection={toggleConsoleSection}
       />
 
       {quickCreateOpen ? (
@@ -732,7 +848,8 @@ export default function EventsSection({
         />
       ) : null}
 
-      {formOpen ? (
+      {/* Alta completa (sin id): sigue en modal propio; no hay consola de evento. */}
+      {formOpen && !draft.id ? (
         <AdminEventEditor
           canEdit={canEdit}
           draft={draft}

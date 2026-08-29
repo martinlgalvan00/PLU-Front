@@ -20,6 +20,11 @@ import {
   resolvePaymentsProvider,
 } from '../modules/payments/createPaymentProviderAdapter.js'
 import {
+  createMercadoPagoAdapterForProfileId,
+  listMercadoPagoWebhookSecrets,
+  resolveMercadoPagoPublicKeyForProfileId,
+} from '../modules/payments/mercadoPagoProfileRuntime.js'
+import {
   PAYMENT_RECOVERY_JOB_INTERVAL_MS,
   PAYMENT_WEBHOOK_DEFER_PROCESSING,
   isPaymentRecoveryJobEnabled,
@@ -293,6 +298,21 @@ export function createPaymentRoutes(deps = {}) {
     return result
   }
 
+  /** Adapter MP del perfil del evento (o global si no hay). */
+  async function servicesForOrder(order, { notifications = false } = {}) {
+    const base = services({ notifications })
+    if (deps.mercadoPago) return base
+    const client = resolveSupabaseAdmin()
+    const profileId = order?.mercadoPagoProfileId ?? null
+    const mercadoPago = await createMercadoPagoAdapterForProfileId(client, profileId, { env })
+    const mercadoPagoPublicKey = await resolveMercadoPagoPublicKeyForProfileId(
+      client,
+      profileId,
+      env,
+    )
+    return { ...base, mercadoPago, mercadoPagoPublicKey }
+  }
+
   async function requireOrderAccess(req, paymentOrderId, accessToken) {
     const paymentRepository = repository()
     const order = await paymentRepository.getOrder(paymentOrderId)
@@ -339,15 +359,19 @@ export function createPaymentRoutes(deps = {}) {
         )
         await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
         assertCheckoutEnabled(await platformSettingsRepo().get())
+        const paymentServices = await servicesForOrder(order)
         const result = await createPaymentPreference(
           {
             ...req.validatedBody,
             appUrl: env.APP_URL ?? env.VITE_APP_URL,
             apiUrl: env.API_URL,
           },
-          { ...services(), order },
+          { ...paymentServices, order },
         )
-        res.status(result.created ? 201 : 200).json(result)
+        res.status(result.created ? 201 : 200).json({
+          ...result,
+          mercadoPagoPublicKey: paymentServices.mercadoPagoPublicKey ?? null,
+        })
       } catch (error) {
         next(error)
       }
@@ -368,7 +392,7 @@ export function createPaymentRoutes(deps = {}) {
         await assertPaidCheckoutAvailable(env, new Date(), paidCheckoutOptionsForOrder(order))
         assertCheckoutEnabled(await platformSettingsRepo().get())
         const result = await processEmbeddedPayment(req.validatedBody, {
-          ...services({ notifications: true }),
+          ...(await servicesForOrder(order, { notifications: true })),
           order,
         })
         res.status(result.duplicate ? 200 : 201).json(result)
@@ -390,7 +414,7 @@ export function createPaymentRoutes(deps = {}) {
           req.validatedBody.orderAccessToken,
         )
         const result = await reconcileReturnPayment(req.validatedBody, {
-          ...services({ notifications: true }),
+          ...(await servicesForOrder(order, { notifications: true })),
           order,
         })
         res.status(result.reconciled ? 200 : 202).json(result)
@@ -870,11 +894,25 @@ export function createPaymentRoutes(deps = {}) {
 
   const handleMercadoPagoWebhook = async (req, res, next) => {
     try {
+      const client = resolveSupabaseAdmin()
+      const webhookSecrets = await listMercadoPagoWebhookSecrets(client, env)
       const result = await processPaymentWebhook(
         { body: req.validatedBody, query: req.query, headers: req.headers },
         {
           ...services({ notifications: true }),
-          webhookSecret: env.MERCADO_PAGO_WEBHOOK_SECRET,
+          webhookSecrets,
+          resolveMercadoPagoForSecret: async (matched) => {
+            if (!matched?.accessToken) return null
+            return createPaymentProviderAdapter({
+              env,
+              credentials: {
+                accessToken: matched.accessToken,
+                webhookSecret: matched.secret,
+                publicKey: matched.publicKey,
+                collectorId: matched.collectorId,
+              },
+            })
+          },
           toleranceSeconds: Number(env.MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS ?? 300),
           // Recovery siempre activo; webhook inline + job como red de seguridad.
           deferProcessing: PAYMENT_WEBHOOK_DEFER_PROCESSING,
