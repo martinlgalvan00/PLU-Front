@@ -9,8 +9,31 @@ const PAYMENT_PROOF_URL_TTL_SECONDS = 300
 // Tope de la bandeja de validación: firmar más de esto en una request deja de
 // ser una optimización y pasa a ser trabajo especulativo.
 const PAYMENT_PROOF_BATCH_LIMIT = 60
+/**
+ * Techo del snapshot admin para `athlete_payment_orders`. Sin `.range()` el
+ * poll del panel arrastraba el historial entero (y sus attempts) en cada
+ * ciclo — la mayor parte del egress de API. Finanzas/audit tienen endpoints
+ * propios para el historial largo; el padrón operativo alcanza con las
+ * últimas N. Un `limit` explícito en la query lo puede subir hasta 1000.
+ */
+const ADMIN_PAYMENT_ORDERS_DEFAULT_LIMIT = 500
+/**
+ * Techo del padrón operativo (atletas/membresías/inscripciones) cuando la
+ * query no trae `limit` explícito. Antes la primera carga del panel bajaba la
+ * tabla entera con sus joins — el dashboard y los badges sólo necesitan
+ * conteos, que viajan por `totals`/`summary`— y pasado el primer centenar de
+ * filas cada sesión de staff convertía su carga inicial en un dump de la base.
+ * Un `limit` explícito lo puede subir hasta 1000 para exportar o auditar.
+ */
+const ADMIN_SNAPSHOT_DEFAULT_LIMIT = 400
 /** Estados que todavía esperan una decisión de Finanzas. */
 const OPEN_PAYMENT_ORDER_STATUSES = ['pendiente', 'validacion_manual']
+/**
+ * Misma ventana que `isExpiringSoon` del frontend: si una divergiera, el
+ * resumen del dashboard contaría "por vencer" distinto que la tabla de
+ * afiliaciones y las dos pantallas se contradecirían.
+ */
+const MEMBERSHIP_EXPIRING_SOON_DAYS = 30
 /**
  * Techo de la suma de lo pendiente. No hay `sum()` en PostgREST sin una RPC y
  * no vale la pena una función nueva para un total que se muestra al lado del
@@ -317,6 +340,71 @@ export function createSupabaseAthleteRepository(
           'No se pudo leer el perfil.',
         ),
       ),
+
+    /**
+     * Revision barata del snapshot de un atleta (count + max updated_at por
+     * tabla). Sirve para ETag/304 en el poll de /session sin bajar el JSON.
+     */
+    async snapshotRevision(athleteId) {
+      const athlete = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('updated_at, photo_path')
+          .eq('id', athleteId)
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+        'No se pudo leer el perfil.',
+      )
+      if (!athlete) return `missing:${athleteId}`
+
+      const stamp = async (table) => {
+        const result = await client
+          .from(table)
+          .select('updated_at', { count: 'exact' })
+          .eq('athlete_id', athleteId)
+          .eq('organization_id', organizationId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+        const rows = assertSupabaseResult(result, `No se pudo leer ${table}.`)
+        return `${result.count ?? 0}:${rows?.[0]?.updated_at ?? '0'}`
+      }
+
+      const [memberships, registrations, paymentOrders] = await Promise.all([
+        stamp('memberships'),
+        stamp('event_registrations'),
+        stamp('athlete_payment_orders'),
+      ])
+
+      const orderRows = assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select('id')
+          .eq('athlete_id', athleteId)
+          .eq('organization_id', organizationId),
+        'No se pudieron leer las órdenes del atleta.',
+      )
+      let payments = '0:0'
+      const orderIds = (orderRows ?? []).map((row) => row.id)
+      if (orderIds.length > 0) {
+        const payResult = await client
+          .from('athlete_payments')
+          .select('updated_at', { count: 'exact' })
+          .in('order_id', orderIds)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+        const payRows = assertSupabaseResult(payResult, 'No se pudieron leer los intentos de cobro.')
+        payments = `${payResult.count ?? 0}:${payRows?.[0]?.updated_at ?? '0'}`
+      }
+
+      return [
+        athlete.updated_at ?? '0',
+        athlete.photo_path ?? '',
+        memberships,
+        registrations,
+        paymentOrders,
+        payments,
+      ].join('|')
+    },
     async update(athleteId, data) {
       const row = await rpc(
         'update_athlete_profile_v4',
@@ -804,8 +892,27 @@ export function createSupabaseAthleteRepository(
      * Órdenes de atleta (afiliación, inscripción, combo) para la bandeja de
      * Finanzas. Hasta ahora la única forma de llegar a una era entrar atleta
      * por atleta desde el padrón.
+     *
+     * `channel` separa efectivo de transferencia: se validan distinto (el
+     * efectivo se cobra en la puerta y no deja adjunto; la transferencia se
+     * acredita contra comprobante), y mezclados obligaban a recorrer la bandeja
+     * entera para encontrar las que sí se podían cerrar.
+     *
+     * `sort` ordena la cola de trabajo: `aging` prioriza lo declarado más
+     * viejo (quien avisó primero lleva más tiempo esperando) y `financing_due`
+     * ordena la deuda financiada por vencimiento — el riesgo del club es la
+     * que vence primero, no la última creada.
      */
-    async listPaymentOrders({ status, statuses, method, concept, financed, limit = 100 } = {}) {
+    async listPaymentOrders({
+      status,
+      statuses,
+      method,
+      concept,
+      channel,
+      financed,
+      sort = 'recent',
+      limit = 100,
+    } = {}) {
       let query = client
         .from('athlete_payment_orders')
         // Lista explícita en lugar de `*`: la bandeja pide hasta 200 filas y
@@ -813,15 +920,37 @@ export function createSupabaseAthleteRepository(
         // preferencia de Mercado Pago, que esta pantalla no usa.
         .select(PAYMENT_ORDER_LIST_COLUMNS)
         .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false })
-        .limit(limit)
+
+      // El orden por defecto conserva la cronología inversa de siempre; los
+      // otros dos son órdenes de trabajo. En PostgREST el segundo criterio
+      // desempata, y `nullsFirst: false` manda lo sin-declarar al final en
+      // `aging` y lo sin-plazo al final en `financing_due`.
+      if (sort === 'aging') {
+        query = query
+          .order('manual_payment_declared_at', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: false })
+      } else if (sort === 'financing_due') {
+        query = query
+          .order('financed_payment_due_at', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: false })
+      } else {
+        query = query.order('created_at', { ascending: false })
+      }
+      query = query.limit(limit)
 
       if (status) query = query.eq('status', status)
       // `statuses` filtra en la base lo que el panel filtraba en el navegador:
       // la vista "pendientes" son dos estados, y traerse las 200 para descartar
       // las aprobadas era transferencia pura.
       else if (Array.isArray(statuses) && statuses.length > 0) query = query.in('status', statuses)
-      if (method) query = query.eq('method', method)
+      // El canal manual sólo existe en órdenes `manual_link`: filtrar por él
+      // sin fijar el método dejaría pasar filas con canal null de Mercado Pago
+      // y el chip mostraría "efectivo" mezclado con pagos de tarjeta.
+      if (channel) {
+        query = query.eq('method', 'manual_link').eq('manual_payment_channel', channel)
+      } else if (method) {
+        query = query.eq('method', method)
+      }
       if (concept) query = query.eq('concept', concept)
       // Combo financiado: derechos ya otorgados con la deuda todavía abierta.
       // Es la única vista donde el club tiene plata comprometida sin cobrar.
@@ -1216,11 +1345,50 @@ export function createSupabaseAthleteRepository(
       return { path, token: signed.token }
     },
     /**
-     * `filters` es opcional y hoy nadie lo manda desde el frontend (el panel
-     * sigue pidiendo el snapshot completo: dashboard y badges de navegación
-     * necesitan ver todo). Sirve para dejar la capacidad de recorte
-     * server-side lista sin tener que tocar este método de nuevo cuando algún
-     * listado la necesite de verdad.
+     * Revision barata del padrón admin (count + max updated_at por segmento
+     * del scope). Evita bajar atletas/membresías/inscripciones/órdenes en
+     * cada poll cuando nada cambió — ver ETag en GET /api/athletes/admin.
+     */
+    async adminDataRevision(scope = {}) {
+      const read = {
+        athletes: scope.athletes !== false,
+        memberships: scope.memberships !== false,
+        registrations: scope.registrations !== false,
+        paymentOrders: scope.paymentOrders !== false,
+      }
+
+      const stamp = async (table, enabled) => {
+        if (!enabled) return 'skip'
+        const result = await client
+          .from(table)
+          .select('updated_at', { count: 'exact' })
+          .eq('organization_id', organizationId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+        const rows = assertSupabaseResult(result, `No se pudo leer ${table}.`)
+        return `${result.count ?? 0}:${rows?.[0]?.updated_at ?? '0'}`
+      }
+
+      const [athletes, memberships, registrations, paymentOrders] = await Promise.all([
+        stamp('athletes', read.athletes),
+        stamp('memberships', read.memberships),
+        stamp('event_registrations', read.registrations),
+        stamp('athlete_payment_orders', read.paymentOrders),
+      ])
+
+      return [athletes, memberships, registrations, paymentOrders].join('|')
+    },
+
+    /**
+     * `filters` recorta el snapshot (status/búsqueda/paginación) y `photos=0`
+     * saltea las URLs firmadas. El panel pide el padrón operativo en la
+     * primera carga (dashboard y badges) y en el poll de 120 s manda
+     * `photos=0` para no rotar el token de Storage ni re-bajar los originales.
+     *
+     * Todos los segmentos van acotados: sin `limit` explícito aplican
+     * `ADMIN_SNAPSHOT_DEFAULT_LIMIT`, y el `totals` del payload dice cuántas
+     * filas hay de verdad para que ningún número del panel se lea como total
+     * cuando es una ventana.
      */
     async adminData(scope = {}, filters = {}) {
       const read = {
@@ -1229,44 +1397,64 @@ export function createSupabaseAthleteRepository(
         registrations: scope.registrations !== false,
         paymentOrders: scope.paymentOrders !== false,
       }
-      // Encadenan solo si el filtro/paginación vino en la query; sin params
-      // el resultado es exactamente el mismo query de siempre (sin `.range()`).
+      // La búsqueda del padrón viaja al servidor: con el snapshot acotado,
+      // filtrar en el navegador sólo encontraba a quien ya hubiera entrado en
+      // la ventana. Se busca por nombre, documento o email — lo mismo que
+      // filtraba el cliente, ahora sobre la tabla entera.
+      const searchTerm =
+        typeof filters.q === 'string' && filters.q.trim()
+          ? filters.q.replace(/[,%()\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+          : ''
+      const segmentLimit = filters.limit ?? ADMIN_SNAPSHOT_DEFAULT_LIMIT
+      const segmentOffset = filters.offset ?? 0
+      const rangeOf = (query) =>
+        query.range(segmentOffset, segmentOffset + Math.min(segmentLimit, 1000) - 1)
       const withStatus = (query, status) => (status ? query.eq('status', status) : query)
-      const withRange = (query) =>
-        filters.limit != null
-          ? query.range(filters.offset ?? 0, (filters.offset ?? 0) + filters.limit - 1)
-          : query
+      const paymentOrderLimit = Math.min(
+        filters.limit ?? ADMIN_PAYMENT_ORDERS_DEFAULT_LIMIT,
+        1000,
+      )
+      const paymentOrderOffset = filters.offset ?? 0
       const [athletes, memberships, registrations, paymentOrders] = await Promise.all([
         read.athletes
-          ? withRange(
-              withStatus(
-                client
-                  .from('athletes')
-                  .select(
-                    'id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token',
-                  )
-                  .eq('organization_id', organizationId)
-                  .order('created_at', { ascending: false }),
-                filters.athleteStatus,
-              ),
-            )
-          : Promise.resolve({ data: [], error: null }),
+          ? (() => {
+              // PostgREST `or`: el término ya viene sanitizado (sin comas ni
+              // paréntesis, que son sintaxis del filtro, no contenido), y el
+              // builder sólo recibe el filtro cuando hay término — `.or()` con
+              // undefined no es un no-op garantizado en todas las versiones.
+              let query = client
+                .from('athletes')
+                .select(
+                  'id, full_name, document_id, email, birth_date, phone, country, province, city, gym, sex, division, category, estimated_weight, declared_best_total_kg, emergency_contact_name, emergency_contact_phone, instagram_handle, status, created_at, updated_at, photo_path, email_verified_at, credential_token',
+                  { count: 'exact' },
+                )
+                .eq('organization_id', organizationId)
+                .order('created_at', { ascending: false })
+              if (searchTerm) {
+                query = query.or(
+                  `full_name.ilike.%${searchTerm}%,document_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`,
+                )
+              }
+              return rangeOf(withStatus(query, filters.athleteStatus))
+            })()
+          : Promise.resolve({ data: [], error: null, count: 0 }),
         read.memberships
-          ? withRange(
+          ? rangeOf(
               withStatus(
                 client
                   .from('memberships')
                   .select(
                     'id, athlete_id, year, status, start_date, expiration_date, member_code, qr_token, payment_order_id, created_at, updated_at, manual_override_status, manual_override_channel, manual_override_reason, manual_override_by, manual_override_at',
+                    { count: 'exact' },
                   )
                   .eq('organization_id', organizationId)
                   .order('created_at', { ascending: false }),
                 filters.membershipStatus,
               ),
             )
-          : Promise.resolve({ data: [], error: null }),
+          : Promise.resolve({ data: [], error: null, count: 0 }),
         read.registrations
-          ? withRange(
+          ? rangeOf(
               withStatus(
                 client
                   .from('event_registrations')
@@ -1279,13 +1467,14 @@ export function createSupabaseAthleteRepository(
                       eventDay:event_days(id, day_index, label, date),
                       eventSession:event_sessions(id, name, platform, weigh_in_at, starts_at)
                     `,
+                    { count: 'exact' },
                   )
                   .eq('organization_id', organizationId)
                   .order('created_at', { ascending: false }),
                 filters.registrationStatus,
               ),
             )
-          : Promise.resolve({ data: [], error: null }),
+          : Promise.resolve({ data: [], error: null, count: 0 }),
         read.paymentOrders
           ? client
               .from('athlete_payment_orders')
@@ -1294,7 +1483,7 @@ export function createSupabaseAthleteRepository(
                 // decorativos: son las tres columnas con las que
                 // `derivePaymentProgress` distingue "venció sin que nadie
                 // pagara" de "lo cerró la organización con un motivo escrito".
-                // Sin ellas el panel mostraba un `Cancelado` pelado mientras
+                // Sin ellas el panel mostraba un `Cancelado` peludo mientras
                 // /mi-cuenta -- que lee el snapshot completo -- sí explicaba el
                 // motivo al atleta. El operador que atiende el reclamo veía
                 // menos que la persona que lo hacía.
@@ -1303,10 +1492,12 @@ export function createSupabaseAthleteRepository(
                 // financiadas por vencimiento y sin la fecha todas le empataban
                 // en "sin plazo".
                 'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at, financed_payment_due_at',
+                { count: 'exact' },
               )
               .eq('organization_id', organizationId)
               .order('created_at', { ascending: false })
-          : Promise.resolve({ data: [], error: null }),
+              .range(paymentOrderOffset, paymentOrderOffset + paymentOrderLimit - 1)
+          : Promise.resolve({ data: [], error: null, count: 0 }),
       ])
       const payload = {
         athletes: assertSupabaseResult(athletes, 'No se pudieron leer los atletas.'),
@@ -1346,6 +1537,15 @@ export function createSupabaseAthleteRepository(
             ? { ...order, discount_code: `${String(order.discount_code).slice(0, 3)}…` }
             : order,
         ),
+        // Filas reales por segmento con los filtros aplicados (sin el tope de
+        // la ventana). El panel lo usa para no leer una ventana como total:
+        // `athletes.length` es lo que viajó, `totals.athletes` es lo que hay.
+        totals: {
+          athletes: read.athletes ? athletes.count ?? 0 : 0,
+          memberships: read.memberships ? memberships.count ?? 0 : 0,
+          registrations: read.registrations ? registrations.count ?? 0 : 0,
+          paymentOrders: read.paymentOrders ? paymentOrders.count ?? 0 : 0,
+        },
       }
 
       // Libro de intentos por orden. Va en una consulta aparte y acotada a las
@@ -1382,7 +1582,154 @@ export function createSupabaseAthleteRepository(
         }
       }
 
+      if (filters.photos === '0') return payload
       return addSignedPhotoUrls(payload)
+    },
+
+    /**
+     * Agregados del dashboard calculados en la base, sin transferir filas.
+     *
+     * El snapshot operativo viene acotado (ver ADMIN_SNAPSHOT_DEFAULT_LIMIT),
+     * así que los números del dashboard no pueden salir de contar el array que
+     * viajó: pasada la ventana, "atletas" y "por vencer" dejarían de ser
+     * totales sin que ninguna pantalla lo dijera. Acá cada número es un
+     * `count` head-only sobre la tabla entera de la organización — el mismo
+     * criterio que ya usa `paymentOrderCounts` para los chips de Finanzas.
+     * El total de atletas va sin filtros aquí y no en `totals`, que refleja
+     * la búsqueda activa: el dashboard tiene que mostrar el padrón entero
+     * aunque alguien esté buscando.
+     */
+    async adminDataSummary(scope = {}) {
+      const read = {
+        athletes: scope.athletes !== false,
+        memberships: scope.memberships !== false,
+        registrations: scope.registrations !== false,
+        payments: scope.payments !== false,
+      }
+      const skip = { data: [], error: null, count: 0 }
+      const membershipScoped = () =>
+        client
+          .from('memberships')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId)
+      const registrationScoped = () =>
+        client
+          .from('event_registrations')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId)
+      const expiringBefore = new Date(
+        Date.now() + MEMBERSHIP_EXPIRING_SOON_DAYS * 24 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .slice(0, 10)
+
+      const [
+        athletesTotal,
+        membershipsTotal,
+        membershipsActive,
+        membershipsExpiring,
+        membershipsExpired,
+        membershipsCancelled,
+        registrationsTotal,
+        registrationsConfirmed,
+        registrationsPending,
+        registrationsObserved,
+        payments,
+      ] = await Promise.all([
+        read.athletes
+          ? client
+              .from('athletes')
+              .select('id', { count: 'exact', head: true })
+              .eq('organization_id', organizationId)
+          : skip,
+        read.memberships ? membershipScoped() : skip,
+        read.memberships ? membershipScoped().eq('status', 'activa') : skip,
+        read.memberships
+          ? membershipScoped().eq('status', 'activa').lte('expiration_date', expiringBefore)
+          : skip,
+        read.memberships ? membershipScoped().eq('status', 'vencida') : skip,
+        read.memberships ? membershipScoped().eq('status', 'cancelada') : skip,
+        read.registrations ? registrationScoped() : skip,
+        read.registrations ? registrationScoped().eq('status', 'confirmada') : skip,
+        read.registrations ? registrationScoped().eq('status', 'pendiente_pago') : skip,
+        read.registrations ? registrationScoped().eq('status', 'observada') : skip,
+        read.payments ? this.paymentOrderCounts() : Promise.resolve(null),
+      ])
+
+      if (read.athletes || read.memberships || read.registrations) {
+        for (const response of [
+          athletesTotal,
+          membershipsTotal,
+          membershipsActive,
+          membershipsExpiring,
+          membershipsExpired,
+          membershipsCancelled,
+          registrationsTotal,
+          registrationsConfirmed,
+          registrationsPending,
+          registrationsObserved,
+        ]) {
+          assertSupabaseResult(response, 'No se pudo calcular el resumen del panel.')
+        }
+      }
+
+      return {
+        // Total de atletas sin filtros: `totals.athletes` refleja la búsqueda
+        // activa, y el número del dashboard tiene que ser el padrón entero
+        // aunque alguien esté buscando.
+        athletes: read.athletes ? athletesTotal.count ?? 0 : null,
+        memberships: read.memberships
+          ? {
+              total: membershipsTotal.count ?? 0,
+              active: membershipsActive.count ?? 0,
+              expiringSoon: membershipsExpiring.count ?? 0,
+              expired: membershipsExpired.count ?? 0,
+              cancelled: membershipsCancelled.count ?? 0,
+            }
+          : null,
+        registrations: read.registrations
+          ? {
+              total: registrationsTotal.count ?? 0,
+              confirmed: registrationsConfirmed.count ?? 0,
+              pendingPayment: registrationsPending.count ?? 0,
+              observed: registrationsObserved.count ?? 0,
+            }
+          : null,
+        payments: read.payments ? payments : null,
+      }
+    },
+
+    /**
+     * Firma solo paths que ya están en el padrón. El poll del panel no pide
+     * todas las fotos: si aparece un retrato nuevo, esta llamada cubre ese
+     * hueco sin rotar el resto de URLs.
+     */
+    async signAthletePhotoPaths(paths = []) {
+      const unique = [...new Set(paths.map((path) => String(path).trim()).filter(Boolean))].slice(
+        0,
+        60,
+      )
+      if (unique.length === 0) return {}
+
+      const rows = assertSupabaseResult(
+        await client
+          .from('athletes')
+          .select('photo_path')
+          .eq('organization_id', organizationId)
+          .in('photo_path', unique),
+        'No se pudieron leer las fotos.',
+      )
+      const allowed = (rows ?? []).map((row) => row.photo_path).filter(Boolean)
+      if (allowed.length === 0) return {}
+
+      const payload = await addSignedPhotoUrls({
+        athletes: allowed.map((photo_path) => ({ photo_path })),
+      })
+      return Object.fromEntries(
+        payload.athletes
+          .filter((athlete) => athlete.photo_url)
+          .map((athlete) => [athlete.photo_path, athlete.photo_url]),
+      )
     },
 
     /**

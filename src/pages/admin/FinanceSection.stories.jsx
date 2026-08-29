@@ -2,7 +2,7 @@ import FinanceSection from './FinanceSection.jsx'
 import '../../styles/pages/admin.css'
 
 /**
- * Caja del período. El service está mockeado por historia interceptando
+ * Libro de caja. El service está mockeado por historia interceptando
  * `fetch` — el componente ejercita el camino real (service + estado), no un
  * doble que se puede desincronizar del contrato.
  */
@@ -12,31 +12,34 @@ const ROWS = [
     id: 'income-1',
     kind: 'income',
     occurredOn: '2026-08-10',
-    category: 'Cobro aprobado',
-    description: 'Afiliación anual — Ana Torres',
+    category: 'Afiliación',
+    description: 'Afiliación — Ana Torres',
     amount: 42000,
     currency: 'ARS',
     reference: 'ORD-1042',
+    party: 'Ana Torres',
   },
   {
     id: 'income-2',
     kind: 'income',
     occurredOn: '2026-08-08',
-    category: 'Cobro aprobado',
-    description: 'Entrada Pitbull Classic — Lucas Ferro',
+    category: 'Entrada',
+    description: 'Entrada — Lucas Ferro',
     amount: 45000,
     currency: 'ARS',
     reference: 'TCK-2210',
+    party: 'Lucas Ferro',
   },
   {
     id: 'income-3',
     kind: 'income',
     occurredOn: '2026-08-04',
-    category: 'Cobro aprobado',
-    description: 'Afiliación anual — Camila Ruiz',
+    category: 'Afiliación',
+    description: 'Afiliación — Camila Ruiz',
     amount: 42000,
     currency: 'ARS',
     reference: 'ORD-1051',
+    party: 'Camila Ruiz',
   },
   {
     id: 'expense-1',
@@ -47,6 +50,7 @@ const ROWS = [
     amount: 38000,
     currency: 'ARS',
     reference: null,
+    party: null,
   },
   {
     id: 'expense-2',
@@ -57,6 +61,7 @@ const ROWS = [
     amount: 21000,
     currency: 'ARS',
     reference: null,
+    party: null,
   },
 ]
 

@@ -25,6 +25,13 @@ export function canViewAdmin(subject) {
   return getAllowedAdminSections(subject).length > 0
 }
 
+/** Sesión Prisma de staff (no atleta). Incluye seguridad y roles custom. */
+export function isStaffSession(subject) {
+  if (!subject || typeof subject !== 'object') return false
+  if (subject.role === 'athlete_plu') return false
+  return Boolean(subject.id)
+}
+
 export function canEditOperationalData(subject) {
   return hasAnyPermission(subject, [
     'admin.athletes.write',

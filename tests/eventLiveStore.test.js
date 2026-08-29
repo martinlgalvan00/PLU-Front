@@ -153,6 +153,37 @@ describe('registrationSummaryStore', () => {
     expect(snapshot.data.registered).toBe(12)
     expect(snapshot.failed).toBe(true)
   })
+
+  it('reusa la URL del retrato entre polls para no re-bajar el original', async () => {
+    registrationFetch
+      .mockResolvedValueOnce({
+        ...summary(12),
+        recent: [
+          {
+            displayName: 'Ana T.',
+            registeredAt: '2026-08-28T12:00:00Z',
+            photoUrl: 'https://signed.test/ana?token=old',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        ...summary(12),
+        recent: [
+          {
+            displayName: 'Ana T.',
+            registeredAt: '2026-08-28T12:00:00Z',
+            photoUrl: 'https://signed.test/ana?token=new',
+          },
+        ],
+      })
+
+    await store.registrationSummaryStore.load('pitbull-classic-2026')
+    const next = await store.registrationSummaryStore.load('pitbull-classic-2026', {
+      force: true,
+    })
+
+    expect(next.recent[0].photoUrl).toBe('https://signed.test/ana?token=old')
+  })
 })
 
 describe('ticketAvailabilityStore', () => {

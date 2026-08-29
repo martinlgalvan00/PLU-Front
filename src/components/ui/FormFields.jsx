@@ -1,4 +1,6 @@
+import { useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { filterGymOptions, findUniqueCoreMatch } from '../../lib/gymNormalize.js'
 
 export function Field({
   className = '',
@@ -42,40 +44,101 @@ export function Field({
   )
 }
 
+const AUTOCOMPLETE_VISIBLE_LIMIT = 8
+
 export function AutocompleteField({ options = [], onBlur, onChange, ...props }) {
-  const listId = `${props.name}-autocomplete-list`
+  const listId = useId()
+  const rootRef = useRef(null)
+  const [open, setOpen] = useState(false)
+  const query = String(props.value ?? '')
+  const filtered = filterGymOptions(options, query).slice(0, AUTOCOMPLETE_VISIBLE_LIMIT)
+  const showList = open && filtered.length > 0
 
-  const handleBlur = (e) => {
-    const val = e.target.value.trim()
-    if (val && val.length >= 4 && onChange) {
-      const valNormalized = val.toLowerCase().replace(/[^a-z0-9]/g, '')
-      // Find all options that start with the normalized typed text
-      const matches = options.filter((opt) =>
-        opt.toLowerCase().replace(/[^a-z0-9]/g, '').startsWith(valNormalized)
-      )
+  useEffect(() => {
+    if (!open) return undefined
+    const onPointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [open])
 
-      // If there's exactly ONE match, it's safe to auto-complete
-      if (matches.length === 1 && matches[0] !== e.target.value) {
-        onChange({
-          target: { name: props.name, value: matches[0], type: 'text' },
-        })
+  const emitChange = (value) => {
+    if (!onChange) return
+    onChange({
+      target: { name: props.name, value, type: 'text' },
+    })
+  }
+
+  const selectOption = (opt) => {
+    emitChange(opt)
+    setOpen(false)
+  }
+
+  const handleChange = (event) => {
+    setOpen(true)
+    if (onChange) onChange(event)
+  }
+
+  const handleBlur = (event) => {
+    const val = event.target.value.trim()
+    if (val && onChange) {
+      const match = findUniqueCoreMatch(options, val)
+      if (match && match !== event.target.value) {
+        emitChange(match)
       }
     }
+    setOpen(false)
+    if (onBlur) onBlur(event)
+  }
 
-    if (onBlur) {
-      onBlur(e)
+  const handleKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      setOpen(false)
+      return
+    }
+    if (event.key === 'ArrowDown' && filtered.length > 0) {
+      event.preventDefault()
+      setOpen(true)
     }
   }
 
   return (
-    <>
-      <Field {...props} onChange={onChange} onBlur={handleBlur} list={listId} />
-      <datalist id={listId}>
-        {options.map((opt) => (
-          <option key={opt} value={opt} />
-        ))}
-      </datalist>
-    </>
+    <div className="field-autocomplete" ref={rootRef}>
+      <Field
+        {...props}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={showList}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onFocus={() => setOpen(true)}
+        onKeyDown={handleKeyDown}
+      />
+      {showList ? (
+        <ul className="field-autocomplete__list" id={listId} role="listbox">
+          {filtered.map((opt) => (
+            <li key={opt} role="presentation">
+              <button
+                type="button"
+                role="option"
+                className="field-autocomplete__option"
+                aria-selected={opt === props.value}
+                onMouseDown={(event) => {
+                  // Evita blur del input antes de aplicar la selección.
+                  event.preventDefault()
+                  selectOption(opt)
+                }}
+              >
+                {opt}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   )
 }
 

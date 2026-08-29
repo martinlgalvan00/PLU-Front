@@ -789,8 +789,9 @@ export default function DashboardSection({
   onDeleteAthlete,
   onSelectAthlete,
   getAthleteDetail,
-  globalSearch,
-  onGlobalSearchChange,
+  athletes = [],
+  events = [],
+  onSelectEvent,
   onGlobalSearchSubmit,
 }) {
   const { locale, t } = useI18n()
@@ -876,8 +877,10 @@ export default function DashboardSection({
       <AdminTopBar
         title={t('admin.dashboard.title')}
         subtitle={t('admin.dashboard.subtitle')}
-        searchValue={globalSearch}
-        onSearchChange={onGlobalSearchChange}
+        athletes={athletes}
+        events={events}
+        onSelectAthlete={onSelectAthlete}
+        onSelectEvent={onSelectEvent}
         onSearchSubmit={onGlobalSearchSubmit}
         alertCount={pendingActions.length > 0 ? pendingActions.length : pendingPayments}
         alertsOpen={alertsOpen}

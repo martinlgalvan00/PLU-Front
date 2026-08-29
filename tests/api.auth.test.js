@@ -20,7 +20,14 @@ function createPrismaDouble(users) {
 
   return {
     user: {
-      findUnique: async ({ where }) => users.find((user) => user.email === where.email) ?? null,
+      findUnique: async ({ where, include }) => {
+        const user =
+          users.find((item) => item.email === where.email || item.id === where.id) ?? null
+        if (!user) return null
+        // El endpoint del puente pide include profile; devolvemos el user tal cual.
+        if (include?.profile) return user
+        return user
+      },
       update: async ({ where, data }) => {
         const user = users.find((item) => item.id === where.id)
         Object.assign(user, data)
@@ -265,6 +272,126 @@ describe('auth api', () => {
     const after = await fetch(`${target.url}/api/auth/me`, { headers: { Cookie: cookie } })
     expect(after.status).toBe(200)
     expect(await after.json()).toEqual({ user: null })
+
+    await target.close()
+  })
+
+  it('emite cookie de atleta para staff sin revocar plu_session', async () => {
+    const prisma = createPrismaDouble([
+      {
+        id: 'usr-1',
+        email: 'admin@pluarg.com',
+        passwordHash: await hashPassword('clave-segura-123'),
+        role: 'admin_plu_arg',
+        status: 'active',
+        profile: {
+          displayName: 'Admin PLU',
+          firstName: 'Admin',
+          lastName: 'PLU',
+          phone: null,
+        },
+      },
+    ])
+
+    const athleteSessions = []
+    const athletesStore = []
+    const supabaseAdmin = {
+      from(table) {
+        if (table === 'athletes') {
+          const state = { filters: {}, mode: 'select' }
+          const api = {
+            select() {
+              return api
+            },
+            insert(row) {
+              state.mode = 'insert'
+              state.row = {
+                id: 'ath-bridge-1',
+                ...row,
+              }
+              athletesStore.push(state.row)
+              return api
+            },
+            update(patch) {
+              state.mode = 'update'
+              state.patch = patch
+              return api
+            },
+            eq(column, value) {
+              state.filters[column] = value
+              return api
+            },
+            is() {
+              return api
+            },
+            maybeSingle: async () => {
+              const hit = athletesStore.find(
+                (row) =>
+                  row.email === state.filters.email &&
+                  row.organization_id === state.filters.organization_id,
+              )
+              return { data: hit ?? null, error: null }
+            },
+            single: async () => ({ data: state.row, error: null }),
+          }
+          return api
+        }
+        if (table === 'athlete_credentials') {
+          return {
+            insert: async () => ({ data: { athlete_id: 'ath-bridge-1' }, error: null }),
+          }
+        }
+        if (table === 'athlete_sessions') {
+          return {
+            insert: async (row) => {
+              athleteSessions.push(row)
+              return { data: row, error: null }
+            },
+          }
+        }
+        if (table === 'domain_audit_logs' || table === 'operational_event_logs') {
+          return {
+            insert: async () => ({ data: {}, error: null }),
+          }
+        }
+        throw new Error(`Tabla inesperada: ${table}`)
+      },
+    }
+
+    const target = listen(createApp({ prisma, supabaseAdmin }))
+    const login = await fetch(`${target.url}/api/auth/login`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ email: 'admin@pluarg.com', password: 'clave-segura-123' }),
+    })
+    const staffCookie = sessionCookie(login)
+    expect(login.status).toBe(200)
+    expect(staffCookie).toMatch(/^plu_session=/)
+
+    const bridge = await fetch(`${target.url}/api/auth/athlete-session`, {
+      method: 'POST',
+      headers: authHeaders(staffCookie),
+      body: '{}',
+    })
+    const bridgeBody = await bridge.json()
+    const cookieHeader = bridge.headers.get('set-cookie') ?? ''
+
+    expect(bridge.status).toBe(200)
+    expect(bridgeBody.user).toMatchObject({
+      role: 'athlete_plu',
+      athleteId: 'ath-bridge-1',
+      email: 'admin@pluarg.com',
+      staffAvailable: true,
+    })
+    expect(bridgeBody.created).toBe(true)
+    expect(cookieHeader).toContain('plu_athlete_session=')
+    // La cookie de staff no se limpia en este response.
+    expect(cookieHeader).not.toMatch(/plu_session=;/)
+    expect(athleteSessions).toHaveLength(1)
+
+    const me = await fetch(`${target.url}/api/auth/me`, { headers: { Cookie: staffCookie } })
+    expect(me.status).toBe(200)
+    expect((await me.json()).user?.id).toBe('usr-1')
 
     await target.close()
   })

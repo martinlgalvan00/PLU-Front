@@ -13,6 +13,7 @@ import {
   canViewAdmin,
   getRoleLabel,
   isKnownRole,
+  isStaffSession,
 } from '../src/lib/roles.js'
 import {
   canAccessSecurityEvent,
@@ -26,6 +27,13 @@ import {
 } from '../src/lib/permissions.js'
 
 describe('roles', () => {
+  it('distingue sesión staff de atleta', () => {
+    expect(isStaffSession({ id: 'usr-1', role: 'admin_plu_arg' })).toBe(true)
+    expect(isStaffSession({ id: 'usr-2', role: 'seguridad_plu_arg' })).toBe(true)
+    expect(isStaffSession({ role: 'athlete_plu', athleteId: 'ath-1' })).toBe(false)
+    expect(isStaffSession(null)).toBe(false)
+  })
+
   it('mantiene los cuatro roles base de la jerarquía', () => {
     expect(ROLE_HIERARCHY).toEqual([
       'admin_maximal',

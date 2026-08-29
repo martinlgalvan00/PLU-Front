@@ -94,6 +94,11 @@ describe('revalidación contra Mercado Pago en la caja de Finanzas', () => {
         limit: 200,
         statuses: ['rechazado'],
         financed: undefined,
+        channel: undefined,
+        // Las rechazadas conservan cronología inversa: no son una cola de
+        // espera sino un archivo para recuperar (el orden de trabajo, `aging`,
+        // sólo tiene sentido en lo que está por validar).
+        sort: 'recent',
         withCounts: true,
       }),
     )

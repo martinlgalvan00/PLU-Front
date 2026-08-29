@@ -70,6 +70,7 @@ function createAthleteRepoDouble() {
     calls,
     visibilityCalls,
     adminDataScopes,
+    adminDataRevision: async () => '1:2026-01-01T00:00:00.000Z|skip|skip|1:2026-01-01T00:00:00.000Z',
     adminData: async (scope) => {
       adminDataScopes.push(scope)
       return {
@@ -77,8 +78,15 @@ function createAthleteRepoDouble() {
         memberships: [],
         registrations: [],
         paymentOrders: [{ id: 'pay-sensitive', amount: 75000 }],
+        totals: {
+          athletes: 1,
+          memberships: 0,
+          registrations: 0,
+          paymentOrders: 1,
+        },
       }
     },
+    adminDataSummary: async () => null,
     deleteAthlete: async (athleteId, actor) => {
       calls.push({ athleteId, actor })
       if (athleteId === MISSING_ATHLETE_ID) {
@@ -279,6 +287,37 @@ describe('lectura segmentada del padrón (GET /api/athletes/admin)', () => {
           paymentOrders: false,
         },
       ])
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('responde 304 cuando If-None-Match coincide con el ETag del padrón', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    let adminDataCalls = 0
+    const athleteRepository = createAthleteRepoDouble()
+    const originalAdminData = athleteRepository.adminData
+    athleteRepository.adminData = async (...args) => {
+      adminDataCalls += 1
+      return originalAdminData(...args)
+    }
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const first = await fetch(`${target.url}/api/athletes/admin?photos=0`, {
+        headers: authHeaders(cookie),
+      })
+      const etag = first.headers.get('etag')
+      expect(first.status).toBe(200)
+      expect(etag).toBeTruthy()
+      expect(adminDataCalls).toBe(1)
+
+      const second = await fetch(`${target.url}/api/athletes/admin?photos=0`, {
+        headers: { ...authHeaders(cookie), 'If-None-Match': etag },
+      })
+      expect(second.status).toBe(304)
+      expect(adminDataCalls).toBe(1)
     } finally {
       await target.close()
     }

@@ -10,9 +10,11 @@ export async function fetchEventRegistrationSummary(eventSlug) {
     `/api/events/${encodeURIComponent(eventSlug)}/registration-summary`,
   )
   const progressPublicRaw = summary?.progressPublic ?? summary?.progress_public
+  const registeredTodayRaw = summary?.registeredToday ?? summary?.registered_today
   return {
     capacity: summary?.capacity ?? null,
     registered: Number(summary?.registered ?? 0),
+    registeredToday: Number(registeredTodayRaw ?? 0),
     remaining: summary?.remaining ?? null,
     progressPublic: progressPublicRaw !== false,
     recent: Array.isArray(summary?.recent)

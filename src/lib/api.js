@@ -26,7 +26,7 @@ async function parseResponse(response) {
 export async function apiRequest(path, options = {}) {
   const url = `${env.apiUrl}${path}`
   const method = options.method ?? 'GET'
-  const { headers, ...requestOptions } = options
+  const { headers, allowNotModified = false, ...requestOptions } = options
   const mutationHeaders = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
     ? { 'X-PLU-Request': 'browser' }
     : {}
@@ -54,6 +54,15 @@ export async function apiRequest(path, options = {}) {
         },
       },
     )
+  }
+
+  // 304 sin body: el poll del panel/atleta reusa el snapshot en memoria.
+  if (response.status === 304 && allowNotModified) {
+    return {
+      notModified: true,
+      etag: response.headers?.get?.('ETag') ?? headers?.['If-None-Match'] ?? null,
+      data: null,
+    }
   }
 
   const body = await parseResponse(response)
@@ -85,6 +94,14 @@ export async function apiRequest(path, options = {}) {
     )
   }
 
+  if (allowNotModified) {
+    return {
+      notModified: false,
+      etag: response.headers?.get?.('ETag') ?? null,
+      data: body,
+    }
+  }
+
   return body
 }
 
@@ -108,6 +125,15 @@ export function apiDelete(path) {
 
 export function apiGet(path) {
   return apiRequest(path)
+}
+
+/**
+ * GET con revalidación condicional. Si el servidor responde 304,
+ * `notModified` queda true y `data` es null (el caller retiene el cache).
+ */
+export function apiGetMeta(path, { etag = null } = {}) {
+  const headers = etag ? { 'If-None-Match': etag } : {}
+  return apiRequest(path, { headers, allowNotModified: true })
 }
 
 export { ApiError }
@@ -222,6 +248,11 @@ export function updateAccessRoleStatusRequest(roleId, active) {
 
 export function meRequest() {
   return apiRequest('/api/auth/me')
+}
+
+/** Staff autenticado → cookie de atleta (mismo email) sin cerrar el panel. */
+export function createStaffAthleteSessionRequest() {
+  return apiPost('/api/auth/athlete-session', {})
 }
 
 // Mi cuenta. `changeOwnPassword` es el único endpoint alcanzable mientras la

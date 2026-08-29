@@ -51,11 +51,7 @@ describe('community spotlight', () => {
 
     await target.close()
   })
-  it('firma las fotos del spotlight en lote y reutiliza la URL en el proceso caliente', async () => {
-    const createSignedUrls = vi.fn(async (paths) => ({
-      data: paths.map((path) => ({ path, signedUrl: `https://signed.test/${path}` })),
-      error: null,
-    }))
+  it('expone una URL estable del propio API en vez de una firma de Storage', async () => {
     const repository = createSupabaseCommunityRepository({
       getSupabaseAdmin: () => ({
         rpc: vi.fn(async () => ({
@@ -68,19 +64,55 @@ describe('community spotlight', () => {
           },
           error: null,
         })),
-        storage: { from: vi.fn(() => ({ createSignedUrls })) },
       }),
     })
 
     const first = await repository.getSpotlight(2)
     const second = await repository.getSpotlight(2)
 
-    expect(createSignedUrls).toHaveBeenCalledTimes(1)
-    expect(createSignedUrls).toHaveBeenCalledWith(
-      ['spotlight/ana.jpg', 'spotlight/bruno.jpg'],
-      3600,
-    )
-    expect(first.members[0]).toMatchObject({ photoUrl: 'https://signed.test/spotlight/ana.jpg' })
+    expect(first.members[0]).toMatchObject({
+      photoUrl: '/api/community/portrait?p=spotlight%2Fana.jpg',
+    })
+    expect(second.members[0].photoUrl).toBe(first.members[0].photoUrl)
     expect(second.members[0]).not.toHaveProperty('photoPath')
+  })
+
+  it('sirve el retrato público con cache de borde y sin token de Storage', async () => {
+    const chain = {
+      select: () => chain,
+      eq: () => chain,
+      limit: () => chain,
+      maybeSingle: vi
+        .fn()
+        .mockResolvedValueOnce({ data: { id: 'ath-1' }, error: null })
+        .mockResolvedValueOnce({ data: { id: 'mem-1' }, error: null }),
+    }
+    const download = vi.fn(async () => ({
+      data: {
+        type: 'image/webp',
+        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer,
+      },
+      error: null,
+    }))
+    const target = listen(
+      createApp({
+        supabaseAdmin: {
+          from: () => chain,
+          storage: { from: () => ({ download }) },
+        },
+      }),
+    )
+
+    try {
+      const response = await fetch(
+        `${target.url}/api/community/portrait?p=${encodeURIComponent('ath-1/foto.webp')}`,
+      )
+      expect(response.status).toBe(200)
+      expect(response.headers.get('cache-control')).toContain('s-maxage=86400')
+      expect(response.headers.get('content-type')).toContain('image/webp')
+      expect(download).toHaveBeenCalledWith('ath-1/foto.webp')
+    } finally {
+      await target.close()
+    }
   })
 })

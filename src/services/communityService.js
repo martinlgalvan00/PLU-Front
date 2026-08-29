@@ -3,6 +3,8 @@ import { formatShortDate } from '../lib/format.js'
 import { apiGet } from '../lib/api.js'
 
 const FEED_LIMIT = 5
+/** Pedimos de más para poder priorizar filas con retrato sin inventar datos. */
+const SPOTLIGHT_FETCH_LIMIT = 12
 
 export function getAffiliatedGyms(locale = 'es') {
   return getContent(locale).COMMUNITY_AFFILIATED_GYMS
@@ -10,6 +12,21 @@ export function getAffiliatedGyms(locale = 'es') {
 
 export function getRecentMembers(limit = FEED_LIMIT, locale = 'es') {
   return getContent(locale).COMMUNITY_RECENT_MEMBERS.slice(0, limit)
+}
+
+/**
+ * Mantiene el orden relativo de cada grupo (recientes primero) y antepone
+ * quienes tienen foto pública, para que el roster no se lea como iniciales.
+ */
+export function pickSpotlightMembers(members = [], limit = FEED_LIMIT) {
+  const list = Array.isArray(members) ? members : []
+  const withPhoto = []
+  const withoutPhoto = []
+  for (const member of list) {
+    if (member?.photoUrl) withPhoto.push(member)
+    else withoutPhoto.push(member)
+  }
+  return [...withPhoto, ...withoutPhoto].slice(0, limit)
 }
 
 export function getCommunityStats(locale = 'es') {
@@ -26,7 +43,7 @@ export function getCommunityStats(locale = 'es') {
 
 function fallbackSpotlight(limit = FEED_LIMIT, locale = 'es') {
   return {
-    members: getRecentMembers(limit, locale),
+    members: pickSpotlightMembers(getRecentMembers(SPOTLIGHT_FETCH_LIMIT, locale), limit),
     stats: getCommunityStats(locale),
     source: 'fallback',
   }
@@ -37,8 +54,10 @@ function fallbackSpotlight(limit = FEED_LIMIT, locale = 'es') {
  */
 export async function fetchCommunitySpotlight(limit = FEED_LIMIT, locale = 'es') {
   try {
-    const data = await apiGet(`/api/community/spotlight?limit=${encodeURIComponent(limit)}`)
-    const members = Array.isArray(data?.members) ? data.members : []
+    const data = await apiGet(
+      `/api/community/spotlight?limit=${encodeURIComponent(SPOTLIGHT_FETCH_LIMIT)}`,
+    )
+    const members = pickSpotlightMembers(Array.isArray(data?.members) ? data.members : [], limit)
     return {
       members,
       stats: {

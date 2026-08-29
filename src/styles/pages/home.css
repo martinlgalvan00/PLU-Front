@@ -4119,51 +4119,23 @@
 
 .community-spotlight__roster {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
   width: 100%;
 }
 
 .community-spotlight__roster-label {
-  align-items: center;
   color: var(--home-spotlight-meta-muted, rgba(255, 255, 255, 0.5));
-  display: inline-flex;
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 650;
-  gap: 10px;
   letter-spacing: 0.08em;
   margin: 0;
   text-transform: uppercase;
 }
 
-.community-spotlight__live {
-  background: var(--color-brand-celeste);
-  border-radius: 50%;
-  box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-brand-celeste) 45%, transparent);
-  flex: none;
-  height: 7px;
-  width: 7px;
-  animation: community-spotlight-live 2.4s var(--ease-out, ease-out) infinite;
-}
-
-@keyframes community-spotlight-live {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-brand-celeste) 45%, transparent);
-    opacity: 1;
-  }
-  70% {
-    box-shadow: 0 0 0 8px transparent;
-    opacity: 0.85;
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-    opacity: 1;
-  }
-}
-
 .community-spotlight__list {
-  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   display: grid;
   gap: 0;
   list-style: none;
@@ -4172,7 +4144,7 @@
 }
 
 .community-spotlight__empty {
-  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   color: color-mix(in srgb, var(--color-text-primary) 56%, transparent);
   font-size: clamp(0.86rem, 1vw, 0.95rem);
   line-height: 1.5;
@@ -4181,11 +4153,11 @@
 
 .community-spotlight__row {
   align-items: center;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   display: grid;
-  gap: 12px 14px;
-  grid-template-columns: auto 2rem minmax(0, 1fr) auto;
-  padding: 12px 10px 12px 8px;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 14px 4px 14px 0;
   position: relative;
 }
 
@@ -4202,14 +4174,14 @@
   display: inline-flex;
   flex: none;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  height: 34px;
+  height: 44px;
   justify-content: center;
   letter-spacing: 0.04em;
   line-height: 1;
   overflow: hidden;
-  width: 34px;
+  width: 44px;
 }
 
 .community-spotlight__avatar--photo {
@@ -4225,26 +4197,16 @@
   width: 100%;
 }
 
-.community-spotlight__index {
-  color: var(--color-brand-gold);
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  opacity: 0.72;
-}
-
 .community-spotlight__row-main {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
 .community-spotlight__row-name {
   color: var(--home-spotlight-title, #fff);
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.25;
@@ -4302,8 +4264,8 @@
   }
 
   .community-spotlight__row {
-    grid-template-columns: auto 1.75rem minmax(0, 1fr);
-    padding-inline: 6px 4px;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-inline: 0;
   }
 }
 
@@ -4339,10 +4301,6 @@
   .community-spotlight__cta {
     transition: none;
   }
-
-  .community-spotlight__live {
-    animation: none;
-  }
 }
 
 /* Light theme */
@@ -4364,8 +4322,7 @@
   background: linear-gradient(180deg, rgba(160, 128, 48, 0.9) 0%, rgba(15, 17, 23, 0.3) 100%);
 }
 
-[data-theme='light'] .community-spotlight__eyebrow,
-[data-theme='light'] .community-spotlight__index {
+[data-theme='light'] .community-spotlight__eyebrow {
   color: #8a6d28;
 }
 
@@ -4406,10 +4363,6 @@
   color: rgba(15, 17, 23, 0.45);
 }
 
-[data-theme='light'] .community-spotlight__pulse strong {
-  color: rgba(15, 17, 23, 0.88);
-}
-
 [data-theme='light'] .community-spotlight__list,
 [data-theme='light'] .community-spotlight__row {
   border-color: rgba(15, 17, 23, 0.1);
@@ -4424,10 +4377,6 @@
   background: linear-gradient(145deg, rgba(138, 109, 40, 0.12), rgba(15, 17, 23, 0.03));
   border-color: rgba(138, 109, 40, 0.28);
   color: #8a6d28;
-}
-
-[data-theme='light'] .community-spotlight__live {
-  background: var(--color-brand-celeste, #5ba3d9);
 }
 
 [data-theme='light'] .community-spotlight__cta {

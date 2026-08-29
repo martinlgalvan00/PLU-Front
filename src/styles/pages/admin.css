@@ -2080,72 +2080,7 @@
 }
 
 .admin-finance--ledger {
-  gap: 24px;
-}
-
-/* Tres superficies (resumen / movimientos) en vez de una franja
-   continua de secciones separadas por líneas — mismo criterio que el resto
-   del panel: cada bloque funcional es su propia tarjeta con aire y sombra
-   propios. El alta/edición de egresos vive en AdminExpenseDialog. */
-.admin-finance--ledger .admin-finance__summary,
-.admin-finance--ledger .admin-finance__ledger {
-  background: var(--admin-surface, var(--color-bg-surface));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: var(--border-radius-xl);
-  box-shadow: var(--elevation-sm);
-  padding: 24px 26px;
-}
-
-.admin-finance__header-actions {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.admin-finance--ledger .admin-finance__summary {
-  display: grid;
-  gap: 18px;
-}
-
-.admin-finance--ledger .admin-finance__ledger {
-  display: grid;
-  gap: 18px;
-  padding: 20px 22px;
-}
-
-.admin-finance--ledger .admin-finance__header {
-  align-items: flex-end;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  justify-content: space-between;
-}
-
-.admin-finance--ledger .admin-finance__intro {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.admin-finance--ledger .admin-finance__intro h2 {
-  font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
-  font-weight: 650;
-  letter-spacing: -0.04em;
-  margin: 0;
-}
-
-.admin-finance--ledger .admin-finance__intro p {
-  color: var(--admin-muted, var(--color-text-muted));
-  font-size: 13px;
-  line-height: 1.45;
-  margin: 0;
-  max-width: 46ch;
-}
-
-.admin-finance--ledger .admin-finance__refresh.is-spinning svg {
-  animation: admin-spin 0.9s linear infinite;
+  gap: 16px;
 }
 
 /* Keyframe compartido por los íconos de refresh en giro (sync en curso).
@@ -2156,6 +2091,71 @@
   }
 }
 
+/* Resumen + movimientos: dos superficies. Período vive con el saldo;
+   tipo/búsqueda en el ledger. Alta/edición de egresos en diálogo. */
+.admin-finance--ledger .admin-finance__summary,
+.admin-finance--ledger .admin-finance__ledger {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--elevation-sm);
+  padding: 16px 18px;
+}
+
+.admin-finance__header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-finance--ledger .admin-finance__tools {
+  align-items: center;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.admin-finance--ledger .admin-finance__summary {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-finance--ledger .admin-finance__ledger {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.admin-finance--ledger .admin-finance__header {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+}
+
+.admin-finance--ledger .admin-finance__intro {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-finance--ledger .admin-finance__intro h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2.2vw, 1.3rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.admin-finance--ledger .admin-finance__lead {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 42ch;
+}
+
 .admin-finance--ledger .admin-finance__sync-hint {
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 12px;
@@ -2164,18 +2164,18 @@
 }
 
 .admin-finance--ledger .admin-finance__overview {
-  align-items: center;
+  align-items: end;
   border-top: 1px solid
     color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
   display: grid;
-  gap: 20px 40px;
-  grid-template-columns: auto minmax(0, 1fr);
-  padding-top: 18px;
+  gap: 14px 28px;
+  grid-template-columns: minmax(10rem, auto) minmax(0, 1fr);
+  padding-top: 14px;
 }
 
 .admin-finance--ledger .admin-finance__balance {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -2189,21 +2189,32 @@
 .admin-finance--ledger .admin-finance__balance-value {
   color: var(--color-brand-gold);
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-size: clamp(1.65rem, 4vw, 2.15rem);
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.04em;
   line-height: 1;
 }
 
-.admin-finance--ledger .admin-finance__balance-range {
+.admin-finance--ledger .admin-finance__balance-meta {
+  align-items: baseline;
   color: var(--admin-muted, var(--color-text-muted));
+  display: flex;
+  flex-wrap: wrap;
   font-size: 12px;
+  gap: 6px 10px;
+}
+
+.admin-finance--ledger .admin-finance__balance-count {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  opacity: 0.72;
 }
 
 .admin-finance--ledger .admin-finance__proportion {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -2212,7 +2223,7 @@
   border-radius: var(--border-radius-pill);
   display: flex;
   gap: 2px;
-  height: 6px;
+  height: 5px;
   overflow: hidden;
   width: 100%;
 }
@@ -2232,13 +2243,13 @@
 .admin-finance--ledger .admin-finance__proportion-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 14px 20px;
   margin: 0;
 }
 
 .admin-finance--ledger .admin-finance__proportion-item {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .admin-finance--ledger .admin-finance__proportion-item dt {
@@ -2259,32 +2270,99 @@
 .admin-finance--ledger .admin-finance__proportion-item dd {
   color: var(--admin-ink, var(--color-text-primary));
   font-family: var(--font-display);
-  font-size: clamp(1rem, 2vw, 1.15rem);
+  font-size: clamp(0.95rem, 1.8vw, 1.05rem);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   letter-spacing: -0.02em;
   margin: 0;
 }
 
-.admin-finance--ledger .admin-finance__kind {
-  align-items: center;
-  display: inline-flex;
-  font-size: 12px;
-  font-weight: 600;
-  gap: 5px;
+.admin-finance--ledger .admin-finance__period {
+  align-items: end;
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-top: 12px;
 }
 
-.admin-finance--ledger .admin-finance__kind--income {
-  color: var(--admin-status-success);
+.admin-finance--ledger .admin-finance__presets {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
-.admin-finance--ledger .admin-finance__kind--expense {
+.admin-finance--ledger .admin-finance__presets-label {
   color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-finance--ledger .admin-finance__preset-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-finance--ledger .admin-finance__preset {
+  background: transparent;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.admin-finance--ledger .admin-finance__preset:hover {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 40%, transparent);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-finance--ledger .admin-finance__preset.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-finance--ledger .admin-finance__preset:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-finance--ledger .admin-finance__dates {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(8.5rem, 11rem));
 }
 
 .admin-finance--ledger td.data-table__column--numeric,
 .admin-finance--ledger th.data-table__column--numeric {
   font-variant-numeric: tabular-nums;
+}
+
+.admin-finance--ledger .admin-finance__money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-finance--ledger .admin-finance__money--income {
+  color: var(--admin-status-success);
+  font-weight: 600;
+}
+
+.admin-finance--ledger .admin-finance__money--expense {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-weight: 600;
+}
+
+.admin-finance--ledger .admin-finance__money--balance {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-weight: 650;
 }
 
 .admin-finance--ledger td.admin-finance__col-reference {
@@ -2293,13 +2371,13 @@
 
 .admin-finance--ledger .admin-finance__toolbar {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, minmax(9rem, 11rem)) minmax(0, 1fr);
+  gap: 10px;
+  grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
 }
 
 .admin-finance--ledger .admin-finance__field {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -2309,32 +2387,49 @@
   font-weight: 500;
 }
 
-.admin-finance--ledger .admin-finance__field input {
+.admin-finance--ledger .admin-finance__field input,
+.admin-finance--ledger .admin-finance__field select {
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 8px;
   color: inherit;
   font: inherit;
   font-size: 13px;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 36px;
+  padding: 0 10px;
   width: 100%;
 }
 
-.admin-finance--ledger .admin-finance__field input:focus-visible {
+.admin-finance--ledger .admin-finance__field input:focus-visible,
+.admin-finance--ledger .admin-finance__field select:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
 }
 
+.admin-finance--ledger .admin-finance__export.export-btn--icon-only {
+  min-height: 36px;
+  min-width: 36px;
+}
+
 @media (max-width: 720px) {
   .admin-finance--ledger .admin-finance__overview,
-  .admin-finance--ledger .admin-finance__toolbar {
+  .admin-finance--ledger .admin-finance__period,
+  .admin-finance--ledger .admin-finance__toolbar,
+  .admin-finance--ledger .admin-finance__dates {
     grid-template-columns: 1fr;
+  }
+
+  .admin-finance--ledger .admin-finance__lead {
+    display: none;
   }
 }
 
 [data-theme='light'] .admin-finance--ledger .admin-finance__balance-value {
   color: var(--plu-gold-600, var(--color-brand-gold));
+}
+
+[data-theme='light'] .admin-finance--ledger .admin-finance__preset.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, white);
 }
 
 /* ── Diálogo de egreso (alta/edición) ──
@@ -5550,6 +5645,14 @@
   min-width: 0;
 }
 
+.admin-payments-ops-callout__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .admin-payments-ops-callout__body strong {
   font-size: 14px;
   font-weight: 700;
@@ -6266,6 +6369,53 @@
 .admin-payment-ops__healthy-line svg {
   color: var(--color-success-text, #3d9a5f);
   flex-shrink: 0;
+}
+
+.admin-payment-ops__healthy {
+  align-items: flex-start;
+  color: var(--admin-ink, var(--color-text-primary));
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 18px clamp(14px, 2.4vw, 22px) 22px;
+}
+
+.admin-payment-ops__healthy svg {
+  color: var(--color-success-text, #3d9a5f);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.admin-payment-ops__healthy strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.admin-payment-ops__healthy p {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+  max-width: 48ch;
+}
+
+.admin-payment-ops__healthy small {
+  color: var(--admin-muted, var(--color-text-muted));
+  display: block;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.admin-payment-ops__tools {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+  padding: 0 clamp(14px, 2.4vw, 22px);
 }
 
 /* Header siempre visible: el nav solo dice "Pagos", no reemplaza el título. */
@@ -15365,12 +15515,11 @@ button.action-queue__proof:focus-visible {
    operativa tiene que poder leerse de corrido y encontrarse con Ctrl+F, y en
    mobile el hover no existe.
 
-   El ancho de lectura se corta en 46ch. Sin tope, el motivo estira la columna
-   de estado y le come el espacio a monto y método, que son las dos que el
-   operador compara entre filas. */
+   Jerarquía editorial: badge (hecho) → stamp (quién/cuándo) → nota (por qué).
+   Sin cajas anidadas; un solo detalle de marca en la nota escrita. */
 .admin-state-cell {
   display: grid;
-  gap: 2px;
+  gap: 5px;
   justify-items: start;
   min-width: 0;
   position: relative;
@@ -15411,6 +15560,13 @@ button.action-queue__proof:focus-visible {
   flex: none;
 }
 
+.admin-state-cell__provenance {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+}
+
 /* La columna de estado se auto-dimensionaba por su contenido más ancho, que era
    un badge de ocho caracteres. Con el motivo adentro y envolviendo, colapsaba a
    ~130px y la frase caía en una cinta de dos palabras por línea: la fila crecía
@@ -15438,7 +15594,7 @@ button.action-queue__proof:focus-visible {
 .admin-state-cell__note {
   color: var(--color-text-secondary);
   font-size: 11px;
-  line-height: 1.3;
+  line-height: 1.35;
   margin: 0;
   max-width: 100%;
   min-width: 0;
@@ -15456,6 +15612,10 @@ button.action-queue__proof:focus-visible {
 .admin-state-cell__stamp {
   color: var(--color-text-muted);
   display: block;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -15472,10 +15632,11 @@ button.action-queue__proof:focus-visible {
 
 .admin-state-cell__note {
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   color: var(--color-text-muted);
   display: -webkit-box;
-  font-size: 11px;
+  font-size: 11.5px;
+  line-height: 1.4;
   overflow: hidden;
 }
 
@@ -15483,15 +15644,16 @@ button.action-queue__proof:focus-visible {
    distingue del motivo que alguien sí escribió. */
 .admin-state-cell__note--gap {
   color: var(--color-warning-text);
+  font-style: italic;
+  font-weight: 400;
 }
 
-/* La observación que escribió una persona. Comparte tono con la firma de
-   arriba: el texto es el contenido de la celda y quién lo escribió es el
-   metadato, así que el motivo no puede leerse más apagado que su propia firma.
-   Las notas derivadas del sistema ("quedó activa por otra vía") sí siguen en
-   `muted`: ahí el complemento es la nota, no el motivo. */
+/* La observación que escribió una persona. Un solo detalle de marca: regla
+   izquierda hairline. El texto es el contenido; la firma de arriba es el meta. */
 .admin-state-cell__note--written {
+  border-left: 1.5px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, var(--color-text-muted));
   color: var(--color-text-secondary);
+  padding-left: 7px;
 }
 
 /* En la tarjeta mobile la celda de estado vive en una fila angosta: el motivo
@@ -15503,8 +15665,13 @@ button.action-queue__proof:focus-visible {
   }
 
   .admin-state-cell__note {
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
   }
+}
+
+.athlete-detail__panel .data-table-card__badge .admin-state-cell,
+.athlete-detail__panel .data-table-card__badges .admin-state-cell {
+  width: 100%;
 }
 
 /* =============================================
@@ -15519,12 +15686,28 @@ button.action-queue__proof:focus-visible {
    activó a mano). El rojo está reservado para error real -- gastarlo acá lo
    volvería ruido en la pantalla donde más importa. La barra lateral, y no un
    fondo pleno, mantiene el presupuesto de superficies: la ficha ya tiene canvas
-   y surface, y esto no es una tercera caja. */
+   y surface, y esto no es una tercera caja.
+
+   Composición dossier: comparación tipográfica + observación firmada, sin
+   mini-cards anidadas. */
+@keyframes athlete-detail-divergence-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y, 12px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .athlete-detail__divergence {
-  border-left: 3px solid color-mix(in srgb, var(--admin-status-warning, var(--color-warning-text)) 72%, transparent);
+  animation: athlete-detail-divergence-in var(--motion-fast, 160ms) var(--ease-out, ease-out) both;
+  border-left: 2px solid color-mix(in srgb, var(--admin-status-warning, var(--color-warning-text)) 78%, transparent);
   display: grid;
-  gap: 10px;
-  padding: 2px 0 2px 14px;
+  gap: 14px;
+  padding: 4px 0 4px 16px;
 }
 
 .athlete-detail__divergence-head {
@@ -15537,13 +15720,14 @@ button.action-queue__proof:focus-visible {
 .athlete-detail__divergence-head svg {
   color: var(--admin-status-warning, var(--color-warning-text));
   flex: none;
+  opacity: 0.9;
 }
 
 .athlete-detail__divergence-title {
   color: var(--color-text-primary);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   line-height: 1.35;
   margin: 0;
 }
@@ -15559,7 +15743,7 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail__divergence-list {
   display: grid;
-  gap: 10px;
+  gap: 16px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -15567,74 +15751,81 @@ button.action-queue__proof:focus-visible {
 
 .athlete-detail__divergence-item {
   display: grid;
-  gap: 10px;
-  max-width: min(100%, 52rem);
+  gap: 12px;
+  max-width: min(100%, 48rem);
 }
 
 .athlete-detail__divergence-compare {
-  align-items: stretch;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px 14px;
   max-width: 100%;
   width: fit-content;
 }
 
 .athlete-detail__divergence-side {
-  align-items: flex-start;
-  background: var(--admin-surface-muted, var(--color-surface-subtle));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 8px;
-  display: grid;
-  gap: 6px;
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 0;
 }
 
 .athlete-detail__divergence-side-label {
   color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 650;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   line-height: 1.2;
   text-transform: uppercase;
 }
 
 .athlete-detail__divergence-bridge {
+  align-items: center;
   align-self: center;
   color: var(--color-text-muted);
+  display: inline-flex;
   flex: none;
-  font-size: 14px;
+  justify-content: center;
   line-height: 1;
-  opacity: 0.55;
+  opacity: 0.45;
   padding: 0 2px;
 }
 
+.athlete-detail__divergence-bridge-mark {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
 .athlete-detail__divergence-quote {
-  background: var(--admin-surface-muted, var(--color-surface-subtle));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  border-left: 1.5px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 0;
   display: grid;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
-  padding: 10px 12px;
+  max-width: min(100%, 48ch);
+  padding: 0 0 0 12px;
 }
 
 .athlete-detail__divergence-quote-label {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-  text-transform: uppercase;
+  /* Label removido del markup; se mantiene por compat si reaparece. */
+  display: none;
 }
 
 .athlete-detail__divergence-quote p {
   color: var(--color-text-primary);
   font-size: 13.5px;
-  font-weight: 550;
-  letter-spacing: -0.01em;
-  line-height: 1.45;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.5;
   margin: 0;
   overflow-wrap: anywhere;
   text-transform: none;
@@ -15642,12 +15833,13 @@ button.action-queue__proof:focus-visible {
 }
 
 .athlete-detail__divergence-quote footer {
-  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-top: 0;
   color: var(--color-text-muted);
-  font-size: 11px;
-  line-height: 1.35;
-  margin-top: 6px;
-  padding-top: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .athlete-detail__divergence-quote cite {
@@ -15661,26 +15853,48 @@ button.action-queue__proof:focus-visible {
   font-weight: 500;
   line-height: 1.5;
   margin: 0;
-  max-width: min(100%, 52rem);
+  max-width: min(100%, 48ch);
   overflow-wrap: anywhere;
   white-space: normal;
 }
 
 .athlete-detail__divergence-note--gap {
+  border-left: 1.5px solid color-mix(in srgb, var(--color-warning-text) 55%, transparent);
   color: var(--color-warning-text);
+  font-style: italic;
   font-weight: 400;
+  padding-left: 12px;
 }
 
 @media (max-width: 768px) {
   .athlete-detail__divergence-compare {
     align-items: stretch;
     flex-direction: column;
+    gap: 8px;
     width: 100%;
   }
 
   .athlete-detail__divergence-bridge {
-    align-self: flex-start;
-    transform: rotate(90deg);
+    align-self: stretch;
+    height: 1px;
+    margin: 2px 0;
+    max-width: 2.5rem;
+    opacity: 0.35;
+    overflow: hidden;
+    padding: 0;
+    width: 2.5rem;
+  }
+
+  .athlete-detail__divergence-bridge-mark {
+    display: none;
+  }
+
+  .athlete-detail__divergence-bridge::before {
+    background: currentColor;
+    content: '';
+    display: block;
+    height: 1px;
+    width: 100%;
   }
 
   .athlete-detail__divergence-side {
@@ -15690,6 +15904,12 @@ button.action-queue__proof:focus-visible {
   .athlete-detail__divergence-item,
   .athlete-detail__divergence-quote {
     max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .athlete-detail__divergence {
+    animation: none;
   }
 }
 

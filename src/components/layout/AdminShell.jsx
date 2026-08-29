@@ -167,7 +167,9 @@ export default function AdminShell({
   restrictedNav = false,
   onOpenAccount,
   athletes = [],
+  events = [],
   onSelectAthlete,
+  onSelectEvent,
   children,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -517,7 +519,12 @@ export default function AdminShell({
 
           {canSearchAthletes && !isPhoneViewport ? (
             <div className="admin-shell__header-search">
-              <AdminGlobalSearch athletes={athletes} onSelectAthlete={onSelectAthlete} />
+              <AdminGlobalSearch
+                athletes={athletes}
+                events={events}
+                onSelectAthlete={onSelectAthlete}
+                onSelectEvent={onSelectEvent}
+              />
             </div>
           ) : null}
 
