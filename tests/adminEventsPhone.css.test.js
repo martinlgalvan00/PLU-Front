@@ -65,7 +65,13 @@ describe('Target táctil de los chips de acceso', () => {
   function coarseBlock(source) {
     const start = source.indexOf('@media (pointer: coarse)')
     expect(start).toBeGreaterThan(-1)
-    return source.slice(start, source.indexOf('}\n}', start) + 3)
+    // Cierre del bloque: archivos pueden venir con LF o CRLF.
+    const lf = source.indexOf('}\n}', start)
+    const crlf = source.indexOf('}\r\n}', start)
+    const end = [lf, crlf].filter((n) => n >= 0).sort((a, b) => a - b)[0]
+    expect(end).toBeGreaterThan(-1)
+    const closeLen = source.startsWith('}\r\n}', end) ? 4 : 3
+    return source.slice(start, end + closeLen)
   }
 
   it('la consola de operación lleva chips, publicación y acciones a 44px en touch', () => {

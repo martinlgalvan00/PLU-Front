@@ -18,7 +18,7 @@ import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
 import { formatRejectionActor } from '../../lib/paymentAudit.js'
 import { derivePaymentProgress } from '../../lib/paymentProgress.js'
-import { getAthletePaymentProofUrls, listAthletePaymentOrders } from '../../services/athleteApi.js'
+import { listAthletePaymentOrders } from '../../services/athleteApi.js'
 import {
   OPEN_ORDER_STATUSES,
   buildPaymentValidationItem,
@@ -186,27 +186,20 @@ export default function AthletePaymentOrdersSection({
   const [revalidatingId, setRevalidatingId] = useState(null)
   const [revalidation, setRevalidation] = useState(null)
   const [serverCounts, setServerCounts] = useState(null)
-  // URLs firmadas de los comprobantes de las filas que se pueden validar,
-  // pedidas en lote al cargar. Sin esto cada apertura del dialogo esperaba dos
-  // llamadas antes de poder mostrar la evidencia.
+  // URL estable del proxy: no se precargan binarios al listar (egress).
+  // El comprobante se pide recién al abrir el diálogo de validación.
   const [proofUrls, setProofUrls] = useState({})
   const loadedRef = useRef(false)
 
-  const prefetchProofs = useCallback(async (rows) => {
-    const ids = rows
-      .filter((order) => canValidateManualOrder(order) && order.paymentProofPath)
-      .map((order) => order.id)
-    if (ids.length === 0) {
-      setProofUrls({})
-      return
-    }
-    try {
-      setProofUrls(await getAthletePaymentProofUrls(ids))
-    } catch {
-      // Precarga best-effort: el dialogo sigue sabiendo firmar la suya.
-      setProofUrls({})
-    }
-  }, [])
+  const ensureProofUrl = useCallback(async (orderId, paymentProofPath) => {
+    if (!orderId || !paymentProofPath) return null
+    if (proofUrls[orderId]) return proofUrls[orderId]
+    // Path estable: no hace falta firmar Storage. Si falla el GET binario,
+    // el diálogo sigue mostrando el estado sin imagen.
+    const url = `/api/athletes/admin/payment-orders/${orderId}/proof`
+    setProofUrls((current) => ({ ...current, [orderId]: url }))
+    return url
+  }, [proofUrls])
 
   const load = useCallback(
     async (statusFilterKey, channelFilterKey = 'all') => {
@@ -229,14 +222,14 @@ export default function AthletePaymentOrdersSection({
         loadedRef.current = true
         setOrders(result.orders)
         if (result.counts) setServerCounts(result.counts)
-        void prefetchProofs(result.orders)
+        setProofUrls({})
       } catch (loadError) {
         setError(loadError?.message ?? t('admin.athletePayments.loadError'))
       } finally {
         setLoading(false)
       }
     },
-    [prefetchProofs, t],
+    [t],
   )
 
   useEffect(() => {
@@ -324,6 +317,7 @@ export default function AthletePaymentOrdersSection({
         hasProof: Boolean(order.paymentProofPath),
         paymentProofPath: order.paymentProofPath ?? null,
         paymentProofUploadedAt: order.paymentProofUploadedAt,
+        paymentProofPurgedAt: order.paymentProofPurgedAt ?? null,
         financingAllowed: order.financingAllowed === true,
         manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
         financedEntitlementsAt: order.financedEntitlementsAt ?? null,
@@ -458,8 +452,9 @@ export default function AthletePaymentOrdersSection({
     return null
   }
 
-  function openReview(row, mode = 'validate') {
+  async function openReview(row, mode = 'validate') {
     setError('')
+    const proofUrl = await ensureProofUrl(row.id, row.paymentProofPath)
     // Mismo objeto de revisión que arma la puerta y la cola del dashboard:
     // el diálogo no puede pedir menos evidencia según desde dónde se abra.
     setReviewRow({
@@ -469,8 +464,7 @@ export default function AthletePaymentOrdersSection({
         detail: `${row.concept} · ${row.reference}`,
         meta: money(row.amount, locale, row.currency),
       }),
-      // Ya firmada al cargar la bandeja: el comprobante se ve al abrir.
-      proofUrl: proofUrls[row.id] ?? null,
+      proofUrl,
     })
   }
 
@@ -617,6 +611,13 @@ export default function AthletePaymentOrdersSection({
                   )
                 }
                 if (!row.hasProof) {
+                  if (row.paymentProofPurgedAt) {
+                    return (
+                      <span className="status-pill status-pill--neutral">
+                        {t('admin.athletePayments.proofArchived')}
+                      </span>
+                    )
+                  }
                   return (
                     <span className="status-pill status-pill--warning">
                       {t('admin.athletePayments.proofMissing')}

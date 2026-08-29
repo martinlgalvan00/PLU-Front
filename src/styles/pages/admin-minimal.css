@@ -265,6 +265,12 @@
   padding-bottom: 12px;
 }
 
+.admin-shell .admin-list-section--events > .admin-list-section__chrome {
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+}
+
 .admin-shell
   .admin-list-section--rails
   > .admin-list-section__chrome
@@ -1236,9 +1242,9 @@
   }
 }
 
-@media (max-width: 599px) {
+@media (max-width: 719px) {
   .admin-event-editor-modal__panel .admin-event-form__head {
-    padding: 18px 16px 14px;
+    padding: 14px 16px 12px;
   }
 
   .admin-event-editor-modal__panel .admin-event-editor__toolbar {
@@ -1246,16 +1252,17 @@
   }
 
   .admin-event-editor-modal__panel .admin-event-form__body {
-    padding: 12px 12px 18px;
+    padding: 12px 16px 18px;
   }
 
   .admin-event-editor-modal__panel .admin-event-form__actions {
     padding-inline: 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .admin-event-editor-modal__panel .admin-event-form__lane {
-    gap: 14px;
-    padding: 12px 10px;
+    gap: 12px;
+    padding: 14px 0 4px;
   }
 
   .admin-event-editor-modal__panel .admin-event-form__grid {
@@ -1391,9 +1398,17 @@
 }
 
 .admin-shell .admin-payments-ops-strip {
-  background: var(--admin-surface);
-  border-color: var(--admin-hairline);
-  border-radius: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.admin-shell .admin-payments-ops-pulse__value {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-payments-ops-pulse--warning .admin-payments-ops-pulse__value {
+  color: var(--admin-status-warning, var(--color-warning, #c9a227));
 }
 
 .admin-shell .admin-payment-ops__healthy-line {
@@ -1413,7 +1428,7 @@
   border-bottom-color: color-mix(in srgb, var(--admin-hairline) 60%, transparent);
   border-radius: 0;
   box-shadow: none;
-  gap: 10px;
+  gap: 14px;
   margin-bottom: 16px;
   padding: 0 2px 14px;
 }
@@ -1441,7 +1456,13 @@
 }
 
 .admin-shell .admin-payments-operations .admin-payments-ops-top__tabs {
+  max-width: 36rem;
   min-width: 0;
+}
+
+.admin-shell .admin-payments-operations .admin-payments-ops-top__tabs .segmented-switch--ops {
+  background: color-mix(in srgb, var(--admin-ink) 4%, transparent);
+  border-color: var(--admin-hairline);
 }
 
 .admin-shell .admin-payments-operations .admin-orders-block__header:not(.admin-payments-ops-top) {
@@ -2186,17 +2207,12 @@
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
   }
 
-  .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
-    border-left: 0;
-    padding-left: 12px;
-  }
-
-  .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
-    border-top: 1px solid var(--admin-glass-border);
-    padding-top: 10px;
+  .admin-shell .admin-list-section--events .admin-events-kpi--quiet {
+    display: none;
   }
 
   .admin-shell .admin-list-section--events .admin-list-shell__header,
@@ -5647,12 +5663,12 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__eyebrow {
-  color: var(--admin-muted);
+  color: var(--admin-brand, var(--admin-accent));
   display: inline-block;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-shell .admin-list-shell--events .admin-list-shell__subtitle {
@@ -5836,75 +5852,85 @@
   background: transparent;
 }
 
-/* KPI strip: un solo panel de vidrio con celdas abiertas adentro —
-   mismo lenguaje que la tira de KPIs del dashboard. */
+/* KPI pulse editorial: sin glass, dentro del chrome. */
 .admin-shell .admin-list-section--events .admin-events-kpis {
-  align-items: stretch;
-  background: var(--admin-glass-bg);
-  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  border: 1px solid var(--admin-glass-border);
-  border-radius: 14px;
-  box-shadow:
-    inset 0 1px 0 var(--admin-glass-highlight),
-    var(--admin-glass-shadow);
-  display: grid;
+  align-items: baseline;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 0;
+  border-block: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0 0 4px;
+  grid-template-columns: none;
+  margin: 0;
   overflow: visible;
-  padding: 4px 0;
-  scrollbar-width: none;
+  padding: 8px 0;
+  scrollbar-width: auto;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpis::-webkit-scrollbar {
-  display: none;
+  display: revert;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: baseline;
+  display: inline-flex;
+  flex: 0 1 auto;
+  flex-direction: row;
+  gap: 6px;
   justify-content: flex-start;
   min-width: 0;
-  padding: 8px 14px;
+  padding: 2px 14px 2px 0;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
-  border-left: 1px solid var(--admin-glass-border);
+  border-left: 1px solid var(--admin-hairline);
   padding-left: 14px;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi:first-child {
   border-left: 0;
-  padding-left: 14px;
+  padding-left: 0;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
   border-top: 0;
-  padding-top: 8px;
+  padding-top: 2px;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi__label {
   color: var(--admin-muted);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  order: 0;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  order: 1;
+  text-transform: none;
 }
 
 .admin-shell .admin-list-section--events .admin-events-kpi__value {
   color: var(--admin-ink);
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(1.15rem, 1.9vw, 1.45rem);
+  font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.045em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   line-height: 1;
   margin-left: 0;
-  order: 1;
+  order: 0;
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi--primary .admin-events-kpi__value {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+}
+
+.admin-shell .admin-list-section--events .admin-events-kpi--quiet .admin-events-kpi__value,
+.admin-shell .admin-list-section--events .admin-events-kpi--quiet .admin-events-kpi__label {
+  color: var(--admin-muted);
+  font-weight: 500;
 }
 
 .admin-shell .admin-list-shell--events .admin-events-workspace {
@@ -6657,21 +6683,22 @@
 }
 
 @media (max-width: 900px) {
-  /* Fallback sin container queries: KPIs en una fila, filas de evento en 2 líneas. */
+  /* Fallback sin container queries: pulse editorial compacto. */
   .admin-shell .admin-list-section--events .admin-events-kpis {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin-bottom: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 0;
     overflow: visible;
-    padding: 4px 0;
+    padding: 6px 0;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi {
-    padding: 6px 10px;
+    padding: 2px 10px 2px 0;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
     border-top: 0;
-    padding-top: 6px;
+    padding-top: 2px;
   }
 
   .admin-shell .admin-list-section--events .admin-events-kpi__value {
@@ -7483,32 +7510,26 @@
   scroll-margin-top: 16px;
 }
 
-.admin-event-editor-modal__backdrop {
-  background: rgba(4, 6, 10, 0.72);
-}
-
-.admin-event-editor-modal__panel {
-  background: var(--admin-surface, var(--color-bg-surface));
-  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.42);
-}
+/* Backdrop/panel del editor: material grafito vía admin-modals.css
+   (--admin-modal-*). No hardcodear rgba aquí. */
 
 .admin-event-editor-modal__panel .admin-event-form__head {
   align-items: flex-start;
   flex: 0 0 auto;
-  gap: 16px;
-  padding: 22px 24px 16px;
+  gap: 12px;
+  padding: 16px 20px 12px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__head h3 {
-  font-size: clamp(20px, 2.2vw, 26px);
+  font-size: clamp(18px, 2vw, 22px);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__lead {
-  font-size: 13px;
-  max-width: 52ch;
+  font-size: 12.5px;
+  max-width: 48ch;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section-nav {
@@ -7577,10 +7598,10 @@
 .admin-event-editor-modal__panel .admin-event-form__mode {
   border: 0;
   border-radius: 0;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  margin: 0;
+  margin: 0 0 2px;
   padding: 0;
 }
 
@@ -7592,65 +7613,70 @@
   flex: 0 0 auto;
   justify-content: flex-end;
   margin: 0;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 .admin-event-editor-modal__panel .admin-event-editor__toolbar {
-  background: var(--admin-surface);
+  background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
   flex: 0 0 auto;
   margin: 0;
-  padding-inline: 24px;
+  padding-inline: 18px;
 }
 
 .admin-event-editor-modal__panel
   .admin-event-editor__toolbar
   .detail-tabs--editorial
   .detail-tabs__tab {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 550;
-  min-height: 46px;
-  padding: 14px 14px 12px;
+  min-height: 40px;
+  padding: 10px 10px 8px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__body {
   flex: 1 1 auto;
-  gap: 22px;
+  gap: 14px;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 18px 24px 26px;
+  padding: 14px 20px 20px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section {
   border: 0;
   border-bottom: 0;
   border-radius: 0;
-  gap: 18px;
+  gap: 14px;
   padding: 4px 0 12px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section-head h4 {
-  font-size: clamp(15px, 1.6vw, 17px);
+  font-size: clamp(15px, 1.5vw, 16px);
   letter-spacing: -0.028em;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__section-head p {
-  font-size: 13px;
-  max-width: 54ch;
+  font-size: 12.5px;
+  max-width: 48ch;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__lane {
-  background: color-mix(in srgb, var(--admin-ink) 2%, transparent);
-  border-color: var(--admin-hairline);
-  border-radius: 12px;
-  gap: 18px;
-  padding: 20px;
+  background: var(--admin-glass-bg, transparent);
+  border: 1px solid var(--admin-glass-border, var(--admin-hairline));
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
+  gap: 14px;
+  padding: 16px 16px 14px;
+  -webkit-backdrop-filter: blur(10px) saturate(1.06);
+  backdrop-filter: blur(10px) saturate(1.06);
 }
 
 .admin-event-editor-modal__panel .admin-event-form__rate-cards {
-  border: 1px solid var(--admin-hairline);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--admin-glass-bg-strong, var(--color-bg-surface)) 40%, transparent);
+  border: 1px solid var(--admin-glass-border, var(--admin-hairline));
+  border-radius: 12px;
   gap: 0;
   overflow: hidden;
 }
@@ -7658,18 +7684,24 @@
 .admin-event-editor-modal__panel .admin-event-form__rate-card {
   background: transparent;
   border: 0;
-  border-left: 1px solid var(--admin-hairline);
+  border-left: 0;
   border-radius: 0;
   box-shadow: none;
-  padding: 14px 16px;
+  padding: 14px 16px 12px;
+}
+
+.admin-event-editor-modal__panel .admin-event-form__rate-card + .admin-event-form__rate-card {
+  border-left: 1px solid var(--admin-glass-border, var(--admin-hairline));
+  padding-left: 16px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__rate-card:first-child {
   border-left: 0;
+  padding-left: 16px;
 }
 
 .admin-event-editor-modal__panel .admin-event-form__rate-card--featured {
-  background: color-mix(in srgb, var(--admin-premium) 5%, transparent);
+  background: transparent;
 }
 
 .admin-event-editor-modal__panel .admin-event-security {
@@ -7947,14 +7979,23 @@
 
   .admin-event-editor-modal__panel .admin-event-form__rate-cards {
     border: 0;
+    border-top: 1px solid var(--admin-hairline);
     border-radius: 0;
+    grid-template-columns: 1fr;
   }
 
   .admin-event-editor-modal__panel .admin-event-form__rate-card,
   .admin-event-editor-modal__panel .admin-event-form__rate-card:first-child {
-    border: 1px solid var(--admin-hairline);
-    border-radius: 8px;
-    margin-top: 8px;
+    border: 0;
+    border-radius: 0;
+    margin-top: 0;
+    padding: 12px 0 10px;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__rate-card + .admin-event-form__rate-card {
+    border-left: 0;
+    border-top: 1px solid var(--admin-hairline);
+    padding-left: 0;
   }
 
   .admin-event-editor-modal__panel .admin-event-form__save-state--toolbar {
@@ -7965,6 +8006,16 @@
     display: flex;
     justify-content: stretch;
     padding-block: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__action-buttons {
+    width: 100%;
+  }
+
+  .admin-event-editor-modal__panel .admin-event-form__close {
+    height: 44px;
+    width: 44px;
   }
 }
 
@@ -8232,38 +8283,37 @@
   @container admin-panel (min-width: 900px) {
     .admin-shell .admin-list-section--events .admin-events-kpis {
       display: flex;
-      flex-wrap: nowrap;
-      grid-template-columns: none;
-      overflow-x: auto;
+      flex-wrap: wrap;
+      overflow: visible;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi {
       align-items: baseline;
-      flex: 1 1 0;
+      flex: 0 1 auto;
       flex-direction: row;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
-      padding: 8px 18px;
+      padding: 2px 14px 2px 0;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi + .admin-events-kpi {
-      border-left: 1px solid var(--admin-glass-border);
-      padding-left: 18px;
+      border-left: 1px solid var(--admin-hairline);
+      padding-left: 14px;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
-      border-left: 1px solid var(--admin-glass-border);
-      padding-left: 18px;
+      border-left: 1px solid var(--admin-hairline);
+      padding-left: 14px;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:first-child {
       border-left: 0;
-      padding-left: 18px;
+      padding-left: 0;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
       border-top: 0;
-      padding-top: 8px;
+      padding-top: 2px;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi__label {
@@ -8392,28 +8442,28 @@
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpis {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       overflow: visible;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi {
-      padding: 6px 10px;
+      padding: 2px 10px 2px 0;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
-      border-left: 1px solid var(--admin-glass-border);
+      border-left: 1px solid var(--admin-hairline);
       padding-left: 10px;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:first-child {
       border-left: 0;
-      padding-left: 10px;
+      padding-left: 0;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
       border-top: 0;
-      padding-top: 6px;
+      padding-top: 2px;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi__value {
@@ -8530,17 +8580,27 @@
 
   @container admin-panel (max-width: 430px) {
     .admin-shell .admin-list-section--events .admin-events-kpis {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi--quiet {
+      display: none;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(odd) {
+      border-left: 1px solid var(--admin-hairline);
+      padding-left: 10px;
+    }
+
+    .admin-shell .admin-list-section--events .admin-events-kpi:first-child {
       border-left: 0;
-      padding-left: 12px;
+      padding-left: 0;
     }
 
     .admin-shell .admin-list-section--events .admin-events-kpi:nth-child(n + 3) {
-      border-top: 1px solid var(--admin-glass-border);
-      padding-top: 10px;
+      border-top: 0;
+      padding-top: 2px;
     }
 
     .admin-shell

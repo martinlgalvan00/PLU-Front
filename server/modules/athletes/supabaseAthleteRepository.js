@@ -1,13 +1,14 @@
 import { HttpError } from '../../lib/errors.js'
 import { PRIMARY_ORGANIZATION_ID } from '../../lib/organizations.js'
+import { authenticatedPortraitUrl } from '../../lib/publicPortraitUrl.js'
+import { forgetPortraitCache } from '../../lib/portraitBinaryCache.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../../lib/supabaseRpc.js'
 import { forgetAthleteSessionCache } from '../../services/athleteSessionService.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
 const PAYMENT_PROOF_BUCKET = 'athlete-payment-proofs'
-const PAYMENT_PROOF_URL_TTL_SECONDS = 300
-// Tope de la bandeja de validación: firmar más de esto en una request deja de
-// ser una optimización y pasa a ser trabajo especulativo.
+// Tope de la bandeja de validación: más de esto deja de ser una optimización
+// y pasa a ser trabajo especulativo.
 const PAYMENT_PROOF_BATCH_LIMIT = 60
 /**
  * Techo del snapshot admin para `athlete_payment_orders`. Sin `.range()` el
@@ -61,6 +62,8 @@ const PAYMENT_ORDER_LIST_COLUMNS = [
   'rejected_at',
   'payment_proof_path',
   'payment_proof_uploaded_at',
+  'payment_proof_accessed_at',
+  'payment_proof_purged_at',
   'financing_allowed',
   'manual_payment_declared_at',
   'financed_entitlements_at',
@@ -77,12 +80,6 @@ const PAYMENT_ORDER_LIST_COLUMNS = [
   'created_at',
   'athlete:athletes(id, full_name, document_id, email)',
 ].join(', ')
-const PHOTO_URL_TTL_SECONDS = 3600
-// En una Function la cache es best-effort (puede desaparecer en un cold start),
-// pero evita firmar de nuevo las mismas fotos para cada refresh del dashboard
-// mientras la instancia sigue caliente. Nunca se persiste fuera del proceso.
-const PHOTO_URL_CACHE_MS = (PHOTO_URL_TTL_SECONDS - 60) * 1000
-const signedPhotoUrlCache = new Map()
 
 export function createSupabaseAthleteRepository(
   client,
@@ -92,41 +89,16 @@ export function createSupabaseAthleteRepository(
   const rpc = async (name, args, fallback) =>
     assertSupabaseResult(await client.rpc(name, args), fallback)
 
-  async function addSignedPhotoUrls(payload) {
+  /**
+   * URL estable al proxy autenticado. Sin firma de Storage: el browser cachea
+   * por path y el poll del panel ya no rota tokens ni re-dispara egress.
+   */
+  function attachPortraitUrls(payload) {
     const athletes = payload.athletes ?? (payload.athlete ? [payload.athlete] : [])
-    const now = Date.now()
-    const missingPaths = []
-
     athletes.forEach((athlete) => {
       delete athlete.password_hash
-      athlete.photo_url = null
-      if (!athlete.photo_path) return
-      const cached = signedPhotoUrlCache.get(athlete.photo_path)
-      if (cached?.expiresAt > now) {
-        athlete.photo_url = cached.url
-        return
-      }
-      missingPaths.push(athlete.photo_path)
+      athlete.photo_url = authenticatedPortraitUrl(athlete.photo_path)
     })
-
-    if (missingPaths.length > 0) {
-      const uniquePaths = [...new Set(missingPaths)]
-      const signed = assertSupabaseResult(
-        await client.storage
-          .from(PHOTO_BUCKET)
-          .createSignedUrls(uniquePaths, PHOTO_URL_TTL_SECONDS),
-        'No se pudieron leer las fotos de atletas.',
-      )
-      const urlsByPath = new Map(signed.map((entry) => [entry.path, entry.signedUrl]))
-      uniquePaths.forEach((path) => {
-        const url = urlsByPath.get(path)
-        if (url) signedPhotoUrlCache.set(path, { url, expiresAt: now + PHOTO_URL_CACHE_MS })
-      })
-      athletes.forEach((athlete) => {
-        if (!athlete.photo_path || athlete.photo_url) return
-        athlete.photo_url = urlsByPath.get(athlete.photo_path) ?? null
-      })
-    }
     return payload
   }
 
@@ -333,7 +305,7 @@ export function createSupabaseAthleteRepository(
       return result
     },
     snapshot: async (athleteId) =>
-      addSignedPhotoUrls(
+      attachPortraitUrls(
         await rpc(
           'get_athlete_snapshot',
           { p_athlete_id: athleteId },
@@ -489,7 +461,9 @@ export function createSupabaseAthleteRepository(
       return assertSupabaseResult(
         await client
           .from('events')
-          .select('id, slug, price, manual_price, wise_price, currency')
+          .select(
+            'id, slug, price, manual_price, wise_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
+          )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
           .maybeSingle(),
@@ -1041,17 +1015,28 @@ export function createSupabaseAthleteRepository(
           .from('athlete_payment_orders')
           .select('payment_proof_path')
           .eq('id', orderId)
+          .eq('organization_id', organizationId)
           .maybeSingle(),
         'No se pudo leer la orden.',
       )
       if (!order?.payment_proof_path) throw new HttpError(404, 'La orden no tiene comprobante.')
-      const signed = assertSupabaseResult(
-        await client.storage
-          .from(PAYMENT_PROOF_BUCKET)
-          .createSignedUrl(order.payment_proof_path, 300),
-        'No se pudo abrir el comprobante.',
+      // URL estable al proxy autenticado: el browser cachea y el lote de la
+      // bandeja ya no dispara createSignedUrls (egress + trabajo de Storage).
+      return `/api/athletes/admin/payment-orders/${orderId}/proof`
+    },
+
+    async paymentProofPath(orderId) {
+      const order = assertSupabaseResult(
+        await client
+          .from('athlete_payment_orders')
+          .select('payment_proof_path')
+          .eq('id', orderId)
+          .eq('organization_id', organizationId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
       )
-      return signed.signedUrl
+      if (!order?.payment_proof_path) throw new HttpError(404, 'La orden no tiene comprobante.')
+      return order.payment_proof_path
     },
 
     /**
@@ -1126,15 +1111,8 @@ export function createSupabaseAthleteRepository(
     },
 
     /**
-     * Comprobantes de varias órdenes en una sola vuelta.
-     *
-     * Cada apertura del diálogo de validación gastaba dos llamadas —leer la
-     * ruta y firmar la URL— y el operador miraba un spinner antes de poder
-     * decidir. Validar diez transferencias eran veinte esperas. Con las URLs ya
-     * resueltas para las filas abiertas, el comprobante aparece al instante.
-     *
-     * Mismo TTL y mismo bucket que `paymentProofUrl`: no relaja el acceso, sólo
-     * agrupa el trabajo. Una orden sin comprobante simplemente no figura.
+     * URLs estables de comprobantes para la bandeja. No firma Storage: el
+     * binario lo sirve GET /admin/payment-orders/:id/proof con cookie de staff.
      */
     async paymentProofUrls(orderIds = []) {
       const ids = [...new Set(orderIds.filter(Boolean))].slice(0, PAYMENT_PROOF_BATCH_LIMIT)
@@ -1149,25 +1127,8 @@ export function createSupabaseAthleteRepository(
         'No se pudieron leer las órdenes.',
       )
       const withProof = (rows ?? []).filter((row) => row.payment_proof_path)
-      if (withProof.length === 0) return {}
-
-      const signed = assertSupabaseResult(
-        await client.storage.from(PAYMENT_PROOF_BUCKET).createSignedUrls(
-          withProof.map((row) => row.payment_proof_path),
-          PAYMENT_PROOF_URL_TTL_SECONDS,
-        ),
-        'No se pudieron abrir los comprobantes.',
-      )
-      const urlByPath = new Map(
-        (signed ?? [])
-          .filter((entry) => entry?.signedUrl)
-          .map((entry) => [entry.path, entry.signedUrl]),
-      )
-
       return Object.fromEntries(
-        withProof
-          .map((row) => [row.id, urlByPath.get(row.payment_proof_path) ?? null])
-          .filter(([, url]) => Boolean(url)),
+        withProof.map((row) => [row.id, `/api/athletes/admin/payment-orders/${row.id}/proof`]),
       )
     },
 
@@ -1292,24 +1253,30 @@ export function createSupabaseAthleteRepository(
       ),
 
     /**
-     * URL firmada corta para la foto en la página pública de verificación.
-     * La RPC solo incluye `photo_path` cuando el código era un token; por
-     * member_code no hay path y respondemos null (sin filtrar el padrón).
+     * Path de foto para verificación QR (sin firmar Storage).
+     * La RPC solo incluye `photo_path` cuando el código era un token.
      */
-    async signCredentialPhoto(code) {
+    async resolveCredentialPhotoPath(code) {
       const result = await rpc(
         'get_membership_by_code_or_token',
         { p_code: code, p_event_slug: null },
         'No se pudo leer la credencial.',
       )
       const photoPath = result?.athlete?.photo_path
-      if (!photoPath) return { photoUrl: null }
+      if (!photoPath) return { photoPath: null }
+      return { photoPath: String(photoPath) }
+    },
 
-      const signed = assertSupabaseResult(
-        await client.storage.from(PHOTO_BUCKET).createSignedUrl(photoPath, 600),
-        'No se pudo firmar la foto de la credencial.',
-      )
-      return { photoUrl: signed.signedUrl }
+    /**
+     * URL estable del proxy público de credencial. Evita signed URLs de
+     * un solo uso que re-disparan egress en cada escaneo/refresh.
+     */
+    async signCredentialPhoto(code) {
+      const resolved = await this.resolveCredentialPhotoPath(code)
+      if (!resolved.photoPath) return { photoUrl: null }
+      return {
+        photoUrl: `/api/athletes/public/credential-portrait?code=${encodeURIComponent(code)}`,
+      }
     },
 
     async registerPhoto(athleteId, photoPath) {
@@ -1326,23 +1293,26 @@ export function createSupabaseAthleteRepository(
         'No se pudo actualizar la foto.',
       )
       if (current?.photo_path && current.photo_path !== photoPath) {
+        forgetPortraitCache(current.photo_path)
         const removal = await client.storage.from(PHOTO_BUCKET).remove([current.photo_path])
         if (removal.error)
           console.warn('No se pudo borrar la foto anterior:', removal.error.message)
       }
-      await addSignedPhotoUrls({ athlete: row })
+      if (photoPath) forgetPortraitCache(photoPath)
+      attachPortraitUrls({ athlete: row })
       return row
     },
     async createPhotoUpload(athleteId, { fileName }) {
       const safeName = String(fileName)
         .replace(/[^\w.\-()+ ]/g, '_')
         .slice(0, 120)
+      // Extensión webp favorece el cache inmutable del CDN/browser.
       const path = `${athleteId}/${Date.now()}-${safeName}`
       const signed = assertSupabaseResult(
         await client.storage.from(PHOTO_BUCKET).createSignedUploadUrl(path),
         'No se pudo preparar la carga de la foto.',
       )
-      return { path, token: signed.token }
+      return { path, token: signed.token, cacheControl: '31536000' }
     },
     /**
      * Revision barata del padrón admin (count + max updated_at por segmento
@@ -1380,10 +1350,10 @@ export function createSupabaseAthleteRepository(
     },
 
     /**
-     * `filters` recorta el snapshot (status/búsqueda/paginación) y `photos=0`
-     * saltea las URLs firmadas. El panel pide el padrón operativo en la
-     * primera carga (dashboard y badges) y en el poll de 120 s manda
-     * `photos=0` para no rotar el token de Storage ni re-bajar los originales.
+     * `filters` recorta el snapshot (status/búsqueda/paginación). Las fotos
+     * viajan como URL estable al proxy (`/api/athletes/portrait`): adjuntarlas
+     * no toca Storage. `photos=0` se conserva por compat del poll del panel
+     * (antes evitaba firmar tokens); hoy igual adjunta URLs estables.
      *
      * Todos los segmentos van acotados: sin `limit` explícito aplican
      * `ADMIN_SNAPSHOT_DEFAULT_LIMIT`, y el `totals` del payload dice cuántas
@@ -1491,7 +1461,7 @@ export function createSupabaseAthleteRepository(
                 // PAYMENT_ORDER_LIST_COLUMNS: el dashboard ordena las órdenes
                 // financiadas por vencimiento y sin la fecha todas le empataban
                 // en "sin plazo".
-                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at, financed_payment_due_at',
+                'id, athlete_id, concept, amount, currency, method, manual_payment_channel, status, reference, payment_proof_path, payment_proof_uploaded_at, payment_proof_accessed_at, payment_proof_purged_at, discount_code, discount_amount, notes, created_at, updated_at, expires_at, approved_at, rejected_at, rejection_reason, cancelled_at, cancellation_code, cancellation_reason, cancelled_by, financing_allowed, manual_payment_declared_at, financed_entitlements_at, financed_entitlements_revoked_at, financed_payment_due_at',
                 { count: 'exact' },
               )
               .eq('organization_id', organizationId)
@@ -1582,8 +1552,7 @@ export function createSupabaseAthleteRepository(
         }
       }
 
-      if (filters.photos === '0') return payload
-      return addSignedPhotoUrls(payload)
+      return attachPortraitUrls(payload)
     },
 
     /**
@@ -1720,15 +1689,10 @@ export function createSupabaseAthleteRepository(
         'No se pudieron leer las fotos.',
       )
       const allowed = (rows ?? []).map((row) => row.photo_path).filter(Boolean)
-      if (allowed.length === 0) return {}
-
-      const payload = await addSignedPhotoUrls({
-        athletes: allowed.map((photo_path) => ({ photo_path })),
-      })
       return Object.fromEntries(
-        payload.athletes
-          .filter((athlete) => athlete.photo_url)
-          .map((athlete) => [athlete.photo_path, athlete.photo_url]),
+        allowed
+          .map((photo_path) => [photo_path, authenticatedPortraitUrl(photo_path)])
+          .filter(([, url]) => Boolean(url)),
       )
     },
 

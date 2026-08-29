@@ -170,11 +170,22 @@ export function createSupabaseTicketRepository(client) {
         'No se pudo leer la orden.',
       )
       if (!order?.payment_proof_path) throw new HttpError(404, 'La orden no tiene comprobante.')
-      const signed = assertSupabaseResult(
-        await client.storage.from(PROOF_BUCKET).createSignedUrl(order.payment_proof_path, 300),
-        'No se pudo abrir el comprobante.',
+      // URL estable al proxy autenticado: evita createSignedUrl + egress directo
+      // a Storage en cada apertura del diálogo de Finanzas.
+      return `/api/tickets/orders/${orderId}/proof`
+    },
+
+    async proofPath(orderId) {
+      const order = assertSupabaseResult(
+        await client
+          .from('ticket_orders')
+          .select('payment_proof_path')
+          .eq('id', orderId)
+          .maybeSingle(),
+        'No se pudo leer la orden.',
       )
-      return signed.signedUrl
+      if (!order?.payment_proof_path) throw new HttpError(404, 'La orden no tiene comprobante.')
+      return order.payment_proof_path
     },
   }
 }

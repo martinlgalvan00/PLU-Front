@@ -105,9 +105,17 @@ export function getPaymentsRuntimeStatus(env = process.env) {
 
 /**
  * Factory del proveedor de pagos. Misma interfaz hacia workflows.
+ *
+ * `credentials` (opcional) sobreescribe el token/collector del env para un
+ * perfil MP de evento: { accessToken, collectorId?, webhookSecret?, publicKey? }.
  * @returns {ReturnType<typeof createMercadoPagoAdapter> | ReturnType<typeof createMockMercadoPagoAdapter>}
  */
-export function createPaymentProviderAdapter({ env = process.env, timeout, store } = {}) {
+export function createPaymentProviderAdapter({
+  env = process.env,
+  timeout,
+  store,
+  credentials = null,
+} = {}) {
   const provider = resolvePaymentsProvider(env)
 
   if (provider === 'mock') {
@@ -117,13 +125,38 @@ export function createPaymentProviderAdapter({ env = process.env, timeout, store
     return sharedMockAdapter
   }
 
+  const effectiveEnv = credentials?.accessToken
+    ? {
+        ...env,
+        MERCADO_PAGO_ACCESS_TOKEN: credentials.accessToken,
+        ...(credentials.collectorId
+          ? { MERCADO_PAGO_COLLECTOR_ID: String(credentials.collectorId) }
+          : {}),
+        ...(credentials.webhookSecret
+          ? { MERCADO_PAGO_WEBHOOK_SECRET: credentials.webhookSecret }
+          : {}),
+        ...(credentials.publicKey
+          ? { VITE_MERCADO_PAGO_PUBLIC_KEY: credentials.publicKey }
+          : {}),
+      }
+    : env
+
   // Fallar antes de mostrar/procesar el checkout evita aceptar dinero cuando
   // la notificacion canonica no podria acreditarse en el dominio.
-  assertMercadoPagoRuntimeReady(env)
-  const cacheKey = `${env.MERCADO_PAGO_ACCESS_TOKEN ?? ''}:${timeout ?? 'default'}`
+  // Con credenciales de perfil no exigimos el public key de Vite global.
+  if (!credentials?.accessToken) {
+    assertMercadoPagoRuntimeReady(effectiveEnv)
+  } else {
+    const token = String(credentials.accessToken ?? '').trim()
+    if (!token || PLACEHOLDER_PATTERN.test(token)) {
+      throw new HttpError(503, 'El perfil de Mercado Pago no tiene access token válido.')
+    }
+  }
+
+  const cacheKey = `${effectiveEnv.MERCADO_PAGO_ACCESS_TOKEN ?? ''}:${timeout ?? 'default'}`
   let adapter = sharedMercadoPagoAdapters.get(cacheKey)
   if (!adapter) {
-    adapter = createMercadoPagoAdapter({ env, timeout })
+    adapter = createMercadoPagoAdapter({ env: effectiveEnv, timeout })
     sharedMercadoPagoAdapters.set(cacheKey, adapter)
   }
   return adapter

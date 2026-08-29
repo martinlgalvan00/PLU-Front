@@ -102,6 +102,14 @@ export function buildAdminEventDraft(event) {
     published: event.published === true,
     requiresMembership: event.requiresMembership !== false,
     capacityProgressPublic: event.capacityProgressPublic !== false,
+    paymentChannelOverrides: event.paymentChannelOverrides ?? null,
+    bankTransfer: {
+      alias: event.bankTransfer?.alias ?? '',
+      cbu: event.bankTransfer?.cbu ?? '',
+      holder: event.bankTransfer?.holder ?? '',
+    },
+    bankTransferProfileId: event.bankTransferProfileId ?? null,
+    mercadoPagoProfileId: event.mercadoPagoProfileId ?? null,
   }
 }
 
@@ -517,6 +525,10 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   requiresMembership: true,
   // El sitio muestra la ocupación salvo decisión contraria del organizador.
   capacityProgressPublic: true,
+  paymentChannelOverrides: null,
+  bankTransfer: { alias: '', cbu: '', holder: '' },
+  bankTransferProfileId: null,
+  mercadoPagoProfileId: null,
 }
 
 /**
@@ -614,6 +626,14 @@ export function mapSupabaseEventRow(row) {
     published: row.published,
     requiresMembership: row.requires_membership !== false,
     capacityProgressPublic: row.capacity_progress_public !== false,
+    paymentChannelOverrides: row.payment_channel_overrides ?? null,
+    bankTransfer: {
+      alias: row.bank_transfer_alias ?? '',
+      cbu: row.bank_transfer_cbu ?? '',
+      holder: row.bank_transfer_holder ?? '',
+    },
+    bankTransferProfileId: row.bank_transfer_profile_id ?? null,
+    mercadoPagoProfileId: row.mercado_pago_profile_id ?? null,
     comboOffer: comboOfferRow
       ? {
           id: comboOfferRow.id,
@@ -775,6 +795,14 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     startsAt,
     endsAt,
     pricing: normalizeEventPricingInput(draft.pricing),
+    paymentChannelOverrides: draft.paymentChannelOverrides ?? null,
+    bankTransfer: {
+      alias: draft.bankTransfer?.alias ?? '',
+      cbu: draft.bankTransfer?.cbu ?? '',
+      holder: draft.bankTransfer?.holder ?? '',
+    },
+    bankTransferProfileId: draft.bankTransferProfileId ?? null,
+    mercadoPagoProfileId: draft.mercadoPagoProfileId ?? null,
   })
 
   return {

@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import DigitalCredential from '../../components/ui/DigitalCredential.jsx'
 import { formatShortDate, initials } from '../../lib/format.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
+import { resolveSessionIdentity } from '../../lib/roles.js'
 
 export default function ProfileHero({
   athlete,
@@ -10,11 +11,17 @@ export default function ProfileHero({
   athleteRegistrations,
   nextEvent,
   onNavigateSection,
+  session = null,
 }) {
   const { t } = useI18n()
   const membershipActive = membership?.status === 'activa'
   const activeRegistrations = athleteRegistrations.filter((item) => item.status !== 'cancelada')
   const profileStatus = isProfileComplete(athlete)
+  const identity = resolveSessionIdentity(session)
+  const roleEyebrow =
+    identity.mode === 'admin'
+      ? (identity.roleLabel ?? t('nav.roleAdmin'))
+      : t('nav.roleAthlete')
 
   return (
     <section className="account-hero">
@@ -23,14 +30,24 @@ export default function ProfileHero({
           <div className="account-hero__identity">
             <div className="account-hero__avatar" aria-hidden>
               {athlete.photoUrl ? (
-                <img src={athlete.photoUrl} alt="" />
+                <img
+                  src={athlete.photoUrl}
+                  alt=""
+                  width={84}
+                  height={84}
+                  decoding="async"
+                  loading="eager"
+                />
               ) : (
                 initials(athlete.fullName)
               )}
             </div>
             <div className="account-hero__copy">
-              <span className="account-hero__eyebrow">{t('account.eyebrow')}</span>
+              <span className="account-hero__eyebrow">{roleEyebrow}</span>
               <h1 className="account-hero__name">{athlete.fullName}</h1>
+              {identity.staffAccess ? (
+                <p className="account-hero__role">{t('nav.roleStaffAccess')}</p>
+              ) : null}
               <div className="account-hero__badges">
                 <span
                   className={`account-badge ${membershipActive ? 'account-badge--active' : 'account-badge--pending'}`}

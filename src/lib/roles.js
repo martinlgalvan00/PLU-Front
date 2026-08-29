@@ -25,6 +25,28 @@ export function canViewAdmin(subject) {
   return getAllowedAdminSections(subject).length > 0
 }
 
+/**
+ * Identidad de sesión para menú de perfil / hero de cuenta.
+ * - athlete_bridge: atleta con acceso staff (eyebrow atleta + hint operativo)
+ * - admin: staff con permisos → label real vía getRoleLabel
+ * - athlete: atleta puro
+ */
+export function resolveSessionIdentity(session) {
+  const athleteWithStaffBridge = session?.role === 'athlete_plu' && Boolean(session?.staffAvailable)
+  if (athleteWithStaffBridge) {
+    return { mode: 'athlete_bridge', roleLabel: null, staffAccess: true }
+  }
+  if (canViewAdmin(session)) {
+    const roleLabel = getRoleLabel(session)
+    return {
+      mode: 'admin',
+      roleLabel: roleLabel && roleLabel !== 'Sin rol' ? roleLabel : null,
+      staffAccess: false,
+    }
+  }
+  return { mode: 'athlete', roleLabel: null, staffAccess: false }
+}
+
 /** Sesión Prisma de staff (no atleta). Incluye seguridad y roles custom. */
 export function isStaffSession(subject) {
   if (!subject || typeof subject !== 'object') return false

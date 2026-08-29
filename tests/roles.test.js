@@ -14,6 +14,7 @@ import {
   getRoleLabel,
   isKnownRole,
   isStaffSession,
+  resolveSessionIdentity,
 } from '../src/lib/roles.js'
 import {
   canAccessSecurityEvent,
@@ -32,6 +33,26 @@ describe('roles', () => {
     expect(isStaffSession({ id: 'usr-2', role: 'seguridad_plu_arg' })).toBe(true)
     expect(isStaffSession({ role: 'athlete_plu', athleteId: 'ath-1' })).toBe(false)
     expect(isStaffSession(null)).toBe(false)
+  })
+
+  it('resuelve identidad de menú/perfil con rol real y bridge', () => {
+    expect(resolveSessionIdentity({ role: 'athlete_plu' })).toEqual({
+      mode: 'athlete',
+      roleLabel: null,
+      staffAccess: false,
+    })
+    expect(
+      resolveSessionIdentity({ role: 'athlete_plu', staffAvailable: true }),
+    ).toEqual({
+      mode: 'athlete_bridge',
+      roleLabel: null,
+      staffAccess: true,
+    })
+    expect(resolveSessionIdentity({ role: 'admin_plu_arg', roleKey: 'admin_plu_arg' })).toEqual({
+      mode: 'admin',
+      roleLabel: 'Administrador',
+      staffAccess: false,
+    })
   })
 
   it('mantiene los cuatro roles base de la jerarquía', () => {

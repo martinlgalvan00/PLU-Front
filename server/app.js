@@ -15,6 +15,7 @@ import { createAthleteRoutes } from './routes/athletes.js'
 import { createAnalyticsRoutes } from './routes/analytics.js'
 import { createAuditRoutes } from './routes/audit.js'
 import { createEventRoutes } from './routes/events.js'
+import { createPaymentProfileRoutes } from './routes/paymentProfiles.js'
 import { createPricingRoutes } from './routes/pricing.js'
 import { createRegistrationAccessRoutes } from './routes/registrationAccess.js'
 import { createAdminQueueRoutes } from './routes/adminQueue.js'
@@ -219,6 +220,13 @@ export function createApp(deps = {}) {
   app.use(
     '/api/events',
     createEventRoutes({
+      getPrisma: () => deps.prisma ?? getPrisma(),
+      getSupabaseAdmin: resolveSupabaseAdmin,
+    }),
+  )
+  app.use(
+    '/api/payment-profiles',
+    createPaymentProfileRoutes({
       getPrisma: () => deps.prisma ?? getPrisma(),
       getSupabaseAdmin: resolveSupabaseAdmin,
     }),

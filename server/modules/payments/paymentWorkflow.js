@@ -285,7 +285,7 @@ async function notifySubscriptionCancelled(subscription, { repository, notifyPay
 }
 
 export async function processClaimedPaymentEvent(event, options = {}) {
-  const { repository, mercadoPago, notifyPaymentApplied, auditTrail } = options
+  const { repository, mercadoPago, notifyPaymentApplied, auditTrail, fetchPayment } = options
   const resourceId = event.resource_id ?? event.resourceId
   const type = event.event_type ?? event.eventType
   if (!resourceId || !type) throw new HttpError(409, 'Evento de pago incompleto.')
@@ -300,7 +300,9 @@ export async function processClaimedPaymentEvent(event, options = {}) {
   try {
     let result
     if (type === 'payment') {
-      const payment = await mercadoPago.getPayment(resourceId)
+      const payment = fetchPayment
+        ? await fetchPayment(resourceId)
+        : await mercadoPago.getPayment(resourceId)
       addBreadcrumb('mp.payment_fetched', {
         externalPaymentId: String(payment.id),
         providerStatus: payment.status,
@@ -382,6 +384,8 @@ export async function processPaymentWebhook(input, options = {}) {
     repository,
     mercadoPago,
     webhookSecret,
+    webhookSecrets,
+    resolveMercadoPagoForSecret,
     toleranceSeconds,
     notifyPaymentApplied,
     auditTrail,
@@ -390,6 +394,15 @@ export async function processPaymentWebhook(input, options = {}) {
   if (!repository || !mercadoPago) {
     throw new HttpError(503, 'El workflow de pagos no esta configurado.')
   }
+  // Multi-cuenta: lista de secretos (env + perfiles). Single-secret legacy
+  // sigue funcionando si solo llega `webhookSecret`.
+  const secretCandidates = Array.isArray(webhookSecrets)
+    ? webhookSecrets
+    : String(webhookSecret ?? '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map((secret) => ({ secret, profileId: null }))
 
   const body = input.body ?? {}
   const queryDataId = input.query?.['data.id'] ?? input.query?.data_id
@@ -478,6 +491,7 @@ export async function processPaymentWebhook(input, options = {}) {
     )
   }
   const resourceId = queryDataId ?? ipnId
+  let effectiveMercadoPago = mercadoPago
 
   if (isIpn) {
     addBreadcrumb('webhook.ipn_received', {
@@ -487,16 +501,33 @@ export async function processPaymentWebhook(input, options = {}) {
     })
   } else {
     try {
-      verifyMercadoPagoWebhook({
-        xSignature: input.headers?.['x-signature'],
-        xRequestId: providerRequestId,
-        dataId: resourceId,
-        secret: webhookSecret,
-        toleranceSeconds,
-      })
+      let matched = null
+      let lastError = null
+      for (const candidate of secretCandidates) {
+        try {
+          verifyMercadoPagoWebhook({
+            xSignature: input.headers?.['x-signature'],
+            xRequestId: providerRequestId,
+            dataId: resourceId,
+            secret: candidate.secret,
+            toleranceSeconds,
+          })
+          matched = candidate
+          break
+        } catch (error) {
+          lastError = error
+          if (error?.status !== 401) throw error
+        }
+      }
+      if (!matched) throw lastError ?? new HttpError(401, 'Firma de webhook invalida.')
+      if (typeof resolveMercadoPagoForSecret === 'function') {
+        const resolved = await resolveMercadoPagoForSecret(matched)
+        if (resolved) effectiveMercadoPago = resolved
+      }
       addBreadcrumb('webhook.signature_verified', {
         resourceId: String(resourceId),
         providerRequestId,
+        profileId: matched.profileId ?? null,
       })
     } catch (error) {
       await rejectWebhook(error, 'signature_rejected')
@@ -597,7 +628,7 @@ export async function processPaymentWebhook(input, options = {}) {
 
   const processed = await processClaimedPaymentEvent(claimedEvent, {
     repository,
-    mercadoPago,
+    mercadoPago: effectiveMercadoPago,
     notifyPaymentApplied,
     auditTrail,
   })

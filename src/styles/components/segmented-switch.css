@@ -95,6 +95,44 @@
   display: none;
 }
 
+.segmented-switch__badge {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  border-radius: 999px;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  display: inline-flex;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  margin-left: 6px;
+  min-height: 18px;
+  min-width: 18px;
+  padding: 2px 6px;
+  position: relative;
+  text-transform: none;
+  z-index: 1;
+}
+
+.segmented-switch__badge--warning {
+  background: color-mix(in srgb, var(--color-warning, #c9a227) 18%, transparent);
+  color: var(--color-warning, #c9a227);
+}
+
+.segmented-switch__badge--danger {
+  background: color-mix(in srgb, var(--color-danger, #c0392b) 16%, transparent);
+  color: var(--color-danger, #c0392b);
+}
+
+.segmented-switch__option.is-active .segmented-switch__badge:not(.segmented-switch__badge--warning):not(
+    .segmented-switch__badge--danger
+  ) {
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  color: var(--switch-option-active-fg);
+}
+
 .segmented-switch:focus-within {
   border-color: rgba(116, 172, 223, 0.24);
   box-shadow:

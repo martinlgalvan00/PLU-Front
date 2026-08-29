@@ -163,8 +163,9 @@ export async function listPendingTicketOrders() {
 
 export async function getTicketPaymentProofUrl(orderId) {
   if (!orderId) return null
-  const { url } = await apiGet(`/api/tickets/orders/${orderId}/proof-url`)
-  return url
+  // Misma URL estable que devuelve el API: el browser cachea el binario del
+  // proxy y no hace falta un round-trip solo para obtener la firma de Storage.
+  return `/api/tickets/orders/${orderId}/proof`
 }
 
 export async function verifyTicketByQrToken(qrToken) {

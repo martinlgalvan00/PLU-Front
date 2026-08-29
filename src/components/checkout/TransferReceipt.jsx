@@ -63,6 +63,9 @@ function CopyableValue({ value, copyLabel, copiedLabel, copyAria, meta }) {
  *
  * No confirma nada: el comprobante lo valida Finanzas y la acreditación llega
  * por el mismo camino que el resto de los pagos manuales.
+ *
+ * `accountDetails` (alias/cbu/holder) viene del perfil del evento cuando hay
+ * cobro event-scoped; si falta, se usan los datos globales de `env.payments`.
  */
 export default function TransferReceipt({
   athlete,
@@ -78,13 +81,17 @@ export default function TransferReceipt({
   // efectivo — los dos canales del mismo paso tienen que contar lo mismo.
   financedPaymentDueAt = null,
   onConfirmed,
+  accountDetails = null,
 }) {
   const { t } = useI18n()
   const [notes, setNotes] = useState('')
   const isCompetition = purpose === 'competition'
   const isWise = channel === 'wise_transfer'
   const askAdmin = t('account.membership.transferAskAdmin')
-  const holder = (isWise ? env.payments.wiseHolder : env.payments.transferHolder) || askAdmin
+  const transferAlias = accountDetails?.alias || env.payments.transferAlias
+  const transferCbu = accountDetails?.cbu || env.payments.transferCbu
+  const transferHolder = accountDetails?.holder || env.payments.transferHolder
+  const holder = (isWise ? env.payments.wiseHolder : transferHolder) || askAdmin
   const reference = `${athlete.documentId} · ${athlete.fullName}`
   const copyLabel = t('account.membership.transferCopy')
   const copiedLabel = t('account.membership.transferCopied')
@@ -119,13 +126,11 @@ export default function TransferReceipt({
   const bankRows = [
     {
       labelKey: 'account.membership.transferAlias',
-      value: env.payments.transferAlias || askAdmin,
+      value: transferAlias || askAdmin,
       meta: t('account.membership.transferAccountValue'),
       className: 'account-transfer-data__row--alias',
     },
-    ...(env.payments.transferCbu
-      ? [{ labelKey: 'account.membership.transferCbu', value: env.payments.transferCbu }]
-      : []),
+    ...(transferCbu ? [{ labelKey: 'account.membership.transferCbu', value: transferCbu }] : []),
     { labelKey: 'account.membership.transferHolder', value: holder },
   ]
 

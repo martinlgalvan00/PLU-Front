@@ -215,13 +215,14 @@ class PaymentBrickErrorBoundary extends Component {
   }
 }
 
-function ensureMercadoPago(locale) {
-  if (!env.mercadoPago.publicKey || initializedPublicKey === env.mercadoPago.publicKey) return
-  initMercadoPago(env.mercadoPago.publicKey, {
+function ensureMercadoPago(locale, publicKey) {
+  const key = String(publicKey ?? '').trim()
+  if (!key || initializedPublicKey === key) return
+  initMercadoPago(key, {
     locale: locale === 'en' ? 'en-US' : 'es-AR',
     advancedFraudPrevention: true,
   })
-  initializedPublicKey = env.mercadoPago.publicKey
+  initializedPublicKey = key
 }
 
 function normalizePaymentStatus(status) {
@@ -314,6 +315,10 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const orderId = order?.paymentId ?? order?.orderId
   const isSubscription = order?.paymentMode === 'subscription'
   const isMock = env.payments.isMock
+  const mercadoPagoPublicKey =
+    String(order?.mercadoPagoPublicKey ?? '').trim() || env.mercadoPago.publicKey
+  const mercadoPagoConfigured =
+    Boolean(String(mercadoPagoPublicKey ?? '').trim()) || env.mercadoPago.configured
   const isModal = presentation === 'modal'
   const isSettle = presentation === 'settle'
   const localeCode = locale === 'en' ? 'en-US' : 'es-AR'
@@ -378,7 +383,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       return undefined
     }
     try {
-      ensureMercadoPago(locale)
+      ensureMercadoPago(locale, mercadoPagoPublicKey)
     } catch (initializationError) {
       setError(t('payments.embeddedRenderError'))
       void reportPaymentClientEvent({
@@ -392,7 +397,15 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       })
     }
     return undefined
-  }, [brickVersion, isMock, locale, order?.orderAccessToken, orderId, t])
+  }, [
+    brickVersion,
+    isMock,
+    locale,
+    mercadoPagoPublicKey,
+    order?.orderAccessToken,
+    orderId,
+    t,
+  ])
 
   useEffect(() => {
     setWalletPreferenceId(initialPreferenceId)
@@ -403,7 +416,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       setPreferenceReady(true)
       return undefined
     }
-    if (realPreferenceId || !orderId || !env.mercadoPago.configured) {
+    if (realPreferenceId || !orderId || !mercadoPagoConfigured) {
       setPreferenceReady(true)
       return undefined
     }
@@ -429,6 +442,10 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
             response?.preference?.id ?? response?.paymentOrder?.preferenceId ?? null
           if (!cancelled && isRealMercadoPagoPreferenceId(preferenceId)) {
             setWalletPreferenceId(preferenceId)
+          }
+          const responseKey = String(response?.mercadoPagoPublicKey ?? '').trim()
+          if (!cancelled && responseKey && responseKey !== initializedPublicKey) {
+            ensureMercadoPago(locale, responseKey)
           }
           lastError = null
           break
@@ -680,7 +697,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   }
 
   if (!orderId || !order?.amount) return null
-  if (!isMock && !env.mercadoPago.configured) {
+  if (!isMock && !mercadoPagoConfigured) {
     return (
       <p className="mp-embedded-checkout__error" role="alert">
         {t('payments.embeddedConfigMissing')}

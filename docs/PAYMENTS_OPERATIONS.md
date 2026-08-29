@@ -141,6 +141,50 @@ npm run mercado-pago:urls
 Las env de Vercel viven en el team del proyecto (`martinlgalvan00s-projects`), no
 en cuentas personales sin acceso al deployment.
 
+## Perfil de cobro por evento (Fase A + B1)
+
+La matriz `platform_payment_channels` sigue siendo el techo global. Cada evento
+puede **restringir** canales de inscripción y entradas (no reabrir lo que la
+plataforma cerró) y definir o reutilizar datos bancarios.
+
+| Pieza | Semántica |
+|-------|-----------|
+| `events.payment_channel_overrides` | JSONB opcional. `NULL` = heredar plataforma. |
+| `events.bank_transfer_*` | Fallback Fase A (alias/CBU/titular en la fila del evento). |
+| `payment_profiles` | Catálogo reutilizable. `bank_transfer` (B1) y `mercado_pago` (B3). |
+| `events.bank_transfer_profile_id` | FK al perfil bancario. Si está set, manda sobre las columnas del evento. |
+| `events.mercado_pago_profile_id` | FK al perfil MP. `NULL` = cuenta global `MERCADO_PAGO_*` / `VITE_MERCADO_PAGO_PUBLIC_KEY`. |
+| `payment_profiles.secrets_ciphertext` | AES-256-GCM (`PAYMENT_PROFILE_SECRETS_KEY`). Solo access token + webhook secret. La public key va en `config`. |
+
+Resolución de alias en checkout:
+
+```text
+perfil.config.alias ?? event.bank_transfer_alias ?? env VITE_PAYMENT_TRANSFER_*
+```
+
+Resolución Mercado Pago (B3):
+
+```text
+preferencia / Brick / embedded → access token + public key del perfil del evento
+                                 (o env global si mercado_pago_profile_id es NULL)
+webhook → prueba firmas contra env + todos los perfiles MP activos;
+          si matchea un perfil, GET /payments usa ese access token
+recovery diferido → GET /payments contra cada cuenta conocida hasta encontrar el pago
+```
+
+Canales: `abierto = plataforma[concepto][canal] AND (override[canal] ?? true)`.
+Membership no se personaliza por evento (sigue usando la cuenta global).
+
+API admin: `GET/POST /api/payment-profiles`, `PATCH /api/payment-profiles/:id`
+(`kind=bank_transfer|mercado_pago`). Crear MP exige `config.publicKey` +
+`secrets.accessToken` + `secrets.webhookSecret` y `PAYMENT_PROFILE_SECRETS_KEY`.
+Editor: pestaña Ventas → perfil bancario y/o perfil MP.
+Checkout: requirements y tickets availability devuelven `bankTransfer` y
+`mercadoPagoPublicKey` ya resueltos.
+
+**Fuera de alcance (post-B3):** OAuth Marketplace de MP, eventos gratis
+(`price = 0`).
+
 ## Wise (pagos del exterior)
 
 Canal manual para quien no puede pagar con Mercado Pago (medios locales, ARS).
@@ -219,10 +263,16 @@ informe que para Mercado Pago.
   diaria del plan Hobby.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
+- `PAYMENT_PROOF_RETENTION_JOB_ENABLED` (default on): borra de Storage los
+  comprobantes de ordenes ya `aprobado`/`rechazado` pasadas
+  `PROOF_RETENTION_HOURS` (default 24). No toca pendientes. Cron
+  `/api/internal/jobs/payment-proof-retention`. La orden conserva
+  `payment_proof_uploaded_at` + `payment_proof_purged_at` como registro.
 
 En Vercel, un scheduler invoca por `GET` los endpoints
 `/api/internal/jobs/payment-recovery`,
 `/api/internal/jobs/payment-revalidation`,
+`/api/internal/jobs/payment-proof-retention`,
 `/api/internal/jobs/membership-renewal` y
 `/api/internal/jobs/security-user-lifecycle` con
 `Authorization: Bearer <CRON_SECRET>`. El mantenimiento de reservas y órdenes

@@ -123,6 +123,8 @@ function toCamelPaymentOrder(row) {
     cancelledBy: row.cancelled_by ?? row.cancelledBy ?? null,
     paymentProofPath: row.payment_proof_path ?? row.paymentProofPath ?? null,
     paymentProofUploadedAt: row.payment_proof_uploaded_at ?? row.paymentProofUploadedAt ?? null,
+    paymentProofAccessedAt: row.payment_proof_accessed_at ?? row.paymentProofAccessedAt ?? null,
+    paymentProofPurgedAt: row.payment_proof_purged_at ?? row.paymentProofPurgedAt ?? null,
     financingAllowed: row.financing_allowed ?? row.financingAllowed ?? false,
     manualPaymentDeclaredAt: row.manual_payment_declared_at ?? row.manualPaymentDeclaredAt ?? null,
     financedEntitlementsAt: row.financed_entitlements_at ?? row.financedEntitlementsAt ?? null,
@@ -232,6 +234,10 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       cancelledBy: order.cancelled_by ?? order.cancelledBy ?? null,
       paymentProofUploadedAt:
         order.payment_proof_uploaded_at ?? order.paymentProofUploadedAt ?? null,
+      paymentProofAccessedAt:
+        order.payment_proof_accessed_at ?? order.paymentProofAccessedAt ?? null,
+      paymentProofPurgedAt:
+        order.payment_proof_purged_at ?? order.paymentProofPurgedAt ?? null,
       financingAllowed: order.financing_allowed ?? order.financingAllowed ?? false,
       manualPaymentDeclaredAt:
         order.manual_payment_declared_at ?? order.manualPaymentDeclaredAt ?? null,
@@ -268,6 +274,8 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       paymentProofPath:
         typeof paymentProofPath === 'string' ? paymentProofPath.trim() || null : paymentProofPath,
       paymentProofUploadedAt: normalizedOrder.paymentProofUploadedAt,
+      paymentProofAccessedAt: normalizedOrder.paymentProofAccessedAt,
+      paymentProofPurgedAt: normalizedOrder.paymentProofPurgedAt,
       financingAllowed: normalizedOrder.financingAllowed,
       manualPaymentDeclaredAt: normalizedOrder.manualPaymentDeclaredAt,
       financedEntitlementsAt: normalizedOrder.financedEntitlementsAt,

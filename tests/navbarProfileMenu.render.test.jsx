@@ -90,4 +90,18 @@ describe('NavbarPublic profile menu', () => {
 
     expect(onLogout).toHaveBeenCalledTimes(1)
   })
+
+  it('opens Administración for staff with role label', () => {
+    renderNav({
+      name: 'Agustin Di Santo',
+      role: 'admin_plu_arg',
+      roleKey: 'admin_plu_arg',
+    })
+
+    const trigger = document.getElementById('plu-profile-menu-trigger')
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole('menuitem', { name: /^administración$/i })).toBeTruthy()
+    expect(screen.getByText('Administrador')).toBeTruthy()
+  })
 })

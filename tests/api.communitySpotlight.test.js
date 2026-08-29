@@ -51,7 +51,7 @@ describe('community spotlight', () => {
 
     await target.close()
   })
-  it('expone una URL estable del propio API en vez de una firma de Storage', async () => {
+  it('expone como máximo un retrato estable; el resto va sin foto', async () => {
     const repository = createSupabaseCommunityRepository({
       getSupabaseAdmin: () => ({
         rpc: vi.fn(async () => ({
@@ -73,20 +73,12 @@ describe('community spotlight', () => {
     expect(first.members[0]).toMatchObject({
       photoUrl: '/api/community/portrait?p=spotlight%2Fana.jpg',
     })
+    expect(first.members[1].photoUrl).toBeNull()
     expect(second.members[0].photoUrl).toBe(first.members[0].photoUrl)
     expect(second.members[0]).not.toHaveProperty('photoPath')
   })
 
   it('sirve el retrato público con cache de borde y sin token de Storage', async () => {
-    const chain = {
-      select: () => chain,
-      eq: () => chain,
-      limit: () => chain,
-      maybeSingle: vi
-        .fn()
-        .mockResolvedValueOnce({ data: { id: 'ath-1' }, error: null })
-        .mockResolvedValueOnce({ data: { id: 'mem-1' }, error: null }),
-    }
     const download = vi.fn(async () => ({
       data: {
         type: 'image/webp',
@@ -97,7 +89,11 @@ describe('community spotlight', () => {
     const target = listen(
       createApp({
         supabaseAdmin: {
-          from: () => chain,
+          rpc: vi.fn(async (name, args) => {
+            expect(name).toBe('is_athlete_portrait_public')
+            expect(args).toEqual({ p_path: 'ath-1/foto.webp' })
+            return { data: true, error: null }
+          }),
           storage: { from: () => ({ download }) },
         },
       }),
@@ -108,9 +104,18 @@ describe('community spotlight', () => {
         `${target.url}/api/community/portrait?p=${encodeURIComponent('ath-1/foto.webp')}`,
       )
       expect(response.status).toBe(200)
-      expect(response.headers.get('cache-control')).toContain('s-maxage=86400')
+      expect(response.headers.get('cache-control')).toContain('s-maxage=604800')
+      expect(response.headers.get('etag')).toBeTruthy()
       expect(response.headers.get('content-type')).toContain('image/webp')
       expect(download).toHaveBeenCalledWith('ath-1/foto.webp')
+
+      const etag = response.headers.get('etag')
+      const cached = await fetch(
+        `${target.url}/api/community/portrait?p=${encodeURIComponent('ath-1/foto.webp')}`,
+        { headers: { 'If-None-Match': etag } },
+      )
+      expect(cached.status).toBe(304)
+      expect(download).toHaveBeenCalledTimes(1)
     } finally {
       await target.close()
     }

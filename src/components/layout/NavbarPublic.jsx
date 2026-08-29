@@ -19,12 +19,12 @@ import {
   Trophy,
   UsersRound,
   X,
-  User,
+  LayoutDashboard,
 } from 'lucide-react'
 import { PUBLIC_NAVIGATION } from '../../lib/constants.js'
 import { getFeaturedEventDestination } from '../../lib/eventNavigation.js'
 import { sessionDisplayName, sessionInitial, sessionPhotoUrl } from '../../lib/format.js'
-import { canViewAdmin } from '../../lib/roles.js'
+import { canViewAdmin, resolveSessionIdentity } from '../../lib/roles.js'
 import { hasCurrentMembership } from '../../services/membershipService.js'
 import { useHeaderScroll } from '../../hooks/useMotion.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
@@ -464,6 +464,11 @@ export default function NavbarPublic({
 
   const adminSession = canViewAdmin(session)
   const athleteWithStaffBridge = session?.role === 'athlete_plu' && session?.staffAvailable
+  const sessionIdentity = resolveSessionIdentity(session)
+  const sessionRoleEyebrow =
+    sessionIdentity.mode === 'admin'
+      ? (sessionIdentity.roleLabel ?? t('nav.roleAdmin'))
+      : t('nav.roleAthlete')
   const sessionFullName = session ? sessionDisplayName(session) : ''
   const sessionInitialLetter = session ? sessionInitial(session) : ''
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
@@ -981,20 +986,22 @@ export default function NavbarPublic({
                   {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}
                 </div>
                 <div className="plu-profile-menu__info">
-                  <p className="plu-profile-menu__eyebrow">
-                    {athleteWithStaffBridge
-                      ? t('nav.roleAthlete')
-                      : adminSession
-                        ? t('nav.roleAdmin')
-                        : t('nav.roleAthlete')}
-                  </p>
+                  <p className="plu-profile-menu__eyebrow">{sessionRoleEyebrow}</p>
                   <p className="plu-profile-menu__name">{sessionFullName || t('nav.myProfile')}</p>
+                  {sessionIdentity.staffAccess ? (
+                    <p className="plu-profile-menu__role-hint">{t('nav.roleStaffAccess')}</p>
+                  ) : null}
                 </div>
               </div>
               <div className="plu-profile-menu__actions">
                 {adminSession || athleteWithStaffBridge ? (
-                  <button type="button" role="menuitem" onClick={() => go('admin')}>
-                    <User size={15} strokeWidth={1.6} aria-hidden />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="plu-profile-menu__admin"
+                    onClick={() => go('admin')}
+                  >
+                    <LayoutDashboard size={15} strokeWidth={1.6} aria-hidden />
                     <span>{t('nav.admin')}</span>
                   </button>
                 ) : null}
@@ -1200,11 +1207,9 @@ export default function NavbarPublic({
                       <button
                         type="button"
                         className="plu-drawer__account-chip"
-                        aria-label={
-                          adminSession
-                            ? `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAdmin')}`
-                            : `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAthlete')}`
-                        }
+                        aria-label={`${sessionFullName || t('nav.myProfile')} · ${sessionRoleEyebrow}${
+                          sessionIdentity.staffAccess ? ` · ${t('nav.roleStaffAccess')}` : ''
+                        }`}
                         onClick={() =>
                           go(
                             athleteWithStaffBridge
@@ -1222,9 +1227,7 @@ export default function NavbarPublic({
                           <span className="plu-drawer__account-name">
                             {sessionFullName || t('nav.myProfile')}
                           </span>
-                          <span className="plu-drawer__account-hint">
-                            {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
-                          </span>
+                          <span className="plu-drawer__account-hint">{sessionRoleEyebrow}</span>
                         </span>
                       </button>
                       <button
