@@ -9,8 +9,8 @@ export function createSupabasePricingRepository(client) {
   return {
     getWiseCatalogPrices: async () => {
       const [plans, events] = await Promise.all([
-        assertSupabaseResult(await client.from('membership_plans').select('id, wise_price'), 'No se pudieron leer los precios Wise de afiliaciones.'),
-        assertSupabaseResult(await client.from('events').select('slug, wise_price'), 'No se pudieron leer los precios Wise de inscripciones.'),
+        client.from('membership_plans').select('id, wise_price').then(({ data, error }) => error ? [] : data ?? []),
+        client.from('events').select('slug, wise_price').then(({ data, error }) => error ? [] : data ?? []),
       ])
       return { plans, events }
     },

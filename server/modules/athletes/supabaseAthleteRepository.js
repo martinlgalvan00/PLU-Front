@@ -455,20 +455,29 @@ export function createSupabaseAthleteRepository(
       // enlaces historicos usan el alias estable de familia (plu-annual).
       // Primero respetamos un code vigente explicito y, si fue retirado o era
       // un alias, resolvemos la ultima version activa de esa familia.
-      return (await readPlan('code')) ?? readPlan('family_code')
+      const plan = (await readPlan('code')) ?? (await readPlan('family_code'))
+      if (!plan) return null
+      // `wise_price` pertenece a una migración posterior. Mantener esta
+      // lectura opcional permite que Mercado Pago y los canales ARS sigan
+      // funcionando mientras producción termina de aplicar la migración.
+      const wiseResult = await client.from('membership_plans').select('wise_price').eq('id', plan.id).maybeSingle()
+      return wiseResult.error ? { ...plan, wise_price: null } : { ...plan, wise_price: wiseResult.data?.wise_price ?? null }
     },
     async findEventPricing(eventSlug) {
-      return assertSupabaseResult(
+      const event = assertSupabaseResult(
         await client
           .from('events')
           .select(
-            'id, slug, price, manual_price, wise_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
+            'id, slug, price, manual_price, currency, payment_channel_overrides, bank_transfer_alias, bank_transfer_cbu, bank_transfer_holder, bank_transfer_profile_id, mercado_pago_profile_id',
           )
           .eq('organization_id', organizationId)
           .eq('slug', eventSlug)
           .maybeSingle(),
         'No se pudo validar el evento.',
       )
+      if (!event) return null
+      const wiseResult = await client.from('events').select('wise_price').eq('id', event.id).maybeSingle()
+      return wiseResult.error ? { ...event, wise_price: null } : { ...event, wise_price: wiseResult.data?.wise_price ?? null }
     },
     // Precio vigente del combo (afiliación + inscripción) para el preview de
     // cupón: mismo criterio de vigencia (active + ventana starts/ends) que ya
