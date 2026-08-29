@@ -200,7 +200,7 @@ describe('RegisterPage competition profile summary', () => {
         id: 'reg-1',
         athleteId: athlete.id,
         eventSlug: event.slug,
-        status: 'pendiente',
+        status: 'confirmada',
         division: 'Junior',
         category: 'Equipped',
         bodyweightKg: 74.5,
@@ -212,6 +212,26 @@ describe('RegisterPage competition profile summary', () => {
     expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(true)
     expect(screen.getByLabelText(/^categoría$/i).disabled).toBe(true)
     expect(onUpdateForm).toHaveBeenCalledWith({ target: { name: 'estimatedWeight', value: '74.5' } })
+  })
+
+  it('mantiene editables los datos de un intento pendiente de pago', () => {
+    renderCompetition({
+      registrations: [{
+        id: 'reg-pending',
+        athleteId: athlete.id,
+        eventSlug: event.slug,
+        status: 'pendiente_pago',
+        division: 'Junior',
+        category: 'Equipped',
+        bodyweightKg: 74.5,
+      }],
+    })
+
+    expect(screen.getByRole('radio', { name: 'Open' }).disabled).toBe(false)
+    expect(screen.getByLabelText(/^categoría$/i).disabled).toBe(false)
+    const weightInput = document.querySelector('input[name="estimatedWeight"]')
+    expect(weightInput).toBeTruthy()
+    expect(weightInput.disabled).toBe(false)
   })
 })
 
