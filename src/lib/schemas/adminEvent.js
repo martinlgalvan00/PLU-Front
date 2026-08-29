@@ -160,6 +160,24 @@ export const adminEventDraftSchema = z
     liveStatus: z.enum(['offline', 'live', 'ended']).optional(),
     eventDays: z.array(eventDaySchema).max(31, 'eventDaysMax').optional(),
     ticketTypes: z.array(ticketTypeSchema).max(50, 'ticketTypesMax').optional(),
+    paymentChannelOverrides: z
+      .object({
+        mercado_pago: z.boolean().optional(),
+        bank_transfer: z.boolean().optional(),
+        cash_pitbull: z.boolean().optional(),
+        wise_transfer: z.boolean().optional(),
+      })
+      .nullable()
+      .optional(),
+    bankTransfer: z
+      .object({
+        alias: optionalText(120, 'bankAliasMax'),
+        cbu: optionalText(30, 'bankCbuMax'),
+        holder: optionalText(160, 'bankHolderMax'),
+      })
+      .optional(),
+    bankTransferProfileId: z.string().uuid('bankProfileIdInvalid').nullable().optional(),
+    mercadoPagoProfileId: z.string().uuid('mpProfileIdInvalid').nullable().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.startsAt && data.endsAt && data.startsAt > data.endsAt) {

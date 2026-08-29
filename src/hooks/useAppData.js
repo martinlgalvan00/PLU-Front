@@ -1236,7 +1236,7 @@ export function useAppData() {
             : createCompetitionRegistrationRequest
         // El cupón del combo sólo redime si tiene applies_to = 'both' (ver
         // create_membership_registration_combo_order / apply_discount_code_to_order).
-        const { order, registration, membership, plan, comboOffer } =
+        const { order, registration, membership, plan, comboOffer, mercadoPagoPublicKey } =
           await createRegistrationRequest({
             athleteId: athlete.id,
             eventSlug: selectedEvent.slug,
@@ -1311,6 +1311,7 @@ export function useAppData() {
           purchaseType,
           plan,
           comboOffer,
+          mercadoPagoPublicKey: mercadoPagoPublicKey ?? null,
           ...payment,
         }
         setCreatedOrder(createdOrder)
@@ -1424,6 +1425,7 @@ export function useAppData() {
           order,
           tickets: createdTickets,
           orderAccessToken,
+          mercadoPagoPublicKey,
         } = await createTicketOrderRequest({
           eventSlug: purchaseEvent.slug,
           attendees: attendees.map((attendee) => ({
@@ -1464,6 +1466,8 @@ export function useAppData() {
           initPoint: checkout?.preference?.initPoint ?? null,
           paymentMode: 'payment',
           payerEmail: order.buyerEmail ?? order.payerEmail ?? session?.email ?? null,
+          mercadoPagoPublicKey:
+            mercadoPagoPublicKey ?? checkout?.mercadoPagoPublicKey ?? null,
           createdAt: order.createdAt,
         }
         setCreatedOrder(nextOrder)

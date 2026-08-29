@@ -437,6 +437,8 @@ export default function TicketPurchaseSection({
   // Wise depende de su propio interruptor, independiente del anterior.
   // Default cerrado: sin dato, no se ofrece un medio que puede rechazar 409.
   wiseEnabled = false,
+  // Datos bancarios del evento (alias/cbu/holder). Vacío = env global.
+  accountDetails = null,
   pricing = { ticketTypes: [], addons: [] },
   tickets,
   createdOrder,
@@ -652,23 +654,27 @@ export default function TicketPurchaseSection({
                   <div>
                     <dt>{t('account.membership.transferAlias')}</dt>
                     <dd>
-                      {env.payments.transferAlias || t('account.membership.transferAskAdmin')}
+                      {accountDetails?.alias ||
+                        env.payments.transferAlias ||
+                        t('account.membership.transferAskAdmin')}
                     </dd>
                   </div>
                   <div>
                     <dt>{t('account.membership.transferAccount')}</dt>
                     <dd>{t('account.membership.transferAccountValue')}</dd>
                   </div>
-                  {env.payments.transferCbu ? (
+                  {accountDetails?.cbu || env.payments.transferCbu ? (
                     <div>
                       <dt>{t('account.membership.transferCbu')}</dt>
-                      <dd>{env.payments.transferCbu}</dd>
+                      <dd>{accountDetails?.cbu || env.payments.transferCbu}</dd>
                     </div>
                   ) : null}
                   <div>
                     <dt>{t('account.membership.transferHolder')}</dt>
                     <dd>
-                      {env.payments.transferHolder || t('account.membership.transferAskAdmin')}
+                      {accountDetails?.holder ||
+                        env.payments.transferHolder ||
+                        t('account.membership.transferAskAdmin')}
                     </dd>
                   </div>
                 </>

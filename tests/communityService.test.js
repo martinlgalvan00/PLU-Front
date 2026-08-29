@@ -47,7 +47,7 @@ describe('communityService', () => {
     expect(spotlight.members).toEqual(pickSpotlightMembers(getRecentMembers(5, 'es'), 5))
   })
 
-  it('prioriza afiliados con foto sin inventar filas', async () => {
+  it('respeta el orden del backend sin reordenar por foto', async () => {
     const { pickSpotlightMembers } = await import('../src/services/communityService.js')
     const picked = pickSpotlightMembers(
       [
@@ -59,6 +59,6 @@ describe('communityService', () => {
       3,
     )
 
-    expect(picked.map((member) => member.id)).toEqual(['2', '3', '1'])
+    expect(picked.map((member) => member.id)).toEqual(['1', '2', '3'])
   })
 })

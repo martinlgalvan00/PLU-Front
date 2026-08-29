@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitImageWithin } from '../src/lib/compressImageFile.js'
+import { ATHLETE_PHOTO_MAX_EDGE, fitImageWithin } from '../src/lib/compressImageFile.js'
 import {
   missingAthletePhotoPaths,
   preserveAthletePhotoUrls,
@@ -8,11 +8,14 @@ import {
 
 describe('fitImageWithin', () => {
   it('no agranda una foto que ya entra', () => {
-    expect(fitImageWithin(400, 300, 720)).toEqual({ width: 400, height: 300 })
+    expect(fitImageWithin(400, 300, ATHLETE_PHOTO_MAX_EDGE)).toEqual({ width: 400, height: 300 })
   })
 
   it('mantiene la proporción al recortar el lado largo', () => {
-    expect(fitImageWithin(2400, 1800, 720)).toEqual({ width: 720, height: 540 })
+    expect(fitImageWithin(2400, 1800, ATHLETE_PHOTO_MAX_EDGE)).toEqual({
+      width: ATHLETE_PHOTO_MAX_EDGE,
+      height: Math.round((1800 * ATHLETE_PHOTO_MAX_EDGE) / 2400),
+    })
   })
 })
 

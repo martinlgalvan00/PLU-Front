@@ -13,6 +13,12 @@ export async function fetchRegistrationAccessRequirements({ eventSlug } = {}) {
     // deben ofrecer transferencia ni efectivo.
     membershipManualEnabled: result?.membershipManualEnabled === true,
     registrationManualEnabled: result?.registrationManualEnabled === true,
+    paymentChannels: result?.paymentChannels ?? null,
+    bankTransfer: {
+      alias: result?.bankTransfer?.alias ?? '',
+      cbu: result?.bankTransfer?.cbu ?? '',
+      holder: result?.bankTransfer?.holder ?? '',
+    },
   }
 }
 

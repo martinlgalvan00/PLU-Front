@@ -5,6 +5,7 @@ import { runEmailDispatchJob } from '../jobs/emailDispatchJob.js'
 import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
 import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
 import { runPaymentRevalidationJob } from '../jobs/paymentRevalidationJob.js'
+import { runPaymentProofRetentionJob } from '../jobs/paymentProofRetentionJob.js'
 import { runSecurityUserLifecycleJob } from '../jobs/securityUserLifecycleJob.js'
 import { HttpError } from '../lib/errors.js'
 
@@ -27,6 +28,7 @@ export function createInternalJobRoutes({
     membershipRenewal: runners.membershipRenewal ?? runMembershipRenewalJob,
     paymentRecovery: runners.paymentRecovery ?? runPaymentRecoveryJob,
     paymentRevalidation: runners.paymentRevalidation ?? runPaymentRevalidationJob,
+    paymentProofRetention: runners.paymentProofRetention ?? runPaymentProofRetentionJob,
     securityUserLifecycle: runners.securityUserLifecycle ?? runSecurityUserLifecycleJob,
   }
 
@@ -56,6 +58,17 @@ export function createInternalJobRoutes({
   router.get('/jobs/payment-revalidation', async (_req, res) => {
     const result = await run.paymentRevalidation({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'payment-revalidation', result })
+  })
+
+  // Borra de Storage los comprobantes de órdenes ya aprobadas/rechazadas
+  // pasada la retención (PROOF_RETENTION_HOURS, default 24). No toca pendientes.
+  router.get('/jobs/payment-proof-retention', async (_req, res) => {
+    if (env.PAYMENT_PROOF_RETENTION_JOB_ENABLED === 'false') {
+      res.json({ status: 'disabled', job: 'payment-proof-retention' })
+      return
+    }
+    const result = await run.paymentProofRetention({ client: getSupabaseAdmin?.(), env })
+    res.json({ status: 'completed', job: 'payment-proof-retention', result })
   })
 
   // Vacía la cola de emails en 'retrying'. Habilitado salvo que sea 'false':

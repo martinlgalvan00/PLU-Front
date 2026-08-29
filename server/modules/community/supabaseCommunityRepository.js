@@ -1,6 +1,9 @@
 import { HttpError } from '../../lib/errors.js'
 import { publicPortraitUrl } from '../../lib/publicPortraitUrl.js'
 
+/** Retratos en el JSON del spotlight: el resto usa iniciales (menos egress). */
+export const SPOTLIGHT_PHOTO_BUDGET = 1
+
 function assertSupabaseResult(result, fallback = 'No se pudo consultar la comunidad.') {
   if (result?.error) {
     throw new HttpError(502, result.error.message || fallback)
@@ -29,13 +32,24 @@ function normalizeMember(row) {
     province: String(row.province ?? '—').trim() || '—',
     affiliatedAt: row.affiliatedAt ?? row.affiliated_at ?? null,
     photoPath: photoPath ? String(photoPath) : null,
-    photoUrl: publicPortraitUrl(photoPath),
+    photoUrl: null,
   }
 }
 
-function attachPublicPortraitUrls(members) {
+/**
+ * Solo los primeros N con path reciben `photoUrl`. Cada visitante del home
+ * no debe re-bajar 5–12 retratos; las iniciales alcanzan para el resto.
+ */
+export function attachPublicPortraitUrls(members, { photoBudget = SPOTLIGHT_PHOTO_BUDGET } = {}) {
+  let attached = 0
   for (const member of members) {
-    member.photoUrl = publicPortraitUrl(member.photoPath)
+    const path = member.photoPath
+    if (path && attached < photoBudget) {
+      member.photoUrl = publicPortraitUrl(path)
+      attached += 1
+    } else {
+      member.photoUrl = null
+    }
     delete member.photoPath
   }
   return members

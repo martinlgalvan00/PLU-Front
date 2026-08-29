@@ -4,6 +4,7 @@ import { createPaymentNotificationService } from '../modules/notifications/payme
 import { createSupabaseNotificationRepository } from '../modules/notifications/supabaseNotificationRepository.js'
 import { createPaymentAuditTrail } from '../modules/payments/paymentAuditTrail.js'
 import { createPaymentProviderAdapter } from '../modules/payments/createPaymentProviderAdapter.js'
+import { getPaymentAcrossMercadoPagoAccounts } from '../modules/payments/mercadoPagoProfileRuntime.js'
 import {
   PAYMENT_RECOVERY_JOB_INTERVAL_MS,
   isPaymentRecoveryJobEnabled,
@@ -28,6 +29,11 @@ export async function runPaymentRecoveryJob({ client, env = process.env } = {}) 
     recoverPaymentOperations({
       repository,
       mercadoPago,
+      // Multi-cuenta: el webhook diferido no recuerda qué perfil firmó.
+      fetchPayment: async (resourceId) => {
+        const resolved = await getPaymentAcrossMercadoPagoAccounts(client, resourceId, env)
+        return resolved.payment
+      },
       notifyPaymentApplied,
       auditTrail: createPaymentAuditTrail({ client }),
       eventLimit: Number(env.PAYMENT_RECOVERY_BATCH_SIZE) || 20,

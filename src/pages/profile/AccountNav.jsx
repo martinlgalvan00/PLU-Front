@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   BadgePercent,
+  ChevronLeft,
+  ChevronRight,
   History,
   KeyRound,
   QrCode,
@@ -75,6 +77,7 @@ export default function AccountNav({ activeId, onChange, visibleIds = null, atte
   const railRef = useRef(null)
   const itemRefs = useRef(new Map())
   const [overflow, setOverflow] = useState({ start: false, end: false })
+  const canScroll = overflow.start || overflow.end
 
   useEffect(() => {
     const rail = railRef.current
@@ -116,12 +119,27 @@ export default function AccountNav({ activeId, onChange, visibleIds = null, atte
   }, [activeId, reducedMotion])
 
   return (
-    <nav className="account-nav" aria-label={t('account.navAria')}>
+    <nav
+      className="account-nav"
+      aria-label={t('account.navAria')}
+      aria-describedby={canScroll ? 'account-nav-scroll-hint' : undefined}
+    >
+      {canScroll ? (
+        <span className="account-nav__scroll-hint" id="account-nav-scroll-hint">
+          {t('account.navScrollHint')}
+        </span>
+      ) : null}
       <div
         className="account-nav__viewport"
         data-overflow-start={overflow.start ? 'true' : 'false'}
         data-overflow-end={overflow.end ? 'true' : 'false'}
       >
+        <span className="account-nav__edge-cue account-nav__edge-cue--start" aria-hidden>
+          <ChevronLeft size={16} strokeWidth={1.75} />
+        </span>
+        <span className="account-nav__edge-cue account-nav__edge-cue--end" aria-hidden>
+          <ChevronRight size={16} strokeWidth={1.75} />
+        </span>
         <LayoutGroup id="account-nav-tabs">
           <div className="account-nav__inner" role="tablist" ref={railRef}>
             {items.map(({ id, icon: Icon, labelKey }) => {

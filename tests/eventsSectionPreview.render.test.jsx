@@ -84,7 +84,9 @@ describe('EventsSection — consola como modal', () => {
     expect(dialog.querySelector('.admin-event-console-modal__meta-line')?.textContent).toMatch(
       /Maximal Strength Club/,
     )
-    expect(within(dialog).getByRole('button', { name: 'Editar evento' })).toBeTruthy()
+    expect(within(dialog).queryByRole('button', { name: 'Editar evento' })).toBeNull()
+    expect(within(dialog).getByRole('button', { name: /datos/i })).toBeTruthy()
+    expect(within(dialog).getByRole('button', { name: /ventas y cupos/i })).toBeTruthy()
   })
 
   it('cambia de evento tocando otra fila con la consola abierta', () => {

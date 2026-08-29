@@ -46,6 +46,7 @@ export default function DetailTabs({
       className={[
         'detail-tabs',
         variant === 'editorial' ? 'detail-tabs--editorial' : '',
+        variant === 'glass' ? 'detail-tabs--glass' : '',
         overflowing ? 'is-overflowing' : '',
       ]
         .filter(Boolean)

@@ -25,3 +25,13 @@ export default {
 }
 
 export const Default = {}
+
+export const WithBadges = {
+  args: {
+    options: [
+      ['all', 'Todos', undefined, 12],
+      ['open', 'Abiertos', undefined, { value: 3, tone: 'warning' }],
+      ['closed', 'Cerrados', undefined, { value: 1, tone: 'danger' }],
+    ],
+  },
+}

@@ -1,10 +1,12 @@
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatShortDate } from '../../lib/format.js'
 import { MoreHorizontal } from 'lucide-react'
+import { LazyPhoto } from '../ui/LazyPhoto.jsx'
 
 /**
  * Celda de identidad: nombre primario + sublínea secundaria.
  * `subMono` tipifica documentos/IDs con números tabulares.
+ * La foto solo se pide cuando la fila está cerca del viewport.
  */
 export function AdminIdentityCell({ accent = 'celeste', name, photoUrl, sub, subMono = false }) {
   const initial = name?.trim()?.charAt(0)?.toUpperCase() ?? '?'
@@ -16,12 +18,10 @@ export function AdminIdentityCell({ accent = 'celeste', name, photoUrl, sub, sub
         aria-hidden
       >
         {photoUrl ? (
-          <img
+          <LazyPhoto
             className="data-table__avatar-photo"
             src={photoUrl}
             alt=""
-            loading="lazy"
-            decoding="async"
             onError={(event) => {
               event.currentTarget.hidden = true
             }}

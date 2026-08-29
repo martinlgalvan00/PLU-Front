@@ -1773,15 +1773,23 @@
 }
 
 .admin-shell .admin-payments-ops-strip {
-  background: color-mix(in srgb, var(--admin-surface) 94%, transparent);
-  border-color: var(--admin-hairline);
-  border-radius: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .admin-shell .admin-payments-ops-strip__kpi {
-  background: color-mix(in srgb, var(--admin-ink) 2.5%, transparent);
-  border-color: var(--admin-hairline);
-  border-radius: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+}
+
+.admin-shell .admin-payments-ops-pulse__value {
+  color: var(--admin-ink);
+}
+
+.admin-shell .admin-payments-ops-pulse--warning .admin-payments-ops-pulse__value {
+  color: var(--admin-status-warning, var(--color-warning, #c9a227));
 }
 
 .admin-shell .admin-payments-ops-callout {
@@ -1809,6 +1817,11 @@
 
 .admin-shell .admin-payments-operations .admin-payments-ops-top .admin-list-shell__eyebrow {
   color: var(--admin-accent, var(--admin-brand));
+}
+
+.admin-shell .admin-payments-operations .admin-payments-ops-top__tabs .segmented-switch--ops {
+  background: color-mix(in srgb, var(--admin-ink) 4%, transparent);
+  border-color: var(--admin-hairline);
 }
 
 .admin-shell .admin-payments-operations .admin-orders-block__toolbar {
