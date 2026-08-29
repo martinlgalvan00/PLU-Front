@@ -536,6 +536,7 @@ export default function RegisterPage({
   const submissionInFlightRef = useRef(false)
   const emailVerifyRef = useRef(null)
   const competitionPrefillRef = useRef(null)
+  const committedCompetitionPrefillRef = useRef(null)
   const competitionProfileMissing = useMemo(
     () => (flow === 'competition' && athlete ? getMissingCompetitionProfileFields(athlete) : []),
     [athlete, flow],
@@ -547,7 +548,9 @@ export default function RegisterPage({
         (registration) =>
           registration.athleteId === athlete.id &&
           registration.eventSlug === event.slug &&
-          !['cancelada', 'cancelled'].includes(String(registration.status ?? '').toLowerCase()),
+          ['pagada', 'confirmada', 'observada'].includes(
+            String(registration.status ?? '').toLowerCase(),
+          ),
       ) ?? null
     )
   }, [athlete, event?.slug, flow, registrations])
@@ -623,7 +626,18 @@ export default function RegisterPage({
   // a las preferencias del perfil. Si ya existe una inscripción activa para
   // este evento, se muestran exactamente esos datos y quedan sólo de lectura.
   useEffect(() => {
-    if (!committedCompetitionRegistration) return
+    if (!committedCompetitionRegistration) {
+      committedCompetitionPrefillRef.current = null
+      return
+    }
+    const prefillKey = [
+      committedCompetitionRegistration.id,
+      committedCompetitionRegistration.division,
+      committedCompetitionRegistration.category,
+      committedCompetitionRegistration.bodyweightKg,
+    ].join(':')
+    if (committedCompetitionPrefillRef.current === prefillKey) return
+    committedCompetitionPrefillRef.current = prefillKey
     ;[
       ['division', committedCompetitionRegistration.division],
       ['category', committedCompetitionRegistration.category],
@@ -1155,7 +1169,7 @@ export default function RegisterPage({
   const registrationAvailability = accessRequirements.paymentChannels
     ? { paymentChannels: accessRequirements.paymentChannels }
     : checkoutAvailability
-  const manualChannelsOpenGlobally =
+  const legacyManualChannelsOpenGlobally =
     checkoutAvailability.membershipManualEnabled !== false &&
     (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
     // accessRequirements todavía no resolvió (arranca undefined): con !==
@@ -1164,9 +1178,24 @@ export default function RegisterPage({
     // `manualChannelEnabled` evita en MembershipPurchaseSection.
     accessRequirements.membershipManualEnabled === true &&
     (flow !== 'competition' || accessRequirements.registrationManualEnabled === true)
+  const paymentChannels = checkoutAvailability.paymentChannels
+  const hasPaymentChannelMatrix = Boolean(paymentChannels)
+  const channelEnabledForFlow = (channel) => {
+    if (hasPaymentChannelMatrix) {
+      const membershipOpen = paymentChannels.membership?.[channel] === true
+      // Registration usa la matriz ya cruzada con el perfil del evento cuando viene
+      // en accessRequirements; si no, cae a la de plataforma.
+      const registrationOpen =
+        registrationAvailability.paymentChannels?.registration?.[channel] === true
+      return flow === 'membership' ? membershipOpen : membershipOpen && registrationOpen
+    }
+    return legacyManualChannelsOpenGlobally
+  }
   const codeChannels = discountPreview?.manualChannels ?? []
-  const transferEnabled = manualChannelsOpenGlobally || codeChannels.includes('bank_transfer')
-  const cashEnabled = manualChannelsOpenGlobally || codeChannels.includes('cash_pitbull')
+  const transferEnabled =
+    channelEnabledForFlow('bank_transfer') || codeChannels.includes('bank_transfer')
+  const cashEnabled =
+    channelEnabledForFlow('cash_pitbull') || codeChannels.includes('cash_pitbull')
   const manualPaymentEnabled = transferEnabled || cashEnabled
   /**
    * Mercado Pago dejó de ser incondicional: se cierra por concepto desde
