@@ -64,6 +64,12 @@ import {
   serializeUser,
   SESSION_COOKIE_NAME,
 } from '../services/sessionService.js'
+import { ensureAthleteForStaff } from '../services/staffAthleteBridge.js'
+import {
+  ATHLETE_SESSION_COOKIE_NAME,
+  createAthleteSession,
+  getAthleteSessionCookieOptions,
+} from '../services/athleteSessionService.js'
 import { staffSessionCache } from '../lib/sessionCache.js'
 
 // Vigencia de una credencial de acceso de puerta. Si el evento tiene fin
@@ -499,6 +505,73 @@ export function createAuthRoutes({
       next(error)
     }
   })
+
+  // Puente staff → atleta: emite cookie de atleta sin revocar plu_session.
+  // Cualquier rol de staff activo puede afiliarse / inscribirse con el mismo email.
+  router.post(
+    '/athlete-session',
+    requireAuth({ prisma: getPrisma() }),
+    authLimiter,
+    async (req, res, next) => {
+      try {
+        const client = auditClient()
+        if (!client) {
+          throw new HttpError(503, 'No se pudo abrir el perfil de atleta en este momento.')
+        }
+
+        const staffUser = req.auth.user
+        const prisma = getPrisma()
+        const profile = await prisma.user.findUnique({
+          where: { id: staffUser.id },
+          include: { profile: true },
+        })
+
+        const { athlete, created } = await ensureAthleteForStaff({
+          client,
+          staffUser: {
+            id: staffUser.id,
+            email: staffUser.email,
+            name: staffUser.name,
+            phone: profile?.profile?.phone ?? null,
+          },
+        })
+
+        const session = await createAthleteSession({
+          client,
+          athleteId: athlete.id,
+          req,
+        })
+        res.cookie(ATHLETE_SESSION_COOKIE_NAME, session.token, getAthleteSessionCookieOptions(env))
+
+        await recordIdentity(
+          {
+            action: created ? 'auth.staff_athlete_created' : 'auth.staff_athlete_session',
+            entityType: 'athlete',
+            entityId: athlete.id,
+            actorType: 'staff',
+            actorId: staffUser.id,
+            status: 'succeeded',
+            severity: 'success',
+            metadata: { created, email: athlete.email },
+          },
+          req,
+        )
+
+        res.json({
+          user: {
+            role: 'athlete_plu',
+            athleteId: athlete.id,
+            name: athlete.full_name,
+            email: athlete.email,
+            staffAvailable: true,
+          },
+          created,
+        })
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
 
   router.post('/oauth/session', authLimiter, auth0JwtCheck, async (req, res, next) => {
     try {

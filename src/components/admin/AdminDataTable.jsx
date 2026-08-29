@@ -1,9 +1,12 @@
-import { Table } from 'antd'
+import { Pagination, Table } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import AdminCompactCard from './AdminCompactCard.jsx'
 import StatusBadge from '../ui/StatusBadge.jsx'
 import { useHorizontalScroll } from '../../hooks/useHorizontalScroll'
+
+const DEFAULT_PAGE_SIZE = 25
+const PAGE_SIZE_OPTIONS = ['10', '25', '50', '100']
 
 /** Mismo umbral que `.data-table-cards` en plu-ui.css (viewport). */
 const VIEWPORT_CARDS_BREAKPOINT = 720
@@ -136,6 +139,7 @@ export default function AdminDataTable({
   getRowClassName,
   loading = false,
   pagination = true,
+  pageSize: pageSizeProp = DEFAULT_PAGE_SIZE,
   rowSelection,
 }) {
   const shellRef = useRef(null)
@@ -143,6 +147,16 @@ export default function AdminDataTable({
   const selectedCount = rowSelection?.selectedRowKeys?.length ?? 0
   const preferCards = usePreferCompactCards(shellRef)
   const useCompactCards = preferCards && hasMobileLayout(columns)
+  const [cardPage, setCardPage] = useState(1)
+  const [cardPageSize, setCardPageSize] = useState(pageSizeProp)
+
+  useEffect(() => {
+    setCardPageSize(pageSizeProp)
+  }, [pageSizeProp])
+
+  useEffect(() => {
+    setCardPage(1)
+  }, [rows, cardPageSize, useCompactCards])
 
   const antdColumns = useMemo(() => {
     return columns
@@ -202,67 +216,94 @@ export default function AdminDataTable({
     [columns, preferCards],
   )
 
+  // En modo cards no hay Table de antd: paginamos acá para no montar
+  // cientos de tarjetas (el ledger de caja llegaba a ~8k px de alto).
+  const cardRows = useMemo(() => {
+    if (!pagination || !useCompactCards) return rows
+    const start = (cardPage - 1) * cardPageSize
+    return rows.slice(start, start + cardPageSize)
+  }, [cardPage, cardPageSize, pagination, rows, useCompactCards])
+
   return (
     <div
       ref={shellRef}
       className={`admin-data-table-shell${useCompactCards ? ' admin-data-table-shell--cards' : ''}`}
     >
       {useCompactCards ? (
-        <div className="data-table-cards data-table-cards--admin" aria-busy={loading || undefined}>
-          {loading && rows.length === 0 ? (
-            <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
-          ) : null}
-          {!loading && rows.length === 0 ? (
-            <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
-          ) : null}
-          {rows.map((row) => {
-            const rowKey = row.id ?? JSON.stringify(row)
-            const bulkSelected = isBulkMode && selectedKeySet.has(rowKey)
-            const articleClass = [
-              'data-table-card',
-              'data-table-card--admin',
-              'data-table-card--compact',
-              resolveRowClassName(rowClassName, getRowClassName, row),
-              bulkSelected ? 'data-table__row--bulk-selected' : '',
-              onRowClick ? 'data-table__row--clickable' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')
+        <>
+          <div className="data-table-cards data-table-cards--admin" aria-busy={loading || undefined}>
+            {loading && rows.length === 0 ? (
+              <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
+            ) : null}
+            {!loading && rows.length === 0 ? (
+              <p className="admin-data-table-shell__empty">{emptyMessage || 'Sin datos'}</p>
+            ) : null}
+            {cardRows.map((row) => {
+              const rowKey = row.id ?? JSON.stringify(row)
+              const bulkSelected = isBulkMode && selectedKeySet.has(rowKey)
+              const articleClass = [
+                'data-table-card',
+                'data-table-card--admin',
+                'data-table-card--compact',
+                resolveRowClassName(rowClassName, getRowClassName, row),
+                bulkSelected ? 'data-table__row--bulk-selected' : '',
+                onRowClick ? 'data-table__row--clickable' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')
 
-            const interactionProps = onRowClick
-              ? {
-                  onClick: (event) => {
-                    if (
-                      event.target.closest(
-                        'button, a, input, label, .admin-icon-btn, .ant-checkbox-wrapper, .admin-table-actions__more',
-                      )
-                    ) {
-                      return
-                    }
-                    onRowClick(row)
-                  },
-                  onKeyDown: (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
+              const interactionProps = onRowClick
+                ? {
+                    onClick: (event) => {
+                      if (
+                        event.target.closest(
+                          'button, a, input, label, .admin-icon-btn, .ant-checkbox-wrapper, .admin-table-actions__more',
+                        )
+                      ) {
+                        return
+                      }
                       onRowClick(row)
-                    }
-                  },
-                  tabIndex: 0,
-                  role: 'button',
-                }
-              : {}
+                    },
+                    onKeyDown: (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        onRowClick(row)
+                      }
+                    },
+                    tabIndex: 0,
+                    role: 'button',
+                  }
+                : {}
 
-            return (
-              <AdminCompactCard
-                key={rowKey}
-                columns={cardColumns}
-                row={row}
-                className={articleClass}
-                interactionProps={interactionProps}
+              return (
+                <AdminCompactCard
+                  key={rowKey}
+                  columns={cardColumns}
+                  row={row}
+                  className={articleClass}
+                  interactionProps={interactionProps}
+                />
+              )
+            })}
+          </div>
+          {pagination && rows.length > 0 ? (
+            <div className="admin-data-table-shell__pagination">
+              <Pagination
+                current={cardPage}
+                pageSize={cardPageSize}
+                total={rows.length}
+                hideOnSinglePage
+                showSizeChanger
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+                align="center"
+                onChange={(page, nextSize) => {
+                  setCardPage(page)
+                  if (nextSize && nextSize !== cardPageSize) setCardPageSize(nextSize)
+                }}
               />
-            )
-          })}
-        </div>
+            </div>
+          ) : null}
+        </>
       ) : (
         <div ref={scrollRef}>
           <Table
@@ -297,6 +338,8 @@ export default function AdminDataTable({
                     placement: ['bottomCenter'],
                     hideOnSinglePage: true,
                     showSizeChanger: true,
+                    defaultPageSize: pageSizeProp,
+                    pageSizeOptions: PAGE_SIZE_OPTIONS,
                   }
                 : false
             }

@@ -6716,6 +6716,22 @@
   margin: 0;
 }
 
+.pitbull-inscription-counter--hidden .pitbull-inscription-counter__value {
+  color: var(--color-text-primary);
+  opacity: 0.92;
+}
+
+.pitbull-inscription-counter--hidden .pitbull-inscription-counter__hint,
+.pitbull-inscription-counter--soon .pitbull-inscription-counter__hint {
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  max-width: 48ch;
+}
+
+.pitbull-inscription-counter__value--pending {
+  opacity: 0.45;
+}
+
 .pitbull-inscription-shell--compact {
   background: transparent;
   border: 0;
@@ -6942,6 +6958,13 @@
   justify-content: space-between;
 }
 
+.pitbull-recent__meta {
+  align-items: baseline;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
 .pitbull-recent__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
@@ -6968,6 +6991,10 @@
 
 .pitbull-recent__hint--live {
   color: color-mix(in oklab, var(--color-brand-celeste) 82%, var(--color-text-primary));
+}
+
+.pitbull-recent__hint--today {
+  color: color-mix(in oklab, var(--color-brand-gold) 78%, var(--color-text-primary));
 }
 
 .pitbull-recent__hint-dot {
@@ -7058,6 +7085,10 @@
   padding: 12px 0;
 }
 
+.pitbull-recent__row--today {
+  border-bottom-color: color-mix(in oklab, var(--color-brand-gold) 22%, transparent);
+}
+
 .pitbull-recent__portrait {
   align-items: center;
   background: color-mix(in oklab, var(--color-brand-celeste) 14%, transparent);
@@ -7113,11 +7144,28 @@
   white-space: nowrap;
 }
 
-.pitbull-recent__time {
-  color: var(--color-text-muted);
+.pitbull-recent__when {
+  align-items: flex-end;
+  display: inline-flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 2px;
   margin-left: auto;
   min-width: max-content;
-  flex-shrink: 0;
+  text-align: right;
+}
+
+.pitbull-recent__today-mark {
+  color: color-mix(in oklab, var(--color-brand-gold) 82%, var(--color-text-primary));
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pitbull-recent__time {
+  color: var(--color-text-muted);
   font-family: var(--font-display);
   font-size: 11px;
   font-variant-numeric: tabular-nums;

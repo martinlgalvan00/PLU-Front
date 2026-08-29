@@ -93,4 +93,25 @@ describe('AdminDataTable — columnas responsive', () => {
       expect(container.querySelector('.data-table__row--selected')).toBeTruthy()
     })
   })
+
+  it('en viewport angosto paginan las cards compactas', async () => {
+    setViewportWidth(480)
+    const manyRows = Array.from({ length: 30 }, (_, index) => ({
+      id: String(index + 1),
+      name: `Atleta ${index + 1}`,
+      document: `${10000000 + index}`,
+      status: 'activo',
+    }))
+
+    const { container } = render(
+      <AdminDataTable columns={columns} rows={manyRows} pageSize={10} />,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.admin-data-table-shell--cards')).toBeTruthy()
+    })
+
+    expect(container.querySelectorAll('.data-table-card--compact')).toHaveLength(10)
+    expect(container.querySelector('.admin-data-table-shell__pagination')).toBeTruthy()
+  })
 })

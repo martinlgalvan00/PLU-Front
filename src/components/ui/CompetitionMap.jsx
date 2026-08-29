@@ -4,6 +4,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import useEventTravelPlanner from '../../hooks/useEventTravelPlanner.js'
 import {
   buildExternalMapUrl,
+  buildOpenStreetMapEmbedUrl,
   canUseMapWebGL,
   getMapAvailability,
   normalizeMapEvents,
@@ -359,8 +360,16 @@ export default function CompetitionMap({
     nearViewport && availability === 'ready' && canUseInteractiveMap && !interactiveFailed
   const fallbackState =
     availability === 'ready' ? (canUseInteractiveMap ? providerState : 'error') : availability
-  const mapVisible = shouldLoad && providerState === 'loaded'
   const fallbackEvent = selected ?? normalizedEvents[0] ?? null
+  const venueEmbedUrl = useMemo(
+    () => (isVenue ? buildOpenStreetMapEmbedUrl(fallbackEvent) : ''),
+    [fallbackEvent, isVenue],
+  )
+  // Sede: si MapLibre no arranca (WebGL / timeout / OpenFreeMap), mostramos
+  // el embed estático de OSM. Helper + CSS ya existían; faltaba cablearlos.
+  const showVenueEmbed =
+    isVenue && online && Boolean(venueEmbedUrl) && (interactiveFailed || !canUseInteractiveMap)
+  const mapVisible = (shouldLoad && providerState === 'loaded') || showVenueEmbed
   const travelPlanner = useEventTravelPlanner({
     event: showSelection ? selected : null,
     online,
@@ -397,8 +406,9 @@ export default function CompetitionMap({
       ref={rootRef}
       className={`competition-map competition-map--${variant} ${className}`.trim()}
       aria-labelledby={showHeader ? titleId : undefined}
-      data-map-provider="openfreemap"
-      data-provider-state={fallbackState}
+      data-map-provider={showVenueEmbed ? 'openstreetmap-embed' : 'openfreemap'}
+      data-provider-state={showVenueEmbed ? 'loaded' : fallbackState}
+      data-venue-embed={showVenueEmbed ? 'true' : undefined}
     >
       {showHeader ? (
         <header className="competition-map__header">
@@ -427,7 +437,7 @@ export default function CompetitionMap({
 
         <div
           className="competition-map__stage"
-          aria-busy={fallbackState === 'loading'}
+          aria-busy={!showVenueEmbed && fallbackState === 'loading'}
           aria-label={t('pages.events.map.mapAria')}
           role="region"
         >
@@ -439,6 +449,27 @@ export default function CompetitionMap({
             showRetry={(isVenue || !canUseInteractiveMap) && fallbackState === 'error'}
             t={t}
           />
+          {showVenueEmbed ? (
+            <>
+              <iframe
+                className="competition-map__canvas competition-map__embed"
+                title={t('pages.events.map.embedTitle')}
+                src={venueEmbedUrl}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+              {canUseInteractiveMap ? (
+                <button
+                  type="button"
+                  className="competition-map__embed-retry"
+                  onClick={handleRetry}
+                >
+                  {t('pages.events.map.retryInteractive')}
+                  <RotateCcw size={13} aria-hidden />
+                </button>
+              ) : null}
+            </>
+          ) : null}
           {shouldLoad ? (
             <Suspense
               fallback={

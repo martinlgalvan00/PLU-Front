@@ -165,10 +165,13 @@ export function useEventRegistrationCapacity(
   const slots =
     status === 'live' && summary && summary.capacity != null ? summary.capacity : fallbackSlots
   const recent = status === 'live' && summary ? summary.recent : []
+  const registeredToday =
+    status === 'live' && summary ? Number(summary.registeredToday ?? 0) : 0
 
   return {
     status,
     registered,
+    registeredToday,
     slots,
     recent,
     remaining: status === 'live' ? (summary?.remaining ?? null) : null,

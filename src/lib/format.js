@@ -169,6 +169,28 @@ export function formatRelativeTime(iso, locale = 'es', now = Date.now()) {
   return formatShortDate(String(iso).slice(0, 10), locale)
 }
 
+const ARGENTINA_TZ = 'America/Argentina/Buenos_Aires'
+
+/** Fecha calendario YYYY-MM-DD en zona dada (default AR). */
+export function calendarDateInTimeZone(value = new Date(), timeZone = ARGENTINA_TZ) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
+/** ¿El instante cae en el día calendario de hoy en Argentina? */
+export function isCalendarTodayInArgentina(iso, now = Date.now()) {
+  if (!iso) return false
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return false
+  return calendarDateInTimeZone(date) === calendarDateInTimeZone(new Date(now))
+}
+
 export function generateId(prefix, index) {
   return `${prefix}-${String(index).padStart(3, '0')}`
 }

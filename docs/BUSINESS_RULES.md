@@ -4,6 +4,8 @@
 
 - **Eventos, atletas, afiliaciones, inscripciones y entradas:** Supabase detrás de la API Express.
 - **Usuarios y roles del staff:** Prisma; atletas usan una sesión opaca HTTP-only independiente.
+  Un staff puede además abrir modo atleta (mismo email) vía `POST /api/auth/athlete-session`
+  sin perder la cookie del panel.
 - **Pagos:** Mercado Pago confirma el evento; el sistema decide qué activar.
 - **Resultados:** LiftingCast durante el evento; el sistema normaliza y exporta.
 
@@ -175,6 +177,13 @@ API y panel.
 
 Reglas:
 
+- Cualquier cuenta de staff activa (Super Admin, Administrador, PLU, Seguridad
+  o rol personalizado) puede operar también como atleta con el mismo email:
+  `POST /api/auth/athlete-session` crea o reclama el perfil en `athletes`, emite
+  `plu_athlete_session` y **no** revoca `plu_session`. Así el staff puede
+  afiliarse e inscribirse sin una segunda cuenta. El cobro sigue las mismas
+  reglas que cualquier atleta (perfil competitivo completo para inscripción,
+  email verificado, etc.).
 - Los permisos son capacidades explícitas por módulo y acción (`read`, `write`,
   `approve`, `execute`); no se deducen en el frontend.
 - Los cuatro roles base no se eliminan ni cambian de jerarquía. Super Admin y

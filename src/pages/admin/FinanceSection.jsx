@@ -4,16 +4,86 @@ import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminExpenseDialog from '../../components/admin/AdminExpenseDialog.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
-import { AdminTableActions, AdminTableActionsEmpty } from '../../components/admin/AdminTableCells.jsx'
+import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
+import ExportButton from '../../components/ui/ExportButton.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
 import { money } from '../../lib/format.js'
+import { createCsv } from '../../services/exportService.js'
 import { createExpense, deleteExpense, fetchFinanceReport, updateExpense } from '../../services/financeService.js'
 
-const today = () => new Date().toISOString().slice(0, 10)
-const monthStart = () => `${today().slice(0, 8)}01`
 const SEARCH_DEBOUNCE_MS = 350
+const LEDGER_PAGE_SIZE = 25
+const KIND_FILTER = {
+  all: 'all',
+  income: 'income',
+  expense: 'expense',
+}
+const PERIOD_PRESET = {
+  thisMonth: 'thisMonth',
+  lastMonth: 'lastMonth',
+  last30: 'last30',
+  custom: 'custom',
+}
+
+function toIsoDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function today() {
+  return toIsoDate(new Date())
+}
+
+function startOfMonth(offset = 0) {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setDate(1)
+  date.setMonth(date.getMonth() + offset)
+  return toIsoDate(date)
+}
+
+function endOfMonth(offset = 0) {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setDate(1)
+  date.setMonth(date.getMonth() + offset + 1)
+  date.setDate(0)
+  return toIsoDate(date)
+}
+
+function daysAgoIso(days) {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setDate(date.getDate() - days)
+  return toIsoDate(date)
+}
+
+function resolvePeriodPreset(from, to) {
+  if (from === startOfMonth(0) && to === today()) return PERIOD_PRESET.thisMonth
+  if (from === startOfMonth(-1) && to === endOfMonth(-1)) return PERIOD_PRESET.lastMonth
+  if (from === daysAgoIso(29) && to === today()) return PERIOD_PRESET.last30
+  return PERIOD_PRESET.custom
+}
+
+function rangeForPreset(preset) {
+  switch (preset) {
+    case PERIOD_PRESET.thisMonth:
+      return { from: startOfMonth(0), to: today() }
+    case PERIOD_PRESET.lastMonth:
+      return { from: startOfMonth(-1), to: endOfMonth(-1) }
+    case PERIOD_PRESET.last30:
+      return { from: daysAgoIso(29), to: today() }
+    default: {
+      const _exhaustive = preset
+      void _exhaustive
+      return { from: startOfMonth(0), to: today() }
+    }
+  }
+}
 
 /**
  * El editor de egresos alterna entre alta y edición: `expense` en null es un
@@ -32,15 +102,57 @@ function ExpenseEditor({ expense, busy, error, onCancel, onConfirm }) {
   )
 }
 
+function rowDateKey(row) {
+  return String(row.occurredOn ?? '').slice(0, 10)
+}
+
+function compareLedgerRowsAsc(a, b) {
+  const byDate = rowDateKey(a).localeCompare(rowDateKey(b))
+  if (byDate !== 0) return byDate
+  return String(a.id).localeCompare(String(b.id))
+}
+
+/** Saldo corrido anclado al orden cronológico del período (no al sort de tabla). */
+function withRunningBalance(rows) {
+  let balance = 0
+  const chronological = [...rows].sort(compareLedgerRowsAsc)
+  const balanceById = new Map()
+  for (const row of chronological) {
+    const amount = Number(row.amount) || 0
+    balance += row.kind === 'income' ? amount : -amount
+    balanceById.set(row.id, balance)
+  }
+  return rows.map((row) => ({ ...row, runningBalance: balanceById.get(row.id) ?? 0 }))
+}
+
+function formatLedgerDate(value, locale) {
+  const iso = String(value ?? '').slice(0, 10)
+  const date = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return iso || '—'
+  return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
+
+function csvMoney(value) {
+  if (value == null || value === '') return ''
+  return String(Number(value) || 0)
+}
+
 export default function FinanceSection({ canEdit = false }) {
   const { locale, t } = useI18n()
   const fromId = useId()
   const toId = useId()
   const searchId = useId()
-  const [from, setFrom] = useState(monthStart)
+  const kindFilterId = useId()
+  const periodPresetsId = useId()
+  const [from, setFrom] = useState(() => startOfMonth(0))
   const [to, setTo] = useState(today)
   const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
+  const [kindFilter, setKindFilter] = useState(KIND_FILTER.all)
   const [report, setReport] = useState(null)
   const [error, setError] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
@@ -53,6 +165,8 @@ export default function FinanceSection({ canEdit = false }) {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteError, setDeleteError] = useState('')
   const reportLoadedRef = useRef(false)
+  const dash = t('admin.ledger.dash')
+  const activePreset = useMemo(() => resolvePeriodPreset(from, to), [from, to])
 
   // El buscador no dispara un request por cada tecla: la query viaja al
   // backend recién cuando el tipeo se asienta.
@@ -120,10 +234,11 @@ export default function FinanceSection({ canEdit = false }) {
     }
   }
 
-  const totals = report?.totals ?? { income: 0, expense: 0, balance: 0 }
-  const movedTotal = totals.income + totals.expense
-  const incomeRatio = movedTotal > 0 ? totals.income / movedTotal : 0
-  const expenseRatio = movedTotal > 0 ? totals.expense / movedTotal : 0
+  function applyPeriodPreset(preset) {
+    const next = rangeForPreset(preset)
+    setFrom(next.from)
+    setTo(next.to)
+  }
 
   const rangeLabel = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
@@ -136,13 +251,77 @@ export default function FinanceSection({ canEdit = false }) {
     return `${formatter.format(fromDate)} – ${formatter.format(toDate)}`
   }, [from, to, locale])
 
+  const ledgerRows = useMemo(() => {
+    const source = report?.rows ?? []
+    const filtered =
+      kindFilter === KIND_FILTER.all ? source : source.filter((row) => row.kind === kindFilter)
+    return withRunningBalance(filtered)
+  }, [report?.rows, kindFilter])
+
+  const displayTotals = useMemo(() => {
+    if (kindFilter === KIND_FILTER.all) {
+      return report?.totals ?? { income: 0, expense: 0, balance: 0 }
+    }
+    const next = ledgerRows.reduce(
+      (acc, row) => {
+        const amount = Number(row.amount) || 0
+        if (row.kind === 'income') acc.income += amount
+        else acc.expense += amount
+        return acc
+      },
+      { income: 0, expense: 0 },
+    )
+    return { ...next, balance: next.income - next.expense }
+  }, [kindFilter, ledgerRows, report?.totals])
+
+  const movedTotal = displayTotals.income + displayTotals.expense
+  const incomeRatio = movedTotal > 0 ? displayTotals.income / movedTotal : 0
+  const expenseRatio = movedTotal > 0 ? displayTotals.expense / movedTotal : 0
+  const movementCount = ledgerRows.length
+
+  function exportLedgerCsv() {
+    if (!ledgerRows.length) {
+      notifyError(t('admin.ledger.exportEmpty'))
+      return
+    }
+    const body = [...ledgerRows]
+      .sort(compareLedgerRowsAsc)
+      .map((row) => ({
+        [t('admin.ledger.colDate')]: formatLedgerDate(row.occurredOn, locale),
+        [t('admin.ledger.colConcept')]: row.description ?? '',
+        [t('admin.ledger.colCategory')]: row.category ?? '',
+        [t('admin.ledger.colParty')]: row.party ?? '',
+        [t('admin.ledger.colIncome')]: row.kind === 'income' ? csvMoney(row.amount) : '',
+        [t('admin.ledger.colExpense')]: row.kind === 'expense' ? csvMoney(row.amount) : '',
+        [t('admin.ledger.colBalance')]: csvMoney(row.runningBalance),
+        [t('admin.ledger.colReference')]: row.reference ?? '',
+      }))
+    body.push({
+      [t('admin.ledger.colDate')]: '',
+      [t('admin.ledger.colConcept')]: t('admin.ledger.balance'),
+      [t('admin.ledger.colCategory')]: '',
+      [t('admin.ledger.colParty')]: '',
+      [t('admin.ledger.colIncome')]: csvMoney(displayTotals.income),
+      [t('admin.ledger.colExpense')]: csvMoney(displayTotals.expense),
+      [t('admin.ledger.colBalance')]: csvMoney(displayTotals.balance),
+      [t('admin.ledger.colReference')]: '',
+    })
+    createCsv(`libro-caja-${from}_${to}.csv`, body)
+  }
+
+  const periodPresets = [
+    { id: PERIOD_PRESET.thisMonth, label: t('admin.ledger.presetThisMonth') },
+    { id: PERIOD_PRESET.lastMonth, label: t('admin.ledger.presetLastMonth') },
+    { id: PERIOD_PRESET.last30, label: t('admin.ledger.presetLast30') },
+  ]
+
   return (
     <section className="admin-finance admin-finance--ledger" aria-labelledby="admin-finance-title">
       <div className="admin-finance__summary">
         <header className="admin-finance__header">
           <div className="admin-finance__intro">
             <h2 id="admin-finance-title">{t('admin.ledger.title')}</h2>
-            <p>{t('admin.ledger.lead')}</p>
+            <p className="admin-finance__lead">{t('admin.ledger.lead')}</p>
           </div>
           <div className="admin-finance__header-actions">
             {canEdit ? (
@@ -158,15 +337,23 @@ export default function FinanceSection({ canEdit = false }) {
                 {t('admin.ledger.addExpense')}
               </button>
             ) : null}
-            <button
-              className="btn btn--outline btn--small admin-finance__refresh"
-              type="button"
-              onClick={() => void load()}
-              disabled={initialLoading || refreshing || saving}
-            >
-              <RefreshCw className={refreshing ? 'is-spinning' : undefined} size={14} aria-hidden />
-              {t('admin.ledger.refresh')}
-            </button>
+            <div className="admin-finance__tools">
+              <ExportButton
+                className="admin-finance__export"
+                iconOnly
+                label={t('admin.ledger.exportCsv')}
+                onClick={exportLedgerCsv}
+                disabled={initialLoading || !ledgerRows.length}
+              />
+              <AdminIconButton
+                className="admin-finance__refresh"
+                icon={RefreshCw}
+                label={t('admin.ledger.refresh')}
+                onClick={() => void load()}
+                disabled={initialLoading || refreshing || saving}
+                spinning={refreshing}
+              />
+            </div>
           </div>
         </header>
 
@@ -184,9 +371,14 @@ export default function FinanceSection({ canEdit = false }) {
           <div className="admin-finance__balance">
             <span className="admin-finance__balance-label">{t('admin.ledger.balance')}</span>
             <strong className="admin-finance__balance-value">
-              {money(totals.balance, locale)}
+              {money(displayTotals.balance, locale)}
             </strong>
-            {rangeLabel ? <span className="admin-finance__balance-range">{rangeLabel}</span> : null}
+            <span className="admin-finance__balance-meta">
+              {rangeLabel ? <span className="admin-finance__balance-range">{rangeLabel}</span> : null}
+              <span className="admin-finance__balance-count">
+                {t('admin.ledger.movementCount', { count: movementCount })}
+              </span>
+            </span>
           </div>
           <div className="admin-finance__proportion">
             <div className="admin-finance__proportion-bar" aria-hidden="true">
@@ -205,16 +397,60 @@ export default function FinanceSection({ canEdit = false }) {
                   <ArrowUpRight size={13} aria-hidden />
                   {t('admin.ledger.income')}
                 </dt>
-                <dd>{money(totals.income, locale)}</dd>
+                <dd>{money(displayTotals.income, locale)}</dd>
               </div>
               <div className="admin-finance__proportion-item admin-finance__proportion-item--expense">
                 <dt>
                   <ArrowDownRight size={13} aria-hidden />
                   {t('admin.ledger.expense')}
                 </dt>
-                <dd>{money(totals.expense, locale)}</dd>
+                <dd>{money(displayTotals.expense, locale)}</dd>
               </div>
             </dl>
+          </div>
+        </div>
+
+        <div className="admin-finance__period" role="group" aria-labelledby={periodPresetsId}>
+          <div className="admin-finance__presets">
+            <span id={periodPresetsId} className="admin-finance__presets-label">
+              {t('admin.ledger.periodLabel')}
+            </span>
+            <div className="admin-finance__preset-list">
+              {periodPresets.map((preset) => {
+                const selected = activePreset === preset.id
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={`admin-finance__preset${selected ? ' is-active' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() => applyPeriodPreset(preset.id)}
+                  >
+                    {preset.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <div className="admin-finance__dates">
+            <label className="admin-finance__field" htmlFor={fromId}>
+              <span>{t('admin.ledger.from')}</span>
+              <input
+                id={fromId}
+                type="date"
+                value={from}
+                onChange={(event) => setFrom(event.target.value)}
+              />
+            </label>
+            <label className="admin-finance__field" htmlFor={toId}>
+              <span>{t('admin.ledger.to')}</span>
+              <input
+                id={toId}
+                type="date"
+                value={to}
+                onChange={(event) => setTo(event.target.value)}
+              />
+            </label>
           </div>
         </div>
       </div>
@@ -227,23 +463,17 @@ export default function FinanceSection({ canEdit = false }) {
 
       <div className="admin-finance__ledger">
         <div className="admin-finance__toolbar">
-          <label className="admin-finance__field" htmlFor={fromId}>
-            <span>{t('admin.ledger.from')}</span>
-            <input
-              id={fromId}
-              type="date"
-              value={from}
-              onChange={(event) => setFrom(event.target.value)}
-            />
-          </label>
-          <label className="admin-finance__field" htmlFor={toId}>
-            <span>{t('admin.ledger.to')}</span>
-            <input
-              id={toId}
-              type="date"
-              value={to}
-              onChange={(event) => setTo(event.target.value)}
-            />
+          <label className="admin-finance__field" htmlFor={kindFilterId}>
+            <span>{t('admin.ledger.kindFilterLabel')}</span>
+            <select
+              id={kindFilterId}
+              value={kindFilter}
+              onChange={(event) => setKindFilter(event.target.value)}
+            >
+              <option value={KIND_FILTER.all}>{t('admin.ledger.kindFilterAll')}</option>
+              <option value={KIND_FILTER.income}>{t('admin.ledger.kindFilterIncome')}</option>
+              <option value={KIND_FILTER.expense}>{t('admin.ledger.kindFilterExpense')}</option>
+            </select>
           </label>
           <label className="admin-finance__field admin-finance__field--search" htmlFor={searchId}>
             <span>{t('admin.ledger.searchLabel')}</span>
@@ -258,65 +488,96 @@ export default function FinanceSection({ canEdit = false }) {
         </div>
 
         {initialLoading ? (
-          <TableSkeleton rows={6} columns={6} />
+          <TableSkeleton rows={6} columns={8} />
         ) : (
           <AdminDataTable
-            rows={report?.rows ?? []}
+            rows={ledgerRows}
             emptyMessage={t('admin.ledger.empty')}
+            pageSize={LEDGER_PAGE_SIZE}
             columns={[
               {
                 key: 'date',
                 label: t('admin.ledger.colDate'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 sortable: true,
                 defaultSort: 'desc',
-                render: (row) => String(row.occurredOn).slice(0, 10),
+                sortAccessor: (row) => rowDateKey(row),
+                render: (row) => formatLedgerDate(row.occurredOn, locale),
               },
               {
-                key: 'kind',
-                label: t('admin.ledger.colKind'),
-                mobile: 'badge',
-                sortable: true,
-                render: (row) => (
-                  <span className={`admin-finance__kind admin-finance__kind--${row.kind}`}>
-                    {row.kind === 'income' ? (
-                      <ArrowUpRight size={13} aria-hidden />
-                    ) : (
-                      <ArrowDownRight size={13} aria-hidden />
-                    )}
-                    {row.kind === 'income'
-                      ? t('admin.ledger.kindIncome')
-                      : t('admin.ledger.kindExpense')}
-                  </span>
-                ),
+                key: 'description',
+                label: t('admin.ledger.colConcept'),
+                mobile: 'primary',
+                render: (row) => row.description,
               },
               {
                 key: 'category',
                 label: t('admin.ledger.colCategory'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 render: (row) => row.category,
               },
               {
-                key: 'description',
-                label: t('admin.ledger.colDetail'),
-                mobile: 'primary',
-                render: (row) => row.description,
+                key: 'party',
+                label: t('admin.ledger.colParty'),
+                mobile: 'hidden',
+                render: (row) => row.party || dash,
               },
               {
-                key: 'amount',
-                label: t('admin.ledger.colAmount'),
+                key: 'income',
+                label: t('admin.ledger.colIncome'),
                 mobile: 'default',
+                mobileMeta: 'labeled',
                 desktop: 'numeric',
                 align: 'end',
-                sortable: true,
-                render: (row) => money(row.amount, locale),
+                className: 'admin-finance__col-money admin-finance__col-money--income',
+                render: (row) =>
+                  row.kind === 'income' ? (
+                    <span className="admin-finance__money admin-finance__money--income">
+                      {money(row.amount, locale)}
+                    </span>
+                  ) : (
+                    dash
+                  ),
+              },
+              {
+                key: 'expenseAmount',
+                label: t('admin.ledger.colExpense'),
+                mobile: 'default',
+                mobileMeta: 'labeled',
+                desktop: 'numeric',
+                align: 'end',
+                className: 'admin-finance__col-money admin-finance__col-money--expense',
+                render: (row) =>
+                  row.kind === 'expense' ? (
+                    <span className="admin-finance__money admin-finance__money--expense">
+                      {money(row.amount, locale)}
+                    </span>
+                  ) : (
+                    dash
+                  ),
+              },
+              {
+                key: 'runningBalance',
+                label: t('admin.ledger.colBalance'),
+                mobile: 'default',
+                mobileMeta: 'labeled',
+                desktop: 'numeric',
+                align: 'end',
+                className: 'admin-finance__col-money admin-finance__col-balance',
+                render: (row) => (
+                  <span className="admin-finance__money admin-finance__money--balance">
+                    {money(row.runningBalance, locale)}
+                  </span>
+                ),
               },
               {
                 key: 'reference',
                 label: t('admin.ledger.colReference'),
                 mobile: 'hidden',
                 className: 'admin-finance__col-reference',
-                render: (row) => row.reference ?? '—',
+                render: (row) => row.reference ?? dash,
               },
               ...(canEdit
                 ? [
@@ -327,7 +588,7 @@ export default function FinanceSection({ canEdit = false }) {
                       render: (row) => {
                         // Los ingresos son de solo lectura: salen del ledger de
                         // pagos y se corrigen desde Operación de pagos.
-                        if (row.kind !== 'expense') return <AdminTableActionsEmpty />
+                        if (row.kind !== 'expense') return null
                         return (
                           <AdminTableActions aria-label={t('admin.ledger.colActions')}>
                             <AdminIconButton

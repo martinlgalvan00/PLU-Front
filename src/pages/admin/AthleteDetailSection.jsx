@@ -313,7 +313,7 @@ export default function AthleteDetailSection({
                       <StatusBadge value={entity.status} />
                     </div>
                     <span className="athlete-detail__divergence-bridge" aria-hidden>
-                      ↔
+                      <span className="athlete-detail__divergence-bridge-mark">↔</span>
                     </span>
                     <div className="athlete-detail__divergence-side">
                       <span className="athlete-detail__divergence-side-label">
@@ -324,9 +324,6 @@ export default function AthleteDetailSection({
                   </div>
                   {hasReason ? (
                     <blockquote className="athlete-detail__divergence-quote">
-                      <span className="athlete-detail__divergence-quote-label">
-                        {t('admin.observations.title')}
-                      </span>
                       <p>{manual.reason}</p>
                       <footer>
                         <cite title={attribution}>{attribution}</cite>

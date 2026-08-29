@@ -31,6 +31,7 @@ describe('fetchEventRegistrationSummary', () => {
     await expect(fetchEventRegistrationSummary('pitbull-classic-2026')).resolves.toEqual({
       capacity: 80,
       registered: 1,
+      registeredToday: 0,
       remaining: 79,
       progressPublic: true,
       recent: [
@@ -59,9 +60,27 @@ describe('fetchEventRegistrationSummary', () => {
     await expect(fetchEventRegistrationSummary('pitbull-classic-2026')).resolves.toEqual({
       capacity: 180,
       registered: 50,
+      registeredToday: 0,
       remaining: 130,
       progressPublic: false,
       recent: [],
+    })
+  })
+
+  it('propaga registeredToday del summary', async () => {
+    apiGet.mockResolvedValue({
+      summary: {
+        capacity: 180,
+        registered: 12,
+        registeredToday: 4,
+        remaining: 168,
+        progressPublic: true,
+        recent: [],
+      },
+    })
+
+    await expect(fetchEventRegistrationSummary('pitbull-classic-2026')).resolves.toMatchObject({
+      registeredToday: 4,
     })
   })
 })

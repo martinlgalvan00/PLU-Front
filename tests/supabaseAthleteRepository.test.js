@@ -5,7 +5,10 @@ function athleteQuery(rows) {
   const query = {
     select: () => query,
     eq: () => query,
-    order: () => Promise.resolve({ data: rows, error: null }),
+    order: () => query,
+    range: () => Promise.resolve({ data: rows, error: null }),
+    // Sin range (atletas/membresías) el order es thenable.
+    then: (resolve, reject) => Promise.resolve({ data: rows, error: null }).then(resolve, reject),
   }
   return query
 }
@@ -53,6 +56,249 @@ describe('supabase athlete repository admin snapshot', () => {
       'https://signed.test/cache-test/a2.jpg',
     ])
     expect(second.athletes[0].photo_url).toBe('https://signed.test/cache-test/a1.jpg')
+  })
+
+  it('no firma fotos cuando el poll pide photos=0', async () => {
+    const client = {
+      from: () => athleteQuery([{ id: 'a1', full_name: 'Ana', photo_path: 'cache-test/a1.jpg' }]),
+      storage: {
+        from: () => ({
+          createSignedUrls: async () => {
+            throw new Error('el poll no debería firmar fotos')
+          },
+        }),
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    const payload = await repository.adminData(
+      { athletes: true, memberships: false, registrations: false, paymentOrders: false },
+      { photos: '0' },
+    )
+
+    expect(payload.athletes[0].photo_url).toBeUndefined()
+    expect(payload.athletes[0].photo_path).toBe('cache-test/a1.jpg')
+  })
+
+  it('acota payment_orders con range por defecto', async () => {
+    const ranges = []
+    const client = {
+      from: (table) => {
+        if (table === 'athlete_payments') {
+          const query = {
+            select: () => query,
+            in: () => query,
+            order: async () => ({ data: [], error: null }),
+          }
+          return query
+        }
+        if (table !== 'athlete_payment_orders') {
+          return athleteQuery([])
+        }
+        const query = {
+          select: () => query,
+          eq: () => query,
+          order: () => query,
+          range: (from, to) => {
+            ranges.push([from, to])
+            return Promise.resolve({
+              data: [{ id: 'o1', athlete_id: 'a1', discount_code: null }],
+              error: null,
+            })
+          },
+        }
+        return query
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    await repository.adminData(
+      { athletes: false, memberships: false, registrations: false, paymentOrders: true },
+      { photos: '0' },
+    )
+    expect(ranges).toEqual([[0, 499]])
+  })
+
+  it('acota atletas/membresías/inscripciones con la ventana por defecto y expone totals', async () => {
+    // Sin `limit` explícito la primera carga ya no baja el padrón entero:
+    // la ventana es de 400 y `totals` dice cuántas filas hay de verdad.
+    const ranges = []
+    const client = {
+      from: (table) => {
+        if (table === 'athlete_payments') {
+          const query = {
+            select: () => query,
+            in: () => query,
+            order: async () => ({ data: [], error: null }),
+          }
+          return query
+        }
+        if (table === 'athlete_payment_orders') {
+          return athleteQuery([])
+        }
+        const query = {
+          select: () => query,
+          eq: () => query,
+          order: () => query,
+          range: (from, to) => {
+            ranges.push([table, from, to])
+            return Promise.resolve({ data: [], error: null, count: 640 })
+          },
+        }
+        return query
+      },
+      storage: {
+        from: () => ({ createSignedUrls: async () => ({ data: [], error: null }) }),
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    const payload = await repository.adminData(
+      { athletes: true, memberships: true, registrations: true, paymentOrders: true },
+      { photos: '0' },
+    )
+
+    expect(ranges).toEqual([
+      ['athletes', 0, 399],
+      ['memberships', 0, 399],
+      ['event_registrations', 0, 399],
+    ])
+    expect(payload.totals).toEqual({
+      athletes: 640,
+      memberships: 640,
+      registrations: 640,
+      paymentOrders: 0,
+    })
+  })
+
+  it('envía la búsqueda del padrón al servidor y sanitiza la sintaxis de or', async () => {
+    const orFilters = []
+    const client = {
+      from: (table) => {
+        if (table !== 'athletes') return athleteQuery([])
+        const query = {
+          select: () => query,
+          eq: () => query,
+          order: () => query,
+          or: (filter) => {
+            orFilters.push(filter)
+            return query
+          },
+          range: () => Promise.resolve({ data: [], error: null, count: 1 }),
+        }
+        return query
+      },
+      storage: { from: () => ({ createSignedUrls: async () => ({ data: [], error: null }) }) },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    // Las comas y paréntesis son sintaxis del filtro PostgREST, no contenido:
+    // tienen que salir del término antes de viajar.
+    await repository.adminData(
+      { athletes: true, memberships: false, registrations: false, paymentOrders: false },
+      { q: 'Díaz, María (PLU)', photos: '0' },
+    )
+
+    expect(orFilters).toHaveLength(1)
+    expect(orFilters[0]).toBe(
+      'full_name.ilike.%Díaz María PLU%,document_id.ilike.%Díaz María PLU%,email.ilike.%Díaz María PLU%',
+    )
+  })
+
+  it('listPaymentOrders filtra por canal manual y ordena la cola de trabajo', async () => {
+    const applied = { eq: [], order: [] }
+    const client = {
+      from: (table) => {
+        expect(table).toBe('athlete_payment_orders')
+        const query = {
+          select: () => query,
+          eq: (column, value) => {
+            applied.eq.push([column, value])
+            return query
+          },
+          in: () => query,
+          not: () => query,
+          order: (column, options) => {
+            applied.order.push([column, options])
+            return query
+          },
+          // `.limit` devuelve el builder (thenable), no una Promise nativa:
+          // el repo sigue encadenando filtros después de acotar.
+          limit: () => query,
+          then: (resolve, reject) => Promise.resolve({ data: [], error: null }).then(resolve, reject),
+        }
+        return query
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    await repository.listPaymentOrders({
+      statuses: ['pendiente', 'validacion_manual'],
+      channel: 'cash_pitbull',
+      sort: 'aging',
+    })
+
+    // El canal fija el método: sin `manual_link`, filas de Mercado Pago con
+    // canal null colaban en el chip de efectivo.
+    expect(applied.eq).toContainEqual(['method', 'manual_link'])
+    expect(applied.eq).toContainEqual(['manual_payment_channel', 'cash_pitbull'])
+    // Cola de trabajo: lo declarado más viejo primero, sin declaración al
+    // final — no la cronología de creación.
+    expect(applied.order[0]).toEqual([
+      'manual_payment_declared_at',
+      { ascending: true, nullsFirst: false },
+    ])
+  })
+
+  it('arma una revision estable del scope para ETag', async () => {
+    const client = {
+      from: () => {
+        const query = {
+          select: () => query,
+          eq: () => query,
+          order: () => query,
+          limit: () =>
+            Promise.resolve({
+              data: [{ updated_at: '2026-08-01T12:00:00.000Z' }],
+              error: null,
+              count: 3,
+            }),
+        }
+        return query
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    const revision = await repository.adminDataRevision({
+      athletes: true,
+      memberships: false,
+      registrations: false,
+      paymentOrders: true,
+    })
+    expect(revision).toBe(
+      '3:2026-08-01T12:00:00.000Z|skip|skip|3:2026-08-01T12:00:00.000Z',
+    )
+  })
+
+  it('firma solo paths que existen en el padrón', async () => {
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            in: async () => ({
+              data: [{ photo_path: 'cache-test/a1.jpg' }],
+              error: null,
+            }),
+          }),
+        }),
+      }),
+      storage: {
+        from: () => ({
+          createSignedUrls: async (paths) => ({
+            data: paths.map((path) => ({ path, signedUrl: `https://signed.test/${path}` })),
+            error: null,
+          }),
+        }),
+      },
+    }
+    const repository = createSupabaseAthleteRepository(client)
+    const urls = await repository.signAthletePhotoPaths(['cache-test/a1.jpg', 'ajeno/x.jpg'])
+
+    expect(urls).toEqual({ 'cache-test/a1.jpg': 'https://signed.test/cache-test/a1.jpg' })
   })
 })
 

@@ -758,6 +758,37 @@
   filter: grayscale(0.28) contrast(1.08) saturate(0.85);
 }
 
+.competition-map__embed-retry {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md, 8px);
+  bottom: 14px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.08em;
+  min-height: 34px;
+  padding: 0 12px;
+  position: absolute;
+  right: 14px;
+  text-transform: uppercase;
+  z-index: 3;
+}
+
+.competition-map__embed-retry:hover {
+  color: var(--color-text-primary);
+}
+
+.competition-map__embed-retry:focus-visible {
+  outline: 2px solid var(--color-brand-celeste, #74acdf);
+  outline-offset: 2px;
+}
+
 [data-theme='light'] .competition-map__embed {
   filter: grayscale(0.22) contrast(1.02) saturate(0.9);
 }

@@ -463,6 +463,7 @@ export default function NavbarPublic({
   const { locale, t } = useI18n()
 
   const adminSession = canViewAdmin(session)
+  const athleteWithStaffBridge = session?.role === 'athlete_plu' && session?.staffAvailable
   const sessionFullName = session ? sessionDisplayName(session) : ''
   const sessionInitialLetter = session ? sessionInitial(session) : ''
   const sessionPhoto = session ? sessionPhotoUrl(session) : ''
@@ -981,19 +982,25 @@ export default function NavbarPublic({
                 </div>
                 <div className="plu-profile-menu__info">
                   <p className="plu-profile-menu__eyebrow">
-                    {adminSession ? t('nav.roleAdmin') : t('nav.roleAthlete')}
+                    {athleteWithStaffBridge
+                      ? t('nav.roleAthlete')
+                      : adminSession
+                        ? t('nav.roleAdmin')
+                        : t('nav.roleAthlete')}
                   </p>
                   <p className="plu-profile-menu__name">{sessionFullName || t('nav.myProfile')}</p>
                 </div>
               </div>
               <div className="plu-profile-menu__actions">
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => go(adminSession ? 'admin' : 'profile')}
-                >
-                  <User size={15} strokeWidth={1.6} aria-hidden />
-                  <span>{adminSession ? t('nav.admin') : t('nav.myProfile')}</span>
+                {adminSession || athleteWithStaffBridge ? (
+                  <button type="button" role="menuitem" onClick={() => go('admin')}>
+                    <User size={15} strokeWidth={1.6} aria-hidden />
+                    <span>{t('nav.admin')}</span>
+                  </button>
+                ) : null}
+                <button type="button" role="menuitem" onClick={() => go('profile')}>
+                  <IdCard size={15} strokeWidth={1.6} aria-hidden />
+                  <span>{t('nav.myProfile')}</span>
                 </button>
                 <button
                   type="button"
@@ -1198,7 +1205,15 @@ export default function NavbarPublic({
                             ? `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAdmin')}`
                             : `${sessionFullName || t('nav.myProfile')} · ${t('nav.roleAthlete')}`
                         }
-                        onClick={() => go(adminSession ? 'admin' : 'profile')}
+                        onClick={() =>
+                          go(
+                            athleteWithStaffBridge
+                              ? 'admin'
+                              : adminSession
+                                ? 'admin'
+                                : 'profile',
+                          )
+                        }
                       >
                         <span className="plu-drawer__account-avatar" aria-hidden>
                           {sessionPhoto ? <img src={sessionPhoto} alt="" /> : sessionInitialLetter}

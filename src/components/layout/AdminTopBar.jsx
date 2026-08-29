@@ -1,12 +1,11 @@
-import { ArrowRight, Bell, Search } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import AdminGlobalSearch from '../admin/AdminGlobalSearch.jsx'
 
 export default function AdminTopBar({
   title,
   subtitle,
   eyebrow,
-  searchValue,
-  onSearchChange,
   onSearchSubmit,
   showSearch = true,
   alertCount = 0,
@@ -15,6 +14,10 @@ export default function AdminTopBar({
   showAlerts = true,
   searchPlaceholder,
   showDate = true,
+  athletes = [],
+  events = [],
+  onSelectAthlete,
+  onSelectEvent,
 }) {
   const { locale, t } = useI18n()
   const placeholder = searchPlaceholder ?? t('admin.search.dashboard')
@@ -30,11 +33,6 @@ export default function AdminTopBar({
         ? t('admin.dashboard.alertsCount', { count: alertCount })
         : t('admin.dashboard.alertsCountMany', { count: alertCount })
       : t('admin.dashboard.alertsNone')
-
-  function handleSearchSubmit(event) {
-    event.preventDefault()
-    onSearchSubmit?.(searchValue)
-  }
 
   return (
     <header className="admin-page-toolbar admin-page-toolbar--dashboard">
@@ -58,32 +56,18 @@ export default function AdminTopBar({
 
       {(showSearch || showAlerts) && (
         <div className="admin-page-toolbar__tools">
-          {showSearch && (
-            <form
-              className="admin-page-toolbar__search"
-              role="search"
+          {showSearch ? (
+            <AdminGlobalSearch
+              variant="toolbar"
+              athletes={athletes}
+              events={events}
+              onSelectAthlete={onSelectAthlete}
+              onSelectEvent={onSelectEvent}
+              onFreeTextSubmit={onSearchSubmit}
+              placeholder={placeholder}
               data-tour="dashboard-search"
-              onSubmit={handleSearchSubmit}
-            >
-              <Search size={17} aria-hidden />
-              <input
-                type="search"
-                aria-label={placeholder}
-                autoComplete="off"
-                placeholder={placeholder}
-                value={searchValue}
-                onChange={(event) => onSearchChange?.(event.target.value)}
-              />
-              <button
-                type="submit"
-                className="admin-page-toolbar__search-submit"
-                aria-label={t('admin.search.submit')}
-                disabled={!searchValue?.trim()}
-              >
-                <ArrowRight size={15} aria-hidden />
-              </button>
-            </form>
-          )}
+            />
+          ) : null}
           {showAlerts && (
             <button
               type="button"

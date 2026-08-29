@@ -20,9 +20,17 @@ function AdminGlobalSearchDemo() {
         <div style={{ maxWidth: 420 }}>
           <AdminGlobalSearch
             athletes={ATHLETES}
+            events={[
+              { id: 'e1', title: 'Pitbull Classic', slug: 'pitbull-classic', venue: 'CABA' },
+              { id: 'e2', title: 'Maximal Open', slug: 'maximal-open', city: 'Rosario' },
+            ]}
             onSelectAthlete={(id) => {
               // eslint-disable-next-line no-console -- demo de Storybook, no hay navegación real
               console.log('seleccionar atleta', id)
+            }}
+            onSelectEvent={(event) => {
+              // eslint-disable-next-line no-console -- demo de Storybook, no hay navegación real
+              console.log('seleccionar evento', event.title)
             }}
           />
         </div>
