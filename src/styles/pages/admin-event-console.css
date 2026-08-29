@@ -473,6 +473,71 @@
   white-space: nowrap;
 }
 
+.admin-shell .admin-event-console__row-chevron {
+  color: var(--admin-muted);
+  grid-column: -1;
+  justify-self: end;
+  opacity: 0.7;
+  transition:
+    color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    opacity var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.admin-shell .admin-event-console__row:hover .admin-event-console__row-chevron {
+  color: var(--admin-brand);
+  opacity: 1;
+}
+
+.admin-shell .admin-event-console__row--expanded {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 8%, transparent);
+  border-bottom-color: transparent;
+}
+
+.admin-shell .admin-event-console__row--expanded svg {
+  color: var(--admin-brand, var(--color-brand-celeste));
+}
+
+.admin-shell .admin-event-console__fold {
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+  display: flex;
+  flex-direction: column;
+  max-height: min(58vh, 560px);
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.admin-shell .admin-event-console__fold > .admin-event-editor--embedded {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.admin-shell .admin-event-console__fold--structure {
+  max-height: min(62vh, 640px);
+  overflow: auto;
+  padding: 12px 16px 16px;
+}
+
+.admin-shell .admin-event-console__fold--structure .admin-event-sessions--embedded {
+  gap: 12px;
+}
+
+.admin-shell .admin-event-console__fold--structure .admin-event-sessions__row {
+  background: color-mix(in srgb, var(--admin-modal-bg-surface, var(--color-bg-surface)) 88%, transparent);
+  border-color: var(--admin-glass-border, var(--admin-hairline, var(--color-border-subtle)));
+}
+
+.admin-event-editor--accordion .admin-event-editor__toolbar--accordion {
+  justify-content: flex-end;
+}
+
+.admin-event-editor--accordion .admin-event-form__body {
+  max-height: min(42vh, 420px);
+}
+
 @media (hover: none) {
   .admin-shell .admin-event-console__row {
     min-height: 52px;
@@ -1106,8 +1171,7 @@
 /* Dentro de una sección del evento, la cromática de la lista miente: el buscador
    y los filtros de estado apuntan a una lista que no está en pantalla, y los KPI
    son del calendario entero. La miga de pan del detalle dice dónde se está. */
-.admin-shell .admin-list-section--events:has(.admin-event-drill) > .admin-list-section__chrome,
-.admin-shell .admin-list-section--events:has(.admin-event-drill) > .admin-events-kpis {
+.admin-shell .admin-list-section--events:has(.admin-event-drill) > .admin-list-section__chrome {
   display: none;
 }
 
@@ -1123,7 +1187,10 @@
 .admin-event-console-modal__backdrop {
   -webkit-appearance: none;
   appearance: none;
-  background: color-mix(in srgb, var(--admin-canvas) 62%, transparent);
+  background: var(
+    --admin-modal-backdrop,
+    color-mix(in srgb, var(--admin-canvas) 62%, transparent)
+  );
   border: 0;
   cursor: pointer;
   inset: 0;
@@ -1132,11 +1199,11 @@
 }
 
 .admin-event-console-modal__panel {
-  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  backdrop-filter: blur(var(--admin-glass-blur)) saturate(1.15);
-  background: var(--admin-glass-bg-strong);
-  border: 1px solid var(--admin-glass-border);
-  box-shadow: var(--admin-shadow-panel);
+  -webkit-backdrop-filter: blur(var(--admin-modal-blur, var(--admin-glass-blur))) saturate(1.15);
+  backdrop-filter: blur(var(--admin-modal-blur, var(--admin-glass-blur))) saturate(1.15);
+  background: var(--admin-modal-bg, var(--admin-glass-bg-strong));
+  border: 1px solid var(--admin-modal-border, var(--admin-glass-border));
+  box-shadow: var(--admin-modal-shadow, var(--admin-shadow-panel));
   display: flex;
   flex-direction: column;
   inset: 0;
@@ -1176,16 +1243,22 @@
 
 .admin-event-console-modal__head {
   align-items: flex-start;
+  background: var(--admin-surface, var(--admin-glass-bg-strong));
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
   justify-content: space-between;
   padding: 14px 18px;
+  padding-top: max(14px, env(safe-area-inset-top, 0px));
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .admin-event-console-modal__head-copy {
   display: grid;
+  flex: 1 1 auto;
   gap: 3px;
   min-width: 0;
 }
@@ -1199,13 +1272,17 @@
 
 .admin-event-console-modal__title {
   color: var(--admin-ink);
+  display: -webkit-box;
   font-family: var(--font-display, var(--font-family));
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.2;
   margin: 0;
+  overflow: hidden;
   overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .admin-event-console-modal__meta-line {
@@ -1219,6 +1296,10 @@
   display: inline-flex;
   flex: none;
   flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-event-console-modal__edit {
   gap: 6px;
 }
 
@@ -1240,23 +1321,23 @@
 }
 
 .admin-event-console-modal__close:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 30%, transparent);
-  color: var(--color-brand-celeste);
+  background: color-mix(in srgb, var(--admin-brand) 10%, transparent);
+  border-color: var(--admin-brand-border, color-mix(in srgb, var(--admin-brand) 30%, transparent));
+  color: var(--admin-brand);
 }
 
 .admin-event-console-modal__close:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
+  outline: 2px solid var(--admin-focus, var(--admin-brand));
   outline-offset: 2px;
 }
 
 .admin-event-console-modal__body {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px 18px 22px;
+  padding: 12px 18px max(18px, env(safe-area-inset-bottom, 0px));
   scrollbar-width: thin;
 }
 
@@ -1274,6 +1355,45 @@
   text-transform: uppercase;
 }
 
+.admin-event-console-modal__detail-fold {
+  border-top: 1px solid var(--admin-hairline);
+  margin: 0;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.admin-event-console-modal__detail-summary {
+  align-items: center;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  display: flex;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 8px;
+  list-style: none;
+  min-height: 44px;
+  padding: 4px 2px;
+}
+
+.admin-event-console-modal__detail-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-event-console-modal__detail-summary svg {
+  color: var(--admin-muted);
+  flex: 0 0 auto;
+}
+
+.admin-event-console-modal__detail-fold[open] .admin-event-console-modal__detail-summary {
+  color: var(--admin-ink);
+  margin-bottom: 8px;
+}
+
+.admin-event-console-modal__detail-fold .admin-event-console-modal__detail-label {
+  /* En phone el summary ya dice el rótulo; en desktop se muestra el label. */
+  display: none;
+}
+
 /* Las filas de sección conservan su estilo de consola; dentro del modal no
    llevan el borde inferior del panel viejo. */
 .admin-event-console-modal .admin-event-console__sections {
@@ -1282,19 +1402,681 @@
   padding: 0;
 }
 
-/* En phone el head se apila y el cierre queda a 44px mínimos. */
+/* En phone el head se compacta: acciones en toolbar, editar solo ícono. */
 @media (max-width: 719px) {
   .admin-event-console-modal__head {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 12px 14px;
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+  }
+
+  .admin-event-console-modal__head-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .admin-event-console-modal__title {
+    font-size: 15px;
+    -webkit-line-clamp: 1;
+  }
+
+  .admin-event-console-modal__meta-line {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .admin-event-console-modal__head-actions {
-    width: 100%;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: auto;
+  }
+
+  .admin-event-console-modal__edit {
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding-inline: 10px;
+  }
+
+  .admin-event-console-modal__edit-label {
+    display: none;
   }
 
   .admin-event-console-modal__close {
     height: 44px;
     width: 44px;
+  }
+
+  .admin-event-console-modal__body {
+    gap: 14px;
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* Desktop: el fold queda siempre abierto; el summary se oculta. */
+@media (min-width: 720px) {
+  .admin-event-console-modal__detail-summary {
+    display: none;
+  }
+
+  .admin-event-console-modal__detail-fold .admin-event-console-modal__detail-label {
+    display: block;
+  }
+
+  .admin-event-console-modal__detail-fold {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+
+/* ── 7. State control: banda operativa compacta y editorial ─
+   Menos aire vertical, una sola lectura: workflow → estado → acceso.
+   Sin cajas; underline brand como único acento.
+   Especificidad ≥ admin-minimal (.admin-shell .admin-list-shell--events …). */
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state {
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 12px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__workflow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__workflow-label,
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state
+  .admin-filter-group__label {
+  color: var(--admin-muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__workflow-actions {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__registration-action,
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__registration-live {
+  font-size: 11px;
+  gap: 5px;
+  min-height: 30px;
+  padding: 4px 10px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__registration-action--open {
+  background: var(--admin-action, var(--color-brand-action));
+  border-color: var(--admin-action, var(--color-brand-action));
+  color: var(--color-on-brand-action, var(--color-bg-primary));
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__controls {
+  display: grid;
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row {
+  align-items: start;
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+  display: grid;
+  gap: 6px 14px;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  padding: 8px 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row-label {
+  color: var(--admin-muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 32px;
+  text-transform: uppercase;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row
+  .admin-filter-group {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row
+  .admin-filter-group__label {
+  display: none;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__access {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__note--caption {
+  display: -webkit-box;
+  font-size: 10.5px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.35;
+  max-width: 52ch;
+  overflow: hidden;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--visibility {
+  align-items: center;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--visibility
+  .admin-event-state__visibility {
+  justify-self: start;
+  margin-top: 0;
+}
+
+@media (max-width: 519px) {
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state__row-label {
+    line-height: 1.2;
+    padding-top: 2px;
+  }
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row:not(.admin-event-state__row--access)
+  .admin-filter-chips,
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row:not(.admin-event-state__row--access)
+  .admin-filter-chips-rail {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state
+  .admin-filter-chips-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row:not(.admin-event-state__row--access)
+  .admin-filter-chip {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--admin-muted);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 550;
+  min-height: 32px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row:not(.admin-event-state__row--access)
+  .admin-filter-chip:hover {
+  background: transparent;
+  color: var(--admin-ink);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row:not(.admin-event-state__row--access)
+  .admin-filter-chip.is-active,
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row:not(.admin-event-state__row--access)
+  .admin-filter-chip[aria-pressed='true'] {
+  background: transparent;
+  border-bottom-color: var(--admin-brand);
+  box-shadow: none;
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state
+  .admin-filter-chip__indicator {
+  display: none;
+}
+
+/* Acceso: par segmentado denso (después del riel de estado para ganar cascada). */
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--access
+  .admin-filter-chips,
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--access
+  .admin-filter-chips-rail {
+  -webkit-mask-image: none;
+  mask-image: none;
+  background: color-mix(in srgb, var(--admin-ink) 4%, transparent);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 8px;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 2px;
+  width: fit-content;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--access
+  .admin-filter-chip {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  color: var(--admin-muted);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 550;
+  min-height: 30px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--access
+  .admin-filter-chip:hover {
+  color: var(--admin-ink);
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--access
+  .admin-filter-chip.is-active,
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__row--access
+  .admin-filter-chip[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--admin-brand) 16%, transparent);
+  border-bottom-color: transparent;
+  color: var(--admin-ink);
+  font-weight: 650;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__note {
+  align-items: flex-start;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 6px;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 56ch;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__note
+  svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  opacity: 0.85;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__visibility {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 550;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 2px;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__visibility.is-published {
+  color: var(--admin-brand);
+  font-weight: 650;
+}
+
+.admin-shell
+  .admin-list-shell--events
+  .admin-event-console-modal__panel
+  .admin-event-state__pending {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-action)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-action)) 36%, transparent);
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 719px), (pointer: coarse) {
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state
+    .admin-filter-chip,
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state__visibility,
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state__registration-action,
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state__registration-live {
+    min-height: 44px;
+  }
+
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state__pending-discard,
+  .admin-shell
+    .admin-list-shell--events
+    .admin-event-console-modal__panel
+    .admin-event-state__pending-save {
+    min-height: 44px;
+  }
+}
+
+/* Editor en acordeón: vive dentro de .admin-event-console__fold, no reemplaza el body. */
+.admin-event-console-modal--section-open .admin-event-console-modal__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-event-console-modal__body > .admin-event-editor--embedded {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.admin-event-editor--embedded .admin-event-form--editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.admin-event-editor__embed-bar {
+  align-items: center;
+  background: var(--admin-glass-bg, color-mix(in srgb, var(--admin-modal-bg-surface, transparent) 72%, transparent));
+  border-bottom: 1px solid var(--admin-glass-border, var(--admin-hairline, var(--color-border-subtle)));
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+  padding: 10px 18px;
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur, 14px)) saturate(1.1);
+  backdrop-filter: blur(var(--admin-glass-blur, 14px)) saturate(1.1);
+}
+
+.admin-event-editor__embed-back {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-ink, var(--color-text-primary));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  letter-spacing: -0.01em;
+  min-height: 36px;
+  padding: 0;
+  transition: color var(--motion-fast, 160ms) var(--ease-standard, ease);
+}
+
+.admin-event-editor__embed-back:hover {
+  color: var(--admin-brand, var(--color-brand-celeste));
+}
+
+.admin-event-editor__embed-back:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-event-editor--embedded .admin-event-form__mode {
+  background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 34%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--color-brand-gold) 88%, var(--admin-ink, #fff));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 5px 10px;
+  text-transform: uppercase;
+}
+
+.admin-event-editor--embedded .admin-event-editor__toolbar {
+  background: var(--admin-glass-bg, color-mix(in srgb, var(--admin-modal-bg-surface, transparent) 64%, transparent));
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur, 14px)) saturate(1.12);
+  backdrop-filter: blur(var(--admin-glass-blur, 14px)) saturate(1.12);
+  border-bottom: 1px solid var(--admin-glass-border, var(--admin-hairline, var(--color-border-subtle)));
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
+  padding: 8px 18px;
+}
+
+.admin-event-editor--embedded .admin-event-form__body {
+  flex: 1 1 auto;
+  gap: 18px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 18px 22px;
+}
+
+.admin-event-editor--embedded .admin-event-form__section {
+  animation: admin-event-editor-section-enter var(--motion-base, 280ms) var(--ease-standard, ease)
+    both;
+  border: 0;
+  gap: 16px;
+  padding: 0;
+}
+
+.admin-event-editor--embedded .admin-event-form__section--sales {
+  gap: 14px;
+}
+
+.admin-event-editor--embedded .admin-event-form__section-head h4 {
+  color: var(--admin-ink);
+  font-size: clamp(15px, 1.5vw, 16px);
+  letter-spacing: -0.03em;
+}
+
+.admin-event-editor--embedded .admin-event-form__section-head p {
+  color: var(--admin-muted);
+  max-width: 46ch;
+}
+
+/* Dock glass de acciones: un solo efecto atmosférico del viewport del editor. */
+.admin-event-editor--embedded .admin-event-form__actions {
+  background: var(--admin-glass-bg-strong, color-mix(in srgb, var(--admin-modal-bg, var(--admin-surface)) 78%, transparent));
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur, 14px)) saturate(1.12);
+  backdrop-filter: blur(var(--admin-glass-blur, 14px)) saturate(1.12);
+  border-top: 1px solid var(--admin-glass-border, var(--admin-modal-hairline, var(--admin-hairline)));
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, var(--admin-modal-highlight, transparent));
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding: 12px 18px max(14px, env(safe-area-inset-bottom, 0px));
+  z-index: 4;
+}
+
+.admin-event-editor--embedded .admin-event-form__lane {
+  background: var(--admin-glass-bg, transparent);
+  border: 1px solid var(--admin-glass-border, var(--admin-hairline));
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(1.06);
+  backdrop-filter: blur(10px) saturate(1.06);
+}
+
+.admin-event-editor--embedded .admin-event-form__occupancy-value {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-event-editor--embedded .admin-event-form__field > span,
+.admin-event-editor--embedded .admin-event-form__field label,
+.admin-event-console-modal__panel .admin-event-form .form-field__label,
+.admin-event-console-modal__panel .admin-event-form label > span:first-child {
+  color: var(--admin-muted);
+}
+
+@keyframes admin-event-editor-section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-editor--embedded .admin-event-form__section {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .admin-event-editor__embed-bar,
+  .admin-event-editor--embedded .admin-event-editor__toolbar,
+  .admin-event-editor--embedded .admin-event-form__actions,
+  .admin-event-editor--embedded .admin-event-form__lane {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--admin-modal-bg, var(--admin-surface));
+    box-shadow: none;
   }
 }

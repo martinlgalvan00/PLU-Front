@@ -4197,6 +4197,12 @@
   width: 100%;
 }
 
+.community-spotlight__avatar--photo .lazy-photo-slot {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 .community-spotlight__row-main {
   display: grid;
   gap: 4px;

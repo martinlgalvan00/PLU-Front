@@ -3,7 +3,7 @@ import { compressImageFile } from '../lib/compressImageFile.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
 const PHOTO_BUCKET = 'athlete-photos'
-const MAX_PHOTO_BYTES = 3 * 1024 * 1024
+const MAX_PHOTO_BYTES = 1 * 1024 * 1024
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 function sanitizeFileName(name) {
@@ -19,7 +19,7 @@ export function validateAthletePhotoFile(file) {
     return { error: 'Formato no admitido. Usá JPG, PNG o WEBP.' }
   }
   if (file.size > MAX_PHOTO_BYTES) {
-    return { error: 'La imagen supera el límite de 3 MB.' }
+    return { error: 'La imagen supera el límite de 1 MB.' }
   }
   return { ok: true }
 }
@@ -45,7 +45,10 @@ export async function uploadAthletePhoto(_athleteId, file) {
   })
   const { error: uploadError } = await supabase.storage
     .from(PHOTO_BUCKET)
-    .uploadToSignedUrl(upload.path, upload.token, prepared, { contentType: prepared.type })
+    .uploadToSignedUrl(upload.path, upload.token, prepared, {
+      contentType: prepared.type,
+      cacheControl: upload.cacheControl || '31536000',
+    })
 
   if (uploadError) {
     throw new ApiError(uploadError.message ?? 'No se pudo subir la foto.', { status: 400 })

@@ -24,6 +24,7 @@ export default function TransferPayModal({
   financingAllowed = false,
   manualPaymentDeclaredAt = null,
   financedEntitlementsAt = null,
+  accountDetails = null,
 }) {
   const { t, locale } = useI18n()
   const panelRef = usePaymentModal(onClose)
@@ -73,6 +74,7 @@ export default function TransferPayModal({
           financingAllowed={financingAllowed}
           manualPaymentDeclaredAt={manualPaymentDeclaredAt}
           financedEntitlementsAt={financedEntitlementsAt}
+          accountDetails={accountDetails}
         />
         <button type="button" className="account-secondary-action" onClick={onClose}>
           {t('account.membership.transferUnderstood')}

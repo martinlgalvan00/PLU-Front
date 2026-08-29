@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
+import { LazyPhoto } from './LazyPhoto.jsx'
 import { useContent } from '../../hooks/useContent.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import {
@@ -42,7 +43,7 @@ function RosterAvatar({ member }) {
   if (member.photoUrl) {
     return (
       <span className="community-spotlight__avatar community-spotlight__avatar--photo" aria-hidden>
-        <img src={member.photoUrl} alt="" loading="lazy" decoding="async" />
+        <LazyPhoto src={member.photoUrl} alt="" className="community-spotlight__avatar-photo" />
       </span>
     )
   }

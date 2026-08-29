@@ -1164,6 +1164,13 @@ export default function RegisterPage({
   // habilitación explícita de ambos alcances para el combo — salvo que el
   // código aplicado destrabe ese canal puntualmente. Cada canal se decide por
   // separado: un código puede abrir sólo transferencia, sólo efectivo o los dos.
+  //
+  // Con eventSlug, `accessRequirements.paymentChannels` ya viene intersectado
+  // con el perfil del evento (registration/ticket). Membership sigue leyendo
+  // la matriz de plataforma vía checkoutAvailability / accessRequirements.
+  const registrationAvailability = accessRequirements.paymentChannels
+    ? { paymentChannels: accessRequirements.paymentChannels }
+    : checkoutAvailability
   const legacyManualChannelsOpenGlobally =
     checkoutAvailability.membershipManualEnabled !== false &&
     (flow !== 'competition' || checkoutAvailability.registrationManualEnabled !== false) &&
@@ -1178,7 +1185,10 @@ export default function RegisterPage({
   const channelEnabledForFlow = (channel) => {
     if (hasPaymentChannelMatrix) {
       const membershipOpen = paymentChannels.membership?.[channel] === true
-      const registrationOpen = paymentChannels.registration?.[channel] === true
+      // Registration usa la matriz ya cruzada con el perfil del evento cuando viene
+      // en accessRequirements; si no, cae a la de plataforma.
+      const registrationOpen =
+        registrationAvailability.paymentChannels?.registration?.[channel] === true
       return flow === 'membership' ? membershipOpen : membershipOpen && registrationOpen
     }
     return legacyManualChannelsOpenGlobally
@@ -1209,12 +1219,13 @@ export default function RegisterPage({
   const mercadoPagoEnabled =
     !codeClosesMercadoPago &&
     channelOpen(checkoutAvailability, 'membership', 'mercado_pago') &&
-    (flow !== 'competition' || channelOpen(checkoutAvailability, 'registration', 'mercado_pago'))
+    (flow !== 'competition' || channelOpen(registrationAvailability, 'registration', 'mercado_pago'))
   // Wise tiene interruptor propio, independiente de los canales manuales
   // locales y de los cupones que los destraban.
   const wiseEnabled =
     channelOpen(checkoutAvailability, 'membership', 'wise_transfer') &&
-    (flow !== 'competition' || channelOpen(checkoutAvailability, 'registration', 'wise_transfer'))
+    (flow !== 'competition' ||
+      channelOpen(registrationAvailability, 'registration', 'wise_transfer'))
   const selectedMethodEnabled =
     form.paymentMethod === 'manual_link'
       ? transferEnabled
@@ -2996,6 +3007,9 @@ export default function RegisterPage({
           financingAllowed={visibleOrder?.financingAllowed === true}
           manualPaymentDeclaredAt={visibleOrder?.manualPaymentDeclaredAt ?? null}
           financedEntitlementsAt={visibleOrder?.financedEntitlementsAt ?? null}
+          accountDetails={
+            flow === 'membership' ? null : (accessRequirements.bankTransfer ?? null)
+          }
           onClose={() => setTransferOpen(false)}
           purpose={flow === 'membership' ? 'membership' : 'competition'}
         />

@@ -8,6 +8,7 @@ import { startEmailDispatchJob } from './jobs/emailDispatchJob.js'
 import { startMembershipRenewalJob } from './jobs/membershipRenewalJob.js'
 import { startPaymentRecoveryJob } from './jobs/paymentRecoveryJob.js'
 import { startPaymentRevalidationJob } from './jobs/paymentRevalidationJob.js'
+import { startPaymentProofRetentionJob } from './jobs/paymentProofRetentionJob.js'
 import { startDomainMaintenanceJob } from './jobs/domainMaintenanceJob.js'
 import { startSecurityUserLifecycleJob } from './jobs/securityUserLifecycleJob.js'
 
@@ -48,5 +49,6 @@ startEmailDispatchJob({ client: getSupabaseAdmin() })
 startMembershipRenewalJob({ client: getSupabaseAdmin() })
 startPaymentRecoveryJob({ client: getSupabaseAdmin() })
 startPaymentRevalidationJob({ client: getSupabaseAdmin() })
+startPaymentProofRetentionJob({ client: getSupabaseAdmin() })
 startDomainMaintenanceJob({ client: getSupabaseAdmin() })
 startSecurityUserLifecycleJob({ prisma: getPrisma(), client: getSupabaseAdmin() })

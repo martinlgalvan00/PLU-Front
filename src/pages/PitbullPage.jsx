@@ -7,6 +7,7 @@ import '../styles/layout/design-page-notebook.css'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, FileText } from 'lucide-react'
 import { m } from 'motion/react'
+import { LazyPhoto } from '../components/ui/LazyPhoto.jsx'
 import photoMeetFloor from '../assets/DSC00346-display.jpg'
 import photoMeetFloorAvif from '../assets/DSC00346-display.avif'
 import photoMeetFloorAvif640 from '../assets/DSC00346-display-640.avif'
@@ -38,7 +39,7 @@ import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
 import { buildExternalMapUrl, buildWazeUrl } from '../lib/eventMap.js'
 import { UPCOMING_EVENTS } from '../lib/events.js'
-import { formatRelativeTime, formatShortStamp, isCalendarTodayInArgentina, money } from '../lib/format.js'
+import { formatRelativeTime, formatShortStamp, money } from '../lib/format.js'
 import { getStatusMeta, isRegistrationOpen } from '../lib/status.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { hasCurrentMembership } from '../services/membershipService.js'
@@ -599,9 +600,36 @@ function PitbullTicketsBand({ onOpen, t }) {
 }
 
 function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredToday = 0, t }) {
+  const { reducedMotion } = useMotionConfig()
   const isEmpty = recent.length === 0
   const isLive = capacityStatus === 'live'
   const todayCount = Number(registeredToday) || 0
+  const ListTag = reducedMotion ? 'ol' : m.ol
+  const RowTag = reducedMotion ? 'li' : m.li
+  const listMotion = reducedMotion
+    ? {}
+    : {
+        initial: 'hidden',
+        whileInView: 'visible',
+        viewport: { once: true, amount: 0.2 },
+        variants: staggerContainer,
+      }
+  const rowMotion = reducedMotion ? {} : { variants: staggerItem }
+
+  let metaLabel = null
+  let metaAria = null
+  let metaLive = false
+  if (isLive && todayCount > 0) {
+    metaLabel = t('pages.pitbull.recentRegistrantsLiveMeta', { count: todayCount })
+    metaAria = t('pages.pitbull.recentRegistrantsTodayBadge', { count: todayCount })
+    metaLive = true
+  } else if (isLive) {
+    metaLabel = t('pages.pitbull.recentRegistrantsLiveHint')
+    metaLive = true
+  } else if (todayCount > 0) {
+    metaLabel = t('pages.pitbull.recentRegistrantsToday', { count: todayCount })
+    metaAria = t('pages.pitbull.recentRegistrantsTodayBadge', { count: todayCount })
+  }
 
   return (
     <div
@@ -610,22 +638,15 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredTo
     >
       <div className="pitbull-recent__head">
         <h3 className="pitbull-recent__title">{t('pages.pitbull.recentRegistrantsTitle')}</h3>
-        <div className="pitbull-recent__meta">
-          {todayCount > 0 ? (
-            <p
-              className="pitbull-recent__hint pitbull-recent__hint--today"
-              aria-label={t('pages.pitbull.recentRegistrantsTodayBadge', { count: todayCount })}
-            >
-              {t('pages.pitbull.recentRegistrantsToday', { count: todayCount })}
-            </p>
-          ) : null}
-          {isLive ? (
-            <p className="pitbull-recent__hint pitbull-recent__hint--live">
-              <span className="pitbull-recent__hint-dot" aria-hidden />
-              {t('pages.pitbull.recentRegistrantsLiveHint')}
-            </p>
-          ) : null}
-        </div>
+        {metaLabel ? (
+          <p
+            className={`pitbull-recent__hint${metaLive ? ' pitbull-recent__hint--live' : ' pitbull-recent__hint--today'}`}
+            aria-label={metaAria ?? undefined}
+          >
+            {metaLive ? <span className="pitbull-recent__hint-dot" aria-hidden /> : null}
+            {metaLabel}
+          </p>
+        ) : null}
       </div>
 
       {isEmpty ? (
@@ -638,22 +659,20 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredTo
           </p>
         </div>
       ) : (
-        <ol className="pitbull-recent__list">
+        <ListTag className="pitbull-recent__list" {...listMotion}>
           {recent.map((item, index) => {
             const initial = item.displayName?.trim()?.charAt(0)?.toUpperCase() ?? '?'
-            const isToday = isCalendarTodayInArgentina(item.registeredAt)
             return (
-              <li
+              <RowTag
                 key={`${item.displayName}-${item.registeredAt ?? index}`}
-                className={`pitbull-recent__row${isToday ? ' pitbull-recent__row--today' : ''}`}
+                className="pitbull-recent__row"
+                {...rowMotion}
               >
                 <span className="pitbull-recent__portrait" aria-hidden="true">
                   {item.photoUrl ? (
-                    <img
+                    <LazyPhoto
                       src={item.photoUrl}
                       alt=""
-                      loading="lazy"
-                      decoding="async"
                       onError={(event) => {
                         event.currentTarget.hidden = true
                       }}
@@ -666,19 +685,14 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredTo
                   {item.gym ? <span className="pitbull-recent__gym">{item.gym}</span> : null}
                 </span>
                 <span className="pitbull-recent__when">
-                  {isToday ? (
-                    <span className="pitbull-recent__today-mark">
-                      {t('pages.pitbull.recentRegistrantsTodayMark')}
-                    </span>
-                  ) : null}
                   <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
                     {formatRelativeTime(item.registeredAt, locale)}
                   </time>
                 </span>
-              </li>
+              </RowTag>
             )
           })}
-        </ol>
+        </ListTag>
       )}
     </div>
   )

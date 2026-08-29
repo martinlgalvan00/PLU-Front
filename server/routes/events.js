@@ -2,13 +2,18 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { HttpError } from '../lib/errors.js'
 import { PUBLIC_CACHE_SECONDS, publicReadCache } from '../lib/http.js'
-import { publicPortraitUrl } from '../lib/publicPortraitUrl.js'
 import { PROOF_BUCKET } from '../lib/supabaseAdmin.js'
 import { assertSupabaseResult, requireSupabaseClient } from '../lib/supabaseRpc.js'
 import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
+import {
+  assertEventBankTransferReady,
+  normalizeBankTransferInput,
+  normalizePaymentChannelOverrides,
+} from '../modules/payments/eventPaymentProfile.js'
+import { createSupabasePaymentProfileRepository } from '../modules/payments/supabasePaymentProfileRepository.js'
 
 /** Cuentas temporales de puerta: viven en Prisma, atadas al evento por uuid. */
 const SECURITY_ROLE = 'seguridad_plu_arg'
@@ -177,6 +182,27 @@ export const eventSchema = z
       ),
     liveStreamProvider: z.enum(['youtube', 'instagram', 'twitch']).optional(),
     liveStatus: z.enum(['offline', 'live', 'ended']).optional(),
+    // NULL = heredar matriz de plataforma. Objeto = restringir canales del
+    // evento (solo puede cerrar; no reabre lo que Finanzas cerró).
+    paymentChannelOverrides: z
+      .object({
+        mercado_pago: z.boolean().optional(),
+        bank_transfer: z.boolean().optional(),
+        cash_pitbull: z.boolean().optional(),
+        wise_transfer: z.boolean().optional(),
+      })
+      .nullable()
+      .optional(),
+    bankTransfer: z
+      .object({
+        alias: z.string().trim().max(120).optional(),
+        cbu: z.string().trim().max(30).optional(),
+        holder: z.string().trim().max(160).optional(),
+      })
+      .nullable()
+      .optional(),
+    bankTransferProfileId: z.string().uuid().nullable().optional(),
+    mercadoPagoProfileId: z.string().uuid().nullable().optional(),
   })
   .superRefine((event, context) => {
     if (new Date(event.endsAt) < new Date(event.startsAt)) {
@@ -342,14 +368,13 @@ async function readEvents(client) {
 }
 
 function attachRecentRegistrationPortraits(summary) {
+  // Listados públicos de "inscritos recientes" van sin foto: con tráfico real
+  // cada visitante re-bajaba N retratos (Storage egress). Las iniciales
+  // alcanzan; el spotlight de comunidad limita a 1 foto (budget de egress).
   const recent = Array.isArray(summary?.recent) ? summary.recent : []
   const entries = recent.map((item) => {
-    const { photoPath, photo_path: photoPathSnake, ...entry } = item ?? {}
-    const portraitPath = String(photoPath ?? photoPathSnake ?? '').trim()
-    return {
-      ...entry,
-      photoUrl: publicPortraitUrl(portraitPath),
-    }
+    const { photoPath, photo_path: _photoPathSnake, ...entry } = item ?? {}
+    return { ...entry, photoUrl: null }
   })
 
   return { ...summary, recent: entries }
@@ -434,9 +459,74 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
       try {
         const client = requireSupabaseClient(getSupabaseAdmin())
         const mode = req.validatedBody.id ? 'updated' : 'created'
+        const paymentChannelOverrides = normalizePaymentChannelOverrides(
+          req.validatedBody.paymentChannelOverrides,
+        )
+        let bankTransfer = normalizeBankTransferInput(req.validatedBody.bankTransfer)
+        let bankTransferProfileId =
+          req.validatedBody.bankTransferProfileId === undefined
+            ? undefined
+            : req.validatedBody.bankTransferProfileId
+        const profiles = createSupabasePaymentProfileRepository(client)
+        let linkedProfile = null
+
+        // Si eligieron un perfil del catálogo, manda ese. Si cargaron alias
+        // suelto sin perfil, se crea/reusa uno para poder reutilizarlo después.
+        if (bankTransferProfileId) {
+          linkedProfile = await profiles.findById(bankTransferProfileId)
+          if (!linkedProfile || linkedProfile.kind !== 'bank_transfer') {
+            throw new HttpError(400, 'El perfil de cobro no es válido.')
+          }
+          bankTransfer = {
+            alias: linkedProfile.config.alias,
+            cbu: linkedProfile.config.cbu,
+            holder: linkedProfile.config.holder,
+          }
+        } else if (bankTransfer.alias) {
+          linkedProfile = await profiles.ensureBankTransferProfile({
+            name: `Transferencia · ${req.validatedBody.title || req.validatedBody.slug}`,
+            ...bankTransfer,
+          })
+          bankTransferProfileId = linkedProfile.id
+        } else if (bankTransferProfileId === null) {
+          // Explicitamente sin perfil: limpia el vínculo.
+          bankTransferProfileId = null
+        }
+
+        assertEventBankTransferReady({
+          overrides: paymentChannelOverrides,
+          bankTransfer,
+          bankTransferProfileId: bankTransferProfileId ?? null,
+          profile: linkedProfile,
+          env: process.env,
+        })
+
+        const pEvent = {
+          ...req.validatedBody,
+          paymentChannelOverrides,
+          bankTransfer,
+        }
+        if (bankTransferProfileId !== undefined) {
+          pEvent.bankTransferProfileId = bankTransferProfileId
+        }
+
+        let mercadoPagoProfileId =
+          req.validatedBody.mercadoPagoProfileId === undefined
+            ? undefined
+            : req.validatedBody.mercadoPagoProfileId
+        if (mercadoPagoProfileId) {
+          const mpProfile = await profiles.findById(mercadoPagoProfileId)
+          if (!mpProfile || mpProfile.kind !== 'mercado_pago' || !mpProfile.active) {
+            throw new HttpError(400, 'El perfil de Mercado Pago no es válido.')
+          }
+        }
+        if (mercadoPagoProfileId !== undefined) {
+          pEvent.mercadoPagoProfileId = mercadoPagoProfileId
+        }
+
         const savedEvent = assertSupabaseResult(
           await client.rpc('staff_save_event', {
-            p_event: req.validatedBody,
+            p_event: pEvent,
             p_actor: `${req.auth.user.id}:${req.auth.user.email}`,
           }),
           'No se pudo guardar el evento.',

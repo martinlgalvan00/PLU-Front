@@ -241,6 +241,7 @@ export async function recoverPaymentOperations(options = {}) {
     mercadoPago,
     notifyPaymentApplied,
     auditTrail,
+    fetchPayment,
     eventLimit = 20,
     reconciliationLimit = 20,
     providerSweepLimit = 20,
@@ -270,6 +271,7 @@ export async function recoverPaymentOperations(options = {}) {
       processClaimedPaymentEvent(event, {
         repository,
         mercadoPago,
+        fetchPayment,
         notifyPaymentApplied,
         auditTrail,
       }),

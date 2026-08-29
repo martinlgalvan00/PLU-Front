@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   AlertTriangle,
+  ArrowLeft,
   CalendarDays,
   CheckCircle2,
   Eye,
@@ -33,6 +34,7 @@ import {
 } from '../../services/eventAdminService.js'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
+import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
 import AdminTicketTypesEditor from './AdminTicketTypesEditor.jsx'
 
@@ -49,6 +51,10 @@ function updatePricingField(draft, field, value) {
 
 function draftSignature(draft) {
   return JSON.stringify(draft ?? {})
+}
+
+export function getAdminEventDraftSignature(draft) {
+  return draftSignature(draft)
 }
 
 const SALES_FIELD_KEYS = new Set([
@@ -220,9 +226,21 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
 export default function AdminEventEditor({
   canEdit,
   draft,
+  /** Sin portal ni shell propio: el formulario vive dentro de la consola. */
+  embedded = false,
+  /**
+   * Acordeón de la consola: una sola sección visible, sin barra embed ni tabs.
+   * El padre fuerza la pestaña con `forcedTab` y mantiene el draft al cambiar.
+   */
+  accordion = false,
+  /** Firma del draft al abrir el acordeón; si viene, define dirty sin remount. */
+  baselineSignature = null,
+  forcedTab = null,
   initialFocus = 'details',
   onCancel,
   onChange,
+  /** La consola registra Escape/backdrop para pedir el mismo cierre con dirty-check. */
+  onRegisterClose = null,
   onSubmit,
   sourceEvent = null,
 }) {
@@ -232,6 +250,21 @@ export default function AdminEventEditor({
   const [fieldErrors, setFieldErrors] = useState({})
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [activeTab, setActiveTab] = useState('basics')
+  const [bankProfiles, setBankProfiles] = useState([])
+  const [bankProfilesLoading, setBankProfilesLoading] = useState(false)
+  const [mpProfiles, setMpProfiles] = useState([])
+  const [mpProfilesLoading, setMpProfilesLoading] = useState(false)
+  const [mpSecretsKeyConfigured, setMpSecretsKeyConfigured] = useState(true)
+  const [mpCreateOpen, setMpCreateOpen] = useState(false)
+  const [mpCreating, setMpCreating] = useState(false)
+  const [mpCreateError, setMpCreateError] = useState(null)
+  const [mpDraft, setMpDraft] = useState({
+    name: '',
+    publicKey: '',
+    accessToken: '',
+    webhookSecret: '',
+    collectorId: '',
+  })
   const dialogTitle = draft.id
     ? t('admin.eventEditor.editTitle')
     : t('admin.eventEditor.createTitle')
@@ -243,9 +276,119 @@ export default function AdminEventEditor({
   const activePanelRef = useRef(null)
   const formBodyRef = useRef(null)
   const previousFocusRef = useRef(null)
-  const initialDraftSignatureRef = useRef(draftSignature(draft))
+  const initialDraftSignatureRef = useRef(baselineSignature ?? draftSignature(draft))
   const dirty = draftSignature(draft) !== initialDraftSignatureRef.current
   onCancelRef.current = onCancel
+
+  useEffect(() => {
+    if (baselineSignature != null) {
+      initialDraftSignatureRef.current = baselineSignature
+    }
+  }, [baselineSignature])
+
+  useEffect(() => {
+    let active = true
+    setBankProfilesLoading(true)
+    setMpProfilesLoading(true)
+    Promise.all([
+      fetchPaymentProfiles({ kind: 'bank_transfer' }),
+      fetchPaymentProfiles({ kind: 'mercado_pago' }),
+    ])
+      .then(([bank, mp]) => {
+        if (!active) return
+        setBankProfiles(bank.profiles)
+        setMpProfiles(mp.profiles)
+        setMpSecretsKeyConfigured(mp.secretsKeyConfigured !== false)
+      })
+      .catch(() => {
+        if (!active) return
+        setBankProfiles([])
+        setMpProfiles([])
+      })
+      .finally(() => {
+        if (!active) return
+        setBankProfilesLoading(false)
+        setMpProfilesLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const selectedBankProfile = useMemo(
+    () => bankProfiles.find((profile) => profile.id === draft.bankTransferProfileId) ?? null,
+    [bankProfiles, draft.bankTransferProfileId],
+  )
+
+  const selectedMpProfile = useMemo(
+    () => mpProfiles.find((profile) => profile.id === draft.mercadoPagoProfileId) ?? null,
+    [mpProfiles, draft.mercadoPagoProfileId],
+  )
+
+  function applyBankProfile(profileId) {
+    if (!profileId) {
+      patchDraft({
+        ...draft,
+        bankTransferProfileId: null,
+      })
+      return
+    }
+    const profile = bankProfiles.find((item) => item.id === profileId)
+    if (!profile) {
+      patchDraft({ ...draft, bankTransferProfileId: profileId })
+      return
+    }
+    patchDraft({
+      ...draft,
+      bankTransferProfileId: profile.id,
+      bankTransfer: {
+        alias: profile.config?.alias ?? '',
+        cbu: profile.config?.cbu ?? '',
+        holder: profile.config?.holder ?? '',
+      },
+    })
+  }
+
+  function applyMpProfile(profileId) {
+    patchDraft({
+      ...draft,
+      mercadoPagoProfileId: profileId || null,
+    })
+  }
+
+  async function handleCreateMpProfile() {
+    setMpCreateError(null)
+    setMpCreating(true)
+    try {
+      const profile = await createPaymentProfile({
+        name: mpDraft.name.trim() || `Mercado Pago · ${draft.title || draft.slug || 'evento'}`,
+        kind: 'mercado_pago',
+        config: {
+          publicKey: mpDraft.publicKey.trim(),
+          collectorId: mpDraft.collectorId.trim(),
+        },
+        secrets: {
+          accessToken: mpDraft.accessToken.trim(),
+          webhookSecret: mpDraft.webhookSecret.trim(),
+        },
+      })
+      if (!profile?.id) throw new Error('No se pudo crear el perfil.')
+      setMpProfiles((current) => [profile, ...current.filter((item) => item.id !== profile.id)])
+      patchDraft({ ...draft, mercadoPagoProfileId: profile.id })
+      setMpCreateOpen(false)
+      setMpDraft({
+        name: '',
+        publicKey: '',
+        accessToken: '',
+        webhookSecret: '',
+        collectorId: '',
+      })
+    } catch (error) {
+      setMpCreateError(error?.message ?? t('admin.eventEditor.mercadoPagoSecretsKeyMissing'))
+    } finally {
+      setMpCreating(false)
+    }
+  }
 
   // `agotado` lo pone y lo saca la base según el cupo; solo se ofrece como
   // opción cuando el evento ya está en ese estado (mismo criterio que el
@@ -305,11 +448,13 @@ export default function AdminEventEditor({
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
         event.preventDefault()
+        event.stopPropagation()
         requestCloseRef.current?.()
         return
       }
 
-      if (event.key !== 'Tab' || !panelRef.current) return
+      // El trap de foco lo sostiene la consola cuando el editor está embebido.
+      if (embedded || event.key !== 'Tab' || !panelRef.current) return
       const focusable = [
         ...panelRef.current.querySelectorAll(
           'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
@@ -330,7 +475,7 @@ export default function AdminEventEditor({
 
     previousFocusRef.current = document.activeElement
     const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    if (!embedded) document.body.style.overflow = 'hidden'
     document.addEventListener('keydown', handleKeyDown)
     const focusFrame = requestAnimationFrame(() => {
       const preferredTarget =
@@ -342,11 +487,17 @@ export default function AdminEventEditor({
 
     return () => {
       cancelAnimationFrame(focusFrame)
-      document.body.style.overflow = previousOverflow
+      if (!embedded) document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
-      previousFocusRef.current?.focus?.()
+      if (!embedded) previousFocusRef.current?.focus?.()
     }
-  }, [draft.id, initialFocus])
+  }, [draft.id, embedded, initialFocus])
+
+  useEffect(() => {
+    if (!embedded || !onRegisterClose) return undefined
+    onRegisterClose(() => requestCloseRef.current?.())
+    return () => onRegisterClose(null)
+  }, [embedded, onRegisterClose])
 
   useEffect(() => {
     if (!dirty) return undefined
@@ -361,15 +512,30 @@ export default function AdminEventEditor({
   }, [dirty])
 
   useEffect(() => {
-    if (initialFocus !== 'tickets') return
-    setActiveTab('sales')
-    const frame = requestAnimationFrame(() => {
-      panelRef.current
-        ?.querySelector('#event-section-tickets')
-        ?.scrollIntoView({ behavior: 'auto', block: 'start' })
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [initialFocus])
+    if (forcedTab === 'basics' || forcedTab === 'sales' || forcedTab === 'visibility') {
+      setActiveTab(forcedTab)
+      formBodyRef.current?.scrollTo?.({ top: 0, behavior: 'auto' })
+      return undefined
+    }
+    if (initialFocus === 'tickets' || initialFocus === 'sales') {
+      setActiveTab('sales')
+      const frame = requestAnimationFrame(() => {
+        panelRef.current
+          ?.querySelector('#event-section-tickets')
+          ?.scrollIntoView({ behavior: 'auto', block: 'start' })
+      })
+      return () => cancelAnimationFrame(frame)
+    }
+    if (initialFocus === 'basics' || initialFocus === 'details') {
+      setActiveTab('basics')
+      return undefined
+    }
+    if (initialFocus === 'visibility') {
+      setActiveTab('visibility')
+      return undefined
+    }
+    return undefined
+  }, [forcedTab, initialFocus])
 
   function patchDraft(next) {
     onChange(next)
@@ -458,94 +624,133 @@ export default function AdminEventEditor({
   const registeredCount = sourceEvent?.registered ?? 0
   const slotsTotal = Math.max(0, Number(draft.slots) || 0)
   const slotsRemaining = Math.max(slotsTotal - registeredCount, 0)
+  const fillPercent = slotsTotal > 0 ? Math.round((registeredCount / slotsTotal) * 100) : 0
   const activeTabHasError = tabsWithErrors.has(activeTab)
   const saveStateLabel = syncing
     ? t('admin.eventEditor.saving')
     : dirty
       ? t('admin.eventEditor.unsavedChanges')
       : t('admin.eventEditor.noPendingChanges')
+  const saveStateShortLabel = syncing
+    ? t('admin.eventEditor.savingShort')
+    : dirty
+      ? t('admin.eventEditor.unsavedShort')
+      : t('admin.eventEditor.readyShort')
   const saveStateModifier = syncing ? 'is-syncing' : dirty ? 'is-dirty' : 'is-ready'
 
-  return createPortal(
-    <div className="admin-event-editor-modal">
-      <button
-        type="button"
-        className="admin-event-editor-modal__backdrop"
-        aria-label={t('admin.eventEditor.close')}
-        onClick={requestClose}
-      />
-      <div
-        ref={panelRef}
-        className="admin-event-editor-modal__panel"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="admin-event-editor-title"
-        aria-describedby="admin-event-editor-lead"
-        tabIndex={-1}
+  const editorTree = (
+    <div
+      ref={embedded ? panelRef : undefined}
+      className={`admin-event-editor${draft.id ? ' admin-event-editor--editing' : ' admin-event-editor--creating'}${
+        embedded ? ' admin-event-editor--embedded' : ''
+      }${accordion ? ' admin-event-editor--accordion' : ''}`}
+    >
+      <form
+        ref={formRef}
+        className="admin-event-form admin-event-form--editor"
+        onSubmit={handleFormSubmit}
+        noValidate
       >
-        <div
-          className={`admin-event-editor${draft.id ? ' admin-event-editor--editing' : ' admin-event-editor--creating'}`}
-        >
-          <form
-            ref={formRef}
-            className="admin-event-form admin-event-form--editor"
-            onSubmit={handleFormSubmit}
-            noValidate
-          >
-            <div className="admin-event-form__head">
-              <div className="admin-event-form__head-copy">
-                <span className="admin-event-form__mode">
-                  {draft.id ? t('admin.eventEditor.editMode') : t('admin.eventEditor.createMode')}
+        {embedded && !accordion ? (
+          <div className="admin-event-editor__embed-bar">
+            <button
+              type="button"
+              className="admin-event-editor__embed-back"
+              onClick={requestClose}
+              disabled={syncing}
+            >
+              <ArrowLeft size={14} aria-hidden />
+              {t('admin.eventConsole.backToConsole')}
+            </button>
+            <span className="admin-event-form__mode">{t('admin.eventEditor.editMode')}</span>
+          </div>
+        ) : null}
+        {!embedded ? (
+          <div className="admin-event-form__head">
+            <div className="admin-event-form__head-copy">
+              <span className="admin-event-form__mode">
+                {draft.id ? t('admin.eventEditor.editMode') : t('admin.eventEditor.createMode')}
+              </span>
+              <h3 id="admin-event-editor-title">{headingTitle}</h3>
+              <p id="admin-event-editor-lead" className="admin-event-form__lead">
+                {draft.id ? dialogTitle : t('admin.eventEditor.lead')}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="admin-event-form__close"
+              onClick={requestClose}
+              aria-label={t('admin.eventEditor.close')}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ) : null}
+
+        {/* Barra fija: tabs + estado de guardado. En acordeón la sección la
+            elige la consola; acá solo queda el estado de sync. */}
+        {accordion ? (
+          <div className="admin-event-editor__toolbar admin-event-editor__toolbar--accordion">
+            <div
+              className={`admin-event-form__save-state admin-event-form__save-state--toolbar ${saveStateModifier}`}
+              aria-live="polite"
+              aria-label={saveStateLabel}
+              title={t('admin.eventEditor.backendHint')}
+            >
+              <span className={saveStateModifier} aria-hidden />
+              <strong>
+                <span className="admin-event-form__save-label admin-event-form__save-label--full">
+                  {saveStateLabel}
                 </span>
-                <h3 id="admin-event-editor-title">{headingTitle}</h3>
-                <p id="admin-event-editor-lead" className="admin-event-form__lead">
-                  {draft.id ? dialogTitle : t('admin.eventEditor.lead')}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="admin-event-form__close"
-                onClick={requestClose}
-                aria-label={t('admin.eventEditor.close')}
-              >
-                <X size={16} />
-              </button>
+                <span className="admin-event-form__save-label admin-event-form__save-label--short" aria-hidden>
+                  {saveStateShortLabel}
+                </span>
+              </strong>
             </div>
-
-            {/* Barra fija: tabs + estado de guardado, visibles siempre sin
-                importar el scroll ni el tab activo (antes el indicador vivía
-                solo al pie del formulario, después de cuatro secciones). */}
-            <div className="admin-event-editor__toolbar">
-              <DetailTabs
-                tabs={tabs}
-                activeTab={activeTab}
-                onChange={handleTabChange}
-                variant="editorial"
-              />
-              <div
-                className={`admin-event-form__save-state admin-event-form__save-state--toolbar ${saveStateModifier}`}
-                aria-live="polite"
-                title={t('admin.eventEditor.backendHint')}
-              >
-                <span className={saveStateModifier} aria-hidden />
-                <strong>{saveStateLabel}</strong>
-              </div>
+          </div>
+        ) : (
+          <div className="admin-event-editor__toolbar">
+            <DetailTabs
+              tabs={tabs}
+              activeTab={activeTab}
+              onChange={handleTabChange}
+              variant="glass"
+            />
+            <div
+              className={`admin-event-form__save-state admin-event-form__save-state--toolbar ${saveStateModifier}`}
+              aria-live="polite"
+              aria-label={saveStateLabel}
+              title={t('admin.eventEditor.backendHint')}
+            >
+              <span className={saveStateModifier} aria-hidden />
+              <strong>
+                <span className="admin-event-form__save-label admin-event-form__save-label--full">
+                  {saveStateLabel}
+                </span>
+                <span className="admin-event-form__save-label admin-event-form__save-label--short" aria-hidden>
+                  {saveStateShortLabel}
+                </span>
+              </strong>
             </div>
+          </div>
+        )}
 
-            <div ref={formBodyRef} className="admin-event-form__body">
-              <details className="admin-event-form__mobile-preview">
-                <summary>
-                  <Eye size={14} aria-hidden />
-                  {t('admin.eventEditor.openPreview')}
-                </summary>
-                <AdminEventLivePreview embedded draft={draft} sourceEvent={sourceEvent} />
-              </details>
+        <div ref={formBodyRef} className="admin-event-form__body">
+          {!accordion ? (
+            <details className="admin-event-form__mobile-preview">
+              <summary>
+                <Eye size={14} aria-hidden />
+                {t('admin.eventEditor.openPreview')}
+              </summary>
+              <AdminEventLivePreview embedded draft={draft} sourceEvent={sourceEvent} />
+            </details>
+          ) : null}
 
-              {activeTabHasError ? (
-                <p className="admin-event-form__alert" role="alert">
-                  {t('admin.eventEditor.validationSummary')}
-                </p>
-              ) : null}
+          {activeTabHasError ? (
+            <p className="admin-event-form__alert" role="alert">
+              {t('admin.eventEditor.validationSummary')}
+            </p>
+          ) : null}
 
               {activeTab === 'basics' && (
                 <section
@@ -679,7 +884,7 @@ export default function AdminEventEditor({
                 <section
                   ref={activePanelRef}
                   id="event-section-sales"
-                  className="admin-event-form__section"
+                  className="admin-event-form__section admin-event-form__section--sales"
                   role="tabpanel"
                   aria-label={t('admin.eventEditor.navSales')}
                   tabIndex={-1}
@@ -689,7 +894,7 @@ export default function AdminEventEditor({
                     <p>{t('admin.eventEditor.sectionSalesLead')}</p>
                   </header>
 
-                  <div className="admin-event-form__lane">
+                  <div className="admin-event-form__lane admin-event-form__lane--athletes">
                     <header className="admin-event-form__lane-head">
                       <h5 className="admin-event-form__lane-title">
                         <Users size={13} aria-hidden />
@@ -718,16 +923,38 @@ export default function AdminEventEditor({
                         />
                       </FormField>
 
-                      <div className="admin-event-form__occupancy">
-                        <CapacityBar
-                          compact
-                          current={registeredCount}
-                          total={slotsTotal}
-                          label={t('admin.eventEditor.slotsShortLabel')}
-                        />
-                        <small>
-                          {t('admin.eventEditor.slotsRemaining', { count: slotsRemaining })}
-                        </small>
+                      <div
+                        className="admin-event-form__occupancy"
+                        role="status"
+                        aria-label={t('admin.eventEditor.occupancyAria', {
+                          registered: registeredCount,
+                          total: slotsTotal,
+                          percent: fillPercent,
+                        })}
+                      >
+                        <div className="admin-event-form__occupancy-copy">
+                          <span className="admin-event-form__occupancy-value">
+                            {t('admin.eventEditor.occupancyPulse', {
+                              registered: registeredCount,
+                              total: slotsTotal,
+                            })}
+                          </span>
+                          <span className="admin-event-form__occupancy-sep" aria-hidden="true">
+                            ·
+                          </span>
+                          <span className="admin-event-form__occupancy-pct">
+                            {t('admin.eventEditor.occupancyPercent', { percent: fillPercent })}
+                          </span>
+                          <span className="admin-event-form__occupancy-hint">
+                            {t('admin.eventEditor.slotsRemaining', { count: slotsRemaining })}
+                          </span>
+                        </div>
+                        <div className="admin-event-form__occupancy-meter" aria-hidden="true">
+                          <span
+                            className="admin-event-form__occupancy-meter-fill"
+                            style={{ width: `${Math.min(100, Math.max(0, fillPercent))}%` }}
+                          />
+                        </div>
                       </div>
 
                       <FormField
@@ -859,6 +1086,350 @@ export default function AdminEventEditor({
                       <p className="admin-event-form__pricing-note">
                         {t('admin.eventEditor.pricingCatalogHint')}
                       </p>
+                    </div>
+
+                    <div className="admin-event-form__payment-profile">
+                      <header className="admin-event-form__lane-head">
+                        <h5 className="admin-event-form__lane-title">
+                          {t('admin.eventEditor.paymentProfileTitle')}
+                        </h5>
+                        <p>{t('admin.eventEditor.paymentProfileHint')}</p>
+                      </header>
+
+                      <label className="admin-event-form__toggle">
+                        <input
+                          checked={draft.paymentChannelOverrides != null}
+                          className="admin-event-form__toggle-input"
+                          type="checkbox"
+                          onChange={(event) =>
+                            patchDraft({
+                              ...draft,
+                              paymentChannelOverrides: event.target.checked
+                                ? {
+                                    mercado_pago: true,
+                                    bank_transfer: true,
+                                    cash_pitbull: true,
+                                    wise_transfer: true,
+                                  }
+                                : null,
+                            })
+                          }
+                          disabled={!canEdit}
+                        />
+                        <span className="admin-event-form__toggle-ui" aria-hidden />
+                        <span className="admin-event-form__toggle-copy">
+                          <strong>{t('admin.eventEditor.paymentProfileCustomize')}</strong>
+                          <small>{t('admin.eventEditor.paymentProfileCustomizeHint')}</small>
+                        </span>
+                      </label>
+
+                      {draft.paymentChannelOverrides != null ? (
+                        <div className="admin-event-form__channel-grid" role="group">
+                          {[
+                            ['mercado_pago', 'paymentChannelMercadoPago'],
+                            ['bank_transfer', 'paymentChannelBankTransfer'],
+                            ['cash_pitbull', 'paymentChannelCashPitbull'],
+                            ['wise_transfer', 'paymentChannelWise'],
+                          ].map(([channel, labelKey]) => (
+                            <label className="admin-event-form__toggle" key={channel}>
+                              <input
+                                checked={draft.paymentChannelOverrides?.[channel] !== false}
+                                className="admin-event-form__toggle-input"
+                                type="checkbox"
+                                onChange={(changeEvent) =>
+                                  patchDraft({
+                                    ...draft,
+                                    paymentChannelOverrides: {
+                                      ...draft.paymentChannelOverrides,
+                                      [channel]: changeEvent.target.checked,
+                                    },
+                                  })
+                                }
+                                disabled={!canEdit}
+                              />
+                              <span className="admin-event-form__toggle-ui" aria-hidden />
+                              <span className="admin-event-form__toggle-copy">
+                                <strong>{t(`admin.eventEditor.${labelKey}`)}</strong>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {draft.paymentChannelOverrides == null ||
+                      draft.paymentChannelOverrides.mercado_pago !== false ? (
+                        <div className="admin-event-form__bank-transfer">
+                          <header className="admin-event-form__lane-head">
+                            <h5 className="admin-event-form__lane-title">
+                              {t('admin.eventEditor.mercadoPagoProfileTitle')}
+                            </h5>
+                            <p>{t('admin.eventEditor.mercadoPagoProfileHint')}</p>
+                          </header>
+
+                          {!mpSecretsKeyConfigured ? (
+                            <p className="admin-event-form__pricing-note" role="status">
+                              {t('admin.eventEditor.mercadoPagoSecretsKeyMissing')}
+                            </p>
+                          ) : null}
+
+                          <FormField
+                            htmlFor="event-mp-profile"
+                            label={t('admin.eventEditor.mercadoPagoProfile')}
+                            wide
+                          >
+                            <select
+                              id="event-mp-profile"
+                              name="mercadoPagoProfileId"
+                              value={draft.mercadoPagoProfileId ?? ''}
+                              onChange={(changeEvent) =>
+                                applyMpProfile(changeEvent.target.value || null)
+                              }
+                              disabled={!canEdit || mpProfilesLoading}
+                            >
+                              <option value="">
+                                {t('admin.eventEditor.mercadoPagoProfileNone')}
+                              </option>
+                              {mpProfiles.map((profile) => (
+                                <option key={profile.id} value={profile.id}>
+                                  {profile.name}
+                                  {profile.config?.publicKey
+                                    ? ` · ${String(profile.config.publicKey).slice(0, 12)}…`
+                                    : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </FormField>
+
+                          {selectedMpProfile ? (
+                            <p className="admin-event-form__pricing-note" role="status">
+                              {t('admin.eventEditor.mercadoPagoProfileSelected', {
+                                name: selectedMpProfile.name,
+                                publicKey: selectedMpProfile.config?.publicKey
+                                  ? `${String(selectedMpProfile.config.publicKey).slice(0, 16)}…`
+                                  : '—',
+                              })}
+                            </p>
+                          ) : null}
+
+                          {canEdit && mpSecretsKeyConfigured ? (
+                            <div className="admin-event-form__grid">
+                              <button
+                                className="button button--ghost"
+                                type="button"
+                                onClick={() => setMpCreateOpen((open) => !open)}
+                              >
+                                {t('admin.eventEditor.mercadoPagoProfileCreate')}
+                              </button>
+                            </div>
+                          ) : null}
+
+                          {mpCreateOpen ? (
+                            <div className="admin-event-form__grid">
+                              <FormField
+                                htmlFor="event-mp-name"
+                                label={t('admin.eventEditor.mercadoPagoProfileName')}
+                              >
+                                <input
+                                  id="event-mp-name"
+                                  value={mpDraft.name}
+                                  onChange={(changeEvent) =>
+                                    setMpDraft({ ...mpDraft, name: changeEvent.target.value })
+                                  }
+                                />
+                              </FormField>
+                              <FormField
+                                htmlFor="event-mp-public-key"
+                                label={t('admin.eventEditor.mercadoPagoPublicKey')}
+                              >
+                                <input
+                                  id="event-mp-public-key"
+                                  value={mpDraft.publicKey}
+                                  onChange={(changeEvent) =>
+                                    setMpDraft({ ...mpDraft, publicKey: changeEvent.target.value })
+                                  }
+                                  autoComplete="off"
+                                />
+                              </FormField>
+                              <FormField
+                                htmlFor="event-mp-access-token"
+                                label={t('admin.eventEditor.mercadoPagoAccessToken')}
+                              >
+                                <input
+                                  id="event-mp-access-token"
+                                  type="password"
+                                  value={mpDraft.accessToken}
+                                  onChange={(changeEvent) =>
+                                    setMpDraft({
+                                      ...mpDraft,
+                                      accessToken: changeEvent.target.value,
+                                    })
+                                  }
+                                  autoComplete="new-password"
+                                />
+                              </FormField>
+                              <FormField
+                                htmlFor="event-mp-webhook-secret"
+                                label={t('admin.eventEditor.mercadoPagoWebhookSecret')}
+                              >
+                                <input
+                                  id="event-mp-webhook-secret"
+                                  type="password"
+                                  value={mpDraft.webhookSecret}
+                                  onChange={(changeEvent) =>
+                                    setMpDraft({
+                                      ...mpDraft,
+                                      webhookSecret: changeEvent.target.value,
+                                    })
+                                  }
+                                  autoComplete="new-password"
+                                />
+                              </FormField>
+                              {mpCreateError ? (
+                                <p className="admin-event-form__pricing-note" role="alert">
+                                  {mpCreateError}
+                                </p>
+                              ) : null}
+                              <button
+                                className="button button--primary"
+                                type="button"
+                                disabled={mpCreating}
+                                onClick={() => void handleCreateMpProfile()}
+                              >
+                                {t('admin.eventEditor.mercadoPagoProfileCreate')}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {draft.paymentChannelOverrides == null ||
+                      draft.paymentChannelOverrides.bank_transfer !== false ? (
+                        <div className="admin-event-form__bank-transfer">
+                          <header className="admin-event-form__lane-head">
+                            <h5 className="admin-event-form__lane-title">
+                              {t('admin.eventEditor.bankTransferTitle')}
+                            </h5>
+                            <p>{t('admin.eventEditor.bankTransferHint')}</p>
+                          </header>
+
+                          <FormField
+                            htmlFor="event-bank-profile"
+                            label={t('admin.eventEditor.bankTransferProfile')}
+                            wide
+                          >
+                            <select
+                              id="event-bank-profile"
+                              name="bankTransferProfileId"
+                              value={draft.bankTransferProfileId ?? ''}
+                              onChange={(changeEvent) =>
+                                applyBankProfile(changeEvent.target.value || null)
+                              }
+                              disabled={!canEdit || bankProfilesLoading}
+                            >
+                              <option value="">
+                                {t('admin.eventEditor.bankTransferProfileNone')}
+                              </option>
+                              {bankProfiles.map((profile) => (
+                                <option key={profile.id} value={profile.id}>
+                                  {profile.name}
+                                  {profile.config?.alias ? ` · ${profile.config.alias}` : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <small className="admin-event-form__field-hint">
+                              {t('admin.eventEditor.bankTransferProfileHint')}
+                            </small>
+                          </FormField>
+
+                          {selectedBankProfile ? (
+                            <p className="admin-event-form__pricing-note" role="status">
+                              {t('admin.eventEditor.bankTransferProfileSelected', {
+                                name: selectedBankProfile.name,
+                                alias: selectedBankProfile.config?.alias || '—',
+                              })}
+                            </p>
+                          ) : null}
+
+                          <div className="admin-event-form__grid">
+                            <FormField
+                              htmlFor="event-bank-alias"
+                              label={t('admin.eventEditor.bankTransferAlias')}
+                            >
+                              <input
+                                id="event-bank-alias"
+                                name="bankTransfer.alias"
+                                type="text"
+                                maxLength={120}
+                                value={draft.bankTransfer?.alias ?? ''}
+                                onChange={(changeEvent) =>
+                                  patchDraft({
+                                    ...draft,
+                                    bankTransferProfileId: null,
+                                    bankTransfer: {
+                                      ...(draft.bankTransfer ?? {}),
+                                      alias: changeEvent.target.value,
+                                    },
+                                  })
+                                }
+                                disabled={!canEdit}
+                                placeholder={t(
+                                  'admin.eventEditor.bankTransferAliasPlaceholder',
+                                )}
+                              />
+                            </FormField>
+                            <FormField
+                              htmlFor="event-bank-cbu"
+                              label={t('admin.eventEditor.bankTransferCbu')}
+                            >
+                              <input
+                                id="event-bank-cbu"
+                                name="bankTransfer.cbu"
+                                type="text"
+                                maxLength={30}
+                                value={draft.bankTransfer?.cbu ?? ''}
+                                onChange={(changeEvent) =>
+                                  patchDraft({
+                                    ...draft,
+                                    bankTransferProfileId: null,
+                                    bankTransfer: {
+                                      ...(draft.bankTransfer ?? {}),
+                                      cbu: changeEvent.target.value,
+                                    },
+                                  })
+                                }
+                                disabled={!canEdit}
+                              />
+                            </FormField>
+                            <FormField
+                              htmlFor="event-bank-holder"
+                              label={t('admin.eventEditor.bankTransferHolder')}
+                              wide
+                            >
+                              <input
+                                id="event-bank-holder"
+                                name="bankTransfer.holder"
+                                type="text"
+                                maxLength={160}
+                                value={draft.bankTransfer?.holder ?? ''}
+                                onChange={(changeEvent) =>
+                                  patchDraft({
+                                    ...draft,
+                                    bankTransferProfileId: null,
+                                    bankTransfer: {
+                                      ...(draft.bankTransfer ?? {}),
+                                      holder: changeEvent.target.value,
+                                    },
+                                  })
+                                }
+                                disabled={!canEdit}
+                              />
+                            </FormField>
+                          </div>
+                          <p className="admin-event-form__pricing-note">
+                            {t('admin.eventEditor.bankTransferSaveCreatesProfile')}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -1206,7 +1777,7 @@ export default function AdminEventEditor({
             <div className="admin-event-form__actions">
               <div className="admin-event-form__action-buttons">
                 <Button type="button" variant="outline" onClick={requestClose} disabled={syncing}>
-                  {t('common.cancel')}
+                  {accordion ? t('admin.eventConsole.closeSection') : t('common.cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -1226,8 +1797,30 @@ export default function AdminEventEditor({
             </div>
           </form>
 
-          <AdminEventLivePreview draft={draft} live sourceEvent={sourceEvent} />
+          {embedded ? null : <AdminEventLivePreview draft={draft} live sourceEvent={sourceEvent} />}
         </div>
+  )
+
+  if (embedded) return editorTree
+
+  return createPortal(
+    <div className="admin-event-editor-modal">
+      <button
+        type="button"
+        className="admin-event-editor-modal__backdrop"
+        aria-label={t('admin.eventEditor.close')}
+        onClick={requestClose}
+      />
+      <div
+        ref={panelRef}
+        className="admin-event-editor-modal__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-event-editor-title"
+        aria-describedby="admin-event-editor-lead"
+        tabIndex={-1}
+      >
+        {editorTree}
       </div>
     </div>,
     document.body,

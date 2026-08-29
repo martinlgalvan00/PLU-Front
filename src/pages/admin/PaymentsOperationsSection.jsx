@@ -217,10 +217,6 @@ export default function PaymentsOperationsSection({
   }, [])
 
   const ticketsPending = pendingTicketOrders?.length ?? 0
-  const ticketsWithProof = useMemo(
-    () => (pendingTicketOrders ?? []).filter((order) => Boolean(order.paymentProofPath)).length,
-    [pendingTicketOrders],
-  )
 
   const summary = data?.summary ?? {}
   const health = summary.health ?? null
@@ -345,10 +341,44 @@ export default function PaymentsOperationsSection({
   const blockers = Array.isArray(data?.blockers) ? data.blockers : []
   const showHealthCallout = Boolean(data) && (healthBreakdown.length > 0 || blockers.length > 0)
 
+  const athletesPending =
+    athleteSummary.loading && athleteSummary.pending == null ? null : (athleteSummary.pending ?? 0)
+  const diagnosticsSignal = failedCount + pendingReconciliations + (healthIssues || 0)
+  const showDiagnosticsBadge =
+    Boolean(data) && (failedCount > 0 || pendingReconciliations > 0 || !isLedgerHealthy)
+
   const tabOptions = [
-    ['athletes', t('admin.paymentOperations.tabAthletes')],
-    ['tickets', t('admin.paymentOperations.tabTickets')],
-    ['ledger', t('admin.paymentOperations.tabLedger')],
+    [
+      'athletes',
+      t('admin.paymentOperations.tabAthletes'),
+      undefined,
+      athletesPending == null
+        ? null
+        : {
+            value: athletesPending,
+            tone: athletesPending > 0 ? 'warning' : null,
+          },
+    ],
+    [
+      'tickets',
+      t('admin.paymentOperations.tabTickets'),
+      undefined,
+      {
+        value: ticketsPending,
+        tone: ticketsPending > 0 ? 'warning' : null,
+      },
+    ],
+    [
+      'ledger',
+      t('admin.paymentOperations.tabLedger'),
+      undefined,
+      showDiagnosticsBadge
+        ? {
+            value: diagnosticsSignal,
+            tone: 'danger',
+          }
+        : null,
+    ],
   ]
 
   return (
@@ -547,96 +577,55 @@ export default function PaymentsOperationsSection({
       ) : null}
 
       <div className="admin-list-section__chrome admin-payments-ops-chrome">
-        <header className="admin-list-section__header admin-list-shell__header admin-payments-ops-top">
-          <div className="admin-list-shell__intro">
-            <span className="admin-list-shell__eyebrow">{t('admin.paymentOperations.eyebrow')}</span>
-            <h1 className="admin-list-shell__title">{t('admin.paymentOperations.title')}</h1>
-            <p className="admin-list-shell__subtitle">{t('admin.paymentOperations.subtitle')}</p>
-          </div>
-          <div className="admin-list-shell__actions admin-payments-ops-top__actions">
-            <button
-              type="button"
-              className="btn btn--ghost btn--small"
-              onClick={() => void refreshAll()}
-              disabled={loading || recovering}
-            >
-              <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-            </button>
-          </div>
-        </header>
-
-        <div className="admin-payments-ops-strip" aria-label={t('admin.paymentOperations.opsStripAria')}>
-          <div className="admin-payments-ops-strip__kpis">
-            <button
-              type="button"
-              className={`admin-payments-ops-strip__kpi${
-                (athleteSummary.pending ?? 0) > 0 ? ' admin-payments-ops-strip__kpi--warning' : ''
-              }`}
-              onClick={() => setActiveTab('athletes')}
-            >
-              <div className="admin-payments-ops-strip__kpi-body">
-                <span className="admin-payments-ops-strip__kpi-value">
-                  {athleteSummary.loading && athleteSummary.pending == null
-                    ? '—'
-                    : (athleteSummary.pending ?? 0)}
+        <div className="admin-payments-ops-masthead">
+          <header className="admin-list-section__header admin-list-shell__header admin-payments-ops-top">
+            <div className="admin-list-shell__intro">
+              <span className="admin-list-shell__eyebrow">{t('admin.paymentOperations.eyebrow')}</span>
+              <h1 className="admin-list-shell__title">{t('admin.paymentOperations.title')}</h1>
+              <p className="admin-list-shell__subtitle">{t('admin.paymentOperations.subtitle')}</p>
+              <p
+                className={`admin-payments-ops-pulse${
+                  (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
+                }`}
+                aria-label={t('admin.paymentOperations.opsStripAria')}
+              >
+                <span className="admin-payments-ops-pulse__value">
+                  {athletesPending == null ? '—' : athletesPending}
                 </span>
-                <span className="admin-payments-ops-strip__kpi-label">
-                  {t('admin.paymentOperations.kpiAthletes')}
+                <span className="admin-payments-ops-pulse__label">
+                  {t('admin.paymentOperations.pulseLabel')}
                 </span>
-                <span className="admin-payments-ops-strip__kpi-hint">
-                  {t('admin.paymentOperations.kpiAthletesHint', {
+                <span className="admin-payments-ops-pulse__sep" aria-hidden="true">
+                  ·
+                </span>
+                <span className="admin-payments-ops-pulse__hint">
+                  {t('admin.paymentOperations.pulseAmount', {
                     amount: money(athleteSummary.openAmount ?? 0, locale),
                   })}
                 </span>
-              </div>
-            </button>
-            <button
-              type="button"
-              className={`admin-payments-ops-strip__kpi${
-                ticketsPending > 0 ? ' admin-payments-ops-strip__kpi--warning' : ''
-              }`}
-              onClick={() => setActiveTab('tickets')}
-            >
-              <div className="admin-payments-ops-strip__kpi-body">
-                <span className="admin-payments-ops-strip__kpi-value">{ticketsPending}</span>
-                <span className="admin-payments-ops-strip__kpi-label">
-                  {t('admin.paymentOperations.kpiTickets')}
-                </span>
-                <span className="admin-payments-ops-strip__kpi-hint">
-                  {t('admin.paymentOperations.kpiTicketsHint', { count: ticketsWithProof })}
-                </span>
-              </div>
-            </button>
-            {(failedCount > 0 || pendingReconciliations > 0 || !isLedgerHealthy) && data ? (
+              </p>
+            </div>
+            <div className="admin-list-shell__actions admin-payments-ops-top__actions">
               <button
                 type="button"
-                className="admin-payments-ops-strip__kpi admin-payments-ops-strip__kpi--danger"
-                onClick={openDiagnostics}
+                className="btn btn--ghost btn--small"
+                onClick={() => void refreshAll()}
+                disabled={loading || recovering}
               >
-                <div className="admin-payments-ops-strip__kpi-body">
-                  <span className="admin-payments-ops-strip__kpi-value">
-                    {failedCount + pendingReconciliations + (healthIssues || 0)}
-                  </span>
-                  <span className="admin-payments-ops-strip__kpi-label">
-                    {t('admin.paymentOperations.kpiIntegrity')}
-                  </span>
-                  <span className="admin-payments-ops-strip__kpi-hint">
-                    {t('admin.paymentOperations.kpiIntegrityHintIssue')}
-                  </span>
-                </div>
+                <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
               </button>
-            ) : null}
-          </div>
-        </div>
+            </div>
+          </header>
 
-        <div className="admin-payments-ops-top__tabs">
-          <SegmentedSwitch
-            className="segmented-switch--luxury"
-            active={activeTab}
-            ariaLabel={t('admin.paymentOperations.title')}
-            onChange={setActiveTab}
-            options={tabOptions}
-          />
+          <div className="admin-payments-ops-top__tabs">
+            <SegmentedSwitch
+              className="segmented-switch--ops"
+              active={activeTab}
+              ariaLabel={t('admin.paymentOperations.title')}
+              onChange={setActiveTab}
+              options={tabOptions}
+            />
+          </div>
         </div>
       </div>
 

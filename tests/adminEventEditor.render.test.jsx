@@ -142,7 +142,8 @@ describe('AdminEventEditor — estructura del formulario', () => {
     const lane = document.querySelector('#event-section-sales .admin-event-form__lane')
 
     expect(lane.querySelector('[name="slots"]')).not.toBeNull()
-    expect(lane.querySelector('.capacity-widget')).not.toBeNull()
+    expect(lane.querySelector('.admin-event-form__occupancy')).not.toBeNull()
+    expect(lane.querySelector('.admin-event-form__occupancy-value')).not.toBeNull()
     expect(lane.querySelector('#event-reg-closes')).not.toBeNull()
   })
 })

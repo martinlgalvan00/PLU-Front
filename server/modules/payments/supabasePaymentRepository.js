@@ -30,7 +30,7 @@ export function createSupabasePaymentRepository(
       // título que sale de acá es el que ve el atleta en el resumen de la
       // tarjeta y Finanzas en la app de Mercado Pago.
       .select(
-        '*, athlete:athletes(id, full_name, email, document_id), plan:membership_plans(billing_frequency), membership:memberships(year), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at))',
+        '*, athlete:athletes(id, full_name, email, document_id), plan:membership_plans(billing_frequency), membership:memberships(year), registration:event_registrations(id, division, category, event:events(id, title, slug, starts_at, venue, registration_opens_at, mercado_pago_profile_id))',
       )
       .eq('id', orderId)
       .eq('organization_id', organizationId)
@@ -73,13 +73,19 @@ export function createSupabasePaymentRepository(
         registration: Array.isArray(data.registration)
           ? (data.registration[0] ?? null)
           : (data.registration ?? null),
+        mercadoPagoProfileId:
+          (Array.isArray(data.registration)
+            ? data.registration[0]?.event?.mercado_pago_profile_id
+            : data.registration?.event?.mercado_pago_profile_id) ?? null,
       }
     }
 
     const ticketData = assertResult(
       await client
         .from('ticket_orders')
-        .select('*, event:events(id, title, slug, registration_opens_at)')
+        .select(
+          '*, event:events(id, title, slug, registration_opens_at, mercado_pago_profile_id)',
+        )
         .eq('id', orderId)
         .eq('organization_id', organizationId)
         .maybeSingle(),
@@ -112,6 +118,7 @@ export function createSupabasePaymentRepository(
       rejectionReason: ticketData.rejection_reason ?? null,
       paymentProofUploadedAt: ticketData.payment_proof_uploaded_at ?? null,
       event: ticketData.event,
+      mercadoPagoProfileId: ticketData.event?.mercado_pago_profile_id ?? null,
     }
   }
 

@@ -3,8 +3,8 @@ import { formatShortDate } from '../lib/format.js'
 import { apiGet } from '../lib/api.js'
 
 const FEED_LIMIT = 5
-/** Pedimos de más para poder priorizar filas con retrato sin inventar datos. */
-const SPOTLIGHT_FETCH_LIMIT = 12
+/** Pedimos solo lo que se muestra: priorizar fotos ya no justifica over-fetch. */
+const SPOTLIGHT_FETCH_LIMIT = FEED_LIMIT
 
 export function getAffiliatedGyms(locale = 'es') {
   return getContent(locale).COMMUNITY_AFFILIATED_GYMS
@@ -15,18 +15,12 @@ export function getRecentMembers(limit = FEED_LIMIT, locale = 'es') {
 }
 
 /**
- * Mantiene el orden relativo de cada grupo (recientes primero) y antepone
- * quienes tienen foto pública, para que el roster no se lea como iniciales.
+ * Recorta al límite preservando el orden del backend (ya trae como máximo
+ * un retrato; el resto son iniciales).
  */
 export function pickSpotlightMembers(members = [], limit = FEED_LIMIT) {
   const list = Array.isArray(members) ? members : []
-  const withPhoto = []
-  const withoutPhoto = []
-  for (const member of list) {
-    if (member?.photoUrl) withPhoto.push(member)
-    else withoutPhoto.push(member)
-  }
-  return [...withPhoto, ...withoutPhoto].slice(0, limit)
+  return list.slice(0, limit)
 }
 
 export function getCommunityStats(locale = 'es') {

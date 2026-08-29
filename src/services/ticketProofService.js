@@ -1,8 +1,9 @@
 import { ApiError, apiPost } from '../lib/api.js'
+import { compressPaymentProofFile } from '../lib/compressImageFile.js'
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabaseClient.js'
 
 const PROOF_BUCKET = 'ticket-payment-proofs'
-const MAX_PROOF_BYTES = 5 * 1024 * 1024
+const MAX_PROOF_BYTES = 2 * 1024 * 1024
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
 
 function sanitizeFileName(name) {
@@ -18,7 +19,7 @@ export function validateTicketPaymentProofFile(file) {
     return { error: 'Formato no admitido. Usá JPG, PNG, WEBP o PDF.' }
   }
   if (file.size > MAX_PROOF_BYTES) {
-    return { error: 'El archivo supera el límite de 5 MB.' }
+    return { error: 'El archivo supera el límite de 2 MB.' }
   }
   return { ok: true }
 }
@@ -36,16 +37,20 @@ export async function uploadTicketPaymentProof(orderId, accessToken, file) {
     )
   }
 
+  const prepared = await compressPaymentProofFile(file)
   const supabase = await getSupabaseClient()
   const upload = await apiPost(`/api/tickets/orders/${orderId}/proof-upload`, {
     accessToken,
-    fileName: sanitizeFileName(file.name),
-    contentType: file.type,
-    size: file.size,
+    fileName: sanitizeFileName(prepared.name),
+    contentType: prepared.type,
+    size: prepared.size,
   })
   const { error: uploadError } = await supabase.storage
     .from(PROOF_BUCKET)
-    .uploadToSignedUrl(upload.path, upload.token, file, { contentType: file.type })
+    .uploadToSignedUrl(upload.path, upload.token, prepared, {
+      contentType: prepared.type,
+      cacheControl: '3600',
+    })
 
   if (uploadError) {
     throw new ApiError(uploadError.message ?? 'No se pudo subir el comprobante.', { status: 400 })

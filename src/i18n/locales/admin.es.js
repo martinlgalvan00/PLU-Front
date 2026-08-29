@@ -1190,6 +1190,7 @@ export default {
     publishedSaved: 'El evento ya es visible en el sitio.',
     unpublishedSaved: 'El evento dejó de mostrarse en el sitio.',
     changesSaved: 'Cambios guardados.',
+    saveFailed: 'No se pudo guardar el cambio. Probá de nuevo.',
     pendingOne: 'Un cambio sin guardar.',
     pendingMany: '{{count}} cambios sin guardar.',
     save: 'Guardar',
@@ -1205,6 +1206,7 @@ export default {
     accessLabel: 'Acceso',
     accessMembers: 'Solo afiliados',
     accessOpen: 'Abierto',
+    visibilityLabel: 'Sitio',
     accessMembersNote:
       'Para inscribirse hace falta afiliación vigente, y en la puerta un inscripto sin afiliación queda bloqueado.',
     accessOpenNote:
@@ -1241,6 +1243,14 @@ export default {
     configLabel: 'Configuración del evento',
     activityLabel: 'Actividad',
     back: 'Volver a la lista de eventos',
+    backToConsole: 'Volver a la consola',
+    closeSection: 'Cerrar sección',
+    editBasics: 'Datos',
+    editBasicsValue: 'Título, fecha y sede',
+    editSales: 'Ventas y cupos',
+    editSalesValue: 'Precios, ventanas y entradas',
+    editVisibility: 'Publicación',
+    editVisibilityValue: 'Destacado y visibilidad avanzada',
     tickets: 'Entradas',
     ticketsValue: '{{count}} tipos activos',
     structure: 'Estructura',
@@ -2287,6 +2297,8 @@ export default {
     metricsMore: 'Más métricas',
     signalAria: 'Señales clave del diagnóstico',
     opsStripAria: 'Cola de cobros por validar',
+    pulseLabel: 'por validar',
+    pulseAmount: '{{amount}} por acreditar',
     kpiAthletes: 'Por validar',
     kpiAthletesHint: '{{amount}} por acreditar',
     kpiTickets: 'Entradas pendientes',
@@ -2380,6 +2392,9 @@ export default {
     saving: 'Guardando...',
     unsavedChanges: 'Hay cambios sin guardar',
     noPendingChanges: 'Sin cambios pendientes',
+    savingShort: 'Guardando',
+    unsavedShort: 'Sin guardar',
+    readyShort: 'Al día',
     backendHint: 'El backend confirma antes de actualizar el panel.',
     discardTitle: '¿Descartar los cambios?',
     discardLead: 'Lo que editaste en esta ventana no se va a guardar.',
@@ -2395,6 +2410,44 @@ export default {
     priceRegistrationManualPlaceholder: 'Igual que el precio de Mercado Pago',
     pricingCatalogHint:
       'La afiliación y las ofertas combo se administran desde Tarifas para mantener una única fuente de verdad.',
+    paymentProfileTitle: 'Medios de cobro de este evento',
+    paymentProfileHint:
+      'Si no tocás nada, vale la configuración de la plataforma. Acá solo podés restringir canales o poner datos bancarios propios.',
+    paymentProfileCustomize: 'Personalizar medios de cobro',
+    paymentProfileCustomizeHint:
+      'Desmarcá para volver a heredar la matriz global. El evento no puede reabrir un canal que Finanzas cerró.',
+    paymentChannelMercadoPago: 'Mercado Pago',
+    paymentChannelBankTransfer: 'Transferencia',
+    paymentChannelCashPitbull: 'Efectivo Pitbull',
+    paymentChannelWise: 'Wise',
+    bankTransferTitle: 'Transferencia bancaria de este evento',
+    bankTransferHint:
+      'Elegí un perfil del catálogo para reutilizarlo en otros eventos, o cargá alias/CBU acá (al guardar se crea el perfil).',
+    bankTransferProfile: 'Perfil de cobro',
+    bankTransferProfileNone: 'Sin perfil · datos sueltos o globales',
+    bankTransferProfileHint:
+      'El mismo perfil se puede enganchar a varios eventos. Editar alias a mano desvincula el perfil.',
+    bankTransferProfileSelected: 'Usando «{{name}}» ({{alias}}).',
+    bankTransferAliasPlaceholder: 'Ej. club.troupe.mp',
+    bankTransferSaveCreatesProfile:
+      'Si cargás un alias sin elegir perfil, al guardar se crea uno reutilizable en el catálogo.',
+    bankTransferAlias: 'Alias',
+    bankTransferCbu: 'CBU / CVU',
+    bankTransferHolder: 'Titular',
+    mercadoPagoProfileTitle: 'Mercado Pago de este evento',
+    mercadoPagoProfileHint:
+      'Sin perfil se usa la cuenta global del entorno. Con perfil, el Brick y el webhook cobran con esas credenciales (cifradas en servidor).',
+    mercadoPagoProfile: 'Perfil Mercado Pago',
+    mercadoPagoProfileNone: 'Cuenta global del entorno',
+    mercadoPagoProfileSelected: 'Usando «{{name}}» (public key {{publicKey}}).',
+    mercadoPagoProfileCreate: 'Crear perfil MP',
+    mercadoPagoProfileName: 'Nombre del perfil',
+    mercadoPagoPublicKey: 'Public key',
+    mercadoPagoAccessToken: 'Access token',
+    mercadoPagoWebhookSecret: 'Webhook secret',
+    mercadoPagoSecretsKeyMissing:
+      'Falta PAYMENT_PROFILE_SECRETS_KEY en el servidor: no se pueden guardar perfiles MP.',
+    mercadoPagoProfileCreated: 'Perfil creado y vinculado al evento.',
     priceCurrency: 'ARS',
     ticketAddonsTitle: 'Beneficios en la compra de entradas',
     ticketAddonsLead:
@@ -2596,18 +2649,18 @@ export default {
       publishedHint: 'Visible para el público en la página de eventos.',
       syncError: 'No se pudieron guardar los datos del evento: {{message}}',
     },
-    sectionBasics: '1 · Datos del evento',
+    sectionBasics: 'Datos del evento',
     sectionBasicsLead: 'Qué evento es, cuándo empieza y cuándo termina.',
-    sectionSales: '2 · Ventas y cupos',
-    sectionSalesLead:
-      'Las dos vías de ingreso al evento: inscripción de atletas y entradas de público. Cada una con su cupo, su ventana de venta y sus precios.',
+    sectionSales: 'Ventas y cupos',
+    sectionSalesLead: 'Inscripción de atletas y entradas de público, cada una con su cupo y precios.',
     laneAthletes: 'Inscripción de atletas',
-    laneAthletesLead:
-      'Cuántos atletas entran y hasta cuándo pueden anotarse. Pasada la fecha de cierre o lleno el cupo, el sistema rechaza nuevas inscripciones.',
+    laneAthletesLead: 'Cupo y ventana de inscripción. Fuera de plazo o sin lugares, se rechazan altas.',
     laneSpectators: 'Entradas de público',
-    laneSpectatorsLead:
-      'Venta de entradas para espectadores, independiente de la inscripción de atletas.',
+    laneSpectatorsLead: 'Venta para espectadores, independiente de la inscripción.',
     slotsRemaining: 'Quedan {{count}} lugares',
+    occupancyAria: 'Ocupación {{registered}} de {{total}}, {{percent}} por ciento',
+    occupancyPulse: '{{registered}}/{{total}}',
+    occupancyPercent: '{{percent}}%',
     capacityVisibilityTitle: 'Mostrar ocupación en el sitio',
     capacityVisibilityHint:
       'Apagado, el sitio no publica cuántos se anotaron ni el progreso del cupo. El panel siempre la ve.',
@@ -2627,7 +2680,7 @@ export default {
       finishedButNotEnded:
         'El evento figura como finalizado, pero su fecha de fin todavía no llegó.',
     },
-    sectionVisibility: '3 · Publicación',
+    sectionVisibility: 'Publicación',
     validationSummary: 'Revisá los campos marcados antes de guardar.',
     validation: {
       titleMin: 'Ingresá un título de al menos 3 caracteres.',
@@ -3145,6 +3198,7 @@ export default {
     columnProof: 'Comprobante',
     columnCode: 'Código',
     proofMissing: 'Sin comprobante',
+    proofArchived: 'Archivado',
     declared: 'Declarado por atleta',
     financedActive: 'Financiado · derechos activos',
     // Plazo de pago del financiamiento (20260922100000): cuánto falta o hace

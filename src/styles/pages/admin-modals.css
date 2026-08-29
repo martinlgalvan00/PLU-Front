@@ -35,7 +35,19 @@
   --admin-hairline-strong: var(--admin-modal-border-light);
   --admin-surface: var(--admin-modal-bg-surface);
   --admin-surface-raised: var(--admin-modal-bg-muted);
-  --admin-control-bg: var(--admin-modal-bg-surface);
+  /* Controles más legibles que el surface translúcido: si quedan casi
+     transparentes, el UA pinta blanco y el campo se ve “light” dentro del
+     grafito (en ambos temas). */
+  --admin-control-bg: color-mix(in srgb, var(--admin-modal-ink) 8%, transparent);
+  /* Glass del page (blanco en light) rompe el grafito del modal.
+     Remapeamos a vidrio sobre tinta modal: mismo material en light y dark. */
+  --admin-glass-bg: color-mix(in srgb, var(--admin-modal-ink) 9%, transparent);
+  --admin-glass-bg-strong: color-mix(in srgb, var(--admin-modal-ink) 15%, transparent);
+  --admin-glass-border: var(--admin-modal-hairline);
+  --admin-glass-border-strong: var(--admin-modal-border-light);
+  --admin-glass-highlight: var(--admin-modal-highlight);
+  --admin-glass-blur: 12px;
+  --admin-glass-shadow: none;
   --color-text-primary: var(--admin-modal-ink);
   --color-text-secondary: var(--admin-modal-text-secondary);
   --color-text-muted: var(--admin-modal-text-muted);
@@ -56,6 +68,7 @@
     inset 0 1px 0 var(--admin-modal-highlight),
     var(--admin-modal-shadow);
   color: var(--admin-modal-ink);
+  color-scheme: dark;
 }
 
 /* Editor + consola: grafito en ambos temas. Misma especificidad que
@@ -110,14 +123,236 @@
     var(--admin-modal-shadow);
 }
 
-/* ---- Detalles de lujo por familia (no cambia forma ni layout) ---- */
+/* ---- Controles de formulario en grafito ----
+   Anula el `background: #fff` de [data-theme='light'] .admin-event-form
+   y el UA default: el modal es piedra oscura en ambos temas. */
 
-/* Filete superior de luz: la firma del material, ya viene en el
-   box-shadow; el editor y la consola son full-bleed y refuerzan el
-   borde superior explícito. */
-.admin-event-console-modal__panel,
-.admin-event-editor-modal__panel {
-  border: 1px solid var(--admin-modal-border);
+.admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']),
+.admin-event-editor-modal__panel .admin-event-form select,
+.admin-event-editor-modal__panel .admin-event-form textarea,
+.admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
+.admin-event-console-modal__panel .admin-event-form select,
+.admin-event-console-modal__panel .admin-event-form textarea,
+.admin-event-quick__panel .admin-event-quick__field input,
+.admin-event-quick__panel .admin-event-quick__field select,
+.admin-event-quick__panel .admin-event-quick__field textarea {
+  background: var(--admin-control-bg);
+  border-color: var(--admin-hairline);
+  color: var(--admin-ink);
+  color-scheme: dark;
+}
+
+.admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
+.admin-event-editor-modal__panel .admin-event-form select:hover:not(:disabled),
+.admin-event-editor-modal__panel .admin-event-form textarea:hover:not(:disabled),
+.admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']):hover:not(:disabled),
+.admin-event-console-modal__panel .admin-event-form select:hover:not(:disabled),
+.admin-event-console-modal__panel .admin-event-form textarea:hover:not(:disabled),
+.admin-event-quick__panel .admin-event-quick__field input:hover:not(:disabled),
+.admin-event-quick__panel .admin-event-quick__field select:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--admin-modal-ink) 11%, transparent);
+  border-color: var(--admin-hairline-strong);
+}
+
+.admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']):focus,
+.admin-event-editor-modal__panel .admin-event-form select:focus,
+.admin-event-editor-modal__panel .admin-event-form textarea:focus,
+.admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']):focus,
+.admin-event-console-modal__panel .admin-event-form select:focus,
+.admin-event-console-modal__panel .admin-event-form textarea:focus,
+.admin-event-quick__panel .admin-event-quick__field input:focus-visible,
+.admin-event-quick__panel .admin-event-quick__field select:focus-visible {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 8%, transparent);
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 16%, transparent);
+  outline: none;
+}
+
+[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']),
+[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form select,
+[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form textarea,
+[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']),
+[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form select,
+[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form textarea,
+[data-theme='light'] .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
+[data-theme='light'] .admin-event-console-modal__panel .admin-event-form select,
+[data-theme='light'] .admin-event-console-modal__panel .admin-event-form textarea,
+[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
+[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form select,
+[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form textarea,
+[data-theme='light'] .admin-event-quick__panel .admin-event-quick__field input,
+[data-theme='dark'] .admin-event-quick__panel .admin-event-quick__field input {
+  background: var(--admin-control-bg);
+  border-color: var(--admin-hairline);
+  color: var(--admin-ink);
+}
+
+.admin-event-editor-modal__panel .admin-event-form input::placeholder,
+.admin-event-editor-modal__panel .admin-event-form textarea::placeholder,
+.admin-event-console-modal__panel .admin-event-form input::placeholder,
+.admin-event-console-modal__panel .admin-event-form textarea::placeholder {
+  color: var(--admin-muted);
+  opacity: 1;
+}
+
+/* Labels del editor en grafito: sentence case, tinta modal (light + dark). */
+.admin-event-console-modal__panel .admin-event-form label span,
+.admin-event-editor-modal__panel .admin-event-form label span {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.admin-event-console-modal__panel .admin-event-form__toggle,
+.admin-event-editor-modal__panel .admin-event-form__toggle {
+  background: var(--admin-control-bg);
+  border-color: var(--admin-hairline);
+}
+
+.admin-event-console-modal__panel .admin-event-form__toggle:hover,
+.admin-event-editor-modal__panel .admin-event-form__toggle:hover {
+  background: color-mix(in srgb, var(--admin-modal-ink) 11%, transparent);
+  border-color: var(--admin-hairline-strong);
+}
+
+/* Anula toggles “page light” (#fff / ink oscuro) dentro del grafito. */
+[data-theme='light'] .admin-event-console-modal__panel .admin-event-form__toggle-ui,
+[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form__toggle-ui,
+[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui,
+[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui {
+  background: color-mix(in srgb, var(--admin-modal-ink) 22%, transparent);
+}
+
+[data-theme='light'] .admin-event-console-modal__panel .admin-event-form__toggle-ui::after,
+[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form__toggle-ui::after,
+[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui::after,
+[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui::after {
+  background: color-mix(in srgb, var(--admin-modal-ink) 78%, transparent);
+}
+
+[data-theme='light']
+  .admin-event-console-modal__panel
+  .admin-event-form__toggle-input:checked
+  ~ .admin-event-form__toggle-ui::after,
+[data-theme='dark']
+  .admin-event-console-modal__panel
+  .admin-event-form__toggle-input:checked
+  ~ .admin-event-form__toggle-ui::after,
+[data-theme='light']
+  .admin-event-editor-modal__panel
+  .admin-event-form__toggle-input:checked
+  ~ .admin-event-form__toggle-ui::after,
+[data-theme='dark']
+  .admin-event-editor-modal__panel
+  .admin-event-form__toggle-input:checked
+  ~ .admin-event-form__toggle-ui::after {
+  background: #fff;
+}
+
+/* Ventas/cupos + chrome: glass modal, no el blanco del page light. */
+.admin-event-console-modal__panel .admin-event-form__lane,
+.admin-event-editor-modal__panel .admin-event-form__lane {
+  background: var(--admin-glass-bg);
+  border-color: var(--admin-glass-border);
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight);
+}
+
+.admin-event-console-modal__panel .admin-event-form__occupancy,
+.admin-event-editor-modal__panel .admin-event-form__occupancy,
+.admin-event-console-modal__panel .admin-event-form__rate-cards,
+.admin-event-editor-modal__panel .admin-event-form__rate-cards {
+  background: var(--admin-glass-bg-strong);
+  border-color: var(--admin-glass-border);
+}
+
+.admin-event-console-modal__panel .admin-event-form__rate-card-label,
+.admin-event-editor-modal__panel .admin-event-form__rate-card-label {
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .admin-event-form__rate-card-input,
+.admin-event-editor-modal__panel .admin-event-form__rate-card-input {
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .admin-event-form__rate-card-input input,
+.admin-event-editor-modal__panel .admin-event-form__rate-card-input input {
+  background: transparent;
+  color: var(--admin-ink);
+}
+
+.admin-event-console-modal__panel .admin-event-form__pricing-note,
+.admin-event-editor-modal__panel .admin-event-form__pricing-note {
+  border-top-color: var(--admin-glass-border);
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .detail-tabs--glass,
+.admin-event-editor-modal__panel .detail-tabs--glass {
+  background: var(--admin-glass-bg);
+  border-color: var(--admin-glass-border);
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight);
+}
+
+.admin-event-console-modal__panel .detail-tabs--glass .detail-tabs__tab,
+.admin-event-editor-modal__panel .detail-tabs--glass .detail-tabs__tab {
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .detail-tabs--glass .detail-tabs__tab:hover,
+.admin-event-editor-modal__panel .detail-tabs--glass .detail-tabs__tab:hover {
+  background: color-mix(in srgb, var(--admin-modal-ink) 8%, transparent);
+  color: var(--admin-ink);
+}
+
+.admin-event-console-modal__panel .detail-tabs--glass .detail-tabs__tab.is-active,
+.admin-event-editor-modal__panel .detail-tabs--glass .detail-tabs__tab.is-active {
+  background: var(--admin-glass-bg-strong);
+  color: var(--admin-ink);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 var(--admin-glass-highlight);
+}
+
+.admin-event-console-modal__panel .admin-event-form__save-state--toolbar,
+.admin-event-editor-modal__panel .admin-event-form__save-state--toolbar {
+  background: var(--admin-glass-bg);
+  border-color: var(--admin-glass-border);
+  box-shadow: inset 0 1px 0 var(--admin-glass-highlight);
+  color: var(--admin-ink);
+}
+
+.admin-event-console-modal__panel .admin-event-form__save-state--toolbar strong,
+.admin-event-editor-modal__panel .admin-event-form__save-state--toolbar strong {
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .admin-event-form__save-state--toolbar.is-dirty strong,
+.admin-event-editor-modal__panel .admin-event-form__save-state--toolbar.is-dirty strong {
+  color: var(--admin-ink);
+}
+
+[data-theme='light'] .admin-event-console-modal__panel .admin-event-form__pricing,
+[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form__pricing,
+[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form__pricing,
+[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form__pricing {
+  background: transparent;
+}
+
+/* Matiz fino: en page light el grafito es un toque más cálido/claro;
+   subimos un punto el vidrio para que lanes y tabs no se “apaguen”. */
+[data-theme='light'] .admin-event-console-modal__panel,
+[data-theme='light'] .admin-event-editor-modal__panel {
+  --admin-glass-bg: color-mix(in srgb, var(--admin-modal-ink) 11%, transparent);
+  --admin-glass-bg-strong: color-mix(in srgb, var(--admin-modal-ink) 17%, transparent);
+}
+
+[data-theme='dark'] .admin-event-console-modal__panel,
+[data-theme='dark'] .admin-event-editor-modal__panel {
+  --admin-glass-bg: color-mix(in srgb, var(--admin-modal-ink) 8%, transparent);
+  --admin-glass-bg-strong: color-mix(in srgb, var(--admin-modal-ink) 14%, transparent);
 }
 
 /* El botón de cierre de la consola y controles flotantes usan tinta
@@ -162,5 +397,14 @@
   .admin-action-drawer__backdrop {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+
+  .admin-event-editor-modal__panel,
+  .admin-event-console-modal__panel,
+  .admin-event-quick__panel {
+    --admin-glass-bg: color-mix(in srgb, var(--admin-modal-ink) 10%, var(--admin-modal-bg));
+    --admin-glass-bg-strong: color-mix(in srgb, var(--admin-modal-ink) 16%, var(--admin-modal-bg));
+    --admin-glass-blur: 0px;
+    --admin-glass-highlight: transparent;
   }
 }

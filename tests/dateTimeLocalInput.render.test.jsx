@@ -42,4 +42,34 @@ describe('DateTimeLocalInput', () => {
       target: { name: 'registrationOpensAt', value: '2026-09-03T07:48' },
     })
   })
+
+  it('al borrar la fecha para retippear, conserva la hora y emite la fecha nueva', () => {
+    const onChange = vi.fn()
+    renderField('2026-09-03T07:48', onChange)
+
+    fireEvent.change(screen.getByLabelText('Abre la inscripción'), {
+      target: { value: '' },
+    })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Hora').value).toBe('07:48')
+
+    fireEvent.change(screen.getByLabelText('Abre la inscripción'), {
+      target: { value: '15092026' },
+    })
+    expect(onChange).toHaveBeenCalledWith({
+      target: { name: 'registrationOpensAt', value: '2026-09-15T07:48' },
+    })
+  })
+
+  it('vaciar fecha y hora sí limpia el valor', () => {
+    const onChange = vi.fn()
+    renderField('2026-09-03T07:48', onChange)
+
+    fireEvent.change(screen.getByLabelText('Abre la inscripción'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Hora'), { target: { value: '' } })
+
+    expect(onChange).toHaveBeenCalledWith({
+      target: { name: 'registrationOpensAt', value: '' },
+    })
+  })
 })

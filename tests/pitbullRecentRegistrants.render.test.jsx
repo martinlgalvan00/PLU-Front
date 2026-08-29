@@ -21,7 +21,12 @@ beforeAll(() => {
     removeEventListener() {},
   })
   window.IntersectionObserver = class {
-    observe() {}
+    constructor(callback) {
+      this.callback = callback
+    }
+    observe(element) {
+      this.callback([{ isIntersecting: true, target: element }])
+    }
     unobserve() {}
     disconnect() {}
   }
@@ -94,8 +99,9 @@ describe('últimos inscriptos de Pitbull', () => {
     expect(counter?.className).toContain('pitbull-inscription-counter--hidden')
     expect(counter?.textContent ?? '').not.toContain('—')
     expect(counter?.textContent).toMatch(/El progreso de inscripción no se publica/i)
-    expect(screen.getByText(/2 hoy/i)).toBeTruthy()
-    expect(container.querySelector('.pitbull-recent__today-mark')?.textContent).toMatch(/hoy/i)
+    expect(screen.getByText(/2 hoy · en vivo/i)).toBeTruthy()
+    expect(container.querySelector('.pitbull-recent__today-mark')).toBeNull()
+    expect(container.querySelector('.pitbull-recent__hint--live')).toBeTruthy()
   })
 
   it('no monta recientes en soft-launch', () => {
