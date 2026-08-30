@@ -484,6 +484,8 @@ export default function RegisterPage({
   registrations = [],
   total,
   checkoutAvailability = {},
+  checkoutIntent = null,
+  onCheckoutIntentConsumed,
 }) {
   const { locale, t } = useI18n()
   const formOptions = useMemo(() => getFormOptions(t), [t])
@@ -955,6 +957,17 @@ export default function RegisterPage({
   }[flow]
 
   const visibleOrder = createdOrder?.type === flow ? createdOrder : null
+
+  // Desde Pagos / Torneos: abrir el selector de medio sobre la orden viva,
+  // reusando el mismo arrepentimiento del settle (sin cancel RPC).
+  useEffect(() => {
+    if (checkoutIntent !== 'change_method') return
+    if (flow !== 'competition' && flow !== 'membership') return
+    if (!visibleOrder) return
+    setChangingMethod(true)
+    onCheckoutIntentConsumed?.()
+  }, [checkoutIntent, flow, visibleOrder, onCheckoutIntentConsumed])
+
   // La vigente primero; si todavía no hay ninguna (la afiliación recién
   // creada está pendiente de pago) cae a la más reciente, que es la de esta
   // misma orden. Antes tomaba la primera del array sin mirar el estado, así

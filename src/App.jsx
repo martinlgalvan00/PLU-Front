@@ -132,6 +132,9 @@ export default function App() {
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
+  // Intent liviano al abrir el checkout desde Pagos / Torneos: p.ej. abrir
+  // directo el selector de medio (“Elegir otro medio”) sin inventar un RPC.
+  const [checkoutIntent, setCheckoutIntent] = useState(null)
   // `?section=` llega en los emails de pago; sin leerlo, "revisá el estado de
   // tu pago" abría la cuenta en la credencial.
   const [profileTab, setProfileTab] = useState(
@@ -433,8 +436,9 @@ export default function App() {
     [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext],
   )
 
-  async function selectEvent(event) {
+  async function selectEvent(event, options = {}) {
     setSelectedEvent(event)
+    setCheckoutIntent(options.checkoutIntent ?? null)
     if (app.checkoutAvailability?.registrationEnabled === false) {
       navigate('events', event?.slug ? { eventSlug: event.slug } : {})
       return
@@ -858,6 +862,8 @@ export default function App() {
             onUpdateForm={app.updateForm}
             registrations={app.registrations}
             checkoutAvailability={app.checkoutAvailability}
+            checkoutIntent={checkoutIntent}
+            onCheckoutIntentConsumed={() => setCheckoutIntent(null)}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.

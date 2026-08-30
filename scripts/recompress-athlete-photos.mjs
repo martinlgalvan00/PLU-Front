@@ -134,9 +134,19 @@ for (const athlete of rows) {
 
   const output = await encodeWebp(input)
   const outMeta = await sharp(output, { failOn: 'none' }).metadata()
+  // Un WebP valido puede pesar menos de 1 KB si el retrato es muy oscuro o
+  // casi uniforme. El chequeo anterior trataba ese ahorro como corrupcion y
+  // dejaba el JPEG original de mas de 1 MB en Storage. Validamos el contenedor
+  // decodificado y sus dimensiones, no un minimo arbitrario de bytes.
+  const outputWidth = outMeta.width ?? 0
+  const outputHeight = outMeta.height ?? 0
   const looksCorrupt =
-    output.length < 1024 ||
-    ((outMeta.width ?? 0) < 32 && (outMeta.height ?? 0) < 32 && input.length > 40 * 1024)
+    outMeta.format !== 'webp' ||
+    outputWidth <= 0 ||
+    outputHeight <= 0 ||
+    outputWidth > MAX_EDGE ||
+    outputHeight > MAX_EDGE ||
+    output.length < 32
 
   if (looksCorrupt) {
     failed += 1

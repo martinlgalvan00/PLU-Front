@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { LifeBuoy } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
@@ -17,14 +18,17 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  * Presentacional: el estado y los datos los resuelve `HelpLayer`. En modo
  * asistido este botón no se monta — la ayuda pasa a vivir en `AssistNavBar`.
  *
- * Posición: siempre anclado a la esquina inferior derecha del viewport
- * (`position: fixed` + safe-area). No vive dentro de PageTransition a
- * propósito, para no desmontarse al cambiar de pantalla.
+ * Posición: portal a `document.body` + `position: fixed` + safe-area. No
+ * puede vivir dentro de `.app-shell` (ni de PageTransition): `overflow-x:
+ * clip` / `isolation` del shell forman un containing block y el botón
+ * scrolleaba con la página en vez de quedarse en la esquina del viewport.
  */
 export default function HelpDock({ open = false, pending = false, onToggle }) {
   const { t } = useI18n()
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="help-dock" data-tour="help-dock">
       {/* Botón de divulgación: un solo nombre accesible y el estado contado
           por `aria-expanded`. Con un "Cerrar la ayuda" acá quedaban dos
@@ -45,6 +49,7 @@ export default function HelpDock({ open = false, pending = false, onToggle }) {
           <span className="help-dock__pending" aria-hidden />
         ) : null}
       </button>
-    </div>
+    </div>,
+    document.body,
   )
 }

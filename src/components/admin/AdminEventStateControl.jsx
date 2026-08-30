@@ -201,8 +201,44 @@ export default function AdminEventStateControl({
     patchDraft({ status: 'proximamente', published: true })
   }
 
+  const slots = Number(event?.slots) || 0
+  const resultPrimary = (() => {
+    if (effectiveRegistration.isLive) return t('admin.eventState.resultLive')
+    if (effectiveRegistration.scheduled) {
+      return t('admin.eventState.resultScheduled', { date: scheduledDate })
+    }
+    if (!draft.published) return t('admin.eventState.resultHidden')
+    if (effectiveRegistration.full || draft.status === 'agotado') {
+      return t('admin.eventState.resultFull')
+    }
+    if (effectiveRegistration.closedByWindow) return t('admin.eventState.resultWindowClosed')
+    return t('admin.eventState.resultClosed')
+  })()
+  const resultCapacity = t('admin.eventState.resultCapacity', {
+    registered,
+    slots,
+  })
+  const resultAccess = draft.requiresMembership
+    ? t('admin.eventState.accessMembers')
+    : t('admin.eventState.accessOpen')
+
   return (
     <div className="admin-event-state" role="group" aria-label={t('admin.eventState.label')}>
+      <p
+        className={`admin-event-state__result${effectiveRegistration.isLive ? ' is-live' : ''}`}
+        role="status"
+      >
+        <span className="admin-event-state__result-primary">{resultPrimary}</span>
+        <span className="admin-event-state__result-sep" aria-hidden>
+          ·
+        </span>
+        <span>{resultCapacity}</span>
+        <span className="admin-event-state__result-sep" aria-hidden>
+          ·
+        </span>
+        <span>{resultAccess}</span>
+      </p>
+
       <div
         className="admin-event-state__workflow"
         aria-label={t('admin.eventState.registrationLabel')}

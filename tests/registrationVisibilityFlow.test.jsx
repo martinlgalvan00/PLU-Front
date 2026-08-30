@@ -125,6 +125,8 @@ describe('cuenta · Próximos torneos', () => {
     expect(screen.getByText('Pago pendiente')).toBeTruthy()
     // El botón queda habilitado: es la única salida para cerrar el pago.
     expect(screen.getByRole('button', { name: 'Continuar pago' }).disabled).toBe(false)
+    // Y el arrepentimiento de medio queda a un toque, sin ir a Pagos primero.
+    expect(screen.getByRole('button', { name: 'Elegir otro medio' })).toBeTruthy()
   })
 
   it('deja volver a inscribirse a quien canceló', () => {

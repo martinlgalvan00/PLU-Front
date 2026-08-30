@@ -70,7 +70,13 @@ function scrollTabIntoRail(rail, tab, instant) {
  * exclusiva). Se filtra sobre ITEMS y no se reordena: el orden y la dirección
  * de la transición siguen saliendo de `ACCOUNT_TAB_IDS`.
  */
-export default function AccountNav({ activeId, onChange, visibleIds = null, attentionIds = null }) {
+export default function AccountNav({
+  activeId,
+  onChange,
+  visibleIds = null,
+  attentionIds = null,
+  navRef = null,
+}) {
   const { t } = useI18n()
   const items = visibleIds ? ITEMS.filter((item) => visibleIds.includes(item.id)) : ITEMS
   const { reducedMotion } = useMotionConfig()
@@ -120,6 +126,7 @@ export default function AccountNav({ activeId, onChange, visibleIds = null, atte
 
   return (
     <nav
+      ref={navRef}
       className="account-nav"
       aria-label={t('account.navAria')}
       aria-describedby={canScroll ? 'account-nav-scroll-hint' : undefined}

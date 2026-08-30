@@ -60,12 +60,30 @@ function renderEvents(overrides = {}) {
     <I18nProvider>
       <EventsSection
         adminEvents={[EVENT]}
+        athletes={[{ id: 'ath-1', fullName: 'Ana Pérez' }]}
         canEdit
         canManageUsers
+        canValidatePayments
+        onApprovePayment={async () => ({})}
+        onRejectPayment={async () => ({})}
         onSaveEvent={async () => ({ event: EVENT, events: [EVENT] })}
         onSetEventState={async () => ({ event: EVENT, events: [EVENT] })}
         onListSecurityUsers={async () => []}
         onListSecurityZones={async () => []}
+        payments={[
+          {
+            id: 'pay-1',
+            athleteId: 'ath-1',
+            eventSlug: 'pitbull-classic-2026',
+            status: 'validacion_manual',
+            amount: 75000,
+            concept: 'Inscripción',
+            method: 'manual_link',
+            paymentProofPath: 'proofs/a.pdf',
+            manualPaymentChannel: 'bank_transfer',
+          },
+        ]}
+        pendingTicketOrders={[]}
         tickets={[]}
         {...overrides}
       />
@@ -83,16 +101,58 @@ describe('EventsSection — filas de sección de la consola', () => {
   it('lista configuración y actividad con los valores reales del evento', () => {
     renderEvents({
       onManageRegistrations: () => {},
-      onManagePayments: () => {},
       onManageCheckin: () => {},
+      onOpenFinanceForEvent: () => {},
     })
     const panel = consolePanel()
 
     expect(within(panel).getByRole('button', { name: /ventas y cupos/i })).toBeTruthy()
     // El valor sale del evento, no de un número decorativo.
-    expect(panel.textContent).toContain('1 tipos activos')
+    expect(panel.textContent).toContain('1 tipos · 48/80')
     expect(panel.textContent).toContain('1 días')
     expect(panel.textContent).toContain('48 de 80')
+    expect(panel.textContent).toContain('Inscripciones abiertas')
+    expect(panel.textContent).toContain('1 pendientes')
+    expect(panel.querySelector('.admin-event-preview__readiness')).not.toBeNull()
+  })
+
+  it('abre el triage de pagos y vuelve a la consola', async () => {
+    renderEvents({ onOpenFinanceForEvent: () => {} })
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /pagos/i }))
+
+    await waitFor(() => expect(document.querySelector('.admin-event-payments')).not.toBeNull())
+    expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
+    expect(document.body.textContent).toContain('Ana Pérez')
+
+    fireEvent.click(screen.getByRole('button', { name: /volver a la consola/i }))
+
+    await waitFor(() => {
+      expect(document.querySelector('.admin-event-payments')).toBeNull()
+      expect(screen.getByRole('dialog', { name: 'Evento seleccionado' })).toBeTruthy()
+    })
+  })
+
+  it('mantiene la vista previa al abrir Datos', () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /datos/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    expect(dialog.querySelector('.admin-event-console-modal__aside')).not.toBeNull()
+    expect(dialog.querySelector('.admin-event-preview')).not.toBeNull()
+    expect(dialog.querySelector('#event-status')).toBeNull()
+  })
+
+  it('en Publicación del acordeón no duplica estado ni acceso', () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /publicación/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    const fold = dialog.querySelector('.admin-event-console__fold[data-section="visibility"]')
+    expect(fold).not.toBeNull()
+    expect(fold.querySelector('#event-status')).toBeNull()
+    expect(fold.querySelector('#event-access')).toBeNull()
+    expect(fold.textContent).toContain('Estado, sitio y acceso se controlan arriba')
   })
 
   it('no ofrece zonas a quien no puede gestionar usuarios', () => {

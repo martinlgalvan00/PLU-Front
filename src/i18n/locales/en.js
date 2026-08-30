@@ -1245,7 +1245,7 @@ export default {
       alertTitle_one: 'You have {{count}} charge to resolve',
       alertTitle_other: 'You have {{count}} charges to resolve',
       alertBody:
-        'Mercado Pago declined the payment, so the membership or registration was not confirmed. Retry it from the charge marked below.',
+        'There are pending or unconfirmed charges. Continue payment, choose another method, or generate a new charge from the row marked below.',
       settledAfterAttempts_one:
         'It went through after {{count}} declined attempt. If you got a decline notice, disregard it.',
       settledAfterAttempts_other:
@@ -1284,6 +1284,9 @@ export default {
         cash_pitbull: 'Cash at the venue',
       },
       action: {
+        continue: 'Continue payment',
+        uploadProof: 'Upload receipt',
+        changeMethod: 'Choose another method',
         retry: 'Start a new charge',
       },
       reason: {
@@ -1493,6 +1496,7 @@ export default {
       register: 'Register',
       paymentPending: 'Payment pending',
       resumePayment: 'Resume payment',
+      changePaymentMethod: 'Choose another method',
       membershipRequiredTitle: 'Membership for gate access',
       membershipRequiredText:
         'You can register now. Gate access on meet day unlocks when your membership is active.',
@@ -2096,7 +2100,7 @@ export default {
       athleteStatusHint: {
         guest: 'With an athlete account you can finish membership and registration in one flow.',
         registered: 'Your slot is confirmed. Check credential and meet details in your profile.',
-        pending_payment: 'Complete payment or manual validation to finish registration.',
+        pending_payment: 'Your spot is reserved. Continue payment or choose another method to close it.',
         needs_membership: 'This meet requires an active membership before gate check-in.',
         can_register: 'You are ready to complete registration.',
         closed: 'This event no longer accepts new entries.',
@@ -2104,6 +2108,7 @@ export default {
       athleteStatusAction: {
         needs_membership: 'Join and register',
         pending_payment: 'Continue payment',
+        change_payment: 'Choose another method',
       },
       viewFull: 'View full details',
       selectedIsFeatured: 'This is the featured event — the full card is above.',

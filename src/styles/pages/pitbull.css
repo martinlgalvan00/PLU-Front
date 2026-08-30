@@ -6862,6 +6862,8 @@
 
 .pitbull-inscription-mine[data-state='pending_payment'] {
   border-left-color: var(--color-warning-text);
+  /* Un poco más de aire: el bloque avisa y los CTAs debajo cierran la acción. */
+  margin-bottom: var(--space-lg);
 }
 
 .pitbull-inscription-mine strong {
