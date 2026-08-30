@@ -668,78 +668,102 @@ export default function PaymentsOperationsSection({
         aria-label={t('admin.paymentOperations.tabLedger')}
         style={{ display: activeTab === 'ledger' ? 'block' : 'none' }}
       >
-        {canEdit ? (
-          <div className="admin-payment-ops__tools" aria-label={t('admin.paymentOperations.toolsLabel')}>
-            <button
-              type="button"
-              className="btn btn--ghost btn--small"
-              onClick={() => void handleRevalidate()}
-              disabled={revalidating || recovering}
-            >
-              {revalidating ? (
-                <LoaderCircle size={14} aria-hidden className="is-spinning" />
-              ) : (
-                <ScanSearch size={14} aria-hidden />
-              )}{' '}
-              {t('admin.paymentOperations.revalidate')}
-            </button>
-            <button
-              type="button"
-              className="btn btn--small"
-              onClick={() => void handleRecover()}
-              disabled={recovering || revalidating}
-            >
-              <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
-            </button>
-          </div>
-        ) : null}
-
-        {data?.configuration ? (
-          <div className="admin-payment-ops__meta-bar">
-            <p className="admin-payment-ops__meta-line">
-              <span>
-                {t('admin.paymentOperations.provider')}:{' '}
-                <strong>
-                  {data.configuration.provider === 'mock' ? 'Mock' : 'Mercado Pago'}
-                </strong>
-              </span>
-              <span aria-hidden>·</span>
-              <span>
-                {t('admin.paymentOperations.webhook')}:{' '}
-                <strong>
-                  {t(
+        {(canEdit || data?.configuration) ? (
+          <div className="admin-payment-ops__chrome">
+            {data?.configuration ? (
+              <ul
+                className="admin-payment-ops__signals"
+                aria-label={t('admin.paymentOperations.runtimeSignalsAria')}
+              >
+                <li className="admin-payment-ops__chip">
+                  <span className="admin-payment-ops__chip-label">
+                    {t('admin.paymentOperations.provider')}
+                  </span>
+                  <strong className="admin-payment-ops__chip-value">
+                    {data.configuration.provider === 'mock' ? 'Mock' : 'Mercado Pago'}
+                  </strong>
+                </li>
+                <li
+                  className={[
+                    'admin-payment-ops__chip',
                     data.configuration.webhookConfigured
-                      ? 'admin.paymentOperations.configured'
-                      : 'admin.paymentOperations.missing',
-                  )}
-                </strong>
-              </span>
-              <span aria-hidden>·</span>
-              <span>
-                {t('admin.paymentOperations.processingMode')}:{' '}
-                <strong>
-                  {t(
-                    data.configuration.webhookProcessingMode === 'deferred'
-                      ? 'admin.paymentOperations.deferred'
-                      : 'admin.paymentOperations.inline',
-                  )}
-                </strong>
-              </span>
-            </p>
-            <span
-              className={
-                data.configuration.recoveryEnabled
-                  ? 'admin-payment-ops__worker is-active'
-                  : 'admin-payment-ops__worker'
-              }
-            >
-              <span aria-hidden />
-              {t(
-                data.configuration.recoveryEnabled
-                  ? 'admin.paymentOperations.workerActive'
-                  : 'admin.paymentOperations.workerInactive',
-              )}
-            </span>
+                      ? 'admin-payment-ops__chip--ok'
+                      : 'admin-payment-ops__chip--warn',
+                  ].join(' ')}
+                >
+                  <span className="admin-payment-ops__chip-label">
+                    {t('admin.paymentOperations.webhook')}
+                  </span>
+                  <strong className="admin-payment-ops__chip-value">
+                    {t(
+                      data.configuration.webhookConfigured
+                        ? 'admin.paymentOperations.configured'
+                        : 'admin.paymentOperations.missing',
+                    )}
+                  </strong>
+                </li>
+                <li className="admin-payment-ops__chip">
+                  <span className="admin-payment-ops__chip-label">
+                    {t('admin.paymentOperations.processingMode')}
+                  </span>
+                  <strong className="admin-payment-ops__chip-value">
+                    {t(
+                      data.configuration.webhookProcessingMode === 'deferred'
+                        ? 'admin.paymentOperations.deferred'
+                        : 'admin.paymentOperations.inline',
+                    )}
+                  </strong>
+                </li>
+                <li
+                  className={[
+                    'admin-payment-ops__chip',
+                    data.configuration.recoveryEnabled
+                      ? 'admin-payment-ops__chip--ok'
+                      : 'admin-payment-ops__chip--warn',
+                  ].join(' ')}
+                >
+                  <span className="admin-payment-ops__chip-label">
+                    {t('admin.paymentOperations.recovery')}
+                  </span>
+                  <strong className="admin-payment-ops__chip-value">
+                    {t(
+                      data.configuration.recoveryEnabled
+                        ? 'admin.paymentOperations.recoveryOn'
+                        : 'admin.paymentOperations.recoveryOff',
+                    )}
+                  </strong>
+                </li>
+              </ul>
+            ) : null}
+
+            {canEdit ? (
+              <div
+                className="admin-payment-ops__tools"
+                aria-label={t('admin.paymentOperations.toolsLabel')}
+              >
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--small"
+                  onClick={() => void handleRevalidate()}
+                  disabled={revalidating || recovering}
+                >
+                  {revalidating ? (
+                    <LoaderCircle size={14} aria-hidden className="is-spinning" />
+                  ) : (
+                    <ScanSearch size={14} aria-hidden />
+                  )}{' '}
+                  {t('admin.paymentOperations.revalidate')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => void handleRecover()}
+                  disabled={recovering || revalidating}
+                >
+                  <RotateCcw size={14} aria-hidden /> {t('admin.paymentOperations.recover')}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

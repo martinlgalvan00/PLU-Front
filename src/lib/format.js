@@ -212,3 +212,11 @@ export function formatDocumentWithKind(documentId) {
   if (!value) return ''
   return `${documentKind(value)} ${value}`
 }
+
+/** Display label for identity strip: staff synthetic IDs collapse to "Staff". */
+export function formatIdentityDocumentId(documentId) {
+  const value = String(documentId ?? '').trim()
+  if (!value) return ''
+  if (/^STAFF[-_]/i.test(value)) return 'Staff'
+  return value
+}

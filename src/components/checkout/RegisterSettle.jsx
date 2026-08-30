@@ -8,6 +8,14 @@ import {
   wisePriceLabel as formatWisePriceLabel,
 } from '../../services/checkoutPricing.js'
 
+function isManualPaymentChannel(paymentMethod) {
+  return (
+    paymentMethod === 'manual_link' ||
+    paymentMethod === 'transferencia' ||
+    paymentMethod === 'cash_pitbull'
+  )
+}
+
 export default function RegisterSettle({
   cashEnabled = false,
   comboComingSoon = false,
@@ -39,6 +47,7 @@ export default function RegisterSettle({
   const comboSelected = purchaseType === 'combo'
   const wiseAvailable = wiseEnabled && !comboSelected
   const wiseSelected = paymentMethod === 'wise_transfer' && wiseAvailable
+  const manualSelected = isManualPaymentChannel(paymentMethod)
   const displayedMembershipPrice = previewCheckoutPrice({
     paymentMethod,
     manualPrice: membershipManualPrice,
@@ -59,6 +68,33 @@ export default function RegisterSettle({
     registration: displayedRegistrationPrice,
     combo: displayedComboPrice,
   })
+
+  const registrationCatalog = Number(registrationPrice) || 0
+  const registrationManual =
+    registrationManualPrice == null ? null : Number(registrationManualPrice)
+  const registrationHasDiscount =
+    registrationManual != null &&
+    Number.isFinite(registrationManual) &&
+    registrationManual < registrationCatalog
+  const comboCatalog = Number(comboOffer?.price) || 0
+  const comboManual = comboOffer?.manualPrice == null ? null : Number(comboOffer.manualPrice)
+  const comboHasDiscount =
+    comboManual != null && Number.isFinite(comboManual) && comboManual < comboCatalog
+
+  const activeHasDiscount = comboSelected && showPackage ? comboHasDiscount : registrationHasDiscount
+  const activeManualPrice = comboSelected && showPackage ? comboManual : registrationManual
+  const activeCatalogPrice = comboSelected && showPackage ? comboCatalog : registrationCatalog
+  const showChannelCompare =
+    manualSelected &&
+    !wiseSelected &&
+    activeHasDiscount &&
+    Number(comboSelected && showPackage ? displayedComboPrice : displayedRegistrationPrice) <
+      activeCatalogPrice
+  const channelCompareLabel = showChannelCompare
+    ? t('comboDeal.compare', { amount: money(activeCatalogPrice, locale) })
+    : ''
+  const manualMethodDetail = activeHasDiscount ? money(activeManualPrice, locale) : ''
+
   const offers = []
 
   if (showPackage && (comboEnabled || comboComingSoon)) {
@@ -70,6 +106,8 @@ export default function RegisterSettle({
         : wiseSelected
           ? formatWisePriceLabel(displayedComboPrice, locale)
           : money(displayedComboPrice, locale),
+      comparePriceLabel:
+        comboSelected && showChannelCompare && comboHasDiscount ? channelCompareLabel : undefined,
       featured: true,
       disabled: comboComingSoon,
       savings: displayedDeal?.live
@@ -96,6 +134,10 @@ export default function RegisterSettle({
       priceLabel: wiseSelected
         ? formatWisePriceLabel(displayedRegistrationPrice, locale, registrationWisePrice)
         : money(displayedRegistrationPrice, locale),
+      comparePriceLabel:
+        !comboSelected && showChannelCompare && registrationHasDiscount
+          ? channelCompareLabel
+          : undefined,
     })
   }
 
@@ -115,8 +157,23 @@ export default function RegisterSettle({
         t,
         transferEnabled,
         wiseEnabled,
-      })
+      }).map((method) => ({
+        ...method,
+        detail: isManualPaymentChannel(method.value) ? manualMethodDetail || undefined : undefined,
+      }))
     : []
+
+  const resolvedPaymentHint =
+    paymentHint ||
+    (methods.length === 0 && showPayment
+      ? t('pages.register.paymentNoChannelHint')
+      : wiseSelected
+        ? t('pages.register.paymentWisePriceHint')
+        : showChannelCompare
+          ? t('pages.register.manualChannelPriceHint')
+          : mercadoPagoEnabled && !transferOffered && !cashOffered && !wiseEnabled
+            ? t('pages.register.paymentMercadoPagoOnlyHint')
+            : '')
 
   return (
     <CheckoutDesk
@@ -128,16 +185,7 @@ export default function RegisterSettle({
       offerName="competition-purchase-type"
       offers={offers}
       paymentError={paymentError}
-      paymentHint={
-        paymentHint ||
-        (methods.length === 0 && showPayment
-          ? t('pages.register.paymentNoChannelHint')
-          : wiseSelected
-            ? t('pages.register.paymentWisePriceHint')
-            : mercadoPagoEnabled && !transferOffered && !cashOffered && !wiseAvailable
-              ? t('pages.register.paymentMercadoPagoOnlyHint')
-              : '')
-      }
+      paymentHint={resolvedPaymentHint}
       paymentMethod={paymentMethod}
       selectedOfferId={comboSelected ? 'combo' : 'registration'}
       onOfferChange={onPurchaseTypeChange}
@@ -149,6 +197,7 @@ export default function RegisterSettle({
 
 export function RegisterCheckoutBar({
   checkoutTotal,
+  compareTotal = null,
   disabled = false,
   flow,
   hideCta = false,
@@ -166,6 +215,7 @@ export function RegisterCheckoutBar({
       ]
         .filter(Boolean)
         .join(' ')}
+      compareTotal={compareTotal}
       ctaClassName={[
         'btn register-card__submit plu-checkout__submit',
         flow === 'competition' ? 'register-card__submit--competition' : '',

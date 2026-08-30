@@ -47,6 +47,7 @@ export default function ManualPaymentConfirmation({
   financedEntitlementsAt = null,
   financedPaymentDueAt = null,
   onConfirmed,
+  onOrderClosed,
   onNavigate,
   profileTab,
 }) {
@@ -122,7 +123,12 @@ export default function ManualPaymentConfirmation({
       onConfirmed?.(result)
     } catch (confirmationError) {
       setState('error')
-      setError(confirmationError?.message ?? t('payments.manualConfirmation.error'))
+      const message = confirmationError?.message ?? t('payments.manualConfirmation.error')
+      setError(message)
+      // Orden terminal (rechazada/cancelada/aprobada): no hay reintento útil.
+      if (/ya no admite esta declaraci[oó]n/i.test(message)) {
+        onOrderClosed?.(confirmationError)
+      }
     }
   }
 
@@ -199,12 +205,6 @@ export default function ManualPaymentConfirmation({
             <p className="manual-payment-confirmation__financing">
               {t('payments.manualConfirmation.deferredHint')}
             </p>
-          ) : isCash ? (
-            <p className="manual-payment-confirmation__financing">
-              {financingAllowed
-                ? t('payments.manualConfirmation.financingHint')
-                : t('payments.manualConfirmation.noFinancingHint')}
-            </p>
           ) : financingAllowed ? (
             <p className="manual-payment-confirmation__financing">
               {t('payments.manualConfirmation.financingHint')}
@@ -240,7 +240,11 @@ export default function ManualPaymentConfirmation({
             </button>
           ) : null}
           <p className="manual-payment-confirmation__legal">
-            {t('payments.manualConfirmation.notApproval')}
+            {t(
+              isCash
+                ? 'payments.manualConfirmation.cashNotApproval'
+                : 'payments.manualConfirmation.notApproval',
+            )}
           </p>
           {error ? (
             <p className="manual-payment-confirmation__error" role="alert">

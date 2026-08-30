@@ -110,7 +110,7 @@ import {
   findOpenPaymentForRegistration,
   findPendingEventRegistration,
 } from '../services/competitionCheckoutService.js'
-import { readStorage, writeStorage } from '../services/storageService.js'
+import { readStorage, writeCurrentOrder, writeStorage } from '../services/storageService.js'
 import {
   approveTicketOrder as approveTicketOrderRequest,
   checkInTicket as checkInTicketRequest,
@@ -1480,6 +1480,12 @@ export function useAppData() {
     },
     [session],
   )
+
+  /** Cierra la orden en curso (p. ej. rechazada) para volver al formulario de inscripción. */
+  const clearCreatedOrder = useCallback(() => {
+    setCreatedOrder(null)
+    writeCurrentOrder(null)
+  }, [])
 
   // Aprobación operativa reservada a transferencias manuales. Las órdenes
   // Mercado Pago se acreditan exclusivamente mediante webhook.
@@ -3335,6 +3341,7 @@ export function useAppData() {
     pendingTicketOrdersLoading,
     pendingTicketOrdersError,
     createdOrder,
+    clearCreatedOrder,
     form,
     filters,
     setFilters,

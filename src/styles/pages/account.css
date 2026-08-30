@@ -1696,9 +1696,19 @@
   justify-items: start;
 }
 
-.account-membership__bar .plu-checkout__total span {
+.account-membership__bar .plu-checkout__total-amounts {
+  justify-items: start;
+  text-align: left;
+}
+
+.account-membership__bar .plu-checkout__total > span:first-child {
   font-size: 11px;
   letter-spacing: 0.1em;
+}
+
+.account-membership__bar .plu-checkout__total-compare {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
 }
 
 .account-membership__bar .plu-checkout__total strong,
@@ -2740,7 +2750,7 @@
   justify-content: center;
   padding: 20px;
   position: fixed;
-  z-index: 200;
+  z-index: var(--z-modal, 400);
 }
 
 .account-payment-modal {
@@ -2754,14 +2764,8 @@
   width: 100%;
 }
 
-.account-payment-modal--transfer {
-  display: grid;
-  gap: 14px;
-  max-height: min(90vh, 720px);
-  overflow: auto;
-  padding: 22px 22px calc(16px + env(safe-area-inset-bottom, 0px));
-}
-
+/* TransferPayModal: layout y z-index viven en transfer-pay-modal.css.
+   Acá sólo se mantienen utilidades compartidas con el recibo en línea. */
 .account-payment-modal--transfer .account-payment-modal__close {
   height: 44px;
   width: 44px;
@@ -2773,18 +2777,6 @@
   line-height: 1.45;
   margin: 0;
   max-width: 46ch;
-}
-
-.account-payment-modal--transfer .account-secondary-action {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  min-height: 44px;
-  padding: 0;
-  width: 100%;
 }
 
 .account-transfer-receipt {
@@ -2830,10 +2822,6 @@
 }
 
 @media (max-width: 480px) {
-  .account-payment-modal--transfer {
-    padding: 20px 18px calc(16px + env(safe-area-inset-bottom, 0px));
-  }
-
   .account-transfer-data--receipt div {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
@@ -4680,119 +4668,175 @@
   }
 }
 
-/* Identity strip: photo + official readonly facts */
+/* Identity strip: photo + official readonly facts (editorial / credential) */
 .account-identity {
   align-items: start;
   border-bottom: 1px solid var(--color-border-subtle);
   display: grid;
-  gap: 20px;
-  margin: 0 0 8px;
-  padding-bottom: 22px;
+  gap: 22px;
+  margin: 0 0 10px;
+  padding-bottom: 28px;
 }
 
 .account-identity__photo {
   align-items: center;
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
+  width: fit-content;
 }
 
 .account-identity__photo-actions {
+  align-items: center;
   display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+  text-align: center;
 }
 
 .account-identity__photo-actions .account-photo__hint {
-  font-size: 12px;
-  max-width: 36ch;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  max-width: 28ch;
 }
 
 .account-identity__official {
   display: grid;
-  gap: 6px;
+  gap: 10px;
   min-width: 0;
+}
+
+.account-identity__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .account-identity__name {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(19px, 2.6vw, 23px);
+  font-size: clamp(22px, 3vw, 30px);
   font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.15;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
   margin: 0;
   overflow-wrap: anywhere;
+  position: relative;
+}
+
+/* Single gold accent under the athlete name */
+.account-identity__name::after {
+  background: var(--color-brand-gold);
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 10px;
+  opacity: 0.85;
+  width: 40px;
 }
 
 .account-identity__meta {
-  color: var(--color-text-secondary);
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
   margin: 4px 0 0;
-  row-gap: 6px;
-}
-
-.account-identity__meta-item {
-  align-items: baseline;
-  display: inline-flex;
-  gap: 5px;
   min-width: 0;
 }
 
-.account-identity__meta-item + .account-identity__meta-item::before {
-  color: var(--color-text-muted);
-  content: '·';
-  margin: 0 12px;
+.account-identity__meta-item {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
 .account-identity__meta-item dt {
   color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .account-identity__meta-item dd {
   color: var(--color-text-primary);
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 500;
+  line-height: 1.3;
   margin: 0;
   overflow-wrap: anywhere;
 }
 
+.account-identity__document {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+}
+
 .account-identity__note {
   color: var(--color-text-muted);
-  font-size: 11.5px;
-  line-height: 1.4;
-  margin: 0;
-  max-width: 48ch;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 2px 0 0;
+  max-width: none;
+  width: 100%;
 }
 
 @media (min-width: 720px) {
   .account-identity {
     align-items: center;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-    gap: 28px;
+    gap: 36px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .account-identity__meta {
+    gap: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .account-identity__meta-item {
+    padding-right: 18px;
+  }
+
+  .account-identity__meta-item + .account-identity__meta-item {
+    border-left: 1px solid var(--color-border-subtle);
+    padding-left: 18px;
+    padding-right: 0;
+  }
+
+  .account-identity__meta-item:last-child {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 719px) {
+  .account-identity__meta-item + .account-identity__meta-item {
+    border-top: 1px solid var(--color-border-subtle);
+    padding-top: 12px;
+  }
+
+  .account-identity__photo {
+    width: 100%;
   }
 }
 
 @media (max-width: 560px) {
-  .account-identity__photo {
-    align-items: center;
-  }
-
   #account-personal-data .account-photo__ring {
-    height: 80px;
-    width: 80px;
+    height: 88px;
+    width: 88px;
   }
 
   #account-personal-data .account-photo__avatar {
-    height: 68px;
-    width: 68px;
+    height: 74px;
+    width: 74px;
   }
 
   #account-personal-data .account-photo__badge {

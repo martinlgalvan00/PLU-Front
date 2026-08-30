@@ -6523,7 +6523,76 @@
   padding-bottom: 14px;
 }
 
-/* Barra de configuración del tab Sistema: meta + worker, sin masthead duplicado. */
+/* Barra de configuración del tab Sistema: señales + herramientas en una franja. */
+.admin-payment-ops__chrome {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  justify-content: space-between;
+  padding: 12px clamp(14px, 2.4vw, 22px);
+}
+
+.admin-payment-ops__signals {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-payment-ops__chip {
+  align-items: baseline;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 2px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 10px;
+}
+
+.admin-payment-ops__chip-label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.admin-payment-ops__chip-value {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.admin-payment-ops__chip--ok {
+  background: color-mix(in srgb, var(--color-success-text, #3d9a5f) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-success-text, #3d9a5f) 28%, transparent);
+}
+
+.admin-payment-ops__chip--ok .admin-payment-ops__chip-value {
+  color: var(--color-success-text, #3d9a5f);
+}
+
+.admin-payment-ops__chip--warn {
+  background: color-mix(in srgb, var(--color-warning-text, #b7791f) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning-text, #b7791f) 28%, transparent);
+}
+
+.admin-payment-ops__chip--warn .admin-payment-ops__chip-value {
+  color: var(--color-warning-text, #b7791f);
+}
+
 .admin-payment-ops__meta-bar {
   align-items: center;
   border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
@@ -6609,11 +6678,29 @@
 .admin-payment-ops__tools {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
-  margin-bottom: 12px;
-  padding: 0 clamp(14px, 2.4vw, 22px);
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .admin-payment-ops__chrome {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-payment-ops__tools {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .admin-payment-ops__tools .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }
 
 /* Header siempre visible: el nav solo dice "Pagos", no reemplaza el título. */
@@ -8237,51 +8324,120 @@
   width: min(100%, 640px);
 }
 
+/* Consulta: split operativo — evidencia a la izquierda, ficha a la derecha. */
 .payment-validation-dialog__panel--view {
-  gap: var(--space-md);
-  max-height: min(94vh, 960px);
-  max-width: min(100%, 880px);
-  padding: clamp(var(--space-lg), 3.5vw, calc(var(--space-lg) + var(--space-sm)));
-  width: min(100%, 880px);
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__proof {
-  order: 1;
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__meta {
-  order: 2;
-}
-
-.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
-  .payment-validation-dialog__meta {
-  order: 1;
-}
-
-.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
-  .payment-validation-dialog__proof {
-  order: 2;
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__error {
-  order: 3;
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__actions {
-  order: 4;
+  align-items: stretch;
+  column-gap: clamp(18px, 2.4vw, 28px);
+  grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.78fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(92vh, 820px);
+  max-width: min(100%, 1080px);
+  overflow: hidden;
+  padding: clamp(16px, 2.2vw, 22px);
+  row-gap: 14px;
+  width: min(100%, 1080px);
 }
 
 .payment-validation-dialog__panel--view .payment-validation-dialog__head {
-  gap: var(--space-sm);
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  grid-column: 2;
+  grid-row: 1;
+  justify-content: space-between;
+}
+
+.payment-validation-dialog__panel--view .payment-validation-dialog__proof {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  min-height: 0;
+}
+
+.payment-validation-dialog__panel--view .payment-validation-dialog__meta {
+  align-content: start;
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+  overflow: auto;
+}
+
+.payment-validation-dialog__panel--view .payment-validation-dialog__error {
+  grid-column: 2;
+}
+
+.payment-validation-dialog__panel--view .payment-validation-dialog__actions {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto;
+  max-width: min(100%, 560px);
+  overflow: auto;
+  width: min(100%, 560px);
+}
+
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__head,
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__meta,
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__proof,
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__actions,
+.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__error {
+  grid-column: 1;
+  grid-row: auto;
 }
 
 .payment-validation-dialog__panel--view .payment-validation-dialog__lead {
-  font-size: 14px;
+  font-size: 13px;
+  max-width: 36ch;
 }
 
 .payment-validation-dialog__head {
   display: grid;
   gap: var(--space-sm);
+}
+
+.payment-validation-dialog__head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.payment-validation-dialog__dismiss {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 6%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 2px;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 36px;
+  justify-content: center;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+  width: 36px;
+}
+
+.payment-validation-dialog__dismiss:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 42%, transparent);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.payment-validation-dialog__dismiss:focus-visible {
+  outline: 2px solid var(--color-brand-gold);
+  outline-offset: 2px;
+}
+
+.payment-validation-dialog__dismiss:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Traza del cobro: estado → qué hacer → hechos → recorrido. */
@@ -8643,6 +8799,29 @@
   margin: 0;
 }
 
+.payment-validation-dialog__meta--rail {
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.payment-validation-dialog__meta--rail > div {
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: grid;
+  gap: 3px;
+  padding-bottom: 10px;
+}
+
+.payment-validation-dialog__meta--rail > div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.payment-validation-dialog__meta--rail dd {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
 .payment-validation-dialog__meta--compact {
   gap: var(--space-sm) var(--space-lg);
 }
@@ -8686,13 +8865,22 @@
 }
 
 .payment-validation-dialog__amount {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.payment-validation-dialog__meta--rail .payment-validation-dialog__amount {
+  color: var(--color-brand-gold);
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
 }
 
 .payment-validation-dialog__proof {
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 3%, transparent);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--border-radius-md);
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 2px;
   display: grid;
   gap: var(--space-md);
   min-height: 120px;
@@ -8753,7 +8941,22 @@
 
 .payment-validation-dialog__preview {
   display: grid;
-  gap: var(--space-md);
+  gap: 10px;
+  min-height: 0;
+}
+
+.payment-validation-dialog__proof-toolbar {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.payment-validation-dialog__stage {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+  overflow: auto;
 }
 
 .payment-validation-dialog__image-btn {
@@ -8761,6 +8964,7 @@
   border: 0;
   cursor: zoom-in;
   display: block;
+  max-height: 100%;
   padding: 0;
   width: 100%;
 }
@@ -8770,23 +8974,41 @@
 }
 
 .payment-validation-dialog__image-btn:focus-visible {
-  border-radius: var(--border-radius-sm);
+  border-radius: 2px;
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 3px;
 }
 
 .payment-validation-dialog__image {
-  background: var(--color-bg-primary);
-  border-radius: var(--border-radius-sm);
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 8%, transparent);
+  border-radius: 2px;
   display: block;
+  margin-inline: auto;
   max-height: 360px;
   object-fit: contain;
   width: 100%;
 }
 
 .payment-validation-dialog__panel--view .payment-validation-dialog__proof {
-  min-height: 180px;
-  padding: var(--space-sm);
+  align-content: stretch;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  padding: 12px;
+}
+
+.payment-validation-dialog__panel--view .payment-validation-dialog__preview {
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.payment-validation-dialog__panel--view .payment-validation-dialog__stage {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 6%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 2px;
+  min-height: 0;
+  padding: 10px;
 }
 
 .payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
@@ -8795,7 +9017,7 @@
 }
 
 .payment-validation-dialog__panel--view .payment-validation-dialog__image {
-  max-height: min(72vh, 720px);
+  max-height: min(68vh, 640px);
 }
 
 .payment-validation-dialog__panel--view
@@ -8805,13 +9027,13 @@
 }
 
 .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
-  height: min(72vh, 720px);
+  height: min(68vh, 640px);
 }
 
 .payment-validation-dialog__frame {
-  background: var(--color-bg-primary);
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 8%, transparent);
   border: 0;
-  border-radius: var(--border-radius-sm);
+  border-radius: 2px;
   height: min(52vh, 380px);
   width: 100%;
 }
@@ -8825,17 +9047,19 @@
 
 .payment-validation-dialog__open {
   align-items: center;
-  color: var(--color-brand-celeste);
+  color: var(--admin-muted, var(--color-text-muted));
   display: inline-flex;
   font-size: 12.5px;
   font-weight: 650;
   gap: 6px;
+  letter-spacing: 0.01em;
   text-decoration: none;
+  transition: color var(--motion-fast) var(--ease-out);
   width: fit-content;
 }
 
 .payment-validation-dialog__open:hover {
-  text-decoration: underline;
+  color: var(--color-brand-gold);
 }
 
 .payment-validation-dialog__error {
@@ -8961,6 +9185,43 @@
   }
 }
 
+@media (max-width: 900px) {
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(220px, 42vh) auto;
+    max-height: min(94vh, 920px);
+    overflow: auto;
+  }
+
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
+    .payment-validation-dialog__head,
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
+    .payment-validation-dialog__meta,
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
+    .payment-validation-dialog__proof,
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
+    .payment-validation-dialog__actions,
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
+    .payment-validation-dialog__error {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
+    .payment-validation-dialog__proof {
+    grid-row: 3;
+    min-height: 220px;
+  }
+
+  .payment-validation-dialog__panel--view .payment-validation-dialog__image {
+    max-height: min(42vh, 420px);
+  }
+
+  .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
+    height: min(42vh, 420px);
+  }
+}
+
 @media (max-width: 540px) {
   .payment-validation-dialog__actions {
     display: grid;
@@ -8991,6 +9252,11 @@
     width: 100%;
   }
 
+  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof) {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
   .payment-validation-dialog__panel--empty-proof {
     grid-template-rows: auto auto auto minmax(40px, 1fr);
   }
@@ -9000,11 +9266,11 @@
   }
 
   .payment-validation-dialog__panel--view .payment-validation-dialog__image {
-    max-height: min(48dvh, 360px);
+    max-height: min(40dvh, 320px);
   }
 
   .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
-    height: min(48dvh, 360px);
+    height: min(40dvh, 320px);
   }
 }
 
@@ -19125,51 +19391,54 @@ button.action-queue__proof:focus-visible {
 
 /* KPIs de eventos: pulse editorial dentro del chrome (sin glass / cards). */
 .admin-events-kpis {
-  align-items: baseline;
+  align-items: end;
   border-block: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
   flex-wrap: wrap;
   gap: 0;
   margin: 0;
-  padding: 8px 0;
+  padding: 10px 0 12px;
 }
 
 .admin-events-kpi {
   align-items: baseline;
   display: inline-flex;
   flex: 0 1 auto;
-  gap: 6px;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
-  padding: 2px 14px 2px 0;
+  padding: 0 18px 0 0;
 }
 
 .admin-events-kpi + .admin-events-kpi {
   border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  padding-left: 14px;
+  padding-left: 18px;
 }
 
 .admin-events-kpi__label {
   color: var(--admin-muted, var(--color-text-muted));
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  order: 2;
+  text-transform: uppercase;
 }
 
 .admin-events-kpi__value {
   color: var(--admin-ink, var(--color-text-primary));
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
   margin-left: 0;
+  order: 1;
 }
 
 .admin-events-kpi--primary .admin-events-kpi__value {
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.35rem, 2.2vw, 1.65rem);
+  font-weight: 650;
+  letter-spacing: -0.045em;
 }
 
 .admin-events-kpi--quiet .admin-events-kpi__value,
@@ -19180,16 +19449,16 @@ button.action-queue__proof:focus-visible {
 
 @media (max-width: 720px) {
   .admin-events-kpis {
-    gap: 6px 0;
-    padding: 6px 0;
+    gap: 8px 0;
+    padding: 8px 0 10px;
   }
 
   .admin-events-kpi {
-    padding-right: 10px;
+    padding-right: 12px;
   }
 
   .admin-events-kpi + .admin-events-kpi {
-    padding-left: 10px;
+    padding-left: 12px;
   }
 
   .admin-events-kpi--quiet {

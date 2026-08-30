@@ -184,8 +184,8 @@ describe('EventsSection — filas de sección de la consola', () => {
     const panel = consolePanel()
     fireEvent.click(within(panel).getByRole('button', { name: /datos/i }))
     const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
-    const fold = dialog.querySelector('.admin-event-console__fold')
-    expect(fold).not.toBeNull()
+    expect(dialog.querySelector('.admin-event-console__fold[data-section="basics"]')).not.toBeNull()
+    expect(dialog.querySelector('.admin-event-editor--essentials')).not.toBeNull()
 
     fireEvent.click(within(dialog).getByRole('button', { name: /ventas y cupos/i }))
     expect(
@@ -195,7 +195,21 @@ describe('EventsSection — filas de sección de la consola', () => {
       within(dialog).getByRole('button', { name: /datos/i }).getAttribute('aria-expanded'),
     ).toBe('false')
     expect(dialog.querySelectorAll('.admin-event-editor--accordion')).toHaveLength(1)
-    expect(dialog.querySelector('.admin-event-console__fold')).toBe(fold)
+    expect(dialog.querySelector('.admin-event-console__fold[data-section="sales"]')).not.toBeNull()
+    expect(dialog.querySelector('.admin-event-console__fold[data-section="basics"]')).toBeNull()
+  })
+
+  it('en Ventas el acordeón muestra lo elemental sin canales de cobro', () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /ventas y cupos/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    const fold = dialog.querySelector('.admin-event-console__fold[data-section="sales"]')
+    expect(fold).not.toBeNull()
+    expect(fold.querySelector('#event-slots')).not.toBeNull()
+    expect(fold.querySelector('[data-field="pricing.registration"]')).not.toBeNull()
+    expect(fold.querySelector('.admin-event-form__payment-profile')).toBeNull()
+    expect(fold.querySelector('.admin-event-form__ticket-config')).toBeNull()
   })
 })
 
