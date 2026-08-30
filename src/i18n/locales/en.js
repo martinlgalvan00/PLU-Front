@@ -212,6 +212,8 @@ export default {
         'This code does not include financing: your membership and registration stay pending until Administration validates the payment.',
       notApproval:
         'This notice does not credit the payment. The order remains pending until Finance validates it.',
+      cashNotApproval:
+        'Even after you hand over the cash, Finance validates it in the system before the order is credited.',
       received: 'Notice received',
       // The closing seal: what got enabled, in the first person. The open
       // balance is stated in the detail (`financedGranted`), never omitted:
@@ -1585,6 +1587,7 @@ export default {
         offer_unavailable: 'That offer is no longer available.',
       },
       paymentLegend: 'Payment method',
+      manualChannelPriceHint: 'Price with bank transfer or cash at Pitbull.',
       planSelector: 'Membership plan',
       planModeLegend: 'Billing',
       planModeAnnual: 'Annual',
@@ -1678,8 +1681,7 @@ export default {
       eyebrow: 'My account',
       title: 'Personal data',
       lead: 'Keep your details up to date. Fields marked with * are required to register for meets.',
-      photoHint:
-        'Click or drag an image onto your photo to change it. JPG, PNG or WEBP, up to 3 MB.',
+      photoHint: 'JPG, PNG or WEBP · max 3 MB',
       photoUpload: 'Upload photo',
       photoChange: 'Change photo',
       photoUploading: 'Uploading…',
@@ -3226,6 +3228,7 @@ export default {
       competitionEyebrow: 'Competition registration',
       competitionDesc: '{{name}}, complete your details for {{event}}.',
       competitionDescShort: 'Set how you compete and generate your order.',
+      competitionSettleDesc: 'Complete payment to confirm your spot.',
       competitionProfileTitle: 'Competition profile',
       competitionProfileStateReady: 'Profile complete',
       competitionProfileStateIncomplete: 'Details pending',
@@ -3300,6 +3303,7 @@ export default {
         'For now, memberships and registrations can only be paid through Mercado Pago. Bank transfer and cash at Pitbull will be available soon.',
       paymentNoChannelHint:
         'No payment methods are available right now. Try again later or get in touch.',
+      manualChannelPriceHint: 'Price with bank transfer or cash at Pitbull.',
       priceIncreaseNotice: 'From {{date}}, registration moves to {{amount}}.',
       paymentCodeWithoutGatewayHint:
         'Your code is not paid through Mercado Pago: the price was agreed for the methods you see here. The team validates the payment by hand.',
@@ -3317,6 +3321,17 @@ export default {
         'This order already has a Mercado Pago payment in progress. Complete it or wait until it expires to pay by transfer.',
       paymentLinkHint: 'Administrative validation · up to 48 hours',
       cashPitbullCreated: 'Your order is ready. You can pay cash at Pitbull.',
+      cashPitbullSettleNote:
+        'Pay cash at Pitbull. When you hand it over, report it in the panel below.',
+      cashPitbullDeclaredNote:
+        'You already reported the handoff. Finance validates the payment in the system before crediting it.',
+      settleRejectedTitle: 'This order was rejected.',
+      settleRejectedLead:
+        ' You cannot report a payment on it. You can start a new registration if the event is still open.',
+      settleRejectedNote:
+        'Finance rejected this order. Start a new registration to pay again.',
+      settleRejectedRetry: 'Register again',
+      settleRejectedAction: 'Go to my meets',
       cashFinancingActiveNote:
         'Financing active: your membership and registration turn on when you confirm the handoff in the payment panel.',
       cashFinancingPendingNote:

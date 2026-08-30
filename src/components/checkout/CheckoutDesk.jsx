@@ -68,7 +68,12 @@ export default function CheckoutDesk({
           ) : null}
         </span>
         {showDeal ? null : (
-          <strong className="plu-checkout__offer-price">{offer.priceLabel}</strong>
+          <span className="plu-checkout__offer-price-block">
+            <strong className="plu-checkout__offer-price">{offer.priceLabel}</strong>
+            {offer.comparePriceLabel ? (
+              <s className="plu-checkout__offer-compare">{offer.comparePriceLabel}</s>
+            ) : null}
+          </span>
         )}
         {showDeal ? (
           <SeasonComboOffer
@@ -134,6 +139,7 @@ export default function CheckoutDesk({
                 key={method.value}
                 className={[
                   'plu-checkout__pill',
+                  method.detail ? 'has-detail' : '',
                   paymentMethod === method.value ? 'is-selected' : '',
                   method.disabled ? 'is-disabled' : '',
                 ]
@@ -149,7 +155,12 @@ export default function CheckoutDesk({
                   onBlur={onPaymentBlur}
                   onChange={onPaymentChange}
                 />
-                <span className="plu-checkout__pill-label">{method.label}</span>
+                <span className="plu-checkout__pill-copy">
+                  <span className="plu-checkout__pill-label">{method.label}</span>
+                  {method.detail ? (
+                    <span className="plu-checkout__pill-detail">{method.detail}</span>
+                  ) : null}
+                </span>
               </label>
             ))}
           </div>
@@ -168,6 +179,7 @@ export default function CheckoutDesk({
 
 export function CheckoutBar({
   className = '',
+  compareTotal = null,
   ctaClassName = '',
   ctaLabel,
   disabled = false,
@@ -180,6 +192,14 @@ export function CheckoutBar({
   type = 'submit',
 }) {
   const { locale, t } = useI18n()
+  const totalLabelText =
+    total == null ? '—' : typeof total === 'string' ? total : money(total, locale)
+  const compareLabelText =
+    compareTotal == null
+      ? null
+      : typeof compareTotal === 'string'
+        ? compareTotal
+        : money(compareTotal, locale)
 
   return (
     <div className={['plu-checkout__bar', className].filter(Boolean).join(' ')}>
@@ -189,9 +209,12 @@ export function CheckoutBar({
         ) : null}
         <div className="plu-checkout__total">
           <span>{totalLabel || t('pages.register.total')}</span>
-          <strong>
-            {total == null ? '—' : typeof total === 'string' ? total : money(total, locale)}
-          </strong>
+          <span className="plu-checkout__total-amounts">
+            {compareLabelText ? (
+              <s className="plu-checkout__total-compare">{compareLabelText}</s>
+            ) : null}
+            <strong>{totalLabelText}</strong>
+          </span>
         </div>
       </div>
       {hideCta ? null : (

@@ -2253,16 +2253,27 @@
   align-items: baseline;
   column-gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  row-gap: 4px;
+  row-gap: 6px;
 }
 
 .register-page--competition .register-status--settle .register-status__body p {
   grid-column: 1;
 }
 
-.register-page--competition .register-status--settle .register-status__body > *:nth-child(2) {
+.register-page--competition .register-status--settle .register-status__body > .status-pill {
   grid-column: 2;
   justify-self: end;
+}
+
+.register-page--competition .register-status__amount {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  grid-column: 1 / -1;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .register-page--competition .register-status--settle .register-status__body code {
@@ -2272,6 +2283,55 @@
   grid-column: 1 / -1;
   letter-spacing: 0.04em;
   padding: 0;
+}
+
+.register-page--competition .register-status--settle .register-status__manual-actions {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+.register-page--competition .register-status--settle .manual-note {
+  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.register-page--competition .register-status--settle-rejected .manual-note {
+  color: var(--color-danger-text, #c53030);
+}
+
+.register-settle__rejected {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+  padding-top: clamp(16px, 2.2vw, 22px);
+}
+
+.register-settle__rejected-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+}
+
+.register-settle__rejected p {
+  color: var(--color-text-secondary);
+  font-size: 14.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.register-settle__rejected strong {
+  color: var(--color-text-primary);
+  display: block;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
 }
 
 /* El acuse de inscripción admitida vivía acá, al pie de esta misma lista de

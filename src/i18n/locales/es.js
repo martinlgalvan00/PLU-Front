@@ -221,6 +221,8 @@ export default {
         'Este código no incluye financiamiento: tu afiliación y tu inscripción quedan pendientes hasta que Administración valide el pago.',
       notApproval:
         'Este aviso no acredita el pago. La orden queda pendiente hasta que Finanzas la valide.',
+      cashNotApproval:
+        'Aunque entregues el efectivo, Finanzas lo valida en el sistema antes de acreditar la orden.',
       received: 'Aviso recibido',
       // El sello del cierre: lo que quedó habilitado, en primera persona.
       // El saldo abierto se dice en el detalle (`financedGranted`), no se
@@ -1606,6 +1608,7 @@ export default {
         offer_unavailable: 'Esa oferta ya no está disponible.',
       },
       paymentLegend: 'Método de pago',
+      manualChannelPriceHint: 'Precio con transferencia o efectivo en Pitbull.',
       planSelector: 'Plan de afiliación',
       planModeLegend: 'Modalidad',
       planModeAnnual: 'Anual',
@@ -1702,8 +1705,7 @@ export default {
       eyebrow: 'Mi cuenta',
       title: 'Datos personales',
       lead: 'Mantené tus datos al día. Los campos marcados con * son requeridos para inscribirte a torneos.',
-      photoHint:
-        'Hacé clic o arrastrá una imagen sobre tu foto para cambiarla. JPG, PNG o WEBP, hasta 3 MB.',
+      photoHint: 'JPG, PNG o WEBP · máx. 3 MB',
       photoUpload: 'Subir foto',
       photoChange: 'Cambiar foto',
       photoUploading: 'Subiendo…',
@@ -3259,6 +3261,7 @@ export default {
       competitionEyebrow: 'Inscripción a competencia',
       competitionDesc: '{{name}}, completá tus datos para {{event}}.',
       competitionDescShort: 'Definí cómo competís y generá tu orden.',
+      competitionSettleDesc: 'Completá el pago para confirmar tu lugar.',
       competitionProfileTitle: 'Perfil de competencia',
       competitionProfileStateReady: 'Perfil completo',
       competitionProfileStateIncomplete: 'Datos pendientes',
@@ -3331,6 +3334,7 @@ export default {
         'Por el momento, afiliaciones e inscripciones se pagan únicamente con Mercado Pago. Transferencia bancaria y efectivo en Pitbull estarán disponibles próximamente.',
       paymentNoChannelHint:
         'No hay medios de pago disponibles en este momento. Volvé a intentar más tarde o escribinos.',
+      manualChannelPriceHint: 'Precio con transferencia o efectivo en Pitbull.',
       priceIncreaseNotice: 'Desde el {{date}}, la inscripción pasa a {{amount}}.',
       paymentCodeWithoutGatewayHint:
         'Tu código no se paga con Mercado Pago: el precio quedó pactado para los medios que ves acá. El equipo valida el pago a mano.',
@@ -3352,6 +3356,17 @@ export default {
         'Esta orden ya tiene un pago iniciado en Mercado Pago. Completalo o esperá a que venza para usar transferencia.',
       paymentLinkHint: 'Validación administrativa · hasta 48 horas',
       cashPitbullCreated: 'Tu orden quedó creada. Podés pagar en efectivo en Pitbull.',
+      cashPitbullSettleNote:
+        'Pagá en efectivo en Pitbull. Cuando lo entregues, avisá en el panel de abajo.',
+      cashPitbullDeclaredNote:
+        'Ya avisaste la entrega. Finanzas valida el pago en el sistema antes de acreditarlo.',
+      settleRejectedTitle: 'Esta orden fue rechazada.',
+      settleRejectedLead:
+        ' No podés declarar un pago sobre ella. Podés generar una inscripción nueva si el evento sigue abierto.',
+      settleRejectedNote:
+        'Finanzas rechazó esta orden. Generá una inscripción nueva para volver a pagar.',
+      settleRejectedRetry: 'Volver a inscribirme',
+      settleRejectedAction: 'Ir a mis torneos',
       // Nota de estado en la card lateral: acá no hay botón (la acción vive
       // una sola vez, en el panel de pago), solo se dice en qué queda el
       // beneficio según el código tenga o no financiamiento.

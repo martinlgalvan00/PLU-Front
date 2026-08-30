@@ -782,7 +782,8 @@ export default {
       deleteCodeConfirmCancel: 'Keep code',
       deleteCodeConfirmConfirm: 'Delete code',
       codeDeleted: 'Discount code deleted.',
-      codeArchived: 'Promotion archived: it leaves the panel and can no longer be redeemed.',
+      codeArchived:
+        'Promotion archived: it leaves the panel, can no longer be redeemed, and the name is free to reuse.',
       appliesToLabel: 'Applies to',
       appliesTo: {
         membership: 'Membership',
@@ -2227,6 +2228,10 @@ export default {
     provider: 'Provider',
     webhook: 'Signed webhook',
     processingMode: 'Processing',
+    recovery: 'Recovery',
+    recoveryOn: 'Active',
+    recoveryOff: 'Off',
+    runtimeSignalsAria: 'Payment provider configuration',
     configured: 'Configured',
     missing: 'Missing',
     inline: 'Immediate',
@@ -2608,6 +2613,10 @@ export default {
     sectionBasicsLead: 'Which event this is, when it starts and when it ends.',
     sectionSales: 'Sales and capacity',
     sectionSalesLead: 'Athlete registration and spectator tickets, each with its own capacity and prices.',
+    sectionSalesLeadEssentials:
+      'Capacity, registration window and price. Payment channels and ticket types stay in the full editor.',
+    essentialsTicketsNote:
+      'Active ticket types: {{count}}. Windows, add-ons and types are edited in the full event form.',
     laneAthletes: 'Athlete registration',
     laneAthletesLead: 'Capacity and registration window. Past the deadline or full, new sign-ups are rejected.',
     laneSpectators: 'Spectator tickets',
@@ -2635,6 +2644,8 @@ export default {
       finishedButNotEnded: 'The event is marked as finished, but its end date has not arrived yet.',
     },
     sectionVisibility: 'Publishing',
+    sectionVisibilityLeadEssentials:
+      'Public status, meet access and featured flag. Live stream stays in the full editor.',
     validationSummary: 'Fix the highlighted fields before saving.',
     validation: {
       titleMin: 'Enter a title with at least 3 characters.',

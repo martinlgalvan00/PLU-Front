@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   documentKind,
   formatDocumentWithKind,
+  formatIdentityDocumentId,
   formatPromoDeadline,
   isCalendarTodayInArgentina,
   money,
@@ -44,6 +45,13 @@ describe('format', () => {
     expect(formatDocumentWithKind('30111222')).toBe('DNI 30111222')
     expect(formatDocumentWithKind('X1234567')).toBe('ID X1234567')
     expect(formatDocumentWithKind(null)).toBe('')
+  })
+
+  it('colapsa IDs sintéticos de staff en la ficha de identidad', () => {
+    expect(formatIdentityDocumentId('STAFF-660583de-002b-4408-aa10-94fc4f521f0b')).toBe('Staff')
+    expect(formatIdentityDocumentId('staff_abc')).toBe('Staff')
+    expect(formatIdentityDocumentId('44545980')).toBe('44545980')
+    expect(formatIdentityDocumentId('')).toBe('')
   })
 
   it('detecta inscritos del día calendario en Argentina', () => {

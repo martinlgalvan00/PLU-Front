@@ -135,6 +135,14 @@
   width: fit-content;
 }
 
+.plu-checkout__offer-price-block {
+  align-items: end;
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  text-align: right;
+}
+
 .plu-checkout__offer-price {
   color: var(--color-text-primary);
   font-family: var(--font-display);
@@ -145,6 +153,18 @@
   line-height: 1.1;
 }
 
+.plu-checkout__offer-compare {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 .plu-checkout__offer.is-selected .plu-checkout__offer-price {
   color: var(--color-brand-gold);
 }
@@ -153,6 +173,10 @@
   font-size: clamp(1.7rem, 3.6vw, 2.35rem);
   letter-spacing: -0.045em;
   line-height: 0.95;
+}
+
+.plu-checkout__offer.is-featured.is-selected .plu-checkout__offer-compare {
+  font-size: clamp(0.82rem, 1.5vw, 0.95rem);
 }
 
 .plu-checkout__ledger {
@@ -191,7 +215,7 @@
 .plu-checkout__pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   width: fit-content;
 }
 
@@ -206,6 +230,12 @@
   padding: 0 12px;
   position: relative;
   transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.plu-checkout__pill.has-detail {
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 8px 12px;
 }
 
 .plu-checkout__pill:hover {
@@ -237,19 +267,43 @@
   width: 1px;
 }
 
+.plu-checkout__pill-copy {
+  display: grid;
+  gap: 3px;
+}
+
 .plu-checkout__pill-label {
   color: var(--color-text-primary);
   font-family: var(--font-family);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0;
-  line-height: 1;
+  line-height: 1.15;
+}
+
+.plu-checkout__pill-detail {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.plu-checkout__pill.is-selected .plu-checkout__pill-detail {
+  color: var(--color-brand-gold);
 }
 
 @media (pointer: coarse) {
   .plu-checkout__pill {
     min-height: 44px;
     padding: 0 14px;
+  }
+
+  .plu-checkout__pill.has-detail {
+    min-height: 48px;
+    padding: 10px 14px;
   }
 }
 
@@ -286,12 +340,32 @@
   justify-content: space-between;
 }
 
-.plu-checkout__total span {
+.plu-checkout__total > span:first-child {
   color: var(--color-text-muted);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.plu-checkout__total-amounts {
+  align-items: end;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+
+.plu-checkout__total-compare {
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
 }
 
 .plu-checkout__total strong {
@@ -366,6 +440,8 @@
 
 [data-theme='light'] .plu-checkout__deadline,
 [data-theme='light'] .plu-checkout__offer.is-selected .plu-checkout__offer-price,
+[data-theme='light'] .plu-checkout__pill-detail,
+[data-theme='light'] .plu-checkout__pill.is-selected .plu-checkout__pill-detail,
 [data-theme='light'] .plu-checkout__total strong {
   color: var(--plu-gold-600);
 }
@@ -377,6 +453,11 @@
 @media (max-width: 640px) {
   .plu-checkout__offer.is-featured.is-selected {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plu-checkout__offer-price-block {
+    justify-items: start;
+    text-align: left;
   }
 
   .plu-checkout__bar {

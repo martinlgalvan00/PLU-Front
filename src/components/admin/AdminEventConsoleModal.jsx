@@ -269,6 +269,12 @@ export default function AdminEventConsoleModal({
                   label: t('admin.eventConsole.editBasics'),
                   value: t('admin.eventConsole.editBasicsValue'),
                 })}
+                {openSection === 'basics' && editor ? (
+                  <div className="admin-event-console__fold" data-section="basics">
+                    {editor}
+                  </div>
+                ) : null}
+
                 {renderEditRow({
                   section: 'sales',
                   icon: Ticket,
@@ -278,15 +284,20 @@ export default function AdminEventConsoleModal({
                       ? t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount })
                       : t('admin.eventConsole.editSalesValue'),
                 })}
+                {openSection === 'sales' && editor ? (
+                  <div className="admin-event-console__fold" data-section="sales">
+                    {editor}
+                  </div>
+                ) : null}
+
                 {renderEditRow({
                   section: 'visibility',
                   icon: Eye,
                   label: t('admin.eventConsole.editVisibility'),
                   value: t('admin.eventConsole.editVisibilityValue'),
                 })}
-
-                {eventSectionOpen && editor ? (
-                  <div className="admin-event-console__fold" data-section={openSection}>
+                {openSection === 'visibility' && editor ? (
+                  <div className="admin-event-console__fold" data-section="visibility">
                     {editor}
                   </div>
                 ) : null}
