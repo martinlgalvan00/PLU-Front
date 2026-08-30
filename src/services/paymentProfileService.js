@@ -20,4 +20,4 @@ export async function updatePaymentProfile(profileId, patch) {
   const result = await apiPatch(`/api/payment-profiles/${encodeURIComponent(profileId)}`, patch)
   return result?.profile ?? null
 }
-
+

@@ -2277,6 +2277,82 @@
   margin: 0;
 }
 
+.admin-finance--ledger .admin-finance__breakdown {
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip {
+  align-items: baseline;
+  background: color-mix(in srgb, var(--admin-surface-raised, var(--color-bg-elevated)) 80%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--color-brand-celeste) 45%,
+    var(--admin-hairline, var(--color-border-subtle))
+  );
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip-label {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip-count {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-feature-settings: 'tnum' 1;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip-amount {
+  font-feature-settings: 'tnum' 1;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
 .admin-finance--ledger .admin-finance__period {
   align-items: end;
   border-top: 1px solid
@@ -2417,6 +2493,11 @@
   .admin-finance--ledger .admin-finance__toolbar,
   .admin-finance--ledger .admin-finance__dates {
     grid-template-columns: 1fr;
+  }
+
+  .admin-finance--ledger .admin-finance__breakdown-chip {
+    border-radius: 10px;
+    flex-wrap: wrap;
   }
 
   .admin-finance--ledger .admin-finance__lead {

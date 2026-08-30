@@ -93,8 +93,7 @@
   backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
 }
 
-.admin-event-editor-modal__backdrop,
-.admin-event-console-modal__backdrop {
+.admin-event-editor-modal__backdrop {
   background: var(--admin-modal-backdrop);
 }
 
@@ -106,13 +105,27 @@
 .admin-account-dialog__backdrop,
 .admin-event-editor-modal__backdrop,
 .admin-event-quick__backdrop,
-.admin-event-console-modal__backdrop,
 .security-credential-modal__backdrop,
 .admin-shop-modal__backdrop,
 .admin-action-drawer__backdrop {
   -webkit-backdrop-filter: blur(var(--admin-modal-backdrop-blur));
   backdrop-filter: blur(var(--admin-modal-backdrop-blur));
   background: var(--admin-modal-backdrop);
+}
+
+/* Consola: blur del listado detrás, sin velo negro opaco. Tint liviano por tema. */
+.admin-event-console-modal__backdrop {
+  -webkit-backdrop-filter: blur(var(--admin-modal-backdrop-blur, 12px)) saturate(1.1);
+  backdrop-filter: blur(var(--admin-modal-backdrop-blur, 12px)) saturate(1.1);
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 14%, transparent);
+}
+
+[data-theme='light'] .admin-event-console-modal__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 10%, transparent);
+}
+
+[data-theme='dark'] .admin-event-console-modal__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 18%, transparent);
 }
 
 /* Override light puntual del backdrop y panel de credenciales
@@ -411,6 +424,18 @@
   .admin-action-drawer__backdrop {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+
+  .admin-event-console-modal__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
+  }
+
+  [data-theme='light'] .admin-event-console-modal__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 22%, transparent);
+  }
+
+  [data-theme='dark'] .admin-event-console-modal__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 36%, transparent);
   }
 
   .admin-event-editor-modal__panel,

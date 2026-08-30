@@ -1197,6 +1197,8 @@ export default {
     save: 'Guardar',
     saving: 'Guardando…',
     discard: 'Descartar',
+    discardUnsavedConfirm:
+      'Hay cambios de estado sin guardar. ¿Descartarlos y cerrar?',
     overridden:
       'El evento sigue con el cupo lleno, así que quedó en "Cupo lleno". Subí el cupo desde el editor para reabrir la inscripción.',
     fullNote:

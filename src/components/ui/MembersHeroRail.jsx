@@ -3,21 +3,18 @@ import { PRICING } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
-export default function MembersHeroRail({ actionLabel, onAffiliate, onViewPlans }) {
+export default function MembersHeroRail({ actionLabel, onAffiliate, onViewPlans, membershipPrice }) {
   const { locale, messages } = useI18n()
   const rail = messages.pages.members.heroRail
+  const price = Number.isFinite(membershipPrice) ? membershipPrice : PRICING.membership
 
   return (
     <aside className="members-hero-rail members-hero-rail--human" aria-label={rail.metricsAria}>
       <div className="members-hero-rail__bar">
         <dl className="members-hero-rail__pricing">
           <div className="members-hero-rail__price">
-            <dt>{rail.adult}</dt>
-            <dd>{money(PRICING.membership, locale)}</dd>
-          </div>
-          <div className="members-hero-rail__price members-hero-rail__price--junior">
-            <dt>{rail.junior}</dt>
-            <dd>{money(PRICING.membershipJunior, locale)}</dd>
+            <dt>{rail.annual}</dt>
+            <dd>{money(price, locale)}</dd>
           </div>
         </dl>
 

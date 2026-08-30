@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CalendarClock,
   CheckCircle2,
@@ -18,12 +18,28 @@ import {
   isEventFull,
 } from '../../services/eventAdminService.js'
 
+function baselineFromEvent(event) {
+  return {
+    status: event?.status ?? 'proximamente',
+    published: event?.published === true,
+    requiresMembership: event?.requiresMembership !== false,
+  }
+}
+
+function diffAgainstBaseline(draft, baseline) {
+  const payload = {}
+  for (const key of ['status', 'published', 'requiresMembership']) {
+    if (draft[key] !== baseline[key]) payload[key] = draft[key]
+  }
+  return payload
+}
+
 /**
  * AdminEventStateControl — PLU ARG
  *
  * Habilitar, deshabilitar y cambiar el estado público de un evento sin abrir el
- * editor completo. Cada decisión se guarda al toque (un click = un PATCH
- * parcial): la operación diaria no debería pedir "Guardar" aparte.
+ * editor completo. Los chips y atajos mutan un draft local; el PATCH parcial
+ * solo corre al tocar Guardar (Descartar vuelve al estado persistido).
  *
  * `agotado` no es una opción elegible: lo pone y lo saca la base según el cupo
  * (`sync_event_capacity_status`). Aparece como chip solo cuando el evento ya
@@ -35,17 +51,39 @@ import {
  * una dice su consecuencia real: el requisito no solo filtra la inscripción,
  * decide quién pasa la puerta el día del meet (`src/lib/gateAccess.js`).
  */
-export default function AdminEventStateControl({ canEdit = false, event, onSetState }) {
+export default function AdminEventStateControl({
+  canEdit = false,
+  event,
+  onDirtyChange,
+  onSetState,
+}) {
   const { locale, t } = useI18n()
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null)
-  /** Vista previa optimista mientras viaja el PATCH; se limpia al resolver. */
-  const [optimistic, setOptimistic] = useState(null)
+  const onDirtyChangeRef = useRef(onDirtyChange)
+  onDirtyChangeRef.current = onDirtyChange
+  const baseline = useMemo(
+    () => baselineFromEvent(event),
+    [event?.published, event?.requiresMembership, event?.slug, event?.status],
+  )
+  const [draft, setDraft] = useState(baseline)
+
+  useEffect(() => {
+    setDraft(baseline)
+    setNotice(null)
+  }, [baseline])
+
+  const pending = useMemo(() => diffAgainstBaseline(draft, baseline), [baseline, draft])
+  const dirtyCount = Object.keys(pending).length
+  const dirty = dirtyCount > 0
+
+  useEffect(() => {
+    onDirtyChangeRef.current?.(dirty)
+  }, [dirty])
 
   const full = isEventFull(event)
-  const published = event?.published === true
-  const status = event?.status ?? 'proximamente'
   const registration = getEventRegistrationAvailability(event)
+  const registered = Number(event?.registered) || 0
 
   const scheduledDate = useMemo(() => {
     if (!registration.opensAt) return ''
@@ -55,20 +93,14 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
     }).format(registration.opensAt)
   }, [locale, registration.opensAt])
 
-  const requiresMembership = event?.requiresMembership !== false
-  const registered = Number(event?.registered) || 0
-
-  const effectiveStatus = optimistic?.status ?? status
-  const effectivePublished = optimistic?.published ?? published
-  const effectiveRequiresMembership = optimistic?.requiresMembership ?? requiresMembership
   const effectiveRegistration = useMemo(
     () =>
       getEventRegistrationAvailability({
         ...event,
-        status: effectiveStatus,
-        published: effectivePublished,
+        status: draft.status,
+        published: draft.published,
       }),
-    [event, effectiveStatus, effectivePublished],
+    [draft.published, draft.status, event],
   )
 
   const accessOptions = useMemo(
@@ -81,14 +113,14 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
 
   const statusOptions = useMemo(() => {
     const values = [...EVENT_QUICK_STATUS_VALUES]
-    if (effectiveStatus === 'agotado' && !values.includes('agotado')) {
+    if (draft.status === 'agotado' && !values.includes('agotado')) {
       values.splice(values.indexOf('cupos_limitados') + 1, 0, 'agotado')
     }
     return translateFilterOptions(
       values.map((value) => [value, 'status']),
       t,
     )
-  }, [effectiveStatus, t])
+  }, [draft.status, t])
 
   function successNoticeFor(payload) {
     const keys = Object.keys(payload)
@@ -107,39 +139,36 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
     return t('admin.eventState.changesSaved')
   }
 
-  async function commit(changes) {
+  function patchDraft(partial) {
     if (!canEdit || busy) return
+    setNotice(null)
+    setDraft((current) => ({ ...current, ...partial }))
+  }
 
-    const baseline = { status, published, requiresMembership }
-    const payload = {}
-    for (const [key, value] of Object.entries(changes)) {
-      if (value !== baseline[key]) payload[key] = value
-    }
-    if (Object.keys(payload).length === 0) return
+  function handleDiscard() {
+    if (busy) return
+    setDraft(baseline)
+    setNotice(null)
+  }
+
+  async function handleSave() {
+    if (!canEdit || busy || dirtyCount === 0) return
 
     setBusy(true)
     setNotice(null)
-    setOptimistic({
-      status: payload.status ?? status,
-      published: payload.published ?? published,
-      requiresMembership: payload.requiresMembership ?? requiresMembership,
-    })
 
     try {
-      const result = await onSetState?.(event.slug, payload)
+      const result = await onSetState?.(event.slug, pending)
       if (result?.error) {
-        setOptimistic(null)
         setNotice({ tone: 'error', text: result.error })
         return
       }
       setNotice(
         result?.statusOverridden
           ? { tone: 'info', text: t('admin.eventState.overridden') }
-          : { tone: 'success', text: successNoticeFor(payload) },
+          : { tone: 'success', text: successNoticeFor(pending) },
       )
-      setOptimistic(null)
     } catch (error) {
-      setOptimistic(null)
       setNotice({
         tone: 'error',
         text: error?.message || t('admin.eventState.saveFailed'),
@@ -150,26 +179,26 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
   }
 
   function handleStatusChange(value) {
-    if (value === effectiveStatus) return
-    void commit({ status: value })
+    if (value === draft.status) return
+    patchDraft({ status: value })
   }
 
   function handleVisibilityToggle() {
-    void commit({ published: !effectivePublished })
+    patchDraft({ published: !draft.published })
   }
 
   function handleOpenRegistrations() {
-    void commit({ status: 'inscripcion_abierta', published: true })
+    patchDraft({ status: 'inscripcion_abierta', published: true })
   }
 
   function handleAccessChange(value) {
     const next = value === 'members'
-    if (next === effectiveRequiresMembership) return
-    void commit({ requiresMembership: next })
+    if (next === draft.requiresMembership) return
+    patchDraft({ requiresMembership: next })
   }
 
   function handleSetUpcoming() {
-    void commit({ status: 'proximamente', published: true })
+    patchDraft({ status: 'proximamente', published: true })
   }
 
   return (
@@ -207,7 +236,7 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
               {t('admin.eventState.openRegistration')}
             </button>
           )}
-          {registration.canSetUpcoming && effectiveStatus !== 'proximamente' ? (
+          {registration.canSetUpcoming && draft.status !== 'proximamente' ? (
             <button
               type="button"
               className="admin-event-state__registration-action"
@@ -234,7 +263,7 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
             ariaLabel={t('admin.eventState.status')}
             onChange={handleStatusChange}
             options={statusOptions}
-            value={effectiveStatus}
+            value={draft.status}
           />
         </div>
 
@@ -254,30 +283,30 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
               ariaLabel={t('admin.eventState.accessLabel')}
               onChange={handleAccessChange}
               options={accessOptions}
-              value={effectiveRequiresMembership ? 'members' : 'open'}
+              value={draft.requiresMembership ? 'members' : 'open'}
             />
 
             <p
               className="admin-event-state__note admin-event-state__note--muted admin-event-state__note--caption"
               title={
-                effectiveRequiresMembership
+                draft.requiresMembership
                   ? t('admin.eventState.accessMembersNote')
                   : t('admin.eventState.accessOpenNote')
               }
             >
-              {effectiveRequiresMembership ? (
+              {draft.requiresMembership ? (
                 <ShieldCheck size={12} aria-hidden />
               ) : (
                 <Unlock size={12} aria-hidden />
               )}
               <span>
-                {effectiveRequiresMembership
+                {draft.requiresMembership
                   ? t('admin.eventState.accessMembersNote')
                   : t('admin.eventState.accessOpenNote')}
               </span>
             </p>
 
-            {effectiveRequiresMembership && registered > 0 ? (
+            {draft.requiresMembership && registered > 0 ? (
               <p className="admin-event-state__note admin-event-state__note--info">
                 <UserCheck size={12} aria-hidden />
                 <span>
@@ -294,27 +323,55 @@ export default function AdminEventStateControl({ canEdit = false, event, onSetSt
             type="button"
             className={[
               'admin-event-state__visibility',
-              effectivePublished ? 'is-published' : 'is-hidden',
+              draft.published ? 'is-published' : 'is-hidden',
             ].join(' ')}
-            aria-pressed={effectivePublished}
+            aria-pressed={draft.published}
             disabled={!canEdit || busy}
             onClick={handleVisibilityToggle}
           >
             {busy ? (
               <span className="plu-spinner plu-spinner--sm" aria-hidden="true" />
-            ) : effectivePublished ? (
+            ) : draft.published ? (
               <Eye size={14} aria-hidden />
             ) : (
               <EyeOff size={14} aria-hidden />
             )}
             <span>
-              {effectivePublished ? t('admin.eventState.published') : t('admin.eventState.hidden')}
+              {draft.published ? t('admin.eventState.published') : t('admin.eventState.hidden')}
             </span>
           </button>
         </div>
       </div>
 
-      {effectiveStatus === 'agotado' ? (
+      {dirty ? (
+        <div className="admin-event-state__pending" role="status">
+          <p className="admin-event-state__pending-hint">
+            {dirtyCount === 1
+              ? t('admin.eventState.pendingOne')
+              : t('admin.eventState.pendingMany', { count: dirtyCount })}
+          </p>
+          <div className="admin-event-state__pending-actions">
+            <button
+              type="button"
+              className="admin-event-state__pending-discard"
+              disabled={busy}
+              onClick={handleDiscard}
+            >
+              {t('admin.eventState.discard')}
+            </button>
+            <button
+              type="button"
+              className="admin-event-state__pending-save"
+              disabled={busy}
+              onClick={() => void handleSave()}
+            >
+              {busy ? t('admin.eventState.saving') : t('admin.eventState.save')}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {draft.status === 'agotado' ? (
         <p className="admin-event-state__note admin-event-state__note--full">
           {t('admin.eventState.fullNote', {
             registered: event?.registered ?? 0,

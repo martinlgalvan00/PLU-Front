@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
@@ -24,6 +24,45 @@ afterEach(() => {
   deleteExpense.mockReset()
 })
 
+const SAMPLE_ROWS = [
+  {
+    id: 'income-m',
+    kind: 'income',
+    occurredOn: '2026-08-10',
+    category: 'Afiliación',
+    conceptKey: 'membership',
+    description: 'Afiliación — Ana Torres',
+    amount: 42000,
+    currency: 'ARS',
+    reference: 'ORD-1042',
+    party: 'Ana Torres',
+  },
+  {
+    id: 'income-r',
+    kind: 'income',
+    occurredOn: '2026-08-11',
+    category: 'Inscripción',
+    conceptKey: 'registration',
+    description: 'Inscripción — Bruno Diaz',
+    amount: 85000,
+    currency: 'ARS',
+    reference: 'ORD-1043',
+    party: 'Bruno Diaz',
+  },
+  {
+    id: 'expense-1',
+    kind: 'expense',
+    occurredOn: '2026-08-05',
+    category: 'Logística',
+    conceptKey: 'expense',
+    description: 'Alquiler de plataforma',
+    amount: 10000,
+    currency: 'ARS',
+    reference: null,
+    party: null,
+  },
+]
+
 describe('Finanzas del panel', () => {
   it('muestra caja compacta, presets de período y alta de egreso', async () => {
     fetchFinanceReport.mockResolvedValue({
@@ -47,9 +86,10 @@ describe('Finanzas del panel', () => {
     expect(screen.getByRole('button', { name: /mes anterior/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /últimos 30 días/i })).toBeTruthy()
     // El formulario de egreso vive en un diálogo: a la vista queda el botón
-    // de alta, no los campos.
-    expect(screen.queryByLabelText(/^categoría$/i)).toBeNull()
+    // de alta, no los campos del modal.
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByRole('button', { name: /cargar egreso/i })).toBeTruthy()
+    expect(screen.getAllByText(/^categoría$/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /exportar csv/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /actualizar/i })).toBeTruthy()
     await waitFor(() => expect(fetchFinanceReport).toHaveBeenCalled())
@@ -76,5 +116,35 @@ describe('Finanzas del panel', () => {
     expect(lastCall?.from).toMatch(/^\d{4}-\d{2}-01$/)
     expect(lastCall?.to).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(lastCall.from).not.toBe(lastCall.to)
+  })
+
+  it('filtra por categoría y actualiza filas + conteo del breakdown', async () => {
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 127000, expense: 10000, balance: 117000 },
+      rows: SAMPLE_ROWS,
+    })
+
+    render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByText('Afiliación — Ana Torres')).toBeTruthy()
+    expect(screen.getByText('Inscripción — Bruno Diaz')).toBeTruthy()
+    expect(screen.getByText('Alquiler de plataforma')).toBeTruthy()
+
+    const breakdown = screen.getByRole('group', { name: /por categoría/i })
+    expect(breakdown).toBeTruthy()
+    expect(screen.getByText(/3 movimientos/i)).toBeTruthy()
+
+    fireEvent.click(within(breakdown).getByRole('button', { name: /afiliación/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Afiliación — Ana Torres')).toBeTruthy()
+      expect(screen.queryByText('Inscripción — Bruno Diaz')).toBeNull()
+      expect(screen.queryByText('Alquiler de plataforma')).toBeNull()
+      expect(screen.getByText(/1 movimientos/i)).toBeTruthy()
+    })
   })
 })
