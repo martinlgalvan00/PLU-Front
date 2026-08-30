@@ -877,6 +877,21 @@ export default {
     approvedNote: 'Pago confirmado. Tu trámite quedó activo.',
     rejectedNote: 'El pago no pudo confirmarse. Contactá soporte.',
   },
+  paymentRecovery: {
+    eyebrow: 'Alternativa de pago',
+    title: '¿Tenés problemas para pagar?',
+    description:
+      'Podés contactarnos o continuar por transferencia. La acreditación manual queda sujeta a revisión de PLU.',
+    purchase: 'Compra',
+    concept: 'Concepto',
+    amount: 'Importe',
+    reference: 'Referencia',
+    transferAction: 'Pagar por transferencia',
+    contactAction: 'Contactar a PLU',
+    contactSubject: 'Problema con un pago de PLU',
+    contactBody: 'Hola, tuve un problema al pagar mediante Mercado Pago. Necesito ayuda con mi operación.',
+    note: 'Si el pago de Mercado Pago figura pendiente, esperá la confirmación o escribinos para evitar pagar dos veces.',
+  },
   confirmation: {
     title: 'Trámite registrado',
     subtitle: 'Recibimos tu solicitud correctamente.',

@@ -2292,6 +2292,11 @@
   padding-bottom: 4px;
 }
 
+.register-settle__manual {
+  display: grid;
+  gap: 10px;
+}
+
 .register-settle__nav {
   align-items: center;
   display: flex;
@@ -4470,6 +4475,46 @@
 
 .register-competition-ticket__picks.is-pending {
   color: color-mix(in srgb, var(--color-text-muted) 78%, transparent);
+}
+
+.register-competition-ticket__methods {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.register-competition-ticket__methods legend {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.register-competition-ticket__methods-list {
+  display: grid;
+  gap: 6px;
+}
+
+.register-competition-ticket__methods-list .plu-checkout__pill {
+  cursor: default;
+  max-width: none;
+  min-height: 36px;
+  padding: 0 10px;
+  pointer-events: none;
+}
+
+.register-competition-ticket__methods-list .plu-checkout__pill.is-selected {
+  background: color-mix(in srgb, var(--color-brand-gold) 5%, transparent);
+  border-color: color-mix(in srgb, var(--color-text-primary) 20%, transparent);
+}
+
+.register-competition-ticket__methods-list .plu-checkout__pill.is-selected .plu-checkout__pill-price {
+  color: var(--color-text-secondary);
 }
 
 .register-competition-ticket__total {

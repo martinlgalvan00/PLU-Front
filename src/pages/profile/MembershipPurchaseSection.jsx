@@ -19,7 +19,7 @@ import { describeDiscountPreviewError } from '../../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../../lib/eventPricing.js'
 import { isPaidCheckoutOpen } from '../../lib/registrationSchedule.js'
 import { ACCOUNT_OFFER_TAB, ACCOUNT_PAYMENTS_TAB } from '../../lib/navigation.js'
-import { listMembershipPlans } from '../../services/paymentService.js'
+import { listMembershipPlans, paymentUpdateStatus } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
 import {
   previewCheckoutPrice,
@@ -56,6 +56,7 @@ import ManualPaymentConfirmation from '../../components/checkout/ManualPaymentCo
 import FinancedDebtNotice from '../../components/ui/FinancedDebtNotice.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
 import RegistrationAccessGateModal from '../../components/checkout/RegistrationAccessGateModal.jsx'
+import PaymentRecoveryPanel from '../../components/checkout/PaymentRecoveryPanel.jsx'
 import { fetchRegistrationAccessRequirements } from '../../services/registrationAccessService.js'
 import { channelOpen } from '../../lib/paymentChannels.js'
 import '../../styles/components/code-band.css'
@@ -87,6 +88,7 @@ export default function MembershipPurchaseSection({
   const [manualOrder, setManualOrder] = useState(null)
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [embeddedOrder, setEmbeddedOrder] = useState(null)
+  const [paymentRecovery, setPaymentRecovery] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
   const [plans, setPlans] = useState([])
   const [planCode, setPlanCode] = useState('plu-annual')
@@ -222,6 +224,14 @@ export default function MembershipPurchaseSection({
         : t('account.membership.transfer')
   const availablePlans = plans
   const selectedPlan = availablePlans.find((plan) => plan.code === planCode) ?? availablePlans[0]
+  const membershipMethodPrice = (method) => {
+    if (!selectedPlan) return ''
+    const amount =
+      method === 'mercado_pago'
+        ? selectedPlan.price
+        : selectedPlan.manualPrice ?? selectedPlan.price
+    return Number.isFinite(Number(amount)) ? money(Number(amount), locale) : ''
+  }
   const selectedPlanPrice = previewCheckoutPrice({
     paymentMethod,
     manualPrice: selectedPlan?.manualPrice,
@@ -539,6 +549,32 @@ export default function MembershipPurchaseSection({
     setDiscountOpen(false)
   }
 
+  const showPaymentRecovery = useCallback(({ order = embeddedOrder, stage = 'result' } = {}) => {
+    setPaymentRecovery({
+      amount: order?.amount ?? selectedPlan?.price ?? null,
+      concept: order?.concept ?? selectedPlan?.name ?? '',
+      currency: order?.currency ?? 'ARS',
+      reference: order?.reference ?? '',
+      stage,
+    })
+  }, [embeddedOrder, selectedPlan?.name, selectedPlan?.price])
+
+  const handleMercadoPagoResult = useCallback((response) => {
+    const status = paymentUpdateStatus(response?.payment?.status ?? response?.order?.status)
+    if (status === 'rechazado' || status === 'cancelado') {
+      showPaymentRecovery({
+        order: response?.order ?? embeddedOrder,
+        stage: 'result',
+      })
+    } else if (status === 'aprobado') {
+      setPaymentRecovery(null)
+    }
+  }, [embeddedOrder, showPaymentRecovery])
+
+  const handleMercadoPagoError = useCallback(({ stage } = {}) => {
+    showPaymentRecovery({ stage })
+  }, [showPaymentRecovery])
+
   function openDiscountField() {
     if (checkoutLocked) return
     setDiscountOpen(true)
@@ -555,6 +591,7 @@ export default function MembershipPurchaseSection({
     if (submitting) return
     setCheckoutMessage('')
     setCheckoutIsError(false)
+    setPaymentRecovery(null)
     if (!selectedPlan) {
       setCheckoutMessage(t('account.membership.planUnavailable'))
       setCheckoutIsError(true)
@@ -576,6 +613,7 @@ export default function MembershipPurchaseSection({
         membershipAccessCode,
       )
       if (result?.error) {
+        if (method === 'mercado_pago') showPaymentRecovery({ stage: 'order' })
         setCheckoutMessage(result.error)
         setCheckoutIsError(true)
         return
@@ -647,6 +685,7 @@ export default function MembershipPurchaseSection({
 
   function changePaymentMethod(nextMethod) {
     if (checkoutLocked) return
+    if (nextMethod !== 'cash_pitbull') setManualOrder(null)
     setPaymentMethod(nextMethod)
     setCheckoutMessage('')
     setCheckoutIsError(false)
@@ -899,7 +938,23 @@ export default function MembershipPurchaseSection({
                   {t('account.membership.changePaymentMethod')}
                 </button>
               </div>
-              <MercadoPagoEmbeddedCheckout order={embeddedOrder} presentation="settle" />
+              <MercadoPagoEmbeddedCheckout
+                onCheckoutError={handleMercadoPagoError}
+                onResult={handleMercadoPagoResult}
+                order={embeddedOrder}
+                presentation="settle"
+              />
+              {paymentRecovery ? (
+                <PaymentRecoveryPanel
+                  amount={paymentRecovery.amount}
+                  concept={paymentRecovery.concept}
+                  currency={paymentRecovery.currency}
+                  onTransfer={() => void startMembershipPayment('transferencia')}
+                  reference={paymentRecovery.reference}
+                  transferAvailable={transferSelectable}
+                  transferBusy={submitting}
+                />
+              ) : null}
             </div>
           ) : (
             <div className="account-membership__checkout">
@@ -1177,7 +1232,13 @@ export default function MembershipPurchaseSection({
                 }
                 methods={[
                   ...(mercadoPagoOffered
-                    ? [{ value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') }]
+                    ? [
+                        {
+                          value: 'mercado_pago',
+                          label: t('formOptions.payment.mercadoPago'),
+                          priceLabel: membershipMethodPrice('mercado_pago'),
+                        },
+                      ]
                     : []),
                   ...(transferOffered
                     ? [
@@ -1186,6 +1247,7 @@ export default function MembershipPurchaseSection({
                           label: transferSelectable
                             ? t('pages.register.paymentTransferLabel')
                             : t('account.membership.transferComingSoon'),
+                          priceLabel: membershipMethodPrice('transferencia'),
                           disabled: !transferSelectable,
                         },
                       ]
@@ -1197,6 +1259,7 @@ export default function MembershipPurchaseSection({
                           label: cashSelectable
                             ? t('pages.register.paymentCashPitbullLabel')
                             : t('account.membership.cashPitbullComingSoon'),
+                          priceLabel: membershipMethodPrice('cash_pitbull'),
                           disabled: !cashSelectable,
                         },
                       ]
@@ -1306,6 +1369,18 @@ export default function MembershipPurchaseSection({
           {checkoutMessage}
         </p>
       )}
+
+      {paymentRecovery && !mpSettling ? (
+        <PaymentRecoveryPanel
+          amount={paymentRecovery.amount}
+          concept={paymentRecovery.concept}
+          currency={paymentRecovery.currency}
+          onTransfer={() => void startMembershipPayment('transferencia')}
+          reference={paymentRecovery.reference}
+          transferAvailable={transferSelectable}
+          transferBusy={submitting}
+        />
+      ) : null}
 
       {manualOrder?.manualPaymentChannel === 'cash_pitbull' ? (
         <ManualPaymentConfirmation

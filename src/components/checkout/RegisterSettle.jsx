@@ -2,6 +2,7 @@ import CheckoutDesk, { CheckoutBar } from './CheckoutDesk.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { resolveComboDeal } from '../../lib/eventPricing.js'
 import { money } from '../../lib/format.js'
+import { buildRegisterPaymentMethods } from '../../lib/registerPaymentMethods.js'
 import {
   previewCheckoutPrice,
   wisePriceLabel as formatWisePriceLabel,
@@ -27,6 +28,7 @@ export default function RegisterSettle({
   purchaseType = 'combo',
   registrationPrice = 0,
   registrationManualPrice = null,
+  registrationWisePrice = null,
   showPackage = false,
   showPayment = false,
   transferEnabled = false,
@@ -35,7 +37,8 @@ export default function RegisterSettle({
   if (!showPackage && !showPayment) return null
 
   const comboSelected = purchaseType === 'combo'
-  const wiseSelected = paymentMethod === 'wise_transfer'
+  const wiseAvailable = wiseEnabled && !comboSelected
+  const wiseSelected = paymentMethod === 'wise_transfer' && wiseAvailable
   const displayedMembershipPrice = previewCheckoutPrice({
     paymentMethod,
     manualPrice: membershipManualPrice,
@@ -91,7 +94,7 @@ export default function RegisterSettle({
       id: 'registration',
       name: t('account.membership.comboSeparate'),
       priceLabel: wiseSelected
-        ? formatWisePriceLabel(displayedRegistrationPrice, locale)
+        ? formatWisePriceLabel(displayedRegistrationPrice, locale, registrationWisePrice)
         : money(displayedRegistrationPrice, locale),
     })
   }
@@ -99,20 +102,20 @@ export default function RegisterSettle({
   const transferOffered = transferEnabled || manualPaymentEnabled
   const cashOffered = cashEnabled || manualPaymentEnabled
   const methods = showPayment
-    ? [
-        ...(mercadoPagoEnabled
-          ? [{ value: 'mercado_pago', label: t('formOptions.payment.mercadoPago') }]
-          : []),
-        ...(transferOffered
-          ? [{ value: 'manual_link', label: t('pages.register.paymentTransferLabel') }]
-          : []),
-        ...(cashOffered
-          ? [{ value: 'cash_pitbull', label: t('pages.register.paymentCashPitbullLabel') }]
-          : []),
-        ...(wiseEnabled
-          ? [{ value: 'wise_transfer', label: t('pages.register.paymentWiseLabel') }]
-          : []),
-      ]
+    ? buildRegisterPaymentMethods({
+        cashEnabled,
+        comboOffer,
+        locale,
+        manualPaymentEnabled,
+        mercadoPagoEnabled,
+        registrationManualPrice,
+        registrationPrice,
+        registrationWisePrice,
+        purchaseType,
+        t,
+        transferEnabled,
+        wiseEnabled,
+      })
     : []
 
   return (
@@ -131,7 +134,7 @@ export default function RegisterSettle({
           ? t('pages.register.paymentNoChannelHint')
           : wiseSelected
             ? t('pages.register.paymentWisePriceHint')
-            : mercadoPagoEnabled && !transferOffered && !cashOffered && !wiseEnabled
+            : mercadoPagoEnabled && !transferOffered && !cashOffered && !wiseAvailable
               ? t('pages.register.paymentMercadoPagoOnlyHint')
               : '')
       }
