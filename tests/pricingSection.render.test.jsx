@@ -325,6 +325,42 @@ describe('Tarifas — alta de planes y combo', () => {
     )
   })
 
+  it('conserva $85.000 exactos en un código fijo sólo por transferencia o efectivo', async () => {
+    // Regresión del código que terminó persistido en $84.999. Cerrar Mercado
+    // Pago traslada el importe al campo manual; ni ese traslado ni el submit
+    // pueden restar el peso que la base usa como guarda contra órdenes gratis.
+    const onUpsertDiscountCode = vi.fn(async () => ({}))
+    renderPricing({ onUpsertDiscountCode })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo código' }))
+    fireEvent.change(screen.getByRole('textbox', { name: /^Código/ }), {
+      target: { value: 'fijo-85' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Tipo de código/), {
+      target: { value: 'fixed_price' },
+    })
+    fireEvent.change(screen.getByLabelText(/Precio promocional por Mercado Pago/), {
+      target: { value: '85000' },
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mercado Pago' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Transferencia bancaria' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Efectivo en Pitbull' }))
+
+    expect(screen.getByLabelText(/Precio promocional por transferencia/).value).toBe('85000')
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar código' }))
+
+    expect(onUpsertDiscountCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'FIJO-85',
+        kind: 'fixed_price',
+        fixedPrice: 85000,
+        fixedPriceManual: 85000,
+        mercadoPagoEnabled: false,
+        manualChannels: ['bank_transfer', 'cash_pitbull'],
+      }),
+    )
+  })
+
   it('un precio manual mayor que el de Mercado Pago tambien se guarda', async () => {
     const onUpsertDiscountCode = vi.fn(async () => ({}))
     renderPricing({ onUpsertDiscountCode })

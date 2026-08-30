@@ -259,6 +259,9 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       // paymentReconciliationService para saber qué entitlement debería
       // existir sin tener que parsear el label.
       conceptType: order.concept,
+      // Slug del meet ligado a la orden (inscripción o combo). Pagos lo usa
+      // para retomar el checkout del torneo correcto sin reparsear el título.
+      eventSlug: registration?.eventSlug ?? null,
       amount: order.amount,
       method: order.method,
       manualPaymentChannel: normalizedOrder.manualPaymentChannel,

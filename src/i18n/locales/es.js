@@ -1261,7 +1261,7 @@ export default {
       alertTitle_one: 'Tenés {{count}} cobro para resolver',
       alertTitle_other: 'Tenés {{count}} cobros para resolver',
       alertBody:
-        'Mercado Pago rechazó el pago y por eso la afiliación o la inscripción no quedó confirmada. Volvé a intentarlo desde el cobro marcado abajo.',
+        'Hay cobros pendientes o que no se confirmaron. Continuá el pago, elegí otro medio o generá un cobro nuevo desde la fila marcada abajo.',
       settledAfterAttempts_one:
         'Se acreditó después de {{count}} intento rechazado. Si te llegó un aviso de rechazo, quedó sin efecto.',
       settledAfterAttempts_other:
@@ -1301,6 +1301,9 @@ export default {
         cash_pitbull: 'Efectivo en la sede',
       },
       action: {
+        continue: 'Continuar pago',
+        uploadProof: 'Subir comprobante',
+        changeMethod: 'Elegir otro medio',
         retry: 'Generar un cobro nuevo',
       },
       reason: {
@@ -1512,6 +1515,7 @@ export default {
       register: 'Inscribirme',
       paymentPending: 'Pago pendiente',
       resumePayment: 'Continuar pago',
+      changePaymentMethod: 'Elegir otro medio',
       membershipRequiredTitle: 'Afiliación para el ingreso',
       membershipRequiredText:
         'Podés inscribirte ahora. El día del meet el ingreso se habilita cuando tu afiliación esté activa.',
@@ -2144,7 +2148,7 @@ export default {
       athleteStatusHint: {
         guest: 'Con cuenta de atleta resolvés afiliación e inscripción en un solo flujo.',
         registered: 'Tu cupo está confirmado. Revisá credencial y detalle del meet en tu perfil.',
-        pending_payment: 'Completá el pago o la validación manual para cerrar la inscripción.',
+        pending_payment: 'Tu cupo está reservado. Continuá el pago o elegí otro medio para cerrarlo.',
         needs_membership: 'Este meet exige afiliación vigente antes del check-in.',
         can_register: 'Tenés todo listo para completar la inscripción.',
         closed: 'Este evento ya no admite altas nuevas.',
@@ -2152,6 +2156,7 @@ export default {
       athleteStatusAction: {
         needs_membership: 'Afiliarme e inscribirme',
         pending_payment: 'Continuar pago',
+        change_payment: 'Elegir otro medio',
       },
       emptyList: 'No hay eventos {{filter}} en este momento.',
       moreEventsSoon: 'Los próximos meets se publican acá cuando se confirmen fechas.',

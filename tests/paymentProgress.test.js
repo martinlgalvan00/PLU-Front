@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  canChangePaymentMethod,
   derivePaymentProgress,
+  isPaymentActionable,
   paymentChannelOf,
   serializePaymentProgress,
 } from '../src/lib/paymentProgress.js'
@@ -153,7 +155,45 @@ describe('progreso por canal', () => {
     })
     expect(progress.channel).toBe('cash_pitbull')
     expect(progress.state).toBe('esperando_pago_en_sede')
+    expect(progress.action).toBe('pay')
     expect(progress.stages.map((stage) => stage.key)).toContain('pago_en_sede')
+  })
+
+  it('permite cambiar de medio mientras el cobro sigue abierto y sin evidencia en vuelo', () => {
+    const mp = derivePaymentProgress({
+      order: { status: 'pendiente', method: 'mercado_pago' },
+    })
+    expect(canChangePaymentMethod(mp)).toBe(true)
+    expect(isPaymentActionable(mp)).toBe(true)
+
+    const cash = derivePaymentProgress({
+      order: { status: 'pendiente', method: 'manual_link', manualPaymentChannel: 'cash_pitbull' },
+    })
+    expect(canChangePaymentMethod(cash)).toBe(true)
+
+    const sinComprobante = derivePaymentProgress({
+      order: { status: 'pendiente', method: 'manual_link', manualPaymentChannel: 'bank_transfer' },
+    })
+    expect(canChangePaymentMethod(sinComprobante)).toBe(true)
+    expect(isPaymentActionable(sinComprobante)).toBe(true)
+
+    const enRevision = derivePaymentProgress({
+      order: {
+        status: 'validacion_manual',
+        method: 'manual_link',
+        manualPaymentChannel: 'bank_transfer',
+        paymentProofUploadedAt: '2026-08-20T15:00:00.000Z',
+      },
+    })
+    expect(canChangePaymentMethod(enRevision)).toBe(false)
+    expect(isPaymentActionable(enRevision)).toBe(false)
+
+    const procesando = derivePaymentProgress({
+      order: { status: 'pendiente', method: 'mercado_pago' },
+      attempts: [{ external_payment_id: '1', status: 'pendiente' }],
+    })
+    expect(procesando.state).toBe('procesando')
+    expect(canChangePaymentMethod(procesando)).toBe(false)
   })
 
   it('una orden manual sin canal declarado se trata como transferencia', () => {

@@ -13,8 +13,8 @@
 .help-dock {
   /* `--sticky-cta-clearance` lo publica StickyMobileCta mientras su barra está
      visible en la portada: sin esto el botón quedaba pisado por el CTA fijo.
-     `top`/`left: auto` + safe-area fijan la esquina en cualquier viewport
-     (notch, home bar, iframe del preview). */
+     Portal a `document.body` + `top`/`left: auto` + safe-area fijan la
+     esquina al viewport aunque `.app-shell` tenga overflow/isolation. */
   --help-dock-bg: var(--plu-cool-850, #141518);
   --help-dock-bg-hover: var(--plu-cool-750, #1e2026);
   --help-dock-border: color-mix(in srgb, #ffffff 14%, transparent);
@@ -23,11 +23,11 @@
   bottom: calc(
     var(--space-lg) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
   );
-  left: auto;
+  inset-inline-end: calc(var(--space-lg) + env(safe-area-inset-right, 0px));
+  inset-inline-start: auto;
+  inset-block-start: auto;
   pointer-events: none;
   position: fixed;
-  right: calc(var(--space-lg) + env(safe-area-inset-right, 0px));
-  top: auto;
   z-index: 120;
 }
 
@@ -562,7 +562,7 @@
     bottom: calc(
       var(--space-md) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
     );
-    right: calc(var(--space-md) + env(safe-area-inset-right, 0px));
+    inset-inline-end: calc(var(--space-md) + env(safe-area-inset-right, 0px));
   }
 
   .help-panel__scrim {

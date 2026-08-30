@@ -714,6 +714,7 @@ function PitbullInscriptionSection({
   eventStatus,
   hasActiveMembership = false,
   locale,
+  onChangePaymentMethod,
   onNavigate,
   onRegister,
   pricing,
@@ -906,13 +907,23 @@ function PitbullInscriptionSection({
                       : t('pages.events.athleteStatusAction.pending_payment')}
                     <ArrowRight size={14} aria-hidden />
                   </button>
-                  <button
-                    type="button"
-                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
-                    onClick={() => onNavigate('rulebook')}
-                  >
-                    {t('pages.pitbull.viewRulebook')}
-                  </button>
+                  {paymentPending && typeof onChangePaymentMethod === 'function' ? (
+                    <button
+                      type="button"
+                      className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                      onClick={onChangePaymentMethod}
+                    >
+                      {t('pages.events.athleteStatusAction.change_payment')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                      onClick={() => onNavigate('rulebook')}
+                    >
+                      {t('pages.pitbull.viewRulebook')}
+                    </button>
+                  )}
                 </>
               ) : canRegister ? (
                 <>
@@ -1199,8 +1210,8 @@ export default function PitbullPage({
     onNavigate('tickets', { eventSlug: pitbullEvent?.slug })
   }
 
-  function goToCompetitionCheckout() {
-    if (onSelectEvent) onSelectEvent(pitbullEvent)
+  function goToCompetitionCheckout(options = {}) {
+    if (onSelectEvent) onSelectEvent(pitbullEvent, options)
     else onNavigate('competition')
   }
 
@@ -1248,6 +1259,10 @@ export default function PitbullPage({
     goToCompetitionCheckout()
   }
 
+  function handleChangePaymentMethod() {
+    goToCompetitionCheckout({ checkoutIntent: 'change_method' })
+  }
+
   function handleHeroSecondary() {
     if (ticketsOpen) {
       goToTicketsPage()
@@ -1285,6 +1300,7 @@ export default function PitbullPage({
             eventStatus={eventStatus}
             hasActiveMembership={hasActiveMembership}
             locale={locale}
+            onChangePaymentMethod={handleChangePaymentMethod}
             onNavigate={onNavigate}
             onRegister={handlePitbullRegistration}
             pricing={eventPricing}

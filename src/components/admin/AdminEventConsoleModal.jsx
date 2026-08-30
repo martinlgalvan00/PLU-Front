@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -61,13 +61,18 @@ export function buildEventLinks(row, t) {
   ]
 }
 
+function joinSummaryParts(parts) {
+  return parts.map((part) => String(part ?? '').trim()).filter(Boolean).join(' · ')
+}
+
 const EDIT_SECTIONS = new Set(['basics', 'sales', 'visibility'])
 const FOLD_SECTIONS = new Set(['basics', 'sales', 'visibility', 'structure'])
 
 /**
  * Consola del evento como modal. Datos / Ventas / Publicación / Estructura se
  * expanden in-place (acordeón). El draft del evento vive en el padre; las
- * tandas (Estructura) guardan por su cuenta.
+ * tandas (Estructura) guardan por su cuenta. La preview queda sticky y sigue
+ * al draft mientras se edita.
  */
 export default function AdminEventConsoleModal({
   canDelete = false,
@@ -86,6 +91,8 @@ export default function AdminEventConsoleModal({
   onToggleSection,
   open,
   openSection = null,
+  paymentSummary = '',
+  previewDraft = null,
   structureEditor = null,
   tickets = [],
 }) {
@@ -104,6 +111,8 @@ export default function AdminEventConsoleModal({
 
   const eventSectionOpen = EDIT_SECTIONS.has(openSection)
   const sectionOpen = FOLD_SECTIONS.has(openSection)
+  const summarySource = previewDraft ?? event
+  const previewIsLive = Boolean(previewDraft && eventSectionOpen)
 
   const confirmCloseIfDirty = () => {
     if (!stateDirtyRef.current) return true
@@ -188,10 +197,13 @@ export default function AdminEventConsoleModal({
     }
   }, [eventSectionOpen, openSection, sectionOpen, open, event, t])
 
+  const activeTicketTypeCount = useMemo(() => {
+    const types = summarySource?.ticketTypes ?? event?.ticketTypes
+    return types?.filter((ticketType) => ticketType.active !== false).length ?? 0
+  }, [event?.ticketTypes, summarySource?.ticketTypes])
+
   if (!open || !event) return null
 
-  const activeTicketTypeCount =
-    event.ticketTypes?.filter((ticketType) => ticketType.active !== false).length ?? 0
   const venueLine = formatEventVenueLine(event.venue, event.location)
   const dateLabel = event.dateISO ? formatDayMonth(event.dateISO, locale) : (event.date ?? '')
   const requestExit = () => {
@@ -203,28 +215,52 @@ export default function AdminEventConsoleModal({
     onClose?.()
   }
 
+  const basicsSummary = (() => {
+    const title = String(summarySource?.title ?? event.title ?? '').trim()
+    const date =
+      summarySource?.dateISO || event.dateISO
+        ? formatDayMonth(summarySource?.dateISO || event.dateISO, locale)
+        : (summarySource?.date ?? event.date ?? '')
+    const venue = formatEventVenueLine(
+      summarySource?.venue ?? event.venue,
+      summarySource?.location ?? event.location,
+    )
+    const line = joinSummaryParts([title, date, venue])
+    return line || t('admin.eventConsole.editBasicsValue')
+  })()
+
+  const salesSummary =
+    activeTicketTypeCount > 0
+      ? t('admin.eventConsole.salesSummary', {
+          count: activeTicketTypeCount,
+          registered: summarySource?.registered ?? event.registered ?? 0,
+          slots: summarySource?.slots ?? event.slots ?? 0,
+        })
+      : t('admin.eventConsole.editSalesValue')
+
+  const visibilitySummary = summarySource?.featured
+    ? t('admin.eventConsole.visibilityFeatured')
+    : t('admin.eventConsole.visibilityStandard')
+
   const editRows = canEdit
     ? [
         {
           section: 'basics',
           icon: FileText,
           label: t('admin.eventConsole.editBasics'),
-          value: t('admin.eventConsole.editBasicsValue'),
+          value: basicsSummary,
         },
         {
           section: 'sales',
           icon: Ticket,
           label: t('admin.eventConsole.editSales'),
-          value:
-            activeTicketTypeCount > 0
-              ? t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount })
-              : t('admin.eventConsole.editSalesValue'),
+          value: salesSummary,
         },
         {
           section: 'visibility',
           icon: Eye,
           label: t('admin.eventConsole.editVisibility'),
-          value: t('admin.eventConsole.editVisibilityValue'),
+          value: visibilitySummary,
         },
       ]
     : []
@@ -247,6 +283,32 @@ export default function AdminEventConsoleModal({
       </button>
     )
   }
+
+  const previewBlock = (
+    <div className="admin-event-console-modal__detail">
+      <p className="admin-event-console-modal__detail-label">
+        {previewIsLive
+          ? t('admin.eventEditor.livePreview')
+          : t('admin.sections.events.publicPreviewLabel')}
+      </p>
+      <AdminEventLivePreview
+        embedded
+        live={previewIsLive}
+        draft={previewDraft ?? event}
+        showReadiness
+        sourceEvent={event}
+      />
+      <details className="admin-event-console-modal__sales-fold">
+        <summary className="admin-event-console-modal__sales-summary">
+          {t('admin.eventConsole.salesDetail')}
+        </summary>
+        <div className="admin-event-console-modal__sales-body">
+          <AdminEventTicketInsights event={event} tickets={tickets} />
+          <AdminEventTicketAddonReport event={event} tickets={tickets} />
+        </div>
+      </details>
+    </div>
+  )
 
   return (
     <div
@@ -306,131 +368,134 @@ export default function AdminEventConsoleModal({
         </div>
 
         <div className="admin-event-console-modal__body">
-          {onSetEventState ? (
-            <AdminEventStateControl
-              canEdit={canEdit}
-              event={event}
-              onDirtyChange={(dirty) => {
-                stateDirtyRef.current = dirty
-              }}
-              onSetState={onSetEventState}
-            />
-          ) : null}
+          <div className="admin-event-console-modal__main">
+            {onSetEventState ? (
+              <AdminEventStateControl
+                canEdit={canEdit}
+                event={event}
+                onDirtyChange={(dirty) => {
+                  stateDirtyRef.current = dirty
+                }}
+                onSetState={onSetEventState}
+              />
+            ) : null}
 
-          <div className="admin-event-console__sections">
-            <span className="admin-event-console__group-label">
-              {t('admin.eventConsole.configLabel')}
-            </span>
+            <div className="admin-event-console__sections">
+              <span className="admin-event-console__group-label">
+                {t('admin.eventConsole.configLabel')}
+              </span>
 
-            {editRows.map((row) => {
-              const expanded = openSection === row.section
-              return (
-                <div
-                  key={row.section}
-                  className={`admin-event-console__item${expanded ? ' admin-event-console__item--expanded' : ''}`}
-                >
-                  {renderEditRow(row)}
-                  {expanded && editor ? (
-                    <div
-                      ref={foldRef}
-                      id={`admin-event-console-fold-${row.section}`}
-                      className="admin-event-console__fold"
-                      data-section={row.section}
-                    >
-                      {editor}
-                    </div>
-                  ) : null}
-                </div>
-              )
-            })}
-
-            <div
-              className={`admin-event-console__item${openSection === 'structure' ? ' admin-event-console__item--expanded' : ''}`}
-            >
-              {renderEditRow({
-                section: 'structure',
-                icon: Layers,
-                label: t('admin.eventConsole.structure'),
-                value: t('admin.eventConsole.structureValue', {
-                  count: event.eventDays?.length ?? 0,
-                }),
+              {editRows.map((row) => {
+                const expanded = openSection === row.section
+                return (
+                  <div
+                    key={row.section}
+                    className={`admin-event-console__item${expanded ? ' admin-event-console__item--expanded' : ''}`}
+                  >
+                    {renderEditRow(row)}
+                    {expanded && editor ? (
+                      <div
+                        ref={foldRef}
+                        id={`admin-event-console-fold-${row.section}`}
+                        className="admin-event-console__fold"
+                        data-section={row.section}
+                      >
+                        {editor}
+                      </div>
+                    ) : null}
+                  </div>
+                )
               })}
 
-              {openSection === 'structure' && structureEditor ? (
-                <div
-                  ref={foldRef}
-                  id="admin-event-console-fold-structure"
-                  className="admin-event-console__fold admin-event-console__fold--structure"
-                  data-section="structure"
+              <div
+                className={`admin-event-console__item${openSection === 'structure' ? ' admin-event-console__item--expanded' : ''}`}
+              >
+                {renderEditRow({
+                  section: 'structure',
+                  icon: Layers,
+                  label: t('admin.eventConsole.structure'),
+                  value: t('admin.eventConsole.structureValue', {
+                    count: event.eventDays?.length ?? 0,
+                  }),
+                })}
+
+                {openSection === 'structure' && structureEditor ? (
+                  <div
+                    ref={foldRef}
+                    id="admin-event-console-fold-structure"
+                    className="admin-event-console__fold admin-event-console__fold--structure"
+                    data-section="structure"
+                  >
+                    {structureEditor}
+                  </div>
+                ) : null}
+              </div>
+
+              {canManageUsers ? (
+                <button
+                  type="button"
+                  className="admin-event-console__row"
+                  onClick={() => onOpenZones?.(event)}
                 >
-                  {structureEditor}
-                </div>
+                  <ShieldCheck size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.zones')}</strong>
+                  <em>{t('admin.eventConsole.zonesValue')}</em>
+                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
+                </button>
+              ) : null}
+
+              {onManageRegistrations || onManagePayments || onManageCheckin ? (
+                <span className="admin-event-console__group-label">
+                  {t('admin.eventConsole.activityLabel')}
+                </span>
+              ) : null}
+
+              {onManageRegistrations ? (
+                <button
+                  type="button"
+                  className="admin-event-console__row"
+                  onClick={() => onManageRegistrations?.(event)}
+                >
+                  <ClipboardList size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.registrations')}</strong>
+                  <em>
+                    {t('admin.eventConsole.registrationsValue', {
+                      count: event.registered ?? 0,
+                      slots: event.slots ?? 0,
+                    })}
+                  </em>
+                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
+                </button>
+              ) : null}
+
+              {onManagePayments ? (
+                <button
+                  type="button"
+                  className="admin-event-console__row"
+                  onClick={() => onManagePayments?.(event)}
+                >
+                  <CreditCard size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.payments')}</strong>
+                  <em>{paymentSummary || t('admin.eventConsole.paymentsClear')}</em>
+                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
+                </button>
+              ) : null}
+
+              {onManageCheckin ? (
+                <button
+                  type="button"
+                  className="admin-event-console__row"
+                  onClick={() => onManageCheckin?.(event)}
+                >
+                  <ScanLine size={17} aria-hidden />
+                  <strong>{t('admin.eventConsole.checkin')}</strong>
+                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
+                </button>
               ) : null}
             </div>
-
-            {canManageUsers ? (
-              <button
-                type="button"
-                className="admin-event-console__row"
-                onClick={() => onOpenZones?.(event)}
-              >
-                <ShieldCheck size={17} aria-hidden />
-                <strong>{t('admin.eventConsole.zones')}</strong>
-                <em>{t('admin.eventConsole.zonesValue')}</em>
-                <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-              </button>
-            ) : null}
-
-            {onManageRegistrations || onManagePayments || onManageCheckin ? (
-              <span className="admin-event-console__group-label">
-                {t('admin.eventConsole.activityLabel')}
-              </span>
-            ) : null}
-
-            {onManageRegistrations ? (
-              <button
-                type="button"
-                className="admin-event-console__row"
-                onClick={() => onManageRegistrations?.(event)}
-              >
-                <ClipboardList size={17} aria-hidden />
-                <strong>{t('admin.eventConsole.registrations')}</strong>
-                <em>
-                  {t('admin.eventConsole.registrationsValue', {
-                    count: event.registered ?? 0,
-                    slots: event.slots ?? 0,
-                  })}
-                </em>
-                <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-              </button>
-            ) : null}
-
-            {onManagePayments ? (
-              <button
-                type="button"
-                className="admin-event-console__row"
-                onClick={() => onManagePayments?.(event)}
-              >
-                <CreditCard size={17} aria-hidden />
-                <strong>{t('admin.eventConsole.payments')}</strong>
-                <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-              </button>
-            ) : null}
-
-            {onManageCheckin ? (
-              <button
-                type="button"
-                className="admin-event-console__row"
-                onClick={() => onManageCheckin?.(event)}
-              >
-                <ScanLine size={17} aria-hidden />
-                <strong>{t('admin.eventConsole.checkin')}</strong>
-                <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-              </button>
-            ) : null}
           </div>
 
-          {!sectionOpen ? (
+          <aside className="admin-event-console-modal__aside" aria-label={t('admin.sections.events.publicPreviewLabel')}>
             <details
               className="admin-event-console-modal__detail-fold"
               open={previewOpen}
@@ -445,18 +510,13 @@ export default function AdminEventConsoleModal({
             >
               <summary className="admin-event-console-modal__detail-summary">
                 <Eye size={14} aria-hidden />
-                {t('admin.sections.events.publicPreviewLabel')}
+                {previewIsLive
+                  ? t('admin.eventEditor.livePreview')
+                  : t('admin.sections.events.publicPreviewLabel')}
               </summary>
-              <div className="admin-event-console-modal__detail">
-                <p className="admin-event-console-modal__detail-label">
-                  {t('admin.sections.events.publicPreviewLabel')}
-                </p>
-                <AdminEventLivePreview embedded draft={event} sourceEvent={event} />
-                <AdminEventTicketInsights event={event} tickets={tickets} />
-                <AdminEventTicketAddonReport event={event} tickets={tickets} />
-              </div>
+              {previewBlock}
             </details>
-          ) : null}
+          </aside>
         </div>
       </div>
     </div>
