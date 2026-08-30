@@ -5457,13 +5457,15 @@
   display: block;
   margin-top: 6px;
   padding: 14px 0 2px;
+  text-align: center;
 }
 
 .events-page--list-first .event-calendar-actions--minimal .event-calendar-actions__links {
-  align-items: baseline;
-  display: flex;
+  align-items: center;
+  display: inline-flex;
   flex-wrap: wrap;
   gap: 6px 10px;
+  justify-content: center;
 }
 
 .events-page--list-first .event-calendar-actions--minimal .event-calendar-actions__meta {
@@ -5471,6 +5473,7 @@
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
+  line-height: 1.2;
   margin-right: 2px;
 }
 
@@ -5481,7 +5484,7 @@
 }
 
 .events-page--list-first .event-calendar-actions__text-link {
-  align-items: baseline;
+  align-items: center;
   background: transparent;
   border: 0;
   color: var(--color-text-secondary);
@@ -5492,6 +5495,7 @@
   font-weight: 600;
   gap: 0;
   letter-spacing: -0.01em;
+  line-height: 1.2;
   min-height: 28px;
   padding: 0;
   transition: color var(--motion-fast, 160ms) var(--ease-out, ease);

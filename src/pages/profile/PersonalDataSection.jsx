@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { AutocompleteField, DateField, Field, Select } from '../../components/ui/FormFields.jsx'
-import { formatShortDate, initials } from '../../lib/format.js'
+import { formatIdentityDocumentId, formatShortDate, initials } from '../../lib/format.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
@@ -93,6 +93,8 @@ export default function PersonalDataSection({
     athlete.country === 'Argentina' || !athlete.country
       ? t('account.personalData.documentId')
       : t('account.personalData.documentIdPassport')
+  const documentDisplay = formatIdentityDocumentId(athlete.documentId)
+  const isStaffDocument = documentDisplay === 'Staff'
 
   async function processPhotoFile(file) {
     if (!file || !onUpdatePhoto) return
@@ -355,7 +357,7 @@ export default function PersonalDataSection({
         </div>
 
         <div className="account-identity__official">
-          <p className="account-data-group__label">{t('account.personalData.officialGroup')}</p>
+          <p className="account-identity__eyebrow">{t('account.personalData.officialGroup')}</p>
           <h3 className="account-identity__name">{athlete.fullName}</h3>
           <dl className="account-identity__meta">
             <div className="account-identity__meta-item">
@@ -364,11 +366,16 @@ export default function PersonalDataSection({
             </div>
             <div className="account-identity__meta-item">
               <dt>{documentLabel}</dt>
-              <dd>{athlete.documentId}</dd>
+              <dd
+                className={isStaffDocument ? undefined : 'account-identity__document'}
+                title={athlete.documentId || undefined}
+              >
+                {documentDisplay || '—'}
+              </dd>
             </div>
             <div className="account-identity__meta-item">
               <dt>{t('account.personalData.birthDate')}</dt>
-              <dd>{formatShortDate(athlete.birthDate)}</dd>
+              <dd>{formatShortDate(athlete.birthDate) || '—'}</dd>
             </div>
           </dl>
           <p className="account-identity__note">{t('account.personalData.readonlyNote')}</p>

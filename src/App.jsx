@@ -831,6 +831,7 @@ export default function App() {
             form={app.form}
             memberships={app.memberships}
             onApprovePayment={app.handleApprovePayment}
+            onClearCreatedOrder={app.clearCreatedOrder}
             onNavigate={navigate}
             onSubmit={app.submitCompetition}
             onUpdateForm={app.updateForm}

@@ -42,7 +42,7 @@ import { getFormOptions } from '../lib/formOptions.js'
 import { formatShortDate, formatShortStamp, money } from '../lib/format.js'
 import { describeDiscountPreviewError } from '../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../lib/eventPricing.js'
-import { getStatusMeta, isRegistrationAdmitted } from '../lib/status.js'
+import { getStatusMeta, isRegistrationAdmitted, normalizeStatus } from '../lib/status.js'
 import { hasCurrentMembership, isMembershipCurrent } from '../services/membershipService.js'
 import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { env } from '../config/env.js'
@@ -477,6 +477,7 @@ export default function RegisterPage({
   flow,
   form,
   memberships = [],
+  onClearCreatedOrder,
   onNavigate,
   onSubmit,
   onUpdateForm,
@@ -564,6 +565,9 @@ export default function RegisterPage({
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferOrderId, setTransferOrderId] = useState(null)
   const [changingMethod, setChangingMethod] = useState(false)
+  // Si el backend rechaza la declaración (orden ya terminal), el settle se
+  // cierra acá aunque el snapshot local todavía no haya reconciliado el status.
+  const [settleDeclarationClosed, setSettleDeclarationClosed] = useState(false)
   const availabilityRequestRef = useRef(0)
   const submissionInFlightRef = useRef(false)
   const emailVerifyRef = useRef(null)
@@ -1026,6 +1030,14 @@ export default function RegisterPage({
     form.paymentMethod === 'wise_transfer'
       ? wisePriceLabel(checkoutTotal, locale, eventPricing.wisePrice)
       : checkoutTotal
+  const catalogCheckoutTotal =
+    effectivePurchaseType === 'combo' ? comboListPrice : registrationListPrice
+  const showChannelCompareTotal =
+    (form.paymentMethod === 'manual_link' || form.paymentMethod === 'cash_pitbull') &&
+    Number.isFinite(Number(catalogCheckoutTotal)) &&
+    Number(catalogCheckoutTotal) > 0 &&
+    Number(checkoutTotal) < Number(catalogCheckoutTotal)
+  const checkoutCompareTotal = showChannelCompareTotal ? catalogCheckoutTotal : null
   // La promo pública se aplica sola al crear la orden. Sin este preview el
   // checkout anunciaría el precio de lista y cobraría otro. Depende del alcance
   // (combo o inscripción suelta) y del canal, igual que el cupón.
@@ -1899,15 +1911,23 @@ export default function RegisterPage({
       <p className="register-intro__desc">
         {competitionOrderConfirmed
           ? t('pages.register.competitionConfirmedDesc')
-          : t('pages.register.competitionDescShort', { name: athlete?.fullName ?? '' })}
+          : competitionSettling
+            ? t('pages.register.competitionSettleDesc')
+            : t('pages.register.competitionDescShort', { name: athlete?.fullName ?? '' })}
       </p>
-      <div className="register-intro__meta register-intro__meta--competition">
-        {athlete?.fullName ? (
-          <strong className="register-intro__athlete">{athlete.fullName}</strong>
-        ) : null}
-        {event?.date ? <span>{formatShortDate(event.date, locale)}</span> : null}
-        {event?.venue || event?.location ? <span>{event?.venue || event?.location}</span> : null}
-      </div>
+      {/* En settle el meta (nombre/fecha/sede) solo suma ruido: el estado de
+          la orden y el panel de pago ya ubican al atleta. */}
+      {competitionSettling && !registrationAdmitted ? null : (
+        <div className="register-intro__meta register-intro__meta--competition">
+          {athlete?.fullName ? (
+            <strong className="register-intro__athlete">{athlete.fullName}</strong>
+          ) : null}
+          {event?.date ? <span>{formatShortDate(event.date, locale)}</span> : null}
+          {event?.venue || event?.location ? (
+            <span>{event?.venue || event?.location}</span>
+          ) : null}
+        </div>
+      )}
     </header>
   ) : (
     <header
@@ -1943,61 +1963,89 @@ export default function RegisterPage({
   // confirmación pasa a la columna principal con su propio ledger, igual que
   // en afiliación. Dejarlo prendido duplicaba referencia e importe y ponía el
   // dato administrativo por encima del hecho.
+  const settleOrderStatus = normalizeStatus(visibleOrder?.status)
+  const settleOrderTone = settleOrderStatus ? getStatusMeta(settleOrderStatus, t).tone : 'neutral'
+  const settleOrderRejected =
+    settleDeclarationClosed ||
+    settleOrderTone === 'danger' ||
+    settleOrderStatus === 'rechazado' ||
+    settleOrderStatus === 'cancelado' ||
+    orderRegistration?.status === 'cancelada'
+
+  // Orden nueva o distinta: el cierre forzado de una declaración anterior no aplica.
+  useEffect(() => {
+    setSettleDeclarationClosed(false)
+  }, [visibleOrder?.paymentId, visibleOrder?.id])
+
+  function restartRejectedRegistration() {
+    setSettleDeclarationClosed(false)
+    setChangingMethod(false)
+    setTransferOpen(false)
+    setTransferOrderId(null)
+    onClearCreatedOrder?.()
+  }
+
+  const settleCashChannel = visibleOrder?.manualPaymentChannel === 'cash_pitbull'
+  const settleDeclared = Boolean(visibleOrder?.manualPaymentDeclaredAt)
   const registerStatus = flow !== 'profile' &&
     visibleOrder &&
     flow !== 'membership' &&
     !competitionOrderConfirmed &&
     !(mpSettling || changingMethod) && (
-      <div className="register-status register-status--settle">
-        {visibleOrder ? (
-          <div className="register-status__body register-status__body--success">
-            {flow === 'competition' ? null : (
-              <>
-                <span className="register-status__name">{visibleOrder.athleteName}</span>
-                <strong>{money(visibleOrder.amount, locale)}</strong>
-              </>
-            )}
-            <p>{visibleOrder.concept}</p>
-            <StatusPill value={visibleOrder.status} />
-            <code>{visibleOrder.reference}</code>
-            {visibleOrder.paymentMethod === 'mercado_pago' ? null : (
-              <div className="register-status__manual-actions">
-                <p className="manual-note">{t('pages.register.manualNote')}</p>
-                {visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
-                  <>
-                    <p className="manual-note">{t('pages.register.cashPitbullCreated')}</p>
-                    {/* La acción de confirmar vive una sola vez, en el panel de
-                        pago principal: acá solo se dice en qué queda el
-                        beneficio, para no repetir el mismo botón dos veces en
-                        la misma pantalla. */}
-                    <p className="manual-note">
-                      {visibleOrder.financingAllowed
-                        ? t('pages.register.cashFinancingActiveNote')
-                        : t('pages.register.cashFinancingPendingNote')}
-                    </p>
-                  </>
-                ) : flow === 'competition' ? (
-                  <button
-                    type="button"
-                    className="card-trigger-btn"
-                    onClick={() => {
-                      setTransferOrderId(visibleOrder.paymentId ?? visibleOrder.id ?? null)
-                      setTransferOpen(true)
-                    }}
-                  >
-                    {t('pages.register.transferOpen')}
-                  </button>
-                ) : null}
-              </div>
-            )}
-            {/* El acuse de inscripción admitida se fue de acá: ahora es
-                `RegisterCompetitionConfirmation` en la columna principal. Este
-                bloque quedó siendo lo que dice ser —el estado de una orden en
-                curso— y ya no se monta con la inscripción cerrada. */}
-          </div>
-        ) : (
-          <p className="register-status__hint">{t('pages.register.orderHint')}</p>
-        )}
+      <div
+        className={`register-status register-status--settle${
+          settleOrderRejected ? ' register-status--settle-rejected' : ''
+        }`}
+      >
+        <div className="register-status__body register-status__body--success">
+          {flow === 'competition' ? null : (
+            <>
+              <span className="register-status__name">{visibleOrder.athleteName}</span>
+              <strong>{money(visibleOrder.amount, locale)}</strong>
+            </>
+          )}
+          <p>{visibleOrder.concept}</p>
+          <StatusPill value={settleOrderStatus ?? visibleOrder.status} />
+          {visibleOrder.amount != null && flow === 'competition' ? (
+            <strong className="register-status__amount">
+              {money(visibleOrder.amount, locale)}
+            </strong>
+          ) : null}
+          <code>{visibleOrder.reference}</code>
+          {visibleOrder.paymentMethod === 'mercado_pago' ? null : settleOrderRejected ? (
+            <div className="register-status__manual-actions">
+              <p className="manual-note">
+                {t('pages.register.settleRejectedNote')}
+              </p>
+            </div>
+          ) : settleCashChannel ? (
+            <div className="register-status__manual-actions">
+              <p className="manual-note">
+                {settleDeclared
+                  ? t('pages.register.cashPitbullDeclaredNote')
+                  : t('pages.register.cashPitbullSettleNote')}
+              </p>
+            </div>
+          ) : flow === 'competition' ? (
+            <div className="register-status__manual-actions">
+              <p className="manual-note">{t('pages.register.manualNote')}</p>
+              <button
+                type="button"
+                className="card-trigger-btn"
+                onClick={() => {
+                  setTransferOrderId(visibleOrder.paymentId ?? visibleOrder.id ?? null)
+                  setTransferOpen(true)
+                }}
+              >
+                {t('pages.register.transferOpen')}
+              </button>
+            </div>
+          ) : (
+            <div className="register-status__manual-actions">
+              <p className="manual-note">{t('pages.register.manualNote')}</p>
+            </div>
+          )}
+        </div>
       </div>
     )
 
@@ -2183,7 +2231,35 @@ export default function RegisterPage({
                   "ver datos de transferencia" invitaban a re-pagar algo que ya
                   estaba pago, justo al lado del acuse que decía que el lugar
                   estaba confirmado. Liquidada la orden queda solo el total. */}
-              {registrationAdmitted ? null : mpSettling ? (
+              {registrationAdmitted ? null : settleOrderRejected ? (
+                <div className="register-settle__rejected" role="status">
+                  <p>
+                    <strong>{t('pages.register.settleRejectedTitle')}</strong>
+                    {t('pages.register.settleRejectedLead')}
+                  </p>
+                  <div className="register-settle__rejected-actions">
+                    {onClearCreatedOrder ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={restartRejectedRegistration}
+                      >
+                        {t('pages.register.settleRejectedRetry')}
+                        <ArrowRight size={16} aria-hidden />
+                      </button>
+                    ) : null}
+                    {onNavigate ? (
+                      <button
+                        type="button"
+                        className="register-topbar__link"
+                        onClick={() => onNavigate('profile', { tab: 'account-events' })}
+                      >
+                        {t('pages.register.settleRejectedAction')}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : mpSettling ? (
                 <div className="register-settle__toolbar">
                   <div className="register-settle__nav">
                     {manualPaymentEnabled ? (
@@ -2235,6 +2311,17 @@ export default function RegisterPage({
                     manualPaymentDeclaredAt={visibleOrder.manualPaymentDeclaredAt}
                     orderId={visibleOrder.paymentId ?? visibleOrder.id ?? null}
                     onNavigate={onNavigate}
+                    onOrderClosed={() => {
+                      setSettleDeclarationClosed(true)
+                      window.dispatchEvent(
+                        new CustomEvent('plu:payment-updated', {
+                          detail: {
+                            orderId: visibleOrder.paymentId ?? visibleOrder.id,
+                            status: 'rechazado',
+                          },
+                        }),
+                      )
+                    }}
                     profileTab="account-events"
                   />
                 </div>
@@ -2262,7 +2349,7 @@ export default function RegisterPage({
                   </div>
                 </div>
               )}
-              {mpSettling ? (
+              {registrationAdmitted || settleOrderRejected ? null : mpSettling ? (
                 <>
                   <MercadoPagoEmbeddedCheckout
                     onCheckoutError={handleMercadoPagoError}
@@ -3058,6 +3145,7 @@ export default function RegisterPage({
                     {isPaidCheckout ? (
                       <RegisterCheckoutBar
                         checkoutTotal={checkoutTotalLabel}
+                        compareTotal={checkoutCompareTotal}
                         flow={flow}
                         packageLabel={
                           flow === 'membership'
