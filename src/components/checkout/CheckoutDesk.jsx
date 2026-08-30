@@ -134,6 +134,7 @@ export default function CheckoutDesk({
                 key={method.value}
                 className={[
                   'plu-checkout__pill',
+                  'plu-checkout__pill--selectable',
                   paymentMethod === method.value ? 'is-selected' : '',
                   method.disabled ? 'is-disabled' : '',
                 ]
