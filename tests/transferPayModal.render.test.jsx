@@ -49,4 +49,23 @@ describe('modal de transferencia', () => {
     fireEvent.click(screen.getByRole('button', { name: /^cerrar$/i }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('porta el overlay a document.body para escapar el stacking del main', () => {
+    render(
+      <I18nProvider>
+        <TransferPayModal
+          amount={75000}
+          athlete={{ documentId: '30111222', fullName: 'Agustín Demo' }}
+          onClose={() => {}}
+        />
+      </I18nProvider>,
+    )
+
+    const overlay = document.body.querySelector('.account-payment-modal__overlay')
+    expect(overlay).toBeTruthy()
+    expect(overlay.parentElement).toBe(document.body)
+    expect(overlay.querySelector('[role="dialog"]')).toBeTruthy()
+    expect(overlay.querySelector('.account-payment-modal__body')).toBeTruthy()
+    expect(overlay.querySelector('.account-payment-modal__footer')).toBeTruthy()
+  })
 })

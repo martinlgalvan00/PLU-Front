@@ -245,6 +245,11 @@ export default function AdminEventEditor({
   sourceEvent = null,
 }) {
   const { t } = useI18n()
+  // En el acordeón de la consola solo lo elemental de cada sección: el form
+  // completo (canales MP/banco, tipos de entrada, live) sigue disponible fuera
+  // del fold o al editar en modal. Acá el objetivo es ajustar cupo, fechas,
+  // precio y publicación sin scrollear un tab entero en 240px.
+  const essentials = accordion
   const [syncError, setSyncError] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
@@ -643,7 +648,7 @@ export default function AdminEventEditor({
       ref={embedded ? panelRef : undefined}
       className={`admin-event-editor${draft.id ? ' admin-event-editor--editing' : ' admin-event-editor--creating'}${
         embedded ? ' admin-event-editor--embedded' : ''
-      }${accordion ? ' admin-event-editor--accordion' : ''}`}
+      }${accordion ? ' admin-event-editor--accordion' : ''}${essentials ? ' admin-event-editor--essentials' : ''}`}
     >
       <form
         ref={formRef}
@@ -762,7 +767,7 @@ export default function AdminEventEditor({
                 >
                   <header className="admin-event-form__section-head">
                     <h4>{t('admin.eventEditor.sectionBasics')}</h4>
-                    <p>{t('admin.eventEditor.sectionBasicsLead')}</p>
+                    {!essentials ? <p>{t('admin.eventEditor.sectionBasicsLead')}</p> : null}
                   </header>
 
                   <div className="admin-event-form__grid">
@@ -785,27 +790,29 @@ export default function AdminEventEditor({
                       />
                     </FormField>
 
-                    <FormField
-                      wide
-                      htmlFor="event-description"
-                      label={t('admin.eventEditor.description')}
-                      error={err('description')}
-                    >
-                      <textarea
-                        id="event-description"
-                        name="description"
-                        data-field="description"
-                        rows={4}
-                        maxLength={1000}
-                        value={draft.description ?? ''}
-                        aria-invalid={Boolean(err('description'))}
-                        onChange={(event) =>
-                          patchDraft({ ...draft, description: event.target.value })
-                        }
-                        placeholder={t('admin.eventEditor.descriptionPlaceholder')}
-                        disabled={!canEdit}
-                      />
-                    </FormField>
+                    {!essentials ? (
+                      <FormField
+                        wide
+                        htmlFor="event-description"
+                        label={t('admin.eventEditor.description')}
+                        error={err('description')}
+                      >
+                        <textarea
+                          id="event-description"
+                          name="description"
+                          data-field="description"
+                          rows={4}
+                          maxLength={1000}
+                          value={draft.description ?? ''}
+                          aria-invalid={Boolean(err('description'))}
+                          onChange={(event) =>
+                            patchDraft({ ...draft, description: event.target.value })
+                          }
+                          placeholder={t('admin.eventEditor.descriptionPlaceholder')}
+                          disabled={!canEdit}
+                        />
+                      </FormField>
+                    ) : null}
 
                       <FormField
                       htmlFor="event-starts-at"
@@ -891,7 +898,11 @@ export default function AdminEventEditor({
                 >
                   <header className="admin-event-form__section-head">
                     <h4>{t('admin.eventEditor.sectionSales')}</h4>
-                    <p>{t('admin.eventEditor.sectionSalesLead')}</p>
+                    <p>
+                      {essentials
+                        ? t('admin.eventEditor.sectionSalesLeadEssentials')
+                        : t('admin.eventEditor.sectionSalesLead')}
+                    </p>
                   </header>
 
                   <div className="admin-event-form__lane admin-event-form__lane--athletes">
@@ -997,28 +1008,30 @@ export default function AdminEventEditor({
                     {/* La ocupación es información del organizador; exhibirla en
                         el sitio es una decisión. El panel sigue viendo la
                         barra y los números acá y en la lista pase lo que pase. */}
-                    <label className="admin-event-form__toggle">
-                      <input
-                        checked={draft.capacityProgressPublic !== false}
-                        className="admin-event-form__toggle-input"
-                        type="checkbox"
-                        onChange={(event) =>
-                          patchDraft({
-                            ...draft,
-                            capacityProgressPublic: event.target.checked,
-                          })
-                        }
-                        disabled={!canEdit}
-                      />
-                      <span className="admin-event-form__toggle-ui" aria-hidden />
-                      <span className="admin-event-form__toggle-copy">
-                        <strong>
-                          <Eye size={13} aria-hidden />
-                          {t('admin.eventEditor.capacityVisibilityTitle')}
-                        </strong>
-                        <small>{t('admin.eventEditor.capacityVisibilityHint')}</small>
-                      </span>
-                    </label>
+                    {!essentials ? (
+                      <label className="admin-event-form__toggle">
+                        <input
+                          checked={draft.capacityProgressPublic !== false}
+                          className="admin-event-form__toggle-input"
+                          type="checkbox"
+                          onChange={(event) =>
+                            patchDraft({
+                              ...draft,
+                              capacityProgressPublic: event.target.checked,
+                            })
+                          }
+                          disabled={!canEdit}
+                        />
+                        <span className="admin-event-form__toggle-ui" aria-hidden />
+                        <span className="admin-event-form__toggle-copy">
+                          <strong>
+                            <Eye size={13} aria-hidden />
+                            {t('admin.eventEditor.capacityVisibilityTitle')}
+                          </strong>
+                          <small>{t('admin.eventEditor.capacityVisibilityHint')}</small>
+                        </span>
+                      </label>
+                    ) : null}
 
                     <div className="admin-event-form__rate-cards">
                       <label
@@ -1053,41 +1066,50 @@ export default function AdminEventEditor({
                           </span>
                         ) : null}
                       </label>
-                      <label
-                        className={`admin-event-form__rate-card${err('pricing.registrationManual') ? ' is-invalid' : ''}`}
-                      >
-                        <span className="admin-event-form__rate-card-label">
-                          {t('admin.eventEditor.priceRegistrationManual')}
-                        </span>
-                        <span className="admin-event-form__rate-card-input">
-                          <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
-                          <input
-                            name="pricing.registrationManual"
-                            data-field="pricing.registrationManual"
-                            min={1}
-                            type="number"
-                            placeholder={t('admin.eventEditor.priceRegistrationManualPlaceholder')}
-                            value={draft.pricing?.registrationManual ?? ''}
-                            aria-invalid={Boolean(err('pricing.registrationManual'))}
-                            onChange={(event) =>
-                              patchDraft(
-                                updatePricingField(draft, 'registrationManual', event.target.value),
-                              )
-                            }
-                            disabled={!canEdit}
-                          />
-                        </span>
-                        {err('pricing.registrationManual') ? (
-                          <span className="admin-event-form__error" role="alert">
-                            {err('pricing.registrationManual')}
-                          </span>
-                        ) : null}
-                      </label>
-                      <p className="admin-event-form__pricing-note">
-                        {t('admin.eventEditor.pricingCatalogHint')}
-                      </p>
+                      {!essentials ? (
+                        <>
+                          <label
+                            className={`admin-event-form__rate-card${err('pricing.registrationManual') ? ' is-invalid' : ''}`}
+                          >
+                            <span className="admin-event-form__rate-card-label">
+                              {t('admin.eventEditor.priceRegistrationManual')}
+                            </span>
+                            <span className="admin-event-form__rate-card-input">
+                              <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                              <input
+                                name="pricing.registrationManual"
+                                data-field="pricing.registrationManual"
+                                min={1}
+                                type="number"
+                                placeholder={t('admin.eventEditor.priceRegistrationManualPlaceholder')}
+                                value={draft.pricing?.registrationManual ?? ''}
+                                aria-invalid={Boolean(err('pricing.registrationManual'))}
+                                onChange={(event) =>
+                                  patchDraft(
+                                    updatePricingField(
+                                      draft,
+                                      'registrationManual',
+                                      event.target.value,
+                                    ),
+                                  )
+                                }
+                                disabled={!canEdit}
+                              />
+                            </span>
+                            {err('pricing.registrationManual') ? (
+                              <span className="admin-event-form__error" role="alert">
+                                {err('pricing.registrationManual')}
+                              </span>
+                            ) : null}
+                          </label>
+                          <p className="admin-event-form__pricing-note">
+                            {t('admin.eventEditor.pricingCatalogHint')}
+                          </p>
+                        </>
+                      ) : null}
                     </div>
 
+                    {!essentials ? (
                     <div className="admin-event-form__payment-profile">
                       <header className="admin-event-form__lane-head">
                         <h5 className="admin-event-form__lane-title">
@@ -1431,6 +1453,7 @@ export default function AdminEventEditor({
                         </div>
                       ) : null}
                     </div>
+                    ) : null}
                   </div>
 
                   <div
@@ -1468,6 +1491,15 @@ export default function AdminEventEditor({
                     </label>
 
                     {ticketSalesEnabled ? (
+                      essentials ? (
+                        <p className="admin-event-form__section-note">
+                          {t('admin.eventEditor.essentialsTicketsNote', {
+                            count:
+                              draft.ticketTypes?.filter((ticketType) => ticketType.active !== false)
+                                .length ?? 0,
+                          })}
+                        </p>
+                      ) : (
                       <>
                         {/* La ventana de venta queda al mismo nivel que la de
                         inscripción: son las dos palancas de cierre del evento y
@@ -1544,6 +1576,7 @@ export default function AdminEventEditor({
                           </div>
                         </div>
                       </>
+                      )
                     ) : (
                       <p className="admin-event-form__section-note">
                         {t('admin.eventEditor.ticketsDisabledNote')}
@@ -1563,6 +1596,9 @@ export default function AdminEventEditor({
                 >
                   <header className="admin-event-form__section-head">
                     <h4>{t('admin.eventEditor.sectionVisibility')}</h4>
+                    {essentials ? (
+                      <p>{t('admin.eventEditor.sectionVisibilityLeadEssentials')}</p>
+                    ) : null}
                   </header>
 
                   <AdminFilterChipGroup
@@ -1663,7 +1699,10 @@ export default function AdminEventEditor({
 
                   {/* Antes vivía detrás de un <details> ("Avanzado"): con tabs
                     reales esta pantalla ya está acotada a Publicación, así
-                    que la transmisión queda siempre a la vista. */}
+                    que la transmisión queda siempre a la vista. En el acordeón
+                    de la consola queda fuera: lo elemental es estado, acceso y
+                    destacado. */}
+                  {!essentials ? (
                   <div className="admin-event-form__ticket-config">
                     <div className="admin-event-form__ticket-config-summary admin-event-form__ticket-config-summary--static">
                       <span>
@@ -1736,6 +1775,7 @@ export default function AdminEventEditor({
                       </div>
                     </div>
                   </div>
+                  ) : null}
                 </section>
               )}
 

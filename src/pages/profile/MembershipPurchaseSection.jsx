@@ -227,6 +227,26 @@ export default function MembershipPurchaseSection({
     manualPrice: selectedPlan?.manualPrice,
     fallback: selectedPlan?.price ?? 0,
   })
+  const catalogPrice = Number(selectedPlan?.price ?? 0)
+  const planManualPrice =
+    selectedPlan?.manualPrice == null ? null : Number(selectedPlan.manualPrice)
+  const planHasManualDiscount =
+    planManualPrice != null &&
+    Number.isFinite(planManualPrice) &&
+    Number.isFinite(catalogPrice) &&
+    planManualPrice < catalogPrice
+  const isManualPaymentChannel =
+    paymentMethod === 'transferencia' || paymentMethod === 'cash_pitbull'
+  const checkoutDisplayTotal = activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice
+  const showChannelCompare =
+    isManualPaymentChannel &&
+    planHasManualDiscount &&
+    Number(checkoutDisplayTotal) < catalogPrice
+  const channelCompareLabel = showChannelCompare
+    ? t('comboDeal.compare', { amount: money(catalogPrice, locale) })
+    : ''
+  const channelCompareTotal = showChannelCompare ? catalogPrice : null
+  const manualMethodDetail = planHasManualDiscount ? money(planManualPrice, locale) : ''
   const checkoutLocked = submitting || (Boolean(embeddedOrder) && !changingMethod)
   // Tanda privada abierta por el admin y todavía sin contraseña validada.
   const accessLocked = membershipAccessRequired && !accessUnlocked
@@ -1156,6 +1176,9 @@ export default function MembershipPurchaseSection({
                   selectedPlan ? (
                     <CheckoutBar
                       className="account-membership__bar"
+                      compareTotal={
+                        paymentMethod === 'wise_transfer' ? null : channelCompareTotal
+                      }
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
@@ -1187,6 +1210,7 @@ export default function MembershipPurchaseSection({
                             ? t('pages.register.paymentTransferLabel')
                             : t('account.membership.transferComingSoon'),
                           disabled: !transferSelectable,
+                          detail: transferSelectable ? manualMethodDetail : undefined,
                         },
                       ]
                     : []),
@@ -1198,6 +1222,7 @@ export default function MembershipPurchaseSection({
                             ? t('pages.register.paymentCashPitbullLabel')
                             : t('account.membership.cashPitbullComingSoon'),
                           disabled: !cashSelectable,
+                          detail: cashSelectable ? manualMethodDetail : undefined,
                         },
                       ]
                     : []),
@@ -1211,15 +1236,17 @@ export default function MembershipPurchaseSection({
                 paymentHint={
                   paymentMethod === 'wise_transfer'
                     ? t('pages.register.paymentWisePriceHint')
-                    : !mercadoPagoOffered && !transferOffered && !cashOffered && !wiseOffered
-                      ? t('pages.register.paymentNoChannelHint')
-                      : // Mercado Pago desaparece del selector sin que el atleta
-                        // haya tocado nada: el código lo cerró y hay que decirlo.
-                        codeClosesMercadoPago
-                        ? t('pages.register.paymentCodeWithoutGatewayHint')
-                        : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
-                          ? t('pages.register.paymentMercadoPagoOnlyHint')
-                          : ''
+                    : showChannelCompare
+                      ? t('account.membership.manualChannelPriceHint')
+                      : !mercadoPagoOffered && !transferOffered && !cashOffered && !wiseOffered
+                        ? t('pages.register.paymentNoChannelHint')
+                        : // Mercado Pago desaparece del selector sin que el atleta
+                          // haya tocado nada: el código lo cerró y hay que decirlo.
+                          codeClosesMercadoPago
+                          ? t('pages.register.paymentCodeWithoutGatewayHint')
+                          : mercadoPagoOffered && !manualChannelEnabled && !wiseOffered
+                            ? t('pages.register.paymentMercadoPagoOnlyHint')
+                            : ''
                 }
                 offers={
                   selectedPlan
@@ -1231,7 +1258,11 @@ export default function MembershipPurchaseSection({
                           priceLabel:
                             paymentMethod === 'wise_transfer'
                               ? wisePriceLabel(selectedPlanPrice, locale)
-                              : money(selectedPlanPrice, locale),
+                              : money(
+                                  activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice,
+                                  locale,
+                                ),
+                          comparePriceLabel: channelCompareLabel || undefined,
                         },
                       ]
                     : []

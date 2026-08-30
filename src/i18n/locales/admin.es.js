@@ -795,7 +795,8 @@ export default {
       deleteCodeConfirmCancel: 'Conservar código',
       deleteCodeConfirmConfirm: 'Eliminar código',
       codeDeleted: 'Código de descuento eliminado.',
-      codeArchived: 'Promoción archivada: sale del panel y deja de canjearse.',
+      codeArchived:
+        'Promoción archivada: sale del panel, deja de canjearse y el nombre queda libre para reusar.',
       appliesToLabel: 'Aplica a',
       appliesTo: {
         membership: 'Afiliación',
@@ -2268,6 +2269,10 @@ export default {
     provider: 'Proveedor',
     webhook: 'Webhook firmado',
     processingMode: 'Procesamiento',
+    recovery: 'Recuperación',
+    recoveryOn: 'Activa',
+    recoveryOff: 'Desactivada',
+    runtimeSignalsAria: 'Configuración del proveedor de pagos',
     configured: 'Configurado',
     missing: 'Faltante',
     inline: 'Inmediato',
@@ -2653,6 +2658,10 @@ export default {
     sectionBasicsLead: 'Qué evento es, cuándo empieza y cuándo termina.',
     sectionSales: 'Ventas y cupos',
     sectionSalesLead: 'Inscripción de atletas y entradas de público, cada una con su cupo y precios.',
+    sectionSalesLeadEssentials:
+      'Cupo, ventana y precio de inscripción. Canales de cobro y tipos de entrada quedan en el editor completo.',
+    essentialsTicketsNote:
+      'Entradas activas: {{count}}. Ventanas, add-ons y tipos se editan en el formulario completo del evento.',
     laneAthletes: 'Inscripción de atletas',
     laneAthletesLead: 'Cupo y ventana de inscripción. Fuera de plazo o sin lugares, se rechazan altas.',
     laneSpectators: 'Entradas de público',
@@ -2681,6 +2690,8 @@ export default {
         'El evento figura como finalizado, pero su fecha de fin todavía no llegó.',
     },
     sectionVisibility: 'Publicación',
+    sectionVisibilityLeadEssentials:
+      'Estado público, acceso al meet y destacado. La transmisión en vivo se configura en el editor completo.',
     validationSummary: 'Revisá los campos marcados antes de guardar.',
     validation: {
       titleMin: 'Ingresá un título de al menos 3 caracteres.',

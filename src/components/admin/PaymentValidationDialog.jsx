@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink, FileWarning, BadgeCheck, XCircle } from 'lucide-react'
+import { ExternalLink, FileWarning, BadgeCheck, X, XCircle } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatRejectionActor } from '../../lib/paymentAudit.js'
@@ -207,25 +207,38 @@ export default function PaymentValidationDialog({
         aria-describedby={descriptionId}
       >
         <header className="payment-validation-dialog__head">
-          <span className="payment-validation-dialog__eyebrow">{typeLabel}</span>
-          <h2 id={titleId}>
-            {isSettle
-              ? t('admin.paymentValidation.settleTitle')
-              : isView
-                ? t('admin.paymentValidation.viewTitle')
-                : t('admin.paymentValidation.title')}
-          </h2>
-          <p id={descriptionId} className="payment-validation-dialog__lead">
-            {isSettle
-              ? t('admin.paymentValidation.settleLead')
-              : isView
-                ? t('admin.paymentValidation.viewLead')
-                : t('admin.paymentValidation.lead')}
-          </p>
+          <div className="payment-validation-dialog__head-copy">
+            <span className="payment-validation-dialog__eyebrow">{typeLabel}</span>
+            <h2 id={titleId}>
+              {isSettle
+                ? t('admin.paymentValidation.settleTitle')
+                : isView
+                  ? t('admin.paymentValidation.viewTitle')
+                  : t('admin.paymentValidation.title')}
+            </h2>
+            <p id={descriptionId} className="payment-validation-dialog__lead">
+              {isSettle
+                ? t('admin.paymentValidation.settleLead')
+                : isView
+                  ? t('admin.paymentValidation.viewLead')
+                  : t('admin.paymentValidation.lead')}
+            </p>
+          </div>
+          {isView ? (
+            <button
+              type="button"
+              className="payment-validation-dialog__dismiss"
+              disabled={busy}
+              aria-label={t('admin.paymentValidation.close')}
+              onClick={onCancel}
+            >
+              <X size={18} aria-hidden />
+            </button>
+          ) : null}
         </header>
 
         <dl
-          className={`payment-validation-dialog__meta${isView ? ' payment-validation-dialog__meta--compact' : ''}`}
+          className={`payment-validation-dialog__meta${isView ? ' payment-validation-dialog__meta--rail' : ''}`}
         >
           <div>
             <dt>{t('admin.paymentValidation.subject')}</dt>
@@ -322,47 +335,51 @@ export default function PaymentValidationDialog({
 
           {hasProof && !proofLoading && proofUrl ? (
             <div className="payment-validation-dialog__preview">
-              {showImage ? (
-                <button
-                  type="button"
-                  className={`payment-validation-dialog__image-btn${imageExpanded ? ' is-expanded' : ''}`}
-                  aria-expanded={imageExpanded}
-                  aria-label={
-                    imageExpanded
-                      ? t('admin.paymentValidation.collapseProof')
-                      : t('admin.paymentValidation.expandProof')
-                  }
-                  onClick={() => setImageExpanded((current) => !current)}
+              <div className="payment-validation-dialog__proof-toolbar">
+                <a
+                  className="payment-validation-dialog__open"
+                  href={proofUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  <img
+                  <ExternalLink size={14} aria-hidden />
+                  {t('admin.paymentValidation.openTab')}
+                </a>
+              </div>
+              <div className="payment-validation-dialog__stage">
+                {showImage ? (
+                  <button
+                    type="button"
+                    className={`payment-validation-dialog__image-btn${imageExpanded ? ' is-expanded' : ''}`}
+                    aria-expanded={imageExpanded}
+                    aria-label={
+                      imageExpanded
+                        ? t('admin.paymentValidation.collapseProof')
+                        : t('admin.paymentValidation.expandProof')
+                    }
+                    onClick={() => setImageExpanded((current) => !current)}
+                  >
+                    <img
+                      src={proofUrl}
+                      alt={t('admin.paymentValidation.proofAlt')}
+                      className="payment-validation-dialog__image"
+                      onError={() => setImageFailed(true)}
+                    />
+                  </button>
+                ) : null}
+                {showEmbed ? (
+                  <iframe
+                    title={t('admin.paymentValidation.proofAlt')}
                     src={proofUrl}
-                    alt={t('admin.paymentValidation.proofAlt')}
-                    className="payment-validation-dialog__image"
-                    onError={() => setImageFailed(true)}
+                    className="payment-validation-dialog__frame"
                   />
-                </button>
-              ) : null}
-              {showEmbed ? (
-                <iframe
-                  title={t('admin.paymentValidation.proofAlt')}
-                  src={proofUrl}
-                  className="payment-validation-dialog__frame"
-                />
-              ) : null}
-              {showFallback ? (
-                <p className="payment-validation-dialog__preview-fallback">
-                  {t('admin.paymentValidation.previewFallback')}
-                </p>
-              ) : null}
-              <a
-                className="payment-validation-dialog__open"
-                href={proofUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ExternalLink size={14} aria-hidden />
-                {t('admin.paymentValidation.openTab')}
-              </a>
+                ) : null}
+                {showFallback ? (
+                  <p className="payment-validation-dialog__preview-fallback">
+                    {t('admin.paymentValidation.previewFallback')}
+                  </p>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>
