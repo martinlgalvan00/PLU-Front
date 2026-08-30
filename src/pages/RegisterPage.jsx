@@ -2,7 +2,7 @@ import '../styles/pages/design-phase2.css'
 import '../styles/pages/register.css'
 import '../styles/components/exclusive-offer.css'
 import '../styles/components/code-band.css'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -71,14 +71,17 @@ import FeatureComingSoon from '../components/ui/FeatureComingSoon.jsx'
 import RegisterSettle, { RegisterCheckoutBar } from '../components/checkout/RegisterSettle.jsx'
 import TransferPayModal from '../components/checkout/TransferPayModal.jsx'
 import ManualPaymentConfirmation from '../components/checkout/ManualPaymentConfirmation.jsx'
+import PaymentRecoveryPanel from '../components/checkout/PaymentRecoveryPanel.jsx'
 import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
 import {
   previewCheckoutPrice,
   toApiPaymentMethod,
   wisePriceLabel,
 } from '../services/checkoutPricing.js'
+import { paymentUpdateStatus } from '../services/paymentService.js'
 import { getMissingCompetitionProfileFields } from '../services/competitionProfile.js'
 import { fetchRegistrationAccessRequirements } from '../services/registrationAccessService.js'
+import { buildRegisterPaymentMethods } from '../lib/registerPaymentMethods.js'
 import {
   validateAthleteFields,
   validateAthleteForm,
@@ -408,7 +411,16 @@ function RegisterMembershipAside({ athlete, locale, t, total }) {
   )
 }
 
-function RegisterCompetitionAside({ athlete, form, locale, packageLabel, t, total }) {
+function RegisterCompetitionAside({
+  athlete,
+  form,
+  locale,
+  packageLabel,
+  paymentMethods = [],
+  paymentMethod,
+  t,
+  total,
+}) {
   const pending = t('pages.register.competitionSummaryPending')
   const picks = [
     form.division,
@@ -430,6 +442,25 @@ function RegisterCompetitionAside({ athlete, form, locale, packageLabel, t, tota
         <p className={`register-competition-ticket__picks${picks ? '' : ' is-pending'}`.trim()}>
           {picks || pending}
         </p>
+        {paymentMethods.length ? (
+          <fieldset className="register-competition-ticket__methods">
+            <legend>{t('pages.register.paymentMethod')}</legend>
+    <div className="register-competition-ticket__methods-list">
+              {paymentMethods.map((method) => (
+                <div
+                  key={method.value}
+                  className={`plu-checkout__pill${paymentMethod === method.value ? ' is-selected' : ''}${method.disabled ? ' is-disabled' : ''}`}
+                  aria-current={paymentMethod === method.value ? 'true' : undefined}
+                >
+                  {method.priceLabel ? (
+                    <strong className="plu-checkout__pill-price">{method.priceLabel}</strong>
+                  ) : null}
+                  <span className="plu-checkout__pill-label">{method.label}</span>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
         <div className="register-competition-ticket__total">
           <span>{t('pages.register.total')}</span>
           <strong>{money(total, locale)}</strong>
@@ -462,6 +493,7 @@ export default function RegisterPage({
   const [touched, setTouched] = useState({})
   const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  const [paymentRecovery, setPaymentRecovery] = useState(null)
   const [gyms, setGyms] = useState([])
 
   useEffect(() => {
@@ -1235,16 +1267,34 @@ export default function RegisterPage({
   // Wise tiene interruptor propio, independiente de los canales manuales
   // locales y de los cupones que los destraban.
   const wiseEnabled =
+    flow === 'competition' &&
     channelOpen(checkoutAvailability, 'membership', 'wise_transfer') &&
-    (flow !== 'competition' ||
-      channelOpen(registrationAvailability, 'registration', 'wise_transfer'))
+    channelOpen(registrationAvailability, 'registration', 'wise_transfer')
+  const wiseAvailableForPurchase = wiseEnabled && effectivePurchaseType !== 'combo'
+  const competitionPaymentMethods =
+    flow === 'competition'
+      ? buildRegisterPaymentMethods({
+          cashEnabled,
+          comboOffer: comboAvailability.offer,
+          locale,
+          manualPaymentEnabled,
+          mercadoPagoEnabled,
+          registrationManualPrice: eventPricing.registrationManual,
+          registrationPrice: registrationListPrice,
+          registrationWisePrice: eventPricing.wisePrice,
+          purchaseType: effectivePurchaseType,
+          t,
+          transferEnabled,
+          wiseEnabled,
+        })
+      : []
   const selectedMethodEnabled =
     form.paymentMethod === 'manual_link'
       ? transferEnabled
       : form.paymentMethod === 'cash_pitbull'
         ? cashEnabled
         : form.paymentMethod === 'wise_transfer'
-          ? wiseEnabled
+          ? wiseAvailableForPurchase
           : mercadoPagoEnabled
 
   // El medio elegido dejó de estar disponible mientras la pantalla estaba
@@ -1258,7 +1308,7 @@ export default function RegisterPage({
       ? 'manual_link'
       : cashEnabled
         ? 'cash_pitbull'
-        : wiseEnabled
+        : wiseAvailableForPurchase
           ? 'wise_transfer'
           : null
   useEffect(() => {
@@ -1494,6 +1544,15 @@ export default function RegisterPage({
 
   function applyRegisterSubmitResult(result, { requestedPaymentMethod } = {}) {
     if (result?.error) {
+      const canRecoverPayment =
+        requestedPaymentMethod === 'mercado_pago' &&
+        isPaidCheckout &&
+        !result.fields &&
+        result.code !== 'EMAIL_NOT_VERIFIED' &&
+        result.code !== 'PLU08'
+      if (canRecoverPayment) {
+        showPaymentRecovery({ stage: 'order' })
+      }
       const fieldErrors = {}
       if (result.fields?.email === 'taken') fieldErrors.email = takenMessage('email')
       if (result.fields?.documentId === 'taken') fieldErrors.documentId = takenMessage('documentId')
@@ -1518,6 +1577,7 @@ export default function RegisterPage({
       setResendState('idle')
       return
     }
+    setPaymentRecovery(null)
     if (flow === 'competition') {
       const method = result?.createdOrder?.paymentMethod ?? result?.payment?.method
       if (
@@ -1778,6 +1838,29 @@ export default function RegisterPage({
   const mpSettling =
     competitionSettling && visibleOrder.paymentMethod === 'mercado_pago' && !registrationAdmitted
 
+  const showPaymentRecovery = useCallback(({ order = visibleOrder, stage = 'result' } = {}) => {
+    setPaymentRecovery({
+      amount: order?.amount ?? checkoutTotal,
+      concept: order?.concept ?? packageLabel ?? event?.title ?? '',
+      currency: order?.currency ?? (form.paymentMethod === 'wise_transfer' ? 'USD' : 'ARS'),
+      reference: order?.reference ?? '',
+      stage,
+    })
+  }, [checkoutTotal, event?.title, form.paymentMethod, packageLabel, visibleOrder])
+
+  const handleMercadoPagoResult = useCallback((response) => {
+    const status = paymentUpdateStatus(response?.payment?.status ?? response?.order?.status)
+    if (status === 'rechazado' || status === 'cancelado') {
+      showPaymentRecovery({ order: response?.order ?? visibleOrder })
+    } else if (status === 'aprobado') {
+      setPaymentRecovery(null)
+    }
+  }, [showPaymentRecovery, visibleOrder])
+
+  const handleMercadoPagoError = useCallback(({ stage } = {}) => {
+    showPaymentRecovery({ stage })
+  }, [showPaymentRecovery])
+
   const registerIntro = profileOrderConfirmed ? (
     <header className="register-intro register-intro--profile register-intro--confirmed">
       <p className="register-intro__eyebrow">{t('pages.register.profileWelcomeEyebrow')}</p>
@@ -2029,6 +2112,8 @@ export default function RegisterPage({
               form={form}
               locale={locale}
               packageLabel={packageLabel}
+              paymentMethods={competitionPaymentMethods}
+              paymentMethod={form.paymentMethod}
               t={t}
               total={checkoutTotal}
             />
@@ -2207,6 +2292,17 @@ export default function RegisterPage({
                   />
                 </div>
               ) : visibleOrder.manualPaymentChannel === 'cash_pitbull' ? (
+                <div className="register-settle__manual">
+                  <div className="register-settle__nav">
+                    <button
+                      type="button"
+                      className="register-topbar__back register-settle__back"
+                      onClick={() => startPaymentMethodChange('mercado_pago')}
+                    >
+                      <ArrowLeft size={15} aria-hidden />
+                      {t('pages.register.changePaymentMethod')}
+                    </button>
+                  </div>
                   <ManualPaymentConfirmation
                     channel="cash_pitbull"
                     financedEntitlementsAt={visibleOrder.financedEntitlementsAt}
@@ -2228,6 +2324,7 @@ export default function RegisterPage({
                     }}
                     profileTab="account-events"
                   />
+                </div>
               ) : (
                 <div className="register-settle__toolbar">
                   <div className="register-settle__nav">
@@ -2253,7 +2350,25 @@ export default function RegisterPage({
                 </div>
               )}
               {registrationAdmitted || settleOrderRejected ? null : mpSettling ? (
-                <MercadoPagoEmbeddedCheckout order={visibleOrder} presentation="settle" />
+                <>
+                  <MercadoPagoEmbeddedCheckout
+                    onCheckoutError={handleMercadoPagoError}
+                    onResult={handleMercadoPagoResult}
+                    order={visibleOrder}
+                    presentation="settle"
+                  />
+                  {paymentRecovery ? (
+                    <PaymentRecoveryPanel
+                      amount={paymentRecovery.amount}
+                      concept={paymentRecovery.concept}
+                      currency={paymentRecovery.currency}
+                      onTransfer={() => void switchToTransfer()}
+                      reference={paymentRecovery.reference}
+                      transferAvailable={manualPaymentEnabled}
+                      transferBusy={submitting}
+                    />
+                  ) : null}
+                </>
               ) : (
                 <RegisterCheckoutBar
                   checkoutTotal={visibleOrder.amount ?? checkoutTotal}
@@ -2551,6 +2666,7 @@ export default function RegisterPage({
                       cashEnabled={cashEnabled}
                       mercadoPagoEnabled={mercadoPagoEnabled}
                       wiseEnabled={wiseEnabled}
+                      registrationWisePrice={eventPricing.wisePrice}
                       transferEnabled={transferEnabled}
                       onPaymentBlur={blurField}
                       onPaymentChange={changeField}
@@ -2937,6 +3053,18 @@ export default function RegisterPage({
                 </div>
               )}
 
+              {paymentRecovery && !mpSettling ? (
+                <PaymentRecoveryPanel
+                  amount={paymentRecovery.amount}
+                  concept={paymentRecovery.concept}
+                  currency={paymentRecovery.currency}
+                  onTransfer={() => void switchToTransfer()}
+                  reference={paymentRecovery.reference}
+                  transferAvailable={manualPaymentEnabled}
+                  transferBusy={submitting}
+                />
+              ) : null}
+
               <div
                 className={`register-card__footer form-actions${
                   flow === 'profile'
@@ -2952,6 +3080,7 @@ export default function RegisterPage({
                     mercadoPagoEnabled={mercadoPagoEnabled}
                     transferEnabled={transferEnabled}
                     wiseEnabled={wiseEnabled}
+                    registrationWisePrice={null}
                     onPaymentBlur={blurField}
                     onPaymentChange={changeField}
                     paymentError={errors.paymentMethod}

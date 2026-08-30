@@ -886,6 +886,21 @@ export default {
     approvedNote: 'Payment confirmed. Your request is now active.',
     rejectedNote: 'Payment could not be confirmed. Contact support.',
   },
+  paymentRecovery: {
+    eyebrow: 'Payment alternative',
+    title: 'Having trouble paying?',
+    description:
+      'You can contact us or continue by bank transfer. Manual accreditation is subject to PLU review.',
+    purchase: 'Purchase',
+    concept: 'Concept',
+    amount: 'Amount',
+    reference: 'Reference',
+    transferAction: 'Pay by bank transfer',
+    contactAction: 'Contact PLU',
+    contactSubject: 'Problem with a PLU payment',
+    contactBody: 'Hello, I had a problem paying through Mercado Pago. I need help with my operation.',
+    note: 'If Mercado Pago shows the payment as pending, wait for confirmation or contact us to avoid paying twice.',
+  },
   confirmation: {
     title: 'Request submitted',
     subtitle: 'We received your request successfully.',

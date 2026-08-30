@@ -213,10 +213,18 @@
 }
 
 .plu-checkout__pills {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  width: 100%;
+}
+
+.plu-checkout__pill--selectable {
   display: flex;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
-  width: fit-content;
+  width: 100%;
 }
 
 .plu-checkout__pill {
@@ -224,12 +232,27 @@
   border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
   border-radius: 2px;
   cursor: pointer;
-  display: inline-flex;
-  flex: 0 0 auto;
-  min-height: 36px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(76px, auto) minmax(0, 1fr);
+  min-height: 44px;
   padding: 0 12px;
   position: relative;
   transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.plu-checkout__pill-price {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.plu-checkout__pill.is-selected .plu-checkout__pill-price {
+  color: var(--color-brand-gold);
 }
 
 .plu-checkout__pill.has-detail {
@@ -297,7 +320,6 @@
 
 @media (pointer: coarse) {
   .plu-checkout__pill {
-    min-height: 44px;
     padding: 0 14px;
   }
 

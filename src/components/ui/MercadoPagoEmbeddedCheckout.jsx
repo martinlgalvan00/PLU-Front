@@ -283,7 +283,12 @@ function resolvePreferenceId(order) {
   )
 }
 
-export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentation = 'default' }) {
+export default function MercadoPagoEmbeddedCheckout({
+  onCheckoutError,
+  onResult,
+  order,
+  presentation = 'default',
+}) {
   const { locale, t } = useI18n()
   const [ready, setReady] = useState(false)
   const [result, setResult] = useState(null)
@@ -386,6 +391,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       ensureMercadoPago(locale, mercadoPagoPublicKey)
     } catch (initializationError) {
       setError(t('payments.embeddedRenderError'))
+      onCheckoutError?.({ stage: 'initialization', error: initializationError })
       void reportPaymentClientEvent({
         paymentOrderId: orderId,
         orderAccessToken: order?.orderAccessToken,
@@ -404,6 +410,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
     mercadoPagoPublicKey,
     order?.orderAccessToken,
     orderId,
+    onCheckoutError,
     t,
   ])
 
@@ -457,6 +464,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
       if (cancelled) return
       if (lastError) {
         setWalletPreferenceError(true)
+        onCheckoutError?.({ stage: 'preference', error: lastError })
         void reportPaymentClientEvent({
           paymentOrderId: orderId,
           orderAccessToken: order?.orderAccessToken,
@@ -479,8 +487,11 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   }, [
     isMock,
     isSubscription,
+    locale,
+    mercadoPagoConfigured,
     order?.orderAccessToken,
     orderId,
+    onCheckoutError,
     preferenceRetryNonce,
     realPreferenceId,
   ])
@@ -532,11 +543,22 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
         onResult?.(response)
         return response
       } catch (submitError) {
-        setError(controlledPaymentError(submitError, t))
+        const message = controlledPaymentError(submitError, t)
+        setError(message)
+        onCheckoutError?.({ stage: 'submit', error: submitError })
         throw submitError
       }
     },
-    [onResult, order?.amount, order?.concept, order?.orderAccessToken, order?.type, orderId, t],
+    [
+      onCheckoutError,
+      onResult,
+      order?.amount,
+      order?.concept,
+      order?.orderAccessToken,
+      order?.type,
+      orderId,
+      t,
+    ],
   )
 
   const submitSubscription = useCallback(
@@ -556,11 +578,13 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
         onResult?.(response)
         return response
       } catch (submitError) {
-        setError(controlledPaymentError(submitError, t))
+        const message = controlledPaymentError(submitError, t)
+        setError(message)
+        onCheckoutError?.({ stage: 'subscription_submit', error: submitError })
         throw submitError
       }
     },
-    [onResult, order?.orderAccessToken, order?.plan?.code, orderId, t],
+    [onCheckoutError, onResult, order?.orderAccessToken, order?.plan?.code, orderId, t],
   )
 
   const simulateOutcome = useCallback(
@@ -629,6 +653,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
   const handleRenderError = useCallback(
     (brickError) => {
       setError(t('payments.embeddedRenderError'))
+      onCheckoutError?.({ stage: 'render', error: brickError })
       void reportPaymentClientEvent({
         paymentOrderId: orderId,
         orderAccessToken: order?.orderAccessToken,
@@ -639,7 +664,7 @@ export default function MercadoPagoEmbeddedCheckout({ order, onResult, presentat
         // La telemetria no debe reemplazar el error original ni bloquear el reintento.
       })
     },
-    [order?.orderAccessToken, orderId, t],
+    [onCheckoutError, order?.orderAccessToken, orderId, t],
   )
   const refreshStatus = useCallback(
     async ({ quiet = false } = {}) => {
