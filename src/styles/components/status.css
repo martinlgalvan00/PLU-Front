@@ -107,10 +107,87 @@
   z-index: calc(var(--z-header, 200) + 30);
 }
 
-.email-verification-notice .status-pill,
 .session-notice .status-pill {
   box-shadow: var(--elevation-md);
   max-width: min(92vw, 520px);
+}
+
+/* ---- Tarjeta del aviso de verificación ----
+   Misma receta material que el toast de sesión (superficie elevada + filete
+   superior por estado), para que los avisos globales del shell compartan un
+   solo lenguaje. El acento semántico vive en el filete y el icono: el texto
+   no cambia de color. */
+.email-verification-notice__card {
+  --verify-accent: var(--color-brand-celeste);
+
+  align-items: center;
+  background: var(--color-bg-elevated, var(--color-bg-surface));
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  border-radius: 10px;
+  box-shadow: var(--elevation-md);
+  display: flex;
+  gap: 10px;
+  max-width: min(92vw, 460px);
+  overflow: hidden;
+  padding: 10px 12px 10px 14px;
+  pointer-events: auto;
+  position: relative;
+  width: fit-content;
+}
+
+.email-verification-notice__card::before {
+  background: var(--verify-accent);
+  content: '';
+  height: 1px;
+  inset: 0 0 auto;
+  opacity: 0.45;
+  position: absolute;
+}
+
+.email-verification-notice__card--success {
+  --verify-accent: var(--color-success-text, #34d399);
+}
+
+.email-verification-notice__card--danger {
+  --verify-accent: var(--color-danger-text, #ff6b66);
+}
+
+.email-verification-notice__icon {
+  align-items: center;
+  border-radius: 50%;
+  color: var(--verify-accent);
+  display: inline-flex;
+  flex: none;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.email-verification-notice__text {
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.email-verification-notice__retry {
+  background: var(--color-brand-action);
+  border: 1px solid var(--color-brand-action);
+  border-radius: var(--border-radius-pill);
+  color: var(--color-brand-action-text);
+  cursor: pointer;
+  flex: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.email-verification-notice__retry:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
 }
 
 /* ---- Toast de sesión ----
@@ -338,7 +415,11 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .email-verification-notice .status-pill,
+  .email-verification-notice__card {
+    animation: session-notice-in var(--motion-slow, 480ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+
   .session-notice__card {
     animation: session-notice-in var(--motion-slow, 480ms)
       var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
@@ -442,36 +523,22 @@
   }
 }
 
-.email-verification-notice button {
-  background: var(--color-brand-action);
-  border: 1px solid var(--color-brand-action);
-  border-radius: var(--border-radius-pill);
-  color: var(--color-brand-action-text);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  min-height: 36px;
-  padding: 0 12px;
-  pointer-events: auto;
-}
-
-.email-verification-notice button:focus-visible {
-  outline: 2px solid var(--color-brand-celeste);
-  outline-offset: 2px;
-}
-
+/* El spinner del estado "verificando" es el único loop de la tarjeta y
+   comunica trabajo en curso: no es decoración. */
 @media (prefers-reduced-motion: no-preference) {
-  .email-verification-notice {
-    animation: email-verification-in var(--motion-base, 240ms) var(--ease-standard, ease) both;
+  .email-verification-notice__spin {
+    animation: email-verification-spin 900ms linear infinite;
   }
 }
 
-@keyframes email-verification-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
+@keyframes email-verification-spin {
+  to {
+    transform: rotate(360deg);
   }
+}
+
+[data-theme='light'] .email-verification-notice__card {
+  box-shadow: var(--elevation-sm);
 }
 
 /* =============================================

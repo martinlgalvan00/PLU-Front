@@ -1,6 +1,6 @@
 import { HttpError } from '../lib/errors.js'
 import { hasAnyPermission, hasPermission } from '../../src/lib/permissions.js'
-import { readSessionFromRequest } from '../services/sessionService.js'
+import { extendSessionIfActive, readSessionFromRequest } from '../services/sessionService.js'
 
 /**
  * @param {{ prisma: unknown, allowPasswordChangePending?: boolean }} deps
@@ -10,7 +10,7 @@ import { readSessionFromRequest } from '../services/sessionService.js'
  * y cerrar sesión).
  */
 export function requireAuth({ prisma, allowPasswordChangePending = false }) {
-  return async (req, _res, next) => {
+  return async (req, res, next) => {
     try {
       const result = await readSessionFromRequest({ prisma, req })
       if (!result) {
@@ -32,6 +32,14 @@ export function requireAuth({ prisma, allowPasswordChangePending = false }) {
       }
 
       req.auth = result
+      // Ventana deslizante: mientras el staff siga operando, la sesión no
+      // vence a las 8 h del login. Best-effort y con tope absoluto (ver
+      // `extendSessionIfActive`): un fallo acá no puede tumbar el request.
+      try {
+        await extendSessionIfActive({ prisma, result, req, res })
+      } catch {
+        // La renovación falló: la sesión conserva el vencimiento anterior.
+      }
       next()
     } catch (error) {
       next(error)

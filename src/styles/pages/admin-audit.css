@@ -231,6 +231,42 @@
   color: var(--plu-warning-500);
 }
 
+/* El lavado de la cabecera repite el color del filete de estado con la
+   mínima intensidad que un monitor puede reproducir: informa el semáforo
+   sin convertir la evidencia en alarma visual. */
+.audit-health--attention .audit-health__summary {
+  background: color-mix(in srgb, var(--color-brand-red) 4%, transparent);
+}
+
+.audit-health--soft .audit-health__summary {
+  background: color-mix(in srgb, var(--plu-warning-500) 4%, transparent);
+}
+
+.audit-health--healthy .audit-health__summary {
+  background: color-mix(in srgb, var(--color-brand-celeste) 3%, transparent);
+}
+
+/* Entrada one-shot del bento: asienta la salud antes de que el ojo baje a la
+   tabla. Sin loop, sin draws de atención permanentes. */
+@media (prefers-reduced-motion: no-preference) {
+  .audit-health-bento {
+    animation: audit-health-in var(--motion-slow, 420ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+}
+
+@keyframes audit-health-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .audit-health__metric-note {
   color: var(--color-text-secondary);
   font-size: 10px;

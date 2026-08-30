@@ -21,6 +21,8 @@ const ATHLETE_INCOME_CATEGORY = {
   combo: 'Afiliación + inscripción',
 }
 
+const ATHLETE_CONCEPT_KEYS = new Set(['membership', 'registration', 'combo'])
+
 function cleanText(value) {
   const text = String(value ?? '').trim()
   return text || null
@@ -30,6 +32,13 @@ function athleteIncomeCategory(concept) {
   const key = cleanText(concept)
   if (!key) return 'Cobro'
   return ATHLETE_INCOME_CATEGORY[key] ?? key
+}
+
+/** Clave estable para filtrar en FE sin acoplar a labels i18n. */
+function athleteConceptKey(concept) {
+  const key = cleanText(concept)
+  if (key && ATHLETE_CONCEPT_KEYS.has(key)) return key
+  return 'other'
 }
 
 function incomeDescription(category, party) {
@@ -101,6 +110,7 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
           kind: 'income',
           occurredOn: x.confirmed_at,
           category,
+          conceptKey: athleteConceptKey(order?.concept),
           description: incomeDescription(category, party),
           amount: x.amount,
           currency: x.currency,
@@ -118,6 +128,7 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
           kind: 'income',
           occurredOn: x.confirmed_at,
           category,
+          conceptKey: 'ticket',
           description: incomeDescription(category, party),
           amount: x.amount,
           currency: x.currency,
@@ -131,6 +142,7 @@ export function createFinanceRoutes({ getPrisma, getSupabaseAdmin }) {
         kind: 'expense',
         occurredOn: x.occurred_on,
         category: x.category,
+        conceptKey: 'expense',
         description: x.description,
         amount: x.amount,
         currency: x.currency,

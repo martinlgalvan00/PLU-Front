@@ -23,6 +23,7 @@ describe('MembershipCard PLU', () => {
 
     expect(container.querySelector('.membership-card--plu-band')).not.toBeNull()
     expect(container.querySelector('.membership-card__kicker')).toBeNull()
+    expect(container.querySelector('.membership-card__price-line')).not.toBeNull()
     expect(container.querySelector('.membership-card__includes-label')?.textContent).toBe('Incluye')
     expect(container.querySelector('.membership-card__feature-index')).toBeNull()
 

@@ -258,6 +258,8 @@ button:disabled {
     .design-page-hero,
     .site-footer__main,
     .site-footer__bottom,
+    .cookie-consent__card,
+    .email-verification-notice__card,
     :where(
       .institutional-page,
       .institutional-hero,

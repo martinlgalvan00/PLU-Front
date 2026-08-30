@@ -505,8 +505,11 @@
   flex-direction: column;
   max-height: min(70vh, 640px);
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0;
+  scroll-margin-block: 12px;
 }
 
 .admin-shell .admin-event-console__fold > .admin-event-editor--embedded {
@@ -519,7 +522,8 @@
 
 .admin-shell .admin-event-console__fold--structure {
   max-height: min(70vh, 680px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 12px 16px 16px;
 }
 
@@ -528,8 +532,8 @@
 }
 
 .admin-shell .admin-event-console__fold--structure .admin-event-sessions__row {
-  background: color-mix(in srgb, var(--admin-modal-bg-surface, var(--color-bg-surface)) 88%, transparent);
-  border-color: var(--admin-glass-border, var(--admin-hairline, var(--color-border-subtle)));
+  background: var(--admin-modal-bg-surface);
+  border-color: var(--admin-hairline);
 }
 
 .admin-event-editor--accordion .admin-event-editor__toolbar--accordion {
@@ -1255,7 +1259,7 @@
 
 .admin-event-console-modal__head {
   align-items: flex-start;
-  background: var(--admin-surface, var(--admin-glass-bg-strong));
+  background: var(--admin-surface);
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
@@ -1940,7 +1944,7 @@
 .admin-event-editor__embed-bar {
   align-items: center;
   background: transparent;
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
   gap: 10px 16px;
@@ -1952,7 +1956,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--admin-ink);
   cursor: pointer;
   display: inline-flex;
   font: inherit;
@@ -1966,11 +1970,11 @@
 }
 
 .admin-event-editor__embed-back:hover {
-  color: var(--admin-brand, var(--color-brand-celeste));
+  color: var(--admin-brand);
 }
 
 .admin-event-editor__embed-back:focus-visible {
-  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
 
@@ -1978,7 +1982,7 @@
   background: color-mix(in srgb, var(--color-brand-gold) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-brand-gold) 34%, transparent);
   border-radius: 999px;
-  color: color-mix(in srgb, var(--color-brand-gold) 88%, var(--admin-ink, #fff));
+  color: color-mix(in srgb, var(--color-brand-gold) 88%, var(--admin-ink));
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1988,7 +1992,7 @@
 
 .admin-event-editor--embedded .admin-event-editor__toolbar {
   background: transparent;
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-bottom: 1px solid var(--admin-hairline);
   padding: 8px 18px;
 }
 
@@ -2025,8 +2029,8 @@
 
 /* Dock de acciones: misma superficie que el modal, sin glass anidado. */
 .admin-event-editor--embedded .admin-event-form__actions {
-  background: var(--admin-modal-bg, var(--admin-surface));
-  border-top: 1px solid var(--admin-modal-hairline, var(--admin-hairline));
+  background: var(--admin-modal-bg);
+  border-top: 1px solid var(--admin-modal-hairline);
   gap: 10px;
   justify-content: flex-end;
   margin-top: auto;
@@ -2051,15 +2055,15 @@
 }
 
 .admin-event-editor--embedded .admin-event-form__occupancy {
-  background: var(--admin-modal-bg-muted, var(--admin-modal-bg-surface, transparent));
-  border-color: var(--admin-hairline, var(--color-border-subtle));
+  background: var(--admin-modal-bg-muted);
+  border-color: var(--admin-hairline);
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
 .admin-event-editor--embedded .admin-event-form__occupancy-value {
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--admin-ink);
 }
 
 .admin-event-editor--embedded .admin-event-form__field > span,
@@ -2095,10 +2099,243 @@
   }
 
   .admin-event-editor--embedded .admin-event-form__actions {
-    background: var(--admin-modal-bg, var(--admin-surface));
+    background: var(--admin-modal-bg);
   }
 
   .admin-event-editor--embedded .admin-event-form__occupancy {
-    background: var(--admin-modal-bg-muted, var(--admin-modal-bg-surface, var(--admin-surface)));
+    background: var(--admin-modal-bg-muted);
+  }
+}
+
+/* ── 8. Preview + insights dentro del modal (grafito) ─ */
+
+.admin-event-console-modal__panel .admin-event-preview--embedded {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  gap: 0;
+  padding: 0;
+}
+
+.admin-event-console-modal__panel .admin-event-preview--embedded::before {
+  display: none;
+}
+
+.admin-event-console-modal__panel .admin-event-preview__card {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 18px 0;
+}
+
+.admin-event-console-modal__panel .admin-event-preview__card .event-card {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.admin-event-console-modal__panel .event-card__date-block {
+  background: var(--admin-surface-raised);
+  border-color: var(--admin-hairline);
+}
+
+.admin-event-console-modal__panel .event-card__day,
+.admin-event-console-modal__panel .event-card__title {
+  color: var(--admin-ink);
+}
+
+.admin-event-console-modal__panel .event-card__month,
+.admin-event-console-modal__panel .event-card__meta,
+.admin-event-console-modal__panel .event-card__status {
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .event-card__status[data-tone='success'] {
+  color: var(--admin-status-success);
+}
+
+.admin-event-console-modal__panel .event-card__status[data-tone='warning'] {
+  color: var(--admin-status-warning);
+}
+
+.admin-event-console-modal__panel .event-card__status[data-tone='danger'] {
+  color: var(--admin-status-danger);
+}
+
+.admin-event-console-modal__panel .admin-event-preview__publication {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  color: var(--admin-muted);
+  min-height: 0;
+  padding: 12px 0;
+}
+
+.admin-event-console-modal__panel .admin-event-preview__footer {
+  border: 0;
+  gap: 0;
+  padding: 0;
+}
+
+.admin-event-console-modal__panel .admin-event-preview__capacity {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  margin: 0;
+  padding: 16px 0;
+}
+
+.admin-event-console-modal__panel .admin-event-preview__capacity .capacity-widget__header {
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .admin-event-preview__capacity .capacity-widget__header strong {
+  color: var(--admin-ink);
+}
+
+.admin-event-console-modal__panel .admin-event-preview__capacity .capacity-bar {
+  background: color-mix(in srgb, var(--admin-ink) 12%, transparent);
+}
+
+.admin-event-console-modal__panel .admin-event-preview__meta {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.admin-event-console-modal__panel .admin-event-preview__meta li {
+  background: transparent;
+  border-bottom: 1px solid var(--admin-hairline);
+  color: var(--admin-text-secondary);
+  padding: 13px 0;
+}
+
+.admin-event-console-modal__panel .admin-event-preview__meta-label,
+.admin-event-console-modal__panel .admin-event-preview__meta-icon {
+  color: var(--admin-muted);
+}
+
+.admin-event-console-modal__panel .admin-event-preview__meta strong,
+.admin-event-console-modal__panel .admin-event-preview__meta code {
+  color: var(--admin-ink);
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  gap: 0;
+  padding: 18px 0;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__head {
+  margin-bottom: 13px;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__stripe {
+  background: var(--admin-brand);
+  height: 12px;
+  opacity: 0.82;
+  width: 1px;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__metrics {
+  gap: 0;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__metric {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--admin-hairline);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 4px 12px;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__metric:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__metric:last-child {
+  padding-right: 0;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__metric::before {
+  display: none;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__icon {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  height: auto;
+  width: auto;
+}
+
+.admin-event-console-modal__panel
+  .admin-event-ticket-insights__metric
+  .admin-event-ticket-insights__value {
+  color: var(--admin-ink);
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__breakdown {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--admin-hairline);
+  margin-top: 14px;
+}
+
+.admin-event-console-modal__panel .admin-event-ticket-insights__breakdown li {
+  border-color: var(--admin-hairline);
+  padding-block: 9px;
+}
+
+.admin-event-console-modal__panel .admin-event-addon-report {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 18px;
+}
+
+@media (min-width: 1200px) {
+  .admin-event-console-modal .admin-event-ticket-insights__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-event-console-modal .admin-event-ticket-insights__metric {
+    align-items: start;
+    display: grid;
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .admin-event-console-modal .admin-event-ticket-insights__metric dd {
+    margin-left: 0;
+    text-align: left;
+  }
+
+  .admin-event-console-modal .admin-event-ticket-insights__breakdown {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-event-console-modal .admin-event-ticket-insights__breakdown li {
+    align-items: center;
+    border-left: 1px solid var(--admin-hairline);
+    border-top: 0;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .admin-event-console-modal .admin-event-ticket-insights__breakdown li:first-child {
+    border-left: 0;
   }
 }

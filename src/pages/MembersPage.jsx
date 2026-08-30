@@ -277,7 +277,7 @@ export default function MembersPage({
           ) : null}
 
           {visiblePlans.length ? (
-            <div className={gridClassName}>
+            <Reveal className={gridClassName} variant="up">
               {visiblePlans.map((plan) => (
                 <MembershipCard
                   key={plan.id}
@@ -295,7 +295,7 @@ export default function MembersPage({
                   variant="plu"
                 />
               ))}
-            </div>
+            </Reveal>
           ) : null}
 
           {!hasActiveMembership && visiblePlans.length ? (

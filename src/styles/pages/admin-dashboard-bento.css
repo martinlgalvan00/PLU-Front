@@ -1491,6 +1491,26 @@
   height: 100%;
 }
 
+/* La barra de llenado crece una vez al montar: convierte el cupo en un
+   dato con dirección y no un rectángulo estático. */
+@media (prefers-reduced-motion: no-preference) {
+  .admin-ops__spotlight-bar > span {
+    animation: admin-ops-spotlight-in var(--motion-slow, 420ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    transform-origin: left center;
+  }
+}
+
+@keyframes admin-ops-spotlight-in {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .admin-ops__spotlight-meter > span {
   color: var(--admin-muted);
   font-size: 11px;
@@ -1837,6 +1857,27 @@
 .admin-donut__svg {
   height: 100%;
   width: 100%;
+}
+
+/* Settle de entrada del donut: los arcos ya transicionan ante cambios de
+   dato; esto solo asienta la primera aparición del bloque de cobros. */
+@media (prefers-reduced-motion: no-preference) {
+  .admin-donut__svg {
+    animation: admin-donut-in var(--motion-slow, 420ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+}
+
+@keyframes admin-donut-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .admin-donut__track {

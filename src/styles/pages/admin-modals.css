@@ -59,6 +59,15 @@
   --color-bg-elevated: var(--admin-modal-bg-surface);
   --color-danger-text: var(--admin-modal-danger-text);
   --color-danger-bg: var(--admin-modal-danger-bg);
+  /* StatusPill y chips de página usan --color-success/warning; sin esto
+     en light quedan tintas de canvas claro sobre grafito. */
+  --color-success-bg: var(--admin-status-success-bg);
+  --color-success-text: var(--admin-status-success);
+  --color-warning-bg: var(--admin-status-warning-bg);
+  --color-warning-text: var(--admin-status-warning);
+  --color-border: var(--admin-modal-hairline);
+  --color-brand-celeste: var(--admin-brand);
+  --color-brand-celeste-dim: var(--admin-brand-soft);
 
   -webkit-backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
   backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
@@ -73,10 +82,8 @@
 
 /* Editor + consola: grafito en ambos temas. Misma especificidad que
    cualquier [data-theme] legado, cascada última vía AdminPage. */
-[data-theme='light'] .admin-event-editor-modal__panel,
-[data-theme='dark'] .admin-event-editor-modal__panel,
-[data-theme='light'] .admin-event-console-modal__panel,
-[data-theme='dark'] .admin-event-console-modal__panel {
+.admin-event-editor-modal__panel,
+.admin-event-console-modal__panel {
   background: var(--admin-modal-bg);
   border-color: var(--admin-modal-border);
   box-shadow:
@@ -86,10 +93,8 @@
   backdrop-filter: blur(var(--admin-modal-blur)) saturate(1.12);
 }
 
-[data-theme='light'] .admin-event-editor-modal__backdrop,
-[data-theme='dark'] .admin-event-editor-modal__backdrop,
-[data-theme='light'] .admin-event-console-modal__backdrop,
-[data-theme='dark'] .admin-event-console-modal__backdrop {
+.admin-event-editor-modal__backdrop,
+.admin-event-console-modal__backdrop {
   background: var(--admin-modal-backdrop);
 }
 
@@ -168,20 +173,15 @@
   outline: none;
 }
 
-[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']),
-[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form select,
-[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form textarea,
-[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']),
-[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form select,
-[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form textarea,
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-form select,
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-form textarea,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form select,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form textarea,
-[data-theme='light'] .admin-event-quick__panel .admin-event-quick__field input,
-[data-theme='dark'] .admin-event-quick__panel .admin-event-quick__field input {
+/* Misma especificidad que [data-theme='light'] .admin-event-form input de
+   admin.css (blanco forzado): el remapeo del panel ya unifica light/dark. */
+.admin-event-editor-modal__panel .admin-event-form input:not([type='checkbox']),
+.admin-event-editor-modal__panel .admin-event-form select,
+.admin-event-editor-modal__panel .admin-event-form textarea,
+.admin-event-console-modal__panel .admin-event-form input:not([type='checkbox']),
+.admin-event-console-modal__panel .admin-event-form select,
+.admin-event-console-modal__panel .admin-event-form textarea,
+.admin-event-quick__panel .admin-event-quick__field input {
   background: var(--admin-control-bg);
   border-color: var(--admin-hairline);
   color: var(--admin-ink);
@@ -218,34 +218,20 @@
 }
 
 /* Anula toggles “page light” (#fff / ink oscuro) dentro del grafito. */
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-form__toggle-ui,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form__toggle-ui,
-[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui,
-[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui {
+.admin-event-console-modal__panel .admin-event-form__toggle-ui,
+.admin-event-editor-modal__panel .admin-event-form__toggle-ui {
   background: color-mix(in srgb, var(--admin-modal-ink) 22%, transparent);
 }
 
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-form__toggle-ui::after,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form__toggle-ui::after,
-[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui::after,
-[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form__toggle-ui::after {
+.admin-event-console-modal__panel .admin-event-form__toggle-ui::after,
+.admin-event-editor-modal__panel .admin-event-form__toggle-ui::after {
   background: color-mix(in srgb, var(--admin-modal-ink) 78%, transparent);
 }
 
-[data-theme='light']
-  .admin-event-console-modal__panel
+.admin-event-console-modal__panel
   .admin-event-form__toggle-input:checked
   ~ .admin-event-form__toggle-ui::after,
-[data-theme='dark']
-  .admin-event-console-modal__panel
-  .admin-event-form__toggle-input:checked
-  ~ .admin-event-form__toggle-ui::after,
-[data-theme='light']
-  .admin-event-editor-modal__panel
-  .admin-event-form__toggle-input:checked
-  ~ .admin-event-form__toggle-ui::after,
-[data-theme='dark']
-  .admin-event-editor-modal__panel
+.admin-event-editor-modal__panel
   .admin-event-form__toggle-input:checked
   ~ .admin-event-form__toggle-ui::after {
   background: #fff;
@@ -334,11 +320,39 @@
   color: var(--admin-ink);
 }
 
-[data-theme='light'] .admin-event-console-modal__panel .admin-event-form__pricing,
-[data-theme='dark'] .admin-event-console-modal__panel .admin-event-form__pricing,
-[data-theme='light'] .admin-event-editor-modal__panel .admin-event-form__pricing,
-[data-theme='dark'] .admin-event-editor-modal__panel .admin-event-form__pricing {
+.admin-event-console-modal__panel .admin-event-form__pricing,
+.admin-event-editor-modal__panel .admin-event-form__pricing {
   background: transparent;
+}
+
+/* StatusPill: bordes hardcodeados de status.css no heredan remapeo. */
+.admin-event-console-modal__panel .status-pill--success,
+.admin-event-editor-modal__panel .status-pill--success {
+  border-color: var(--admin-status-success-border);
+}
+
+.admin-event-console-modal__panel .status-pill--warning,
+.admin-event-editor-modal__panel .status-pill--warning {
+  border-color: var(--admin-status-warning-border);
+}
+
+.admin-event-console-modal__panel .status-pill--danger,
+.admin-event-editor-modal__panel .status-pill--danger {
+  border-color: var(--admin-status-danger-border);
+}
+
+.admin-event-console-modal__panel .status-pill--info,
+.admin-event-editor-modal__panel .status-pill--info {
+  background: var(--admin-brand-soft);
+  border-color: var(--admin-brand-border);
+  color: var(--admin-brand);
+}
+
+.admin-event-console-modal__panel .status-pill--neutral,
+.admin-event-editor-modal__panel .status-pill--neutral {
+  background: var(--admin-modal-bg-surface);
+  border-color: var(--admin-hairline);
+  color: var(--admin-text-secondary);
 }
 
 /* Matiz fino: en page light el grafito es un toque más cálido/claro;

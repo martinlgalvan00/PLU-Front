@@ -3671,14 +3671,14 @@
   container-type: inline-size;
   min-width: 0;
   overflow-x: clip;
-  padding-block: clamp(32px, 5vw, 52px);
+  padding-block: clamp(40px, 6vw, 64px);
   width: 100%;
 }
 
 .members-plu-plans .members-plu-plans__head {
   display: grid;
-  gap: 10px;
-  margin: 0 0 clamp(28px, 3.8vw, 40px);
+  gap: 12px;
+  margin: 0 0 clamp(32px, 4.2vw, 48px);
   max-width: var(--members-plans-col-max);
   text-align: left;
 }
@@ -3688,7 +3688,7 @@
   content: '';
   display: block;
   height: 2px;
-  width: 2.75rem;
+  width: 3rem;
 }
 
 .members-plu-plans .members-plu-plans__head .members-plu-process__eyebrow {
@@ -3703,18 +3703,21 @@
 }
 
 .members-plu-plans .members-plu-plans__head .members-plu-block__title {
-  font-size: clamp(1.75rem, 3.6vw, 2.45rem);
+  font-size: clamp(1.85rem, 3.8vw, 2.6rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
   max-width: 14ch;
   text-transform: none;
   text-wrap: balance;
 }
 
 .members-plu-plans .members-plu-plans__head .members-plu-block__lead {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  line-height: 1.55;
   margin-inline: 0;
-  max-width: 38ch;
+  max-width: 36ch;
 }
 
 .members-plu-plans__combo {
@@ -3907,17 +3910,17 @@
   font-size: 13px;
   letter-spacing: 0.01em;
   line-height: 1.5;
-  margin: clamp(16px, 2.4vw, 22px) 0 0;
+  margin: clamp(12px, 1.8vw, 16px) 0 0;
   max-width: var(--members-plans-col-max);
   text-align: left;
 }
 
 .membership-grid--plu {
   display: grid;
-  gap: clamp(28px, 4vw, 40px);
+  gap: clamp(32px, 4.5vw, 48px);
   grid-template-columns: 1fr;
   margin-inline: 0;
-  margin-top: 4px;
+  margin-top: 0;
   max-width: var(--members-plans-col-max, 68rem);
   min-width: 0;
   width: 100%;
@@ -3926,6 +3929,15 @@
 .membership-grid--plu-solo,
 .membership-grid--plu-multi {
   max-width: var(--members-plans-col-max, 68rem);
+}
+
+.membership-grid--plu-solo .membership-card--plu {
+  border-top-width: 2px;
+  padding-block: clamp(4px, 1vw, 8px) 0;
+}
+
+.membership-grid--plu-solo .membership-card--plu .membership-card__amount {
+  font-size: clamp(2.65rem, 6vw, 3.35rem);
 }
 
 .membership-card--plu {
@@ -3958,7 +3970,7 @@
 .membership-card--plu .membership-card__body {
   align-items: stretch;
   display: grid;
-  gap: clamp(20px, 3vw, 28px);
+  gap: clamp(22px, 3.2vw, 32px);
   grid-template-areas:
     'offer'
     'includes'
@@ -3966,7 +3978,7 @@
     'foot';
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-  padding: clamp(20px, 3vw, 28px) 0 0;
+  padding: clamp(24px, 3.4vw, 32px) 0 0;
 }
 
 .membership-card--plu .membership-card__offer {
@@ -3978,7 +3990,7 @@
 
 .membership-card--plu .membership-card__identity {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -3999,12 +4011,12 @@
 }
 
 .membership-card--plu .membership-card__title {
-  color: var(--color-text-primary);
+  color: color-mix(in oklab, var(--color-text-primary) 72%, var(--color-text-muted));
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 2vw, 1.2rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.3;
+  font-size: clamp(0.95rem, 1.7vw, 1.05rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
   margin: 0;
   text-transform: none;
   text-wrap: balance;
@@ -4012,27 +4024,36 @@
 
 .membership-card--plu .membership-card__price-stack {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   justify-items: start;
-  margin-top: clamp(12px, 2vw, 18px);
+  margin-top: clamp(14px, 2.2vw, 20px);
+}
+
+.membership-card--plu .membership-card__price-line {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em 0.55em;
+  margin: 0;
 }
 
 .membership-card--plu .membership-card__amount {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(2.35rem, 5.2vw, 2.9rem);
+  font-size: clamp(2.45rem, 5.4vw, 3.05rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.06em;
-  line-height: 0.9;
+  letter-spacing: -0.065em;
+  line-height: 0.92;
 }
 
 .membership-card--plu .membership-card__period {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-family: var(--font-display);
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  line-height: 1.3;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
   text-transform: none;
 }
 
@@ -4041,26 +4062,27 @@
   font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0.01em;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .membership-card--plu .membership-card__includes {
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-area: includes;
   min-width: 0;
-  padding-top: clamp(16px, 2.4vw, 22px);
+  padding-top: clamp(18px, 2.6vw, 24px);
 }
 
 .membership-card--plu .membership-card__includes-label {
   color: var(--color-text-muted);
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   line-height: 1.2;
   margin: 0;
+  opacity: 0.85;
   padding-inline-end: 0.12em;
   text-transform: uppercase;
 }
@@ -4077,29 +4099,30 @@
 .membership-card--plu .membership-card__feature {
   align-items: baseline;
   border: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-border-subtle) 70%, transparent);
   color: var(--color-text-muted);
   display: flex;
-  font-size: 14px;
-  gap: 10px;
+  font-size: 14.5px;
+  gap: 12px;
   line-height: 1.45;
   min-width: 0;
-  padding: 10px 0;
+  padding: 11px 0;
 }
 
 .membership-card--plu .membership-card__feature::before {
-  background: color-mix(in oklab, var(--color-text-primary) 38%, transparent);
+  background: var(--color-brand-gold);
   content: '';
   flex: none;
   height: 1px;
-  margin-top: 0.62em;
-  width: 8px;
+  margin-top: 0.65em;
+  opacity: 0.7;
+  width: 10px;
 }
 
 .membership-card--plu .membership-card__feature-text {
-  color: color-mix(in oklab, var(--color-text-primary) 86%, var(--color-text-muted));
+  color: color-mix(in oklab, var(--color-text-primary) 88%, var(--color-text-muted));
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .membership-card--plu .membership-card__feature:last-child {
@@ -4169,7 +4192,7 @@
   justify-content: center;
   letter-spacing: -0.01em;
   max-width: none;
-  min-height: 48px;
+  min-height: 50px;
   min-width: 0;
   text-transform: none;
   transition:
@@ -4204,7 +4227,7 @@
   background: var(--color-brand-action);
   border-color: transparent;
   color: var(--color-brand-action-text);
-  min-height: 48px;
+  min-height: 50px;
 }
 
 .membership-card--plu-featured .membership-card__cta:hover:not(:disabled) {
@@ -4218,12 +4241,12 @@
 @container members-plans (min-width: 640px) {
   .membership-card--plu .membership-card__body {
     align-items: start;
-    column-gap: clamp(32px, 5cqi, 64px);
+    column-gap: clamp(36px, 5.5cqi, 72px);
     grid-template-areas:
       'offer includes'
       'offer foot';
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-    row-gap: clamp(18px, 2.4cqi, 24px);
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    row-gap: clamp(20px, 2.6cqi, 28px);
   }
 
   .membership-card--plu .membership-card__body:has(.membership-card__renew) {
@@ -4234,10 +4257,10 @@
   }
 
   .membership-card--plu .membership-card__includes {
-    border-left: 1px solid var(--color-border-subtle);
+    border-left: 1px solid color-mix(in oklab, var(--color-border-subtle) 80%, transparent);
     border-top: 0;
-    padding-left: clamp(24px, 3.5cqi, 40px);
-    padding-top: 2px;
+    padding-left: clamp(28px, 4cqi, 44px);
+    padding-top: 4px;
   }
 
   .membership-card--plu .membership-card__foot {
@@ -4247,8 +4270,12 @@
   .membership-card--plu .membership-card__cta {
     max-width: 22rem;
     width: auto;
-    min-width: min(100%, 16rem);
-    padding-inline: 22px;
+    min-width: min(100%, 16.5rem);
+    padding-inline: 24px;
+  }
+
+  .membership-grid--plu-solo + .members-plu-plans__reassure {
+    max-width: min(100%, 22rem);
   }
 }
 
@@ -4256,12 +4283,12 @@
   @media (min-width: 720px) {
     .membership-card--plu .membership-card__body {
       align-items: start;
-      column-gap: clamp(32px, 5vw, 64px);
+      column-gap: clamp(36px, 5.5vw, 72px);
       grid-template-areas:
         'offer includes'
         'offer foot';
-      grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
-      row-gap: clamp(18px, 2.4vw, 24px);
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      row-gap: clamp(20px, 2.6vw, 28px);
     }
 
     .membership-card--plu .membership-card__body:has(.membership-card__renew) {
@@ -4272,10 +4299,10 @@
     }
 
     .membership-card--plu .membership-card__includes {
-      border-left: 1px solid var(--color-border-subtle);
+      border-left: 1px solid color-mix(in oklab, var(--color-border-subtle) 80%, transparent);
       border-top: 0;
-      padding-left: clamp(24px, 3.5vw, 40px);
-      padding-top: 2px;
+      padding-left: clamp(28px, 4vw, 44px);
+      padding-top: 4px;
     }
 
     .membership-card--plu .membership-card__foot {
@@ -4285,8 +4312,12 @@
     .membership-card--plu .membership-card__cta {
       max-width: 22rem;
       width: auto;
-      min-width: min(100%, 16rem);
-      padding-inline: 22px;
+      min-width: min(100%, 16.5rem);
+      padding-inline: 24px;
+    }
+
+    .membership-grid--plu-solo + .members-plu-plans__reassure {
+      max-width: min(100%, 22rem);
     }
   }
 }
@@ -4312,11 +4343,16 @@
 }
 
 [data-theme='light'] .membership-card--plu .membership-card__feature::before {
-  background: color-mix(in oklab, var(--color-text-primary) 32%, transparent);
+  background: var(--color-brand-gold-dark, var(--color-brand-gold));
+  opacity: 0.75;
+}
+
+[data-theme='light'] .membership-card--plu .membership-card__title {
+  color: color-mix(in oklab, var(--color-text-primary) 68%, var(--color-text-muted));
 }
 
 [data-theme='light'] .membership-card--plu .membership-card__includes {
-  border-color: var(--color-border-subtle);
+  border-color: color-mix(in oklab, var(--color-border-subtle) 80%, transparent);
 }
 
 [data-theme='light'] .membership-card--plu .membership-card__cta {

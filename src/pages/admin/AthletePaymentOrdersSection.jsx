@@ -11,6 +11,7 @@ import {
   AdminTableActions,
 } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
+import Pill from '../../components/ui/Pill.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
@@ -555,9 +556,20 @@ export default function AthletePaymentOrdersSection({
               label: t('admin.columns.athlete'),
               mobile: 'primary',
               sortable: true,
-              render: (row) => (
-                <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} subMono />
-              ),
+              render: (row) => {
+                const isStaff = /^STAFF[-_]/i.test(String(row.document ?? ''))
+                return (
+                  <AdminIdentityCell
+                    accent="gold"
+                    name={row.athlete}
+                    sub={isStaff ? undefined : row.document}
+                    subMono={!isStaff}
+                    badge={
+                      isStaff ? <Pill tone="info">{t('admin.athletePayments.staffPill')}</Pill> : null
+                    }
+                  />
+                )
+              },
             },
             {
               key: 'concept',

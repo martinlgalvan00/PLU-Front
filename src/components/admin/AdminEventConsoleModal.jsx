@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -91,6 +91,7 @@ export default function AdminEventConsoleModal({
 }) {
   const { locale, t } = useI18n()
   const panelRef = useRef(null)
+  const foldRef = useRef(null)
   const previousFocusRef = useRef(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
@@ -112,6 +113,15 @@ export default function AdminEventConsoleModal({
     media.addEventListener('change', syncDesktopPreview)
     return () => media.removeEventListener('change', syncDesktopPreview)
   }, [])
+
+  useEffect(() => {
+    if (!sectionOpen || !foldRef.current) return undefined
+    const fold = foldRef.current
+    const frame = requestAnimationFrame(() => {
+      fold.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [openSection, sectionOpen])
 
   useEffect(() => {
     if (!open || !event) return undefined
@@ -175,6 +185,32 @@ export default function AdminEventConsoleModal({
     if (sectionOpen) onExitSection?.()
     else onClose?.()
   }
+
+  const editRows = canEdit
+    ? [
+        {
+          section: 'basics',
+          icon: FileText,
+          label: t('admin.eventConsole.editBasics'),
+          value: t('admin.eventConsole.editBasicsValue'),
+        },
+        {
+          section: 'sales',
+          icon: Ticket,
+          label: t('admin.eventConsole.editSales'),
+          value:
+            activeTicketTypeCount > 0
+              ? t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount })
+              : t('admin.eventConsole.editSalesValue'),
+        },
+        {
+          section: 'visibility',
+          icon: Eye,
+          label: t('admin.eventConsole.editVisibility'),
+          value: t('admin.eventConsole.editVisibilityValue'),
+        },
+      ]
+    : []
 
   function renderEditRow({ section, icon: Icon, label, value }) {
     const expanded = openSection === section
@@ -261,48 +297,20 @@ export default function AdminEventConsoleModal({
               {t('admin.eventConsole.configLabel')}
             </span>
 
-            {canEdit ? (
-              <>
-                {renderEditRow({
-                  section: 'basics',
-                  icon: FileText,
-                  label: t('admin.eventConsole.editBasics'),
-                  value: t('admin.eventConsole.editBasicsValue'),
-                })}
-                {openSection === 'basics' && editor ? (
-                  <div className="admin-event-console__fold" data-section="basics">
+            {editRows.map((row) => (
+              <Fragment key={row.section}>
+                {renderEditRow(row)}
+                {openSection === row.section && editor ? (
+                  <div
+                    ref={foldRef}
+                    className="admin-event-console__fold"
+                    data-section={row.section}
+                  >
                     {editor}
                   </div>
                 ) : null}
-
-                {renderEditRow({
-                  section: 'sales',
-                  icon: Ticket,
-                  label: t('admin.eventConsole.editSales'),
-                  value:
-                    activeTicketTypeCount > 0
-                      ? t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount })
-                      : t('admin.eventConsole.editSalesValue'),
-                })}
-                {openSection === 'sales' && editor ? (
-                  <div className="admin-event-console__fold" data-section="sales">
-                    {editor}
-                  </div>
-                ) : null}
-
-                {renderEditRow({
-                  section: 'visibility',
-                  icon: Eye,
-                  label: t('admin.eventConsole.editVisibility'),
-                  value: t('admin.eventConsole.editVisibilityValue'),
-                })}
-                {openSection === 'visibility' && editor ? (
-                  <div className="admin-event-console__fold" data-section="visibility">
-                    {editor}
-                  </div>
-                ) : null}
-              </>
-            ) : null}
+              </Fragment>
+            ))}
 
             {renderEditRow({
               section: 'structure',
@@ -315,6 +323,7 @@ export default function AdminEventConsoleModal({
 
             {openSection === 'structure' && structureEditor ? (
               <div
+                ref={foldRef}
                 className="admin-event-console__fold admin-event-console__fold--structure"
                 data-section="structure"
               >
