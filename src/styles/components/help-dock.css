@@ -12,106 +12,124 @@
 
 .help-dock {
   /* `--sticky-cta-clearance` lo publica StickyMobileCta mientras su barra está
-     visible en la portada: sin esto el botón quedaba pisado por el CTA fijo. */
-  --help-dock-glass-bg: color-mix(in srgb, #0c0f14 64%, transparent);
-  --help-dock-glass-bg-hover: color-mix(in srgb, #12161e 72%, transparent);
-  --help-dock-glass-border: color-mix(in srgb, #ffffff 15%, transparent);
-  --help-dock-glass-highlight: color-mix(in srgb, #ffffff 11%, transparent);
-  --help-dock-glass-shadow: 0 16px 40px color-mix(in srgb, #000 34%, transparent);
-  --help-dock-ink: #f4f6f9;
-  bottom: calc(var(--space-lg) + var(--sticky-cta-clearance, 0px));
+     visible en la portada: sin esto el botón quedaba pisado por el CTA fijo.
+     `top`/`left: auto` + safe-area fijan la esquina en cualquier viewport
+     (notch, home bar, iframe del preview). */
+  --help-dock-bg: var(--plu-cool-850, #141518);
+  --help-dock-bg-hover: var(--plu-cool-750, #1e2026);
+  --help-dock-border: color-mix(in srgb, #ffffff 14%, transparent);
+  --help-dock-ink: var(--plu-ink-inverse, #ffffff);
+  --help-dock-shadow: var(--elevation-md);
+  bottom: calc(
+    var(--space-lg) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
+  );
+  left: auto;
+  pointer-events: none;
   position: fixed;
-  right: var(--space-lg);
+  right: calc(var(--space-lg) + env(safe-area-inset-right, 0px));
+  top: auto;
   z-index: 120;
 }
 
 .help-dock__button {
   align-items: center;
   animation: help-dock-in var(--motion-slow) var(--ease-standard) both;
-  backdrop-filter: blur(16px) saturate(145%);
-  -webkit-backdrop-filter: blur(16px) saturate(145%);
-  background:
-    linear-gradient(
-      165deg,
-      color-mix(in srgb, #ffffff 7%, transparent) 0%,
-      transparent 38%
-    ),
-    var(--help-dock-glass-bg);
-  border: 1px solid var(--help-dock-glass-border);
+  background: var(--help-dock-bg);
+  border: 1px solid var(--help-dock-border);
   border-radius: var(--border-radius-pill);
   box-shadow:
-    inset 0 1px 0 var(--help-dock-glass-highlight),
-    var(--help-dock-glass-shadow);
+    inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent),
+    var(--help-dock-shadow);
   color: var(--help-dock-ink);
   cursor: pointer;
   display: inline-flex;
   font-family: var(--font-display);
-  font-size: 12.5px;
-  font-weight: 500;
-  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 9px;
   isolation: isolate;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   min-height: 44px;
-  overflow: hidden;
-  padding: 0 16px 0 14px;
+  padding: 0 15px 0 8px;
+  pointer-events: auto;
   position: relative;
+  text-transform: uppercase;
   transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
 }
 
-/* Brillo superior — cristal, no glow decorativo */
+/* Filete superior institucional — material sólido, no glass */
 .help-dock__button::before {
   background: linear-gradient(
-    180deg,
-    color-mix(in srgb, #ffffff 14%, transparent) 0%,
-    transparent 72%
+    90deg,
+    transparent 6%,
+    color-mix(in srgb, var(--color-brand-celeste) 55%, transparent) 42%,
+    color-mix(in srgb, var(--color-brand-gold) 42%, transparent) 68%,
+    transparent 94%
   );
   content: '';
-  inset: 0;
-  opacity: 0.55;
+  height: 1px;
+  left: 12px;
+  opacity: 0.7;
   pointer-events: none;
   position: absolute;
-  z-index: 0;
+  right: 12px;
+  top: 0;
 }
 
-.help-dock__icon,
+.help-dock__glyph {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, transparent);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: none;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.help-dock__icon {
+  color: color-mix(in srgb, var(--color-brand-celeste) 88%, #ffffff);
+  display: block;
+}
+
 .help-dock__label {
-  position: relative;
-  z-index: 1;
+  line-height: 1;
+  padding-inline-end: 2px;
+}
+
+.help-dock__pending {
+  background: var(--color-brand-gold);
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--help-dock-bg);
+  flex: none;
+  height: 7px;
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  width: 7px;
 }
 
 .help-dock__button.has-pending:not(.is-open) {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 46%, var(--help-dock-glass-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--color-brand-gold) 28%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--color-brand-gold) 14%, transparent),
-    var(--help-dock-glass-shadow);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 38%, var(--help-dock-border));
+  padding-inline-end: 18px;
 }
 
 .help-dock__button:hover {
-  background:
-    linear-gradient(
-      165deg,
-      color-mix(in srgb, #ffffff 9%, transparent) 0%,
-      transparent 40%
-    ),
-    var(--help-dock-glass-bg-hover);
+  background: var(--help-dock-bg-hover);
   border-color: color-mix(in srgb, #ffffff 22%, transparent);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent),
-    0 18px 44px color-mix(in srgb, #000 38%, transparent);
+    inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent),
+    var(--elevation-lg);
   transform: translateY(-1px);
 }
 
 .help-dock__button.has-pending:not(.is-open):hover {
-  border-color: color-mix(in srgb, var(--color-brand-gold) 56%, var(--help-dock-glass-border));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--color-brand-gold) 34%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--color-brand-gold) 18%, transparent),
-    0 18px 44px color-mix(in srgb, #000 38%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-gold) 48%, var(--help-dock-border));
 }
 
 .help-dock__button:focus-visible {
@@ -120,54 +138,42 @@
 }
 
 .help-dock__button.is-open {
-  background:
-    linear-gradient(
-      165deg,
-      color-mix(in srgb, var(--color-brand-celeste) 12%, transparent) 0%,
-      transparent 42%
-    ),
-    var(--help-dock-glass-bg-hover);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 34%, var(--help-dock-glass-border));
+  background: var(--help-dock-bg-hover);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 42%, var(--help-dock-border));
 }
 
-.help-dock__icon {
-  color: color-mix(in srgb, var(--color-brand-celeste) 90%, #ffffff);
-  flex: none;
-  opacity: 0.96;
-}
-
-.help-dock__label {
-  line-height: 1;
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .help-dock__button {
-    background: #101318;
-  }
-
-  .help-dock__button:hover,
-  .help-dock__button.is-open {
-    background: #161b22;
-  }
+.help-dock__button.is-open .help-dock__glyph {
+  background: color-mix(in srgb, var(--color-brand-celeste) 22%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 44%, transparent);
 }
 
 @keyframes help-dock-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
-    transform: none;
+    transform: translate3d(0, 0, 0);
   }
 }
 
-/* ── Panel ───────────────────────────────────── */
+/* ── Panel ─────────────────────────────────────
+   Centrado en el viewport (desktop). En viewports chicos el anclaje
+   abajo-derecha empujaba el diálogo fuera de pantalla (top negativo). */
 
 .help-panel__scrim {
+  align-items: center;
   animation: help-scrim-in var(--motion-fast) var(--ease-standard) both;
-  background: rgba(5, 6, 10, 0.34);
+  background: rgba(5, 6, 10, 0.48);
+  display: flex;
   inset: 0;
+  justify-content: center;
+  padding:
+    max(var(--space-lg), env(safe-area-inset-top, 0px))
+    max(var(--space-lg), env(safe-area-inset-right, 0px))
+    max(var(--space-lg), env(safe-area-inset-bottom, 0px))
+    max(var(--space-lg), env(safe-area-inset-left, 0px));
   position: fixed;
   z-index: 880;
 }
@@ -177,24 +183,23 @@
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-lg);
-  /* Nace desde el botón: alto del botón (48px) más aire. */
-  bottom: calc(var(--space-lg) + 44px + var(--space-sm) + var(--sticky-cta-clearance, 0px));
   box-shadow: var(--elevation-lg);
-  display: grid;
-  gap: var(--space-md);
-  max-height: min(88vh, 760px);
-  overflow-y: auto;
-  padding: var(--space-lg);
-  position: fixed;
-  right: var(--space-lg);
-  width: min(400px, calc(100vw - 2 * var(--space-lg)));
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: min(720px, 100%);
+  max-width: 440px;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: min(440px, 100%);
   z-index: 881;
 }
 
 @keyframes help-panel-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -213,8 +218,10 @@
 
 .help-panel__head {
   display: grid;
+  flex: none;
   gap: 6px;
-  padding-right: 36px;
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  padding-right: calc(var(--space-lg) + 28px);
   position: relative;
 }
 
@@ -230,9 +237,9 @@
 .help-panel__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   line-height: 1.2;
   margin: 0;
 }
@@ -255,8 +262,8 @@
   height: 44px;
   justify-content: center;
   position: absolute;
-  right: -10px;
-  top: -10px;
+  right: 6px;
+  top: 6px;
   transition:
     background var(--transition-fast),
     color var(--transition-fast);
@@ -273,6 +280,33 @@
   outline-offset: 2px;
 }
 
+.help-panel__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--space-lg) var(--space-md);
+}
+
+.help-panel__assist-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: -2px 0 0;
+}
+
+.help-panel__anchor {
+  background: var(--color-bg-surface);
+  border-top: 1px solid var(--color-border-subtle);
+  flex: none;
+  padding: var(--space-md) var(--space-lg)
+    calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+}
+
 /* ── Los tres pasos ──────────────────────────── */
 
 .help-panel__steps {
@@ -286,7 +320,7 @@
   column-gap: 12px;
   display: grid;
   grid-template-columns: 26px 1fr;
-  padding: 11px 0;
+  padding: 11px 10px;
   position: relative;
 }
 
@@ -295,7 +329,7 @@
   background: var(--color-border-subtle);
   bottom: -1px;
   content: '';
-  left: 12px;
+  left: 22px;
   position: absolute;
   top: 35px;
   width: 1px;
@@ -322,10 +356,33 @@
 }
 
 /* El único paso que puede estar en `todo` es el que toca: celeste pleno. */
+.help-panel__step.is-todo,
+.help-panel__step.is-pending {
+  background: color-mix(in srgb, var(--color-brand-celeste) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 22%, transparent);
+  border-radius: 10px;
+  margin-block: 2px;
+}
+
+.help-panel__step.is-todo::before,
+.help-panel__step.is-pending::before {
+  display: none;
+}
+
 .help-panel__step.is-todo .help-panel__marker {
   background: var(--color-brand-celeste);
   border-color: transparent;
   color: #0d0e12;
+}
+
+.help-panel__step.is-pending .help-panel__marker {
+  background: color-mix(in srgb, var(--color-brand-gold) 82%, #ffffff);
+  border-color: transparent;
+  color: #1a1400;
+}
+
+.help-panel__step.is-pending .help-panel__step-state {
+  color: var(--color-brand-gold);
 }
 
 .help-panel__step.is-blocked .help-panel__marker,
@@ -391,10 +448,8 @@
 /* ── La única acción ─────────────────────────── */
 
 .help-panel__action {
-  border-top: 1px solid var(--color-border-subtle);
   display: grid;
   gap: 10px;
-  padding-top: var(--space-md);
 }
 
 .help-panel__action-eyebrow {
@@ -445,9 +500,8 @@
 /* ── Salidas secundarias ─────────────────────── */
 
 .help-panel__foot {
-  border-top: 1px solid var(--color-border-subtle);
   display: grid;
-  padding-top: var(--space-sm);
+  margin-top: 4px;
 }
 
 .help-panel__link {
@@ -505,22 +559,37 @@
 
 @media (max-width: 640px) {
   .help-dock {
-    right: var(--space-md);
+    bottom: calc(
+      var(--space-md) + env(safe-area-inset-bottom, 0px) + var(--sticky-cta-clearance, 0px)
+    );
+    right: calc(var(--space-md) + env(safe-area-inset-right, 0px));
   }
 
   .help-panel__scrim {
+    align-items: flex-end;
     background: rgba(5, 6, 10, 0.56);
+    padding: 0;
   }
 
   .help-panel {
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
-    bottom: 0;
-    left: 0;
-    max-height: 86vh;
-    padding: var(--space-lg) var(--space-md)
-      calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
-    right: 0;
-    width: auto;
+    max-height: min(90vh, 100%);
+    max-width: none;
+    width: 100%;
+  }
+
+  .help-panel__head {
+    padding: var(--space-lg) var(--space-md) var(--space-md);
+    padding-right: calc(var(--space-md) + 28px);
+  }
+
+  .help-panel__body {
+    padding-inline: var(--space-md);
+  }
+
+  .help-panel__anchor {
+    padding-inline: var(--space-md);
+    padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   }
 
   .help-panel__title {
@@ -546,21 +615,38 @@
   }
 }
 
-/* ── Tema claro ──────────────────────────────── */
+@media (forced-colors: active) {
+  .help-dock__button {
+    border: 1px solid ButtonText;
+  }
+
+  .help-dock__pending {
+    background: Highlight;
+    box-shadow: none;
+  }
+}
+
+/* ── Tema claro ────────────────────────────────
+   El chip permanece oscuro a propósito: es un control de utilidad que tiene
+   que leerse sobre fondos claros y oscuros sin cambiar de personalidad. */
 
 [data-theme='light'] .help-dock {
-  --help-dock-glass-bg: color-mix(in srgb, #0e1117 74%, transparent);
-  --help-dock-glass-bg-hover: color-mix(in srgb, #141922 80%, transparent);
-  --help-dock-glass-border: color-mix(in srgb, #ffffff 18%, transparent);
-  --help-dock-glass-shadow: 0 16px 40px color-mix(in srgb, #000 26%, transparent);
+  --help-dock-bg: var(--plu-cool-900, #121316);
+  --help-dock-bg-hover: var(--plu-cool-800, #181a1f);
+  --help-dock-border: color-mix(in srgb, #ffffff 16%, transparent);
+  --help-dock-shadow: 0 10px 28px color-mix(in srgb, #000 22%, transparent);
 }
 
 [data-theme='light'] .help-dock__icon {
   color: color-mix(in srgb, var(--color-brand-celeste) 88%, #ffffff);
 }
 
+[data-theme='light'] .help-dock__pending {
+  box-shadow: 0 0 0 2px var(--help-dock-bg);
+}
+
 [data-theme='light'] .help-panel__scrim {
-  background: rgba(15, 17, 23, 0.26);
+  background: rgba(15, 17, 23, 0.38);
 }
 
 [data-theme='light'] .help-panel__step.is-done .help-panel__marker {

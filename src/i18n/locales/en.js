@@ -829,9 +829,9 @@ export default {
     errorMessage: 'Check your connection and try again.',
   },
   pageError: {
-    eyebrow: 'Application error',
-    title: 'This section could not be displayed',
-    lead: 'It failed while rendering and we contained it here so the rest of the site keeps working. Navigation and every other page are still available.',
+    eyebrow: 'Section unavailable',
+    title: 'We could not show this view',
+    lead: 'It was contained here so navigation and the rest of the site keep working. You can retry or go back home.',
     retry: 'Retry',
     home: 'Go to home',
     actionsAria: 'Recovery options',
@@ -1822,6 +1822,11 @@ export default {
       plansLead:
         'One annual membership per season. A single payment to compete on the official calendar.',
       plansLeadCheckoutSoon: 'We are preparing the 26/27 season opening.',
+      planIncludes: [
+        'Digital credential',
+        'PLU ARG calendar events',
+        'Status and QR at check-in',
+      ],
       promoSoonEyebrow: 'Official opening',
       promoSoonTitle: 'Annual membership + Pitbull Classic registration',
       promoSoonLead:
@@ -1897,10 +1902,9 @@ export default {
       institutionalAria: 'Connection with Powerlifting United',
       heroRail: {
         metricsAria: 'Membership pricing and validity',
-        adult: 'Adults',
-        junior: 'Junior',
+        annual: 'Annual membership',
         validity: 'Annual validity',
-        calendarYear: 'Calendar year',
+        calendarYear: 'Season',
         affiliateNow: 'Join now',
         viewPlans: 'View plans',
       },

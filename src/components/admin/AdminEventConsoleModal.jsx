@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ChevronDown,
   ChevronRight,
@@ -97,12 +97,22 @@ export default function AdminEventConsoleModal({
   onCloseRef.current = onClose
   const onExitSectionRef = useRef(onExitSection)
   onExitSectionRef.current = onExitSection
+  const stateDirtyRef = useRef(false)
   const [previewOpen, setPreviewOpen] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 720px)').matches : true,
   )
 
   const eventSectionOpen = EDIT_SECTIONS.has(openSection)
   const sectionOpen = FOLD_SECTIONS.has(openSection)
+
+  const confirmCloseIfDirty = () => {
+    if (!stateDirtyRef.current) return true
+    return window.confirm(t('admin.eventState.discardUnsavedConfirm'))
+  }
+
+  useEffect(() => {
+    if (!open) stateDirtyRef.current = false
+  }, [open])
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 720px)')
@@ -136,6 +146,9 @@ export default function AdminEventConsoleModal({
           return
         }
         keyboardEvent.preventDefault()
+        if (stateDirtyRef.current && !window.confirm(t('admin.eventState.discardUnsavedConfirm'))) {
+          return
+        }
         onCloseRef.current?.()
         return
       }
@@ -173,7 +186,7 @@ export default function AdminEventConsoleModal({
       document.removeEventListener('keydown', handleKeyDown)
       previousFocusRef.current?.focus?.()
     }
-  }, [eventSectionOpen, openSection, sectionOpen, open, event])
+  }, [eventSectionOpen, openSection, sectionOpen, open, event, t])
 
   if (!open || !event) return null
 
@@ -182,8 +195,12 @@ export default function AdminEventConsoleModal({
   const venueLine = formatEventVenueLine(event.venue, event.location)
   const dateLabel = event.dateISO ? formatDayMonth(event.dateISO, locale) : (event.date ?? '')
   const requestExit = () => {
-    if (sectionOpen) onExitSection?.()
-    else onClose?.()
+    if (sectionOpen) {
+      onExitSection?.()
+      return
+    }
+    if (!confirmCloseIfDirty()) return
+    onClose?.()
   }
 
   const editRows = canEdit
@@ -220,6 +237,7 @@ export default function AdminEventConsoleModal({
         type="button"
         className={`admin-event-console__row${expanded ? ' admin-event-console__row--expanded' : ''}`}
         aria-expanded={expanded}
+        aria-controls={expanded ? `admin-event-console-fold-${section}` : undefined}
         onClick={() => onToggleSection?.(event, section)}
       >
         <Icon size={17} aria-hidden />
@@ -289,7 +307,14 @@ export default function AdminEventConsoleModal({
 
         <div className="admin-event-console-modal__body">
           {onSetEventState ? (
-            <AdminEventStateControl canEdit={canEdit} event={event} onSetState={onSetEventState} />
+            <AdminEventStateControl
+              canEdit={canEdit}
+              event={event}
+              onDirtyChange={(dirty) => {
+                stateDirtyRef.current = dirty
+              }}
+              onSetState={onSetEventState}
+            />
           ) : null}
 
           <div className="admin-event-console__sections">
@@ -297,39 +322,51 @@ export default function AdminEventConsoleModal({
               {t('admin.eventConsole.configLabel')}
             </span>
 
-            {editRows.map((row) => (
-              <Fragment key={row.section}>
-                {renderEditRow(row)}
-                {openSection === row.section && editor ? (
-                  <div
-                    ref={foldRef}
-                    className="admin-event-console__fold"
-                    data-section={row.section}
-                  >
-                    {editor}
-                  </div>
-                ) : null}
-              </Fragment>
-            ))}
-
-            {renderEditRow({
-              section: 'structure',
-              icon: Layers,
-              label: t('admin.eventConsole.structure'),
-              value: t('admin.eventConsole.structureValue', {
-                count: event.eventDays?.length ?? 0,
-              }),
+            {editRows.map((row) => {
+              const expanded = openSection === row.section
+              return (
+                <div
+                  key={row.section}
+                  className={`admin-event-console__item${expanded ? ' admin-event-console__item--expanded' : ''}`}
+                >
+                  {renderEditRow(row)}
+                  {expanded && editor ? (
+                    <div
+                      ref={foldRef}
+                      id={`admin-event-console-fold-${row.section}`}
+                      className="admin-event-console__fold"
+                      data-section={row.section}
+                    >
+                      {editor}
+                    </div>
+                  ) : null}
+                </div>
+              )
             })}
 
-            {openSection === 'structure' && structureEditor ? (
-              <div
-                ref={foldRef}
-                className="admin-event-console__fold admin-event-console__fold--structure"
-                data-section="structure"
-              >
-                {structureEditor}
-              </div>
-            ) : null}
+            <div
+              className={`admin-event-console__item${openSection === 'structure' ? ' admin-event-console__item--expanded' : ''}`}
+            >
+              {renderEditRow({
+                section: 'structure',
+                icon: Layers,
+                label: t('admin.eventConsole.structure'),
+                value: t('admin.eventConsole.structureValue', {
+                  count: event.eventDays?.length ?? 0,
+                }),
+              })}
+
+              {openSection === 'structure' && structureEditor ? (
+                <div
+                  ref={foldRef}
+                  id="admin-event-console-fold-structure"
+                  className="admin-event-console__fold admin-event-console__fold--structure"
+                  data-section="structure"
+                >
+                  {structureEditor}
+                </div>
+              ) : null}
+            </div>
 
             {canManageUsers ? (
               <button

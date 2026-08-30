@@ -47,7 +47,7 @@ function renderPitbull(capacity = {}) {
     progressPublic: true,
     recent: [
       {
-        displayName: 'Ana T.',
+        displayName: 'Ana Torres',
         gym: 'Fuerza Sur',
         photoUrl: 'https://example.test/ana.jpg',
         registeredAt: new Date().toISOString(),
@@ -81,7 +81,8 @@ describe('últimos inscriptos de Pitbull', () => {
     const { container } = renderPitbull()
 
     const recent = container.querySelector('.pitbull-recent')
-    expect(recent?.querySelector('.pitbull-recent__name')?.textContent).toBe('Ana T.')
+    expect(recent?.querySelector('.pitbull-recent__name')?.textContent).toBe('Ana Torres')
+    expect(recent?.querySelector('.pitbull-recent__name')?.getAttribute('title')).toBe('Ana Torres')
     expect(recent?.querySelector('.pitbull-recent__gym')?.textContent).toBe('Fuerza Sur')
     expect(recent?.querySelector('.pitbull-recent__portrait img')?.getAttribute('src')).toBe(
       'https://example.test/ana.jpg',

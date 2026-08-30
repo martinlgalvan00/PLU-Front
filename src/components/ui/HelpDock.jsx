@@ -16,6 +16,10 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
  *
  * Presentacional: el estado y los datos los resuelve `HelpLayer`. En modo
  * asistido este botón no se monta — la ayuda pasa a vivir en `AssistNavBar`.
+ *
+ * Posición: siempre anclado a la esquina inferior derecha del viewport
+ * (`position: fixed` + safe-area). No vive dentro de PageTransition a
+ * propósito, para no desmontarse al cambiar de pantalla.
  */
 export default function HelpDock({ open = false, pending = false, onToggle }) {
   const { t } = useI18n()
@@ -33,8 +37,13 @@ export default function HelpDock({ open = false, pending = false, onToggle }) {
         aria-label={t(pending ? 'help.triggerPendingAria' : 'help.triggerAria')}
         onClick={onToggle}
       >
-        <LifeBuoy size={16} strokeWidth={2} className="help-dock__icon" aria-hidden />
+        <span className="help-dock__glyph" aria-hidden>
+          <LifeBuoy size={15} strokeWidth={2} className="help-dock__icon" />
+        </span>
         <span className="help-dock__label">{t('help.trigger')}</span>
+        {pending && !open ? (
+          <span className="help-dock__pending" aria-hidden />
+        ) : null}
       </button>
     </div>
   )

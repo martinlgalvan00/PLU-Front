@@ -840,9 +840,9 @@ export default {
     errorMessage: 'Revisá tu conexión e intentá de nuevo.',
   },
   pageError: {
-    eyebrow: 'Error de la aplicación',
-    title: 'Esta sección no se pudo mostrar',
-    lead: 'Falló al dibujarse y la cortamos acá para no arrastrar el resto del sitio. El menú y el resto de las páginas siguen funcionando.',
+    eyebrow: 'Sección no disponible',
+    title: 'No pudimos mostrar esta vista',
+    lead: 'Quedó aislada acá para que el menú y el resto del sitio sigan funcionando. Podés reintentar o volver al inicio.',
     retry: 'Reintentar',
     home: 'Ir al inicio',
     actionsAria: 'Opciones de recuperación',
@@ -1846,6 +1846,11 @@ export default {
       plansLead:
         'Una afiliación anual por temporada. Pago único para competir en el calendario oficial.',
       plansLeadCheckoutSoon: 'Estamos preparando la apertura de la temporada 26/27.',
+      planIncludes: [
+        'Credencial digital',
+        'Eventos del calendario PLU ARG',
+        'Estado y QR en el check-in',
+      ],
       promoSoonEyebrow: 'Apertura oficial',
       promoSoonTitle: 'Afiliación anual + inscripción Pitbull Classic',
       promoSoonLead:
@@ -1921,10 +1926,9 @@ export default {
       institutionalAria: 'Conexión con Powerlifting United',
       heroRail: {
         metricsAria: 'Precios y vigencia de la afiliación',
-        adult: 'Adultos',
-        junior: 'Junior',
+        annual: 'Afiliación anual',
         validity: 'Vigencia anual',
-        calendarYear: 'Año calendario',
+        calendarYear: 'Temporada',
         affiliateNow: 'Afiliarme ahora',
         viewPlans: 'Ver planes',
       },

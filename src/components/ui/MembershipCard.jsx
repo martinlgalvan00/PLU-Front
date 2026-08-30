@@ -74,7 +74,7 @@ export default function MembershipCard({
               {showKicker ? <p className="membership-card__kicker">{resolvedKicker}</p> : null}
               <h3 className="membership-card__title">{title}</h3>
               <div className="membership-card__price-stack">
-                <p className="membership-card__price-line">
+                <p className="membership-card__price-line membership-card__price-line--stack">
                   <span className="membership-card__amount">{money(price, locale)}</span>
                   <span className="membership-card__period">{periodLabel}</span>
                 </p>
