@@ -31,6 +31,7 @@ import { clearStaffInvitationToken, readStaffInvitationToken } from './lib/staff
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import SessionNotice from './components/ui/SessionNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
+import CookieConsent from './components/ui/CookieConsent.jsx'
 import {
   clearTicketsRoute,
   getTicketsRouteEventSlug,
@@ -159,6 +160,26 @@ export default function App() {
       return canonical && canonical !== current ? canonical : current
     })
   }, [app.adminEvents])
+
+  // Reload en `/perfil` con cookie de staff (sin atleta): la vista queda en
+  // profile pero la sesión es staff y AthleteProfilePage no monta. Abrimos el
+  // puente una sola vez para recuperar la cuenta con acceso Admin.
+  useEffect(() => {
+    if (app.sessionPending) return undefined
+    if (view !== 'profile' && view !== 'membership') return undefined
+    if (!isStaffSession(app.session)) return undefined
+    if (app.session?.role === 'athlete_plu') return undefined
+
+    let cancelled = false
+    void app.enterAthleteContext().catch((error) => {
+      if (!cancelled) {
+        console.warn('No se pudo abrir el contexto de atleta tras restaurar la sesión.', error)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [app.enterAthleteContext, app.session, app.sessionPending, view])
 
   useEffect(() => {
     // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
@@ -855,6 +876,7 @@ export default function App() {
       <EmailVerificationNotice />
       <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
+      <CookieConsent />
       <DocumentMetaSync
         view={view}
         eventSlug={view === 'events' ? eventPageSlug : null}
@@ -917,6 +939,7 @@ function PrivateLayout({
       <EmailVerificationNotice />
       <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
+      <CookieConsent />
       <DocumentMetaSync view={view} />
       <AnalyticsTracker view={view} />
       <NavbarPublic

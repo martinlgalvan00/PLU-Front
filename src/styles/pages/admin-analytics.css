@@ -557,6 +557,39 @@
   width: min(100%, max(28%, calc(var(--funnel-width, 1) * 100%)));
 }
 
+/* El embudo se asienta escalonado desde el primer paso: la caída entre
+   pasos se percibe como forma, no solo como números. Una sola vez. */
+@media (prefers-reduced-motion: no-preference) {
+  .admin-analytics__funnel-step-inner {
+    animation: admin-analytics-funnel-in var(--motion-slow, 420ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+
+  .admin-analytics__funnel-step:nth-child(2) .admin-analytics__funnel-step-inner {
+    animation-delay: 60ms;
+  }
+
+  .admin-analytics__funnel-step:nth-child(3) .admin-analytics__funnel-step-inner {
+    animation-delay: 120ms;
+  }
+
+  .admin-analytics__funnel-step:nth-child(n + 4) .admin-analytics__funnel-step-inner {
+    animation-delay: 180ms;
+  }
+}
+
+@keyframes admin-analytics-funnel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .admin-analytics__funnel-name {
   color: var(--color-text-primary);
   font-size: 14px;
@@ -649,6 +682,43 @@
   height: 100%;
   transition: width var(--motion-slow) var(--ease-out);
   width: calc(var(--bar-fill, 0) * 100%);
+}
+
+/* Las barras crecen una vez al montar la lista: la longitud deja de ser un
+   dato estático y pasa a leerse como proporción. El stagger es por fila y
+   corto, para no demorar la lectura del bloque. */
+@media (prefers-reduced-motion: no-preference) {
+  .admin-analytics__bar-list-fill {
+    animation: admin-analytics-bar-in var(--motion-slow, 420ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    transform-origin: left center;
+  }
+
+  .admin-analytics__bar-list li:nth-child(2) .admin-analytics__bar-list-fill {
+    animation-delay: 30ms;
+  }
+
+  .admin-analytics__bar-list li:nth-child(3) .admin-analytics__bar-list-fill {
+    animation-delay: 60ms;
+  }
+
+  .admin-analytics__bar-list li:nth-child(4) .admin-analytics__bar-list-fill {
+    animation-delay: 90ms;
+  }
+
+  .admin-analytics__bar-list li:nth-child(n + 5) .admin-analytics__bar-list-fill {
+    animation-delay: 120ms;
+  }
+}
+
+@keyframes admin-analytics-bar-in {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* --- Ranking de páginas --- */
@@ -752,6 +822,14 @@
   display: block;
   height: 100%;
   width: calc(var(--bar-fill, 0) * 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-analytics__page-rank-fill {
+    animation: admin-analytics-bar-in var(--motion-slow, 420ms)
+      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    transform-origin: left center;
+  }
 }
 
 /* --- Recorrido por atleta --- */

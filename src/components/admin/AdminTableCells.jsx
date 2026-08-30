@@ -6,9 +6,17 @@ import { LazyPhoto } from '../ui/LazyPhoto.jsx'
 /**
  * Celda de identidad: nombre primario + sublínea secundaria.
  * `subMono` tipifica documentos/IDs con números tabulares.
+ * `badge` reemplaza la sublínea (p. ej. pill Staff) sin tipografía mono.
  * La foto solo se pide cuando la fila está cerca del viewport.
  */
-export function AdminIdentityCell({ accent = 'celeste', name, photoUrl, sub, subMono = false }) {
+export function AdminIdentityCell({
+  accent = 'celeste',
+  name,
+  photoUrl,
+  sub,
+  subMono = false,
+  badge = null,
+}) {
   const initial = name?.trim()?.charAt(0)?.toUpperCase() ?? '?'
 
   return (
@@ -31,7 +39,9 @@ export function AdminIdentityCell({ accent = 'celeste', name, photoUrl, sub, sub
       </span>
       <div className="data-table__identity-copy">
         <strong className="data-table__identity-name">{name ?? '—'}</strong>
-        {sub ? (
+        {badge ? (
+          <span className="data-table__identity-badge">{badge}</span>
+        ) : sub ? (
           <span className={`data-table__sub${subMono ? ' data-table__sub--mono' : ''}`.trim()}>
             {sub}
           </span>

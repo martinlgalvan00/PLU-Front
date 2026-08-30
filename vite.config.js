@@ -24,16 +24,19 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-              return 'vendor-react'
-            }
-            if (id.includes('node_modules/@supabase')) {
-              return 'vendor-supabase'
-            }
-            if (id.includes('node_modules/lucide-react')) {
-              return 'vendor-lucide'
-            }
+      manualChunks(id) {
+        if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+          return 'vendor-react'
+        }
+        // Sin chunk manual para @supabase: el único import del cliente es
+        // dinámico (src/lib/supabaseClient.js) y forzarlo a un chunk propio
+        // hacía que el runtime de preload de Vite aterrizara ahí — el entry
+        // terminaba importando estáticamente 200 KB de supabase-js en cada
+        // visita anónima sólo para obtener el helper. Como chunk async natural
+        // sólo baja cuando el atleta/staff realmente lo usa.
+        if (id.includes('node_modules/lucide-react')) {
+          return 'vendor-lucide'
+        }
             if (id.includes('node_modules/@mercadopago') || id.includes('node_modules/mercadopago')) {
               return 'vendor-mp'
             }

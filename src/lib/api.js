@@ -12,6 +12,18 @@ class ApiError extends Error {
   }
 }
 
+/**
+ * Endpoints donde un 401 es parte del flujo (probe de sesión, login, canjes
+ * de token de un solo uso): no deben disparar el manejo global de expiración.
+ */
+function isExpectedAuthFailure(path) {
+  if (path === '/api/athletes/session') return true
+  if (!path.startsWith('/api/auth/')) return false
+  // /api/auth/me/password y /api/auth/me/email sí operan con la sesión viva:
+  // un 401 ahí es una sesión muerta de verdad.
+  return !path.startsWith('/api/auth/me/')
+}
+
 async function parseResponse(response) {
   const text = await response.text()
   if (!text) return null
@@ -83,6 +95,13 @@ export async function apiRequest(path, options = {}) {
     // un 5xx reportado por un operador no se puede buscar en los logs.
     if (response.status >= 500 && requestId) {
       console.error(`[api] ${method} ${path} -> ${response.status} (requestId ${requestId})`)
+    }
+    // Sesión caída a mitad de camino: los polls y los submit la descubren
+    // acá, una sola vez por origen, para que la UI pueda reaccionar en vez de
+    // quedarse mirando datos congelados. Los endpoints donde el 401 es parte
+    // del flujo quedan fuera.
+    if (response.status === 401 && !isExpectedAuthFailure(path)) {
+      window.dispatchEvent(new CustomEvent('plu:auth-expired', { detail: { path } }))
     }
     throw new ApiError(
       unavailable ? unavailableMessage : (body?.error ?? `Error ${response.status}`),

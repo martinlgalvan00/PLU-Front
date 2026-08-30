@@ -1337,6 +1337,31 @@ export function createAthleteRoutes({
       }
 
       const data = await repo().snapshot(auth.athleteId)
+      // Si convive la cookie de staff (puente staff→atleta), el front necesita
+      // `staffAvailable` para mostrar "Administrador" en el menú de perfil.
+      // Sin esto, un reload restauraba atleta puro y el acceso al panel
+      // desaparecía hasta un login fresco.
+      //
+      // Si la cookie de staff ya venció pero el email sigue ligado a una cuenta
+      // staff activa, igual ofrecemos el acceso: al tocar Admin, si no hay
+      // sesión staff el navigate manda a login.
+      let staffAvailable = false
+      try {
+        const staff = await readSessionFromRequest({ prisma, req })
+        staffAvailable = Boolean(staff?.user)
+        if (!staffAvailable && data.athlete?.email) {
+          const email = String(data.athlete.email).trim().toLowerCase()
+          if (email && typeof prisma?.user?.findFirst === 'function') {
+            const linked = await prisma.user.findFirst({
+              where: { email, status: 'active' },
+              select: { id: true },
+            })
+            staffAvailable = Boolean(linked)
+          }
+        }
+      } catch {
+        staffAvailable = false
+      }
       res.json({
         user: {
           role: 'athlete_plu',
@@ -1344,6 +1369,7 @@ export function createAthleteRoutes({
           name: data.athlete.full_name,
           email: data.athlete.email,
           photoUrl: data.athlete.photo_url ?? null,
+          ...(staffAvailable ? { staffAvailable: true } : {}),
         },
         ...data,
       })
