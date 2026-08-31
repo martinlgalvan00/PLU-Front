@@ -131,6 +131,7 @@ function renderCompetition({
   onNavigate = () => {},
   onSubmit = vi.fn(async () => ({})),
   onUpdateForm = () => {},
+  payments = [],
   registrations = [],
   checkoutAvailability,
 } = {}) {
@@ -141,6 +142,7 @@ function renderCompetition({
         createdOrder={createdOrder}
         event={event}
         flow="competition"
+        payments={payments}
         form={{
           division: 'Open',
           category: 'Raw',
@@ -159,6 +161,74 @@ function renderCompetition({
     </I18nProvider>,
   )
 }
+
+/**
+ * La orden abierta sobrevive a la recarga.
+ *
+ * `createdOrder` es estado en memoria de `useAppData`: se pierde al recargar y
+ * al abrir la app en otra pestaña. Sin rehidratarla desde el snapshot de pagos,
+ * quien volvía a una inscripción impaga aterrizaba en el formulario de
+ * inscripción completo —no en su orden— y el `checkoutIntent` de "Elegir otro
+ * medio" se descartaba por no tener ninguna orden a la que aplicarse.
+ */
+describe('RegisterPage — orden abierta rehidratada del snapshot', () => {
+  const openPayment = {
+    id: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+    concept: 'Inscripción Pitbull Classic 2026',
+    amount: 50000,
+    method: 'manual_link',
+    status: 'validacion_manual',
+    reference: 'RORD-1',
+    manualPaymentChannel: 'bank_transfer',
+  }
+  const pendingRegistration = {
+    athleteId: athlete.id,
+    eventSlug: event.slug,
+    status: 'pendiente_pago',
+    paymentOrderId: openPayment.id,
+  }
+
+  it('muestra la orden pendiente en vez del formulario de inscripción', () => {
+    renderCompetition({ payments: [openPayment], registrations: [pendingRegistration] })
+
+    // El importe de la orden, no el de catálogo (75.000).
+    expect(screen.getAllByText(/50\.000/).length).toBeGreaterThan(0)
+    // Y ningún campo competitivo: esta pantalla es para pagar, no para
+    // volver a inscribirse.
+    expect(screen.queryByLabelText(/^División$/i)).toBe(null)
+  })
+
+  it('sin pago abierto sigue abriendo el formulario', () => {
+    renderCompetition({ payments: [], registrations: [pendingRegistration] })
+    expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
+  })
+
+  it('no confunde la orden de otro evento', () => {
+    renderCompetition({
+      payments: [openPayment],
+      registrations: [{ ...pendingRegistration, eventSlug: 'otro-torneo' }],
+    })
+    expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
+  })
+
+  it('una orden ya cerrada no reabre nada', () => {
+    renderCompetition({
+      payments: [{ ...openPayment, status: 'aprobado' }],
+      registrations: [pendingRegistration],
+    })
+    expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
+  })
+
+  it('createdOrder gana sobre el snapshot: es la orden que esta sesión tocó', () => {
+    renderCompetition({
+      createdOrder: pendingOrder,
+      payments: [openPayment],
+      registrations: [pendingRegistration],
+    })
+    // 75.000 es el importe de `pendingOrder`; 50.000 el del snapshot.
+    expect(screen.getAllByText(/75\.000/).length).toBeGreaterThan(0)
+  })
+})
 
 describe('RegisterPage competition profile summary', () => {
   it('renders the incomplete profile as a clear summary without raw translation keys', () => {

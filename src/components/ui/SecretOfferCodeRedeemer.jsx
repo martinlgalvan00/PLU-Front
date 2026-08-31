@@ -156,9 +156,10 @@ export default function SecretOfferCodeRedeemer({
         </button>
       ) : (
         <form className="secret-code-redeemer__form" onSubmit={redeem} noValidate>
-          {/* Sin campo no hay label: con la llave aceptada el código es un
-              registro y `htmlFor` apuntaría a un id que ya no existe. */}
-          {settled ? null : (
+          {/* Sin campo no hay label: con la llave aceptada —y mientras se
+              valida— el código es un registro, y `htmlFor` apuntaría a un id
+              que ya no existe. */}
+          {settled || checking ? null : (
             <label className="visually-hidden" htmlFor={inputId}>
               {t('secretOfferRedeemer.label')}
             </label>
@@ -185,13 +186,17 @@ export default function SecretOfferCodeRedeemer({
                 </span>
               </div>
               <div className="code-band__row">
-                {/* Aceptada la llave, el campo deja de ser un campo: pasa a ser
+                {/* Mandada la llave, el campo deja de ser un campo: pasa a ser
                     el registro del código. No es sólo semántica — un `<input>`
                     no envuelve, así que un código largo (`COMBO-PITBULL-INVIERNO`)
                     quedaba cortado a media palabra en un teléfono, y no hay
                     forma de leerlo. El span usa el `.code-band__code` que la
-                    hoja ya tenía para este caso, con `overflow-wrap: anywhere`. */}
-                {settled ? (
+                    hoja ya tenía para este caso, con `overflow-wrap: anywhere`.
+                    Vale para `accepted` y también para `checking`: el campo ya
+                    está deshabilitado, no hay nada que editar, y es justo el
+                    momento en que el atleta quiere leer la llave que mandó.
+                    Medido en el render a 390px: al código le faltaban 141px. */}
+                {settled || checking ? (
                   <span className="code-band__code">{code}</span>
                 ) : (
                   <input
@@ -202,7 +207,6 @@ export default function SecretOfferCodeRedeemer({
                     spellCheck={false}
                     value={code}
                     placeholder={t('secretOfferRedeemer.placeholder')}
-                    disabled={checking}
                     onChange={(event) => {
                       setCode(event.target.value.toUpperCase())
                       if (state !== 'idle') setState('idle')
@@ -223,17 +227,27 @@ export default function SecretOfferCodeRedeemer({
                         void attemptRedeem(scanned)
                       }}
                     />
+                    {/* Validando, el chip es sólo el spinner.
+                        Con la palabra puesta el chip medía ~165px y el campo
+                        —que es un `<input>`, y un input no envuelve— se comía
+                        el código a media palabra: `COMBO-PITBULL-I…` en el
+                        momento exacto en que el atleta quiere ver la llave que
+                        mandó. Medido en el render a 1440, no deducido.
+                        Sacar la palabra no pierde nada: el estado ya se dice
+                        arriba, en la ficha, que es el principio de esta pieza
+                        —el estado no se pinta, se dice—. Queda como nombre
+                        accesible del botón. */}
                     <button
                       type="submit"
                       className="code-band__chip"
                       disabled={checking || !code.trim()}
+                      aria-label={checking ? t('secretOfferRedeemer.checking') : undefined}
                     >
                       {checking ? (
-                        <LoaderCircle className="code-band__spin" size={15} aria-hidden />
-                      ) : null}
-                      {checking
-                        ? t('secretOfferRedeemer.checking')
-                        : t('secretOfferRedeemer.apply')}
+                        <LoaderCircle className="code-band__spin" size={16} aria-hidden />
+                      ) : (
+                        t('secretOfferRedeemer.apply')
+                      )}
                     </button>
                   </>
                 )}

@@ -1068,7 +1068,13 @@ export function createAthleteRoutes({
         const rows = await prisma.organizationAthlete.groupBy({
           by: ['gym'],
           _count: { gym: true },
-          where: { gym: { not: null, not: '' } },
+          // Dos condiciones, no dos veces la misma clave: `{ not: null, not: '' }`
+          // es un objeto con `not` duplicada, así que la segunda pisaba la primera
+          // y de las dos intenciones sólo sobrevivía una. Con `AND` las dos se
+          // aplican, que es lo que este groupBy necesita: sin nulos y sin
+          // cadenas vacías, o el listado de gimnasios ancla arranca con una
+          // fila fantasma.
+          where: { AND: [{ gym: { not: null } }, { gym: { not: '' } }] },
         })
         const anchors = mergeGymVariants(
           rows.map((row) => ({ name: row.gym, count: row._count.gym })),
