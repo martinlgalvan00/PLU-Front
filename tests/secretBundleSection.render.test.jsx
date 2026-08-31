@@ -277,6 +277,112 @@ describe('la ficha del código-paquete', () => {
     expect(screen.getByRole('status').textContent).toMatch(/se devolvió/i)
   })
 
+  /**
+   * El agujero que cerró este caso: la compra de Mercado Pago sin pagar caía en
+   * el paso 'manual' —el único que quedaba— y la ficha ofrecía el panel de
+   * liquidación a mano. Con `manualPaymentChannel` en null (la orden de la
+   * pasarela no tiene canal manual) el bloque elegía la rama de efectivo, así
+   * que el único botón disponible era "Ya entregué el efectivo" sobre una orden
+   * que `athlete_confirm_manual_payment` rechaza con PLU10. Y no había ninguna
+   * salida hacia la pasarela: la ficha era un callejón.
+   */
+  const gatewayPurchase = {
+    orderId: 'order-mp',
+    status: 'pendiente',
+    amount: 150000,
+    currency: 'ARS',
+    concept: 'combo',
+    method: 'mercado_pago',
+    manualPaymentChannel: null,
+    financingAllowed: false,
+  }
+
+  it('una compra de Mercado Pago sin pagar no ofrece declarar un pago manual', () => {
+    render(
+      <I18nProvider>
+        <SecretBundleSection
+          athlete={ATHLETE}
+          offers={[
+            bundleOffer({
+              mercadoPagoEnabled: true,
+              manualChannels: [],
+              financed: false,
+              purchase: gatewayPurchase,
+            }),
+          ]}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.queryByRole('button', { name: /Ya entregué el efectivo/i })).toBe(null)
+    expect(screen.queryByText(/comprobante/i)).toBe(null)
+    // Lo que sí ofrece: volver al checkout del torneo, que es donde vive el brick.
+    expect(screen.getByRole('button', { name: /Retomar el pago con Mercado Pago/i })).toBeTruthy()
+  })
+
+  it('retomar la pasarela guarda el código pendiente y vuelve al checkout del torneo', async () => {
+    const onNavigate = vi.fn()
+    const onSelectEvent = vi.fn()
+    render(
+      <I18nProvider>
+        <SecretBundleSection
+          athlete={ATHLETE}
+          offers={[
+            bundleOffer({
+              mercadoPagoEnabled: true,
+              manualChannels: [],
+              financed: false,
+              purchase: gatewayPurchase,
+            }),
+          ]}
+          onNavigate={onNavigate}
+          onSelectEvent={onSelectEvent}
+        />
+      </I18nProvider>,
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Retomar el pago con Mercado Pago/i }))
+    })
+
+    // Mismo traspaso que el desvío desde el formulario: sin el pendiente, el
+    // checkout cobra la inscripción suelta a precio de lista.
+    expect(onSelectEvent).toHaveBeenCalledWith({ slug: 'pitbull-classic-2026' })
+    expect(onNavigate).toHaveBeenCalledWith('competition', { eventSlug: 'pitbull-classic-2026' })
+    const pending = JSON.parse(window.sessionStorage.getItem('plu:pending-promotion-code'))
+    expect(pending.code).toBe('ONLY-PITBULL-GOLD')
+    expect(pending.context.destination).toEqual({
+      view: 'competition',
+      eventSlug: 'pitbull-classic-2026',
+    })
+  })
+
+  it('la ficha cotiza el canal de la orden, no el del selector', () => {
+    // 125.000 es lo que cobra la orden de Mercado Pago; 110.000 es el precio
+    // del canal manual. La ficha forzaba 'manual' apenas existía una compra,
+    // así que anunciaba un importe que esa orden no cobra.
+    render(
+      <I18nProvider>
+        <SecretBundleSection
+          athlete={ATHLETE}
+          offers={[
+            bundleOffer({
+              fixedPrice: 125000,
+              fixedPriceManual: 110000,
+              mercadoPagoEnabled: true,
+              manualChannels: [],
+              financed: false,
+              purchase: { ...gatewayPurchase, amount: 125000 },
+            }),
+          ]}
+        />
+      </I18nProvider>,
+    )
+
+    expect(screen.getByText('$ 125.000')).toBeTruthy()
+    expect(screen.queryByText('$ 110.000')).toBe(null)
+  })
+
   it('sin ningún código canjeado no renderiza nada', () => {
     const { container } = render(
       <I18nProvider>
@@ -301,6 +407,13 @@ describe('bundleState — el paso del trámite se lee de la compra', () => {
     // contable): la ficha es constancia, no una nueva oferta.
     expect(bundleState({ status: 'reembolsado' })).toBe('refunded')
     expect(bundleState({ status: 'validacion_manual' })).toBe('manual')
+    // Abierta pero con la pasarela: no hay nada que declarar y el brick vive en
+    // el checkout del torneo, así que es su propio paso.
+    expect(bundleState({ status: 'pendiente', method: 'mercado_pago' })).toBe('gateway')
+    expect(bundleState({ status: 'pendiente', method: 'manual_link' })).toBe('manual')
+    // Cerradas: el método no cambia en qué terminó la orden.
+    expect(bundleState({ status: 'aprobado', method: 'mercado_pago' })).toBe('settled')
+    expect(bundleState({ status: 'cancelado', method: 'mercado_pago' })).toBe('ready')
     expect(
       bundleState({ status: 'pendiente', financedEntitlementsAt: '2026-08-25T12:00:00.000Z' }),
     ).toBe('granted')

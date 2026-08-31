@@ -65,6 +65,11 @@ import {
 } from '../services/athleteApi.js'
 import { shouldTrySecretOfferFallback } from '../services/secretOfferRedemptionService.js'
 import {
+  buildCompetitionCreatedOrder,
+  findOpenPaymentForRegistration,
+  findPendingEventRegistration,
+} from '../services/competitionCheckoutService.js'
+import {
   clearPendingPromotionCode,
   promotionBenefitPresentation,
   promotionDestination,
@@ -489,6 +494,7 @@ export default function RegisterPage({
   onNavigate,
   onSubmit,
   onUpdateForm,
+  payments = [],
   registrations = [],
   total,
   checkoutAvailability = {},
@@ -964,7 +970,37 @@ export default function RegisterPage({
     ],
   }[flow]
 
-  const visibleOrder = createdOrder?.type === flow ? createdOrder : null
+  /**
+   * La orden abierta de este evento, rehidratada del snapshot de pagos.
+   *
+   * `createdOrder` vive en memoria: sobrevive a moverse dentro de la app y muere
+   * con la recarga. Sin este respaldo, quien vuelve a una inscripción impaga
+   * —recargando, desde otra pestaña, o desde el listado de torneos— aterrizaba
+   * en el formulario de inscripción completo en vez de en su orden, y el
+   * `checkoutIntent` de "Elegir otro medio" se descartaba por no tener ninguna
+   * orden a la que aplicarse (ver el efecto de abajo).
+   *
+   * Es el mismo objeto que arma la rama PLU08 de `submitCompetition`, con los
+   * mismos helpers: la diferencia es que acá se resuelve ANTES de mandar nada,
+   * en vez de después de que el servidor rechace un alta duplicada.
+   */
+  const resumableOrder = useMemo(() => {
+    if (flow !== 'competition' || !athlete || !event) return null
+    const pending = findPendingEventRegistration(registrations, { athleteId: athlete.id, event })
+    const payment = findOpenPaymentForRegistration(payments, pending)
+    if (!payment) return null
+    return buildCompetitionCreatedOrder({
+      athlete,
+      payment,
+      purchaseType: payment.concept === 'combo' ? 'combo' : 'registration',
+      session: null,
+      preferenceId: payment.preferenceId ?? null,
+    })
+  }, [athlete, event, flow, payments, registrations])
+
+  // `createdOrder` gana: es la orden que esta sesión acaba de tocar, con la
+  // preferencia y el estado más frescos que el snapshot.
+  const visibleOrder = (createdOrder?.type === flow ? createdOrder : null) ?? resumableOrder
 
   // Desde Pagos / Torneos: abrir el selector de medio sobre la orden viva,
   // reusando el mismo arrepentimiento del settle (sin cancel RPC).
@@ -2200,9 +2236,14 @@ export default function RegisterPage({
             <MotionContentSwap swapKey={discountOpen ? 'field' : 'button'} mode="sync">
               {discountOpen ? (
                 <div className="account-discount__field">
-                  <label className="visually-hidden" htmlFor="registration-discount-code">
-                    {t('pages.register.discountLabel')}
-                  </label>
+                  {/* Mientras valida no hay campo —el código pasa a ser
+                      registro, ver abajo—, así que tampoco hay label: `htmlFor`
+                      apuntaría a un id que no existe. */}
+                  {discountChecking ? null : (
+                    <label className="visually-hidden" htmlFor="registration-discount-code">
+                      {t('pages.register.discountLabel')}
+                    </label>
+                  )}
                   {/* `data-state` es el contrato de motion de `code-band.css`:
                       el barrido de luz mientras el servidor contesta y el sello
                       de oro cuando la llave se acepta. Sin el atributo el campo
@@ -2216,7 +2257,13 @@ export default function RegisterPage({
                     <div className="code-band__frame">
                       <div className="code-band__head">
                         <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                        {/* El estado se anuncia: con el chip reducido al
+                            spinner, esta ficha es el único lugar donde
+                            "Validando" existe como texto. `aria-live` y no
+                            `role="status"` para no sumar un segundo nodo con
+                            ese rol en una pantalla que ya tiene varios. */}
                         <span
+                          aria-live="polite"
                           className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
                         >
                           {t(
@@ -2229,30 +2276,40 @@ export default function RegisterPage({
                         </span>
                       </div>
                       <div className="code-band__row">
-                        <input
-                          id="registration-discount-code"
-                          className="code-band__input"
-                          type="text"
-                          autoComplete="off"
-                          spellCheck={false}
-                          placeholder={t('pages.register.discountPlaceholder')}
-                          value={discountCodeInput}
-                          disabled={submitting || discountChecking}
-                          onChange={(event) =>
-                            setDiscountCodeInput(event.target.value.toUpperCase())
-                          }
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault()
-                              void applyDiscountCode()
-                              return
+                        {/* Mandado el código, el campo deja de ser campo: un
+                            `<input>` no envuelve, así que un código largo
+                            quedaba cortado a media palabra justo cuando el
+                            atleta quiere leer la llave que mandó. El span usa
+                            el `.code-band__code` con `overflow-wrap: anywhere`
+                            que la hoja ya tiene para el estado aplicado. */}
+                        {discountChecking ? (
+                          <span className="code-band__code">{discountCodeInput}</span>
+                        ) : (
+                          <input
+                            id="registration-discount-code"
+                            className="code-band__input"
+                            type="text"
+                            autoComplete="off"
+                            spellCheck={false}
+                            placeholder={t('pages.register.discountPlaceholder')}
+                            value={discountCodeInput}
+                            disabled={submitting}
+                            onChange={(event) =>
+                              setDiscountCodeInput(event.target.value.toUpperCase())
                             }
-                            if (event.key === 'Escape') {
-                              event.preventDefault()
-                              clearDiscountCode()
-                            }
-                          }}
-                        />
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                void applyDiscountCode()
+                                return
+                              }
+                              if (event.key === 'Escape') {
+                                event.preventDefault()
+                                clearDiscountCode()
+                              }
+                            }}
+                          />
+                        )}
                         <CodeScanButton
                           disabled={submitting || discountChecking}
                           onScan={(scanned) => {
@@ -2260,18 +2317,24 @@ export default function RegisterPage({
                             void applyDiscountCode(scanned)
                           }}
                         />
+                        {/* Validando, el chip es sólo el spinner: con la
+                            palabra puesta el chip se comía el ancho del campo y
+                            un código largo quedaba cortado a media palabra. El
+                            estado ya lo dice la ficha de arriba. */}
                         <button
                           type="button"
                           className="code-band__chip"
                           disabled={submitting || discountChecking || !discountCodeInput.trim()}
                           onClick={() => applyDiscountCode()}
+                          aria-label={
+                            discountChecking ? t('pages.register.discountChecking') : undefined
+                          }
                         >
                           {discountChecking ? (
-                            <LoaderCircle className="code-band__spin" size={15} aria-hidden />
-                          ) : null}
-                          {discountChecking
-                            ? t('pages.register.discountChecking')
-                            : t('pages.register.discountApply')}
+                            <LoaderCircle className="code-band__spin" size={16} aria-hidden />
+                          ) : (
+                            t('pages.register.discountApply')
+                          )}
                         </button>
                       </div>
                     </div>
@@ -3285,6 +3348,10 @@ export default function RegisterPage({
           campaignName={revealPromotion.campaign?.name ?? ''}
           code={revealPromotion.code}
           continueLabel={t('promotionReveal.continueHere')}
+          // Acá la acción plena no saca al atleta de ningún lado: cierra el
+          // anuncio y deja abajo el precio recalculado. Cerrar ES la acción, así
+          // que sale por la salida animada en vez de desaparecer en un frame.
+          continueDismisses
           expiresAt={promotionScarcityPresentation(revealPromotion)?.expiresAt ?? null}
           headline={(() => {
             const benefit = promotionBenefitPresentation(revealPromotion)

@@ -94,8 +94,14 @@ export default function SecretBundleSection({
 
   const purchase = offer.purchase ?? null
   const state = bundleState(purchase)
-  const channel = method === 'mercado_pago' ? 'gateway' : 'manual'
-  const price = bundlePrice(offer, state === 'ready' ? channel : 'manual')
+  // Con una compra hecha manda el canal de ESA orden, no el que el selector
+  // tenga elegido: la ficha tiene que cotizar lo que se está cobrando. Antes
+  // caía a 'manual' apenas existía una compra, así que una orden de Mercado
+  // Pago se leía con el precio del canal manual.
+  const channel = (purchase ? purchase.method === 'mercado_pago' : method === 'mercado_pago')
+    ? 'gateway'
+    : 'manual'
+  const price = bundlePrice(offer, channel)
 
   const remaining = purchase?.financedPaymentDueAt
     ? computeFinancingRemaining(purchase.financedPaymentDueAt)
@@ -104,11 +110,35 @@ export default function SecretBundleSection({
 
   const statusWord = {
     ready: t('account.bundle.status.ready'),
+    // Reservado igual que el manual: lo que cambia no es el estado del paquete
+    // sino dónde se termina de pagar.
+    gateway: t('account.bundle.status.reserved'),
     manual: t('account.bundle.status.reserved'),
     granted: t('account.bundle.status.granted'),
     settled: t('account.bundle.status.settled'),
     refunded: t('account.bundle.status.refunded'),
   }[state]
+
+  /**
+   * Al checkout del torneo, que es donde vive el brick de la pasarela.
+   *
+   * El código viaja como pendiente con destino 'competition': es lo que ese
+   * checkout lee al montar para auto-aplicarlo y destrabar el combo — sin esto
+   * el atleta aterriza en una inscripción suelta a precio de lista, con el
+   * paquete invisible (el checkout no consulta unlocks a propósito).
+   *
+   * Lo usan los dos momentos en que la pasarela es el camino: elegirla desde el
+   * formulario, y volver a una orden de Mercado Pago que quedó sin pagar.
+   */
+  function goToGateway() {
+    savePendingPromotionCode(offer.code, {
+      surface: 'bundle-gateway',
+      destination: { view: 'competition', eventSlug: offer.event?.slug },
+      resolved: true,
+    })
+    if (offer.event?.slug) onSelectEvent?.({ slug: offer.event.slug })
+    onNavigate?.('competition', { eventSlug: offer.event?.slug })
+  }
 
   async function submit(submitEvent) {
     submitEvent.preventDefault()
@@ -117,20 +147,10 @@ export default function SecretBundleSection({
       setError(t('account.bundle.form.incomplete'))
       return
     }
-    // La pasarela se cobra donde vive su brick. Se manda al checkout del torneo
-    // con el paquete ya destrabado en vez de montar un segundo ciclo de pago.
-    // El código viaja como pendiente con destino 'competition': es lo que el
-    // checkout lee al montar para auto-aplicarlo y destrabar el combo — sin
-    // esto el atleta aterrizaba en una inscripción suelta a precio de lista,
-    // con el paquete invisible (el checkout no consulta unlocks a propósito).
+    // La pasarela se cobra donde vive su brick, no acá: montar un segundo ciclo
+    // de pago sería mantener dos veces la parte más delicada del sistema.
     if (method === 'mercado_pago') {
-      savePendingPromotionCode(offer.code, {
-        surface: 'bundle-gateway',
-        destination: { view: 'competition', eventSlug: offer.event?.slug },
-        resolved: true,
-      })
-      if (offer.event?.slug) onSelectEvent?.({ slug: offer.event.slug })
-      onNavigate?.('competition', { eventSlug: offer.event?.slug })
+      goToGateway()
       return
     }
     setSubmitting(true)
@@ -268,6 +288,21 @@ export default function SecretBundleSection({
         </form>
       ) : null}
 
+      {/* La orden existe y se cobra con la pasarela: acá no hay nada que
+          declarar —Mercado Pago acredita solo— y el brick vive en el checkout
+          del torneo. Sin este paso la ficha caía en el panel manual y le
+          ofrecía "Ya entregué el efectivo" a una orden que la RPC rechaza con
+          PLU10, sin ninguna salida hacia la pasarela. */}
+      {state === 'gateway' ? (
+        <div className="bundle-section__settle">
+          <p className="bundle-section__hint">{t('account.bundle.gatewayNote')}</p>
+          <button type="button" className="bundle-section__action" onClick={goToGateway}>
+            {t('account.bundle.resumeGateway')}
+            <ArrowRight size={16} aria-hidden />
+          </button>
+        </div>
+      ) : null}
+
       {state === 'manual' || state === 'granted' ? (
         <div className="bundle-section__settle">
           {purchase?.manualPaymentChannel === 'bank_transfer' ? (
@@ -387,5 +422,11 @@ export function bundleState(purchase) {
   // orden (20260906100000) y el código queda disponible de nuevo.
   if (['cancelado', 'rechazado'].includes(purchase.status)) return 'ready'
   if (purchase.financedEntitlementsAt && !purchase.financedEntitlementsRevokedAt) return 'granted'
+  // Lo que queda abierto se termina de pagar, pero no en el mismo lugar. La
+  // pasarela acredita sola y su brick vive en el checkout del torneo: no hay
+  // comprobante que subir ni pago que declarar, y tratarla como manual dejaba
+  // la ficha ofreciendo "Ya entregué el efectivo" sobre una orden que
+  // `athlete_confirm_manual_payment` rechaza con PLU10.
+  if (purchase.method === 'mercado_pago') return 'gateway'
   return 'manual'
 }

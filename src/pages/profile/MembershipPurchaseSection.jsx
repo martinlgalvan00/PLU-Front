@@ -1132,9 +1132,13 @@ export default function MembershipPurchaseSection({
                     <MotionContentSwap swapKey={discountOpen ? 'field' : 'button'} mode="sync">
                       {discountOpen ? (
                         <div className="account-discount__field">
-                          <label className="visually-hidden" htmlFor="membership-discount-code">
-                            {t('account.membership.discountLabel')}
-                          </label>
+                          {/* Mientras valida no hay campo —el código pasa a ser
+                              registro—, así que tampoco hay label. */}
+                          {discountChecking ? null : (
+                            <label className="visually-hidden" htmlFor="membership-discount-code">
+                              {t('account.membership.discountLabel')}
+                            </label>
+                          )}
                           {/* `data-state` es el contrato de motion de
                               `code-band.css`: el barrido de luz mientras el
                               servidor contesta y el sello de oro cuando la
@@ -1152,7 +1156,10 @@ export default function MembershipPurchaseSection({
                             <div className="code-band__frame">
                               <div className="code-band__head">
                                 <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                                {/* Único lugar donde "Validando" queda como
+                                    texto, así que se anuncia. */}
                                 <span
+                                  aria-live="polite"
                                   className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
                                 >
                                   {t(
@@ -1165,31 +1172,41 @@ export default function MembershipPurchaseSection({
                                 </span>
                               </div>
                               <div className="code-band__row">
-                                <input
-                                  ref={discountInputRef}
-                                  id="membership-discount-code"
-                                  className="code-band__input"
-                                  type="text"
-                                  autoComplete="off"
-                                  spellCheck={false}
-                                  placeholder={t('account.membership.discountPlaceholder')}
-                                  value={discountCodeInput}
-                                  disabled={checkoutLocked || discountChecking}
-                                  onChange={(event) =>
-                                    setDiscountCodeInput(event.target.value.toUpperCase())
-                                  }
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault()
-                                      void applyDiscountCode()
-                                      return
+                                {/* Mandado el código, el campo deja de ser
+                                    campo: un `<input>` no envuelve y un código
+                                    largo quedaba cortado a media palabra justo
+                                    cuando el atleta quiere leerlo. Mismo span
+                                    que la banda usa cuando el código está
+                                    aplicado. */}
+                                {discountChecking ? (
+                                  <span className="code-band__code">{discountCodeInput}</span>
+                                ) : (
+                                  <input
+                                    ref={discountInputRef}
+                                    id="membership-discount-code"
+                                    className="code-band__input"
+                                    type="text"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    placeholder={t('account.membership.discountPlaceholder')}
+                                    value={discountCodeInput}
+                                    disabled={checkoutLocked}
+                                    onChange={(event) =>
+                                      setDiscountCodeInput(event.target.value.toUpperCase())
                                     }
-                                    if (event.key === 'Escape') {
-                                      event.preventDefault()
-                                      clearDiscountCode()
-                                    }
-                                  }}
-                                />
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        void applyDiscountCode()
+                                        return
+                                      }
+                                      if (event.key === 'Escape') {
+                                        event.preventDefault()
+                                        clearDiscountCode()
+                                      }
+                                    }}
+                                  />
+                                )}
                                 <CodeScanButton
                                   disabled={checkoutLocked || discountChecking}
                                   onScan={(scanned) => {
@@ -1204,17 +1221,24 @@ export default function MembershipPurchaseSection({
                                     checkoutLocked || discountChecking || !discountCodeInput.trim()
                                   }
                                   onClick={applyDiscountCode}
+                                  aria-label={
+                                    discountChecking
+                                      ? t('account.membership.discountChecking')
+                                      : undefined
+                                  }
                                 >
+                                  {/* Validando, sólo el spinner: la palabra le
+                                      comía el ancho al código. El estado lo
+                                      dice la ficha de arriba. */}
                                   {discountChecking ? (
                                     <LoaderCircle
                                       className="code-band__spin"
-                                      size={15}
+                                      size={16}
                                       aria-hidden
                                     />
-                                  ) : null}
-                                  {discountChecking
-                                    ? t('account.membership.discountChecking')
-                                    : t('account.membership.discountApply')}
+                                  ) : (
+                                    t('account.membership.discountApply')
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -1497,6 +1521,10 @@ export default function MembershipPurchaseSection({
           campaignName={revealPromotion.campaign?.name ?? ''}
           code={revealPromotion.code}
           continueLabel={t('promotionReveal.continueHere')}
+          // Acá la acción plena no saca al atleta de ningún lado: cierra el
+          // anuncio y deja abajo el precio recalculado. Cerrar ES la acción, así
+          // que sale por la salida animada en vez de desaparecer en un frame.
+          continueDismisses
           expiresAt={promotionScarcityPresentation(revealPromotion)?.expiresAt ?? null}
           headline={(() => {
             const benefit = promotionBenefitPresentation(revealPromotion)

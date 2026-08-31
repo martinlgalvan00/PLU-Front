@@ -76,6 +76,54 @@
   cursor: default;
 }
 
+/* La oferta que se destraba entra una vez (ver `CheckoutDesk`). Es el pago de la
+   exclusividad: hasta acá la tarjeta del paquete se sumaba a la lista sin que
+   nada lo dijera. Un solo acento —el oro que la tarjeta ya usa cuando está
+   elegida—, una sola secuencia y nada en loop. El aro va con `inset: -1px` y no
+   hacia adentro: esta tarjeta no tiene `overflow: hidden`, así que se dibuja
+   sobre el filo y no queda recortado en las esquinas. */
+.plu-checkout__offer.is-unlocked {
+  animation: checkout-offer-unlock var(--motion-slow) var(--ease-out) both;
+}
+
+.plu-checkout__offer.is-unlocked::after {
+  animation: checkout-offer-seal var(--motion-slow) var(--ease-out) 120ms both;
+  border: 1px solid var(--color-brand-gold);
+  border-radius: inherit;
+  content: '';
+  inset: -1px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+[data-theme='light'] .plu-checkout__offer.is-unlocked::after {
+  border-color: var(--plu-gold-600);
+}
+
+@keyframes checkout-offer-unlock {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes checkout-offer-seal {
+  0% {
+    opacity: 0;
+    transform: scale(1.012);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
 .plu-checkout__offer.is-selected {
   border-color: var(--color-brand-gold);
 }
@@ -541,7 +589,9 @@
 
   .plu-checkout__submit-spinner,
   .plu-checkout__total-compare,
-  .plu-checkout__total strong {
+  .plu-checkout__total strong,
+  .plu-checkout__offer.is-unlocked,
+  .plu-checkout__offer.is-unlocked::after {
     animation: none;
   }
 }

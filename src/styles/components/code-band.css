@@ -283,6 +283,17 @@
   opacity: 0.55;
 }
 
+/* Validando: el chip queda cuadrado, con el spinner solo (ver
+   `SecretOfferCodeRedeemer`). 44px es el target táctil completo, y le devuelve
+   al campo los ~120px que la palabra le sacaba —que es lo que hace que un
+   código largo se pueda leer justo mientras se valida, en vez de quedar cortado
+   a media palabra—. En teléfono la regla del final del archivo le deja el ancho
+   completo: ahí la fila ya envuelve y el campo no compite con nada. */
+.code-band[data-state='checking'] .code-band__chip {
+  padding-inline: 0;
+  width: 44px;
+}
+
 /* Escaneo dentro de la banda: sólo el ícono. El selector lleva tres clases
    porque `code-scan.css` refuerza el suyo con dos (`.code-scan
    .code-scan__toggle`) justamente para ganarle a las filas que lo hospedan. */

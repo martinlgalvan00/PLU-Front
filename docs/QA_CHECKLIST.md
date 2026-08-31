@@ -62,17 +62,22 @@
 
 ### Canje: estados y motion de la banda
 
-Los cuatro momentos del canje tienen animación one-shot (`code-band.css`,
-`promotion-reveal.css`, `checkout-desk.css`). Se auditan en Storybook, en los dos
-temas: `Cuenta/SecretOfferCodeRedeemer` y `Cuenta/PromotionRevealModal`.
+Los momentos del canje tienen animación one-shot (`code-band.css`,
+`promotion-reveal.css`, `checkout-desk.css`). Casi todo esto lo verifica
+`npm run visual-check:canje` —con Storybook levantado— leyendo el contrato con
+`getAnimations()` en 1440 y 390, light y dark, con y sin reduced motion. La lista
+queda para el repaso manual sobre datos reales.
 
-- [ ] Validando: el barrido de luz recorre la banda y el chip muestra su spinner; al resolverse, ninguno queda
+- [ ] Validando: el barrido de luz recorre la banda y el chip queda cuadrado con su spinner; al resolverse, ninguno queda
+- [ ] Validando: el código se lee completo (deja de ser campo y pasa a ser registro, así que envuelve) incluso en 390px
 - [ ] Aceptada o aplicada: el aro de oro se contrae una vez, el barrido cruza una vez y el registro baja en tres pasos
 - [ ] No reconocida: la banda se corre 3px una vez y el filo pasa a rojo en dark **y** en light
 - [ ] Precio recotizado: el importe anterior entra tachado y el nuevo baja, también al cambiar de medio de pago
-- [ ] Reveal: abre por el titular (no scrolleado hasta los botones) en 390px, y cierra con salida al descartar
+- [ ] Un código que destraba el paquete: la tarjeta de la oferta entra una vez, y no entra ninguna en una carga normal
+- [ ] Reveal: abre por el titular (no scrolleado hasta los botones) en 390px
 - [ ] Reveal: el foco inicial queda en el panel, sin anillo celeste sobre el chip de oro; `Escape` y click afuera cierran
-- [ ] Con `prefers-reduced-motion` las cuatro secuencias no corren y todo queda en su pose final
+- [ ] Reveal: en los dos checkouts la acción plena cierra con salida animada; en Mi cuenta navega en el acto
+- [ ] Con `prefers-reduced-motion` ninguna secuencia corre y todo queda en su pose final
 
 ## Panel admin
 

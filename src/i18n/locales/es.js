@@ -1174,6 +1174,10 @@ export default {
           'Este código te reserva la afiliación y la inscripción juntas a un precio pactado. Completá los datos y elegí cómo pagarlo.',
         manual:
           'Tu paquete quedó reservado. Terminá el pago con los datos de abajo para confirmarlo.',
+        // La pasarela no se cobra acá: lo que falta es volver al checkout del
+        // torneo, que es donde vive su pantalla de pago.
+        gateway:
+          'Tu paquete quedó reservado y se paga con Mercado Pago. Te falta completar el cobro en el checkout del torneo.',
         granted:
           'Ya estás afiliado e inscripto: PLU te habilitó por adelantado. Falta que completes el pago dentro del plazo.',
         settled: 'Finanzas acreditó el pago. El paquete está cerrado y no queda nada pendiente.',
@@ -1206,6 +1210,9 @@ export default {
       remaining: 'Quedan {{count}} lugares',
       remainingOne: 'Queda 1 lugar',
       dueIn: '{{countdown}} Vencido el plazo se dan de baja la afiliación y la inscripción.',
+      gatewayNote:
+        'Mercado Pago se cobra en el checkout del torneo, con el paquete ya aplicado. No hace falta que avises nada: acredita solo.',
+      resumeGateway: 'Retomar el pago con Mercado Pago',
       settled: 'No queda nada pendiente. Tu credencial y tu inscripción están en las fichas de siempre.',
       refunded:
         'El importe de esta compra se devolvió. Si el reembolso no fue lo que esperabas, contactá al staff de PLU.',
