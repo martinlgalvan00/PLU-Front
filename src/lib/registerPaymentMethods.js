@@ -5,6 +5,12 @@ export function buildRegisterPaymentMethods({
   cashEnabled = false,
   comboOffer = null,
   locale = 'es',
+  // Flag global: "hay algún canal manual habilitado", para un llamador que
+  // sólo conoce ese toggle único (el del panel, antes de resolver por
+  // código). Un llamador que sí sabe distinguir canal por canal —un código
+  // exclusivo que destraba sólo transferencia o sólo efectivo— nunca debe
+  // mandar este flag en `true` junto con `transferEnabled`/`cashEnabled`
+  // reales: la mezcla vuelve a ofrecer el canal que el código cerró.
   manualPaymentEnabled = false,
   mercadoPagoEnabled = true,
   registrationManualPrice = null,

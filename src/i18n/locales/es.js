@@ -3401,6 +3401,10 @@ export default {
       backToMercadoPago: 'Volver a Mercado Pago',
       backToTransfer: 'Volver a transferencia',
       changePaymentLead: 'Tu orden sigue pendiente. Elegí el medio y continuá.',
+      // Los datos de la inscripción se pueden corregir mientras la orden
+      // siga impaga: el POST que la reanuda los reescribe.
+      changePaymentDataDesc:
+        'Podés corregir tus datos de competencia antes de continuar: se guardan con la orden.',
       paymentMethodLocked:
         'Esta orden ya tiene un pago iniciado en Mercado Pago. Completalo o esperá a que venza para usar transferencia.',
       paymentLinkHint: 'Validación administrativa · hasta 48 horas',
@@ -3432,6 +3436,25 @@ export default {
       transferNotice: 'Usá la referencia indicada para que el equipo pueda conciliar tu pago.',
       transferHint: 'Adjuntá el comprobante. Administración valida en hasta 48 horas.',
       transferOpen: 'Ver datos de transferencia',
+      cancelOrderAction: 'Cancelar esta orden',
+      cancelOrderMissing: 'No encontramos la orden a cancelar. Recargá la página e intentá de nuevo.',
+      cancelOrderBusy: 'Cancelando…',
+      cancelOrderDone:
+        'Cancelamos tu orden. Ya podés elegir otro medio de pago y volver a aplicar tu código.',
+      cancelOrderConfirm:
+        '¿Cancelar esta orden? Vas a poder elegir otro medio de pago y tu código queda libre para usarlo de nuevo.',
+      // Cancelar cierra el cobro y da de baja la inscripción que lo esperaba:
+      // se pregunta antes. La confirmación es en línea y no un modal porque la
+      // pregunta ya estaba escrita para esta barra y un diálogo sobre el
+      // checkout tapa el importe que la persona está mirando.
+      cancelOrderConfirmAction: 'Sí, cancelar',
+      // 404 en el endpoint de cancelación: la API que respondió no tiene la
+      // ruta (deploy viejo). El atleta no puede hacer nada con "Ruta no
+      // encontrada", así que se le dice qué sí puede hacer.
+      cancelOrderUnavailable:
+        'La cancelación no está disponible en este momento. Recargá la página; si sigue igual, escribinos y cerramos la orden por vos.',
+      submitInFlight:
+        'Ya hay una operación en curso. Esperá unos segundos antes de volver a intentar.',
       competitionSummaryAthlete: 'Atleta',
       competitionSummaryPending: 'Por definir',
       competitionOrderHint: 'Al confirmar se genera la orden de inscripción.',

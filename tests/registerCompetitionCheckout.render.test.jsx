@@ -51,6 +51,7 @@ vi.mock('../src/services/athleteApi.js', () => ({
   checkAthleteAvailability: vi.fn(),
   verifyAthleteEmailCode: vi.fn(),
   previewDiscountCode: vi.fn(),
+  cancelAthletePaymentOrder: vi.fn(async () => ({ cancelled: true })),
 }))
 
 vi.mock('../src/services/registrationAccessService.js', () => ({
@@ -88,7 +89,8 @@ vi.mock('../src/services/paymentService.js', () => ({
 
 const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
 const { fetchRegistrationAccessRequirements } = await import('../src/services/registrationAccessService.js')
-const { previewDiscountCode } = await import('../src/services/athleteApi.js')
+const { previewDiscountCode, cancelAthletePaymentOrder } =
+  await import('../src/services/athleteApi.js')
 
 async function waitForAccessValidation() {
   await waitFor(() => expect(fetchRegistrationAccessRequirements).toHaveBeenCalled())
@@ -727,5 +729,127 @@ describe('RegisterPage — inscripción admitida', () => {
     const page = document.querySelector('.register-page')
     expect(page.classList.contains('register-page--settling-mp')).toBe(true)
     expect(document.querySelector('.register-settle__toolbar')).not.toBeNull()
+  })
+})
+
+/**
+ * La orden abierta no es sólo una forma de pagar: es una inscripción a medias.
+ *
+ * "Elegir otro medio" mostraba únicamente el selector, así que el atleta que se
+ * había equivocado de categoría —o que bajó de peso entre la inscripción y el
+ * pago— no tenía forma de corregirlo sin cancelar la orden. El POST que reanuda
+ * ya manda división, categoría y peso, y la RPC los reescribe sobre la
+ * inscripción pendiente: lo único que faltaba era mostrarlos.
+ */
+describe('RegisterPage — cambiar de medio sobre una orden abierta', () => {
+  const openPayment = {
+    id: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+    concept: 'Inscripción Pitbull Classic 2026',
+    amount: 50000,
+    method: 'manual_link',
+    status: 'validacion_manual',
+    reference: 'RORD-1',
+    manualPaymentChannel: 'bank_transfer',
+  }
+  const pendingRegistration = {
+    athleteId: athlete.id,
+    eventSlug: event.slug,
+    status: 'pendiente_pago',
+    paymentOrderId: openPayment.id,
+  }
+
+  function renderOpenOrder(overrides = {}) {
+    return renderCompetition({
+      payments: [openPayment],
+      registrations: [pendingRegistration],
+      ...overrides,
+    })
+  }
+
+  it('deja volver a elegir división, modalidad y categoría de peso junto con el medio', async () => {
+    renderOpenOrder()
+
+    fireEvent.click(screen.getByRole('button', { name: /elegir otro medio/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole('radiogroup', { name: /^División$/i })).toBeTruthy(),
+    )
+    expect(screen.getByRole('radiogroup', { name: /^Modalidad$/i })).toBeTruthy()
+    // La categoría de peso: su label es "Categoría" (`pages.register.bodyWeight`).
+    expect(document.querySelector('input[name="estimatedWeight"]')).toBeTruthy()
+    // Y el selector de medio sigue estando: los datos se corrigen sin perder el
+    // motivo por el que se entró a esta vista.
+    expect(screen.getAllByText(/cómo pagás/i).length).toBeGreaterThan(0)
+  })
+
+  it('corregir la modalidad acá viaja al formulario que reanuda la orden', async () => {
+    const onUpdateForm = vi.fn()
+    renderOpenOrder({ onUpdateForm })
+
+    fireEvent.click(screen.getByRole('button', { name: /elegir otro medio/i }))
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Single-Ply' })).toBeTruthy())
+    fireEvent.click(screen.getByRole('radio', { name: 'Single-Ply' }))
+
+    const categoryChange = onUpdateForm.mock.calls
+      .map(([changeEvent]) => changeEvent?.target)
+      .find((target) => target?.name === 'category')
+    expect(categoryChange?.value).toBe('Single-Ply')
+  })
+})
+
+/**
+ * Cancelar cierra el cobro y da de baja la inscripción que lo esperaba: no
+ * puede dispararse con un clic suelto, y cuando falla tiene que decir algo que
+ * el atleta pueda usar.
+ */
+describe('RegisterPage — cancelar la orden abierta', () => {
+  const openPayment = {
+    id: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+    concept: 'Inscripción Pitbull Classic 2026',
+    amount: 50000,
+    method: 'manual_link',
+    status: 'validacion_manual',
+    reference: 'RORD-1',
+    manualPaymentChannel: 'bank_transfer',
+  }
+  const pendingRegistration = {
+    athleteId: athlete.id,
+    eventSlug: event.slug,
+    status: 'pendiente_pago',
+    paymentOrderId: openPayment.id,
+  }
+
+  function renderOpenOrder() {
+    return renderCompetition({ payments: [openPayment], registrations: [pendingRegistration] })
+  }
+
+  it('pregunta antes de cerrar la orden', async () => {
+    renderOpenOrder()
+
+    fireEvent.click(screen.getByRole('button', { name: /cancelar esta orden/i }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /sí, cancelar/i })).toBeTruthy())
+    expect(screen.getByText(/¿cancelar esta orden\?/i)).toBeTruthy()
+    // El primer clic no cierra nada.
+    expect(cancelAthletePaymentOrder).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: /sí, cancelar/i }))
+    await waitFor(() => expect(cancelAthletePaymentOrder).toHaveBeenCalledWith(openPayment.id))
+  })
+
+  it('un 404 del endpoint se cuenta como algo que el atleta pueda hacer', async () => {
+    // "Ruta no encontrada" lo escribe el handler de rutas de la API, no la RPC:
+    // es una API sin esta ruta, y como motivo no le sirve a nadie.
+    cancelAthletePaymentOrder.mockRejectedValueOnce(
+      Object.assign(new Error('Ruta no encontrada'), { status: 404 }),
+    )
+    renderOpenOrder()
+
+    fireEvent.click(screen.getByRole('button', { name: /cancelar esta orden/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /sí, cancelar/i })).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /sí, cancelar/i }))
+
+    await waitFor(() => expect(screen.getByText(/no está disponible en este momento/i)).toBeTruthy())
+    expect(screen.queryByText(/ruta no encontrada/i)).toBe(null)
   })
 })

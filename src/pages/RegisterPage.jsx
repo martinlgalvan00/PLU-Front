@@ -62,6 +62,7 @@ import {
 } from '../../shared/promotionPaymentChannels.js'
 import {
   resendAthleteVerification,
+  cancelAthletePaymentOrder,
   checkAthleteAvailability,
   previewDiscountCode,
   verifyAthleteEmailCode,
@@ -514,6 +515,17 @@ export default function RegisterPage({
   const [touched, setTouched] = useState({})
   const [profileErrorStepIndex, setProfileErrorStepIndex] = useState(null)
   const [submitError, setSubmitError] = useState('')
+  // Acuse de una acción que salió bien y no navega a ningún lado (cancelar la
+  // orden abierta). Va en el mismo lugar que `submitError` para que el
+  // resultado de un clic siempre aparezca donde se hizo el clic.
+  const [submitNotice, setSubmitNotice] = useState('')
+  const [cancellingOrder, setCancellingOrder] = useState(false)
+  // Cancelar cierra el cobro y da de baja la inscripción que lo esperaba: la
+  // acción pregunta antes de hacerlo. El paso vive en la misma barra —un modal
+  // sobre el checkout tapa el importe que la persona está mirando— y el foco
+  // salta al botón que confirma, porque el que lo abrió deja de existir.
+  const [cancelConfirming, setCancelConfirming] = useState(false)
+  const cancelConfirmRef = useRef(null)
   const [paymentRecovery, setPaymentRecovery] = useState(null)
   const [gyms, setGyms] = useState([])
 
@@ -606,6 +618,11 @@ export default function RegisterPage({
     () => (flow === 'competition' && athlete ? getMissingCompetitionProfileFields(athlete) : []),
     [athlete, flow],
   )
+  useEffect(() => {
+    if (!cancelConfirming) return
+    cancelConfirmRef.current?.focus()
+  }, [cancelConfirming])
+
   const committedCompetitionRegistration = useMemo(() => {
     if (flow !== 'competition' || !athlete || !event?.slug) return null
     return (
@@ -661,10 +678,12 @@ export default function RegisterPage({
     setAdvancing(false)
     submissionInFlightRef.current = false
     setSubmitError('')
+    setSubmitNotice('')
     setMembershipPaymentInProgress(false)
     setTransferOpen(false)
     setTransferOrderId(null)
     setChangingMethod(false)
+    setCancelConfirming(false)
     setDiscountCodeInput('')
     setDiscountPreview(null)
     setDiscountError('')
@@ -1420,7 +1439,6 @@ export default function RegisterPage({
           cashEnabled,
           comboOffer: comboAvailability.offer,
           locale,
-          manualPaymentEnabled,
           mercadoPagoEnabled,
           registrationManualPrice: eventPricing.registrationManual,
           registrationPrice: registrationListPrice,
@@ -1621,7 +1639,16 @@ export default function RegisterPage({
   function focusFirstError(stepErrors) {
     const firstField = Object.keys(stepErrors)[0]
     if (!firstField) return
-    document.querySelector(`[name="${firstField}"]`)?.focus()
+    const node = document.querySelector(`[name="${firstField}"]`)
+    if (!node) return
+    // `focus()` a secas no alcanzaba: en el checkout de competencia los campos
+    // de división, categoría y peso viven muy por encima de la barra de pago, y
+    // el nodo que lleva el `name` de un ChoiceField es un radio que puede no ser
+    // enfocable. Cuando el foco no prende, el navegador no scrollea y el error
+    // queda pintado fuera del viewport — el atleta ve un botón que no responde.
+    node.focus?.({ preventScroll: true })
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+    node.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' })
   }
 
   function selectProfileStep(index) {
@@ -1749,7 +1776,14 @@ export default function RegisterPage({
 
   async function submit(eventObject) {
     eventObject.preventDefault()
-    if (submitting || submissionInFlightRef.current) return
+    // Un clic ignorado tiene que decir por qué. Este guard existe para que un
+    // doble clic no cree dos órdenes, pero como `return` pelado convertía al
+    // CTA en un botón muerto: si el ref quedaba en `true`, la pantalla no
+    // volvía a responder nunca y no había nada que lo explicara.
+    if (submitting || submissionInFlightRef.current) {
+      setSubmitError(t('pages.register.submitInFlight'))
+      return
+    }
     if (checkoutFlowsLocked) {
       setSubmitError(t('pages.register.checkoutSoon'))
       return
@@ -1802,6 +1836,14 @@ export default function RegisterPage({
           ...current,
           ...Object.fromEntries(Object.keys(validation.errors).map((field) => [field, true])),
         }))
+        // El checkout no es un wizard: los campos de la inscripción quedan
+        // arriba y la barra de pago abajo, así que un error de validación se
+        // pintaba a varias pantallas de distancia del botón que lo disparó. Sin
+        // este cartel —que sale justo encima del CTA— el submit corta en
+        // silencio y "Continuar al pago" parece un botón roto. Pasó con una
+        // cuenta sin división, categoría ni peso cargados en su ficha: el
+        // formulario nacía vacío y el pago nunca arrancaba.
+        setSubmitError(validation.error)
       }
 
       submissionInFlightRef.current = false
@@ -1826,8 +1868,10 @@ export default function RegisterPage({
 
     // Un reintento reemplaza el estado anterior: el usuario ve el progreso
     // actual y, si vuelve a fallar, el nuevo motivo. Nunca queda un error viejo
-    // conviviendo con una operacion que ya esta en curso.
+    // -- ni el acuse de la cancelacion anterior -- conviviendo con una
+    // operacion que ya esta en curso.
     setSubmitError('')
+    setSubmitNotice('')
     setMembershipPaymentInProgress(false)
     setEmailBlocked(false)
     setSubmitting(true)
@@ -1855,7 +1899,18 @@ export default function RegisterPage({
   }
 
   async function switchToTransfer() {
-    if (submitting || submissionInFlightRef.current || checkoutFlowsLocked) return
+    // Mismas dos puertas que `submit`, y por el mismo motivo: acá también
+    // salían con un `return` pelado —`checkoutFlowsLocked` incluido, que del
+    // otro lado sí tenía cartel—, así que "Pagar por transferencia" podía no
+    // hacer nada sin decir por qué.
+    if (submitting || submissionInFlightRef.current) {
+      setSubmitError(t('pages.register.submitInFlight'))
+      return
+    }
+    if (checkoutFlowsLocked) {
+      setSubmitError(t('pages.register.checkoutSoon'))
+      return
+    }
     if (accessRequirementsLoading) {
       setSubmitError(t('pages.register.accessGate.requirementsChecking'))
       return
@@ -1872,6 +1927,7 @@ export default function RegisterPage({
     submissionInFlightRef.current = true
     onUpdateForm({ target: { name: 'paymentMethod', value: 'manual_link' } })
     setSubmitError('')
+    setSubmitNotice('')
     setMembershipPaymentInProgress(false)
     setEmailBlocked(false)
     setSubmitting(true)
@@ -1896,6 +1952,72 @@ export default function RegisterPage({
       submissionInFlightRef.current = false
     }
     applyRegisterSubmitResult(result, { requestedPaymentMethod: 'manual_link' })
+  }
+
+  /**
+   * Cierra la orden abierta a pedido del atleta y le devuelve el cupón.
+   *
+   * Es la salida que faltaba: una orden por transferencia que quedó pendiente
+   * la reusa el checkout hasta que vence, y si arrastra un cupón consumido el
+   * mismo código rebota en el intento siguiente. El backend valida y, cuando
+   * dice que no (comprobante adjunto, pago declarado, intento en vuelo), su
+   * motivo se muestra tal cual — un "no se puede" sin explicación es el bug
+   * que estamos sacando de esta pantalla.
+   */
+  async function cancelOpenOrder() {
+    if (cancellingOrder) {
+      setSubmitError(t('pages.register.submitInFlight'))
+      return
+    }
+    const orderId = visibleOrder?.paymentId ?? visibleOrder?.id ?? null
+    if (!orderId) {
+      setSubmitError(t('pages.register.cancelOrderMissing'))
+      return
+    }
+    setCancellingOrder(true)
+    setSubmitError('')
+    setSubmitNotice('')
+    try {
+      await cancelAthletePaymentOrder(orderId)
+      // El cupón volvió a estar disponible, pero el preview en pantalla cotizó
+      // contra la orden que acaba de morir: se limpia para que el próximo
+      // intento lo vuelva a pedir en vez de mandar un importe viejo.
+      clearDiscountCode()
+      // Mismo cierre que `restartRejectedRegistration`: sin soltar
+      // `createdOrder` la pantalla de liquidación sigue mostrando una orden
+      // que ya no existe.
+      setSettleDeclarationClosed(false)
+      setChangingMethod(false)
+      setCancelConfirming(false)
+      setTransferOpen(false)
+      setTransferOrderId(null)
+      onClearCreatedOrder?.()
+      setSubmitNotice(t('pages.register.cancelOrderDone'))
+      // El resto de la app (Mi cuenta, la fila del torneo) escucha este evento
+      // para releer los pagos: sin él, `resumableOrder` seguiría resucitando la
+      // orden cancelada desde los props.
+      window.dispatchEvent(
+        new CustomEvent('plu:payment-updated', {
+          detail: { orderId, status: 'cancelado' },
+        }),
+      )
+    } catch (error) {
+      // El motivo lo escribe la RPC (PLU31..PLU34) y llega como mensaje del
+      // ApiError: se muestra tal cual, que es toda la diferencia entre "no se
+      // puede" y "no se puede porque ya subiste el comprobante".
+      //
+      // El 404 es la excepción: no lo escribe la RPC sino el handler de rutas
+      // de la API, y "Ruta no encontrada" no es un motivo para el atleta -- es
+      // una API sin esta ruta (proceso viejo en local, deploy atrasado). Se
+      // traduce a algo que sí puede hacer.
+      setSubmitError(
+        error?.status === 404
+          ? t('pages.register.cancelOrderUnavailable')
+          : (error?.message ?? t('common.errorMessage')),
+      )
+    } finally {
+      setCancellingOrder(false)
+    }
   }
 
   function startPaymentMethodChange(nextMethod = 'mercado_pago') {
@@ -2447,6 +2569,121 @@ export default function RegisterPage({
       </div>
     ) : null
 
+  /**
+   * Los datos de la inscripción: división, categoría y peso declarado.
+   *
+   * Vive como constante y no dentro del formulario porque "Elegir otro medio"
+   * los necesita igual. El POST que reanuda una orden impaga manda los tres
+   * campos y `resume_pending_event_registration_checkout` (20260816120000) los
+   * reescribe sobre la inscripción pendiente: mostrando sólo el selector de
+   * medio, la pantalla escondía la única corrección que todavía se podía
+   * hacer, y quien se había equivocado de categoría no tenía más salida que
+   * cancelar la orden y volver a empezar.
+   */
+  const competitionFieldsSection = (
+    <FormSection
+      title={t('pages.register.competitionFormTitle')}
+      description={t(
+        changingMethod
+          ? 'pages.register.changePaymentDataDesc'
+          : 'pages.register.competitionFormDesc',
+      )}
+    >
+      {committedCompetitionRegistration ? (
+        <p className="register-competition-commitment" role="status">
+          {t('pages.register.competitionCommitmentLocked')}
+        </p>
+      ) : null}
+      <div className="register-competition-fields">
+        <ChoiceField
+          className="register-competition-choice register-competition-choice--division"
+          disabled={Boolean(committedCompetitionRegistration)}
+          error={errors.division}
+          label={t('pages.register.division')}
+          name="division"
+          value={form.division}
+          onBlur={blurField}
+          onChange={changeField}
+          options={formOptions.division}
+        />
+        <ChoiceField
+          className="register-competition-choice register-competition-choice--category"
+          disabled={Boolean(committedCompetitionRegistration)}
+          error={errors.category}
+          label={t('pages.register.category')}
+          name="category"
+          value={form.category}
+          onBlur={blurField}
+          onChange={changeField}
+          options={formOptions.category}
+        />
+        <Field
+          className="register-competition-weight"
+          disabled={Boolean(committedCompetitionRegistration)}
+          error={errors.estimatedWeight}
+          inputMode="decimal"
+          label={t('pages.register.bodyWeight')}
+          name="estimatedWeight"
+          placeholder={t('pages.register.bodyWeightPlaceholder')}
+          value={form.estimatedWeight}
+          onBlur={blurField}
+          onChange={changeField}
+        />
+      </div>
+    </FormSection>
+  )
+
+  /**
+   * "Cancelar esta orden" y su confirmación, compartidas por las dos barras del
+   * settle (efectivo en Pitbull y el resto de los medios manuales).
+   *
+   * La confirmación reemplaza al disparador en la misma fila en vez de abrir un
+   * diálogo: la barra vive debajo del importe y de la referencia de la orden, y
+   * taparlos justo cuando se pregunta si cerrarla es esconder lo único que
+   * permite decidir.
+   */
+  const cancelOrderControl = cancelConfirming ? (
+    <span aria-live="polite" className="register-settle__confirm">
+      <span className="register-settle__confirm-copy">
+        {t('pages.register.cancelOrderConfirm')}
+      </span>
+      <button
+        ref={cancelConfirmRef}
+        type="button"
+        className="register-topbar__link register-settle__cancel"
+        disabled={cancellingOrder}
+        aria-busy={cancellingOrder || undefined}
+        onClick={() => void cancelOpenOrder()}
+      >
+        {cancellingOrder
+          ? t('pages.register.cancelOrderBusy')
+          : t('pages.register.cancelOrderConfirmAction')}
+      </button>
+      <button
+        type="button"
+        className="register-topbar__link"
+        disabled={cancellingOrder}
+        onClick={() => setCancelConfirming(false)}
+      >
+        {t('common.back')}
+      </button>
+    </span>
+  ) : (
+    <button
+      type="button"
+      className="register-topbar__link register-settle__cancel"
+      onClick={() => {
+        // El acuse de un intento anterior no puede quedar arriba de la
+        // pregunta: se limpia al abrirla, no al confirmarla.
+        setSubmitError('')
+        setSubmitNotice('')
+        setCancelConfirming(true)
+      }}
+    >
+      {t('pages.register.cancelOrderAction')}
+    </button>
+  )
+
   return (
     <main
       className={`page auth-immersive-page register-page register-page--design register-page--premium${
@@ -2611,6 +2848,20 @@ export default function RegisterPage({
             </div>
           ) : competitionSettling ? (
             <div className="register-settle">
+              {/* El acuse y el error de esta pantalla. `submitError` sólo se
+                  pintaba dentro del formulario, así que una acción hecha desde
+                  la liquidación —cancelar la orden— no tenía dónde contar cómo
+                  salió: ni el éxito ni el motivo del rechazo. */}
+              {submitNotice && !submitError ? (
+                <div className="form-submit-notice" role="status">
+                  <p>{submitNotice}</p>
+                </div>
+              ) : null}
+              {submitError ? (
+                <div className="form-submit-error" role="alert">
+                  <p>{submitError}</p>
+                </div>
+              ) : null}
               {/* Las acciones de medio de pago existen mientras la orden se está
                   cobrando. Con la inscripción ya admitida, "elegir otro medio" y
                   "ver datos de transferencia" invitaban a re-pagar algo que ya
@@ -2683,6 +2934,7 @@ export default function RegisterPage({
                       <ArrowLeft size={15} aria-hidden />
                       {t('pages.register.changePaymentMethod')}
                     </button>
+                    {cancelOrderControl}
                   </div>
                   <ManualPaymentConfirmation
                     channel="cash_pitbull"
@@ -2727,6 +2979,7 @@ export default function RegisterPage({
                     >
                       {t('pages.register.transferOpen')}
                     </button>
+                    {cancelOrderControl}
                   </div>
                 </div>
               )}
@@ -3039,6 +3292,7 @@ export default function RegisterPage({
                       ? t('pages.register.backToTransfer')
                       : t('pages.register.backToMercadoPago')}
                   </button>
+                  {competitionFieldsSection}
                   <FormSection
                     title={t('pages.register.competitionPaymentTitle')}
                     description={t('pages.register.changePaymentLead')}
@@ -3108,52 +3362,7 @@ export default function RegisterPage({
                   </section>
                   {/* Sin `step`: la inscripción tiene una sola sección. El "01"
                     prometía una secuencia que no existe. */}
-                  <FormSection
-                    title={t('pages.register.competitionFormTitle')}
-                    description={t('pages.register.competitionFormDesc')}
-                  >
-                    {committedCompetitionRegistration ? (
-                      <p className="register-competition-commitment" role="status">
-                        {t('pages.register.competitionCommitmentLocked')}
-                      </p>
-                    ) : null}
-                    <div className="register-competition-fields">
-                      <ChoiceField
-                        className="register-competition-choice register-competition-choice--division"
-                        disabled={Boolean(committedCompetitionRegistration)}
-                        error={errors.division}
-                        label={t('pages.register.division')}
-                        name="division"
-                        value={form.division}
-                        onBlur={blurField}
-                        onChange={changeField}
-                        options={formOptions.division}
-                      />
-                      <ChoiceField
-                        className="register-competition-choice register-competition-choice--category"
-                        disabled={Boolean(committedCompetitionRegistration)}
-                        error={errors.category}
-                        label={t('pages.register.category')}
-                        name="category"
-                        value={form.category}
-                        onBlur={blurField}
-                        onChange={changeField}
-                        options={formOptions.category}
-                      />
-                      <Field
-                        className="register-competition-weight"
-                        disabled={Boolean(committedCompetitionRegistration)}
-                        error={errors.estimatedWeight}
-                        inputMode="decimal"
-                        label={t('pages.register.bodyWeight')}
-                        name="estimatedWeight"
-                        placeholder={t('pages.register.bodyWeightPlaceholder')}
-                        value={form.estimatedWeight}
-                        onBlur={blurField}
-                        onChange={changeField}
-                      />
-                    </div>
-                  </FormSection>
+                  {competitionFieldsSection}
 
                   {showComboChoice || (isPaidCheckout && flow === 'competition') ? (
                     <RegisterSettle
@@ -3210,6 +3419,12 @@ export default function RegisterPage({
                       )}
                     </div>
                   )}
+                </div>
+              ) : null}
+
+              {submitNotice && !submitError ? (
+                <div className="form-submit-notice" role="status">
+                  <p>{submitNotice}</p>
                 </div>
               ) : null}
 

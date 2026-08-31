@@ -33,10 +33,12 @@ export default async function globalTeardown() {
         p_actor: 'e2e:checkout-coupon-cleanup',
       })
     }
-    if (fixture.discountCode) {
-      await admin.from('discount_codes').delete().eq('code', fixture.discountCode)
+    for (const code of [fixture.discountCode, fixture.manualOnlyDiscountCode]) {
+      if (code) await admin.from('discount_codes').delete().eq('code', code)
     }
-    if (fixture.eventId) await admin.from('events').delete().eq('id', fixture.eventId)
+    for (const eventId of [fixture.eventId, fixture.manualOnlyEventId]) {
+      if (eventId) await admin.from('events').delete().eq('id', eventId)
+    }
     await admin
       .from('domain_audit_logs')
       .delete()
