@@ -12,16 +12,11 @@ import {
 } from '../lib/featureAvailability.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { etagMatches, PRIVATE_REVALIDATE_CACHE, weakEtagFromParts } from '../lib/http.js'
-import {
-  AUTH_PORTRAIT_CACHE_CONTROL,
-  isSafeStoragePhotoPath,
-} from '../lib/publicPortraitUrl.js'
-import {
-  PUBLIC_PORTRAIT_CACHE_CONTROL,
-  sendPortraitBinary,
-} from '../lib/portraitBinaryCache.js'
+import { AUTH_PORTRAIT_CACHE_CONTROL, isSafeStoragePhotoPath } from '../lib/publicPortraitUrl.js'
+import { PUBLIC_PORTRAIT_CACHE_CONTROL, sendPortraitBinary } from '../lib/portraitBinaryCache.js'
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
+import { promotionCodeAllowsChannel } from '../../shared/promotionPaymentChannels.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
@@ -74,12 +69,7 @@ import {
 } from '../modules/payments/paymentAuditTrail.js'
 import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
 import { logger } from '../lib/logger.js'
-import {
-  getCoreName,
-  isSimilarCore,
-  mergeGymVariants,
-  preferGymName,
-} from '../lib/gymNormalize.js'
+import { getCoreName, isSimilarCore, mergeGymVariants, preferGymName } from '../lib/gymNormalize.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import {
   createPasswordResetToken,
@@ -596,11 +586,20 @@ export function createAthleteRoutes({
    */
   const manualChannelOverride = async (body, scope) => {
     if (!isManualPaymentMethod(body?.paymentMethod)) return false
-    return repo().discountCodeManualEligibility(
-      body.discountCode,
-      scope,
-      manualPaymentChannel(body.paymentMethod),
-    )
+    const channel = manualPaymentChannel(body.paymentMethod)
+    if (body?.discountCode && typeof repo().discountCodeChannelPolicy === 'function') {
+      const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
+      if (policy?.found && !promotionCodeAllowsChannel(policy, channel)) {
+        throw new HttpError(409, 'Ese código de promoción no admite el medio de pago elegido.', {
+          code: 'PLU29',
+          requestedChannel: channel,
+          manualChannels: policy.manualChannels,
+          mercadoPagoEnabled: policy.mercadoPagoEnabled,
+        })
+      }
+      if (policy?.found) return promotionCodeAllowsChannel(policy, channel)
+    }
+    return repo().discountCodeManualEligibility(body.discountCode, scope, channel)
   }
   /**
    * El otro sentido del mismo dato: un código que CIERRA la pasarela
@@ -618,7 +617,7 @@ export function createAthleteRoutes({
     if (isManualPaymentMethod(body?.paymentMethod)) return
     if (!body?.discountCode || typeof repo().discountCodeChannelPolicy !== 'function') return
     const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
-    if (!policy?.found || policy.mercadoPagoEnabled !== false) return
+    if (!policy?.found || promotionCodeAllowsChannel(policy, 'mercado_pago')) return
     throw new HttpError(409, 'Ese código no se puede pagar con Mercado Pago.', {
       code: 'PLU28',
       manualChannels: policy.manualChannels,
@@ -1421,10 +1420,7 @@ export function createAthleteRoutes({
         // Con eventSlug la matriz de inscripción/ticket se intersecta con el
         // perfil del evento; membership sigue siendo solo plataforma.
         const availability = event
-          ? applyEventPaymentChannelOverrides(
-              platformAvailability,
-              event.payment_channel_overrides,
-            )
+          ? applyEventPaymentChannelOverrides(platformAvailability, event.payment_channel_overrides)
           : platformAvailability
         let bankProfile = null
         if (event?.bank_transfer_profile_id) {
@@ -1541,7 +1537,11 @@ export function createAthleteRoutes({
         })
         const membershipWisePrice =
           membershipChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'membership', arsAmount: plan.price, configuredUsd: plan.wise_price })
+            ? wisePriceFor({
+                concept: 'membership',
+                arsAmount: plan.price,
+                configuredUsd: plan.wise_price,
+              })
             : null
         const created = await repo().createMembershipOrder(auth.athleteId, {
           ...req.validatedBody,
@@ -1617,7 +1617,11 @@ export function createAthleteRoutes({
         })
         const registrationWisePrice =
           registrationChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'registration', arsAmount: event.price, configuredUsd: event.wise_price })
+            ? wisePriceFor({
+                concept: 'registration',
+                arsAmount: event.price,
+                configuredUsd: event.wise_price,
+              })
             : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
@@ -2069,8 +2073,7 @@ export function createAthleteRoutes({
       }
 
       const staff = await readSessionFromRequest({ prisma, req })
-      const staffAllowed =
-        staff?.user && hasPermission(staff.user, 'admin.athletes.read')
+      const staffAllowed = staff?.user && hasPermission(staff.user, 'admin.athletes.read')
       if (!staffAllowed) {
         const athleteAuth = await readAthleteSession({
           client: client(),
@@ -2662,9 +2665,9 @@ export function createAthleteRoutes({
         if (!hasPermission(req.auth.user, observationGuardFor(entityType))) {
           throw new HttpError(403, 'Sin permisos para observar esta entidad.')
         }
-        res.status(201).json(
-          await repo().addObservation(entityType, entityId, body, actorLabel(req)),
-        )
+        res
+          .status(201)
+          .json(await repo().addObservation(entityType, entityId, body, actorLabel(req)))
       } catch (error) {
         next(error)
       }

@@ -535,8 +535,10 @@
   flex-direction: column;
   max-height: min(70vh, 640px);
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  /* El scroll vive en `.admin-event-form__body`: si el fold scrollea el
+     editor entero, el dock de Guardar queda debajo del viewport y el
+     operador solo ve el banner de descarte. */
+  overflow: hidden;
   overscroll-behavior: contain;
   padding: 0;
   scroll-margin-block: 12px;
@@ -560,8 +562,10 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  max-height: min(70vh, 640px);
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
 .admin-shell .admin-event-console__fold--structure {
@@ -584,18 +588,116 @@
   justify-content: flex-end;
 }
 
-/* Essentials: un solo scroll en el body del form, sin techo de 42vh. */
+/* Essentials: el body scrollea; el dock de acciones queda fijo abajo. */
+.admin-event-editor--accordion .admin-event-form--editor {
+  max-height: 100%;
+  min-height: 0;
+}
+
 .admin-event-editor--accordion .admin-event-form__body {
+  flex: 1 1 auto;
+  gap: 14px;
   max-height: none;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-block: 12px 16px;
+}
+
+.admin-event-editor--accordion .admin-event-form__alert,
+.admin-event-editor--accordion .admin-event-form__discard-confirmation {
+  flex: 0 0 auto;
+  margin: 0 18px 10px;
+}
+
+.admin-event-editor--accordion .admin-event-form__actions {
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  justify-content: space-between;
+  z-index: 3;
+}
+
+.admin-event-editor--essentials .admin-event-form__section-head--essentials {
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-editor--essentials .admin-event-form__section-head--essentials p {
+  color: var(--admin-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 54ch;
 }
 
 .admin-event-editor--essentials .admin-event-form__section-head p {
   max-width: 52ch;
 }
 
+/* Dos precios (MP + manual) en el fold; una columna solo en angosto. */
 .admin-event-editor--essentials .admin-event-form__rate-cards {
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 280px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: none;
+}
+
+.admin-event-editor--essentials .admin-event-form__rate-cards .admin-event-form__pricing-note {
+  grid-column: 1 / -1;
+}
+
+.admin-event-editor--essentials .admin-event-form__payment-profile {
+  gap: 12px;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.admin-event-editor--essentials .admin-event-form__lane--payment {
+  gap: 12px;
+}
+
+.admin-event-editor--essentials .admin-event-form__payment-profile > .admin-event-form__lane-head p,
+.admin-event-editor--essentials .admin-event-form__bank-transfer > .admin-event-form__lane-head p {
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 52ch;
+}
+
+.admin-event-editor--essentials .admin-event-form__channel-grid {
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-event-editor--essentials .admin-event-form__bank-transfer {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
+  border-radius: 0;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px 0 0;
+  box-shadow: none;
+}
+
+.admin-event-editor--essentials .admin-event-form__lane--tickets-essentials {
+  gap: 10px;
+}
+
+.admin-event-editor--essentials .admin-event-form__lane--tickets-essentials .admin-event-form__lane-head {
+  margin: 0;
+}
+
+.admin-event-editor--accordion .admin-event-form__save-state--actions {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .admin-event-editor--essentials .admin-event-form__rate-cards,
+  .admin-event-editor--essentials .admin-event-form__channel-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (hover: none) {
@@ -2434,7 +2536,7 @@
 }
 
 .admin-event-editor--embedded .admin-event-form__section--sales {
-  gap: 14px;
+  gap: 12px;
 }
 
 .admin-event-editor--embedded .admin-event-form__section-head h4 {
@@ -2457,6 +2559,27 @@
   margin-top: auto;
   padding: 12px 18px max(14px, env(safe-area-inset-bottom, 0px));
   z-index: 4;
+}
+
+/* `.admin-shell .btn` pinta todo de celeste operativo; el Guardar del editor
+   tiene que seguir leyéndose como acción primaria de persistencia. */
+.admin-shell .admin-event-form__actions .btn--gold {
+  background: var(--color-brand-action, var(--admin-action));
+  border-color: var(--color-brand-action, var(--admin-action));
+  color: var(--color-brand-action-text, var(--admin-on-action));
+}
+
+.admin-shell .admin-event-form__actions .btn--gold:hover:not(:disabled) {
+  background: var(
+    --color-brand-action-hover,
+    color-mix(in srgb, var(--color-brand-action, var(--admin-action)) 84%, var(--admin-ink))
+  );
+  border-color: var(--color-brand-action-hover, var(--admin-action));
+}
+
+.admin-shell .admin-event-form__actions .btn--gold:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 /* Carriles del accordion: continúan el fondo del modal, sin card glass. */

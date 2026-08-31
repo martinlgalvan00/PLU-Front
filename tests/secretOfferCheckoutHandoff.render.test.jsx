@@ -255,6 +255,23 @@ async function typeAndRedeem(code) {
 }
 
 describe('código de combo tipeado en el checkout', () => {
+  it('si el codigo es solo Mercado Pago oculta transferencia y efectivo', async () => {
+    previewByScope()
+    const { container } = renderCompetition()
+    await waitForAccessValidation()
+
+    expect(screen.getByRole('radio', { name: /Transferencia bancaria/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /Efectivo en Pitbull/i })).toBeTruthy()
+
+    openDiscountField()
+    await typeAndRedeem('ONLY-PITBULL')
+    await waitFor(() => expect(appliedDiscount(container)).toContain('ONLY-PITBULL'))
+
+    expect(screen.queryByRole('radio', { name: /Transferencia bancaria/i })).toBeNull()
+    expect(screen.queryByRole('radio', { name: /Efectivo en Pitbull/i })).toBeNull()
+    expect(screen.getByRole('radio', { name: /Mercado Pago/i })).toBeTruthy()
+  })
+
   it('se aplica en este checkout sin navegar a ninguna otra pantalla', async () => {
     previewByScope()
     const { container, onNavigate } = renderCompetition()
@@ -486,9 +503,11 @@ describe('código de combo con el contrato vivo (open_bundle)', () => {
     // alcance 'combo' y el pendiente se consumió.
     await waitFor(() =>
       expect(
-        vi.mocked(previewDiscountCode).mock.calls.some(
-          ([input]) => input?.code === 'ONLY-PITBULL' && input?.appliesTo === 'combo',
-        ),
+        vi
+          .mocked(previewDiscountCode)
+          .mock.calls.some(
+            ([input]) => input?.code === 'ONLY-PITBULL' && input?.appliesTo === 'combo',
+          ),
       ).toBe(true),
     )
     await waitFor(() => expect(sessionStorage.getItem('plu:pending-promotion-code')).toBe(null))

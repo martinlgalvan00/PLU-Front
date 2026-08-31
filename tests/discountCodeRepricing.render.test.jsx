@@ -98,9 +98,8 @@ vi.mock('../src/services/paymentService.js', () => ({
 const MembershipPurchaseSection = (
   await import('../src/pages/profile/MembershipPurchaseSection.jsx')
 ).default
-const { previewDiscountCode, redeemPromotionCodeRequest } = await import(
-  '../src/services/athleteApi.js'
-)
+const { previewDiscountCode, redeemPromotionCodeRequest } =
+  await import('../src/services/athleteApi.js')
 
 const ATHLETE = {
   id: 'ath-1',
@@ -124,7 +123,9 @@ const CODE_PREVIEW = {
   financed: false,
 }
 
-function renderSection() {
+function renderSection(
+  checkoutAvailability = { membershipEnabled: true, registrationEnabled: true },
+) {
   return render(
     <I18nProvider>
       <MembershipPurchaseSection
@@ -134,7 +135,7 @@ function renderSection() {
         onCancelMembership={vi.fn()}
         onStartMembershipPayment={vi.fn()}
         events={[]}
-        checkoutAvailability={{ membershipEnabled: true, registrationEnabled: true }}
+        checkoutAvailability={checkoutAvailability}
       />
     </I18nProvider>,
   )
@@ -158,6 +159,54 @@ beforeEach(() => {
 })
 
 describe('recotización de un cupón por cambio de canal', () => {
+  it('un codigo solo Mercado Pago retira transferencia y efectivo del selector', async () => {
+    const mpOnlyPreview = {
+      ...CODE_PREVIEW,
+      code: 'SOLO-MP',
+      manualChannels: [],
+      mercadoPagoEnabled: true,
+    }
+    vi.mocked(redeemPromotionCodeRequest).mockResolvedValue({
+      status: 'accepted',
+      accepted: true,
+      action: 'apply_to_checkout',
+      code: 'SOLO-MP',
+      kind: 'percent',
+      appliesTo: 'membership',
+      destination: { view: 'profile', tab: 'account-membership' },
+      benefit: { percentOff: 25, manualChannels: [], mercadoPagoEnabled: true },
+    })
+    vi.mocked(previewDiscountCode).mockResolvedValue(mpOnlyPreview)
+    renderSection({
+      membershipEnabled: true,
+      registrationEnabled: true,
+      paymentChannels: {
+        membership: {
+          mercado_pago: true,
+          bank_transfer: true,
+          cash_pitbull: true,
+          wise_transfer: false,
+        },
+      },
+    })
+
+    expect(await screen.findByRole('radio', { name: /Transferencia bancaria/i })).toBeTruthy()
+    expect(screen.getByRole('radio', { name: /Efectivo en Pitbull/i })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /Tengo un código/i }))
+    fireEvent.change(await screen.findByLabelText(/^Código$/i), {
+      target: { value: 'solo-mp' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+
+    await waitFor(() => expect(redeemPromotionCodeRequest).toHaveBeenCalledTimes(1))
+    await waitFor(() => {
+      expect(screen.queryByRole('radio', { name: /Transferencia bancaria/i })).toBeNull()
+      expect(screen.queryByRole('radio', { name: /Efectivo en Pitbull/i })).toBeNull()
+    })
+    expect(screen.getByRole('radio', { name: /Mercado Pago/i })).toBeTruthy()
+  })
+
   it('cambia de medio sin volver a canjear el código', async () => {
     // El preview del cupón; la promo pública comparte el mock y responde lo
     // mismo, así que el conteo se hace sobre el canal pedido.
@@ -184,7 +233,9 @@ describe('recotización de un cupón por cambio de canal', () => {
     expect(
       vi
         .mocked(previewDiscountCode)
-        .mock.calls.some(([args]) => args?.code === 'CLUB-25' && args?.paymentMethod !== 'mercado_pago'),
+        .mock.calls.some(
+          ([args]) => args?.code === 'CLUB-25' && args?.paymentMethod !== 'mercado_pago',
+        ),
     ).toBe(true)
     // Y no se vuelve a canjear: sigue siendo un solo POST de canje.
     expect(redeemPromotionCodeRequest).toHaveBeenCalledTimes(1)
@@ -210,9 +261,7 @@ describe('recotización de un cupón por cambio de canal', () => {
     // cupón aplicado.
     await waitFor(() => expect(previewDiscountCode).toHaveBeenCalled())
     await new Promise((resolve) => setTimeout(resolve, 30))
-    const withoutCode = vi
-      .mocked(previewDiscountCode)
-      .mock.calls.filter(([args]) => !args?.code)
+    const withoutCode = vi.mocked(previewDiscountCode).mock.calls.filter(([args]) => !args?.code)
     expect(withoutCode).toHaveLength(0)
   })
 })

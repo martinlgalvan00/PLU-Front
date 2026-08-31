@@ -90,12 +90,10 @@ const OPEN_PURCHASE_STATUSES = ['pendiente', 'validacion_manual', 'creado']
  * Medios de pago que habilita el código de la oferta, en el orden en que se
  * leen: primero la pasarela, después los canales que se cobran a mano.
  *
- * Las dos celdas del código no son simétricas (ver la cabecera de
- * 20260908100000): `manualChannels` ABRE transferencia y/o efectivo aunque
- * Administración los tenga cerrados —el override viaja al gate de Express—, y
- * `mercadoPagoEnabled: false` CIERRA la pasarela para este código. Por eso los
- * canales manuales se ofrecen sólo cuando el código los declara: es lo único
- * que garantiza que la orden no se caiga con un 409.
+ * Las dos celdas forman una lista cerrada: `manualChannels` declara los
+ * manuales que puede destrabar el codigo, y `mercadoPagoEnabled` decide si la
+ * pasarela pertenece a la lista. Un medio omitido no se hereda de la apertura
+ * global.
  *
  * `conceptsOpen` es el interruptor de concepto: el combo acredita afiliación e
  * inscripción, así que con cualquiera de los dos cerrado no hay nada que cobrar

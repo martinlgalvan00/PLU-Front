@@ -51,11 +51,28 @@
 
 ## Códigos promocionales
 
+- [ ] Un código con sólo Mercado Pago oculta transferencia, efectivo y Wise en afiliación, inscripción y combo
+- [ ] Forzar por HTTP transferencia o efectivo con ese código responde `PLU29` y no crea la orden
+- [ ] El mismo código sigue creando la orden por Mercado Pago cuando la pasarela global está abierta
 - [ ] Precio fijo de $85.000 sobre una inscripción de $92.500 muestra y crea una orden por $85.000 exactos
 - [ ] El mismo precio fijo conserva $85.000 al elegir transferencia bancaria
 - [ ] El mismo precio fijo conserva $85.000 al elegir efectivo en Pitbull
 - [ ] La orden y `discount_code_redemptions` guardan el mismo descuento ($7.500 en el caso anterior)
 - [ ] Un código de afiliación repite la prueba contra el precio vigente del plan
+
+### Canje: estados y motion de la banda
+
+Los cuatro momentos del canje tienen animación one-shot (`code-band.css`,
+`promotion-reveal.css`, `checkout-desk.css`). Se auditan en Storybook, en los dos
+temas: `Cuenta/SecretOfferCodeRedeemer` y `Cuenta/PromotionRevealModal`.
+
+- [ ] Validando: el barrido de luz recorre la banda y el chip muestra su spinner; al resolverse, ninguno queda
+- [ ] Aceptada o aplicada: el aro de oro se contrae una vez, el barrido cruza una vez y el registro baja en tres pasos
+- [ ] No reconocida: la banda se corre 3px una vez y el filo pasa a rojo en dark **y** en light
+- [ ] Precio recotizado: el importe anterior entra tachado y el nuevo baja, también al cambiar de medio de pago
+- [ ] Reveal: abre por el titular (no scrolleado hasta los botones) en 390px, y cierra con salida al descartar
+- [ ] Reveal: el foco inicial queda en el panel, sin anillo celeste sobre el chip de oro; `Escape` y click afuera cierran
+- [ ] Con `prefers-reduced-motion` las cuatro secuencias no corren y todo queda en su pose final
 
 ## Panel admin
 

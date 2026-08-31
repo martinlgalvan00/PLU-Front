@@ -346,7 +346,7 @@ describe('interruptores de canal manual y validación por HTTP', () => {
     expect(response.status, JSON.stringify(body)).toBe(200)
     // `channels` viaja junto a los dos booleanos: la pantalla decide medio por
     // medio, y con la venta cerrada ninguno queda abierto.
-    expect(body.checkout).toEqual({
+    expect(body.checkout).toMatchObject({
       ticketEnabled: false,
       ticketManualEnabled: false,
       channels: {

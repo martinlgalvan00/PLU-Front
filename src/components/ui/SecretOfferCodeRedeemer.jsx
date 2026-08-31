@@ -229,7 +229,7 @@ export default function SecretOfferCodeRedeemer({
                       disabled={checking || !code.trim()}
                     >
                       {checking ? (
-                        <LoaderCircle className="is-spinning" size={15} aria-hidden />
+                        <LoaderCircle className="code-band__spin" size={15} aria-hidden />
                       ) : null}
                       {checking
                         ? t('secretOfferRedeemer.checking')
@@ -251,7 +251,11 @@ export default function SecretOfferCodeRedeemer({
               {/* Sin disco de estado: la banda de arriba ya dice "Aceptada" y
                   lleva su tilde de oro. Un círculo verde acá era un segundo
                   acento repitiendo lo mismo dos renglones más abajo. */}
-              <div className="secret-code-redeemer__resolved" role="status" aria-live="polite">
+              <div
+                className="secret-code-redeemer__resolved code-band-record"
+                role="status"
+                aria-live="polite"
+              >
                 <span className="code-band-done">
                   <strong>
                     {resolvedPromotion?.campaign?.name || t('secretOfferRedeemer.acceptedTitle')}
@@ -271,7 +275,7 @@ export default function SecretOfferCodeRedeemer({
                 </span>
               </div>
 
-              <div className="secret-code-redeemer__resolved-actions">
+              <div className="secret-code-redeemer__resolved-actions code-band-record">
                 {destination ? (
                   <button
                     type="button"

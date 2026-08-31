@@ -50,6 +50,7 @@ vi.mock('../src/services/athleteApi.js', () => ({
   resendAthleteVerification: vi.fn(),
   checkAthleteAvailability: vi.fn(),
   verifyAthleteEmailCode: vi.fn(),
+  previewDiscountCode: vi.fn(),
 }))
 
 vi.mock('../src/services/registrationAccessService.js', () => ({
@@ -87,6 +88,7 @@ vi.mock('../src/services/paymentService.js', () => ({
 
 const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
 const { fetchRegistrationAccessRequirements } = await import('../src/services/registrationAccessService.js')
+const { previewDiscountCode } = await import('../src/services/athleteApi.js')
 
 async function waitForAccessValidation() {
   await waitFor(() => expect(fetchRegistrationAccessRequirements).toHaveBeenCalled())
@@ -500,6 +502,84 @@ describe('RegisterPage — link de pago de inscripción', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit.mock.calls[0][2]).toMatchObject({ paymentMethod: 'mercado_pago' })
+  })
+
+  /**
+   * Cancelar un pago (o simplemente ir a explorar otro medio) no puede dejar
+   * el cupón aplicado sin forma de tocarlo: antes, la pantalla de "cambiar
+   * método de pago" sólo mostraba el selector de medios con precios de
+   * catálogo — sin la banda del código ni el campo para cargar uno nuevo.
+   */
+  it('conserva el cupón aplicado al volver a elegir método de pago', async () => {
+    vi.mocked(previewDiscountCode).mockResolvedValue({
+      valid: true,
+      code: 'FIX50',
+      kind: 'fixed_price',
+      appliesTo: 'registration',
+      discountAmount: 25000,
+      finalAmount: 50000,
+      manualChannels: ['bank_transfer'],
+      mercadoPagoEnabled: true,
+      financed: false,
+    })
+    const manualOrder = { ...pendingOrder, paymentMethod: 'manual_link', status: 'pendiente' }
+    const onSubmit = vi.fn(async () => ({ createdOrder: manualOrder, payment: manualOrder }))
+
+    function Harness() {
+      const [createdOrder, setCreatedOrder] = useState(null)
+      const [form, setForm] = useState({
+        division: 'Open',
+        category: 'Raw',
+        estimatedWeight: '83',
+        paymentMethod: 'manual_link',
+      })
+      return (
+        <I18nProvider>
+          <RegisterPage
+            athlete={athlete}
+            createdOrder={createdOrder}
+            event={event}
+            flow="competition"
+            form={form}
+            memberships={[]}
+            registrations={[]}
+            total={75000}
+            onNavigate={() => {}}
+            onSubmit={async (...args) => {
+              const result = await onSubmit(...args)
+              if (result?.createdOrder) setCreatedOrder(result.createdOrder)
+              return result
+            }}
+            onUpdateForm={(event) => {
+              setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+            }}
+          />
+        </I18nProvider>
+      )
+    }
+
+    render(<Harness />)
+    await waitForAccessValidation()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Tengo un código$/i }))
+    fireEvent.change(await screen.findByLabelText(/^Código$/i), {
+      target: { value: 'fix50' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+    await waitFor(() => expect(previewDiscountCode).toHaveBeenCalled())
+    expect(await screen.findByText('FIX50')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit.mock.calls[0][2]).toMatchObject({ discountCode: 'FIX50' })
+
+    // La orden por transferencia quedó creada con el cupón aplicado: cambiar
+    // de medio no puede perder ni el código ni la forma de tocarlo.
+    fireEvent.click(await screen.findByRole('button', { name: /elegir otro medio/i }))
+
+    expect(screen.getByRole('button', { name: /volver a transferencia/i })).toBeTruthy()
+    expect(await screen.findByText('FIX50')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Quitar$/i })).toBeTruthy()
   })
 })
 

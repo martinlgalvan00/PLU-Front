@@ -399,6 +399,41 @@
   letter-spacing: -0.04em;
 }
 
+/* El precio se vuelve a escribir — PLU ARG
+   ---------------------------------------------------------------------------
+   Aplicar un código cambia el número que se va a cobrar, y ese cambio era un
+   reemplazo de texto en un frame: el importe viejo aparecía tachado arriba y el
+   nuevo ya estaba escrito abajo, sin que nada dijera que uno vino del otro. Es
+   el dato que la persona que canjeó vino a ver, y era el único momento del
+   flujo sin tiempo.
+
+   Ahora el importe anterior entra desde arriba y el que se cobra baja a su
+   lugar: la lectura queda "esto era, esto es". Se dispara por `key` en
+   `CheckoutBar` —el nodo se vuelve a montar cuando el importe cambia—, así que
+   también corre al recotizar por medio de pago, que es el otro momento en que
+   el número se mueve. One-shot, `transform` y `opacity`, y nada en loop. */
+.plu-checkout__total-compare {
+  animation: checkout-compare-in var(--motion-base) var(--ease-out) both;
+}
+
+.plu-checkout__total strong {
+  animation: checkout-total-settle var(--motion-base) var(--ease-out) both;
+}
+
+@keyframes checkout-compare-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes checkout-total-settle {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+}
+
 .plu-checkout__submit {
   align-items: center;
   background: var(--color-brand-action);
@@ -504,7 +539,9 @@
     transition: none;
   }
 
-  .plu-checkout__submit-spinner {
+  .plu-checkout__submit-spinner,
+  .plu-checkout__total-compare,
+  .plu-checkout__total strong {
     animation: none;
   }
 }

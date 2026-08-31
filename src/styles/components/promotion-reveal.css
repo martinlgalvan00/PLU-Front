@@ -22,7 +22,13 @@
    Motion: overlay en opacidad, panel en transform, contenido en un stagger de
    cuatro pasos por `animation-delay`. Nada anima layout ni fondo, no hay
    `transition: all` y no queda ningún loop. Bajo `prefers-reduced-motion` la
-   pieza aparece completa. */
+   pieza aparece completa.
+
+   La salida es la misma entrada al revés (`animation-direction: reverse`), más
+   corta: 160ms contra los 480 de la entrada. Entrar es el momento —vale la
+   pausa—; irse no, y una salida larga se siente como una pieza que no se deja
+   cerrar. El stagger no se reproduce al revés: las líneas se van con el panel,
+   no una por una. */
 
 .promotion-reveal__overlay {
   align-items: center;
@@ -95,6 +101,15 @@
   box-shadow:
     inset 0 1px 0 var(--reveal-lip),
     0 32px 90px -34px rgba(15, 17, 23, 0.34);
+}
+
+/* El panel recibe el foco inicial: es el patrón de diálogo y, siendo el
+   contenedor scrolleable, evita que el navegador abra la pieza scrolleada hasta
+   la acción (ver `PromotionRevealModal`). Sin anillo propio —el foco programático
+   no es una navegación del atleta— y sin quitarle el anillo a nada de adentro:
+   los controles conservan el suyo. */
+.promotion-reveal:focus {
+  outline: none;
 }
 
 .promotion-reveal__grain {
@@ -343,6 +358,25 @@
   color: var(--reveal-copy);
 }
 
+/* Saliente. `reverse` sobre las mismas dos animaciones de entrada: una sola
+   definición por movimiento, en vez de un par de keyframes de salida que
+   después se desincronizan del de entrada cuando alguno se toca.
+
+   `pointer-events: none` porque la pieza sigue en el DOM esos 160ms: sin eso un
+   segundo click cae sobre un panel que ya se está yendo. */
+.promotion-reveal__overlay.is-closing {
+  animation: promotion-reveal-fade var(--motion-fast, 160ms) var(--ease-out) reverse both;
+  pointer-events: none;
+}
+
+.promotion-reveal__overlay.is-closing .promotion-reveal {
+  animation: promotion-reveal-rise var(--motion-fast, 160ms) var(--ease-out) reverse both;
+}
+
+.promotion-reveal__overlay.is-closing .promotion-reveal__frame > * {
+  animation: none;
+}
+
 @keyframes promotion-reveal-fade {
   from {
     opacity: 0;
@@ -396,7 +430,9 @@
 @media (prefers-reduced-motion: reduce) {
   .promotion-reveal__overlay,
   .promotion-reveal,
-  .promotion-reveal__frame > * {
+  .promotion-reveal__frame > *,
+  .promotion-reveal__overlay.is-closing,
+  .promotion-reveal__overlay.is-closing .promotion-reveal {
     animation: none;
   }
 }

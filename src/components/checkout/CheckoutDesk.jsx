@@ -210,11 +210,20 @@ export function CheckoutBar({
         ) : null}
         <div className="plu-checkout__total">
           <span>{totalLabel || t('pages.register.total')}</span>
+          {/* `key` por importe: es lo que hace que el precio se vuelva a
+              escribir en vez de reemplazarse en un frame. React desmonta y
+              vuelve a montar el nodo cuando el número cambia —código aplicado,
+              código quitado, recotización por medio de pago— y la animación
+              one-shot de `checkout-desk.css` arranca de nuevo. Sin el `key` la
+              animación sólo correría en el primer render, que es justo el
+              momento en que no hay nada que contar. */}
           <span className="plu-checkout__total-amounts">
             {compareLabelText ? (
-              <s className="plu-checkout__total-compare">{compareLabelText}</s>
+              <s className="plu-checkout__total-compare" key={compareLabelText}>
+                {compareLabelText}
+              </s>
             ) : null}
-            <strong>{totalLabelText}</strong>
+            <strong key={totalLabelText}>{totalLabelText}</strong>
           </span>
         </div>
       </div>
