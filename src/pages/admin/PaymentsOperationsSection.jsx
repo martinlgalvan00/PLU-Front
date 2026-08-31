@@ -629,7 +629,10 @@ export default function PaymentsOperationsSection({
         </div>
       </div>
 
-      <div style={{ display: activeTab === 'athletes' ? 'block' : 'none' }}>
+      <div
+        className="admin-payments-operations__panel"
+        style={{ display: activeTab === 'athletes' ? 'block' : 'none' }}
+      >
         <AthletePaymentOrdersSection
         canEdit={canEdit}
         canForceSettle={canEdit && Boolean(onForceSettlePayment)}
@@ -647,7 +650,7 @@ export default function PaymentsOperationsSection({
 
       <div
         id="admin-ticket-orders"
-        className="admin-ticket-orders-anchor"
+        className="admin-ticket-orders-anchor admin-payments-operations__panel"
         style={{ display: activeTab === 'tickets' ? 'block' : 'none' }}
       >
         <TicketOrdersSection
@@ -664,7 +667,7 @@ export default function PaymentsOperationsSection({
 
       <section
         id="admin-payment-ledger"
-        className="admin-payment-ops"
+        className="admin-payment-ops admin-payments-operations__panel"
         aria-label={t('admin.paymentOperations.tabLedger')}
         style={{ display: activeTab === 'ledger' ? 'block' : 'none' }}
       >

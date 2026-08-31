@@ -220,22 +220,58 @@
 
 /* Listados de pagina completa: chrome fijo, filas con scroll propio.
    No aplica a listados anidados (pagos/tickets). */
-.admin-shell:has(.admin-page > .admin-list-section--rails) {
+.admin-shell:has(.admin-page > .admin-list-section--rails),
+.admin-shell:has(.admin-page > .admin-payments-operations) {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
 }
 
-.admin-shell:has(.admin-page > .admin-list-section--rails) .admin-shell__main {
+.admin-shell:has(.admin-page > .admin-list-section--rails) .admin-shell__main,
+.admin-shell:has(.admin-page > .admin-payments-operations) .admin-shell__main {
   min-height: 0;
   overflow: hidden;
 }
 
-.admin-shell .admin-page:has(> .admin-list-section--rails) {
+.admin-shell .admin-page:has(> .admin-list-section--rails),
+.admin-shell .admin-page:has(> .admin-payments-operations) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   padding-bottom: 10px;
+}
+
+/* Operación de pagos: mismo pin que rails — chrome (tabs + pulso) fijo,
+   scroll solo en el panel de la pestaña activa. */
+.admin-shell .admin-page > .admin-payments-operations {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-payments-operations > .admin-list-section__chrome.admin-payments-ops-chrome {
+  background: var(--admin-canvas);
+  flex: none;
+  position: relative;
+  top: auto;
+  z-index: 5;
+}
+
+.admin-shell .admin-payments-operations > .admin-payments-ops-callout,
+.admin-shell .admin-payments-operations > .admin-payment-ops:not(.admin-payments-operations__panel) {
+  flex: none;
+}
+
+.admin-shell .admin-payments-operations > .admin-payments-operations__panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-shell .admin-page > .admin-list-section--rails {
@@ -1966,12 +2002,14 @@
     z-index: 5;
   }
 
-  .admin-shell:has(.admin-page > .admin-list-section--rails) .admin-list-section__chrome {
+  .admin-shell:has(.admin-page > .admin-list-section--rails) .admin-list-section__chrome,
+  .admin-shell .admin-payments-operations > .admin-list-section__chrome.admin-payments-ops-chrome {
     position: relative;
     top: auto;
   }
 
-  .admin-shell .admin-page:has(> .admin-list-section--rails) {
+  .admin-shell .admin-page:has(> .admin-list-section--rails),
+  .admin-shell .admin-page:has(> .admin-payments-operations) {
     padding-bottom: 8px;
   }
 
