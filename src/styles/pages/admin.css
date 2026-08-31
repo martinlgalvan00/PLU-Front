@@ -4271,7 +4271,9 @@
 
 .admin-event-form__discard-confirmation > div:last-child {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .admin-event-preview {
@@ -5207,7 +5209,13 @@
 
   .admin-event-form__discard-confirmation > div:last-child {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-form__discard-confirmation > div:last-child .btn {
+    justify-content: center;
+    width: 100%;
   }
 
   .admin-event-form__mobile-preview > summary {
@@ -8119,20 +8127,37 @@
   z-index: 1200;
 }
 
+/* Confirmación de borrado: theme-native (no grafito). Velo liviano para
+   que el listado detrás se lea borroso, no tapado; el panel sigue el
+   canvas light/dark. Material grafito unificado queda en admin-modals.css
+   para el resto de modales del panel. */
 .admin-user-delete-dialog__backdrop {
-  background: color-mix(in srgb, var(--color-bg-primary) 76%, transparent);
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-backdrop-filter: blur(var(--admin-modal-backdrop-blur, 12px)) saturate(1.08);
+  backdrop-filter: blur(var(--admin-modal-backdrop-blur, 12px)) saturate(1.08);
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 14%, transparent);
   border: 0;
   cursor: default;
   inset: 0;
+  padding: 0;
   position: absolute;
 }
 
+[data-theme='light'] .admin-user-delete-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 8%, transparent);
+}
+
+[data-theme='dark'] .admin-user-delete-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 16%, transparent);
+}
+
 .admin-user-delete-dialog__panel {
-  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--elevation-lg);
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   display: grid;
   gap: var(--space-md);
   grid-template-columns: auto minmax(0, 1fr);
@@ -8140,6 +8165,36 @@
   padding: clamp(20px, 4vw, 28px);
   position: relative;
   width: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-user-delete-dialog__panel {
+    animation: admin-user-delete-dialog-in var(--motion-base, 240ms)
+      var(--ease-standard, ease) backwards;
+  }
+
+  @keyframes admin-user-delete-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .admin-user-delete-dialog__backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
+  }
+
+  [data-theme='light'] .admin-user-delete-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 22%, transparent);
+  }
+
+  [data-theme='dark'] .admin-user-delete-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
+  }
 }
 
 .admin-user-delete-dialog__icon {
@@ -17274,6 +17329,38 @@ button.action-queue__proof:focus-visible {
 .admin-event-form__bank-transfer {
   display: grid;
   gap: var(--space-3, 0.75rem);
+}
+
+.admin-event-form__reference-note {
+  background: color-mix(in srgb, var(--admin-ink, currentColor) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+  border-radius: 10px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.admin-event-form__reference-note strong {
+  color: var(--admin-ink, var(--color-text));
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-event-form__reference-note p {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.admin-event-form__reference-example {
+  color: var(--admin-ink, var(--color-text));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .admin-event-form__field-hint {

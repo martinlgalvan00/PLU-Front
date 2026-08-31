@@ -52,7 +52,7 @@ export function createPaymentProfileRoutes({ getPrisma, getSupabaseAdmin, env = 
   const readGuard = requirePermission('admin.events.read', { prisma })
   const writeGuard = requirePermission('admin.events.write', { prisma })
   const repo = () =>
-    createSupabasePaymentProfileRepository(requireSupabaseClient(getSupabaseAdmin), { env })
+    createSupabasePaymentProfileRepository(requireSupabaseClient(getSupabaseAdmin()), { env })
 
   router.get('/', ...readGuard, staffLimiter, async (req, res, next) => {
     try {

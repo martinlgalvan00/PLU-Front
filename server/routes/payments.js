@@ -901,18 +901,25 @@ export function createPaymentRoutes(deps = {}) {
         {
           ...services({ notifications: true }),
           webhookSecrets,
-          resolveMercadoPagoForSecret: async (matched) => {
-            if (!matched?.accessToken) return null
-            return createPaymentProviderAdapter({
-              env,
-              credentials: {
-                accessToken: matched.accessToken,
-                webhookSecret: matched.secret,
-                publicKey: matched.publicKey,
-                collectorId: matched.collectorId,
-              },
-            })
-          },
+          // Un adaptador inyectado es la autoridad del request (tests y otros
+          // runtimes controlados). La resolucion multi-cuenta solo reemplaza
+          // el adapter global en runtime real.
+          ...(deps.mercadoPago
+            ? {}
+            : {
+                resolveMercadoPagoForSecret: async (matched) => {
+                  if (!matched?.accessToken) return null
+                  return createPaymentProviderAdapter({
+                    env,
+                    credentials: {
+                      accessToken: matched.accessToken,
+                      webhookSecret: matched.secret,
+                      publicKey: matched.publicKey,
+                      collectorId: matched.collectorId,
+                    },
+                  })
+                },
+              }),
           toleranceSeconds: Number(env.MERCADO_PAGO_WEBHOOK_TOLERANCE_SECONDS ?? 300),
           // Recovery siempre activo; webhook inline + job como red de seguridad.
           deferProcessing: PAYMENT_WEBHOOK_DEFER_PROCESSING,

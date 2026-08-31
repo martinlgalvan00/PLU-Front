@@ -309,12 +309,20 @@ plazo al vencer.
 
 En el panel esas tres columnas —`mercado_pago_enabled`, `manual_channels`,
 `financed`— se cargan como **una sola decisión**, "cómo se cobra", con tres
-modos: *Mercado Pago* (la pasarela acredita sola), *sólo efectivo o
-transferencia* (Finanzas valida antes de habilitar) y *efectivo o transferencia
-que habilita al avisar el pago* (el financiamiento). Elegir un modo manual abre
+modos: _Mercado Pago_ (la pasarela acredita sola), _sólo efectivo o
+transferencia_ (Finanzas valida antes de habilitar) y _efectivo o transferencia
+que habilita al avisar el pago_ (el financiamiento). Elegir un modo manual abre
 los canales y cierra la pasarela; se puede reabrir y estrechar los canales dentro
 del modo. Ninguna combinación que la base rechaza es alcanzable desde el
 formulario: el financiamiento no puede quedar inerte ni existir sin canal manual.
+
+Para un código vigente, `mercado_pago_enabled` y `manual_channels` forman una
+**lista cerrada de medios de pago**. Si el administrador habilita únicamente
+Mercado Pago, el checkout no ofrece transferencia, efectivo ni Wise aunque
+estén abiertos globalmente; Express también rechaza con `PLU29` cualquier intento
+de forzar esos medios. Un canal manual declarado por el código puede destrabar
+ese canal para la compra puntual. Mercado Pago, en cambio, necesita estar
+habilitado tanto en el código como en la configuración global.
 
 Un `external_payment_id` de un proveedor pertenece a una única orden en todo el
 sistema, incluso entre entradas y afiliaciones. Una suscripción queda ligada al

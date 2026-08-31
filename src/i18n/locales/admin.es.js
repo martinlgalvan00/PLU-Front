@@ -846,10 +846,16 @@ export default {
       simulatePromotion: 'Probar flujo',
       simulatingPromotion: 'Probando…',
       simulationTitle: 'Recorrido verificado',
-      simulationDestination: 'Destino: {{destination}}',
+      simulationDestinationKind: {
+        stay: 'Sin redirección',
+        membership_checkout: 'Checkout de afiliación',
+        event_checkout: 'Checkout de inscripción',
+        account_offer: 'Oferta en Mi cuenta',
+      },
       simulationEmpty: 'La validación no devolvió un resultado.',
       simulationError: 'No pudimos validar el recorrido del código.',
-      simulationRedeemHint: 'Se canjea desde el campo de código de Afiliación o Inscripción.',
+      simulationRedeemHint:
+        'Se canjea desde el campo de código en Afiliación o Inscripción — no hay enlace público.',
       simulationCheck: {
         active: 'El código está activo',
         withinWindow: 'Está dentro de su vigencia',
@@ -2501,6 +2507,10 @@ export default {
     bankTransferAlias: 'Alias',
     bankTransferCbu: 'CBU / CVU',
     bankTransferHolder: 'Titular',
+    bankTransferReferenceLabel: 'Referencia del pago',
+    bankTransferReferenceHint:
+      'No se configura acá: el checkout le pide al atleta usar DNI · nombre completo para que Finanzas concilie la transferencia.',
+    bankTransferReferenceExample: '40123456 · Juan Pérez',
     mercadoPagoProfileTitle: 'Mercado Pago de este evento',
     mercadoPagoProfileHint:
       'Sin perfil se usa la cuenta global del entorno. Con perfil, el Brick y el webhook cobran con esas credenciales (cifradas en servidor).',
@@ -2721,7 +2731,7 @@ export default {
     sectionSales: 'Ventas y cupos',
     sectionSalesLead: 'Inscripción de atletas y entradas de público, cada una con su cupo y precios.',
     sectionSalesLeadEssentials:
-      'Cupo, ventana y precio de inscripción. Canales de cobro y tipos de entrada quedan en el editor completo.',
+      'Cupo, ventana, precios y medios de cobro. Tipos de entrada se editan en el formulario completo.',
     essentialsTicketsNote:
       'Entradas activas: {{count}}. Ventanas, add-ons y tipos se editan en el formulario completo del evento.',
     laneAthletes: 'Inscripción de atletas',

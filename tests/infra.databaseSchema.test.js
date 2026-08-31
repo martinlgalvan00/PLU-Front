@@ -180,4 +180,37 @@ describe('postura de seguridad del esquema', () => {
     }
     expect(apagones).toEqual([])
   })
+
+  it('toda tabla creada en public queda con RLS activo', () => {
+    // El chequeo 1 de `supabase/tests/schema_posture.sql` ya lo exige, pero
+    // recien contra una base levantada: `payment_profiles` (20261004110000)
+    // viajo dos semanas sin RLS y lo encontro CI, no quien la escribio. La
+    // version estatica cuesta un `npm run test:unit` y falla en el commit que
+    // crea la tabla, que es donde se arregla en una linea.
+    const creadas = new Map()
+    const conRls = new Set()
+
+    for (const [file, sql] of SQL) {
+      for (const [, tabla] of sql.matchAll(
+        /create\s+table\s+(?:if\s+not\s+exists\s+)?public\.([a-z0-9_]+)/gi,
+      )) {
+        if (!creadas.has(tabla)) creadas.set(tabla, file)
+      }
+      // `alter table if exists public.x` y `alter table x` conviven en el
+      // corpus (20260711190000 usa el primero); las dos formas cuentan.
+      for (const [, tabla] of sql.matchAll(
+        /alter\s+table\s+(?:if\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\s+enable\s+row\s+level\s+security/gi,
+      )) {
+        conRls.add(tabla)
+      }
+    }
+
+    expect(creadas.size).toBeGreaterThan(50)
+
+    const sinRls = [...creadas]
+      .filter(([tabla]) => !conRls.has(tabla))
+      .map(([tabla, file]) => `${tabla} (${file})`)
+
+    expect(sinRls).toEqual([])
+  })
 })

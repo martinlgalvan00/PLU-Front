@@ -259,7 +259,7 @@ describe('EventsSection — filas de sección de la consola', () => {
     expect(dialog.querySelector('.admin-event-console__fold[data-section="basics"]')).toBeNull()
   })
 
-  it('en Ventas el acordeón muestra lo elemental sin canales de cobro', () => {
+  it('en Ventas el acordeón muestra cobro sin tipos de entrada', () => {
     renderEvents()
     const panel = consolePanel()
     fireEvent.click(within(panel).getByRole('button', { name: /ventas y cupos/i }))
@@ -268,8 +268,16 @@ describe('EventsSection — filas de sección de la consola', () => {
     expect(fold).not.toBeNull()
     expect(fold.querySelector('#event-slots')).not.toBeNull()
     expect(fold.querySelector('[data-field="pricing.registration"]')).not.toBeNull()
-    expect(fold.querySelector('.admin-event-form__payment-profile')).toBeNull()
+    expect(fold.querySelector('[data-field="pricing.registrationManual"]')).not.toBeNull()
+    expect(fold.querySelector('.admin-event-form__payment-profile')).not.toBeNull()
+    expect(fold.querySelector('.admin-event-form__lane--payment')).not.toBeNull()
+    expect(fold.querySelector('#event-bank-alias')).not.toBeNull()
+    expect(fold.querySelector('#event-bank-cbu')).not.toBeNull()
+    expect(fold.querySelector('#event-bank-holder')).not.toBeNull()
+    expect(fold.querySelector('[data-field="bankTransfer.reference"]')).not.toBeNull()
+    expect(fold.querySelector('.admin-event-form__lane--athletes .admin-event-form__payment-profile')).toBeNull()
     expect(fold.querySelector('.admin-event-form__ticket-config')).toBeNull()
+    expect(fold.querySelector('.admin-event-editor__toolbar--accordion')).toBeNull()
   })
 })
 

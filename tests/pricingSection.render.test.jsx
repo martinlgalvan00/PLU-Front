@@ -72,9 +72,12 @@ it('copia el código con fallback, descarga su QR y expone un canje real tras va
   fireEvent.click(screen.getByRole('button', { name: 'Probar flujo' }))
   expect(onSimulatePromotionCode).toHaveBeenCalledWith('coupon-actions')
   expect(await screen.findByText('Recorrido verificado')).toBeTruthy()
+  expect(await screen.findByText('Oferta en Mi cuenta')).toBeTruthy()
   expect(screen.queryByRole('link', { name: 'Abrir canje en otra pestaña' })).toBe(null)
   expect(
-    screen.getByText('Se canjea desde el campo de código de Afiliación o Inscripción.'),
+    screen.getByText(
+      'Se canjea desde el campo de código en Afiliación o Inscripción — no hay enlace público.',
+    ),
   ).toBeTruthy()
   anchorClick.mockRestore()
 })

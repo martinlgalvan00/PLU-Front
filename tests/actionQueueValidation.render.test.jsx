@@ -236,9 +236,12 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
     await waitFor(() => {
       expect(within(dialog).getByRole('img', { name: 'Comprobante de pago' })).toBeTruthy()
     })
-    expect(within(dialog).getByRole('button', { name: 'Ver el comprobante a tamaño real' })).toBeTruthy()
+    expect(
+      within(dialog).getByRole('button', { name: 'Ver el comprobante a tamaño real' }),
+    ).toBeTruthy()
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /^Cerrar$/ }))
+    const actions = dialog.querySelector('.payment-validation-dialog__actions')
+    fireEvent.click(within(actions).getByRole('button', { name: /^Cerrar$/ }))
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull()
@@ -255,9 +258,7 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Sin comprobante cargado')).toBeTruthy()
-    expect(
-      within(dialog).getByText('Esta orden todavía no tiene un archivo adjunto.'),
-    ).toBeTruthy()
+    expect(within(dialog).getByText('Esta orden todavía no tiene un archivo adjunto.')).toBeTruthy()
     expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeNull()
     expect(onApprovePayment).not.toHaveBeenCalled()
   })

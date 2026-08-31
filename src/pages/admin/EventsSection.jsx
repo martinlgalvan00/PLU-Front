@@ -865,6 +865,10 @@ export default function EventsSection({
               onRegisterClose={(fn) => {
                 exitEditRef.current = fn
               }}
+              onRequestSection={(section) => {
+                setEditorFocus(section)
+                setConsoleSection(section)
+              }}
               onSubmit={handleSubmit}
             />
           ) : null

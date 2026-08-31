@@ -6,6 +6,7 @@ import {
   Check,
   ImageDown,
   KeyRound,
+  LoaderCircle,
   LockKeyhole,
   RefreshCw,
   ShieldCheck,
@@ -22,11 +23,17 @@ import { ACCOUNT_OFFER_TAB, ACCOUNT_PAYMENTS_TAB } from '../../lib/navigation.js
 import { listMembershipPlans, paymentUpdateStatus } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
 import {
+  paymentMethodToPromotionChannel,
   previewCheckoutPrice,
   toApiPaymentMethod,
   wisePriceLabel,
 } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
+import {
+  promotionRedemptionChannelPolicy,
+  resolvePromotionChannelSwitch,
+  resolvePromotionPaymentChannels,
+} from '../../../shared/promotionPaymentChannels.js'
 import {
   clearPendingPromotionCode,
   promotionBenefitPresentation,
@@ -156,34 +163,38 @@ export default function MembershipPurchaseSection({
   const transferUnderReview = membership?.paymentStatus === 'validacion_manual'
   const membershipCanPurchase = !membershipActive && !membershipScheduled && !transferUnderReview
   const publicMembershipCheckoutEnabled = checkoutAvailability.membershipEnabled !== false
-  const publicManualChannelEnabled = checkoutAvailability.membershipManualEnabled !== false
   const paidCheckoutOpen =
     isPaidCheckoutOpen(gateEvent, env, new Date(), { checkoutKind: 'membership' }) &&
     publicMembershipCheckoutEnabled
   // El interruptor general puede seguir apagado: un código de promoción
   // destraba puntualmente los canales que declara, y sólo esos.
-  const codeChannels = discountPreview?.manualChannels ?? []
   const activeDiscount = discountPreview ?? publicPromo
-  const manualChannelsOpenGlobally = manualChannelEnabled && publicManualChannelEnabled
+  const codeClosesMercadoPago =
+    discountPreview?.valid && discountPreview.mercadoPagoEnabled === false
   // Transferencia y efectivo siguen anunciados como "próximamente" para el
   // caso general (decisión de producto: la afiliación se cobra por Mercado
   // Pago). Un código que los habilita explícitamente sí los vuelve operables:
   // es exactamente para eso que existe.
-  const transferEnabledGlobally = checkoutAvailability.paymentChannels?.membership?.bank_transfer === true
-  const cashEnabledGlobally = checkoutAvailability.paymentChannels?.membership?.cash_pitbull === true
-  const transferSelectable = transferEnabledGlobally || codeChannels.includes('bank_transfer')
-  const cashSelectable = cashEnabledGlobally || codeChannels.includes('cash_pitbull')
-  const transferOffered = transferSelectable || (manualChannelsOpenGlobally && transferEnabledGlobally)
-  const cashOffered = cashSelectable || (manualChannelsOpenGlobally && cashEnabledGlobally)
+  const transferEnabledGlobally =
+    checkoutAvailability.paymentChannels?.membership?.bank_transfer === true
+  const cashEnabledGlobally =
+    checkoutAvailability.paymentChannels?.membership?.cash_pitbull === true
+  const resolvedChannels = resolvePromotionPaymentChannels({
+    policy: discountPreview,
+    mercadoPagoOpen: channelOpen(checkoutAvailability, 'membership', 'mercado_pago'),
+    bankTransferOpen: transferEnabledGlobally,
+    cashPitbullOpen: cashEnabledGlobally,
+  })
+  const transferSelectable = resolvedChannels.bankTransfer
+  const cashSelectable = resolvedChannels.cashPitbull
+  const transferOffered = resolvedChannels.bankTransfer
+  const cashOffered = resolvedChannels.cashPitbull
   // La pasarela también se cierra por concepto desde Administración. Un cupón no
   // la reabre —para eso sólo sirven los canales manuales—, pero sí la puede
   // cerrar: un código pactado a un precio que sólo cierra por transferencia o
   // en efectivo viaja con `mercadoPagoEnabled: false` (20260908100000) y la RPC
   // rechaza la orden con PLU28.
-  const codeClosesMercadoPago =
-    discountPreview?.valid && discountPreview.mercadoPagoEnabled === false
-  const mercadoPagoOffered =
-    !codeClosesMercadoPago && channelOpen(checkoutAvailability, 'membership', 'mercado_pago')
+  const mercadoPagoOffered = resolvedChannels.mercadoPago
   // Wise tiene interruptor propio, independiente del canal manual local y de
   // los cupones que lo destraban.
   // Wise se ofrece únicamente para inscripciones; una afiliación siempre se
@@ -231,7 +242,7 @@ export default function MembershipPurchaseSection({
     const amount =
       method === 'mercado_pago'
         ? selectedPlan.price
-        : selectedPlan.manualPrice ?? selectedPlan.price
+        : (selectedPlan.manualPrice ?? selectedPlan.price)
     return Number.isFinite(Number(amount)) ? money(Number(amount), locale) : ''
   }
   const selectedPlanPrice = previewCheckoutPrice({
@@ -251,9 +262,7 @@ export default function MembershipPurchaseSection({
     paymentMethod === 'transferencia' || paymentMethod === 'cash_pitbull'
   const checkoutDisplayTotal = activeDiscount ? activeDiscount.finalAmount : selectedPlanPrice
   const showChannelCompare =
-    isManualPaymentChannel &&
-    planHasManualDiscount &&
-    Number(checkoutDisplayTotal) < catalogPrice
+    isManualPaymentChannel && planHasManualDiscount && Number(checkoutDisplayTotal) < catalogPrice
   const channelCompareLabel = showChannelCompare
     ? t('comboDeal.compare', { amount: money(catalogPrice, locale) })
     : ''
@@ -427,9 +436,27 @@ export default function MembershipPurchaseSection({
      * la oferta.
      */
     const repricing = discountPreview?.valid === true && discountPreview.code === code
+    // Un canje que llegó por override (el auto-canje de un pendiente) y rebota
+    // tiene que quedar A LA VISTA: el campo nace plegado detrás del toggle,
+    // así que sin abrirlo el motivo del rechazo no lo veía nadie — y el código
+    // fallido tampoco quedaba tipeado para reintentar. Mismo criterio que el
+    // checkout de inscripción.
+    const reportRejection = (message) => {
+      if (override) {
+        setDiscountOpen(true)
+        setDiscountCodeInput(code)
+      }
+      setDiscountError(message)
+    }
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
+    // Mismo criterio que el checkout de inscripción: si el medio elegido no
+    // sobrevive a la política del código recién canjeado, la selección salta
+    // sola al primer canal que el código admite y el preview cotiza con ese.
+    // Sin esto, el código quedaba rechazado por cotizar contra un canal que
+    // ya no existía para él.
+    let previewPaymentMethod = paymentMethod
     try {
       let resolution = null
       if (!repricing) {
@@ -465,16 +492,39 @@ export default function MembershipPurchaseSection({
           }
           return
         }
+
+        let switchedChannel = resolvePromotionChannelSwitch(
+          promotionRedemptionChannelPolicy(resolution),
+          {
+            current: paymentMethodToPromotionChannel(paymentMethod),
+            mercadoPagoOpen: channelOpen(checkoutAvailability, 'membership', 'mercado_pago'),
+          },
+        )
+        // Un plan recurrente sólo se cobra por la pasarela: un código que
+        // pretende canales manuales no mueve la selección — el preview y la
+        // orden explican el rechazo con su propio motivo.
+        if (
+          switchedChannel &&
+          switchedChannel !== 'mercado_pago' &&
+          selectedPlan?.collectionMode === 'recurring'
+        ) {
+          switchedChannel = null
+        }
+        if (switchedChannel) {
+          previewPaymentMethod =
+            switchedChannel === 'bank_transfer' ? 'transferencia' : switchedChannel
+          setPaymentMethod(previewPaymentMethod)
+        }
       }
 
       const preview = await previewDiscountCode({
         code,
         appliesTo: 'membership',
         planCode: selectedPlan.code,
-        paymentMethod: toApiPaymentMethod(paymentMethod),
+        paymentMethod: toApiPaymentMethod(previewPaymentMethod),
       })
       if (!preview.valid) {
-        setDiscountError(
+        reportRejection(
           describeDiscountPreviewError(t, preview, 'account.membership.discountError'),
         )
         return
@@ -490,7 +540,7 @@ export default function MembershipPurchaseSection({
       }
       clearPendingPromotionCode()
     } catch (error) {
-      setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
+      reportRejection(error?.message ?? t('account.membership.discountError.not_found'))
     } finally {
       setDiscountChecking(false)
     }
@@ -506,6 +556,12 @@ export default function MembershipPurchaseSection({
     // así que llegó de otro checkout que lo resolvió antes de mandarlo acá.
     if (destination?.view !== 'profile' || destination?.tab !== 'account-membership') return
     pendingPromotionAppliedRef.current = pending.code
+    // Consumido al leerlo, no recién cuando el canje sale bien: un canje que
+    // falla muestra su error y listo. Antes el pendiente sobrevivía en
+    // sessionStorage y se re-canjeaba solo en cada visita, dejando al atleta
+    // preso de la promoción sin forma de salir. Mismo criterio que el checkout
+    // de inscripción.
+    clearPendingPromotionCode()
     setDiscountCodeInput(pending.code)
     void applyDiscountCode(pending.code)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -571,31 +627,40 @@ export default function MembershipPurchaseSection({
     setDiscountOpen(false)
   }
 
-  const showPaymentRecovery = useCallback(({ order = embeddedOrder, stage = 'result' } = {}) => {
-    setPaymentRecovery({
-      amount: order?.amount ?? selectedPlan?.price ?? null,
-      concept: order?.concept ?? selectedPlan?.name ?? '',
-      currency: order?.currency ?? 'ARS',
-      reference: order?.reference ?? '',
-      stage,
-    })
-  }, [embeddedOrder, selectedPlan?.name, selectedPlan?.price])
-
-  const handleMercadoPagoResult = useCallback((response) => {
-    const status = paymentUpdateStatus(response?.payment?.status ?? response?.order?.status)
-    if (status === 'rechazado' || status === 'cancelado') {
-      showPaymentRecovery({
-        order: response?.order ?? embeddedOrder,
-        stage: 'result',
+  const showPaymentRecovery = useCallback(
+    ({ order = embeddedOrder, stage = 'result' } = {}) => {
+      setPaymentRecovery({
+        amount: order?.amount ?? selectedPlan?.price ?? null,
+        concept: order?.concept ?? selectedPlan?.name ?? '',
+        currency: order?.currency ?? 'ARS',
+        reference: order?.reference ?? '',
+        stage,
       })
-    } else if (status === 'aprobado') {
-      setPaymentRecovery(null)
-    }
-  }, [embeddedOrder, showPaymentRecovery])
+    },
+    [embeddedOrder, selectedPlan?.name, selectedPlan?.price],
+  )
 
-  const handleMercadoPagoError = useCallback(({ stage } = {}) => {
-    showPaymentRecovery({ stage })
-  }, [showPaymentRecovery])
+  const handleMercadoPagoResult = useCallback(
+    (response) => {
+      const status = paymentUpdateStatus(response?.payment?.status ?? response?.order?.status)
+      if (status === 'rechazado' || status === 'cancelado') {
+        showPaymentRecovery({
+          order: response?.order ?? embeddedOrder,
+          stage: 'result',
+        })
+      } else if (status === 'aprobado') {
+        setPaymentRecovery(null)
+      }
+    },
+    [embeddedOrder, showPaymentRecovery],
+  )
+
+  const handleMercadoPagoError = useCallback(
+    ({ stage } = {}) => {
+      showPaymentRecovery({ stage })
+    },
+    [showPaymentRecovery],
+  )
 
   function openDiscountField() {
     if (checkoutLocked) return
@@ -1050,7 +1115,7 @@ export default function MembershipPurchaseSection({
                     /* Aplicado: el mismo registro que el canje universal y el
                        campo de inscripción — código e importe separados dentro
                        de la banda, con su palabra ("pagás" o "ahorrás"). */
-                    <div className="account-discount__applied">
+                    <div className="account-discount__applied code-band-record-group">
                       <div className="code-band" data-state="applied">
                         <span className="code-band__grain" aria-hidden />
                         <div className="code-band__frame">
@@ -1119,15 +1184,34 @@ export default function MembershipPurchaseSection({
                     <MotionContentSwap swapKey={discountOpen ? 'field' : 'button'} mode="sync">
                       {discountOpen ? (
                         <div className="account-discount__field">
-                          <label className="visually-hidden" htmlFor="membership-discount-code">
-                            {t('account.membership.discountLabel')}
-                          </label>
-                          <div className={`code-band${discountError ? ' code-band--error' : ''}`}>
+                          {/* Mientras valida no hay campo —el código pasa a ser
+                              registro—, así que tampoco hay label. */}
+                          {discountChecking ? null : (
+                            <label className="visually-hidden" htmlFor="membership-discount-code">
+                              {t('account.membership.discountLabel')}
+                            </label>
+                          )}
+                          {/* `data-state` es el contrato de motion de
+                              `code-band.css`: el barrido de luz mientras el
+                              servidor contesta y el sello de oro cuando la
+                              llave se acepta. Mismo atributo que la banda de
+                              inscripción — si el canje se ve distinto según la
+                              pantalla, deja de leerse como una llave emitida
+                              por la federación. */}
+                          <div
+                            className={`code-band${discountError ? ' code-band--error' : ''}`}
+                            data-state={
+                              discountChecking ? 'checking' : discountError ? 'error' : 'idle'
+                            }
+                          >
                             <span className="code-band__grain" aria-hidden />
                             <div className="code-band__frame">
                               <div className="code-band__head">
                                 <span className="code-band__mark">{t('codeBand.markCode')}</span>
+                                {/* Único lugar donde "Validando" queda como
+                                    texto, así que se anuncia. */}
                                 <span
+                                  aria-live="polite"
                                   className={`code-band__status${discountError ? ' code-band__status--error' : ''}`}
                                 >
                                   {t(
@@ -1140,31 +1224,41 @@ export default function MembershipPurchaseSection({
                                 </span>
                               </div>
                               <div className="code-band__row">
-                                <input
-                                  ref={discountInputRef}
-                                  id="membership-discount-code"
-                                  className="code-band__input"
-                                  type="text"
-                                  autoComplete="off"
-                                  spellCheck={false}
-                                  placeholder={t('account.membership.discountPlaceholder')}
-                                  value={discountCodeInput}
-                                  disabled={checkoutLocked || discountChecking}
-                                  onChange={(event) =>
-                                    setDiscountCodeInput(event.target.value.toUpperCase())
-                                  }
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                      event.preventDefault()
-                                      void applyDiscountCode()
-                                      return
+                                {/* Mandado el código, el campo deja de ser
+                                    campo: un `<input>` no envuelve y un código
+                                    largo quedaba cortado a media palabra justo
+                                    cuando el atleta quiere leerlo. Mismo span
+                                    que la banda usa cuando el código está
+                                    aplicado. */}
+                                {discountChecking ? (
+                                  <span className="code-band__code">{discountCodeInput}</span>
+                                ) : (
+                                  <input
+                                    ref={discountInputRef}
+                                    id="membership-discount-code"
+                                    className="code-band__input"
+                                    type="text"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    placeholder={t('account.membership.discountPlaceholder')}
+                                    value={discountCodeInput}
+                                    disabled={checkoutLocked}
+                                    onChange={(event) =>
+                                      setDiscountCodeInput(event.target.value.toUpperCase())
                                     }
-                                    if (event.key === 'Escape') {
-                                      event.preventDefault()
-                                      clearDiscountCode()
-                                    }
-                                  }}
-                                />
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        void applyDiscountCode()
+                                        return
+                                      }
+                                      if (event.key === 'Escape') {
+                                        event.preventDefault()
+                                        clearDiscountCode()
+                                      }
+                                    }}
+                                  />
+                                )}
                                 <CodeScanButton
                                   disabled={checkoutLocked || discountChecking}
                                   onScan={(scanned) => {
@@ -1179,10 +1273,24 @@ export default function MembershipPurchaseSection({
                                     checkoutLocked || discountChecking || !discountCodeInput.trim()
                                   }
                                   onClick={applyDiscountCode}
+                                  aria-label={
+                                    discountChecking
+                                      ? t('account.membership.discountChecking')
+                                      : undefined
+                                  }
                                 >
-                                  {discountChecking
-                                    ? t('account.membership.discountChecking')
-                                    : t('account.membership.discountApply')}
+                                  {/* Validando, sólo el spinner: la palabra le
+                                      comía el ancho al código. El estado lo
+                                      dice la ficha de arriba. */}
+                                  {discountChecking ? (
+                                    <LoaderCircle
+                                      className="code-band__spin"
+                                      size={16}
+                                      aria-hidden
+                                    />
+                                  ) : (
+                                    t('account.membership.discountApply')
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -1241,9 +1349,7 @@ export default function MembershipPurchaseSection({
                   selectedPlan ? (
                     <CheckoutBar
                       className="account-membership__bar"
-                      compareTotal={
-                        paymentMethod === 'wise_transfer' ? null : channelCompareTotal
-                      }
+                      compareTotal={paymentMethod === 'wise_transfer' ? null : channelCompareTotal}
                       ctaLabel={ctaLabel}
                       disabled={ctaDisabled}
                       submitting={submitting}
@@ -1438,7 +1544,6 @@ export default function MembershipPurchaseSection({
 
       {transferOpen && (
         <TransferPayModal
-          athlete={athlete}
           amount={transferAmount ?? selectedPlan?.price ?? 0}
           currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
           channel={transferChannel}
@@ -1467,6 +1572,10 @@ export default function MembershipPurchaseSection({
           campaignName={revealPromotion.campaign?.name ?? ''}
           code={revealPromotion.code}
           continueLabel={t('promotionReveal.continueHere')}
+          // Acá la acción plena no saca al atleta de ningún lado: cierra el
+          // anuncio y deja abajo el precio recalculado. Cerrar ES la acción, así
+          // que sale por la salida animada en vez de desaparecer en un frame.
+          continueDismisses
           expiresAt={promotionScarcityPresentation(revealPromotion)?.expiresAt ?? null}
           headline={(() => {
             const benefit = promotionBenefitPresentation(revealPromotion)

@@ -195,7 +195,8 @@ describe('retiro de la oferta exclusiva por código contra Supabase', () => {
       .update({ email_verified_at: new Date().toISOString() })
       .eq('id', athleteId)
 
-    // 2. El canje no abre nada: el código existe pero está apagado.
+    // 2. El canje no abre nada. La modalidad retirada se oculta como si no
+    //    existiera para no filtrar ofertas exclusivas generadas por código.
     const unlock = await admin.rpc('athlete_unlock_offer_code', {
       p_organization_id: plan.organization_id,
       p_athlete_id: athleteId,
@@ -203,7 +204,7 @@ describe('retiro de la oferta exclusiva por código contra Supabase', () => {
     })
     if (unlock.error) throw new Error(unlock.error.message)
     expect(unlock.data.unlocked, JSON.stringify(unlock.data)).toBe(false)
-    expect(unlock.data.reason).toBe('inactive')
+    expect(unlock.data.reason).toBe('not_found')
 
     // 3. Ni siquiera un desbloqueo previo al retiro alimenta la ficha de Mi
     //    cuenta: es la vidriera que cerró 20260916100000. Se simula el canje

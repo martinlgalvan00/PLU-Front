@@ -83,8 +83,24 @@
   --band-edge: color-mix(in oklab, var(--color-brand-gold-dark) 62%, transparent);
 }
 
-.code-band--error {
+/* Rechazo. `[data-state='error']` además de la clase: los dos checkouts ponen
+   ambos y el canje de Mi cuenta también, así el contrato del atributo alcanza
+   solo —es el mismo que engancha el motion más abajo—. */
+.code-band--error,
+.code-band[data-state='error'] {
   --band-edge: color-mix(in oklab, var(--color-danger-text) 46%, rgba(255, 255, 255, 0.1));
+}
+
+/* En tema claro el filo rojo no llegaba a pintarse: `[data-theme='light']
+   .code-band` es (0,2,0) y le ganaba a `.code-band--error`, que es (0,1,0), sin
+   importar el orden. El rechazo quedaba dicho sólo por la palabra de la ficha, y
+   la banda —que es la pieza— seguía con su filo de oro como si nada. Mismo
+   selector con tema para que empate y gane por orden. El foco sigue arriba de
+   los dos a propósito: si el atleta volvió al campo a corregir, la respuesta que
+   importa es la del campo. */
+[data-theme='light'] .code-band--error,
+[data-theme='light'] .code-band[data-state='error'] {
+  --band-edge: color-mix(in oklab, var(--color-danger-text) 58%, rgba(15, 17, 23, 0.08));
 }
 
 .code-band__grain {
@@ -265,6 +281,17 @@
 .code-band__chip:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* Validando: el chip queda cuadrado, con el spinner solo (ver
+   `SecretOfferCodeRedeemer`). 44px es el target táctil completo, y le devuelve
+   al campo los ~120px que la palabra le sacaba —que es lo que hace que un
+   código largo se pueda leer justo mientras se valida, en vez de quedar cortado
+   a media palabra—. En teléfono la regla del final del archivo le deja el ancho
+   completo: ahí la fila ya envuelve y el campo no compite con nada. */
+.code-band[data-state='checking'] .code-band__chip {
+  padding-inline: 0;
+  width: 44px;
 }
 
 /* Escaneo dentro de la banda: sólo el ícono. El selector lleva tres clases
@@ -457,5 +484,251 @@
   .code-band__chip {
     flex: 1 0 100%;
     min-width: 0;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Motion del canje — la llave se lee, se valida y se sella
+   ---------------------------------------------------------------------------
+   Hasta acá la banda era material sin tiempo: el estado cambiaba de golpe. El
+   campo se convertía en registro en un frame, "Aceptada" aparecía ya escrita y
+   el rechazo era un cambio de color. La pieza se veía emitida pero no se
+   sentía emitida, y el canje es justamente el momento que le da sentido al
+   precio que se cobra abajo.
+
+   Cuatro momentos, uno por `data-state`, y cada uno dice algo que el texto no
+   alcanza a decir solo:
+
+   - `checking`  el pedido está en vuelo. Un barrido de luz recorre la cara de
+                 la banda. Es el ÚNICO loop de la hoja y está atado al estado:
+                 nace con la espera y muere con ella, así que no es decoración
+                 —es el equivalente material del spinner del chip—.
+   - `accepted`  / `applied`: la llave se sella. Un aro de oro se contrae sobre
+                 el filo (una vez), un barrido cruza la cara (una vez) y el
+                 registro —estado, código, importe— baja a su lugar en tres
+                 pasos de 40ms. Sin ráfaga de papel: el confeti está reservado a
+                 los tres cierres de trámite, y canjear un código abre uno.
+   - `error`     el rechazo se siente. Un desplazamiento amortiguado de 3px, dos
+                 oscilaciones, 240ms. No es un shake de formulario: es lo mínimo
+                 para que el ojo vuelva a la banda que ya cambió de palabra.
+
+   Todo es `transform` y `opacity`. Nada anima layout, fondo ni `border`, no hay
+   `transition: all`, y bajo `prefers-reduced-motion` la banda queda en su pose
+   final sin ninguna animación. */
+
+/* El aro del sello. Vive dentro del `overflow: hidden` de la banda, así que se
+   contrae hacia adentro (0.97 → 1) y nunca hacia afuera: escalar para afuera lo
+   dejaba recortado justo en las esquinas, que es donde se lo mira. */
+.code-band::before {
+  border: 1px solid color-mix(in oklab, var(--plu-gold-500) 72%, transparent);
+  border-radius: inherit;
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+[data-theme='light'] .code-band::before {
+  border-color: color-mix(in oklab, var(--color-brand-gold-dark) 70%, transparent);
+}
+
+/* El barrido. Debajo del marco (z-index 2) para que pase por atrás del código y
+   no lo lave: es luz sobre el material, no un highlight del texto. */
+.code-band::after {
+  background: linear-gradient(
+    100deg,
+    transparent 26%,
+    color-mix(in oklab, var(--plu-gold-300) 20%, transparent) 50%,
+    transparent 74%
+  );
+  content: '';
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-100%);
+  z-index: 1;
+}
+
+[data-theme='light'] .code-band::after {
+  background: linear-gradient(
+    100deg,
+    transparent 26%,
+    color-mix(in oklab, var(--color-brand-gold-dark) 12%, transparent) 50%,
+    transparent 74%
+  );
+}
+
+.code-band[data-state='checking']::after {
+  animation: code-band-scan 1400ms var(--ease-in-out) infinite;
+}
+
+/* Nombre propio y no `code-band-scan` con otra duración: cuando la lista de
+   `animation-name` no cambia, el navegador ACTUALIZA la animación en curso en
+   vez de reiniciarla, y conserva el tiempo transcurrido. Viniendo de `checking`
+   —un loop de 1400ms— el barrido del sello (700ms) podía aparecer ya terminado,
+   que es justo el frame que no hay que perderse. Con otro nombre, arranca. */
+.code-band[data-state='accepted']::after,
+.code-band[data-state='applied']::after {
+  animation: code-band-sweep var(--motion-cinematic) var(--ease-out) both;
+}
+
+.code-band[data-state='accepted']::before,
+.code-band[data-state='applied']::before {
+  animation: code-band-seal var(--motion-slow) var(--ease-out) both;
+}
+
+/* El registro baja a su lugar. Tres pasos de 40ms: es una firma, no una
+   secuencia de sección. */
+.code-band[data-state='accepted'] .code-band__status,
+.code-band[data-state='applied'] .code-band__status,
+.code-band[data-state='accepted'] .code-band__code,
+.code-band[data-state='applied'] .code-band__code,
+.code-band[data-state='accepted'] .code-band__amount,
+.code-band[data-state='applied'] .code-band__amount {
+  animation: code-band-stamp var(--motion-base) var(--ease-out) both;
+}
+
+.code-band[data-state='accepted'] .code-band__code,
+.code-band[data-state='applied'] .code-band__code {
+  animation-delay: 40ms;
+}
+
+.code-band[data-state='accepted'] .code-band__amount,
+.code-band[data-state='applied'] .code-band__amount {
+  animation-delay: 80ms;
+}
+
+.code-band--error,
+.code-band[data-state='error'] {
+  animation: code-band-reject var(--motion-base) var(--ease-out) both;
+}
+
+/* Spinner del chip. Vive acá y no en `secret-code-redeemer.css` porque las tres
+   superficies de canje comparten el chip: el canje de Mi cuenta lo tenía y los
+   dos checkouts se quedaban sin ninguna señal de que el pedido salió. */
+.code-band__spin {
+  animation: code-band-spin 800ms linear infinite;
+  flex: none;
+}
+
+@keyframes code-band-scan {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  32% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes code-band-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  32% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes code-band-seal {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  38% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes code-band-stamp {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+@keyframes code-band-reject {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  22% {
+    transform: translateX(-3px);
+  }
+
+  58% {
+    transform: translateX(2px);
+  }
+
+  84% {
+    transform: translateX(-1px);
+  }
+}
+
+@keyframes code-band-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* La prosa y los controles que acompañan al registro entran con él: sin esto la
+   banda se sellaba con tiempo y el bloque de abajo —el beneficio, el detalle, la
+   acción— aparecía de golpe medio segundo antes de terminar el sello.
+
+   Dos formas porque las superficies difieren en DOM y no vale la pena
+   reescribirlas por una animación: en Mi cuenta el registro es un bloque
+   hermano de la banda (`code-band-record`, se anima él mismo), y en los dos
+   checkouts la banda y su prosa son hermanos dentro del mismo contenedor
+   (`code-band-record-group`, se animan los hermanos y la banda conserva su
+   propio sello). */
+.code-band-record,
+.code-band-record-group > *:not(.code-band) {
+  animation: code-band-stamp var(--motion-base) var(--ease-out) both;
+  animation-delay: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-band::before,
+  .code-band::after,
+  .code-band[data-state='checking']::after,
+  .code-band[data-state='accepted']::before,
+  .code-band[data-state='applied']::before,
+  .code-band[data-state='accepted']::after,
+  .code-band[data-state='applied']::after,
+  .code-band[data-state='accepted'] .code-band__status,
+  .code-band[data-state='applied'] .code-band__status,
+  .code-band[data-state='accepted'] .code-band__code,
+  .code-band[data-state='applied'] .code-band__code,
+  .code-band[data-state='accepted'] .code-band__amount,
+  .code-band[data-state='applied'] .code-band__amount,
+  .code-band--error,
+  .code-band[data-state='error'],
+  .code-band__spin,
+  .code-band-record,
+  .code-band-record-group > *:not(.code-band) {
+    animation: none;
   }
 }

@@ -12,16 +12,11 @@ import {
 } from '../lib/featureAvailability.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { etagMatches, PRIVATE_REVALIDATE_CACHE, weakEtagFromParts } from '../lib/http.js'
-import {
-  AUTH_PORTRAIT_CACHE_CONTROL,
-  isSafeStoragePhotoPath,
-} from '../lib/publicPortraitUrl.js'
-import {
-  PUBLIC_PORTRAIT_CACHE_CONTROL,
-  sendPortraitBinary,
-} from '../lib/portraitBinaryCache.js'
+import { AUTH_PORTRAIT_CACHE_CONTROL, isSafeStoragePhotoPath } from '../lib/publicPortraitUrl.js'
+import { PUBLIC_PORTRAIT_CACHE_CONTROL, sendPortraitBinary } from '../lib/portraitBinaryCache.js'
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
+import { promotionCodeAllowsChannel } from '../../shared/promotionPaymentChannels.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
@@ -37,6 +32,7 @@ import {
   athleteAuthLimiter,
   athleteWriteLimiter,
   promotionCodeLimiter,
+  publicPromoPreviewLimiter,
   publicReadLimiter,
   publicWriteLimiter,
   registrationAccessCodeLimiter,
@@ -74,12 +70,7 @@ import {
 } from '../modules/payments/paymentAuditTrail.js'
 import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
 import { logger } from '../lib/logger.js'
-import {
-  getCoreName,
-  isSimilarCore,
-  mergeGymVariants,
-  preferGymName,
-} from '../lib/gymNormalize.js'
+import { getCoreName, isSimilarCore, mergeGymVariants, preferGymName } from '../lib/gymNormalize.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import {
   createPasswordResetToken,
@@ -596,11 +587,20 @@ export function createAthleteRoutes({
    */
   const manualChannelOverride = async (body, scope) => {
     if (!isManualPaymentMethod(body?.paymentMethod)) return false
-    return repo().discountCodeManualEligibility(
-      body.discountCode,
-      scope,
-      manualPaymentChannel(body.paymentMethod),
-    )
+    const channel = manualPaymentChannel(body.paymentMethod)
+    if (body?.discountCode && typeof repo().discountCodeChannelPolicy === 'function') {
+      const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
+      if (policy?.found && !promotionCodeAllowsChannel(policy, channel)) {
+        throw new HttpError(409, 'Ese código de promoción no admite el medio de pago elegido.', {
+          code: 'PLU29',
+          requestedChannel: channel,
+          manualChannels: policy.manualChannels,
+          mercadoPagoEnabled: policy.mercadoPagoEnabled,
+        })
+      }
+      if (policy?.found) return promotionCodeAllowsChannel(policy, channel)
+    }
+    return repo().discountCodeManualEligibility(body.discountCode, scope, channel)
   }
   /**
    * El otro sentido del mismo dato: un código que CIERRA la pasarela
@@ -618,7 +618,7 @@ export function createAthleteRoutes({
     if (isManualPaymentMethod(body?.paymentMethod)) return
     if (!body?.discountCode || typeof repo().discountCodeChannelPolicy !== 'function') return
     const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
-    if (!policy?.found || policy.mercadoPagoEnabled !== false) return
+    if (!policy?.found || promotionCodeAllowsChannel(policy, 'mercado_pago')) return
     throw new HttpError(409, 'Ese código no se puede pagar con Mercado Pago.', {
       code: 'PLU28',
       manualChannels: policy.manualChannels,
@@ -1069,7 +1069,13 @@ export function createAthleteRoutes({
         const rows = await prisma.organizationAthlete.groupBy({
           by: ['gym'],
           _count: { gym: true },
-          where: { gym: { not: null, not: '' } },
+          // Dos condiciones, no dos veces la misma clave: `{ not: null, not: '' }`
+          // es un objeto con `not` duplicada, así que la segunda pisaba la primera
+          // y de las dos intenciones sólo sobrevivía una. Con `AND` las dos se
+          // aplican, que es lo que este groupBy necesita: sin nulos y sin
+          // cadenas vacías, o el listado de gimnasios ancla arranca con una
+          // fila fantasma.
+          where: { AND: [{ gym: { not: null } }, { gym: { not: '' } }] },
         })
         const anchors = mergeGymVariants(
           rows.map((row) => ({ name: row.gym, count: row._count.gym })),
@@ -1421,10 +1427,7 @@ export function createAthleteRoutes({
         // Con eventSlug la matriz de inscripción/ticket se intersecta con el
         // perfil del evento; membership sigue siendo solo plataforma.
         const availability = event
-          ? applyEventPaymentChannelOverrides(
-              platformAvailability,
-              event.payment_channel_overrides,
-            )
+          ? applyEventPaymentChannelOverrides(platformAvailability, event.payment_channel_overrides)
           : platformAvailability
         let bankProfile = null
         if (event?.bank_transfer_profile_id) {
@@ -1541,7 +1544,11 @@ export function createAthleteRoutes({
         })
         const membershipWisePrice =
           membershipChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'membership', arsAmount: plan.price, configuredUsd: plan.wise_price })
+            ? wisePriceFor({
+                concept: 'membership',
+                arsAmount: plan.price,
+                configuredUsd: plan.wise_price,
+              })
             : null
         const created = await repo().createMembershipOrder(auth.athleteId, {
           ...req.validatedBody,
@@ -1617,7 +1624,11 @@ export function createAthleteRoutes({
         })
         const registrationWisePrice =
           registrationChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'registration', arsAmount: event.price, configuredUsd: event.wise_price })
+            ? wisePriceFor({
+                concept: 'registration',
+                arsAmount: event.price,
+                configuredUsd: event.wise_price,
+              })
             : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
@@ -1822,6 +1833,19 @@ export function createAthleteRoutes({
     else await clearIdentityFailures(identity)
   }
   /**
+   * El balde depende de si viaja un código: con código es un intento sobre el
+   * espacio de códigos y cuenta en el balde estricto de enumeración; sin
+   * código es la consulta de la promo pública —el checkout la dispara en cada
+   * montaje y cambio de canal/paquete— y va al balde holgado de lectura. Sin
+   * esta separación, mirar el checkout agotaba el cupo y el canje real
+   * respondía 429.
+   */
+  const discountPreviewLimiter = (req, res, next) => {
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : ''
+    const limiter = code ? promotionCodeLimiter : publicPromoPreviewLimiter
+    return limiter(req, res, next)
+  }
+  /**
    * Preview de solo lectura de un código de descuento: valida y calcula sin
    * redimir, para que el checkout muestre "ahorrás $X" antes de confirmar. El
    * monto real que se cobra sale únicamente de la respuesta del POST que crea
@@ -1829,7 +1853,7 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/discount-preview',
-    promotionCodeLimiter,
+    discountPreviewLimiter,
     validateBody(discountPreviewSchema),
     async (req, res, next) => {
       try {
@@ -1879,7 +1903,13 @@ export function createAthleteRoutes({
           }),
           eventSlug,
         )
-        await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        // Sin código no hubo intento que asentar: el preview de la promo
+        // pública no toca el contador del guard — ni para sumar ni para
+        // limpiar, que era la parte peligrosa: intercalar un preview vacío
+        // reseteaba el candado de enumeración de la cuenta.
+        if (code) {
+          await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        }
         res.json({ preview: concealInactiveReason(preview) })
       } catch (error) {
         next(error)
@@ -2069,8 +2099,7 @@ export function createAthleteRoutes({
       }
 
       const staff = await readSessionFromRequest({ prisma, req })
-      const staffAllowed =
-        staff?.user && hasPermission(staff.user, 'admin.athletes.read')
+      const staffAllowed = staff?.user && hasPermission(staff.user, 'admin.athletes.read')
       if (!staffAllowed) {
         const athleteAuth = await readAthleteSession({
           client: client(),
@@ -2662,9 +2691,9 @@ export function createAthleteRoutes({
         if (!hasPermission(req.auth.user, observationGuardFor(entityType))) {
           throw new HttpError(403, 'Sin permisos para observar esta entidad.')
         }
-        res.status(201).json(
-          await repo().addObservation(entityType, entityId, body, actorLabel(req)),
-        )
+        res
+          .status(201)
+          .json(await repo().addObservation(entityType, entityId, body, actorLabel(req)))
       } catch (error) {
         next(error)
       }
