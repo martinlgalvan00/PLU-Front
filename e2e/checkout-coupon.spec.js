@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect } from '@playwright/test'
 import { AUTH_STATE_PATH, FIXTURE_PATH } from './global-setup.js'
+import { acceptCookies, redeemCode } from './redeem-code.js'
 
 /**
  * El flujo entero como lo vive un atleta que ya canjeó un cupón y quiere
@@ -22,39 +23,6 @@ test.beforeAll(async () => {
 
 test.use({ storageState: AUTH_STATE_PATH })
 
-/**
- * Tipea y canjea un código, y cierra el anuncio del canje si el resolvedor lo
- * abre. El campo puede estar colapsado detrás de "Tengo un código" o ya
- * abierto (p. ej. justo después de "Quitar", que no vuelve a colapsarlo):
- * se espera a que aparezca CUALQUIERA de los dos antes de decidir, para no
- * decidir en base a un `isVisible()` instantáneo que puede llegar antes de
- * que React termine de pintar el toggle.
- */
-async function redeemCode(page, code) {
-  const toggle = page.getByRole('button', { name: /^Tengo un código$/i })
-  const field = page.getByLabel(/^Código$/i)
-  await Promise.race([toggle.waitFor({ state: 'visible' }), field.waitFor({ state: 'visible' })])
-  if (await toggle.isVisible().catch(() => false)) {
-    await toggle.click()
-  }
-  await field.fill(code)
-  await page.getByRole('button', { name: /^Canjear$/i }).click()
-
-  // El resolvedor real (no mockeado, a diferencia del render test en jsdom)
-  // setea el preview y, si reconoce el código, el anuncio del canje en el
-  // mismo tramo async — esperar la banda aplicada es el punto de sincronía
-  // para que el chequeo del diálogo ya no llegue temprano.
-  await expect(page.locator('.register-discount__applied')).toContainText(code, {
-    timeout: 15_000,
-  })
-
-  const revealDialog = page.getByRole('dialog', { name: /precio promocional|descuento/i })
-  if (await revealDialog.isVisible().catch(() => false)) {
-    await revealDialog.getByRole('button', { name: /Seguir con el pago/i }).click()
-    await expect(revealDialog).toBeHidden()
-  }
-}
-
 test.describe('Inscripción a competencia — cupón + cambio de método de pago', () => {
   test('aplica el cupón, genera la orden por transferencia y lo conserva al cambiar de medio', async ({
     page,
@@ -63,11 +31,7 @@ test.describe('Inscripción a competencia — cupón + cambio de método de pago
     //    evento de QA. Primero, el consentimiento de cookies — como lo
     //    resolvería cualquier visita real antes de tocar cualquier otra cosa.
     await page.goto('/mi-cuenta?section=events')
-    const cookieAcceptAll = page.getByRole('button', { name: /^Aceptar todo$/i })
-    await cookieAcceptAll
-      .waitFor({ state: 'visible', timeout: 5_000 })
-      .then(() => cookieAcceptAll.click())
-      .catch(() => {})
+    await acceptCookies(page)
 
     const eventRow = page.locator('article.account-events-list__row', {
       hasText: fixture.eventTitle,

@@ -1004,6 +1004,23 @@ export function createSupabaseAthleteRepository(
         'No se pudo registrar el aviso de pago.',
       ),
     /**
+     * Cierra una orden abierta a pedido del atleta y le devuelve el cupón, para
+     * que pueda abrir otra por el medio que quiera (20261020100000).
+     *
+     * Los rechazos viajan con errcode propio (PLU31..PLU34) porque la pantalla
+     * tiene que decir cuál es: "ya está pagada" y "tiene comprobante en
+     * revisión" son salidas distintas para el atleta.
+     */
+    cancelOpenOrder: (athleteId, orderId) =>
+      rpc(
+        'athlete_cancel_payment_order',
+        {
+          p_athlete_id: athleteId,
+          p_order_id: orderId,
+        },
+        'No se pudo cancelar la orden.',
+      ),
+    /**
      * La otra mitad del financiamiento: quedar habilitado sin declarar un pago
      * que todavía no se hizo (20260926100000). No es un alias de la de arriba —
      * no marca pago declarado ni manda la orden a validación— así que Finanzas

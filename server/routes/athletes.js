@@ -2006,6 +2006,30 @@ export function createAthleteRoutes({
     },
   )
   /**
+   * El atleta cierra su propia orden abierta para poder elegir otro medio.
+   *
+   * Sin esto, una orden por transferencia que quedó `pendiente` no tiene salida
+   * del lado del atleta: el checkout la reusa hasta que vence (24 h) y, si
+   * arrastra un cupón consumido, el mismo código rebota con PLU22 en el intento
+   * siguiente. La RPC devuelve el cupón y libera la inscripción; las guardas
+   * (comprobante adjunto, pago declarado, intento de pasarela en vuelo) viajan
+   * con errcode propio para que la pantalla explique cuál aplica.
+   */
+  router.post(
+    '/me/payment-orders/:orderId/cancel',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(await repo().cancelOpenOrder(auth.athleteId, orderId.data))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
    * Pago diferido de una orden financiada.
    *
    * Hermana de la declaración de arriba y deliberadamente distinta: acá la

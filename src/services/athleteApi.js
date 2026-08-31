@@ -1057,6 +1057,25 @@ export async function confirmAthleteManualPayment(orderId) {
   }
 }
 
+/**
+ * Cierra una orden abierta del atleta y le devuelve el cupón, para que pueda
+ * abrir otra por el medio que quiera.
+ *
+ * Los rechazos llegan como ApiError 409 con el motivo escrito por la RPC
+ * (PLU31..PLU34): la pantalla los muestra tal cual en vez de traducirlos, así
+ * "ya subiste un comprobante" no se confunde con "ya está pagada".
+ */
+export async function cancelAthletePaymentOrder(orderId) {
+  const result = await apiPost(`/api/athletes/me/payment-orders/${orderId}/cancel`, {})
+  return {
+    cancelled: result?.cancelled === true,
+    alreadyCancelled: result?.alreadyCancelled === true,
+    releasedCode: result?.releasedCode ?? null,
+    registrationsCancelled: Number(result?.registrationsCancelled ?? 0),
+    order: result?.order ? toCamelPaymentOrder(result.order) : null,
+  }
+}
+
 /** Credencial emitida de un socio, para verla y reemitirla desde el panel. */
 export async function getMembershipCredential(membershipId) {
   const { membership } = await apiGet(`/api/athletes/admin/memberships/${membershipId}/credential`)
