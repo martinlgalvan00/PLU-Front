@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "npm run dev:services",
     "dev:web": "vite",
-    "dev:api": "node server/index.js",
+    "dev:api": "node --watch server/index.js",
     "dev:services": "concurrently -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
     "dev:all": "node scripts/bootstrap-all.mjs --start",
     "setup:all": "node scripts/bootstrap-all.mjs",
@@ -42,6 +42,7 @@
     "db:verify:payments": "node scripts/verify-payment-database.mjs",
     "db:verify:fixed-price": "node scripts/verify-fixed-price-promotion.mjs",
     "db:verify:requote": "node scripts/verify-requote-open-order.mjs",
+    "db:verify:cancel": "node scripts/verify-cancel-open-order.mjs",
     "db:verify:schema": "node scripts/verify-schema-posture.mjs",
     "supabase:assert": "node scripts/assert-supabase-connectivity.mjs",
     "supabase:diagnose": "node scripts/diagnose-supabase-integration.mjs",

@@ -25,6 +25,15 @@ export default async function globalSetup() {
   const eventSlug = `e2e-coupon-${run}`
   const eventTitle = `E2E Cupón ${run}`
   const discountCode = `E2ECPN${run.toUpperCase()}`
+  // Segundo escenario: el cupón que CIERRA la pasarela y sólo se paga a mano,
+  // sobre un evento con precio manual propio. Es la forma de
+  // `ONLY-PITBULL-EFC2026` en Pitbull Classic (100.000 de lista / 92.500 manual
+  // / 85.000 pactado), y era la única combinación del catálogo sin cobertura:
+  // el cupón de arriba habilita Mercado Pago, así que nunca ejercitó el salto
+  // automático de canal ni la recotización del canal manual.
+  const manualOnlyEventSlug = `e2e-manual-only-${run}`
+  const manualOnlyEventTitle = `E2E Solo Manual ${run}`
+  const manualOnlyDiscountCode = `E2EEFC${run.toUpperCase()}`
 
   const startsAt = new Date(Date.now() + 30 * 86_400_000).toISOString()
   const endsAt = new Date(Date.now() + 31 * 86_400_000).toISOString()
@@ -46,6 +55,31 @@ export default async function globalSetup() {
     .select('id')
     .single()
   if (eventError) throw new Error(`No se pudo crear el evento de QA: ${eventError.message}`)
+
+  // `manual_price` es lo que hace distinto a este evento: el canal manual cotiza
+  // 92.500 y no los 100.000 de lista, así que el descuento del cupón se calcula
+  // contra otra base según el medio elegido.
+  const { data: manualOnlyEvent, error: manualOnlyEventError } = await admin
+    .from('events')
+    .insert({
+      organization_id: ORG_ID,
+      slug: manualOnlyEventSlug,
+      title: manualOnlyEventTitle,
+      venue: 'QA Gym',
+      location: 'CABA',
+      price: 100000,
+      manual_price: 92500,
+      currency: 'ARS',
+      status: 'inscripcion_abierta',
+      published: true,
+      starts_at: startsAt,
+      ends_at: endsAt,
+    })
+    .select('id')
+    .single()
+  if (manualOnlyEventError) {
+    throw new Error(`No se pudo crear el evento solo-manual de QA: ${manualOnlyEventError.message}`)
+  }
 
   const { data: athlete, error: athleteError } = await admin
     .from('athletes')
@@ -89,6 +123,28 @@ export default async function globalSetup() {
     p_actor: 'e2e:checkout-coupon',
   })
   if (discountError) throw new Error(`No se pudo crear el cupón de QA: ${discountError.message}`)
+
+  const { error: manualOnlyDiscountError } = await admin.rpc('staff_upsert_discount_code', {
+    p_code: {
+      organizationId: ORG_ID,
+      code: manualOnlyDiscountCode,
+      kind: 'fixed_price',
+      fixedPrice: 85000,
+      fixedPriceManual: 85000,
+      appliesTo: 'registration',
+      eventId: manualOnlyEvent.id,
+      active: true,
+      manualChannels: ['bank_transfer', 'cash_pitbull'],
+      // El punto del escenario: la pasarela queda prohibida por el código.
+      mercadoPagoEnabled: false,
+    },
+    p_actor: 'e2e:checkout-coupon',
+  })
+  if (manualOnlyDiscountError) {
+    throw new Error(
+      `No se pudo crear el cupón solo-manual de QA: ${manualOnlyDiscountError.message}`,
+    )
+  }
 
   // La sesión del atleta se firma con AUTH_SECRET: tiene que ser la MISMA que
   // usa el server que levanta el webServer de Playwright (playwright.config.js).
@@ -134,6 +190,10 @@ export default async function globalSetup() {
       eventId: event.id,
       athleteId: athlete.id,
       discountCode,
+      manualOnlyEventSlug,
+      manualOnlyEventTitle,
+      manualOnlyEventId: manualOnlyEvent.id,
+      manualOnlyDiscountCode,
     }),
     'utf8',
   )
