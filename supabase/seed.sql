@@ -56,7 +56,7 @@ select
   'ARS',
   true,
   timestamptz '2026-08-01 00:00:00-03',
-  timestamptz '2026-08-28 23:59:59-03'
+  timestamptz '2026-12-11 23:59:59-03'
 from public.events e
 join lateral (
   select id

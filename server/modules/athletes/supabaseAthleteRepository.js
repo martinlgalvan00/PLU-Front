@@ -110,9 +110,9 @@ export function createSupabaseAthleteRepository(
    * orden — si el cupón resulta inválido ahí, la orden entera se cae, así que
    * una lectura desactualizada acá nunca deja una orden sin cupón real detrás.
    *
-   * Las dos celdas no son simétricas (ver la cabecera de 20260908100000):
-   * `manualChannels` ABRE canales que Administración tiene cerrados, y
-   * `mercadoPagoEnabled: false` CIERRA la pasarela para este código.
+   * Cuando el codigo aplica, `manualChannels` y `mercadoPagoEnabled` forman su
+   * lista cerrada de medios. Los manuales declarados pueden destrabar un canal
+   * global, pero los omitidos quedan prohibidos aunque este abierto globalmente.
    *
    * Un código que no aplica —inexistente, apagado, fuera de ventana, de otro
    * alcance— devuelve el estado neutro: no abre ningún canal manual y no cierra

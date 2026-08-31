@@ -40,11 +40,12 @@ create or replace function public.purge_ephemeral_history(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, plu_prisma
+set search_path = public
 as $$
 declare
   v_result jsonb := '{}'::jsonb;
   v_count integer := 0;
+  v_prisma_session regclass := to_regclass('plu_prisma."Session"');
   v_session_grace interval := make_interval(
     days => greatest(7, coalesce(p_session_grace_days, 30))
   );
@@ -58,10 +59,16 @@ begin
     v_result := v_result || jsonb_build_object('athlete_sessions', v_count);
   end if;
 
-  if to_regclass('plu_prisma."Session"') is not null then
-    delete from plu_prisma."Session"
-    where "expiresAt" < now() - v_session_grace
-       or "revokedAt" < now() - v_session_grace;
+  if v_prisma_session is not null then
+    -- SQL dinamico evita que una instalacion sin Prisma intente resolver la
+    -- relacion al compilar/lintar la funcion. El nombre sigue siendo fijo y
+    -- completamente calificado; solo el intervalo viaja como parametro.
+    execute format(
+      'delete from %s where %I < now() - $1 or %I < now() - $1',
+      v_prisma_session,
+      'expiresAt',
+      'revokedAt'
+    ) using v_session_grace;
     get diagnostics v_count = row_count;
     v_result := v_result || jsonb_build_object('staff_sessions', v_count);
   end if;
@@ -87,10 +94,21 @@ alter table public.athlete_sessions set (
   autovacuum_analyze_scale_factor = 0.02
 );
 
-alter table plu_prisma."Session" set (
-  autovacuum_vacuum_scale_factor = 0.05,
-  autovacuum_analyze_scale_factor = 0.02
-);
+-- Prisma no forma parte del esquema Supabase que levanta CI. En produccion el
+-- esquema existe, pero una base limpia tiene que poder aplicar exactamente el
+-- mismo historial sin crear una dependencia artificial con Prisma.
+do $$
+begin
+  if to_regclass('plu_prisma."Session"') is not null then
+    execute $sql$
+      alter table plu_prisma."Session" set (
+        autovacuum_vacuum_scale_factor = 0.05,
+        autovacuum_analyze_scale_factor = 0.02
+      )
+    $sql$;
+  end if;
+end;
+$$;
 
 do $$
 begin

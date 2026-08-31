@@ -703,3 +703,86 @@ describe('un código puede cerrar Mercado Pago', () => {
     }
   })
 })
+
+describe('los medios de un codigo forman una lista cerrada', () => {
+  const MP_ONLY_CODE = {
+    found: true,
+    manualChannels: [],
+    mercadoPagoEnabled: true,
+  }
+
+  it.each([
+    [
+      'afiliacion por transferencia',
+      '/api/athletes/me/membership-orders',
+      'manual_link',
+      'createMembershipOrder',
+    ],
+    [
+      'afiliacion en efectivo',
+      '/api/athletes/me/membership-orders',
+      'cash_pitbull',
+      'createMembershipOrder',
+    ],
+    [
+      'inscripcion por transferencia',
+      '/api/athletes/me/registrations',
+      'manual_link',
+      'createRegistration',
+    ],
+    [
+      'inscripcion en efectivo',
+      '/api/athletes/me/registrations',
+      'cash_pitbull',
+      'createRegistration',
+    ],
+    [
+      'combo por transferencia',
+      '/api/athletes/me/registration-combos',
+      'manual_link',
+      'createRegistrationCombo',
+    ],
+    [
+      'combo en efectivo',
+      '/api/athletes/me/registration-combos',
+      'cash_pitbull',
+      'createRegistrationCombo',
+    ],
+  ])('%s: no se puede forzar por HTTP', async (_label, path, paymentMethod, spyName) => {
+    const app = buildApp({
+      channelPolicy: MP_ONLY_CODE,
+      toggles: { membershipManualEnabled: true, registrationManualEnabled: true },
+    })
+    try {
+      const body =
+        path === '/api/athletes/me/membership-orders'
+          ? membershipBody(paymentMethod, { discountCode: 'SOLO-MP' })
+          : registrationBody(paymentMethod, { discountCode: 'SOLO-MP' })
+      const response = await post(app.target, path, body)
+      expect(response.status).toBe(409)
+      expect(await response.json()).toMatchObject({ code: 'PLU29' })
+      expect(app[spyName]).not.toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+
+  it.each([
+    ['afiliacion', '/api/athletes/me/membership-orders', 'createMembershipOrder'],
+    ['inscripcion', '/api/athletes/me/registrations', 'createRegistration'],
+    ['combo', '/api/athletes/me/registration-combos', 'createRegistrationCombo'],
+  ])('%s: Mercado Pago sigue habilitado', async (_label, path, spyName) => {
+    const app = buildApp({ channelPolicy: MP_ONLY_CODE })
+    try {
+      const body =
+        path === '/api/athletes/me/membership-orders'
+          ? membershipBody('mercado_pago', { discountCode: 'SOLO-MP' })
+          : registrationBody('mercado_pago', { discountCode: 'SOLO-MP' })
+      const response = await post(app.target, path, body)
+      expect(response.status).toBe(201)
+      expect(app[spyName]).toHaveBeenCalled()
+    } finally {
+      await app.target.close()
+    }
+  })
+})

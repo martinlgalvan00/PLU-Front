@@ -830,10 +830,16 @@ export default {
       simulatePromotion: 'Test flow',
       simulatingPromotion: 'Testing…',
       simulationTitle: 'Journey verified',
-      simulationDestination: 'Destination: {{destination}}',
+      simulationDestinationKind: {
+        stay: 'No redirect',
+        membership_checkout: 'Membership checkout',
+        event_checkout: 'Event registration checkout',
+        account_offer: 'Account offer',
+      },
       simulationEmpty: 'The validation did not return a result.',
       simulationError: 'We could not validate the code journey.',
-      simulationRedeemHint: 'Redeemed from the code field in Membership or Registration.',
+      simulationRedeemHint:
+        'Redeemed from the code field in Membership or Registration — there is no public link.',
       simulationCheck: {
         active: 'The code is active',
         withinWindow: 'It is within its validity window',
@@ -2459,6 +2465,10 @@ export default {
     bankTransferAlias: 'Alias',
     bankTransferCbu: 'CBU / CVU',
     bankTransferHolder: 'Account holder',
+    bankTransferReferenceLabel: 'Payment reference',
+    bankTransferReferenceHint:
+      'Not configured here: checkout asks athletes to use ID · full name so Finance can reconcile the transfer.',
+    bankTransferReferenceExample: '40123456 · Jane Doe',
     mercadoPagoProfileTitle: 'Mercado Pago for this event',
     mercadoPagoProfileHint:
       'Without a profile, the environment account is used. With a profile, Brick and webhooks charge with those credentials (encrypted server-side).',
@@ -2675,7 +2685,7 @@ export default {
     sectionSales: 'Sales and capacity',
     sectionSalesLead: 'Athlete registration and spectator tickets, each with its own capacity and prices.',
     sectionSalesLeadEssentials:
-      'Capacity, registration window and price. Payment channels and ticket types stay in the full editor.',
+      'Capacity, registration window, prices and payment methods. Ticket types stay in the full editor.',
     essentialsTicketsNote:
       'Active ticket types: {{count}}. Windows, add-ons and types are edited in the full event form.',
     laneAthletes: 'Athlete registration',

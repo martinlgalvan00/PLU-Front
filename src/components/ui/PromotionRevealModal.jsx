@@ -1,8 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowRight, KeyRound, X } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { prefersReducedMotion } from '../../motion/useReducedMotion.ts'
 import { usePaymentModal } from '../checkout/usePaymentModal.js'
 import '../../styles/components/promotion-reveal.css'
+
+/**
+ * Ventana de la salida. Espejo de `--motion-fast` (160ms), con 20ms de aire
+ * para que el frame final de la animación llegue a pintarse antes de que el
+ * padre desmonte la pieza.
+ */
+const EXIT_MS = 180
 
 /**
  * PromotionRevealModal — PLU ARG
@@ -30,6 +38,15 @@ import '../../styles/components/promotion-reveal.css'
  * (`promotionRedemptionSurfaces.test.js` lo fija), así que el reveal vive donde
  * vive el canje —Mi cuenta > Beneficios y los dos checkouts—.
  *
+ * Salida: la pieza entraba con una secuencia de cuatro pasos y se iba en un
+ * frame. Descartar es la mitad del uso —la X, `Escape`, el click afuera y "Lo
+ * uso después"—, y ese corte seco desarmaba lo que la entrada había armado. Por
+ * eso el descarte pasa por `requestClose`: marca la pieza como saliente, deja
+ * correr los 180ms de la salida y recién entonces avisa al padre. La acción
+ * plena NO pasa por ahí: `onContinue` navega o destraba el precio de abajo, y
+ * el padre desmonta la pieza en el mismo tick —retrasar eso retrasaría la
+ * navegación, que es lo único que el atleta pidió al apretarla—.
+ *
  * @param {object} props
  * @param {string} props.code            El código, tal como lo devolvió el servidor.
  * @param {string} [props.headline]      El beneficio, ya resuelto en palabras.
@@ -41,6 +58,7 @@ import '../../styles/components/promotion-reveal.css'
  * @param {string} [props.continueLabel] Etiqueta de la acción principal.
  * @param {Function} [props.onContinue]  Va al checkout que cobra el código.
  * @param {Function} props.onClose       Cierra el reveal y deja la banda con el registro.
+ *                                   Se llama al terminar la salida, no al apretar.
  */
 export default function PromotionRevealModal({
   code,
@@ -55,20 +73,56 @@ export default function PromotionRevealModal({
   onClose,
 }) {
   const { locale, t } = useI18n()
-  // Foco atrapado, `Escape` para cerrar y scroll del body bloqueado: el mismo
-  // hook que usan los modales de pago, en vez de un tercer trap propio.
-  const panelRef = usePaymentModal(onClose)
-  const continueRef = useRef(null)
+  const [closing, setClosing] = useState(false)
+  const exitTimerRef = useRef(null)
 
-  // El hook enfoca el primer control del panel, que es la X de cerrar: el anillo
-  // de foco caía sobre el botón de descartar —el más chico y el menos
-  // importante— y era lo primero que se veía de la pieza, en celeste, compitiendo
-  // con el oro. Acá el foco arranca en la acción que la pieza existe para
-  // ofrecer. Este efecto corre después del hook (se declara después), así que
-  // gana sin tener que cambiar el trap que comparten los modales de pago.
+  // Descartar: se pide la salida, no el desmonte. Con `prefers-reduced-motion`
+  // no hay salida que esperar, así que cierra en el acto.
+  const requestClose = useCallback(() => {
+    if (exitTimerRef.current) return
+    if (prefersReducedMotion()) {
+      onClose()
+      return
+    }
+    setClosing(true)
+    exitTimerRef.current = setTimeout(onClose, EXIT_MS)
+  }, [onClose])
+
+  useEffect(
+    () => () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current)
+    },
+    [],
+  )
+
+  // Foco atrapado, `Escape` para cerrar y scroll del body bloqueado: el mismo
+  // hook que usan los modales de pago, en vez de un tercer trap propio. Lee
+  // `onClose` de un ref en cada render, así que recibe la versión que anima.
+  const panelRef = usePaymentModal(requestClose)
+
+  // El foco inicial va al panel, no a un control.
+  //
+  // El hook enfoca el primer control del panel, que es la X de cerrar, y eso
+  // dejaba el anillo celeste sobre el botón más chico y menos importante de la
+  // pieza, compitiendo con el oro. La corrección anterior lo movió a la acción
+  // plena, y en teléfono eso rompió la pieza entera: el panel es el contenedor
+  // scrolleable (`max-height: 92vh`, `overflow: hidden auto`) y el navegador
+  // trae a la vista lo que se enfoca, así que el reveal abría scrolleado hasta
+  // los botones —sin titular, sin código y sin condiciones—. Medido en el render
+  // a 390px, no deducido.
+  //
+  // Enfocar el panel resuelve las dos cosas: es el patrón de diálogo (el lector
+  // de pantalla anuncia el nombre por `aria-labelledby`, que es el titular), no
+  // hay anillo sobre ninguna acción, y como el panel ya está en scrollTop 0 no
+  // se mueve nada. `tabIndex={-1}` lo deja enfocable sin entrar en el ciclo de
+  // Tab: el trap que comparten los modales de pago excluye
+  // `[tabindex="-1"]`, así que la primera tabulación sigue cayendo en la X.
+  //
+  // Este efecto corre después del hook (se declara después), así que gana sin
+  // tener que cambiar el trap compartido.
   useEffect(() => {
-    continueRef.current?.focus()
-  }, [])
+    panelRef.current?.focus()
+  }, [panelRef])
 
   const channels = payment?.channels?.length
     ? payment.channels
@@ -118,7 +172,11 @@ export default function PromotionRevealModal({
   ].filter(Boolean)
 
   return (
-    <div className="promotion-reveal__overlay" role="presentation" onMouseDown={onClose}>
+    <div
+      className={`promotion-reveal__overlay${closing ? ' is-closing' : ''}`}
+      role="presentation"
+      onMouseDown={requestClose}
+    >
       <section
         ref={panelRef}
         aria-labelledby="promotion-reveal-title"
@@ -126,6 +184,7 @@ export default function PromotionRevealModal({
         className="promotion-reveal"
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
+        tabIndex={-1}
       >
         <span className="promotion-reveal__grain" aria-hidden />
         <div className="promotion-reveal__frame">
@@ -134,7 +193,7 @@ export default function PromotionRevealModal({
             <button
               type="button"
               className="promotion-reveal__close"
-              onClick={onClose}
+              onClick={requestClose}
               aria-label={t('promotionReveal.close')}
             >
               <X size={16} aria-hidden />
@@ -175,17 +234,12 @@ export default function PromotionRevealModal({
 
           <div className="promotion-reveal__actions">
             {onContinue ? (
-              <button
-                type="button"
-                className="promotion-reveal__continue"
-                onClick={onContinue}
-                ref={continueRef}
-              >
+              <button type="button" className="promotion-reveal__continue" onClick={onContinue}>
                 {continueLabel}
                 <ArrowRight size={14} aria-hidden />
               </button>
             ) : null}
-            <button type="button" className="promotion-reveal__dismiss" onClick={onClose}>
+            <button type="button" className="promotion-reveal__dismiss" onClick={requestClose}>
               {t('promotionReveal.later')}
             </button>
           </div>
