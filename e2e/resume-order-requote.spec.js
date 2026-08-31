@@ -242,9 +242,13 @@ test.describe('Orden abierta: se recotiza con el código de ESTE pedido', () => 
     const row = await openEventRow(page)
     await row.getByRole('button', { name: /^Elegir otro medio$/i }).click()
     await expect(page.getByText(/Tu orden sigue pendiente/i)).toBeVisible()
-    // Y no el formulario de inscripción, que es donde caía antes: sus campos
-    // competitivos no existen en la pantalla de la orden.
-    await expect(page.getByLabel(/^División$/i)).toHaveCount(0)
+    // Y no el formulario de inscripción desde cero, que es donde caía antes.
+    // La ausencia de "División" ya no sirve para distinguirlos: la pantalla de
+    // la orden ahora muestra los campos competitivos a propósito, para que
+    // quien se equivocó de categoría pueda corregirla sin cancelar el pago
+    // (ver `competitionFieldsSection` en RegisterPage.jsx). El marcador que
+    // sigue siendo exclusivo de esta pantalla es su contenedor.
+    await expect(page.locator('.register-competition-form--change-method')).toHaveCount(1)
   })
 
   /**
