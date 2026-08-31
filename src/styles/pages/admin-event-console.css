@@ -1786,6 +1786,55 @@
   }
 }
 
+.admin-event-console-modal__main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.admin-event-console-modal__aside {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .admin-event-console-modal__body {
+    align-items: start;
+    gap: 20px 24px;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    overflow: hidden;
+  }
+
+  .admin-event-console-modal__main {
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    scrollbar-width: thin;
+  }
+
+  .admin-event-console-modal__aside {
+    align-self: stretch;
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    position: sticky;
+    top: 0;
+  }
+
+  .admin-event-console-modal__aside .admin-event-console-modal__detail-fold {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .admin-event-console-modal__aside .admin-event-console-modal__detail-summary {
+    display: none;
+  }
+
+  .admin-event-console-modal__aside .admin-event-console-modal__detail-label {
+    display: block;
+  }
+}
+
 .admin-event-console-modal__detail {
   display: grid;
   gap: 14px;
