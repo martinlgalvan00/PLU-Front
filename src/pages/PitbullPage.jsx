@@ -681,8 +681,14 @@ function PitbullRecentRegistrants({ capacityStatus, locale, recent, registeredTo
                   <span>{initial}</span>
                 </span>
                 <span className="pitbull-recent__identity">
-                  <strong className="pitbull-recent__name">{item.displayName}</strong>
-                  {item.gym ? <span className="pitbull-recent__gym">{item.gym}</span> : null}
+                  <strong className="pitbull-recent__name" title={item.displayName}>
+                    {item.displayName}
+                  </strong>
+                  {item.gym ? (
+                    <span className="pitbull-recent__gym" title={item.gym}>
+                      {item.gym}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="pitbull-recent__when">
                   <time className="pitbull-recent__time" dateTime={item.registeredAt ?? undefined}>
@@ -708,6 +714,7 @@ function PitbullInscriptionSection({
   eventStatus,
   hasActiveMembership = false,
   locale,
+  onChangePaymentMethod,
   onNavigate,
   onRegister,
   pricing,
@@ -838,14 +845,14 @@ function PitbullInscriptionSection({
                   <dd>{money(pricing.registration, locale)}</dd>
                 </div>
               ) : (
-                <div className="pitbull-inscription-shell__compare">
-                  <div className="pitbull-inscription-shell__price">
-                    <dt>{t('pages.pitbull.costMembership')}</dt>
-                    <dd>{money(pricing.membership, locale)}</dd>
-                  </div>
-                  <div className="pitbull-inscription-shell__price">
+                <div className="pitbull-inscription-shell__compare pitbull-inscription-shell__compare--asymmetric">
+                  <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--primary">
                     <dt>{t('pages.pitbull.costMeet')}</dt>
                     <dd>{money(pricing.registration, locale)}</dd>
+                  </div>
+                  <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--secondary">
+                    <dt>{t('pages.pitbull.costMembership')}</dt>
+                    <dd>{money(pricing.membership, locale)}</dd>
                   </div>
                 </div>
               )}
@@ -900,13 +907,23 @@ function PitbullInscriptionSection({
                       : t('pages.events.athleteStatusAction.pending_payment')}
                     <ArrowRight size={14} aria-hidden />
                   </button>
-                  <button
-                    type="button"
-                    className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
-                    onClick={() => onNavigate('rulebook')}
-                  >
-                    {t('pages.pitbull.viewRulebook')}
-                  </button>
+                  {paymentPending && typeof onChangePaymentMethod === 'function' ? (
+                    <button
+                      type="button"
+                      className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                      onClick={onChangePaymentMethod}
+                    >
+                      {t('pages.events.athleteStatusAction.change_payment')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="pitbull-inscription__cta pitbull-inscription__cta--secondary"
+                      onClick={() => onNavigate('rulebook')}
+                    >
+                      {t('pages.pitbull.viewRulebook')}
+                    </button>
+                  )}
                 </>
               ) : canRegister ? (
                 <>
@@ -1193,8 +1210,8 @@ export default function PitbullPage({
     onNavigate('tickets', { eventSlug: pitbullEvent?.slug })
   }
 
-  function goToCompetitionCheckout() {
-    if (onSelectEvent) onSelectEvent(pitbullEvent)
+  function goToCompetitionCheckout(options = {}) {
+    if (onSelectEvent) onSelectEvent(pitbullEvent, options)
     else onNavigate('competition')
   }
 
@@ -1242,6 +1259,10 @@ export default function PitbullPage({
     goToCompetitionCheckout()
   }
 
+  function handleChangePaymentMethod() {
+    goToCompetitionCheckout({ checkoutIntent: 'change_method' })
+  }
+
   function handleHeroSecondary() {
     if (ticketsOpen) {
       goToTicketsPage()
@@ -1279,6 +1300,7 @@ export default function PitbullPage({
             eventStatus={eventStatus}
             hasActiveMembership={hasActiveMembership}
             locale={locale}
+            onChangePaymentMethod={handleChangePaymentMethod}
             onNavigate={onNavigate}
             onRegister={handlePitbullRegistration}
             pricing={eventPricing}

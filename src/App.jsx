@@ -31,6 +31,7 @@ import { clearStaffInvitationToken, readStaffInvitationToken } from './lib/staff
 import EmailVerificationNotice from './components/ui/EmailVerificationNotice.jsx'
 import SessionNotice from './components/ui/SessionNotice.jsx'
 import PaymentsMockBanner from './components/ui/PaymentsMockBanner.jsx'
+import CookieConsent from './components/ui/CookieConsent.jsx'
 import {
   clearTicketsRoute,
   getTicketsRouteEventSlug,
@@ -131,6 +132,9 @@ export default function App() {
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
+  // Intent liviano al abrir el checkout desde Pagos / Torneos: p.ej. abrir
+  // directo el selector de medio (“Elegir otro medio”) sin inventar un RPC.
+  const [checkoutIntent, setCheckoutIntent] = useState(null)
   // `?section=` llega en los emails de pago; sin leerlo, "revisá el estado de
   // tu pago" abría la cuenta en la credencial.
   const [profileTab, setProfileTab] = useState(
@@ -159,6 +163,26 @@ export default function App() {
       return canonical && canonical !== current ? canonical : current
     })
   }, [app.adminEvents])
+
+  // Reload en `/perfil` con cookie de staff (sin atleta): la vista queda en
+  // profile pero la sesión es staff y AthleteProfilePage no monta. Abrimos el
+  // puente una sola vez para recuperar la cuenta con acceso Admin.
+  useEffect(() => {
+    if (app.sessionPending) return undefined
+    if (view !== 'profile' && view !== 'membership') return undefined
+    if (!isStaffSession(app.session)) return undefined
+    if (app.session?.role === 'athlete_plu') return undefined
+
+    let cancelled = false
+    void app.enterAthleteContext().catch((error) => {
+      if (!cancelled) {
+        console.warn('No se pudo abrir el contexto de atleta tras restaurar la sesión.', error)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [app.enterAthleteContext, app.session, app.sessionPending, view])
 
   useEffect(() => {
     // Sin behavior explícito: hereda `scroll-behavior` de CSS, que ya
@@ -412,8 +436,9 @@ export default function App() {
     [publicEvents, getSession, pendingAthleteDestination, view, app.enterAthleteContext, app.returnToStaffContext],
   )
 
-  async function selectEvent(event) {
+  async function selectEvent(event, options = {}) {
     setSelectedEvent(event)
+    setCheckoutIntent(options.checkoutIntent ?? null)
     if (app.checkoutAvailability?.registrationEnabled === false) {
       navigate('events', event?.slug ? { eventSlug: event.slug } : {})
       return
@@ -837,6 +862,8 @@ export default function App() {
             onUpdateForm={app.updateForm}
             registrations={app.registrations}
             checkoutAvailability={app.checkoutAvailability}
+            checkoutIntent={checkoutIntent}
+            onCheckoutIntentConsumed={() => setCheckoutIntent(null)}
             // El precio de la inscripción sale del evento: la RPC cobra
             // `events.price`, así que la constante fija mostraba un total que no
             // era el que se iba a cobrar apenas el panel tocaba el precio.
@@ -855,6 +882,7 @@ export default function App() {
       <EmailVerificationNotice />
       <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
+      <CookieConsent />
       <DocumentMetaSync
         view={view}
         eventSlug={view === 'events' ? eventPageSlug : null}
@@ -917,6 +945,7 @@ function PrivateLayout({
       <EmailVerificationNotice />
       <SessionNotice onNavigate={navigate} />
       <PaymentsMockBanner />
+      <CookieConsent />
       <DocumentMetaSync view={view} />
       <AnalyticsTracker view={view} />
       <NavbarPublic

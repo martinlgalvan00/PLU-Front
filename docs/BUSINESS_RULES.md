@@ -87,6 +87,12 @@ El tercero exige evento, afiliación empaquetada e importe: es todo su contrato.
 puede crear ni viaja en el contrato de la API; las filas históricas siguen siendo
 válidas y, editadas desde el panel, se guardan como `offer`.
 
+Un `fixed_price` es el **importe final exacto**, no un descuento aproximado ni un
+tope. Si una afiliación o inscripción cuesta $92.500 y el código fija $85.000,
+preview, orden, redención y medio manual deben conservar $85.000; nunca se resta
+un peso para forzar que el código parezca un descuento. El precio por canal
+manual (`fixed_price_manual`) tiene el mismo contrato de exactitud.
+
 Una **oferta exclusiva** es un `discount_codes` con `kind='offer'`: un código
 secreto que no descuenta sino que vende el paquete de afiliación + inscripción a
 su propio precio. Exige `applies_to='combo'`, `audience='code'`, `event_id` (a

@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
+  CircleAlert,
   Eye,
   Link2,
   MapPin,
@@ -29,6 +30,7 @@ import {
   ADMIN_EVENT_STATUS_OPTIONS,
   EVENT_QUICK_STATUS_VALUES,
   getEventConsistencyWarnings,
+  getEventRegistrationAvailability,
   mapDraftToPreviewEvent,
   withEventStart,
 } from '../../services/eventAdminService.js'
@@ -105,12 +107,53 @@ function FormField({ children, error, htmlFor, label, wide = false }) {
   )
 }
 
-function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEvent }) {
+function AdminEventLivePreview({
+  draft,
+  embedded = false,
+  live = false,
+  showReadiness = false,
+  sourceEvent,
+}) {
   const { t } = useI18n()
   const previewEvent = useMemo(
     () => mapDraftToPreviewEvent(draft, sourceEvent),
     [draft, sourceEvent],
   )
+  const registration = useMemo(
+    () => getEventRegistrationAvailability({ ...sourceEvent, ...previewEvent }),
+    [previewEvent, sourceEvent],
+  )
+  const activeTicketTypes =
+    (draft?.ticketTypes ?? sourceEvent?.ticketTypes)?.filter(
+      (ticketType) => ticketType.active !== false,
+    ).length ?? 0
+
+  const readinessItems = showReadiness
+    ? [
+        {
+          id: 'published',
+          ok: previewEvent.published,
+          label: previewEvent.published
+            ? t('admin.eventEditor.readinessPublished')
+            : t('admin.eventEditor.readinessUnpublished'),
+        },
+        {
+          id: 'registration',
+          ok: registration.isLive,
+          label: registration.isLive
+            ? t('admin.eventEditor.readinessRegistrationLive')
+            : t('admin.eventEditor.readinessRegistrationOff'),
+        },
+        {
+          id: 'tickets',
+          ok: activeTicketTypes > 0,
+          label:
+            activeTicketTypes > 0
+              ? t('admin.eventEditor.readinessTickets', { count: activeTicketTypes })
+              : t('admin.eventEditor.readinessTicketsMissing'),
+        },
+      ]
+    : []
 
   return (
     <div
@@ -139,6 +182,13 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
           )}
         </div>
       )}
+
+      {embedded && live ? (
+        <p className="admin-event-preview__live-caption" role="status">
+          <span className="admin-event-preview__live-dot" aria-hidden />
+          {t('admin.eventEditor.liveHint')}
+        </p>
+      ) : null}
 
       <div className="admin-event-preview__card">
         <EventCard
@@ -219,6 +269,27 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
           </li>
         </ul>
       </div>
+
+      {readinessItems.length > 0 ? (
+        <ul
+          className="admin-event-preview__readiness"
+          aria-label={t('admin.eventEditor.readinessLabel')}
+        >
+          {readinessItems.map((item) => (
+            <li
+              key={item.id}
+              className={`admin-event-preview__readiness-item${item.ok ? ' is-ok' : ' is-pending'}`}
+            >
+              {item.ok ? (
+                <CheckCircle2 size={13} aria-hidden />
+              ) : (
+                <CircleAlert size={13} aria-hidden />
+              )}
+              <span>{item.label}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }
@@ -1601,29 +1672,37 @@ export default function AdminEventEditor({
                     ) : null}
                   </header>
 
-                  <AdminFilterChipGroup
-                    compact
-                    disabled={!canEdit}
-                    id="event-status"
-                    label={t('admin.eventEditor.publicStatus')}
-                    value={draft.status}
-                    onChange={(value) => patchDraft({ ...draft, status: value })}
-                    options={statusOptions}
-                  />
+                  {essentials ? (
+                    <p className="admin-event-form__section-note">
+                      {t('admin.eventEditor.visibilityOwnedByConsole')}
+                    </p>
+                  ) : (
+                    <>
+                      <AdminFilterChipGroup
+                        compact
+                        disabled={!canEdit}
+                        id="event-status"
+                        label={t('admin.eventEditor.publicStatus')}
+                        value={draft.status}
+                        onChange={(value) => patchDraft({ ...draft, status: value })}
+                        options={statusOptions}
+                      />
 
-                  {consistencyWarnings.length > 0 ? (
-                    <div className="admin-event-form__consistency" role="status">
-                      <p className="admin-event-form__consistency-head">
-                        <AlertTriangle size={13} aria-hidden />
-                        {t('admin.eventEditor.consistency.title')}
-                      </p>
-                      <ul>
-                        {consistencyWarnings.map((code) => (
-                          <li key={code}>{t(`admin.eventEditor.consistency.${code}`)}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
+                      {consistencyWarnings.length > 0 ? (
+                        <div className="admin-event-form__consistency" role="status">
+                          <p className="admin-event-form__consistency-head">
+                            <AlertTriangle size={13} aria-hidden />
+                            {t('admin.eventEditor.consistency.title')}
+                          </p>
+                          <ul>
+                            {consistencyWarnings.map((code) => (
+                              <li key={code}>{t(`admin.eventEditor.consistency.${code}`)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
 
                   <label className="admin-event-form__toggle">
                     <input
@@ -1643,65 +1722,59 @@ export default function AdminEventEditor({
                     </span>
                   </label>
 
-                  <label className="admin-event-form__toggle">
-                    <input
-                      checked={Boolean(draft.published)}
-                      className="admin-event-form__toggle-input"
-                      type="checkbox"
-                      onChange={(event) =>
-                        patchDraft({ ...draft, published: event.target.checked })
-                      }
-                      disabled={!canEdit}
-                    />
-                    <span className="admin-event-form__toggle-ui" aria-hidden />
-                    <span className="admin-event-form__toggle-copy">
-                      <strong>
-                        <Eye size={13} aria-hidden />
-                        {draft.published
-                          ? t('admin.eventEditor.supabase.publishedTitle')
-                          : t('admin.eventEditor.supabase.unpublishedTitle')}
-                      </strong>
-                      <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
-                    </span>
-                  </label>
+                  {essentials ? null : (
+                    <>
+                      <label className="admin-event-form__toggle">
+                        <input
+                          checked={Boolean(draft.published)}
+                          className="admin-event-form__toggle-input"
+                          type="checkbox"
+                          onChange={(event) =>
+                            patchDraft({ ...draft, published: event.target.checked })
+                          }
+                          disabled={!canEdit}
+                        />
+                        <span className="admin-event-form__toggle-ui" aria-hidden />
+                        <span className="admin-event-form__toggle-copy">
+                          <strong>
+                            <Eye size={13} aria-hidden />
+                            {draft.published
+                              ? t('admin.eventEditor.supabase.publishedTitle')
+                              : t('admin.eventEditor.supabase.unpublishedTitle')}
+                          </strong>
+                          <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
+                        </span>
+                      </label>
 
-                  {/* Acceso al meet. Antes era un checkbox cuya etiqueta era
-                      una afirmación ("Requiere afiliación activa"): había que
-                      leer el estado de la casilla para saber si el meet pedía
-                      afiliación o no, y nada decía qué pasaba en la puerta. Con
-                      dos opciones excluyentes el estado se lee sin interpretar,
-                      y la consecuencia queda escrita entera. Es el mismo
-                      control que la consola de operación del panel, con el
-                      mismo copy, para que no digan dos cosas distintas. */}
-                  <div className="admin-event-form__access">
-                    <AdminFilterChipGroup
-                      compact
-                      disabled={!canEdit}
-                      id="event-access"
-                      label={t('admin.eventEditor.accessLabel')}
-                      value={draft.requiresMembership === false ? 'open' : 'members'}
-                      onChange={(value) =>
-                        patchDraft({ ...draft, requiresMembership: value === 'members' })
-                      }
-                      options={accessOptions}
-                    />
-                    <p className="admin-event-form__access-note">
-                      {draft.requiresMembership === false ? (
-                        <Unlock size={13} aria-hidden />
-                      ) : (
-                        <ShieldCheck size={13} aria-hidden />
-                      )}
-                      {draft.requiresMembership === false
-                        ? t('admin.eventState.accessOpenNote')
-                        : t('admin.eventState.accessMembersNote')}
-                    </p>
-                  </div>
+                      {/* Acceso al meet: misma decisión que StateControl. En el
+                          acordeón de la consola vive solo allá (PATCH parcial). */}
+                      <div className="admin-event-form__access">
+                        <AdminFilterChipGroup
+                          compact
+                          disabled={!canEdit}
+                          id="event-access"
+                          label={t('admin.eventEditor.accessLabel')}
+                          value={draft.requiresMembership === false ? 'open' : 'members'}
+                          onChange={(value) =>
+                            patchDraft({ ...draft, requiresMembership: value === 'members' })
+                          }
+                          options={accessOptions}
+                        />
+                        <p className="admin-event-form__access-note">
+                          {draft.requiresMembership === false ? (
+                            <Unlock size={13} aria-hidden />
+                          ) : (
+                            <ShieldCheck size={13} aria-hidden />
+                          )}
+                          {draft.requiresMembership === false
+                            ? t('admin.eventState.accessOpenNote')
+                            : t('admin.eventState.accessMembersNote')}
+                        </p>
+                      </div>
+                    </>
+                  )}
 
-                  {/* Antes vivía detrás de un <details> ("Avanzado"): con tabs
-                    reales esta pantalla ya está acotada a Publicación, así
-                    que la transmisión queda siempre a la vista. En el acordeón
-                    de la consola queda fuera: lo elemental es estado, acceso y
-                    destacado. */}
+                  {/* Transmisión: fuera del acordeón elemental (solo destacado). */}
                   {!essentials ? (
                   <div className="admin-event-form__ticket-config">
                     <div className="admin-event-form__ticket-config-summary admin-event-form__ticket-config-summary--static">

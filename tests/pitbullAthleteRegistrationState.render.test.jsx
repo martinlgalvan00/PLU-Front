@@ -103,9 +103,25 @@ describe('página del torneo · estado del atleta', () => {
 
     const state = container.querySelector('.pitbull-inscription-mine')
     expect(state.getAttribute('data-state')).toBe('pending_payment')
+    expect(state.textContent).toMatch(/cupo está reservado/i)
 
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--primary'))
-    expect(onSelectEvent).toHaveBeenCalledWith(PITBULL)
+    expect(onSelectEvent).toHaveBeenCalledWith(PITBULL, {})
+  })
+
+  it('con pago pendiente ofrece elegir otro medio con el intent de arrepentimiento', () => {
+    const { container, onSelectEvent } = renderPitbull({
+      registrations: [
+        { athleteId: 'ath-1', eventSlug: 'pitbull-classic-2026', status: 'pendiente_pago' },
+      ],
+    })
+
+    const secondary = [...container.querySelectorAll('.pitbull-inscription__cta--secondary')].find(
+      (button) => /Elegir otro medio/i.test(button.textContent),
+    )
+    expect(secondary).toBeTruthy()
+    fireEvent.click(secondary)
+    expect(onSelectEvent).toHaveBeenCalledWith(PITBULL, { checkoutIntent: 'change_method' })
   })
 
   it('no reclama nada a quien canceló: vuelve a ofrecer la inscripción', () => {
@@ -118,7 +134,7 @@ describe('página del torneo · estado del atleta', () => {
     expect(container.querySelector('.pitbull-inscription-mine')).toBeNull()
 
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--primary'))
-    expect(onSelectEvent).toHaveBeenCalledWith(PITBULL)
+    expect(onSelectEvent).toHaveBeenCalledWith(PITBULL, {})
   })
 
   it('no filtra la inscripción de otro atleta', () => {

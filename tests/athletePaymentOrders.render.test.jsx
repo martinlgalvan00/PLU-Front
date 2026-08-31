@@ -227,3 +227,21 @@ describe('código de descuento en la fila', () => {
     expect(screen.queryByText('ONLY-PITBULL-GOLD')).toBeNull()
   })
 })
+
+describe('identidad staff en la fila', () => {
+  it('muestra pill Staff en vez del hash STAFF-uuid', async () => {
+    await renderSection([
+      order({
+        athlete: {
+          fullName: 'Ana Torres',
+          documentId: 'STAFF-660583de-002b-4408-aa10-94fc4f521f0b',
+        },
+      }),
+    ])
+
+    expect(screen.getByText('Staff')).toBeTruthy()
+    expect(
+      screen.queryByText('STAFF-660583de-002b-4408-aa10-94fc4f521f0b'),
+    ).toBeNull()
+  })
+})

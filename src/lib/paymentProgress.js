@@ -189,17 +189,32 @@ function hasProof(order = {}) {
 }
 
 /**
- * ¿Esta orden necesita que el atleta haga algo ahora? Rechazada o vencida y
- * sin resolver por otra vía (afiliación/inscripción ya otorgada de todos
- * modos). Un solo criterio para el aviso de la sección Pagos, el ícono de
- * cada fila y el indicador de la ficha "Pagos" en la navegación — que las
- * tres lecturas puedan desalinearse (una avisa, la otra no) es peor que
- * repetir una condición de una línea.
+ * ¿Esta orden necesita que el atleta haga algo ahora? Rechazada/vencida (retry)
+ * o abierta con una acción concreta (continuar pago / subir comprobante), y
+ * sin resolver por otra vía. Un solo criterio para el aviso de la sección
+ * Pagos, el ícono de cada fila y el indicador de la ficha "Pagos" en la
+ * navegación — que las tres lecturas puedan desalinearse (una avisa, la otra
+ * no) es peor que repetir una condición de una línea.
  *
  * @param {ReturnType<typeof derivePaymentProgress>|null|undefined} progress
  */
 export function isPaymentActionable(progress) {
-  return progress?.action === 'retry' && !progress?.resolvedElsewhere
+  if (!progress || progress.resolvedElsewhere) return false
+  return ['retry', 'pay', 'upload_proof'].includes(progress.action)
+}
+
+/**
+ * ¿Se puede ofrecer "Elegir otro medio" sin pelear con un intento en vuelo o
+ * un comprobante ya en revisión? El switch real lo hace el checkout (RPC
+ * resume); acá sólo se decide si mostrar el CTA.
+ *
+ * @param {ReturnType<typeof derivePaymentProgress>|null|undefined} progress
+ */
+export function canChangePaymentMethod(progress) {
+  if (!progress?.open || progress.resolvedElsewhere) return false
+  return ['esperando_pago', 'esperando_pago_en_sede', 'esperando_comprobante'].includes(
+    progress.state,
+  )
 }
 
 /**
@@ -373,6 +388,9 @@ function resolveReachedStage({ state, channel, stageKeys, order, hasAttempts }) 
 function resolveAction({ state, channel }) {
   if (state === 'esperando_comprobante') return 'upload_proof'
   if (state === 'esperando_pago') return channel === 'mercado_pago' ? 'pay' : null
+  // Efectivo en sede: el cobro sigue abierto y el atleta puede retomar o
+  // arrepentirse del medio; sin acción la fila de Pagos quedaba muda.
+  if (state === 'esperando_pago_en_sede') return 'pay'
   if (state === 'rechazado' || state === 'cancelado') return 'retry'
   if (state === 'procesando' || state === 'en_revision' || state === 'revision_pendiente') {
     return 'wait'

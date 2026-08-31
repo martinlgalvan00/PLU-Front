@@ -16,7 +16,7 @@ declare
   v_subscription_order_id uuid := gen_random_uuid();
   v_subscription_membership_id uuid := gen_random_uuid();
   v_subscription_id uuid := gen_random_uuid();
-  v_subscription_plan_id uuid;
+  v_subscription_plan_id uuid := gen_random_uuid();
   v_event_retry_id uuid := gen_random_uuid();
   v_event_stale_id uuid := gen_random_uuid();
   v_status text;
@@ -193,8 +193,20 @@ begin
 
   -- El primer cobro recurrente consume la orden/ciclo reservados. No crea
   -- una segunda orden ni duplica un ano de vigencia.
-  select id into v_subscription_plan_id
-  from public.membership_plans where code = 'plu-annual-auto';
+  -- El smoke no depende del catalogo comercial vigente: los planes se
+  -- versionan y `plu-annual-auto` ya puede estar retirado. Este fixture vive
+  -- dentro de la transaccion y desaparece con el rollback final.
+  insert into public.membership_plans (
+    id, code, name, price, currency, billing_frequency, collection_mode,
+    interval_count, grace_days, active, family_code, version
+  ) values (
+    v_subscription_plan_id,
+    'smoke-recurring-' || replace(v_subscription_plan_id::text, '-', ''),
+    'Smoke recurring plan', 38000, 'ARS', 'annual', 'recurring',
+    1, 0, true,
+    'smoke-recurring-' || replace(v_subscription_plan_id::text, '-', ''),
+    1
+  );
 
   insert into public.athlete_payment_orders(
     id, athlete_id, concept, plan_id, amount, currency, method, status,

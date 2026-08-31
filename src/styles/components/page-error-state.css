@@ -1,68 +1,85 @@
 /* PageErrorState — fallo de render contenido en el área de contenido.
-   Composición editorial (regla + eyebrow + título + acciones), sin card:
+   Composición editorial (regla oro + eyebrow + título + acciones), sin card:
    el navbar y el footer siguen visibles alrededor, así que una tarjeta
    flotante agregaría un tercer nivel de superficie sin aportar información.
-   Presupuesto: un solo acento (oro en la acción primaria); el error se
-   comunica por copy y por role="alert", no por color. */
+   Presupuesto: un solo acento (oro); el error se comunica por copy y
+   role="alert", no por color de alarma. */
 
-/* Alineado a la grilla del shell institucional (mismo gutter y ancho máximo
-   que el resto de las páginas): el bloque no debe flotar centrado en el
-   viewport, porque queda desprendido de la columna editorial del sitio. */
 .page-error-state {
   flex: 1;
   margin: 0 auto;
   max-width: var(--institution-content-max);
   min-height: 55vh;
-  padding: clamp(46px, 7vw, 88px) var(--institution-gutter) clamp(70px, 9vw, 116px);
+  padding: clamp(48px, 7vw, 96px) var(--institution-gutter) clamp(72px, 9vw, 120px);
   width: 100%;
 }
 
 .page-error-state__inner {
-  border-top: 1px solid var(--color-border-subtle);
   display: grid;
-  gap: var(--space-md);
+  gap: 0;
   justify-items: start;
-  max-width: 52ch;
-  padding-top: var(--space-lg);
+  max-width: 36rem;
   width: 100%;
 }
 
+.page-error-state__inner::before {
+  background: var(--color-brand-gold);
+  content: '';
+  display: block;
+  height: 2px;
+  margin-bottom: clamp(18px, 2.4vw, 24px);
+  width: 2.75rem;
+}
+
 .page-error-state__eyebrow {
-  align-items: center;
-  color: var(--color-text-muted);
-  display: inline-flex;
-  font-size: 0.72rem;
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: 11px;
   font-weight: 600;
-  gap: 0.4rem;
-  letter-spacing: 0.08em;
-  margin: 0;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  margin: 0 0 12px;
+  padding-inline-end: 0.12em;
   text-transform: uppercase;
 }
 
 .page-error-state__title {
   color: var(--color-text-primary);
   font-family: var(--font-display);
-  font-size: clamp(28px, 4.2vw, 46px);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
   margin: 0;
+  max-width: 16ch;
   text-wrap: balance;
 }
 
 .page-error-state__lead {
   color: var(--color-text-muted);
   font-size: 15px;
+  letter-spacing: -0.01em;
   line-height: 1.55;
-  margin: 0;
-  max-width: 46ch;
+  margin: clamp(14px, 2vw, 18px) 0 0;
+  max-width: 38ch;
 }
 
 .page-error-state__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-xs);
+  gap: 10px;
+  margin-top: clamp(22px, 3vw, 28px);
+}
+
+.page-error-state__actions .btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+  min-height: 44px;
+}
+
+.page-error-state__actions .btn--gold {
+  border-radius: 2px;
 }
 
 /* Detalle técnico: solo se renderiza en dev (import.meta.env.DEV). */
@@ -70,16 +87,19 @@
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-muted);
   font-size: 12px;
-  margin-top: var(--space-sm);
-  padding-top: var(--space-sm);
+  margin-top: clamp(28px, 4vw, 36px);
+  padding-top: 14px;
   width: 100%;
 }
 
 .page-error-state__detail summary {
+  color: color-mix(in oklab, var(--color-text-primary) 70%, var(--color-text-muted));
   cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  min-height: 32px;
+  letter-spacing: 0.1em;
+  min-height: 36px;
   text-transform: uppercase;
 }
 
@@ -89,15 +109,22 @@
 }
 
 .page-error-state__detail pre {
-  background: var(--color-bg-surface);
+  background: color-mix(in oklab, var(--color-bg-surface) 88%, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: 2px;
-  margin: var(--space-sm) 0 0;
+  color: color-mix(in oklab, var(--color-text-primary) 78%, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 12px 0 0;
   max-height: 40vh;
   overflow: auto;
-  padding: var(--space-sm);
+  padding: 12px 14px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+[data-theme='light'] .page-error-state__detail pre {
+  background: color-mix(in oklab, var(--color-bg-surface) 96%, var(--color-brand-gold) 4%);
 }
 
 @media (max-width: 640px) {
@@ -106,7 +133,17 @@
     padding: 48px 18px 72px;
   }
 
+  .page-error-state__title {
+    max-width: none;
+  }
+
+  .page-error-state__actions {
+    width: 100%;
+  }
+
   .page-error-state__actions > .btn {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: min(100%, 10rem);
   }
 }
