@@ -146,6 +146,37 @@ describe('códigos de descuento y promoción en el checkout', () => {
     return { slug, event: eventResult.data }
   }
 
+  async function createRegistrationEvent(plan, { price = 92500, manualPrice = 92500 } = {}) {
+    const slug = `fixed-price-registration-${randomUUID()}`
+    const now = Date.now()
+    const result = await admin
+      .from('events')
+      .insert({
+        organization_id: plan.organization_id,
+        slug,
+        title: 'Fixed price registration integration test',
+        description: 'Fixture 92.500 -> 85.000',
+        venue: 'Test venue',
+        location: 'Buenos Aires',
+        starts_at: new Date(now + 7 * 86400000).toISOString(),
+        ends_at: new Date(now + 8 * 86400000).toISOString(),
+        registration_opens_at: new Date(now - 86400000).toISOString(),
+        registration_closes_at: new Date(now + 6 * 86400000).toISOString(),
+        capacity: 4,
+        status: 'inscripcion_abierta',
+        published: true,
+        requires_membership: false,
+        price,
+        manual_price: manualPrice,
+        currency: plan.currency,
+      })
+      .select()
+      .single()
+    if (result.error) throw new Error(result.error.message)
+    createdEventIds.push(result.data.id)
+    return result.data
+  }
+
   afterAll(async () => {
     const cleanup = async (operation, label) => {
       const result = await operation
@@ -195,7 +226,10 @@ describe('códigos de descuento y promoción en el checkout', () => {
 
     const entityIds = [...createdAthleteIds, ...createdEventIds, ...orderIds, ...createdCodeIds]
     await cleanup(
-      admin.from('transactional_email_logs').delete().like('recipient_email', 'promo-%@pluarg.test'),
+      admin
+        .from('transactional_email_logs')
+        .delete()
+        .like('recipient_email', 'promo-%@pluarg.test'),
       'emails de fixture',
     )
     if (createdAthleteIds.length) {
@@ -260,6 +294,98 @@ describe('códigos de descuento y promoción en el checkout', () => {
     if (stored.error) throw new Error(stored.error.message)
     expect(stored.data.amount).toBe(expected)
     expect(stored.data.discount_amount).toBe(plan.price - expected)
+  })
+
+  it('cobra $85.000 exactos sobre $92.500 por transferencia y efectivo', async () => {
+    const plan = await activePlan()
+    const event = await createRegistrationEvent(plan)
+    const code = `TEST-85-${randomBytes(3).toString('hex').toUpperCase()}`
+    const saved = await createDiscountCode({
+      organizationId: plan.organization_id,
+      code,
+      kind: 'fixed_price',
+      fixedPrice: 85000,
+      fixedPriceManual: 85000,
+      appliesTo: 'registration',
+      eventId: event.id,
+      active: true,
+      manualChannels: ['bank_transfer', 'cash_pitbull'],
+    })
+    expect(saved.fixed_price).toBe(85000)
+    expect(saved.fixed_price_manual).toBe(85000)
+
+    for (const paymentMethod of ['manual_link', 'cash_pitbull']) {
+      const { athlete, cookie } = await registerAthlete('promo')
+
+      const previewResponse = await fetch(`${listenTarget.url}/api/athletes/me/discount-preview`, {
+        method: 'POST',
+        headers: { ...mutationHeaders, Cookie: cookie },
+        body: JSON.stringify({
+          code,
+          appliesTo: 'registration',
+          eventSlug: event.slug,
+          paymentMethod,
+        }),
+      })
+      const previewBody = await previewResponse.json()
+      expect(previewResponse.status, JSON.stringify(previewBody)).toBe(200)
+      expect(previewBody.preview).toMatchObject({
+        valid: true,
+        kind: 'fixed_price',
+        fixedPrice: 85000,
+        discountAmount: 7500,
+        finalAmount: 85000,
+      })
+
+      const idempotencyKey = randomUUID()
+      const orderBody = {
+        eventSlug: event.slug,
+        division: 'Open',
+        category: 'Raw',
+        bodyweightKg: 90,
+        paymentMethod,
+        idempotencyKey,
+        discountCode: code,
+      }
+      const create = () =>
+        fetch(`${listenTarget.url}/api/athletes/me/registrations`, {
+          method: 'POST',
+          headers: { ...mutationHeaders, Cookie: cookie },
+          body: JSON.stringify(orderBody),
+        })
+
+      const response = await create()
+      const body = await response.json()
+      expect(response.status, JSON.stringify(body)).toBe(201)
+      expect(body.order.amount).toBe(85000)
+      expect(body.order.discount_amount).toBe(7500)
+      expect(body.order.discount_code).toBe(code)
+      expect(body.order.method).toBe('manual_link')
+      expect(body.order.manual_payment_channel).toBe(
+        paymentMethod === 'cash_pitbull' ? 'cash_pitbull' : 'bank_transfer',
+      )
+
+      const stored = await admin
+        .from('athlete_payment_orders')
+        .select('id, amount, discount_amount, discount_code, manual_payment_channel')
+        .eq('athlete_id', athlete.id)
+        .single()
+      if (stored.error) throw new Error(stored.error.message)
+      expect(stored.data).toMatchObject({
+        amount: 85000,
+        discount_amount: 7500,
+        discount_code: code,
+      })
+      expect(stored.data.amount).not.toBe(84999)
+      expect(stored.data.amount).not.toBe(85001)
+
+      // Reintentar la misma acción de usuario no crea otra orden ni reprecifica.
+      const retry = await create()
+      const retryBody = await retry.json()
+      expect(retry.status, JSON.stringify(retryBody)).toBe(201)
+      expect(retryBody.order.id).toBe(stored.data.id)
+      expect(retryBody.order.amount).toBe(85000)
+    }
   })
 
   it('deja el combo en el precio promocional exacto del código', async () => {
@@ -591,7 +717,11 @@ describe('códigos de descuento y promoción en el checkout', () => {
       const transferBody = await transfer.json()
       expect(transfer.status, JSON.stringify(transferBody)).toBe(201)
       expect(transferBody.order.manual_payment_channel).toBe('bank_transfer')
-      expect(transferBody.order.amount).toBe(plan.price - Math.floor((plan.price * 20) / 100))
+      // El porcentaje se calcula sobre el precio del canal elegido. En DEV la
+      // afiliación vale $92.500 por MP y $85.000 por transferencia: usar
+      // `plan.price` acá certificaba un número que el checkout nunca cobraría.
+      const transferBase = plan.manual_price ?? plan.price
+      expect(transferBody.order.amount).toBe(transferBase - Math.floor((transferBase * 20) / 100))
     } finally {
       await closedChannels.close()
     }

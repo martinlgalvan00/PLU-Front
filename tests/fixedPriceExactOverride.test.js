@@ -6,6 +6,7 @@ const migration = readFileSync(
   resolve('supabase/migrations/20261015100000_exact_fixed_promotion_prices.sql'),
   'utf8',
 )
+const smoke = readFileSync(resolve('supabase/tests/fixed_price_promotion_flow.sql'), 'utf8')
 
 describe('precio fijo promocional exacto', () => {
   it('fija el caso real de $92.500 en $85.000, sin restar un peso', () => {
@@ -28,5 +29,17 @@ describe('precio fijo promocional exacto', () => {
   it('deja auditoría del código y de cada orden reparada', () => {
     expect(migration).toContain("'discount_code.fixed_price_repaired'")
     expect(migration).toContain("'payment_order.fixed_price_repaired'")
+  })
+
+  it('prueba el recorrido por transferencia, efectivo y reanudación', () => {
+    expect(smoke).toContain("'fixedPrice', 85000")
+    expect(smoke).toContain("'fixedPriceManual', 85000")
+    expect(smoke).toContain("'membership', 92500, 'manual_link'")
+    expect(smoke).toContain("'registration', 92500, 'manual_link'")
+    expect(smoke).toContain("'bank_transfer', 92500, 92500, 'ARS'")
+    expect(smoke).toContain("'cash_pitbull', 92500, 92500, 'ARS'")
+    expect(smoke).toContain('v_order.amount <> 85000')
+    expect(smoke).toContain('amount in (84999, 85001)')
+    expect(smoke.trimEnd()).toMatch(/rollback;$/)
   })
 })

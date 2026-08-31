@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
-import {
-  discountCodeSchema,
-  membershipPlanVersionSchema,
-} from '../server/routes/pricing.js'
+import { discountCodeSchema, membershipPlanVersionSchema } from '../server/routes/pricing.js'
 import {
   authHeaders,
   buildStaffUser,
@@ -69,7 +66,12 @@ async function setup() {
   const target = listen(
     createApp({
       prisma,
-      supabaseAdmin: { rpc },
+      supabaseAdmin: {
+        rpc,
+        // El catálogo suma precios Wise con lecturas directas. Este doble no
+        // necesita filas, pero sí representar la interfaz real de Supabase.
+        from: vi.fn(() => ({ select: vi.fn(async () => ({ data: [], error: null })) })),
+      },
       env: {
         AUTH_SECRET: 'pricing-test-secret',
         APP_URL: 'http://localhost:5173',
@@ -230,10 +232,7 @@ describe('configuración económica administrativa', () => {
         },
       )
       expect(response.status).toBe(400)
-      expect(rpc).not.toHaveBeenCalledWith(
-        'staff_set_event_registration_price',
-        expect.anything(),
-      )
+      expect(rpc).not.toHaveBeenCalledWith('staff_set_event_registration_price', expect.anything())
     } finally {
       await target.close()
     }
@@ -327,6 +326,35 @@ describe('configuración económica administrativa', () => {
         discountCodePayload({ kind: 'fixed_price', fixedPrice: 120000, appliesTo: 'both' }),
       ).success,
     ).toBe(false)
+  })
+
+  it('acepta $85.000 exactos y rechaza importes fraccionarios o fuera de rango', () => {
+    const exact = discountCodeSchema.safeParse(
+      discountCodePayload({
+        kind: 'fixed_price',
+        percentOff: undefined,
+        fixedPrice: '85000',
+        fixedPriceManual: '85000',
+        appliesTo: 'registration',
+      }),
+    )
+    expect(exact.success).toBe(true)
+    expect(exact.data.fixedPrice).toBe(85000)
+    expect(exact.data.fixedPriceManual).toBe(85000)
+
+    for (const fixedPrice of [0, -1, 84999.5, 10_000_001, 'no-es-un-importe']) {
+      expect(
+        discountCodeSchema.safeParse(
+          discountCodePayload({
+            kind: 'fixed_price',
+            percentOff: undefined,
+            fixedPrice,
+            appliesTo: 'registration',
+          }),
+        ).success,
+        String(fixedPrice),
+      ).toBe(false)
+    }
   })
 
   // Un combo sin inscripción se guardaba y después no se podía canjear por
@@ -646,10 +674,7 @@ describe('configuración económica administrativa', () => {
         )
         expect(response.status, method).toBe(404)
       }
-      expect(rpc).not.toHaveBeenCalledWith(
-        'staff_save_event_combo_offer',
-        expect.anything(),
-      )
+      expect(rpc).not.toHaveBeenCalledWith('staff_save_event_combo_offer', expect.anything())
     } finally {
       await target.close()
     }
