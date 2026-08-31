@@ -436,6 +436,18 @@ export default function MembershipPurchaseSection({
      * la oferta.
      */
     const repricing = discountPreview?.valid === true && discountPreview.code === code
+    // Un canje que llegó por override (el auto-canje de un pendiente) y rebota
+    // tiene que quedar A LA VISTA: el campo nace plegado detrás del toggle,
+    // así que sin abrirlo el motivo del rechazo no lo veía nadie — y el código
+    // fallido tampoco quedaba tipeado para reintentar. Mismo criterio que el
+    // checkout de inscripción.
+    const reportRejection = (message) => {
+      if (override) {
+        setDiscountOpen(true)
+        setDiscountCodeInput(code)
+      }
+      setDiscountError(message)
+    }
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
@@ -512,7 +524,7 @@ export default function MembershipPurchaseSection({
         paymentMethod: toApiPaymentMethod(previewPaymentMethod),
       })
       if (!preview.valid) {
-        setDiscountError(
+        reportRejection(
           describeDiscountPreviewError(t, preview, 'account.membership.discountError'),
         )
         return
@@ -528,7 +540,7 @@ export default function MembershipPurchaseSection({
       }
       clearPendingPromotionCode()
     } catch (error) {
-      setDiscountError(error?.message ?? t('account.membership.discountError.not_found'))
+      reportRejection(error?.message ?? t('account.membership.discountError.not_found'))
     } finally {
       setDiscountChecking(false)
     }
@@ -544,6 +556,12 @@ export default function MembershipPurchaseSection({
     // así que llegó de otro checkout que lo resolvió antes de mandarlo acá.
     if (destination?.view !== 'profile' || destination?.tab !== 'account-membership') return
     pendingPromotionAppliedRef.current = pending.code
+    // Consumido al leerlo, no recién cuando el canje sale bien: un canje que
+    // falla muestra su error y listo. Antes el pendiente sobrevivía en
+    // sessionStorage y se re-canjeaba solo en cada visita, dejando al atleta
+    // preso de la promoción sin forma de salir. Mismo criterio que el checkout
+    // de inscripción.
+    clearPendingPromotionCode()
     setDiscountCodeInput(pending.code)
     void applyDiscountCode(pending.code)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1526,7 +1544,6 @@ export default function MembershipPurchaseSection({
 
       {transferOpen && (
         <TransferPayModal
-          athlete={athlete}
           amount={transferAmount ?? selectedPlan?.price ?? 0}
           currency={transferChannel === 'wise_transfer' ? 'USD' : 'ARS'}
           channel={transferChannel}

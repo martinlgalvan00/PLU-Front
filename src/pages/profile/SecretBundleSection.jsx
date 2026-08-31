@@ -307,7 +307,6 @@ export default function SecretBundleSection({
         <div className="bundle-section__settle">
           {purchase?.manualPaymentChannel === 'bank_transfer' ? (
             <TransferReceipt
-              athlete={athlete}
               orderId={purchase.orderId}
               channel="bank_transfer"
               purpose="competition"

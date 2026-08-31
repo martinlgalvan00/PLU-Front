@@ -247,7 +247,6 @@ describe('ManualPaymentConfirmation', () => {
     render(
       <I18nProvider>
         <TransferReceipt
-          athlete={{ documentId: '30111222', fullName: 'Ana Pérez' }}
           financingAllowed
           onConfirmed={onConfirmed}
           orderId="order-fiar"
