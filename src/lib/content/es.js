@@ -35,7 +35,7 @@ export const HOME_MEMBERSHIP = {
   description:
     'Pago online, credencial QR en tu perfil y calendario oficial bajo el estándar PLU USA.',
   cta: 'Ver planes',
-  planLabel: 'Atleta adulto',
+  planLabel: 'Afiliación anual',
   seasonNote: 'Temporada 26/27',
   cardCta: 'Afiliarme',
 }
@@ -170,28 +170,18 @@ export const MEMBERSHIP_CTA = {
 }
 
 export const MEMBERSHIP_PLANS = [
+  // Template de features de marketing — NO es catálogo comprable.
+  // El precio y el nombre viven en membership_plans (API / Tarifas).
   {
     id: 'athlete',
-    title: 'Atleta adulto',
+    title: 'Afiliación PLU anual',
     kicker: 'Plan anual',
     price: PRICING.membership,
     period: 'anual',
-    features: ['Mayores de 18 años', 'Credencial digital', 'Eventos del calendario PLU ARG'],
+    features: ['Credencial digital', 'Eventos del calendario PLU ARG', 'Estado y QR en el check-in'],
     highlighted: false,
     procedureType: 'membership',
   },
-  {
-    id: 'junior',
-    title: 'Atleta juvenil',
-    kicker: 'Plan anual',
-    price: PRICING.membershipJunior,
-    period: 'anual',
-    features: ['14 a 17 años', 'Credencial digital', 'Eventos juveniles PLU ARG'],
-    highlighted: false,
-    procedureType: 'membership',
-  },
-  // El plan combo se retiró del catálogo: MembersPage ya lo filtraba y la
-  // entrada solo servía para compilar el precio de la oferta al bundle.
 ]
 
 export const MEMBERSHIP_BENEFITS = [

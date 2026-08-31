@@ -3902,6 +3902,16 @@
   white-space: nowrap;
 }
 
+.admin-shell .admin-data-table .data-table__identity-badge {
+  display: inline-flex;
+  margin-top: 2px;
+  max-width: 100%;
+}
+
+.admin-shell .admin-data-table .data-table__identity-badge .status-pill {
+  max-width: 100%;
+}
+
 .admin-shell .admin-data-table .data-table__sub--mono,
 .admin-shell .admin-data-table .data-table__mono {
   font-feature-settings: 'tnum' 1;

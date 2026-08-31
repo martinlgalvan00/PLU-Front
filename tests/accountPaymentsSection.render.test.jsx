@@ -162,4 +162,68 @@ describe('sección de pagos de la cuenta', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ir a Afiliación/i }))
     expect(onNavigateSection).toHaveBeenCalledWith('account-membership')
   })
+
+  it('una orden MP pendiente ofrece continuar y elegir otro medio', () => {
+    const onContinuePayment = vi.fn()
+    const onChangePaymentMethod = vi.fn()
+    renderSection(
+      [pago({ status: 'pendiente', method: 'mercado_pago' })],
+      { onContinuePayment, onChangePaymentMethod },
+    )
+
+    expect(screen.getByText('Esperando el pago')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Continuar pago/i }))
+    expect(onContinuePayment).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: /Elegir otro medio/i }))
+    expect(onChangePaymentMethod).toHaveBeenCalledTimes(1)
+  })
+
+  it('efectivo en sede pendiente también ofrece continuar y cambiar medio', () => {
+    renderSection(
+      [
+        pago({
+          status: 'pendiente',
+          method: 'manual_link',
+          manualPaymentChannel: 'cash_pitbull',
+        }),
+      ],
+      { onContinuePayment: vi.fn(), onChangePaymentMethod: vi.fn() },
+    )
+
+    expect(screen.getByText('A pagar en la sede')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Continuar pago/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Elegir otro medio/i })).toBeTruthy()
+  })
+
+  it('una transferencia en revisión no ofrece cambiar de medio', () => {
+    renderSection(
+      [
+        pago({
+          status: 'validacion_manual',
+          method: 'manual_link',
+          manualPaymentChannel: 'bank_transfer',
+          paymentProofUploadedAt: '2026-08-20T15:00:00.000Z',
+        }),
+      ],
+      { onContinuePayment: vi.fn(), onChangePaymentMethod: vi.fn() },
+    )
+
+    expect(screen.getByText('En revisión')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Elegir otro medio/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Continuar pago/i })).toBeNull()
+  })
+
+  it('un cobro procesando no ofrece cambiar de medio', () => {
+    renderSection(
+      [
+        pago({ status: 'pendiente', method: 'mercado_pago' }, [
+          { external_payment_id: '1', status: 'pendiente' },
+        ]),
+      ],
+      { onContinuePayment: vi.fn(), onChangePaymentMethod: vi.fn() },
+    )
+
+    expect(screen.getByText('Procesando')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Elegir otro medio/i })).toBeNull()
+  })
 })

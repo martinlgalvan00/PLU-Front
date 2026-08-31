@@ -2,7 +2,7 @@ import { ArrowRight, CircleAlert, Receipt } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import Pill from '../../components/ui/Pill.jsx'
 import { money } from '../../lib/format.js'
-import { isPaymentActionable } from '../../lib/paymentProgress.js'
+import { canChangePaymentMethod, isPaymentActionable } from '../../lib/paymentProgress.js'
 
 /**
  * PaymentsSection — PLU ARG
@@ -19,7 +19,8 @@ import { isPaymentActionable } from '../../lib/paymentProgress.js'
  * acá sólo se dibuja.
  *
  * Es una lista editorial, no una grilla de cards: son registros comparables en
- * orden cronológico, con una sola acción posible por cobro.
+ * orden cronológico. Por cobro abierto puede haber continuar / subir
+ * comprobante / elegir otro medio; por cobro cerrado, reintentar.
  */
 
 function formatDate(value, locale) {
@@ -104,17 +105,28 @@ function ProgressTrack({ stages, t }) {
   )
 }
 
-export default function PaymentsSection({ payments = [], onNavigateSection, onRetryPayment }) {
+function primaryActionLabel(action, t) {
+  if (action === 'pay') return t('account.payments.action.continue')
+  if (action === 'upload_proof') return t('account.payments.action.uploadProof')
+  if (action === 'retry') return t('account.payments.action.retry')
+  return null
+}
+
+export default function PaymentsSection({
+  payments = [],
+  onNavigateSection,
+  onRetryPayment,
+  onContinuePayment,
+  onChangePaymentMethod,
+}) {
   const { locale, t } = useI18n()
   const resolveReason = useReason(t, locale)
 
   const rows = [...payments].sort(
     (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
   )
-  // Cobros que de verdad necesitan que la persona haga algo: rechazado o
-  // vencido, sin que la afiliación/inscripción haya quedado resuelta por otra
-  // vía. Es el mismo criterio que ya decide si la fila ofrece "Generar un
-  // cobro nuevo" — acá se cuenta para el aviso de arriba de la lista.
+  // Cobros que de verdad necesitan que la persona haga algo: abiertos con
+  // acción, o rechazados/vencidos sin resolver por otra vía.
   const actionableCount = rows.filter((payment) => isPaymentActionable(payment.progress)).length
 
   return (
@@ -159,6 +171,28 @@ export default function PaymentsSection({ payments = [], onNavigateSection, onRe
               const date = formatDate(payment.createdAt, locale)
               const channelLabel = t(`account.payments.channel.${progress?.channel ?? 'mercado_pago'}`)
               const isActionable = isPaymentActionable(progress)
+              const action = progress?.action ?? null
+              const primaryLabel = primaryActionLabel(action, t)
+              const showChangeMethod =
+                canChangePaymentMethod(progress) && typeof onChangePaymentMethod === 'function'
+              const handlePrimary = () => {
+                if (action === 'retry' && typeof onRetryPayment === 'function') {
+                  onRetryPayment(payment)
+                  return
+                }
+                if (
+                  (action === 'pay' || action === 'upload_proof') &&
+                  typeof onContinuePayment === 'function'
+                ) {
+                  onContinuePayment(payment)
+                }
+              }
+              const showPrimary =
+                Boolean(primaryLabel) &&
+                isActionable &&
+                ((action === 'retry' && typeof onRetryPayment === 'function') ||
+                  ((action === 'pay' || action === 'upload_proof') &&
+                    typeof onContinuePayment === 'function'))
 
               return (
                 <li key={payment.id} className="account-payment">
@@ -235,18 +269,28 @@ export default function PaymentsSection({ payments = [], onNavigateSection, onRe
                     </p>
                   ) : null}
 
-                  {/* Sin `resolvedElsewhere`: ofrecerle pagar de nuevo a quien
-                      ya tiene la afiliación activa es empujarlo a pagar dos
-                      veces lo mismo. */}
-                  {isActionable && typeof onRetryPayment === 'function' ? (
-                    <button
-                      type="button"
-                      className="account-payment__action"
-                      onClick={() => onRetryPayment(payment)}
-                    >
-                      {t('account.payments.action.retry')}
-                      <ArrowRight size={14} aria-hidden />
-                    </button>
+                  {showPrimary || showChangeMethod ? (
+                    <div className="account-payment__actions">
+                      {showPrimary ? (
+                        <button
+                          type="button"
+                          className="account-payment__action"
+                          onClick={handlePrimary}
+                        >
+                          {primaryLabel}
+                          <ArrowRight size={14} aria-hidden />
+                        </button>
+                      ) : null}
+                      {showChangeMethod ? (
+                        <button
+                          type="button"
+                          className="account-payment__action account-payment__action--secondary"
+                          onClick={() => onChangePaymentMethod(payment)}
+                        >
+                          {t('account.payments.action.changeMethod')}
+                        </button>
+                      ) : null}
+                    </div>
                   ) : null}
                 </li>
               )

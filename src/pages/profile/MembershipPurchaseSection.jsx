@@ -78,6 +78,8 @@ export default function MembershipPurchaseSection({
   // arriba y la puede dar de baja si vence. Se resuelve en AthleteProfilePage,
   // que es quien tiene la lista de pagos completa.
   pendingFinancedPayment = null,
+  checkoutIntent = null,
+  onCheckoutIntentConsumed,
 }) {
   const { locale, t } = useI18n()
   const [paymentMethod, setPaymentMethod] = useState('mercado_pago')
@@ -605,6 +607,14 @@ export default function MembershipPurchaseSection({
     if (!discountOpen || discountPreview) return
     discountInputRef.current?.focus()
   }, [discountOpen, discountPreview])
+
+  // Desde la sección Pagos: abrir el selector de medio (arrepentimiento) si
+  // la orden de afiliación todavía está viva o el formulario permite elegir.
+  useEffect(() => {
+    if (checkoutIntent !== 'change_method') return
+    setChangingMethod(true)
+    onCheckoutIntentConsumed?.()
+  }, [checkoutIntent, onCheckoutIntentConsumed])
 
   async function startMembershipPayment(methodOverride) {
     const method = methodOverride ?? paymentMethod

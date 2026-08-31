@@ -9,7 +9,7 @@ import AdminEventStateControl from './AdminEventStateControl.jsx'
 
 /**
  * Banda de control de estado del evento: abrir, cerrar y publicar sin abrir el
- * editor completo.
+ * editor completo. Los chips seleccionan un draft; Guardar confirma el PATCH.
  *
  * Las historias envuelven el componente en las clases del panel real
  * (`admin-shell` > `admin-list-section--events` > `admin-list-shell--events`)
@@ -114,8 +114,8 @@ export const CupoLleno = {
  * El operador reabre un evento que sigue lleno y la base lo devuelve a
  * `agotado`. Es el caso que más confunde si la pantalla no lo dice.
  *
- * Flujo auto-save: tocá un chip de estado (guarda al toque) -- el notice
- * explica que la base corrigió el estado pedido.
+ * Flujo draft: elegí un estado distinto y Guardá — el notice explica que la
+ * base corrigió el estado pedido.
  */
 export const ReaperturaRevertida = {
   args: {

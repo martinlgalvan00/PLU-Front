@@ -18,6 +18,7 @@ import AdminEventConsoleModal, {
 import AdminEventEditor, {
   getAdminEventDraftSignature,
 } from '../../components/admin/AdminEventEditor.jsx'
+import AdminEventPaymentsTriage from '../../components/admin/AdminEventPaymentsTriage.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
 import AdminEventSessionsEditor from '../../components/admin/AdminEventSessionsEditor.jsx'
@@ -38,6 +39,10 @@ import {
   createAdminEventDraft,
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
+import {
+  buildEventPaymentTriage,
+  formatEventPaymentTriageSummary,
+} from '../../services/eventPaymentTriage.js'
 
 function isFinishedEvent(event) {
   return event?.status === 'finalizado'
@@ -172,11 +177,15 @@ function EventListRow({ row, selected, locale, onSelect, t }) {
 
 export default function EventsSection({
   adminEvents,
+  athletes = [],
   canEdit,
   canDeleteEvents = false,
   canManageUsers,
+  canValidatePayments = false,
   isLoading = false,
   loadError = null,
+  onApprovePayment,
+  onApproveTicketOrder,
   onAssignSecurityZone,
   onCreateSecurityUser,
   onCreateSecurityUsersBulk,
@@ -191,12 +200,18 @@ export default function EventsSection({
   onManageCheckin,
   onManagePayments,
   onManageRegistrations,
+  onOpenFinanceForEvent,
   onPresetSecurityZones,
   onRefresh,
+  onRefreshPayments,
+  onRejectPayment,
+  onRejectTicketOrder,
   onSaveEvent,
   onSetEventState,
   onUpdateSecurityUserStatus,
   onUpdateSecurityZone,
+  payments = [],
+  pendingTicketOrders = [],
   tickets = [],
 }) {
   const { locale, t } = useI18n()
@@ -253,12 +268,18 @@ export default function EventsSection({
     pendingConsoleSectionRef.current = null
   }
 
-  /** Zonas reemplazan al listado: la consola se cierra para dejar el ancho
-   *  completo a la tabla de operación. */
+  /** Zonas y pagos reemplazan al listado: la consola se cierra para dejar el
+   *  ancho completo a la operación. */
   function openDrillFromConsole(view) {
     setConsoleOpen(false)
     setConsoleSection(null)
     setConsoleView(view)
+  }
+
+  function closeDrill() {
+    const returnToConsole = consoleView === 'payments'
+    setConsoleView('list')
+    if (returnToConsole) setConsoleOpen(true)
   }
 
   useEffect(() => {
@@ -341,6 +362,21 @@ export default function EventsSection({
   const editingSource = draft.id
     ? (adminEvents.find((event) => event.id === draft.id) ?? selectedEvent)
     : null
+
+  const selectedPaymentTriage = useMemo(
+    () =>
+      buildEventPaymentTriage({
+        event: selectedEvent,
+        payments,
+        athletes,
+        pendingTicketOrders,
+      }),
+    [athletes, payments, pendingTicketOrders, selectedEvent],
+  )
+  const selectedPaymentSummary = useMemo(
+    () => formatEventPaymentTriageSummary(selectedPaymentTriage.counts, t),
+    [selectedPaymentTriage.counts, t],
+  )
 
   const kpiStats = useMemo(() => {
     let totalRegistered = 0
@@ -703,15 +739,21 @@ export default function EventsSection({
             <button
               type="button"
               className="admin-event-drill__back"
-              onClick={() => setConsoleView('list')}
-              aria-label={t('admin.eventConsole.back')}
+              onClick={closeDrill}
+              aria-label={
+                consoleView === 'payments'
+                  ? t('admin.eventConsole.backToConsole')
+                  : t('admin.eventConsole.back')
+              }
             >
               <ArrowLeft size={14} aria-hidden />
             </button>
             <strong>{selectedEvent.title}</strong>
             <span aria-hidden>·</span>
             <span>
-              {[selectedDateLabel, selectedVenueLine].filter(Boolean).join(' · ')}
+              {consoleView === 'payments'
+                ? t('admin.eventPayments.crumb')
+                : [selectedDateLabel, selectedVenueLine].filter(Boolean).join(' · ')}
             </span>
           </div>
 
@@ -745,6 +787,24 @@ export default function EventsSection({
                 onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
               />
             </>
+          ) : null}
+
+          {consoleView === 'payments' ? (
+            <AdminEventPaymentsTriage
+              athletes={athletes}
+              canEdit={canValidatePayments}
+              event={selectedEvent}
+              onApprovePayment={onApprovePayment}
+              onApproveTicketOrder={onApproveTicketOrder}
+              onOpenFinance={
+                onOpenFinanceForEvent ? () => onOpenFinanceForEvent(selectedEvent) : undefined
+              }
+              onRejectPayment={onRejectPayment}
+              onRejectTicketOrder={onRejectTicketOrder}
+              onRefresh={onRefreshPayments}
+              payments={payments}
+              pendingTicketOrders={pendingTicketOrders}
+            />
           ) : null}
         </div>
       ) : (
@@ -812,6 +872,10 @@ export default function EventsSection({
         event={selectedEvent}
         open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent)}
         openSection={consoleSection}
+        paymentSummary={selectedPaymentSummary}
+        previewDraft={
+          formOpen && draft.id && selectedEvent && draft.id === selectedEvent.id ? draft : null
+        }
         structureEditor={
           consoleSection === 'structure' && selectedEvent ? (
             <AdminEventSessionsEditor
@@ -832,7 +896,11 @@ export default function EventsSection({
           exitEditRef.current?.()
         }}
         onManageCheckin={onManageCheckin}
-        onManagePayments={onManagePayments}
+        onManagePayments={
+          canValidatePayments || onManagePayments || onOpenFinanceForEvent
+            ? () => openDrillFromConsole('payments')
+            : undefined
+        }
         onManageRegistrations={onManageRegistrations}
         onOpenZones={() => openDrillFromConsole('zones')}
         onSetEventState={onSetEventState}

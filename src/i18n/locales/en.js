@@ -789,6 +789,24 @@ export default {
     optOut: 'Do not measure my browsing',
     optOutActive: 'Browsing not measured',
   },
+  cookies: {
+    regionLabel: 'Cookie preferences',
+    title: 'Cookies',
+    lead: 'We use session cookies to keep you signed in and, only if you accept, site usage measurement.',
+    acceptAll: 'Accept all',
+    onlyNecessary: 'Necessary only',
+    preferences: 'Preferences',
+    save: 'Save preferences',
+    close: 'Close',
+    necessaryTitle: 'Necessary',
+    necessaryDetail: 'They keep your session open. The site cannot work without them and they cannot be disabled.',
+    alwaysOn: 'Always on',
+    analyticsTitle: 'Usage measurement',
+    analyticsDetail: 'Aggregated navigation statistics. Linked to your account only while signed in.',
+    analyticsOn: 'Enabled',
+    analyticsOff: 'Disabled',
+    reopen: 'Cookies',
+  },
   locale: {
     label: 'Language',
     es: 'Español',
@@ -811,9 +829,9 @@ export default {
     errorMessage: 'Check your connection and try again.',
   },
   pageError: {
-    eyebrow: 'Application error',
-    title: 'This section could not be displayed',
-    lead: 'It failed while rendering and we contained it here so the rest of the site keeps working. Navigation and every other page are still available.',
+    eyebrow: 'Section unavailable',
+    title: 'We could not show this view',
+    lead: 'It was contained here so navigation and the rest of the site keep working. You can retry or go back home.',
     retry: 'Retry',
     home: 'Go to home',
     actionsAria: 'Recovery options',
@@ -1227,7 +1245,7 @@ export default {
       alertTitle_one: 'You have {{count}} charge to resolve',
       alertTitle_other: 'You have {{count}} charges to resolve',
       alertBody:
-        'Mercado Pago declined the payment, so the membership or registration was not confirmed. Retry it from the charge marked below.',
+        'There are pending or unconfirmed charges. Continue payment, choose another method, or generate a new charge from the row marked below.',
       settledAfterAttempts_one:
         'It went through after {{count}} declined attempt. If you got a decline notice, disregard it.',
       settledAfterAttempts_other:
@@ -1266,6 +1284,9 @@ export default {
         cash_pitbull: 'Cash at the venue',
       },
       action: {
+        continue: 'Continue payment',
+        uploadProof: 'Upload receipt',
+        changeMethod: 'Choose another method',
         retry: 'Start a new charge',
       },
       reason: {
@@ -1475,6 +1496,7 @@ export default {
       register: 'Register',
       paymentPending: 'Payment pending',
       resumePayment: 'Resume payment',
+      changePaymentMethod: 'Choose another method',
       membershipRequiredTitle: 'Membership for gate access',
       membershipRequiredText:
         'You can register now. Gate access on meet day unlocks when your membership is active.',
@@ -1819,6 +1841,11 @@ export default {
       plansLead:
         'One annual membership per season. A single payment to compete on the official calendar.',
       plansLeadCheckoutSoon: 'We are preparing the 26/27 season opening.',
+      planIncludes: [
+        'Digital credential',
+        'PLU ARG calendar events',
+        'Status and QR at check-in',
+      ],
       promoSoonEyebrow: 'Official opening',
       promoSoonTitle: 'Annual membership + Pitbull Classic registration',
       promoSoonLead:
@@ -1894,10 +1921,9 @@ export default {
       institutionalAria: 'Connection with Powerlifting United',
       heroRail: {
         metricsAria: 'Membership pricing and validity',
-        adult: 'Adults',
-        junior: 'Junior',
+        annual: 'Annual membership',
         validity: 'Annual validity',
-        calendarYear: 'Calendar year',
+        calendarYear: 'Season',
         affiliateNow: 'Join now',
         viewPlans: 'View plans',
       },
@@ -2074,7 +2100,7 @@ export default {
       athleteStatusHint: {
         guest: 'With an athlete account you can finish membership and registration in one flow.',
         registered: 'Your slot is confirmed. Check credential and meet details in your profile.',
-        pending_payment: 'Complete payment or manual validation to finish registration.',
+        pending_payment: 'Your spot is reserved. Continue payment or choose another method to close it.',
         needs_membership: 'This meet requires an active membership before gate check-in.',
         can_register: 'You are ready to complete registration.',
         closed: 'This event no longer accepts new entries.',
@@ -2082,6 +2108,7 @@ export default {
       athleteStatusAction: {
         needs_membership: 'Join and register',
         pending_payment: 'Continue payment',
+        change_payment: 'Choose another method',
       },
       viewFull: 'View full details',
       selectedIsFeatured: 'This is the featured event — the full card is above.',

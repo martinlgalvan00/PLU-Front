@@ -49,6 +49,14 @@
 - [ ] Webhook Brevo mueve `sent` a `delivered`, `rejected` o `bounced` y conserva cada transición en auditoría
 - [ ] Auditoría alerta pagos aprobados sin afiliación activa y afiliaciones activas sin email `delivered`
 
+## Códigos promocionales
+
+- [ ] Precio fijo de $85.000 sobre una inscripción de $92.500 muestra y crea una orden por $85.000 exactos
+- [ ] El mismo precio fijo conserva $85.000 al elegir transferencia bancaria
+- [ ] El mismo precio fijo conserva $85.000 al elegir efectivo en Pitbull
+- [ ] La orden y `discount_code_redemptions` guardan el mismo descuento ($7.500 en el caso anterior)
+- [ ] Un código de afiliación repite la prueba contra el precio vigente del plan
+
 ## Panel admin
 
 - [ ] Dashboard muestra métricas

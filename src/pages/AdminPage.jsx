@@ -459,23 +459,27 @@ export default function AdminPage({
       return (
         <EventsSection
           adminEvents={adminEvents}
+          athletes={athletes}
           isLoading={adminEventsLoading}
           loadError={adminEventsError}
           canEdit={hasPermission(authorization, 'admin.events.write')}
           canManageUsers={canManageUsers}
+          canValidatePayments={hasPermission(authorization, 'admin.payments.approve')}
+          onApprovePayment={onApprovePayment}
+          onApproveTicketOrder={onApproveTicketPurchase}
           onCreateSecurityUser={onCreateSecurityUser}
           onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
           onCreateSecurityAccessLink={onCreateSecurityAccessLink}
           onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
           onListSecurityUsers={onListSecurityUsers}
-          onManagePayments={
+          onManageCheckin={
+            allowedSections.includes('checkin') ? handleManageEventCheckin : undefined
+          }
+          onOpenFinanceForEvent={
             allowedSections.includes('payments') ? handleManageEventPayments : undefined
           }
           onManageRegistrations={
             allowedSections.includes('registrations') ? handleManageEventRegistrations : undefined
-          }
-          onManageCheckin={
-            allowedSections.includes('checkin') ? handleManageEventCheckin : undefined
           }
           onListSecurityZones={onListSecurityZones}
           onCreateSecurityZone={onCreateSecurityZone}
@@ -484,12 +488,17 @@ export default function AdminPage({
           onPresetSecurityZones={onPresetSecurityZones}
           onAssignSecurityZone={onAssignSecurityZone}
           onRefresh={onRefreshAdminEvents}
+          onRefreshPayments={onRefreshPendingTicketOrders}
+          onRejectPayment={onRejectPayment}
+          onRejectTicketOrder={onRejectTicketOrder}
           onSaveEvent={onSaveEvent}
           canDeleteEvents={canDeleteEvents}
           onDeleteEvent={onDeleteEvent}
           onFetchDeleteImpact={onFetchEventDeleteImpact}
           onSetEventState={onSetEventState}
           onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+          payments={payments}
+          pendingTicketOrders={pendingTicketOrders}
           tickets={tickets}
         />
       )

@@ -1,5 +1,5 @@
 import '../../styles/components/page-error-state.css'
-import { RotateCcw, TriangleAlert } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import Button from './Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 
@@ -18,10 +18,7 @@ export default function PageErrorState({ error, onRetry, onGoHome }) {
   return (
     <main className="page-error-state" role="alert" aria-live="assertive">
       <div className="page-error-state__inner">
-        <p className="page-error-state__eyebrow">
-          <TriangleAlert aria-hidden size={13} />
-          {t('pageError.eyebrow')}
-        </p>
+        <p className="page-error-state__eyebrow">{t('pageError.eyebrow')}</p>
         <h1 className="page-error-state__title">{t('pageError.title')}</h1>
         <p className="page-error-state__lead">{t('pageError.lead')}</p>
         <div
@@ -29,8 +26,8 @@ export default function PageErrorState({ error, onRetry, onGoHome }) {
           role="group"
           aria-label={t('pageError.actionsAria')}
         >
-          <Button onClick={onRetry}>
-            <RotateCcw size={16} aria-hidden />
+          <Button variant="gold" onClick={onRetry}>
+            <RotateCcw size={15} aria-hidden />
             {t('pageError.retry')}
           </Button>
           {onGoHome ? (

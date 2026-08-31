@@ -2613,6 +2613,35 @@
     background var(--transition-fast);
 }
 
+#account-events .account-events-list__actions {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-self: end;
+}
+
+#account-events .account-events-list__change-method {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  min-height: 32px;
+  padding: 0 4px;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#account-events .account-events-list__change-method:hover {
+  border: none;
+  color: var(--color-brand-celeste);
+}
+
 #account-events .account-events-list__cta:not(:disabled):hover {
   background: color-mix(in srgb, var(--color-brand-celeste) 8%, transparent);
   border-color: var(--color-brand-celeste);
@@ -2696,8 +2725,13 @@
     justify-self: start;
   }
 
-  #account-events .account-events-list__cta {
+  #account-events .account-events-list__actions {
     grid-column: 1 / -1;
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  #account-events .account-events-list__cta {
     justify-self: stretch;
     width: 100%;
   }
@@ -3887,6 +3921,22 @@
   width: 3px;
 }
 
+/* Estado resuelto: el filete y el ícono pasan de oro (pendiente) a verde
+   (verificado), sin tocar el resto del material. */
+.account-verify--verified::before {
+  background: linear-gradient(
+    180deg,
+    var(--color-success-text) 0%,
+    color-mix(in srgb, var(--color-success-text) 45%, transparent) 100%
+  );
+}
+
+.account-verify--verified .account-verify__icon {
+  background: color-mix(in srgb, var(--color-success-text) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-success-text) 26%, transparent);
+  color: var(--color-success-text);
+}
+
 .account-verify__icon {
   align-items: center;
   margin-top: 2px;
@@ -3969,10 +4019,10 @@
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 650;
-  letter-spacing: 0.28em;
-  min-height: 36px;
+  letter-spacing: 0.3em;
+  min-height: 44px;
   padding: 0 12px;
   text-align: center;
   width: 13.5rem;
@@ -4000,8 +4050,8 @@
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 700;
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 16px;
 }
 
 .account-verify__otp-submit:disabled {
@@ -4024,7 +4074,7 @@
   flex-shrink: 0;
   font-size: 12.5px;
   font-weight: 600;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
   transition:
     background var(--motion-fast) var(--ease-standard),
@@ -5406,9 +5456,16 @@
   overflow-wrap: anywhere;
 }
 
-/* Acción de un cobro puntual: la única acción que importa en una fila
-   rechazada/vencida, así que es un botón real (borde + relleno en hover),
-   no un link de párrafo — antes se confundía con metadata al pasar de largo. */
+/* Acción de un cobro puntual: continuar / reintentar / cambiar medio. Es un
+   botón real (borde + relleno en hover), no un link de párrafo — antes se
+   confundía con metadata al pasar de largo. */
+.account-payment__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .account-payment__action {
   align-items: center;
   background: transparent;
@@ -5421,7 +5478,6 @@
   font-size: 13px;
   font-weight: 600;
   gap: 7px;
-  margin-top: 4px;
   /* 44px de alto real: es un target táctil, no un link de párrafo. */
   min-height: 44px;
   padding: 0 18px;
@@ -5431,9 +5487,21 @@
     color var(--transition-fast);
 }
 
+.account-payment__action--secondary {
+  border-color: color-mix(in srgb, var(--text-muted) 35%, transparent);
+  color: var(--text-secondary, var(--text-muted));
+  font-weight: 500;
+}
+
 .account-payment__action:hover {
   background: color-mix(in srgb, var(--account-payment-accent) 12%, transparent);
   border-color: var(--account-payment-accent);
+}
+
+.account-payment__action--secondary:hover {
+  background: color-mix(in srgb, var(--text-muted) 8%, transparent);
+  border-color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+  color: var(--text-primary, inherit);
 }
 
 .account-payment__action:focus-visible {

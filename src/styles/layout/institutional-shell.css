@@ -2609,6 +2609,41 @@ html.plu-drawer-open body {
   transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
 }
 
+/* Las dos preferencias de privacidad viajan juntas: medición y cookies
+   comparten el mismo nivel de acceso y el mismo lenguaje. */
+.institutional-footer__privacy {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.institutional-footer__cookies {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  min-height: 44px;
+  opacity: 0.72;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+  transition: opacity var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.institutional-footer__cookies:hover {
+  opacity: 1;
+}
+
+.institutional-footer__cookies:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
 .analytics-optout:hover {
   opacity: 1;
 }

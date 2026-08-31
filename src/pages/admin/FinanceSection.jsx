@@ -3,9 +3,11 @@ import { ArrowDownRight, ArrowUpRight, PencilLine, Plus, RefreshCw, Trash2 } fro
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminExpenseDialog from '../../components/admin/AdminExpenseDialog.jsx'
+import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
 import ExportButton from '../../components/ui/ExportButton.jsx'
+import Pill from '../../components/ui/Pill.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { notifyError, notifySuccess } from '../../lib/adminToast.js'
@@ -19,6 +21,31 @@ const KIND_FILTER = {
   all: 'all',
   income: 'income',
   expense: 'expense',
+}
+const CONCEPT_FILTER = {
+  all: 'all',
+  membership: 'membership',
+  registration: 'registration',
+  combo: 'combo',
+  ticket: 'ticket',
+  expense: 'expense',
+  other: 'other',
+}
+const CONCEPT_BREAKDOWN_ORDER = [
+  CONCEPT_FILTER.membership,
+  CONCEPT_FILTER.registration,
+  CONCEPT_FILTER.combo,
+  CONCEPT_FILTER.ticket,
+  CONCEPT_FILTER.other,
+  CONCEPT_FILTER.expense,
+]
+const CONCEPT_PILL_TONE = {
+  membership: 'success',
+  registration: 'info',
+  combo: 'warning',
+  ticket: 'neutral',
+  expense: 'danger',
+  other: 'neutral',
 }
 const PERIOD_PRESET = {
   thisMonth: 'thisMonth',
@@ -141,18 +168,34 @@ function csvMoney(value) {
   return String(Number(value) || 0)
 }
 
+function resolveConceptKey(row) {
+  if (row?.conceptKey) return row.conceptKey
+  if (row?.kind === 'expense') return CONCEPT_FILTER.expense
+  return CONCEPT_FILTER.other
+}
+
+function conceptLabel(t, conceptKey, fallbackCategory) {
+  const key = `admin.ledger.concept.${conceptKey}`
+  const label = t(key)
+  if (label && label !== key) return label
+  return fallbackCategory || conceptKey
+}
+
 export default function FinanceSection({ canEdit = false }) {
   const { locale, t } = useI18n()
   const fromId = useId()
   const toId = useId()
   const searchId = useId()
   const kindFilterId = useId()
+  const conceptFilterId = useId()
   const periodPresetsId = useId()
+  const breakdownId = useId()
   const [from, setFrom] = useState(() => startOfMonth(0))
   const [to, setTo] = useState(today)
   const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
   const [kindFilter, setKindFilter] = useState(KIND_FILTER.all)
+  const [conceptFilter, setConceptFilter] = useState(CONCEPT_FILTER.all)
   const [report, setReport] = useState(null)
   const [error, setError] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
@@ -251,15 +294,22 @@ export default function FinanceSection({ canEdit = false }) {
     return `${formatter.format(fromDate)} – ${formatter.format(toDate)}`
   }, [from, to, locale])
 
-  const ledgerRows = useMemo(() => {
+  const kindScopedRows = useMemo(() => {
     const source = report?.rows ?? []
-    const filtered =
-      kindFilter === KIND_FILTER.all ? source : source.filter((row) => row.kind === kindFilter)
-    return withRunningBalance(filtered)
+    if (kindFilter === KIND_FILTER.all) return source
+    return source.filter((row) => row.kind === kindFilter)
   }, [report?.rows, kindFilter])
 
+  const ledgerRows = useMemo(() => {
+    const filtered =
+      conceptFilter === CONCEPT_FILTER.all
+        ? kindScopedRows
+        : kindScopedRows.filter((row) => resolveConceptKey(row) === conceptFilter)
+    return withRunningBalance(filtered)
+  }, [kindScopedRows, conceptFilter])
+
   const displayTotals = useMemo(() => {
-    if (kindFilter === KIND_FILTER.all) {
+    if (kindFilter === KIND_FILTER.all && conceptFilter === CONCEPT_FILTER.all) {
       return report?.totals ?? { income: 0, expense: 0, balance: 0 }
     }
     const next = ledgerRows.reduce(
@@ -272,7 +322,33 @@ export default function FinanceSection({ canEdit = false }) {
       { income: 0, expense: 0 },
     )
     return { ...next, balance: next.income - next.expense }
-  }, [kindFilter, ledgerRows, report?.totals])
+  }, [conceptFilter, kindFilter, ledgerRows, report?.totals])
+
+  const conceptBreakdown = useMemo(() => {
+    const buckets = new Map()
+    for (const row of kindScopedRows) {
+      const key = resolveConceptKey(row)
+      const prev = buckets.get(key) ?? { key, count: 0, amount: 0 }
+      prev.count += 1
+      prev.amount += Number(row.amount) || 0
+      buckets.set(key, prev)
+    }
+    return CONCEPT_BREAKDOWN_ORDER.map((key) => buckets.get(key)).filter(Boolean)
+  }, [kindScopedRows])
+
+  const conceptFilterOptions = useMemo(() => {
+    const countByKey = new Map(conceptBreakdown.map((item) => [item.key, item.count]))
+    const keys = [
+      CONCEPT_FILTER.all,
+      ...CONCEPT_BREAKDOWN_ORDER.filter((key) => countByKey.has(key) || key === conceptFilter),
+    ]
+    return keys.map((key) => {
+      if (key === CONCEPT_FILTER.all) {
+        return [key, t('admin.ledger.conceptFilterAll'), kindScopedRows.length]
+      }
+      return [key, conceptLabel(t, key), countByKey.get(key) ?? 0]
+    })
+  }, [conceptBreakdown, conceptFilter, kindScopedRows.length, t])
 
   const movedTotal = displayTotals.income + displayTotals.expense
   const incomeRatio = movedTotal > 0 ? displayTotals.income / movedTotal : 0
@@ -286,20 +362,25 @@ export default function FinanceSection({ canEdit = false }) {
     }
     const body = [...ledgerRows]
       .sort(compareLedgerRowsAsc)
-      .map((row) => ({
-        [t('admin.ledger.colDate')]: formatLedgerDate(row.occurredOn, locale),
-        [t('admin.ledger.colConcept')]: row.description ?? '',
-        [t('admin.ledger.colCategory')]: row.category ?? '',
-        [t('admin.ledger.colParty')]: row.party ?? '',
-        [t('admin.ledger.colIncome')]: row.kind === 'income' ? csvMoney(row.amount) : '',
-        [t('admin.ledger.colExpense')]: row.kind === 'expense' ? csvMoney(row.amount) : '',
-        [t('admin.ledger.colBalance')]: csvMoney(row.runningBalance),
-        [t('admin.ledger.colReference')]: row.reference ?? '',
-      }))
+      .map((row) => {
+        const key = resolveConceptKey(row)
+        return {
+          [t('admin.ledger.colDate')]: formatLedgerDate(row.occurredOn, locale),
+          [t('admin.ledger.colConcept')]: row.description ?? '',
+          [t('admin.ledger.colCategory')]: conceptLabel(t, key, row.category),
+          [t('admin.ledger.colConceptKey')]: key,
+          [t('admin.ledger.colParty')]: row.party ?? '',
+          [t('admin.ledger.colIncome')]: row.kind === 'income' ? csvMoney(row.amount) : '',
+          [t('admin.ledger.colExpense')]: row.kind === 'expense' ? csvMoney(row.amount) : '',
+          [t('admin.ledger.colBalance')]: csvMoney(row.runningBalance),
+          [t('admin.ledger.colReference')]: row.reference ?? '',
+        }
+      })
     body.push({
       [t('admin.ledger.colDate')]: '',
       [t('admin.ledger.colConcept')]: t('admin.ledger.balance'),
       [t('admin.ledger.colCategory')]: '',
+      [t('admin.ledger.colConceptKey')]: '',
       [t('admin.ledger.colParty')]: '',
       [t('admin.ledger.colIncome')]: csvMoney(displayTotals.income),
       [t('admin.ledger.colExpense')]: csvMoney(displayTotals.expense),
@@ -410,6 +491,43 @@ export default function FinanceSection({ canEdit = false }) {
           </div>
         </div>
 
+        {conceptBreakdown.length > 0 ? (
+          <div
+            className="admin-finance__breakdown"
+            role="group"
+            aria-labelledby={breakdownId}
+          >
+            <span id={breakdownId} className="admin-finance__breakdown-label">
+              {t('admin.ledger.breakdownLabel')}
+            </span>
+            <ul className="admin-finance__breakdown-list">
+              {conceptBreakdown.map((item) => {
+                const active = conceptFilter === item.key
+                return (
+                  <li key={item.key}>
+                    <button
+                      type="button"
+                      className={`admin-finance__breakdown-chip${active ? ' is-active' : ''}`}
+                      aria-pressed={active}
+                      onClick={() =>
+                        setConceptFilter(active ? CONCEPT_FILTER.all : item.key)
+                      }
+                    >
+                      <span className="admin-finance__breakdown-chip-label">
+                        {conceptLabel(t, item.key)}
+                      </span>
+                      <span className="admin-finance__breakdown-chip-count">{item.count}</span>
+                      <span className="admin-finance__breakdown-chip-amount">
+                        {money(item.amount, locale)}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ) : null}
+
         <div className="admin-finance__period" role="group" aria-labelledby={periodPresetsId}>
           <div className="admin-finance__presets">
             <span id={periodPresetsId} className="admin-finance__presets-label">
@@ -487,6 +605,19 @@ export default function FinanceSection({ canEdit = false }) {
           </label>
         </div>
 
+        <AdminFilterChipGroup
+          id={conceptFilterId}
+          label={t('admin.ledger.conceptFilterLabel')}
+          value={conceptFilter}
+          onChange={setConceptFilter}
+          options={conceptFilterOptions}
+          defaultValue={CONCEPT_FILTER.all}
+          omitNeutral
+          allLabel={t('admin.ledger.conceptFilterAll')}
+          clearable
+          compact
+        />
+
         {initialLoading ? (
           <TableSkeleton rows={6} columns={8} />
         ) : (
@@ -514,9 +645,16 @@ export default function FinanceSection({ canEdit = false }) {
               {
                 key: 'category',
                 label: t('admin.ledger.colCategory'),
-                mobile: 'default',
+                mobile: 'badge',
                 mobileMeta: 'labeled',
-                render: (row) => row.category,
+                render: (row) => {
+                  const key = resolveConceptKey(row)
+                  return (
+                    <Pill tone={CONCEPT_PILL_TONE[key] ?? 'neutral'}>
+                      {conceptLabel(t, key, row.category)}
+                    </Pill>
+                  )
+                },
               },
               {
                 key: 'party',

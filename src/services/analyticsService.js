@@ -1,4 +1,5 @@
 import { env } from '../config/env.js'
+import { readStoredConsent } from '../lib/cookieConsentStorage.js'
 
 /**
  * analyticsService.js — PLU ARG
@@ -110,6 +111,10 @@ function trackingEnabled() {
       analyticsConfig().enabled === true &&
       typeof window !== 'undefined' &&
       !isOptedOut() &&
+      // Consentimiento explícito: sin decisión guardada no se mide. La
+      // analítica vincula eventos al atleta con sesión iniciada, así que el
+      // silencio no puede interpretarse como un "sí".
+      readStoredConsent()?.analytics === true &&
       isTrackablePath(window.location?.pathname)
     )
   } catch {

@@ -178,100 +178,109 @@ export default function HelpPanel({
           </button>
         </header>
 
-        {/* Ubicación e interruptor comparten la primera fila a propósito. El
-            modo simple es la palanca más importante para el público al que
-            apunta esta ayuda y antes quedaba al final de una lista con scroll:
-            justo la gente que lo necesita no iba a llegar hasta ahí. */}
-        <div className="help-panel__bar">
-          {showLocation ? (
-            <p className="help-panel__location">
-              <MapPin size={14} strokeWidth={2} aria-hidden />
-              <span>
-                {t('help.locationLabel')} <strong>{viewName}</strong>
-              </span>
-            </p>
-          ) : (
-            <span />
-          )}
-          <button
-            type="button"
-            className="help-panel__assist"
-            role="switch"
-            aria-checked={assist}
-            onClick={toggleAssist}
-          >
-            <Type size={14} strokeWidth={2} aria-hidden />
-            <span className="help-panel__assist-label">{t('help.assist.title')}</span>
-            <span className={`help-panel__switch${assist ? ' is-on' : ''}`} aria-hidden>
-              <span className="help-panel__switch-knob" />
-            </span>
-          </button>
-        </div>
-
-        <ol className="help-panel__steps" aria-label={t('help.stepsAria')}>
-          {journey.steps.map((step) => (
-            <li key={step.id} className={`help-panel__step is-${step.state}`}>
-              <span className="help-panel__marker" aria-hidden>
-                {step.state === DONE ? <Check size={13} strokeWidth={3} /> : step.index}
-              </span>
-              <div className="help-panel__step-copy">
-                <p className="help-panel__step-head">
-                  <span className="help-panel__step-title">{stepTitle(step, journey, t)}</span>
-                  <span className="help-panel__step-state">{t(STATE_LABEL_KEY[step.state])}</span>
-                </p>
-                <p className="help-panel__step-detail">{stepDetail(step, journey, t, locale)}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <div className="help-panel__action">
-          <p className="help-panel__action-eyebrow">
-            {t(guideIsPrimary ? 'help.hereEyebrow' : 'help.nextEyebrow')}
-          </p>
-          <button
-            type="button"
-            className="help-panel__cta"
-            onClick={guideIsPrimary ? runTour : runNextAction}
-          >
-            <span>{guideIsPrimary ? guideLabel : t(ACTION_LABEL_KEY[next.actionKey])}</span>
-            <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
-          </button>
-          {guideIsPrimary ? <p className="help-panel__action-hint">{guideHint}</p> : null}
-
-          {showLoginDoor ? (
-            <p className="help-panel__door">
-              <span>{t('help.haveAccountLabel')}</span>
-              <button type="button" className="help-panel__door-link" onClick={goToLogin}>
-                {t('help.haveAccountAction')}
-                <ArrowRight size={13} strokeWidth={2.25} aria-hidden />
-              </button>
-            </p>
-          ) : null}
-        </div>
-
-        <footer className="help-panel__foot">
-          {onStartTour && !guideIsPrimary ? (
-            <button type="button" className="help-panel__link" onClick={runTour}>
-              <Compass size={15} aria-hidden />
-              <span className="help-panel__link-copy">
-                <span className="help-panel__link-label">{guideLabel}</span>
-                <span className="help-panel__link-hint">{guideHint}</span>
+        {/* Cuerpo scrolleable: la CTA y las salidas quedan fijas abajo del
+            diálogo para que el próximo paso no se pierda detrás del scroll. */}
+        <div className="help-panel__body">
+          {/* Ubicación e interruptor comparten la primera fila a propósito. El
+              modo simple es la palanca más importante para el público al que
+              apunta esta ayuda y antes quedaba al final de una lista con scroll:
+              justo la gente que lo necesita no iba a llegar hasta ahí. */}
+          <div className="help-panel__bar">
+            {showLocation ? (
+              <p className="help-panel__location">
+                <MapPin size={14} strokeWidth={2} aria-hidden />
+                <span>
+                  {t('help.locationLabel')} <strong>{viewName}</strong>
+                </span>
+              </p>
+            ) : (
+              <span />
+            )}
+            <button
+              type="button"
+              className="help-panel__assist"
+              role="switch"
+              aria-checked={assist}
+              onClick={toggleAssist}
+            >
+              <Type size={14} strokeWidth={2} aria-hidden />
+              <span className="help-panel__assist-label">{t('help.assist.title')}</span>
+              <span className={`help-panel__switch${assist ? ' is-on' : ''}`} aria-hidden>
+                <span className="help-panel__switch-knob" />
               </span>
             </button>
-          ) : null}
+          </div>
+          <p className="help-panel__assist-hint">
+            {t(assist ? 'help.assist.activeHint' : 'help.assist.hint')}
+          </p>
 
-          <button
-            type="button"
-            className="help-panel__link help-panel__link--quiet"
-            onClick={goToContact}
-          >
-            <MessageCircle size={15} aria-hidden />
-            <span className="help-panel__link-copy">
-              <span className="help-panel__link-label">{t('help.contact')}</span>
-            </span>
-          </button>
-        </footer>
+          <ol className="help-panel__steps" aria-label={t('help.stepsAria')}>
+            {journey.steps.map((step) => (
+              <li key={step.id} className={`help-panel__step is-${step.state}`}>
+                <span className="help-panel__marker" aria-hidden>
+                  {step.state === DONE ? <Check size={13} strokeWidth={3} /> : step.index}
+                </span>
+                <div className="help-panel__step-copy">
+                  <p className="help-panel__step-head">
+                    <span className="help-panel__step-title">{stepTitle(step, journey, t)}</span>
+                    <span className="help-panel__step-state">{t(STATE_LABEL_KEY[step.state])}</span>
+                  </p>
+                  <p className="help-panel__step-detail">{stepDetail(step, journey, t, locale)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="help-panel__anchor">
+          <div className="help-panel__action">
+            <p className="help-panel__action-eyebrow">
+              {t(guideIsPrimary ? 'help.hereEyebrow' : 'help.nextEyebrow')}
+            </p>
+            <button
+              type="button"
+              className="help-panel__cta"
+              onClick={guideIsPrimary ? runTour : runNextAction}
+            >
+              <span>{guideIsPrimary ? guideLabel : t(ACTION_LABEL_KEY[next.actionKey])}</span>
+              <ArrowRight size={15} strokeWidth={2.25} aria-hidden />
+            </button>
+            {guideIsPrimary ? <p className="help-panel__action-hint">{guideHint}</p> : null}
+
+            {showLoginDoor ? (
+              <p className="help-panel__door">
+                <span>{t('help.haveAccountLabel')}</span>
+                <button type="button" className="help-panel__door-link" onClick={goToLogin}>
+                  {t('help.haveAccountAction')}
+                  <ArrowRight size={13} strokeWidth={2.25} aria-hidden />
+                </button>
+              </p>
+            ) : null}
+          </div>
+
+          <footer className="help-panel__foot">
+            {onStartTour && !guideIsPrimary ? (
+              <button type="button" className="help-panel__link" onClick={runTour}>
+                <Compass size={15} aria-hidden />
+                <span className="help-panel__link-copy">
+                  <span className="help-panel__link-label">{guideLabel}</span>
+                  <span className="help-panel__link-hint">{guideHint}</span>
+                </span>
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              className="help-panel__link help-panel__link--quiet"
+              onClick={goToContact}
+            >
+              <MessageCircle size={15} aria-hidden />
+              <span className="help-panel__link-copy">
+                <span className="help-panel__link-label">{t('help.contact')}</span>
+              </span>
+            </button>
+          </footer>
+        </div>
       </section>
     </div>
   )
