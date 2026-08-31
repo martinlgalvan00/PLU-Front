@@ -227,6 +227,15 @@ async function openSettleScreen(page) {
   await expect(modal).toBeHidden()
 }
 
+/**
+ * "Cancelar esta orden" abre una confirmación en dos pasos antes de cerrar el
+ * cobro: se pregunta, no se ejecuta al primer clic.
+ */
+async function confirmCancelOrder(page) {
+  await page.getByRole('button', { name: /^Cancelar esta orden$/i }).click()
+  await page.getByRole('button', { name: /^Sí, cancelar$/i }).click()
+}
+
 test.describe('Orden abierta por transferencia — el atleta la cancela', () => {
   test('cancela, recupera el cupón y puede abrir otra orden', async ({ page }) => {
     await seedOpenOrderWithoutCode()
@@ -234,7 +243,7 @@ test.describe('Orden abierta por transferencia — el atleta la cancela', () => 
     // cancelación devuelve la redención y no la deja consumida.
     await openSettleScreen(page)
 
-    await page.getByRole('button', { name: /^Cancelar esta orden$/i }).click()
+    await confirmCancelOrder(page)
 
     // El acuse sale donde se hizo el clic, no en un toast que se va.
     await expect(page.locator('.form-submit-notice')).toContainText(/cancelamos tu orden/i, {
@@ -283,7 +292,7 @@ test.describe('Orden abierta por transferencia — el atleta la cancela', () => 
       .eq('id', order.id)
     if (error) throw new Error(`No se pudo simular el comprobante: ${error.message}`)
 
-    await page.getByRole('button', { name: /^Cancelar esta orden$/i }).click()
+    await confirmCancelOrder(page)
 
     await expect(page.locator('.form-submit-error')).toContainText(/comprobante/i, {
       timeout: 15_000,
