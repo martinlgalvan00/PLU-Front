@@ -557,6 +557,14 @@ export default function RegisterPage({
   const [revealPromotion, setRevealPromotion] = useState(null)
   const [revealOpen, setRevealOpen] = useState(false)
   const pendingPromotionAppliedRef = useRef(null)
+  // El torneo del render vigente. Un preview de código viaja con el evento del
+  // render en que se disparó: si el checkout cambió de torneo mientras la
+  // respuesta volvía, ese resultado no puede pisar el estado — sería anunciar
+  // acá el importe cotizado contra el otro evento.
+  const checkoutEventSlugRef = useRef(event?.slug ?? null)
+  useEffect(() => {
+    checkoutEventSlugRef.current = event?.slug ?? null
+  }, [event?.slug])
   // Promoción que corre para todos y se aplica sola dentro de la transacción de
   // compra. Va aparte del cupón tipeado: el cupón se puede quitar y manda sobre
   // la promo — la orden lleva un solo descuento.
@@ -772,6 +780,24 @@ export default function RegisterPage({
     const override = typeof codeOverride === 'string' ? codeOverride : null
     const code = (override ?? discountCodeInput).trim().toUpperCase()
     if (!code || !event?.slug) return
+    // El canje pertenece al torneo desde el que se disparó: si el checkout
+    // cambió de evento mientras el servidor contestaba, el resultado se
+    // descarta en vez de pisar el estado del torneo nuevo con un importe
+    // cotizado contra el anterior.
+    const requestEventSlug = event.slug
+    const staleEvent = () => checkoutEventSlugRef.current !== requestEventSlug
+    // Un canje que llegó por override (el auto-canje de un pendiente) y rebota
+    // tiene que quedar A LA VISTA: el campo nace plegado detrás de "Tengo un
+    // código" y los efectos del montaje ya limpiaron el input, así que sin esto
+    // el motivo del rechazo no lo veía nadie — y el código fallido tampoco
+    // quedaba tipeado para reintentar.
+    const reportRejection = (message) => {
+      if (override) {
+        setDiscountOpen(true)
+        setDiscountCodeInput(code)
+      }
+      setDiscountError(message)
+    }
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
@@ -780,7 +806,11 @@ export default function RegisterPage({
       // (cambió el medio de pago, que cambia el importe). No pasa por el
       // resolvedor: sería otro evento de embudo por cada cambio de medio.
       if (comboCode && comboCode === code) {
-        const repriced = await applyUnlockedOffer(code, { offer: unlockedOffer })
+        const repriced = await applyUnlockedOffer(code, {
+          offer: unlockedOffer,
+          isCancelled: staleEvent,
+        })
+        if (staleEvent()) return
         if (!repriced?.valid) {
           // Sin importe promocional no hay oferta: dejar el paquete destrabado
           // cobraría el combo a precio de lista anunciando una oferta.
@@ -807,6 +837,7 @@ export default function RegisterPage({
           // despliega unos minutos después que el frontend.
         }
       }
+      if (staleEvent()) return
       const resolvedDestination = promotionDestination(resolution)
       // El código-paquete de ESTE torneo puede quedarse: la ficha manda para
       // acá a cobrar con la pasarela (`stayInCheckout`, vía el pendiente que
@@ -861,6 +892,7 @@ export default function RegisterPage({
         eventSlug: event.slug,
         paymentMethod: toApiPaymentMethod(previewPaymentMethod),
       })
+      if (staleEvent()) return
       if (!preview.valid) {
         // Un código de desbloqueo es de alcance 'combo'. Con el combo
         // restringido y todavía sin destrabar, `effectivePurchaseType` es
@@ -874,6 +906,7 @@ export default function RegisterPage({
             eventSlug: event.slug,
             paymentMethod: toApiPaymentMethod(previewPaymentMethod),
           })
+          if (staleEvent()) return
           if (comboPreview.valid) {
             // Sin este `comboOffer` sintético, `comboAvailability.offer` queda
             // en null y la tarjeta del combo nunca se ofrece: el atleta llega
@@ -894,10 +927,10 @@ export default function RegisterPage({
             clearPendingPromotionCode()
             return
           }
-          setDiscountError(describeDiscountError(comboPreview))
+          reportRejection(describeDiscountError(comboPreview))
           return
         }
-        setDiscountError(describeDiscountError(preview))
+        reportRejection(describeDiscountError(preview))
         return
       }
       setDiscountPreview(preview)
@@ -910,7 +943,8 @@ export default function RegisterPage({
       }
       clearPendingPromotionCode()
     } catch (error) {
-      setDiscountError(error?.message ?? t('pages.register.discountError.not_found'))
+      if (staleEvent()) return
+      reportRejection(error?.message ?? t('pages.register.discountError.not_found'))
     } finally {
       setDiscountChecking(false)
     }
@@ -924,6 +958,13 @@ export default function RegisterPage({
     if (destination?.view !== 'competition') return
     if (destination.eventSlug && destination.eventSlug !== event.slug) return
     pendingPromotionAppliedRef.current = pending.code
+    // El pendiente se consume acá, no recién cuando el canje sale bien: tiene
+    // UNA oportunidad por entrega. Si el canje falla (un 429, un canal caído),
+    // el error se muestra y listo — antes el pendiente sobrevivía en
+    // sessionStorage y se re-canjeaba solo en CADA visita al checkout, así que
+    // el atleta quedaba preso de la promoción sin forma de salir. Volver a la
+    // ficha y tocar "pagar" lo entrega de nuevo.
+    clearPendingPromotionCode()
     setDiscountCodeInput(pending.code)
     // `stayInCheckout`: un pendiente con destino 'competition' viene A cobrarse
     // acá (el desvío a la pasarela de la ficha del paquete incluido), así que
@@ -974,6 +1015,18 @@ export default function RegisterPage({
     clearDiscountCode()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purchaseType])
+
+  // Cambiar de torneo con el checkout montado no arrastra el código del
+  // anterior: su preview cotizó contra el otro evento, así que el importe y
+  // los canales anunciados no valen acá — y el submit mandaría un código que
+  // el backend rechaza por ser de otra inscripción. Volver atrás y entrar a
+  // otro pago arranca limpio; el auto-canje de un pendiente destinado a ESTE
+  // torneo corre antes (efecto de arriba) y no se ve afectado: su preview
+  // llega después de esta limpieza. En el primer render es un no-op.
+  useEffect(() => {
+    clearDiscountCode()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.slug])
 
   const content = {
     profile: [
@@ -3337,7 +3390,6 @@ export default function RegisterPage({
         form.paymentMethod === 'manual_link' ||
         form.paymentMethod === 'wise_transfer') ? (
         <TransferPayModal
-          athlete={athlete}
           amount={visibleOrder?.amount ?? checkoutTotal}
           currency={
             visibleOrder?.currency ?? (form.paymentMethod === 'wise_transfer' ? 'USD' : 'ARS')
