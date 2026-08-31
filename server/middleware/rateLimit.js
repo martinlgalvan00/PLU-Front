@@ -240,6 +240,22 @@ export const promotionCodeLimiter = buildLimiter(
 )
 
 /**
+ * Preview de precio SIN código: la consulta de la promo pública que el
+ * checkout dispara en cada montaje y en cada cambio de canal o de paquete.
+ * No viaja ningún código, así que no puede enumerar nada — y compartir el
+ * balde estricto de arriba hacía que mirar el checkout y alternar medios de
+ * pago un rato agotara los 30 intentos por IP: el canje legítimo que venía
+ * después respondía 429. Balde propio, ventana corta y volumen de lectura,
+ * como las demás consultas de sólo lectura del checkout.
+ */
+export const publicPromoPreviewLimiter = buildLimiter(
+  60 * 1000,
+  30,
+  'Demasiadas consultas de precio. Proba de nuevo en un momento.',
+  { name: 'promo-preview', mode: 'sampled' },
+)
+
+/**
  * Webhook de Mercado Pago. No tenía límite: un request con `id`/`data.id`
  * que pasa el schema pero falla la firma igual dispara un insert de
  * auditoría (`rejectWebhook`) antes de rechazarse, así que spam sin

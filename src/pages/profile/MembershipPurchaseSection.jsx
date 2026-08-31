@@ -23,12 +23,17 @@ import { ACCOUNT_OFFER_TAB, ACCOUNT_PAYMENTS_TAB } from '../../lib/navigation.js
 import { listMembershipPlans, paymentUpdateStatus } from '../../services/paymentService.js'
 import { previewDiscountCode } from '../../services/athleteApi.js'
 import {
+  paymentMethodToPromotionChannel,
   previewCheckoutPrice,
   toApiPaymentMethod,
   wisePriceLabel,
 } from '../../services/checkoutPricing.js'
 import { getEventComboAvailability } from '../../services/comboOfferService.js'
-import { resolvePromotionPaymentChannels } from '../../../shared/promotionPaymentChannels.js'
+import {
+  promotionRedemptionChannelPolicy,
+  resolvePromotionChannelSwitch,
+  resolvePromotionPaymentChannels,
+} from '../../../shared/promotionPaymentChannels.js'
 import {
   clearPendingPromotionCode,
   promotionBenefitPresentation,
@@ -434,6 +439,12 @@ export default function MembershipPurchaseSection({
     setDiscountChecking(true)
     setDiscountError('')
     setDiscountPreview(null)
+    // Mismo criterio que el checkout de inscripción: si el medio elegido no
+    // sobrevive a la política del código recién canjeado, la selección salta
+    // sola al primer canal que el código admite y el preview cotiza con ese.
+    // Sin esto, el código quedaba rechazado por cotizar contra un canal que
+    // ya no existía para él.
+    let previewPaymentMethod = paymentMethod
     try {
       let resolution = null
       if (!repricing) {
@@ -469,13 +480,36 @@ export default function MembershipPurchaseSection({
           }
           return
         }
+
+        let switchedChannel = resolvePromotionChannelSwitch(
+          promotionRedemptionChannelPolicy(resolution),
+          {
+            current: paymentMethodToPromotionChannel(paymentMethod),
+            mercadoPagoOpen: channelOpen(checkoutAvailability, 'membership', 'mercado_pago'),
+          },
+        )
+        // Un plan recurrente sólo se cobra por la pasarela: un código que
+        // pretende canales manuales no mueve la selección — el preview y la
+        // orden explican el rechazo con su propio motivo.
+        if (
+          switchedChannel &&
+          switchedChannel !== 'mercado_pago' &&
+          selectedPlan?.collectionMode === 'recurring'
+        ) {
+          switchedChannel = null
+        }
+        if (switchedChannel) {
+          previewPaymentMethod =
+            switchedChannel === 'bank_transfer' ? 'transferencia' : switchedChannel
+          setPaymentMethod(previewPaymentMethod)
+        }
       }
 
       const preview = await previewDiscountCode({
         code,
         appliesTo: 'membership',
         planCode: selectedPlan.code,
-        paymentMethod: toApiPaymentMethod(paymentMethod),
+        paymentMethod: toApiPaymentMethod(previewPaymentMethod),
       })
       if (!preview.valid) {
         setDiscountError(

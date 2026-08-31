@@ -55,7 +55,11 @@ import { getEventComboAvailability } from '../services/comboOfferService.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { channelOpen } from '../lib/paymentChannels.js'
-import { resolvePromotionPaymentChannels } from '../../shared/promotionPaymentChannels.js'
+import {
+  promotionRedemptionChannelPolicy,
+  resolvePromotionChannelSwitch,
+  resolvePromotionPaymentChannels,
+} from '../../shared/promotionPaymentChannels.js'
 import {
   resendAthleteVerification,
   checkAthleteAvailability,
@@ -87,6 +91,7 @@ import ManualPaymentConfirmation from '../components/checkout/ManualPaymentConfi
 import PaymentRecoveryPanel from '../components/checkout/PaymentRecoveryPanel.jsx'
 import RegistrationAccessGateModal from '../components/checkout/RegistrationAccessGateModal.jsx'
 import {
+  paymentMethodToPromotionChannel,
   previewCheckoutPrice,
   toApiPaymentMethod,
   wisePriceLabel,
@@ -828,12 +833,33 @@ export default function RegisterPage({
         return
       }
 
+      // El medio elegido puede no sobrevivir al código que se acaba de
+      // canjear: un precio pactado sólo para Mercado Pago tipeado con
+      // transferencia elegida cotizaba contra el canal muerto y rebotaba,
+      // cuando la matriz del canje ya decía con qué se paga. La selección
+      // salta sola al primer canal que el código admite y la cotización sale
+      // con ese. El efecto que colapsa la selección (firstOpenMethod) no
+      // alcanza: recién corre con el preview aplicado — tarde para ESTE
+      // preview, que es el que decide si el código se aplica.
+      let previewPaymentMethod = form.paymentMethod
+      const switchedChannel = resolvePromotionChannelSwitch(
+        promotionRedemptionChannelPolicy(resolution),
+        {
+          current: paymentMethodToPromotionChannel(form.paymentMethod),
+          mercadoPagoOpen,
+        },
+      )
+      if (switchedChannel) {
+        previewPaymentMethod = switchedChannel === 'bank_transfer' ? 'manual_link' : switchedChannel
+        onUpdateForm({ target: { name: 'paymentMethod', value: previewPaymentMethod } })
+      }
+
       const scope = effectivePurchaseType === 'combo' ? 'combo' : 'registration'
       const preview = await previewDiscountCode({
         code,
         appliesTo: scope,
         eventSlug: event.slug,
-        paymentMethod: toApiPaymentMethod(form.paymentMethod),
+        paymentMethod: toApiPaymentMethod(previewPaymentMethod),
       })
       if (!preview.valid) {
         // Un código de desbloqueo es de alcance 'combo'. Con el combo
@@ -846,7 +872,7 @@ export default function RegisterPage({
             code,
             appliesTo: 'combo',
             eventSlug: event.slug,
-            paymentMethod: toApiPaymentMethod(form.paymentMethod),
+            paymentMethod: toApiPaymentMethod(previewPaymentMethod),
           })
           if (comboPreview.valid) {
             // Sin este `comboOffer` sintético, `comboAvailability.offer` queda
