@@ -32,6 +32,7 @@ import {
   athleteAuthLimiter,
   athleteWriteLimiter,
   promotionCodeLimiter,
+  publicPromoPreviewLimiter,
   publicReadLimiter,
   publicWriteLimiter,
   registrationAccessCodeLimiter,
@@ -1832,6 +1833,19 @@ export function createAthleteRoutes({
     else await clearIdentityFailures(identity)
   }
   /**
+   * El balde depende de si viaja un código: con código es un intento sobre el
+   * espacio de códigos y cuenta en el balde estricto de enumeración; sin
+   * código es la consulta de la promo pública —el checkout la dispara en cada
+   * montaje y cambio de canal/paquete— y va al balde holgado de lectura. Sin
+   * esta separación, mirar el checkout agotaba el cupo y el canje real
+   * respondía 429.
+   */
+  const discountPreviewLimiter = (req, res, next) => {
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : ''
+    const limiter = code ? promotionCodeLimiter : publicPromoPreviewLimiter
+    return limiter(req, res, next)
+  }
+  /**
    * Preview de solo lectura de un código de descuento: valida y calcula sin
    * redimir, para que el checkout muestre "ahorrás $X" antes de confirmar. El
    * monto real que se cobra sale únicamente de la respuesta del POST que crea
@@ -1839,7 +1853,7 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/discount-preview',
-    promotionCodeLimiter,
+    discountPreviewLimiter,
     validateBody(discountPreviewSchema),
     async (req, res, next) => {
       try {
@@ -1889,7 +1903,13 @@ export function createAthleteRoutes({
           }),
           eventSlug,
         )
-        await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        // Sin código no hubo intento que asentar: el preview de la promo
+        // pública no toca el contador del guard — ni para sumar ni para
+        // limpiar, que era la parte peligrosa: intercalar un preview vacío
+        // reseteaba el candado de enumeración de la cuenta.
+        if (code) {
+          await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        }
         res.json({ preview: concealInactiveReason(preview) })
       } catch (error) {
         next(error)

@@ -5253,6 +5253,7 @@
   display: grid;
   gap: 10px;
   justify-items: start;
+  margin-top: var(--space-lg);
 }
 
 /* Aplicado: la banda del sello más la salida para quitarlo. Era un <p> en fila
