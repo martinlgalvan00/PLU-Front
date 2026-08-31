@@ -50,6 +50,7 @@ vi.mock('../src/services/athleteApi.js', () => ({
   resendAthleteVerification: vi.fn(),
   checkAthleteAvailability: vi.fn(),
   verifyAthleteEmailCode: vi.fn(),
+  previewDiscountCode: vi.fn(),
 }))
 
 vi.mock('../src/services/registrationAccessService.js', () => ({
@@ -87,6 +88,7 @@ vi.mock('../src/services/paymentService.js', () => ({
 
 const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
 const { fetchRegistrationAccessRequirements } = await import('../src/services/registrationAccessService.js')
+const { previewDiscountCode } = await import('../src/services/athleteApi.js')
 
 async function waitForAccessValidation() {
   await waitFor(() => expect(fetchRegistrationAccessRequirements).toHaveBeenCalled())
@@ -129,6 +131,7 @@ function renderCompetition({
   onNavigate = () => {},
   onSubmit = vi.fn(async () => ({})),
   onUpdateForm = () => {},
+  payments = [],
   registrations = [],
   checkoutAvailability,
 } = {}) {
@@ -139,6 +142,7 @@ function renderCompetition({
         createdOrder={createdOrder}
         event={event}
         flow="competition"
+        payments={payments}
         form={{
           division: 'Open',
           category: 'Raw',
@@ -157,6 +161,74 @@ function renderCompetition({
     </I18nProvider>,
   )
 }
+
+/**
+ * La orden abierta sobrevive a la recarga.
+ *
+ * `createdOrder` es estado en memoria de `useAppData`: se pierde al recargar y
+ * al abrir la app en otra pestaña. Sin rehidratarla desde el snapshot de pagos,
+ * quien volvía a una inscripción impaga aterrizaba en el formulario de
+ * inscripción completo —no en su orden— y el `checkoutIntent` de "Elegir otro
+ * medio" se descartaba por no tener ninguna orden a la que aplicarse.
+ */
+describe('RegisterPage — orden abierta rehidratada del snapshot', () => {
+  const openPayment = {
+    id: '8cb43d94-b330-4e69-a2d0-76a56916ebf5',
+    concept: 'Inscripción Pitbull Classic 2026',
+    amount: 50000,
+    method: 'manual_link',
+    status: 'validacion_manual',
+    reference: 'RORD-1',
+    manualPaymentChannel: 'bank_transfer',
+  }
+  const pendingRegistration = {
+    athleteId: athlete.id,
+    eventSlug: event.slug,
+    status: 'pendiente_pago',
+    paymentOrderId: openPayment.id,
+  }
+
+  it('muestra la orden pendiente en vez del formulario de inscripción', () => {
+    renderCompetition({ payments: [openPayment], registrations: [pendingRegistration] })
+
+    // El importe de la orden, no el de catálogo (75.000).
+    expect(screen.getAllByText(/50\.000/).length).toBeGreaterThan(0)
+    // Y ningún campo competitivo: esta pantalla es para pagar, no para
+    // volver a inscribirse.
+    expect(screen.queryByLabelText(/^División$/i)).toBe(null)
+  })
+
+  it('sin pago abierto sigue abriendo el formulario', () => {
+    renderCompetition({ payments: [], registrations: [pendingRegistration] })
+    expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
+  })
+
+  it('no confunde la orden de otro evento', () => {
+    renderCompetition({
+      payments: [openPayment],
+      registrations: [{ ...pendingRegistration, eventSlug: 'otro-torneo' }],
+    })
+    expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
+  })
+
+  it('una orden ya cerrada no reabre nada', () => {
+    renderCompetition({
+      payments: [{ ...openPayment, status: 'aprobado' }],
+      registrations: [pendingRegistration],
+    })
+    expect(screen.getByLabelText(/^División$/i)).toBeTruthy()
+  })
+
+  it('createdOrder gana sobre el snapshot: es la orden que esta sesión tocó', () => {
+    renderCompetition({
+      createdOrder: pendingOrder,
+      payments: [openPayment],
+      registrations: [pendingRegistration],
+    })
+    // 75.000 es el importe de `pendingOrder`; 50.000 el del snapshot.
+    expect(screen.getAllByText(/75\.000/).length).toBeGreaterThan(0)
+  })
+})
 
 describe('RegisterPage competition profile summary', () => {
   it('renders the incomplete profile as a clear summary without raw translation keys', () => {
@@ -500,6 +572,84 @@ describe('RegisterPage — link de pago de inscripción', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit.mock.calls[0][2]).toMatchObject({ paymentMethod: 'mercado_pago' })
+  })
+
+  /**
+   * Cancelar un pago (o simplemente ir a explorar otro medio) no puede dejar
+   * el cupón aplicado sin forma de tocarlo: antes, la pantalla de "cambiar
+   * método de pago" sólo mostraba el selector de medios con precios de
+   * catálogo — sin la banda del código ni el campo para cargar uno nuevo.
+   */
+  it('conserva el cupón aplicado al volver a elegir método de pago', async () => {
+    vi.mocked(previewDiscountCode).mockResolvedValue({
+      valid: true,
+      code: 'FIX50',
+      kind: 'fixed_price',
+      appliesTo: 'registration',
+      discountAmount: 25000,
+      finalAmount: 50000,
+      manualChannels: ['bank_transfer'],
+      mercadoPagoEnabled: true,
+      financed: false,
+    })
+    const manualOrder = { ...pendingOrder, paymentMethod: 'manual_link', status: 'pendiente' }
+    const onSubmit = vi.fn(async () => ({ createdOrder: manualOrder, payment: manualOrder }))
+
+    function Harness() {
+      const [createdOrder, setCreatedOrder] = useState(null)
+      const [form, setForm] = useState({
+        division: 'Open',
+        category: 'Raw',
+        estimatedWeight: '83',
+        paymentMethod: 'manual_link',
+      })
+      return (
+        <I18nProvider>
+          <RegisterPage
+            athlete={athlete}
+            createdOrder={createdOrder}
+            event={event}
+            flow="competition"
+            form={form}
+            memberships={[]}
+            registrations={[]}
+            total={75000}
+            onNavigate={() => {}}
+            onSubmit={async (...args) => {
+              const result = await onSubmit(...args)
+              if (result?.createdOrder) setCreatedOrder(result.createdOrder)
+              return result
+            }}
+            onUpdateForm={(event) => {
+              setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+            }}
+          />
+        </I18nProvider>
+      )
+    }
+
+    render(<Harness />)
+    await waitForAccessValidation()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Tengo un código$/i }))
+    fireEvent.change(await screen.findByLabelText(/^Código$/i), {
+      target: { value: 'fix50' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^Canjear$/i }))
+    await waitFor(() => expect(previewDiscountCode).toHaveBeenCalled())
+    expect(await screen.findByText('FIX50')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /continuar al pago/i }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit.mock.calls[0][2]).toMatchObject({ discountCode: 'FIX50' })
+
+    // La orden por transferencia quedó creada con el cupón aplicado: cambiar
+    // de medio no puede perder ni el código ni la forma de tocarlo.
+    fireEvent.click(await screen.findByRole('button', { name: /elegir otro medio/i }))
+
+    expect(screen.getByRole('button', { name: /volver a transferencia/i })).toBeTruthy()
+    expect(await screen.findByText('FIX50')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^Quitar$/i })).toBeTruthy()
   })
 })
 

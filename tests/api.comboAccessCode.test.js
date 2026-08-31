@@ -150,6 +150,11 @@ describe('POST /me/registration-combos con combo restringido', () => {
             country: 'Argentina',
             province: 'Buenos Aires',
           }),
+          findEventPricing: vi.fn().mockResolvedValue({
+            price: 85000,
+            manual_price: null,
+            payment_channel_overrides: null,
+          }),
           findEventComboOffer: vi.fn().mockResolvedValue(comboOffer),
           discountCodeManualEligibility: vi.fn().mockResolvedValue(false),
           previewDiscountCode:

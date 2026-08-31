@@ -68,7 +68,6 @@ function CopyableValue({ value, copyLabel, copiedLabel, copyAria, meta }) {
  * cobro event-scoped; si falta, se usan los datos globales de `env.payments`.
  */
 export default function TransferReceipt({
-  athlete,
   orderId = null,
   channel = 'bank_transfer',
   purpose = 'membership',
@@ -92,7 +91,6 @@ export default function TransferReceipt({
   const transferCbu = accountDetails?.cbu || env.payments.transferCbu
   const transferHolder = accountDetails?.holder || env.payments.transferHolder
   const holder = (isWise ? env.payments.wiseHolder : transferHolder) || askAdmin
-  const reference = `${athlete.documentId} · ${athlete.fullName}`
   const copyLabel = t('account.membership.transferCopy')
   const copiedLabel = t('account.membership.transferCopied')
 
@@ -160,15 +158,6 @@ export default function TransferReceipt({
               )}
             </div>
           ))}
-          <div>
-            <dt>{t('account.membership.transferReference')}</dt>
-            <CopyableValue
-              value={reference}
-              copyLabel={copyLabel}
-              copiedLabel={copiedLabel}
-              copyAria={copyAria('account.membership.transferReference')}
-            />
-          </div>
         </dl>
         <p id={warningId} className="account-transfer-warning" role="note">
           {t(

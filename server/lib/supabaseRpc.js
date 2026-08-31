@@ -35,6 +35,13 @@ const STATUS_BY_CODE = {
   PLU26: 409,
   PLU27: 409,
   PLU28: 409,
+  // La orden abierta que se reanuda no se pudo recotizar con el código de este
+  // pedido porque ya tiene comprobante, pago declarado o un intento de pasarela
+  // en vuelo (20261019130000). Es un conflicto con salida —completar, cancelar o
+  // esperar la revisión—, no una indisponibilidad: sin el mapeo salía como 503 y
+  // el checkout decía "el servicio no está disponible" ante un caso que el
+  // atleta puede resolver.
+  PLU30: 409,
   // Analítica / defensa: input inválido. Varias RPCs levantan estos códigos
   // con `errcode = '22023'` (Postgres) y el mensaje `PLU9x · …`; sin mapeo
   // caían al 503 y el tracker pintaba "servicio no disponible" en consola.

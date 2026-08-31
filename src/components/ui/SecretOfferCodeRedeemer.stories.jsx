@@ -123,7 +123,7 @@ const CANJE_ACEPTADO = {
 function withRedeemStub(Story) {
   const realFetch = globalThis.fetch
   globalThis.fetch = async (input, init) => {
-    const url = typeof input === 'string' ? input : input?.url ?? ''
+    const url = typeof input === 'string' ? input : (input?.url ?? '')
     if (url.includes('/codes/redeem')) {
       return new Response(JSON.stringify(CANJE_ACEPTADO), {
         status: 200,
@@ -139,6 +139,82 @@ async function canjear(canvas) {
   await userEvent.click(canvas.getByRole('button', { name: /tengo un código/i }))
   await userEvent.type(await canvas.findByLabelText(/^código$/i), 'combo-pitbull-invierno')
   await userEvent.click(canvas.getByRole('button', { name: /^canjear$/i }))
+}
+
+/**
+ * Validando: el pedido está en vuelo.
+ *
+ * Es el estado que no se podía auditar y el que más motion nuevo tiene —el
+ * barrido de luz de `code-band.css` y el spinner del chip—, así que la respuesta
+ * del canje se demora a propósito para poder verlo quieto. Es también el único
+ * loop de la pieza: nace con la espera y muere con ella.
+ */
+export const Validando = {
+  decorators: [
+    (Story) => {
+      const realFetch = globalThis.fetch
+      globalThis.fetch = async (input, init) => {
+        const url = typeof input === 'string' ? input : (input?.url ?? '')
+        if (url.includes('/codes/redeem')) {
+          // Suficiente para que el estado quede a la vista mientras la story se
+          // audita, y corto como para no dejar el pedido colgado en la corrida.
+          await new Promise((resolve) => setTimeout(resolve, 3000))
+          return new Response(JSON.stringify(CANJE_ACEPTADO), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        return realFetch(input, init)
+      }
+      return <Story />
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canjear(canvas)
+    // El contrato de motion es el atributo, no la clase: `code-band.css` engancha
+    // el barrido en `[data-state='checking']`.
+    await waitFor(() =>
+      expect(canvasElement.querySelector('.code-band')?.dataset.state).toBe('checking'),
+    )
+    // Por selector y no por texto: "Validando" está dos veces —la ficha superior
+    // lo dice en palabras y el chip lo repite—, así que un `getByText(/validando/i)`
+    // encuentra dos nodos y no distingue cuál es cuál.
+    await expect(canvasElement.querySelector('.code-band__status')).toHaveTextContent(/validando/i)
+    await expect(canvasElement.querySelector('.code-band__spin')).toBeInTheDocument()
+  },
+}
+
+/**
+ * Llave rechazada: la banda lo dice en palabras y se corre 3px. El filo pasa a
+ * rojo —el único uso aprobado del rojo— y el estado sigue siendo texto, no
+ * color solo.
+ */
+export const LlaveRechazada = {
+  decorators: [
+    (Story) => {
+      const realFetch = globalThis.fetch
+      globalThis.fetch = async (input, init) => {
+        const url = typeof input === 'string' ? input : (input?.url ?? '')
+        if (url.includes('/codes/redeem')) {
+          return new Response(JSON.stringify({ status: 'rejected', reason: 'not_found' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        return realFetch(input, init)
+      }
+      return <Story />
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await canjear(canvas)
+    await waitFor(() => expect(canvas.getByRole('alert')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(canvasElement.querySelector('.code-band')?.dataset.state).toBe('error'),
+    )
+  },
 }
 
 /** El momento del canje: el reveal, con el beneficio como titular. */

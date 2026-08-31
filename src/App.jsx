@@ -860,6 +860,10 @@ export default function App() {
             onNavigate={navigate}
             onSubmit={app.submitCompetition}
             onUpdateForm={app.updateForm}
+            // Con qué reconstruir la orden abierta después de una recarga: sin
+            // esto el checkout sólo conocía la que se hubiera creado en esta
+            // misma sesión.
+            payments={app.payments}
             registrations={app.registrations}
             checkoutAvailability={app.checkoutAvailability}
             checkoutIntent={checkoutIntent}

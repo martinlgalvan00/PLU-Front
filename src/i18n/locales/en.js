@@ -1159,6 +1159,10 @@ export default {
         ready:
           'This code holds your membership and your meet registration together at an agreed price. Fill in your details and choose how to pay.',
         manual: 'Your bundle is on hold. Finish the payment below to confirm it.',
+        // The gateway is not charged here: what is left is going back to the
+        // meet checkout, where its payment screen lives.
+        gateway:
+          'Your bundle is on hold and is paid with Mercado Pago. You still need to complete the payment in the meet checkout.',
         granted:
           'You are already a member and registered: PLU enabled you up front. You still need to complete the payment within the term.',
         settled: 'Finance credited the payment. The bundle is closed and nothing is pending.',
@@ -1191,6 +1195,9 @@ export default {
       remaining: '{{count}} spots left',
       remainingOne: '1 spot left',
       dueIn: '{{countdown}} Once the term is over, membership and registration are cancelled.',
+      gatewayNote:
+        'Mercado Pago is charged in the meet checkout, with the bundle already applied. You do not need to report anything: it clears on its own.',
+      resumeGateway: 'Resume the Mercado Pago payment',
       settled: 'Nothing is pending. Your credential and registration are in their usual tabs.',
       refunded:
         'The amount of this purchase was returned. If the refund was not what you expected, contact PLU staff.',
