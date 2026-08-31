@@ -3366,6 +3366,8 @@ export default {
       backToMercadoPago: 'Back to Mercado Pago',
       backToTransfer: 'Back to transfer',
       changePaymentLead: 'Your order is still pending. Choose how to pay and continue.',
+      changePaymentDataDesc:
+        'You can fix your competition details before continuing: they are saved with the order.',
       paymentMethodLocked:
         'This order already has a Mercado Pago payment in progress. Complete it or wait until it expires to pay by transfer.',
       paymentLinkHint: 'Administrative validation · up to 48 hours',
@@ -3394,6 +3396,17 @@ export default {
       transferNotice: 'Use the indicated reference so the team can reconcile your payment.',
       transferHint: 'Attach the receipt. Administration reviews it within up to 48 hours.',
       transferOpen: 'View transfer details',
+      cancelOrderAction: 'Cancel this order',
+      cancelOrderMissing: 'We could not find the order to cancel. Reload the page and try again.',
+      cancelOrderBusy: 'Cancelling…',
+      cancelOrderDone:
+        'We cancelled your order. You can pick another payment method and re-apply your code.',
+      cancelOrderConfirm:
+        'Cancel this order? You will be able to pick another payment method and your code goes back to being available.',
+      cancelOrderConfirmAction: 'Yes, cancel',
+      cancelOrderUnavailable:
+        'Cancelling is not available right now. Reload the page; if it keeps failing, get in touch and we will close the order for you.',
+      submitInFlight: 'Something is already in progress. Wait a few seconds before trying again.',
       competitionSummaryAthlete: 'Athlete',
       competitionSummaryPending: 'To be set',
       competitionOrderHint: 'Confirming generates the registration order.',

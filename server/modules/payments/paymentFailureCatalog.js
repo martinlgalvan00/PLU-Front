@@ -291,6 +291,20 @@ const CATALOG = [
     retryable: false,
   },
   {
+    code: 'ORDER_CANCEL_REFUSED',
+    match: /PLU3[1-4]|ya est[aá] (pagada|cerrada)|Ya subiste un comprobante|Ya declaraste el pago|intento de pago en curso/i,
+    title: 'La orden no se puede cancelar todavia',
+    cause:
+      'El atleta pidio cerrar su orden abierta para elegir otro medio, y una guarda lo freno: la orden ya esta pagada o cerrada (PLU31), tiene comprobante esperando revision (PLU32), el pago ya se declaro (PLU33) o hay un intento de pasarela en vuelo (PLU34). Es el comportamiento buscado -- cancelar no puede borrar plata que ya entro -- y la pantalla ya le muestra el motivo.',
+    fix: [
+      'No hay nada que arreglar: es una guarda funcionando. Aparece en el log para poder medir cuantas veces se choca.',
+      'Si el atleta necesita salir igual, Finanzas resuelve el comprobante o la orden vence sola y libera el cupon.',
+    ],
+    severity: 'expected',
+    scope: 'dominio',
+    retryable: false,
+  },
+  {
     code: 'EVENT_SOLD_OUT',
     match: /PLU04|No quedan cupos|cupo agotado|agotad[ao]/i,
     title: 'El evento no tiene cupo',

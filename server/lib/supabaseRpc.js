@@ -42,6 +42,18 @@ const STATUS_BY_CODE = {
   // el checkout decía "el servicio no está disponible" ante un caso que el
   // atleta puede resolver.
   PLU30: 409,
+  // Cancelación de una orden abierta pedida por el atleta
+  // (20261020100000_athlete_cancels_open_order): ya está pagada o cerrada
+  // (PLU31), tiene comprobante esperando revisión (PLU32), el pago ya se
+  // declaró (PLU33) o hay un intento de pasarela en vuelo (PLU34). Los cuatro
+  // son conflictos con salida —completar, esperar la revisión o dejar vencer—,
+  // no indisponibilidad: sin el mapeo caían al 503 por defecto y la pantalla
+  // decía "el servicio no está disponible" ante algo que el atleta puede
+  // entender y resolver.
+  PLU31: 409,
+  PLU32: 409,
+  PLU33: 409,
+  PLU34: 409,
   // Analítica / defensa: input inválido. Varias RPCs levantan estos códigos
   // con `errcode = '22023'` (Postgres) y el mensaje `PLU9x · …`; sin mapeo
   // caían al 503 y el tracker pintaba "servicio no disponible" en consola.

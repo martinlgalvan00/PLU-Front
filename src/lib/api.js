@@ -35,13 +35,25 @@ async function parseResponse(response) {
   }
 }
 
+// Sin esto, un backend que acepta la conexión y nunca contesta (colgado, no
+// caído) deja el `fetch` sin resolver para siempre: quien esperaba esa
+// respuesta -- un submit, un guard que bloquea el próximo intento -- se queda
+// trabado en silencio, sin error ni reintento posible hasta recargar la
+// página. 30s alcanza para cualquier pedido normal de la app (incluida la
+// creación de una orden) sin cortar de más.
+const DEFAULT_TIMEOUT_MS = 30000
+
 export async function apiRequest(path, options = {}) {
   const url = `${env.apiUrl}${path}`
   const method = options.method ?? 'GET'
-  const { headers, allowNotModified = false, ...requestOptions } = options
+  const { headers, allowNotModified = false, timeoutMs = DEFAULT_TIMEOUT_MS, ...requestOptions } =
+    options
   const mutationHeaders = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
     ? { 'X-PLU-Request': 'browser' }
     : {}
+
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
 
   let response
   try {
@@ -52,9 +64,16 @@ export async function apiRequest(path, options = {}) {
         ...mutationHeaders,
         ...(headers ?? {}),
       },
+      signal: timeoutController.signal,
       ...requestOptions,
     })
   } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new ApiError(
+        'El servicio está tardando más de lo esperado. Reintentá en unos segundos.',
+        { status: 0, body: { apiUrl: env.apiUrl, timeoutMs } },
+      )
+    }
     throw new ApiError(
       'El servicio no está disponible en este momento. Reintentá en unos segundos.',
       {
@@ -66,6 +85,8 @@ export async function apiRequest(path, options = {}) {
         },
       },
     )
+  } finally {
+    clearTimeout(timeoutId)
   }
 
   // 304 sin body: el poll del panel/atleta reusa el snapshot en memoria.
