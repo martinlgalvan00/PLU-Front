@@ -89,17 +89,20 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
     })
   })
 
-  it('no ofrece acreditar una transferencia sin comprobante', async () => {
+  it('permite acreditar una transferencia sin comprobante desde la cola', async () => {
     const onApprovePayment = vi.fn(async () => ({}))
     renderQueue([PAYMENT_NO_PROOF], { onApprovePayment })
 
-    expect(screen.queryByRole('button', { name: 'Validar' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Sin comprobante cargado')).toBeTruthy()
-    expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeNull()
-    expect(onApprovePayment).not.toHaveBeenCalled()
+    expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar validación' }))
+
+    await waitFor(() => {
+      expect(onApprovePayment).toHaveBeenCalledWith('p2')
+    })
   })
 
   it('mantiene el efectivo presencial como validación operativa sin archivo', async () => {
@@ -238,7 +241,7 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
     })
     expect(within(dialog).getByRole('button', { name: 'Ver el comprobante a tamaño real' })).toBeTruthy()
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /^Cerrar$/ }))
+    fireEvent.click(within(dialog).getAllByRole('button', { name: /^Cerrar$/ })[1])
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull()

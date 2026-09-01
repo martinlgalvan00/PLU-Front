@@ -169,12 +169,13 @@ export default function PaymentValidationDialog({
   // El archivo tiene que haberse abierto correctamente antes de permitir una
   // decisión. La existencia de una ruta no alcanza como prueba revisada.
   const proofReadyForReview = hasProof && !proofLoading && Boolean(proofUrl) && !proofError
-  // Acreditar a mano siempre exige comprobante abierto: es la evidencia de que
-  // el dinero entró de verdad, y sin ella la acción es indistinguible de
-  // regalar una afiliación. El backend lo vuelve a exigir.
+  // Si existe un archivo, debe poder abrirse antes de aprobar. Si no existe,
+  // Finanzas puede asumir la responsabilidad de la aprobación manual.
+  const allowApprovalWithoutProof =
+    !hasProof && (item.allowApprovalWithoutProof === true || item.method === 'manual_link')
   const canDecide = isSettle
     ? proofReadyForReview && settleReasonValid
-    : item.cashAtPitbull || proofReadyForReview
+    : allowApprovalWithoutProof || item.cashAtPitbull || proofReadyForReview
   // El efectivo no trae archivo, así que el rechazo tampoco puede pedirlo: es
   // la única vía para devolver el cupo que reserva una orden presencial cuando
   // el atleta no se presenta a pagar. Se muestra desde el principio y se

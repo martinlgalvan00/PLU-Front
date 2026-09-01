@@ -4,6 +4,7 @@ import {
   findUniqueCoreMatch,
   getCoreName,
   isSimilarCore,
+  isNewGymName,
   mergeGymVariants,
   preferGymName,
 } from '../src/lib/gymNormalize.js'
@@ -58,5 +59,14 @@ describe('gymNormalize', () => {
     expect(findUniqueCoreMatch(options, 'Pitbull')).toBe('Pitbull Barbell Club')
     expect(findUniqueCoreMatch(options, 'pitbull barbell')).toBe('Pitbull Barbell Club')
     expect(findUniqueCoreMatch(options, 'xyz')).toBeNull()
+  })
+
+  it('distingue un equipo existente de un nombre nuevo para la confirmacion', () => {
+    const options = ['Pitbull Barbell Club', 'Maximal Power', 'A']
+
+    expect(isNewGymName(options, ' pitbull ')).toBe(false)
+    expect(isNewGymName(options, 'A')).toBe(false)
+    expect(isNewGymName(options, 'Nuevo Equipo')).toBe(true)
+    expect(isNewGymName(options, '   ')).toBe(false)
   })
 })

@@ -44,7 +44,7 @@ import {
 } from '../../services/registrationAdminService.js'
 import {
   canForceSettleOrder,
-  canValidateManualOrder,
+  canApproveManualOrder,
   isManualOrder,
   isOpenOrder,
 } from '../../services/paymentValidationService.js'
@@ -54,6 +54,9 @@ import {
 } from '../../services/platformSettingsAdminService.js'
 import { resolveStateBacking } from '../../services/stateCoherenceService.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
+import {
+  buildAdminFacetOptions,
+} from '../../lib/adminPeopleFilters.js'
 
 // Fallback estable para cuando no llega la prop (Storybook, tests) — evita
 // tener que null-check `gatePendingIds` en cada lugar que lo usa.
@@ -123,6 +126,7 @@ export default function RegistrationsSection({
   gatePendingIds = EMPTY_GATE_PENDING_IDS,
   payments,
   registrations = [],
+  athletes = [],
   registrationsCount,
   onApprovePayment,
   onForceSettlePayment,
@@ -190,14 +194,27 @@ export default function RegistrationsSection({
   // atleta solo (compatibilidad con datos viejos sin evento).
   const paymentIndex = useMemo(() => createRegistrationPaymentIndex(payments), [payments])
 
+  const athletesById = useMemo(
+    () => new Map(athletes.map((athlete) => [athlete.id, athlete])),
+    [athletes],
+  )
+  const enrichedAdminRegistrations = useMemo(
+    () =>
+      registrations.map((registration) => ({
+        ...registration,
+        athlete: registration.athlete ?? athletesById.get(registration.athleteId),
+      })),
+    [registrations, athletesById],
+  )
+
   const resolvePayment = useCallback(
     (registration) => resolveRegistrationPayment(paymentIndex, registration),
     [paymentIndex],
   )
 
   const { statusCounts, affiliationCounts } = useMemo(
-    () => buildRegistrationFilterCounts(registrations, resolvePayment, gatePendingIds),
-    [registrations, resolvePayment, gatePendingIds],
+    () => buildRegistrationFilterCounts(enrichedAdminRegistrations, resolvePayment, gatePendingIds),
+    [enrichedAdminRegistrations, resolvePayment, gatePendingIds],
   )
 
   const statusOptions = useMemo(
@@ -214,22 +231,40 @@ export default function RegistrationsSection({
       translateFilterOptions(ATHLETE_FILTER_STATUSES, t).map(([value, label]) => [
         value,
         label,
-        value === 'all' ? registrations.length : (affiliationCounts[value] ?? 0),
+        value === 'all' ? enrichedAdminRegistrations.length : (affiliationCounts[value] ?? 0),
       ]),
-    [affiliationCounts, registrations.length, t],
+    [affiliationCounts, enrichedAdminRegistrations.length, t],
+  )
+  const gymOptions = useMemo(
+    () =>
+      buildAdminFacetOptions(
+        enrichedAdminRegistrations,
+        (registration) => registration.athlete?.gym,
+        t('admin.filters.allGyms'),
+      ),
+    [enrichedAdminRegistrations, t],
+  )
+  const divisionOptions = useMemo(
+    () =>
+      buildAdminFacetOptions(
+        enrichedAdminRegistrations,
+        (registration) => registration.division,
+        t('admin.filters.allDivisions'),
+      ),
+    [enrichedAdminRegistrations, t],
   )
   const eventOptions = useMemo(() => {
     const counts = new Map()
-    for (const registration of registrations) {
+    for (const registration of enrichedAdminRegistrations) {
       if (!registration.event) continue
       counts.set(registration.event, (counts.get(registration.event) ?? 0) + 1)
     }
     const names = [...counts.keys()].sort((left, right) => left.localeCompare(right))
     return [
-      ['all', t('admin.filters.allEvents'), registrations.length],
+      ['all', t('admin.filters.allEvents'), enrichedAdminRegistrations.length],
       ...names.map((event) => [event, event, counts.get(event) ?? 0]),
     ]
-  }, [registrations, t])
+  }, [enrichedAdminRegistrations, t])
 
   const registrationRows = useMemo(
     () =>
@@ -404,6 +439,14 @@ export default function RegistrationsSection({
     onSetFilters((current) => ({ ...current, affiliationStatus: value }))
   }
 
+  function handleGymChange(value) {
+    onSetFilters((current) => ({ ...current, gym: value }))
+  }
+
+  function handleDivisionChange(value) {
+    onSetFilters((current) => ({ ...current, division: value }))
+  }
+
   function handleCreatedAtRangeChange(value) {
     onSetFilters((current) => ({ ...current, createdAtRange: value }))
   }
@@ -414,6 +457,8 @@ export default function RegistrationsSection({
       event: 'all',
       status: 'all',
       affiliationStatus: 'all',
+      gym: 'all',
+      division: 'all',
       query: '',
       createdAtRange: { ...EMPTY_DATE_RANGE },
     }))
@@ -440,6 +485,22 @@ export default function RegistrationsSection({
     options: affiliationOptions,
     showLabel: true,
   }
+  const gymFilter = {
+    id: 'gym',
+    label: t('admin.filters.gym'),
+    value: filters.gym ?? 'all',
+    onChange: handleGymChange,
+    options: gymOptions,
+    variant: 'select',
+  }
+  const divisionFilter = {
+    id: 'division',
+    label: t('admin.filters.division'),
+    value: filters.division ?? 'all',
+    onChange: handleDivisionChange,
+    options: divisionOptions,
+    variant: 'select',
+  }
   const createdAtRange = filters.createdAtRange ?? EMPTY_DATE_RANGE
   const createdAtFilter = {
     id: 'createdAtRange',
@@ -455,13 +516,23 @@ export default function RegistrationsSection({
       event: filters.event ?? 'all',
       status: filters.status ?? 'all',
       affiliationStatus: filters.affiliationStatus ?? 'all',
+      gym: filters.gym ?? 'all',
+      division: filters.division ?? 'all',
       query: filters.query ?? '',
       createdAtRange: {
         from: createdAtRange.from ?? '',
         to: createdAtRange.to ?? '',
       },
     }),
-    [filters.event, filters.status, filters.affiliationStatus, filters.query, createdAtRange],
+    [
+      filters.event,
+      filters.status,
+      filters.affiliationStatus,
+      filters.gym,
+      filters.division,
+      filters.query,
+      createdAtRange,
+    ],
   )
   const activeSavedView = useMemo(
     () => findMatchingView(savedViews, savedViewSnapshot),
@@ -471,6 +542,8 @@ export default function RegistrationsSection({
     savedViewSnapshot.event !== 'all' ||
     savedViewSnapshot.status !== 'all' ||
     savedViewSnapshot.affiliationStatus !== 'all' ||
+    savedViewSnapshot.gym !== 'all' ||
+    savedViewSnapshot.division !== 'all' ||
     savedViewSnapshot.query.trim() !== '' ||
     Boolean(savedViewSnapshot.createdAtRange.from) ||
     Boolean(savedViewSnapshot.createdAtRange.to)
@@ -492,6 +565,14 @@ export default function RegistrationsSection({
       const opt = affiliationOptions.find(([v]) => v === savedViewSnapshot.affiliationStatus)
       if (opt) items.push({ label: t('admin.filters.affiliation'), value: opt[1] })
     }
+    if (savedViewSnapshot.gym !== 'all') {
+      const opt = gymOptions.find(([v]) => v === savedViewSnapshot.gym)
+      if (opt) items.push({ label: t('admin.filters.gym'), value: opt[1] })
+    }
+    if (savedViewSnapshot.division !== 'all') {
+      const opt = divisionOptions.find(([v]) => v === savedViewSnapshot.division)
+      if (opt) items.push({ label: t('admin.filters.division'), value: opt[1] })
+    }
     const range = savedViewSnapshot.createdAtRange
     if (range.from || range.to) {
       const value =
@@ -503,7 +584,7 @@ export default function RegistrationsSection({
       items.push({ label: t('admin.filters.registrationDate'), value })
     }
     return items
-  }, [savedViewSnapshot, statusOptions, affiliationOptions, t])
+  }, [savedViewSnapshot, statusOptions, affiliationOptions, gymOptions, divisionOptions, t])
 
   function applySavedView(view) {
     const snapshot = view.snapshot ?? {}
@@ -577,6 +658,8 @@ export default function RegistrationsSection({
                   showLabel: true,
                 },
                 affiliationFilter,
+                gymFilter,
+                divisionFilter,
                 createdAtFilter,
               ].filter(Boolean)
         }
@@ -776,7 +859,7 @@ export default function RegistrationsSection({
                           <PaymentValidationAction
                             athlete={{ fullName: row.athlete, documentId: row.document }}
                             detail={[row.event, row.category].filter(Boolean).join(' · ')}
-                            disabled={!validationEnabled || !canValidateManualOrder(row.payment)}
+                            disabled={!validationEnabled || !canApproveManualOrder(row.payment)}
                             label={
                               validationEnabled
                                 ? t('admin.actions.validate')

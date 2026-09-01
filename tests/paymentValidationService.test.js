@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildPaymentValidationItem,
+  canApproveManualOrder,
   canValidateConcept,
   canValidateManualOrder,
   findOpenManualOrderForRegistration,
@@ -42,14 +43,20 @@ describe('elegibilidad de validación manual', () => {
     expect(canValidateManualOrder(cash)).toBe(true)
   })
 
+  it('permite a Finanzas aprobar una transferencia abierta sin comprobante', () => {
+    expect(canApproveManualOrder(order({ paymentProofPath: null }))).toBe(true)
+  })
+
   it('rechaza Mercado Pago aunque tenga comprobante', () => {
     const provider = order({ method: 'mercado_pago' })
     expect(isManualOrder(provider)).toBe(false)
+    expect(canApproveManualOrder(provider)).toBe(false)
     expect(canValidateManualOrder(provider)).toBe(false)
   })
 
   it('rechaza una orden que ya cerró', () => {
     expect(isOpenOrder(order({ status: 'aprobado' }))).toBe(false)
+    expect(canApproveManualOrder(order({ status: 'aprobado' }))).toBe(false)
     expect(canValidateManualOrder(order({ status: 'aprobado' }))).toBe(false)
     expect(canValidateManualOrder(order({ status: 'rechazado' }))).toBe(false)
   })
@@ -105,6 +112,7 @@ describe('objeto de revisión', () => {
       paymentId: 'ord-1',
       hasProof: true,
       cashAtPitbull: false,
+      allowApprovalWithoutProof: true,
       subject: 'Ana Torres',
       documentId: '30111222',
       detail: 'Pitbull Classic 2026',

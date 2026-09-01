@@ -1052,14 +1052,30 @@ export function createAthleteRoutes({
       let gyms = []
 
       try {
-        const org = await prisma.organization.findFirst()
-        if (org) {
-          const catalog = await prisma.gym.findMany({
-            where: { organizationId: org.id },
-            select: { name: true },
-            orderBy: { name: 'asc' },
-          })
-          gyms = catalog.map((g) => g.name).filter(Boolean)
+        const supabase = client()
+        if (supabase?.from) {
+          const { data, error } = await supabase.from('athletes').select('gym')
+          if (error) throw error
+          const anchors = mergeGymVariants(
+            (data ?? []).map((row) => ({ name: row.gym, count: 1 })),
+          )
+          gyms = anchors.map((g) => g.name).sort((a, b) => a.localeCompare(b, 'es'))
+        }
+      } catch (athleteCatalogError) {
+        logger.warn('athlete.gyms_athlete_catalog_unavailable', { err: athleteCatalogError })
+      }
+
+      try {
+        if (gyms.length === 0) {
+          const org = await prisma.organization.findFirst()
+          if (org) {
+            const catalog = await prisma.gym.findMany({
+              where: { organizationId: org.id },
+              select: { name: true },
+              orderBy: { name: 'asc' },
+            })
+            gyms = catalog.map((g) => g.name).filter(Boolean)
+          }
         }
       } catch (catalogError) {
         logger.warn('athlete.gyms_catalog_unavailable', { err: catalogError })
@@ -1069,7 +1085,9 @@ export function createAthleteRoutes({
         const rows = await prisma.organizationAthlete.groupBy({
           by: ['gym'],
           _count: { gym: true },
-          where: { gym: { not: null, not: '' } },
+          where: {
+            AND: [{ gym: { not: null } }, { gym: { not: '' } }],
+          },
         })
         const anchors = mergeGymVariants(
           rows.map((row) => ({ name: row.gym, count: row._count.gym })),

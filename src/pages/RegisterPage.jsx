@@ -30,6 +30,7 @@ import { AutocompleteField, DateField, Field, Select, ChoiceField } from '../com
 import StatusPill from '../components/ui/StatusPill.jsx'
 import Pill from '../components/ui/Pill.jsx'
 import CardPreviewModal from '../components/ui/CardPreviewModal.jsx'
+import GymNameConfirmationDialog from '../components/ui/GymNameConfirmationDialog.jsx'
 import PromotionRevealModal from '../components/ui/PromotionRevealModal.jsx'
 import CodeScanButton from '../components/ui/CodeScanButton.jsx'
 import RegisterCompetitionConfirmation from '../components/ui/RegisterCompetitionConfirmation.jsx'
@@ -39,6 +40,7 @@ import MercadoPagoEmbeddedCheckout from '../components/ui/MercadoPagoEmbeddedChe
 import MotionContentSwap from '../motion/MotionContentSwap.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { getFormOptions } from '../lib/formOptions.js'
+import { isNewGymName } from '../lib/gymNormalize.js'
 import { formatShortDate, formatShortStamp, money } from '../lib/format.js'
 import { describeDiscountPreviewError } from '../lib/discountPreviewError.js'
 import { resolveEventPricing } from '../lib/eventPricing.js'
@@ -443,9 +445,9 @@ function RegisterCompetitionAside({
           {picks || pending}
         </p>
         {paymentMethods.length ? (
-          <fieldset className="register-competition-ticket__methods">
+          <fieldset className="register-competition-ticket__methods" aria-hidden="true">
             <legend>{t('pages.register.paymentMethod')}</legend>
-    <div className="register-competition-ticket__methods-list">
+            <div className="register-competition-ticket__methods-list">
               {paymentMethods.map((method) => (
                 <div
                   key={method.value}
@@ -495,9 +497,24 @@ export default function RegisterPage({
   const [submitError, setSubmitError] = useState('')
   const [paymentRecovery, setPaymentRecovery] = useState(null)
   const [gyms, setGyms] = useState([])
+  const [gymsReady, setGymsReady] = useState(false)
+  const [pendingGymConfirmation, setPendingGymConfirmation] = useState('')
+  const pendingGymResumeRef = useRef(null)
+  const confirmedGymNameRef = useRef('')
 
   useEffect(() => {
-    fetchGyms().then(setGyms).catch(console.error)
+    let mounted = true
+    fetchGyms()
+      .then((values) => {
+        if (mounted) setGyms(values)
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (mounted) setGymsReady(true)
+      })
+    return () => {
+      mounted = false
+    }
   }, [])
   // El checkout se corta si el correo no está confirmado. La acción de reenvío
   // vivía solo en el banner del perfil, así que acá el atleta leía "confirmá tu
@@ -1373,6 +1390,9 @@ export default function RegisterPage({
   function changeField(event) {
     const field = event.target.name
     onUpdateForm(event)
+    if (field === 'gym' && confirmedGymNameRef.current !== String(event.target.value ?? '').trim()) {
+      confirmedGymNameRef.current = ''
+    }
     if (field === 'country') {
       // La nacionalidad define qué documento se pide. Al cambiarla, el valor
       // ya tipeado puede quedar inválido (letras en un DNI), así que se sanea
@@ -1389,6 +1409,36 @@ export default function RegisterPage({
     if (errors[field]) setErrors((current) => ({ ...current, [field]: '' }))
     setSubmitError('')
     setEmailBlocked(false)
+  }
+
+  function ensureGymNameConfirmed(resume) {
+    const gymName = String(form.gym ?? '').trim()
+    if (
+      !gymsReady ||
+      !isNewGymName(gyms, gymName) ||
+      confirmedGymNameRef.current === gymName
+    ) {
+      return true
+    }
+
+    pendingGymResumeRef.current = resume
+    setPendingGymConfirmation(gymName)
+    return false
+  }
+
+  function cancelGymNameConfirmation() {
+    pendingGymResumeRef.current = null
+    setPendingGymConfirmation('')
+    window.requestAnimationFrame(() => document.querySelector('[name="gym"]')?.focus())
+  }
+
+  function confirmGymName() {
+    const gymName = pendingGymConfirmation
+    const resume = pendingGymResumeRef.current
+    confirmedGymNameRef.current = gymName
+    pendingGymResumeRef.current = null
+    setPendingGymConfirmation('')
+    void resume?.()
   }
 
   function takenMessage(field) {
@@ -1500,6 +1550,13 @@ export default function RegisterPage({
       }))
       setProfileErrorStepIndex(profileStepIndex)
       focusFirstError(validation.errors)
+      return
+    }
+
+    if (
+      step.fields.includes('gym') &&
+      !ensureGymNameConfirmed(() => advanceProfileStep())
+    ) {
       return
     }
 
@@ -1674,6 +1731,11 @@ export default function RegisterPage({
         submissionInFlightRef.current = false
         return
       }
+    }
+
+    if (flow === 'profile' && !ensureGymNameConfirmed(() => submit(eventObject))) {
+      submissionInFlightRef.current = false
+      return
     }
 
     // Un reintento reemplaza el estado anterior: el usuario ve el progreso
@@ -2106,7 +2168,7 @@ export default function RegisterPage({
           {flow === 'membership' && !visibleOrder && (
             <RegisterMembershipAside athlete={athlete} locale={locale} t={t} total={total} />
           )}
-          {flow === 'competition' && !visibleOrder && (
+          {flow === 'competition' && (!visibleOrder || changingMethod) && (
             <RegisterCompetitionAside
               athlete={athlete}
               form={form}
@@ -3259,6 +3321,13 @@ export default function RegisterPage({
           onContinue={() => setRevealOpen(false)}
           payment={promotionPaymentPresentation(revealPromotion)}
           remaining={promotionScarcityPresentation(revealPromotion)?.remaining ?? null}
+        />
+      ) : null}
+      {pendingGymConfirmation ? (
+        <GymNameConfirmationDialog
+          gymName={pendingGymConfirmation}
+          onCancel={cancelGymNameConfirmation}
+          onConfirm={confirmGymName}
         />
       ) : null}
     </main>
