@@ -257,6 +257,35 @@ export function createAnalyticsRoutes({
       next(error)
     }
   })
+
+  /**
+   * Serie diaria perpetua con pico historico. Alimenta el grafico de trafico y
+   * el calendario de visitas: es la unica lectura del informe que puede pedir
+   * hasta 365 dias atras, porque los dias cerrados salen de los rollups y no
+   * del detalle crudo que se purga a los 90.
+   */
+  router.get('/timeseries', ...analyticsGuard, staffLimiter, async (req, res, next) => {
+    try {
+      const query = parseRange(req)
+      res.json(await repo().timeseries(resolveRange(query)))
+    } catch (error) {
+      next(error)
+    }
+  })
+
+  /**
+   * Resumen de trafico para el tablero: hoy, ayer, semana contra semana y el
+   * record historico. `no-store` porque "cuanta gente entro hoy" cambia con la
+   * hora y un numero cacheado miente con cara de actualizado.
+   */
+  router.get('/dashboard-summary', ...analyticsGuard, staffLimiter, async (_req, res, next) => {
+    try {
+      res.set('Cache-Control', 'no-store')
+      res.json(await repo().dashboardSummary())
+    } catch (error) {
+      next(error)
+    }
+  })
   router.get('/operational-summary', ...analyticsGuard, staffLimiter, async (req, res, next) => {
     try {
       const query = parseRange(req)

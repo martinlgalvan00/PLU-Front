@@ -788,8 +788,10 @@ export async function createCompetitionRegistrationCombo({
   }
 }
 
-export async function approveAthletePaymentOrder(orderId) {
-  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/approve`, {})
+export async function approveAthletePaymentOrder(orderId, { overrideReason } = {}) {
+  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/approve`, {
+    ...(overrideReason ? { overrideReason } : {}),
+  })
   return {
     order: toCamelPaymentOrder(result.order),
     membership: toCamelMembership(result.membership),

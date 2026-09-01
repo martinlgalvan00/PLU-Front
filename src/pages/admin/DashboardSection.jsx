@@ -18,6 +18,7 @@ import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmD
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminPriorityBoard from '../../components/admin/AdminPriorityBoard.jsx'
 import ActionQueue from '../../components/admin/ActionQueue.jsx'
+import DashboardTrafficCard from '../../components/admin/DashboardTrafficCard.jsx'
 import { useAdminModal } from '../../components/admin/useAdminModal.js'
 import Button from '../../components/ui/Button.jsx'
 import {
@@ -790,10 +791,7 @@ export default function DashboardSection({
   onDeleteAthlete,
   onSelectAthlete,
   getAthleteDetail,
-  athletes = [],
-  events = [],
-  onSelectEvent,
-  onGlobalSearchSubmit,
+  canViewAnalytics = false,
 }) {
   const { locale, t } = useI18n()
   const [alertsOpen, setAlertsOpen] = useState(false)
@@ -876,13 +874,10 @@ export default function DashboardSection({
   return (
     <div className="admin-dashboard admin-dashboard--compact admin-dashboard--ops">
       <AdminTopBar
+        eyebrow={t('admin.dashboard.eyebrow')}
         title={t('admin.dashboard.title')}
         subtitle={t('admin.dashboard.subtitle')}
-        athletes={athletes}
-        events={events}
-        onSelectAthlete={onSelectAthlete}
-        onSelectEvent={onSelectEvent}
-        onSearchSubmit={onGlobalSearchSubmit}
+        showSearch={false}
         alertCount={pendingActions.length > 0 ? pendingActions.length : pendingPayments}
         alertsOpen={alertsOpen}
         onAlertClick={() => setAlertsOpen(true)}
@@ -967,6 +962,8 @@ export default function DashboardSection({
               </div>
             </nav>
           </header>
+
+          {canViewAnalytics ? <DashboardTrafficCard onNavigate={onNavigate} /> : null}
 
           <div className="admin-ops__charts">
             <section className="admin-ops__chart admin-ops__chart--finance">

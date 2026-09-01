@@ -92,15 +92,13 @@ describe('Finanzas — comprobante y validación', () => {
     expect(proof.getAttribute('style')).toBeNull()
   })
 
-  it('avisa que falta el comprobante en vez de dejar un botón muerto', async () => {
+  it('avisa que falta el comprobante y sigue ofreciendo validar con override', async () => {
     await renderSection([order({ paymentProofPath: null })])
 
-    // Dos veces: la columna de comprobante (que ya existía) y la celda de
-    // acción, que es la que reemplaza al botón muerto por el motivo.
+    // Columna de comprobante + meta de estado. El CTA Validar queda disponible:
+    // el diálogo pide motivo de override antes de acreditar.
     expect(screen.getAllByText('Sin comprobante')).toHaveLength(2)
-    // Y no ofrece validar: acreditar sin comprobante es indistinguible de
-    // regalar la afiliación, y el backend lo rechaza igual.
-    expect(screen.queryByRole('button', { name: 'Validar' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Validar' })).toBeTruthy()
   })
 
   it('el efectivo en sede se puede validar sin comprobante', async () => {

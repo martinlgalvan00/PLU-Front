@@ -85,11 +85,12 @@ function QueueItemRow({
   const typeLabel = t(`admin.actionQueue.types.${item.type}`)
   const hasProof = itemHasProof(item)
   const isPaymentTask = Boolean(item.paymentId || item.orderId)
+  const canOverrideWithoutProof = Boolean(item.paymentId && item.requiresProofOverride)
   const hasPrimaryAction = Boolean(
     canEdit &&
       ((item.paymentId &&
         item.method === 'manual_link' &&
-        (hasProof || item.cashAtPitbull)) ||
+        (hasProof || item.cashAtPitbull || canOverrideWithoutProof)) ||
         (item.orderId && item.provider === 'manual' && hasProof)),
   )
 
@@ -228,14 +229,14 @@ export default function ActionQueue({
     onNavigate?.(item.section, item.paymentId ?? item.orderId ?? null)
   }
 
-  async function confirmReview() {
+  async function confirmReview(payload = {}) {
     if (!reviewItem || confirmBusy || reviewMode === 'view') return
     setConfirmBusy(true)
     setConfirmError('')
     try {
       let result
       if (reviewItem.paymentId) {
-        result = await onApprovePayment?.(reviewItem.paymentId)
+        result = await onApprovePayment?.(reviewItem.paymentId, payload)
       } else if (reviewItem.orderId) {
         result = await onApproveTicketOrder?.(reviewItem.orderId)
       }
@@ -360,7 +361,7 @@ export default function ActionQueue({
           busy={confirmBusy}
           error={confirmError}
           onCancel={closeReview}
-          onConfirm={() => void confirmReview()}
+          onConfirm={(payload) => void confirmReview(payload ?? {})}
           onReject={(reason) => void rejectReview(reason)}
         />
       ) : null}

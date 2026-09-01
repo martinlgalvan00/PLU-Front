@@ -20,9 +20,11 @@
   color: var(--color-text-primary);
   cursor: pointer;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   list-style: none;
   min-height: 40px;
+  min-width: 0;
   padding: var(--space-xs) 0;
 }
 
@@ -44,6 +46,7 @@
 
 .audit-flow-guide summary span {
   color: var(--color-brand-celeste);
+  flex: 0 0 auto;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: var(--letter-spacing-wide);
@@ -52,8 +55,10 @@
 
 .audit-flow-guide summary strong {
   color: var(--color-text-primary);
+  flex: 1 1 12rem;
   font-size: 14px;
   line-height: 1.2;
+  min-width: 0;
 }
 
 .audit-flow-guide__content {
@@ -142,6 +147,69 @@
   color: var(--color-text-muted);
 }
 
+/* Métricas: en desktop siempre visibles; en mobile (≤768) viven en un
+   <details> cerrado por default para no comer viewport. */
+.audit-health__metrics {
+  margin: 0;
+  padding: 0;
+}
+
+.audit-health__metrics-summary {
+  align-items: center;
+  cursor: pointer;
+  display: none;
+  gap: 10px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.audit-health__metrics-summary::-webkit-details-marker {
+  display: none;
+}
+
+.audit-health__metrics-summary::before {
+  color: var(--color-brand-celeste);
+  content: '›';
+  flex: 0 0 auto;
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 160ms var(--ease-out, ease);
+}
+
+.audit-health__metrics[open] > .audit-health__metrics-summary::before {
+  transform: rotate(90deg);
+}
+
+.audit-health__metrics-label {
+  color: var(--color-text-muted);
+  flex: 1 1 auto;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  min-width: 0;
+  text-transform: uppercase;
+}
+
+.audit-health__metrics-peek {
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  gap: 10px;
+}
+
+.audit-health__metrics-peek .is-soft {
+  color: var(--plu-warning-500);
+}
+
+.audit-health__metrics-peek .is-attention {
+  color: var(--color-brand-red);
+}
+
 .audit-health__volume {
   display: grid;
   gap: 4px 14px;
@@ -150,13 +218,30 @@
   padding: 8px 12px;
 }
 
+@media (max-width: 768px) {
+  .audit-health__metrics-summary {
+    display: flex;
+  }
+
+  .audit-health__metrics[open] .audit-health__metrics-peek {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .audit-health__metrics-summary {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .audit-flow-guide__content {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 640px) {
+/* Alineado a useMobileAuditLayout (768px): steps en una columna. */
+@media (max-width: 768px) {
   .audit-flow-guide__content,
   .audit-flow-guide__steps {
     grid-template-columns: minmax(0, 1fr);
@@ -333,36 +418,13 @@
   vertical-align: bottom;
 }
 
-@media (max-width: 820px) {
-  /* Envolver la barra principal de búsqueda + acciones */
-  .admin-shell .admin-filters--audit.admin-filters--inline.admin-filters--compact {
-    flex-wrap: wrap;
-  }
-  .admin-shell .admin-filters--audit .admin-filters__search {
-    flex: 1 1 100% !important;
-  }
-  .admin-shell .admin-filters--audit .admin-filters__actions {
-    flex: 1 1 100%;
-    justify-content: flex-start;
-  }
-  .admin-shell .admin-filters--audit .admin-filters__groups--multi,
-  .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
-    grid-template-columns: 1fr 1fr auto !important;
-  }
-
-  .admin-shell .admin-filters--audit .admin-filter-group:first-child,
-  .admin-shell .admin-list-section--audit .admin-filter-group:first-child {
-    grid-column: 1 / -1;
-  }
-}
-
 .admin-shell .admin-filters--audit .admin-filter-group,
 .admin-shell .admin-list-section--audit .admin-filter-group {
   min-width: 0;
   width: 100%;
 }
 
-/* Fuente (chips): una sola fila con scroll horizontal en vez de wrap alto. */
+/* Desktop: chips en una fila con scroll horizontal (densidad operativa). */
 .admin-shell .admin-filters--audit .admin-filter-chips,
 .admin-shell .admin-list-section--audit .admin-filter-chips {
   flex-wrap: nowrap;
@@ -385,8 +447,6 @@
   min-width: 0;
   width: 100%;
 }
-
-
 
 /* Recorte "Solo errores": vive junto a Actualizar, no en el bloque de
    filtros de servidor -- filtra lo ya cargado, no vuelve a pedirle nada
@@ -435,13 +495,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 720px) {
-  .audit-incidents-toggle {
-    min-height: 44px;
-  }
-}
-
-@media (min-width: 900px) {
+@media (min-width: 769px) {
   .admin-shell .admin-filters--audit .admin-filters__groups--multi,
   .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
     grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(9rem, 0.7fr)) auto;
@@ -453,10 +507,26 @@
   }
 }
 
-@media (max-width: 540px) {
+/* Mobile/tablet: stack 1-col alineado a useMobileAuditLayout (768px). */
+@media (max-width: 768px) {
+  .admin-shell .admin-filters--audit.admin-filters--inline.admin-filters--compact {
+    flex-wrap: wrap;
+  }
+
+  .admin-shell .admin-filters--audit .admin-filters__search {
+    flex: 1 1 100% !important;
+  }
+
+  .admin-shell .admin-filters--audit .admin-filters__actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
   .admin-shell .admin-filters--audit .admin-filters__groups--multi,
   .admin-shell .admin-list-section--audit .admin-filters__groups--multi {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .admin-shell .admin-filters--audit .admin-filter-group:first-child,
@@ -466,6 +536,31 @@
 
   .admin-shell .admin-filters--audit .admin-filters__advanced-toggle {
     max-width: none;
+  }
+
+  /* Chips visibles sin swipe oculto (pisa nowrap de --compact). */
+  .admin-shell .admin-filters--audit .admin-filter-chips,
+  .admin-shell .admin-list-section--audit .admin-filter-chips,
+  .admin-shell .admin-filters--audit.admin-filters--compact .admin-filter-chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 0;
+    width: 100%;
+  }
+
+  .admin-shell .admin-filters--audit .admin-filter-chips-rail.is-overflowing,
+  .admin-shell .admin-list-section--audit .admin-filter-chips-rail.is-overflowing {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .admin-shell .admin-filters--audit .admin-filter-chip,
+  .admin-shell .admin-list-section--audit .admin-filter-chip {
+    min-height: 36px;
+  }
+
+  .audit-incidents-toggle {
+    min-height: 44px;
   }
 }
 
@@ -903,17 +998,75 @@
 }
 
 /* Auditoría: un scroll para las filas. El chrome (guía + salud + filtros)
-   queda fuera de ese scroll, con tope de altura para que no recorte el
-   viewport cuando la guía se abre o hay muchos filtros. */
+   crece a altura natural; solo con la guía abierta en desktop se aplica un
+   tope para no ahogar la bitácora. En ≤768 no hay scroll anidado. */
 .admin-shell .admin-list-section--audit > .admin-list-section__chrome {
   box-shadow: 0 10px 18px color-mix(in srgb, var(--admin-canvas, var(--color-bg-primary)) 82%, transparent);
   flex: none;
-  max-height: min(38vh, 360px);
   min-height: 0;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
   position: relative;
   z-index: 6;
+}
+
+@media (min-width: 769px) {
+  .admin-shell
+    .admin-list-section--audit:has(> .admin-list-section__chrome .audit-flow-guide[open])
+    > .admin-list-section__chrome {
+    max-height: min(48vh, 420px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Un solo scroll en mobile: el chrome crece natural y la bitácora
+     acompaña; evita el cajón 38vh anidado dentro de rails 100dvh. */
+  .admin-shell .admin-page > .admin-list-section--audit.admin-list-section--rails {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .admin-shell .admin-list-section--audit > .admin-list-section__chrome {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .admin-shell .admin-page > .admin-list-section--audit.admin-list-section--rails > .admin-list-shell {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .admin-shell
+    .admin-page
+    > .admin-list-section--audit.admin-list-section--rails
+    .admin-list-shell__body {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .audit-health__intro {
+    width: 100%;
+  }
+
+  .audit-health__summary {
+    gap: 4px;
+    padding: 8px 10px;
+  }
+
+  .audit-health__volume {
+    flex-basis: 100%;
+    gap: 6px 10px;
+    padding: 6px 10px;
+  }
+
+  .admin-shell .admin-list-section--audit .audit-flow-guide {
+    margin-bottom: var(--space-md);
+  }
 }
 
 .admin-shell .admin-list-section--audit > .admin-list-shell {
@@ -926,14 +1079,6 @@
    La card compacta genérica aplasta entidad/actor/detalle en una sola línea
    con separadores; acá cada bloque recupera su filas y el espacio horizontal. */
 @media (max-width: 720px) {
-  .audit-health__intro {
-    width: 100%;
-  }
-
-  .audit-health__volume {
-    flex-basis: 100%;
-  }
-
   .admin-shell .admin-list-shell--audit .data-table-cards--admin {
     gap: 10px;
     margin-inline: 0;

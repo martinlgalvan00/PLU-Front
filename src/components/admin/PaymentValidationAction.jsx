@@ -88,8 +88,11 @@ export default function PaymentValidationAction({
           busy={busy}
           error={error}
           onCancel={close}
-          onConfirm={() =>
-            void run(() => onApprove?.(order.id), t('admin.toasts.paymentApproved'))
+          onConfirm={(payload) =>
+            void run(
+              () => onApprove?.(order.id, payload ?? {}),
+              t('admin.toasts.paymentApproved'),
+            )
           }
           onReject={
             onReject

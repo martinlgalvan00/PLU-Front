@@ -727,7 +727,7 @@ export function createSupabaseAthleteRepository(
         'No se pudo leer la orden.',
       )
     },
-    async approvePayment(orderId, actor = null) {
+    async approvePayment(orderId, actor = null, { overrideReason = null } = {}) {
       const order = assertSupabaseResult(
         await client
           .from('athlete_payment_orders')
@@ -742,12 +742,16 @@ export function createSupabaseAthleteRepository(
       }
       // `p_actor` viaja hasta domain_audit_logs: sin él la aprobación manual
       // queda registrada sin responsable, que es justo lo que hay que poder
-      // reconstruir ante un reclamo.
+      // reconstruir ante un reclamo. `p_override_reason` habilita acreditar
+      // transferencia/Wise sin comprobante con motivo auditado (no efectivo).
+      const trimmedOverride =
+        typeof overrideReason === 'string' ? overrideReason.trim() || null : null
       return rpc(
         'approve_athlete_payment_order',
         {
           p_order_id: orderId,
           p_actor: actor,
+          p_override_reason: trimmedOverride,
         },
         'No se pudo aprobar el pago.',
       )

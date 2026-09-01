@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, PencilLine, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, PencilLine, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import AdminDataTable from '../../components/admin/AdminDataTable.jsx'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
 import AdminExpenseDialog from '../../components/admin/AdminExpenseDialog.jsx'
+import AdminFilterBar from '../../components/admin/AdminFilterBar.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import { AdminTableActions } from '../../components/admin/AdminTableCells.jsx'
@@ -31,6 +32,7 @@ const CONCEPT_FILTER = {
   expense: 'expense',
   other: 'other',
 }
+const EXPENSE_CATEGORY_ALL = 'all'
 const CONCEPT_BREAKDOWN_ORDER = [
   CONCEPT_FILTER.membership,
   CONCEPT_FILTER.registration,
@@ -51,6 +53,7 @@ const PERIOD_PRESET = {
   thisMonth: 'thisMonth',
   lastMonth: 'lastMonth',
   last30: 'last30',
+  yearToDate: 'yearToDate',
   custom: 'custom',
 }
 
@@ -89,10 +92,18 @@ function daysAgoIso(days) {
   return toIsoDate(date)
 }
 
+function startOfYear() {
+  const date = new Date()
+  date.setHours(12, 0, 0, 0)
+  date.setMonth(0, 1)
+  return toIsoDate(date)
+}
+
 function resolvePeriodPreset(from, to) {
   if (from === startOfMonth(0) && to === today()) return PERIOD_PRESET.thisMonth
   if (from === startOfMonth(-1) && to === endOfMonth(-1)) return PERIOD_PRESET.lastMonth
   if (from === daysAgoIso(29) && to === today()) return PERIOD_PRESET.last30
+  if (from === startOfYear() && to === today()) return PERIOD_PRESET.yearToDate
   return PERIOD_PRESET.custom
 }
 
@@ -104,6 +115,8 @@ function rangeForPreset(preset) {
       return { from: startOfMonth(-1), to: endOfMonth(-1) }
     case PERIOD_PRESET.last30:
       return { from: daysAgoIso(29), to: today() }
+    case PERIOD_PRESET.yearToDate:
+      return { from: startOfYear(), to: today() }
     default: {
       const _exhaustive = preset
       void _exhaustive
@@ -181,13 +194,18 @@ function conceptLabel(t, conceptKey, fallbackCategory) {
   return fallbackCategory || conceptKey
 }
 
+function expenseRubrosVisible(kindFilter, conceptFilter) {
+  if (kindFilter === KIND_FILTER.income) return false
+  if (conceptFilter !== CONCEPT_FILTER.all && conceptFilter !== CONCEPT_FILTER.expense) return false
+  return true
+}
+
 export default function FinanceSection({ canEdit = false }) {
   const { locale, t } = useI18n()
   const fromId = useId()
   const toId = useId()
-  const searchId = useId()
   const kindFilterId = useId()
-  const conceptFilterId = useId()
+  const expenseCategoryFilterId = useId()
   const periodPresetsId = useId()
   const breakdownId = useId()
   const [from, setFrom] = useState(() => startOfMonth(0))
@@ -196,6 +214,7 @@ export default function FinanceSection({ canEdit = false }) {
   const [query, setQuery] = useState('')
   const [kindFilter, setKindFilter] = useState(KIND_FILTER.all)
   const [conceptFilter, setConceptFilter] = useState(CONCEPT_FILTER.all)
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState(EXPENSE_CATEGORY_ALL)
   const [report, setReport] = useState(null)
   const [error, setError] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
@@ -283,6 +302,26 @@ export default function FinanceSection({ canEdit = false }) {
     setTo(next.to)
   }
 
+  function changeKindFilter(next) {
+    setKindFilter(next)
+    if (next === KIND_FILTER.income) setExpenseCategoryFilter(EXPENSE_CATEGORY_ALL)
+  }
+
+  function changeConceptFilter(next) {
+    setConceptFilter(next)
+    if (next !== CONCEPT_FILTER.all && next !== CONCEPT_FILTER.expense) {
+      setExpenseCategoryFilter(EXPENSE_CATEGORY_ALL)
+    }
+  }
+
+  function clearListFilters() {
+    setKindFilter(KIND_FILTER.all)
+    setConceptFilter(CONCEPT_FILTER.all)
+    setExpenseCategoryFilter(EXPENSE_CATEGORY_ALL)
+    setSearchInput('')
+    setQuery('')
+  }
+
   const rangeLabel = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', {
       day: '2-digit',
@@ -300,16 +339,28 @@ export default function FinanceSection({ canEdit = false }) {
     return source.filter((row) => row.kind === kindFilter)
   }, [report?.rows, kindFilter])
 
-  const ledgerRows = useMemo(() => {
-    const filtered =
-      conceptFilter === CONCEPT_FILTER.all
-        ? kindScopedRows
-        : kindScopedRows.filter((row) => resolveConceptKey(row) === conceptFilter)
-    return withRunningBalance(filtered)
+  const conceptScopedRows = useMemo(() => {
+    if (conceptFilter === CONCEPT_FILTER.all) return kindScopedRows
+    return kindScopedRows.filter((row) => resolveConceptKey(row) === conceptFilter)
   }, [kindScopedRows, conceptFilter])
 
+  const ledgerRows = useMemo(() => {
+    const filtered =
+      expenseCategoryFilter === EXPENSE_CATEGORY_ALL
+        ? conceptScopedRows
+        : conceptScopedRows.filter((row) => {
+            if (resolveConceptKey(row) !== CONCEPT_FILTER.expense) return true
+            return String(row.category ?? '') === expenseCategoryFilter
+          })
+    return withRunningBalance(filtered)
+  }, [conceptScopedRows, expenseCategoryFilter])
+
   const displayTotals = useMemo(() => {
-    if (kindFilter === KIND_FILTER.all && conceptFilter === CONCEPT_FILTER.all) {
+    if (
+      kindFilter === KIND_FILTER.all &&
+      conceptFilter === CONCEPT_FILTER.all &&
+      expenseCategoryFilter === EXPENSE_CATEGORY_ALL
+    ) {
       return report?.totals ?? { income: 0, expense: 0, balance: 0 }
     }
     const next = ledgerRows.reduce(
@@ -322,7 +373,7 @@ export default function FinanceSection({ canEdit = false }) {
       { income: 0, expense: 0 },
     )
     return { ...next, balance: next.income - next.expense }
-  }, [conceptFilter, kindFilter, ledgerRows, report?.totals])
+  }, [conceptFilter, expenseCategoryFilter, kindFilter, ledgerRows, report?.totals])
 
   const conceptBreakdown = useMemo(() => {
     const buckets = new Map()
@@ -336,24 +387,82 @@ export default function FinanceSection({ canEdit = false }) {
     return CONCEPT_BREAKDOWN_ORDER.map((key) => buckets.get(key)).filter(Boolean)
   }, [kindScopedRows])
 
-  const conceptFilterOptions = useMemo(() => {
-    const countByKey = new Map(conceptBreakdown.map((item) => [item.key, item.count]))
-    const keys = [
-      CONCEPT_FILTER.all,
-      ...CONCEPT_BREAKDOWN_ORDER.filter((key) => countByKey.has(key) || key === conceptFilter),
+  const kindCounts = useMemo(() => {
+    const source = report?.rows ?? []
+    let income = 0
+    let expense = 0
+    for (const row of source) {
+      if (row.kind === 'income') income += 1
+      else if (row.kind === 'expense') expense += 1
+    }
+    return { all: source.length, income, expense }
+  }, [report?.rows])
+
+  const kindFilterOptions = useMemo(
+    () => [
+      [KIND_FILTER.all, t('admin.ledger.kindFilterAll'), kindCounts.all],
+      [KIND_FILTER.income, t('admin.ledger.kindFilterIncome'), kindCounts.income, 'success'],
+      [KIND_FILTER.expense, t('admin.ledger.kindFilterExpense'), kindCounts.expense, 'danger'],
+    ],
+    [kindCounts.all, kindCounts.expense, kindCounts.income, t],
+  )
+
+  const expenseCategoryOptions = useMemo(() => {
+    if (!expenseRubrosVisible(kindFilter, conceptFilter)) return []
+    const buckets = new Map()
+    for (const row of kindScopedRows) {
+      if (resolveConceptKey(row) !== CONCEPT_FILTER.expense) continue
+      const category = String(row.category ?? '').trim()
+      if (!category) continue
+      const prev = buckets.get(category) ?? 0
+      buckets.set(category, prev + 1)
+    }
+    if (buckets.size === 0) return []
+    const keys = [...buckets.keys()].sort((a, b) => a.localeCompare(b, 'es'))
+    if (
+      expenseCategoryFilter !== EXPENSE_CATEGORY_ALL &&
+      !buckets.has(expenseCategoryFilter)
+    ) {
+      keys.push(expenseCategoryFilter)
+    }
+    return [
+      [EXPENSE_CATEGORY_ALL, t('admin.ledger.expenseCategoryAll'), kindScopedRows.filter((row) => resolveConceptKey(row) === CONCEPT_FILTER.expense).length],
+      ...keys.map((key) => [key, key, buckets.get(key) ?? 0]),
     ]
-    return keys.map((key) => {
-      if (key === CONCEPT_FILTER.all) {
-        return [key, t('admin.ledger.conceptFilterAll'), kindScopedRows.length]
-      }
-      return [key, conceptLabel(t, key), countByKey.get(key) ?? 0]
-    })
-  }, [conceptBreakdown, conceptFilter, kindScopedRows.length, t])
+  }, [conceptFilter, expenseCategoryFilter, kindFilter, kindScopedRows, t])
+
+  const sourceRowCount = report?.rows?.length ?? 0
+  const movementCount = ledgerRows.length
+  const listFiltersActive =
+    kindFilter !== KIND_FILTER.all ||
+    conceptFilter !== CONCEPT_FILTER.all ||
+    expenseCategoryFilter !== EXPENSE_CATEGORY_ALL ||
+    Boolean(searchInput.trim())
+
+  const activeFilterLabels = useMemo(() => {
+    const labels = []
+    if (kindFilter !== KIND_FILTER.all) {
+      labels.push(
+        kindFilter === KIND_FILTER.income
+          ? t('admin.ledger.kindFilterIncome')
+          : t('admin.ledger.kindFilterExpense'),
+      )
+    }
+    if (conceptFilter !== CONCEPT_FILTER.all) {
+      labels.push(conceptLabel(t, conceptFilter))
+    }
+    if (expenseCategoryFilter !== EXPENSE_CATEGORY_ALL) {
+      labels.push(expenseCategoryFilter)
+    }
+    if (searchInput.trim()) {
+      labels.push(`“${searchInput.trim()}”`)
+    }
+    return labels
+  }, [conceptFilter, expenseCategoryFilter, kindFilter, searchInput, t])
 
   const movedTotal = displayTotals.income + displayTotals.expense
   const incomeRatio = movedTotal > 0 ? displayTotals.income / movedTotal : 0
   const expenseRatio = movedTotal > 0 ? displayTotals.expense / movedTotal : 0
-  const movementCount = ledgerRows.length
 
   function exportLedgerCsv() {
     if (!ledgerRows.length) {
@@ -394,6 +503,7 @@ export default function FinanceSection({ canEdit = false }) {
     { id: PERIOD_PRESET.thisMonth, label: t('admin.ledger.presetThisMonth') },
     { id: PERIOD_PRESET.lastMonth, label: t('admin.ledger.presetLastMonth') },
     { id: PERIOD_PRESET.last30, label: t('admin.ledger.presetLast30') },
+    { id: PERIOD_PRESET.yearToDate, label: t('admin.ledger.presetYearToDate') },
   ]
 
   return (
@@ -491,43 +601,6 @@ export default function FinanceSection({ canEdit = false }) {
           </div>
         </div>
 
-        {conceptBreakdown.length > 0 ? (
-          <div
-            className="admin-finance__breakdown"
-            role="group"
-            aria-labelledby={breakdownId}
-          >
-            <span id={breakdownId} className="admin-finance__breakdown-label">
-              {t('admin.ledger.breakdownLabel')}
-            </span>
-            <ul className="admin-finance__breakdown-list">
-              {conceptBreakdown.map((item) => {
-                const active = conceptFilter === item.key
-                return (
-                  <li key={item.key}>
-                    <button
-                      type="button"
-                      className={`admin-finance__breakdown-chip${active ? ' is-active' : ''}`}
-                      aria-pressed={active}
-                      onClick={() =>
-                        setConceptFilter(active ? CONCEPT_FILTER.all : item.key)
-                      }
-                    >
-                      <span className="admin-finance__breakdown-chip-label">
-                        {conceptLabel(t, item.key)}
-                      </span>
-                      <span className="admin-finance__breakdown-chip-count">{item.count}</span>
-                      <span className="admin-finance__breakdown-chip-amount">
-                        {money(item.amount, locale)}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ) : null}
-
         <div className="admin-finance__period" role="group" aria-labelledby={periodPresetsId}>
           <div className="admin-finance__presets">
             <span id={periodPresetsId} className="admin-finance__presets-label">
@@ -571,6 +644,43 @@ export default function FinanceSection({ canEdit = false }) {
             </label>
           </div>
         </div>
+
+        {conceptBreakdown.length > 0 ? (
+          <div
+            className="admin-finance__breakdown"
+            role="group"
+            aria-labelledby={breakdownId}
+          >
+            <span id={breakdownId} className="admin-finance__breakdown-label">
+              {t('admin.ledger.breakdownLabel')}
+            </span>
+            <ul className="admin-finance__breakdown-list">
+              {conceptBreakdown.map((item) => {
+                const active = conceptFilter === item.key
+                return (
+                  <li key={item.key}>
+                    <button
+                      type="button"
+                      className={`admin-finance__breakdown-chip${active ? ' is-active' : ''}`}
+                      aria-pressed={active}
+                      onClick={() =>
+                        changeConceptFilter(active ? CONCEPT_FILTER.all : item.key)
+                      }
+                    >
+                      <span className="admin-finance__breakdown-chip-label">
+                        {conceptLabel(t, item.key)}
+                      </span>
+                      <span className="admin-finance__breakdown-chip-count">{item.count}</span>
+                      <span className="admin-finance__breakdown-chip-amount">
+                        {money(item.amount, locale)}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ) : null}
       </div>
 
       {error ? (
@@ -581,42 +691,73 @@ export default function FinanceSection({ canEdit = false }) {
 
       <div className="admin-finance__ledger">
         <div className="admin-finance__toolbar">
-          <label className="admin-finance__field" htmlFor={kindFilterId}>
-            <span>{t('admin.ledger.kindFilterLabel')}</span>
-            <select
-              id={kindFilterId}
-              value={kindFilter}
-              onChange={(event) => setKindFilter(event.target.value)}
-            >
-              <option value={KIND_FILTER.all}>{t('admin.ledger.kindFilterAll')}</option>
-              <option value={KIND_FILTER.income}>{t('admin.ledger.kindFilterIncome')}</option>
-              <option value={KIND_FILTER.expense}>{t('admin.ledger.kindFilterExpense')}</option>
-            </select>
-          </label>
-          <label className="admin-finance__field admin-finance__field--search" htmlFor={searchId}>
-            <span>{t('admin.ledger.searchLabel')}</span>
-            <input
-              id={searchId}
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder={t('admin.ledger.search')}
-            />
-          </label>
+          <AdminFilterBar
+            className="admin-finance__filter-bar"
+            compact
+            inline
+            placeholder={t('admin.ledger.search')}
+            query={searchInput}
+            onQueryChange={setSearchInput}
+            filters={[
+              {
+                id: kindFilterId,
+                label: t('admin.ledger.kindFilterLabel'),
+                ariaLabel: t('admin.ledger.kindFilterLabel'),
+                showLabel: true,
+                value: kindFilter,
+                onChange: changeKindFilter,
+                options: kindFilterOptions,
+                defaultValue: KIND_FILTER.all,
+                allLabel: t('admin.ledger.kindFilterAll'),
+              },
+            ]}
+          />
         </div>
 
-        <AdminFilterChipGroup
-          id={conceptFilterId}
-          label={t('admin.ledger.conceptFilterLabel')}
-          value={conceptFilter}
-          onChange={setConceptFilter}
-          options={conceptFilterOptions}
-          defaultValue={CONCEPT_FILTER.all}
-          omitNeutral
-          allLabel={t('admin.ledger.conceptFilterAll')}
-          clearable
-          compact
-        />
+        {expenseCategoryOptions.length > 1 ? (
+          <AdminFilterChipGroup
+            id={expenseCategoryFilterId}
+            label={t('admin.ledger.expenseCategoryLabel')}
+            value={expenseCategoryFilter}
+            onChange={setExpenseCategoryFilter}
+            options={expenseCategoryOptions}
+            defaultValue={EXPENSE_CATEGORY_ALL}
+            omitNeutral
+            allLabel={t('admin.ledger.expenseCategoryAll')}
+            clearable
+            compact
+          />
+        ) : null}
+
+        {listFiltersActive ? (
+          <div className="admin-finance__active-filters" role="status" aria-live="polite">
+            <p className="admin-finance__active-filters-copy">
+              <span className="admin-finance__active-filters-count">
+                {t('admin.ledger.showingFiltered', {
+                  shown: movementCount,
+                  total: sourceRowCount,
+                })}
+              </span>
+              {activeFilterLabels.length > 0 ? (
+                <span className="admin-finance__active-filters-tags">
+                  {activeFilterLabels.map((label) => (
+                    <span key={label} className="admin-finance__active-filter-tag">
+                      {label}
+                    </span>
+                  ))}
+                </span>
+              ) : null}
+            </p>
+            <button
+              type="button"
+              className="admin-finance__active-filters-clear"
+              onClick={clearListFilters}
+            >
+              <X size={12} aria-hidden />
+              {t('admin.ledger.clearListFilters')}
+            </button>
+          </div>
+        ) : null}
 
         {initialLoading ? (
           <TableSkeleton rows={6} columns={8} />

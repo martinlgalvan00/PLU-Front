@@ -26,12 +26,6 @@ export function getAdminIntroTourSteps(t) {
       body: t('admin.tour.globalSearch.body'),
     },
     {
-      target: '[data-tour="dashboard-search"]',
-      placement: 'bottom',
-      title: t('admin.tour.search.title'),
-      body: t('admin.tour.search.body'),
-    },
-    {
       target: '[data-tour="dashboard-kpis"]',
       placement: 'bottom',
       title: t('admin.tour.kpis.title'),

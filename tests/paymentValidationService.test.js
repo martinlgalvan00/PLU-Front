@@ -8,6 +8,8 @@ import {
   isCashOrder,
   isManualOrder,
   isOpenOrder,
+  isProofOverrideReasonValid,
+  requiresProofOverride,
 } from '../src/services/paymentValidationService.js'
 
 function order(overrides = {}) {
@@ -30,16 +32,22 @@ describe('elegibilidad de validación manual', () => {
     expect(canValidateManualOrder(order())).toBe(true)
   })
 
-  it('rechaza una transferencia sin comprobante', () => {
-    // La regla es la misma que aplica `approve_athlete_payment_order`: sin
-    // archivo, acreditar es indistinguible de regalar la afiliación.
-    expect(canValidateManualOrder(order({ paymentProofPath: null }))).toBe(false)
+  it('acepta transferencia sin comprobante vía override (el diálogo exige motivo)', () => {
+    const bare = order({ paymentProofPath: null })
+    expect(requiresProofOverride(bare)).toBe(true)
+    expect(canValidateManualOrder(bare)).toBe(true)
   })
 
   it('acepta efectivo en sede sin comprobante', () => {
     const cash = order({ manualPaymentChannel: 'cash_pitbull', paymentProofPath: null })
     expect(isCashOrder(cash)).toBe(true)
+    expect(requiresProofOverride(cash)).toBe(false)
     expect(canValidateManualOrder(cash)).toBe(true)
+  })
+
+  it('valida el largo mínimo del motivo de override', () => {
+    expect(isProofOverrideReasonValid('corto')).toBe(false)
+    expect(isProofOverrideReasonValid('motivo suficiente')).toBe(true)
   })
 
   it('rechaza Mercado Pago aunque tenga comprobante', () => {
@@ -105,11 +113,18 @@ describe('objeto de revisión', () => {
       paymentId: 'ord-1',
       hasProof: true,
       cashAtPitbull: false,
+      requiresProofOverride: false,
       subject: 'Ana Torres',
       documentId: '30111222',
       detail: 'Pitbull Classic 2026',
       meta: '$ 170.000',
     })
+  })
+
+  it('marca override cuando falta el comprobante en transferencia', () => {
+    const item = buildPaymentValidationItem(order({ paymentProofPath: null }), {})
+    expect(item.requiresProofOverride).toBe(true)
+    expect(item.hasProof).toBe(false)
   })
 
   it('marca efectivo en sede para que el diálogo no exija archivo', () => {
@@ -119,6 +134,7 @@ describe('objeto de revisión', () => {
     )
     expect(item.cashAtPitbull).toBe(true)
     expect(item.hasProof).toBe(false)
+    expect(item.requiresProofOverride).toBe(false)
   })
 
   it('conserva la decisión previa de rechazo', () => {

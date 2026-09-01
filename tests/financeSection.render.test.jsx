@@ -61,6 +61,18 @@ const SAMPLE_ROWS = [
     reference: null,
     party: null,
   },
+  {
+    id: 'expense-2',
+    kind: 'expense',
+    occurredOn: '2026-08-06',
+    category: 'Premios',
+    conceptKey: 'expense',
+    description: 'Medallas Open',
+    amount: 5000,
+    currency: 'ARS',
+    reference: null,
+    party: null,
+  },
 ]
 
 describe('Finanzas del panel', () => {
@@ -80,16 +92,16 @@ describe('Finanzas del panel', () => {
     expect(screen.getByLabelText(/resumen de caja/i)).toBeTruthy()
     expect(screen.getByLabelText(/^desde$/i)).toBeTruthy()
     expect(screen.getByLabelText(/^hasta$/i)).toBeTruthy()
-    expect(screen.getByLabelText(/^buscar$/i)).toBeTruthy()
-    expect(screen.getByLabelText(/^tipo$/i)).toBeTruthy()
+    expect(screen.getByRole('search')).toBeTruthy()
+    expect(screen.getByRole('group', { name: /^tipo$/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /este mes/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /mes anterior/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /últimos 30 días/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /este año/i })).toBeTruthy()
     // El formulario de egreso vive en un diálogo: a la vista queda el botón
     // de alta, no los campos del modal.
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByRole('button', { name: /cargar egreso/i })).toBeTruthy()
-    expect(screen.getAllByText(/^categoría$/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: /exportar csv/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /actualizar/i })).toBeTruthy()
     await waitFor(() => expect(fetchFinanceReport).toHaveBeenCalled())
@@ -118,9 +130,32 @@ describe('Finanzas del panel', () => {
     expect(lastCall.from).not.toBe(lastCall.to)
   })
 
-  it('filtra por categoría y actualiza filas + conteo del breakdown', async () => {
+  it('al elegir este año fija el rango desde el 1 de enero', async () => {
     fetchFinanceReport.mockResolvedValue({
-      totals: { income: 127000, expense: 10000, balance: 117000 },
+      totals: { income: 0, expense: 0, balance: 0 },
+      rows: [],
+    })
+
+    render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => expect(fetchFinanceReport).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByRole('button', { name: /este año/i }))
+
+    await waitFor(() => expect(fetchFinanceReport).toHaveBeenCalledTimes(2))
+    const lastCall = fetchFinanceReport.mock.calls.at(-1)?.[0]
+    const year = new Date().getFullYear()
+    expect(lastCall?.from).toBe(`${year}-01-01`)
+    expect(lastCall?.to).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('filtra por composición del período y actualiza filas + conteo', async () => {
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 127000, expense: 15000, balance: 112000 },
       rows: SAMPLE_ROWS,
     })
 
@@ -134,9 +169,10 @@ describe('Finanzas del panel', () => {
     expect(screen.getByText('Inscripción — Bruno Diaz')).toBeTruthy()
     expect(screen.getByText('Alquiler de plataforma')).toBeTruthy()
 
-    const breakdown = screen.getByRole('group', { name: /por categoría/i })
+    const overview = screen.getByLabelText(/resumen de caja/i)
+    const breakdown = screen.getByRole('group', { name: /composición del período/i })
     expect(breakdown).toBeTruthy()
-    expect(screen.getByText(/3 movimientos/i)).toBeTruthy()
+    expect(within(overview).getByText(/4 movimientos/i)).toBeTruthy()
 
     fireEvent.click(within(breakdown).getByRole('button', { name: /afiliación/i }))
 
@@ -144,7 +180,42 @@ describe('Finanzas del panel', () => {
       expect(screen.getByText('Afiliación — Ana Torres')).toBeTruthy()
       expect(screen.queryByText('Inscripción — Bruno Diaz')).toBeNull()
       expect(screen.queryByText('Alquiler de plataforma')).toBeNull()
-      expect(screen.getByText(/1 movimientos/i)).toBeTruthy()
+      expect(within(overview).getByText(/1 movimientos/i)).toBeTruthy()
+      expect(screen.getByRole('button', { name: /^limpiar filtros$/i })).toBeTruthy()
+    })
+  })
+
+  it('filtra por tipo con chips y limpia todos los filtros del listado', async () => {
+    fetchFinanceReport.mockResolvedValue({
+      totals: { income: 127000, expense: 15000, balance: 112000 },
+      rows: SAMPLE_ROWS,
+    })
+
+    render(
+      <I18nProvider>
+        <FinanceSection canEdit />
+      </I18nProvider>,
+    )
+
+    expect(await screen.findByText('Afiliación — Ana Torres')).toBeTruthy()
+
+    const kindGroup = screen.getByRole('group', { name: /^tipo$/i })
+    fireEvent.click(within(kindGroup).getByRole('button', { name: /egresos/i }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Afiliación — Ana Torres')).toBeNull()
+      expect(screen.getByText('Alquiler de plataforma')).toBeTruthy()
+      expect(screen.getByText('Medallas Open')).toBeTruthy()
+    })
+
+    expect(screen.getByRole('group', { name: /rubro de egreso/i })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /^limpiar filtros$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Afiliación — Ana Torres')).toBeTruthy()
+      expect(screen.getByText('Inscripción — Bruno Diaz')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /^limpiar filtros$/i })).toBeNull()
     })
   })
 })

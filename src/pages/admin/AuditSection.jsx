@@ -641,27 +641,45 @@ export default function AuditSection() {
         ) : null}
       </div>
 
-      <dl className="audit-health__volume">
-        <div className="audit-health__metric">
-          <dt>{t('admin.audit.healthEvents')}</dt>
-          <dd>{overview.eventsLast24h}</dd>
-        </div>
+      <details
+        className="audit-health__metrics"
+        {...(isMobileLayout ? {} : { open: true })}
+      >
+        <summary className="audit-health__metrics-summary">
+          <span className="audit-health__metrics-label">{t('admin.audit.healthEyebrow')}</span>
+          <span className="audit-health__metrics-peek" aria-hidden>
+            <span>{overview.eventsLast24h}</span>
+            <span>{overview.emailsDeliveredLast24h}</span>
+            <span className={emailAttentionCount > 0 ? 'is-soft' : undefined}>
+              {emailAttentionCount}
+            </span>
+            <span className={loadedErrorCount > 0 ? 'is-attention' : undefined}>
+              {loadedErrorCount}
+            </span>
+          </span>
+        </summary>
+        <dl className="audit-health__volume">
+          <div className="audit-health__metric">
+            <dt>{t('admin.audit.healthEvents')}</dt>
+            <dd>{overview.eventsLast24h}</dd>
+          </div>
 
-        <div className="audit-health__metric">
-          <dt>{t('admin.audit.healthDelivered')}</dt>
-          <dd>{overview.emailsDeliveredLast24h}</dd>
-        </div>
+          <div className="audit-health__metric">
+            <dt>{t('admin.audit.healthDelivered')}</dt>
+            <dd>{overview.emailsDeliveredLast24h}</dd>
+          </div>
 
-        <div className={`audit-health__metric${emailAttentionCount > 0 ? ' is-soft' : ''}`}>
-          <dt>{t('admin.audit.healthEmailsAttention')}</dt>
-          <dd>{emailAttentionCount}</dd>
-        </div>
+          <div className={`audit-health__metric${emailAttentionCount > 0 ? ' is-soft' : ''}`}>
+            <dt>{t('admin.audit.healthEmailsAttention')}</dt>
+            <dd>{emailAttentionCount}</dd>
+          </div>
 
-        <div className={`audit-health__metric${loadedErrorCount > 0 ? ' is-attention' : ''}`}>
-          <dt>{t('admin.audit.onlyIncidents')}</dt>
-          <dd>{loadedErrorCount}</dd>
-        </div>
-      </dl>
+          <div className={`audit-health__metric${loadedErrorCount > 0 ? ' is-attention' : ''}`}>
+            <dt>{t('admin.audit.onlyIncidents')}</dt>
+            <dd>{loadedErrorCount}</dd>
+          </div>
+        </dl>
+      </details>
     </section>
   )
 

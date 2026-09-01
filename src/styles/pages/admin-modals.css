@@ -8,9 +8,11 @@
    oscura). Los tokens viven en themes/{light,dark}.css porque los
    modales se portalean a document.body, fuera de .admin-shell.
 
-   Excepción: `.admin-user-delete-dialog` es theme-native (light/dark
-   del canvas) — backdrop liviano + panel elevated. Sus estilos viven
-   en admin.css y no entran en este bloque.
+   Excepciones theme-native (backdrop liviano + panel elevated del
+   canvas light/dark; estilos en admin.css):
+   - `.admin-user-delete-dialog`
+   - `.admin-status-dialog` (corregir estado + observaciones)
+   - `.payment-validation-dialog`
 
    El bloque remapea las custom properties de tinta DENTRO del scope
    del panel: así el contenido (texto, botones, inputs anidados)
@@ -21,8 +23,6 @@
 
 /* ---- Panel: material + inversión de tinta ---- */
 
-.payment-validation-dialog__panel,
-.admin-status-dialog__panel,
 .admin-account-dialog__panel,
 .admin-event-editor-modal__panel,
 .admin-event-quick__panel,
@@ -100,10 +100,10 @@
   background: var(--admin-modal-backdrop);
 }
 
-/* ---- Backdrop: un solo velo ---- */
+/* ---- Backdrop: un solo velo ----
+   Excepciones livianas (theme-native): payment-validation, admin-status
+   y admin-user-delete — viven en admin.css. */
 
-.payment-validation-dialog__backdrop,
-.admin-status-dialog__backdrop,
 .admin-account-dialog__backdrop,
 .admin-event-editor-modal__backdrop,
 .admin-event-quick__backdrop,
