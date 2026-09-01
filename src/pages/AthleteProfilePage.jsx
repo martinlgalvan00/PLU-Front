@@ -31,6 +31,33 @@ import SecretBundleSection from './profile/SecretBundleSection.jsx'
 import SecuritySection from './profile/SecuritySection.jsx'
 import { fetchOfferUnlocks } from '../services/athleteApi.js'
 
+/** Posición Y en documento (layout), sin el clamp visual de `position: sticky`. */
+function getDocumentOffsetTop(el) {
+  let top = 0
+  let node = el
+  while (node) {
+    top += node.offsetTop
+    node = node.offsetParent
+  }
+  return top
+}
+
+const TAB_SCROLL_GAP_PX = 8
+const TAB_SCROLL_EPSILON_PX = 24
+
+/**
+ * Si el atleta quedó muy abajo tras un tab largo, sube hasta la nav.
+ * Si ya está cerca del ancla útil, no mueve el page scroll (evita el salto
+ * feo que hacía scrollIntoView del main sobre la sticky).
+ */
+function scrollAccountTabIntoView(navEl) {
+  if (!navEl) return
+  const y = Math.max(0, getDocumentOffsetTop(navEl) - TAB_SCROLL_GAP_PX)
+  if (window.scrollY > y + TAB_SCROLL_EPSILON_PX) {
+    window.scrollTo({ top: y, behavior: 'auto' })
+  }
+}
+
 export default function AthleteProfilePage({
   athlete,
   memberships,
@@ -53,7 +80,7 @@ export default function AthleteProfilePage({
   checkoutAvailability = {},
 }) {
   const [activeTab, setActiveTab] = useState(initialTab || DEFAULT_ACCOUNT_TAB)
-  const mainRef = useRef(null)
+  const navRef = useRef(null)
   const isFirstTabRef = useRef(true)
   /**
    * Códigos-paquete canjeados por esta persona. Deciden dos cosas: si la ficha
@@ -224,6 +251,31 @@ export default function AthleteProfilePage({
     [reloadBundleOffers],
   )
 
+  // Intent local para el checkout de afiliación (vive en esta página). El de
+  // inscripción viaja por App → RegisterPage vía onSelectEvent(..., { checkoutIntent }).
+  const [membershipCheckoutIntent, setMembershipCheckoutIntent] = useState(null)
+
+  const resumePaymentCheckout = useCallback(
+    (payment, { changeMethod = false } = {}) => {
+      const intent = changeMethod ? 'change_method' : null
+      if (payment?.conceptType === 'registration' || payment?.conceptType === 'combo') {
+        const event =
+          availableEvents.find((item) => item.slug === payment.eventSlug) ??
+          events.find((item) => item.slug === payment.eventSlug) ??
+          null
+        if (event && typeof onSelectEvent === 'function') {
+          onSelectEvent(event, intent ? { checkoutIntent: intent } : {})
+          return
+        }
+        openTab(ACCOUNT_EVENTS_TAB)
+        return
+      }
+      setMembershipCheckoutIntent(intent)
+      openTab(ACCOUNT_MEMBERSHIP_TAB)
+    },
+    [availableEvents, events, onSelectEvent, openTab],
+  )
+
   /**
    * El cobro del paquete, con la relectura pegada al resultado.
    *
@@ -271,18 +323,19 @@ export default function AthleteProfilePage({
     setActiveTab('account-qr')
   }, [athleteId, hasAdmittedMeet, membershipId])
 
-  // El panel se remonta por tab (key={activeTab} más abajo) pero la página
-  // no reajusta el scroll: si el atleta venía leyendo un tab largo (p.ej.
-  // Torneos) y tocaba otro más corto, quedaba con el scroll heredado y el
-  // panel nuevo aparecía a mitad o al pie — "de abajo". Saltamos el primer
-  // render (ese ya arranca arriba por el scrollTo(0) de App.jsx en el
-  // cambio de vista) y sólo ajustamos en cambios de tab posteriores.
+  // El panel se remonta por tab pero la página no reajusta el scroll: si el
+  // atleta venía leyendo un tab largo (p.ej. Torneos) y tocaba otro más corto,
+  // quedaba con el scroll heredado y el panel nuevo aparecía a mitad o al pie.
+  // Anclamos a la nav (sticky en mobile) y sólo subimos si hace falta — nunca
+  // empujamos hacia abajo con scrollIntoView del main, que tapaba la cinta.
+  // Saltamos el primer render (ese ya arranca arriba por el scrollTo(0) de
+  // App.jsx en el cambio de vista).
   useEffect(() => {
     if (isFirstTabRef.current) {
       isFirstTabRef.current = false
       return
     }
-    mainRef.current?.scrollIntoView({ block: 'start' })
+    scrollAccountTabIntoView(navRef.current)
   }, [activeTab])
 
   if (!athlete) return null
@@ -365,12 +418,18 @@ export default function AthleteProfilePage({
         onNavigateSection={openTab}
         onNavigate={onNavigate}
         pendingFinancedPayment={pendingFinancedPayment}
+        checkoutIntent={membershipCheckoutIntent}
+        onCheckoutIntentConsumed={() => setMembershipCheckoutIntent(null)}
       />
     ),
     'account-payments': (
       <PaymentsSection
         payments={athletePayments}
         onNavigateSection={openTab}
+        onContinuePayment={(payment) => resumePaymentCheckout(payment)}
+        onChangePaymentMethod={(payment) =>
+          resumePaymentCheckout(payment, { changeMethod: true })
+        }
         // Reintentar es volver a la pantalla que abre un cobro nuevo: la orden
         // vieja quedó cerrada y no se reabre. La afiliación y el combo salen de
         // Afiliación; una inscripción suelta, de Torneos.
@@ -411,10 +470,11 @@ export default function AthleteProfilePage({
             onChange={openTab}
             visibleIds={visibleTabIds}
             attentionIds={navAttentionIds}
+            navRef={navRef}
           />
         </aside>
 
-        <div className="account-main" ref={mainRef}>
+        <div className="account-main">
           <EmailVerificationBanner athlete={athlete} />
           <GateMembershipBanner
             pendingEvents={gatePendingRegistrations}

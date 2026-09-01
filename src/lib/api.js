@@ -12,6 +12,18 @@ class ApiError extends Error {
   }
 }
 
+/**
+ * Endpoints donde un 401 es parte del flujo (probe de sesión, login, canjes
+ * de token de un solo uso): no deben disparar el manejo global de expiración.
+ */
+function isExpectedAuthFailure(path) {
+  if (path === '/api/athletes/session') return true
+  if (!path.startsWith('/api/auth/')) return false
+  // /api/auth/me/password y /api/auth/me/email sí operan con la sesión viva:
+  // un 401 ahí es una sesión muerta de verdad.
+  return !path.startsWith('/api/auth/me/')
+}
+
 async function parseResponse(response) {
   const text = await response.text()
   if (!text) return null
@@ -23,13 +35,25 @@ async function parseResponse(response) {
   }
 }
 
+// Sin esto, un backend que acepta la conexión y nunca contesta (colgado, no
+// caído) deja el `fetch` sin resolver para siempre: quien esperaba esa
+// respuesta -- un submit, un guard que bloquea el próximo intento -- se queda
+// trabado en silencio, sin error ni reintento posible hasta recargar la
+// página. 30s alcanza para cualquier pedido normal de la app (incluida la
+// creación de una orden) sin cortar de más.
+const DEFAULT_TIMEOUT_MS = 30000
+
 export async function apiRequest(path, options = {}) {
   const url = `${env.apiUrl}${path}`
   const method = options.method ?? 'GET'
-  const { headers, allowNotModified = false, ...requestOptions } = options
+  const { headers, allowNotModified = false, timeoutMs = DEFAULT_TIMEOUT_MS, ...requestOptions } =
+    options
   const mutationHeaders = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
     ? { 'X-PLU-Request': 'browser' }
     : {}
+
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
 
   let response
   try {
@@ -40,9 +64,16 @@ export async function apiRequest(path, options = {}) {
         ...mutationHeaders,
         ...(headers ?? {}),
       },
+      signal: timeoutController.signal,
       ...requestOptions,
     })
   } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new ApiError(
+        'El servicio está tardando más de lo esperado. Reintentá en unos segundos.',
+        { status: 0, body: { apiUrl: env.apiUrl, timeoutMs } },
+      )
+    }
     throw new ApiError(
       'El servicio no está disponible en este momento. Reintentá en unos segundos.',
       {
@@ -54,6 +85,8 @@ export async function apiRequest(path, options = {}) {
         },
       },
     )
+  } finally {
+    clearTimeout(timeoutId)
   }
 
   // 304 sin body: el poll del panel/atleta reusa el snapshot en memoria.
@@ -83,6 +116,13 @@ export async function apiRequest(path, options = {}) {
     // un 5xx reportado por un operador no se puede buscar en los logs.
     if (response.status >= 500 && requestId) {
       console.error(`[api] ${method} ${path} -> ${response.status} (requestId ${requestId})`)
+    }
+    // Sesión caída a mitad de camino: los polls y los submit la descubren
+    // acá, una sola vez por origen, para que la UI pueda reaccionar en vez de
+    // quedarse mirando datos congelados. Los endpoints donde el 401 es parte
+    // del flujo quedan fuera.
+    if (response.status === 401 && !isExpectedAuthFailure(path)) {
+      window.dispatchEvent(new CustomEvent('plu:auth-expired', { detail: { path } }))
     }
     throw new ApiError(
       unavailable ? unavailableMessage : (body?.error ?? `Error ${response.status}`),

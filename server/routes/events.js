@@ -373,7 +373,7 @@ function attachRecentRegistrationPortraits(summary) {
   // alcanzan; el spotlight de comunidad limita a 1 foto (budget de egress).
   const recent = Array.isArray(summary?.recent) ? summary.recent : []
   const entries = recent.map((item) => {
-    const { photoPath, photo_path: _photoPathSnake, ...entry } = item ?? {}
+    const { photoPath: _photoPath, photo_path: _photoPathSnake, ...entry } = item ?? {}
     return { ...entry, photoUrl: null }
   })
 

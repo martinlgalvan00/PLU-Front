@@ -82,7 +82,7 @@ describe('precio publico de Pitbull Classic', () => {
     expect(comboText).not.toMatch(/\$\s*[123](?:\D|$)/)
 
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--primary'))
-    expect(onSelectEvent).toHaveBeenCalledWith(pitbull)
+    expect(onSelectEvent).toHaveBeenCalledWith(pitbull, {})
   })
 
   it('si el atleta ya esta afiliado oculta el combo y ofrece solo el meet', () => {
@@ -106,12 +106,14 @@ describe('precio publico de Pitbull Classic', () => {
       <I18nProvider>
         <PitbullPage
           events={[pitbull]}
-          memberships={[{
-            athleteId: 'ath-1',
-            status: 'activa',
-            startDate: '2026-01-01',
-            expirationDate: '2027-12-31',
-          }]}
+          memberships={[
+            {
+              athleteId: 'ath-1',
+              status: 'activa',
+              startDate: '2026-01-01',
+              expirationDate: '2027-12-31',
+            },
+          ]}
           onNavigate={onNavigate}
           onSelectEvent={vi.fn()}
           session={{ role: 'athlete_plu', athleteId: 'ath-1' }}
@@ -126,8 +128,9 @@ describe('precio publico de Pitbull Classic', () => {
     expect(prices).not.toContain('$\u00a0120.000')
     expect(container.querySelector('.pitbull-inscription-shell--combo')).toBeNull()
     expect(container.querySelector('.pitbull-inscription-shell--affiliated')).not.toBeNull()
-    expect(container.querySelector('.pitbull-inscription__cta--primary')?.textContent)
-      .toMatch(/Inscribirme/)
+    expect(container.querySelector('.pitbull-inscription__cta--primary')?.textContent).toMatch(
+      /Inscribirme/,
+    )
     fireEvent.click(container.querySelector('.pitbull-inscription__cta--secondary'))
     expect(onNavigate).toHaveBeenCalledWith('profile')
   })

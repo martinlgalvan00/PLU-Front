@@ -110,9 +110,9 @@ export function createSupabaseAthleteRepository(
    * orden — si el cupón resulta inválido ahí, la orden entera se cae, así que
    * una lectura desactualizada acá nunca deja una orden sin cupón real detrás.
    *
-   * Las dos celdas no son simétricas (ver la cabecera de 20260908100000):
-   * `manualChannels` ABRE canales que Administración tiene cerrados, y
-   * `mercadoPagoEnabled: false` CIERRA la pasarela para este código.
+   * Cuando el codigo aplica, `manualChannels` y `mercadoPagoEnabled` forman su
+   * lista cerrada de medios. Los manuales declarados pueden destrabar un canal
+   * global, pero los omitidos quedan prohibidos aunque este abierto globalmente.
    *
    * Un código que no aplica —inexistente, apagado, fuera de ventana, de otro
    * alcance— devuelve el estado neutro: no abre ningún canal manual y no cierra
@@ -727,7 +727,7 @@ export function createSupabaseAthleteRepository(
         'No se pudo leer la orden.',
       )
     },
-    async approvePayment(orderId, actor = null) {
+    async approvePayment(orderId, actor = null, { overrideReason = null } = {}) {
       const order = assertSupabaseResult(
         await client
           .from('athlete_payment_orders')
@@ -742,12 +742,16 @@ export function createSupabaseAthleteRepository(
       }
       // `p_actor` viaja hasta domain_audit_logs: sin él la aprobación manual
       // queda registrada sin responsable, que es justo lo que hay que poder
-      // reconstruir ante un reclamo.
+      // reconstruir ante un reclamo. `p_override_reason` habilita acreditar
+      // transferencia/Wise sin comprobante con motivo auditado (no efectivo).
+      const trimmedOverride =
+        typeof overrideReason === 'string' ? overrideReason.trim() || null : null
       return rpc(
         'approve_athlete_payment_order',
         {
           p_order_id: orderId,
           p_actor: actor,
+          p_override_reason: trimmedOverride,
         },
         'No se pudo aprobar el pago.',
       )
@@ -1002,6 +1006,23 @@ export function createSupabaseAthleteRepository(
           p_athlete_id: athleteId,
         },
         'No se pudo registrar el aviso de pago.',
+      ),
+    /**
+     * Cierra una orden abierta a pedido del atleta y le devuelve el cupón, para
+     * que pueda abrir otra por el medio que quiera (20261020100000).
+     *
+     * Los rechazos viajan con errcode propio (PLU31..PLU34) porque la pantalla
+     * tiene que decir cuál es: "ya está pagada" y "tiene comprobante en
+     * revisión" son salidas distintas para el atleta.
+     */
+    cancelOpenOrder: (athleteId, orderId) =>
+      rpc(
+        'athlete_cancel_payment_order',
+        {
+          p_athlete_id: athleteId,
+          p_order_id: orderId,
+        },
+        'No se pudo cancelar la orden.',
       ),
     /**
      * La otra mitad del financiamiento: quedar habilitado sin declarar un pago

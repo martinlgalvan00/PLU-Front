@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   ArrowRight,
+  CalendarDays,
   CircleAlert,
   Flame,
   LogIn,
@@ -9,17 +10,22 @@ import {
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  TrendingUp,
   UserSearch,
   Users,
 } from 'lucide-react'
 import AdminPageHeader from '../../components/admin/AdminPageHeader.jsx'
+import AnalyticsCalendarHeatmap from '../../components/admin/AnalyticsCalendarHeatmap.jsx'
 import AnalyticsStatTile from '../../components/admin/AnalyticsStatTile.jsx'
+import AnalyticsTrafficChart from '../../components/admin/AnalyticsTrafficChart.jsx'
 import DetailTabs from '../../components/admin/DetailTabs.jsx'
 import LivePresenceBar from '../../components/admin/LivePresenceBar.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { formatAnalyticsPath } from '../../lib/analyticsPathLabels.js'
+import { findDayExtremes } from '../../lib/analyticsCalendar.js'
+import { formatDayMonth } from '../../lib/format.js'
 import {
   fetchAccessMetrics,
   fetchAnalyticsElements,
@@ -30,6 +36,7 @@ import {
   fetchAnalyticsOperationalSummary,
   fetchAnalyticsOperationalAlerts,
   fetchAnalyticsPages,
+  fetchAnalyticsTimeseries,
   fetchAthleteJourney,
   withFunnelRates,
 } from '../../services/analyticsReportService.js'
@@ -630,6 +637,7 @@ export default function AnalyticsSection({
   const [heatmapPath, setHeatmapPath] = useState(null)
   const [heatmapDevice, setHeatmapDevice] = useState('')
   const [heatmap, setHeatmap] = useState(null)
+  const [traffic, setTraffic] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshError, setRefreshError] = useState('')
@@ -673,6 +681,7 @@ export default function AnalyticsSection({
         operationalResult,
         alertsResult,
         failureReasonsResult,
+        trafficResult,
       ] = await Promise.all([
         fetchOptional(fetchAnalyticsOverview(previousRange(days)), null),
         fetchOptional(fetchAnalyticsPages({ days, limit: 25 }), []),
@@ -683,6 +692,7 @@ export default function AnalyticsSection({
         canViewPaymentFailures
           ? fetchOptional(getPaymentFailureReasons(currentRange(days)), [])
           : Promise.resolve([]),
+        fetchOptional(fetchAnalyticsTimeseries({ days }), null),
       ])
       setOverview(overviewResult)
       setPreviousOverview(previousOverviewResult)
@@ -692,6 +702,7 @@ export default function AnalyticsSection({
       setOperational(operationalResult)
       setOperationalAlerts(alertsResult)
       setFailureReasons(failureReasonsResult)
+      setTraffic(trafficResult)
       setHeatmapPath((current) => current ?? pagesResult[0]?.path ?? null)
     } catch (loadError) {
       setError(loadError?.message ?? t('admin.analytics.error'))
@@ -767,6 +778,8 @@ export default function AnalyticsSection({
     }
     return items
   }, [canViewIdentity, t])
+
+  const dayExtremes = useMemo(() => findDayExtremes(traffic?.series ?? []), [traffic])
 
   if (loading && !overview) return <LoadingState label={t('admin.analytics.loading')} />
   if (error && !overview) return <ErrorState message={error} onRetry={load} />
@@ -936,6 +949,70 @@ export default function AnalyticsSection({
 
       {activeTab === TABS.overview ? (
         <div className="admin-analytics__panel" role="tabpanel">
+          {/*
+            Serie diaria y calendario van primero: son la vista general del
+            periodo y dan el marco temporal antes de leer los bloques de
+            detalle. El pico y los extremos salen de la serie perpetua, no del
+            detalle crudo, asi que siguen siendo comparables pasados los 90
+            dias de retencion.
+          */}
+          <section className="admin-analytics__block" aria-labelledby="analytics-traffic">
+            <AnalyticsBlockHead
+              id="analytics-traffic"
+              icon={TrendingUp}
+              title={t('admin.analytics.traffic.title')}
+              subtitle={t('admin.analytics.traffic.subtitle', { days })}
+            />
+            <AnalyticsTrafficChart series={traffic?.series ?? []} />
+            <div className="admin-analytics__stat-grid admin-analytics__stat-grid--secondary">
+              <AnalyticsStatTile
+                compact
+                tone="gold"
+                label={t('admin.analytics.traffic.peak')}
+                value={traffic?.peak?.visitors ?? 0}
+                hint={
+                  traffic?.peak?.day
+                    ? formatDayMonth(traffic.peak.day, locale)
+                    : t('admin.analytics.traffic.noData')
+                }
+              />
+              <AnalyticsStatTile
+                compact
+                tone="celeste"
+                label={t('admin.analytics.traffic.bestDay')}
+                value={dayExtremes.best?.visitors ?? 0}
+                hint={
+                  dayExtremes.best?.day
+                    ? formatDayMonth(dayExtremes.best.day, locale)
+                    : t('admin.analytics.traffic.noData')
+                }
+              />
+              <AnalyticsStatTile
+                compact
+                label={t('admin.analytics.traffic.worstDay')}
+                value={dayExtremes.worst?.visitors ?? 0}
+                hint={
+                  dayExtremes.worst?.day
+                    ? formatDayMonth(dayExtremes.worst.day, locale)
+                    : t('admin.analytics.traffic.noData')
+                }
+              />
+            </div>
+          </section>
+
+          <section className="admin-analytics__block" aria-labelledby="analytics-calendar">
+            <AnalyticsBlockHead
+              id="analytics-calendar"
+              icon={CalendarDays}
+              title={t('admin.analytics.calendar.title')}
+              subtitle={t('admin.analytics.calendar.subtitle')}
+            />
+            <AnalyticsCalendarHeatmap
+              series={traffic?.series ?? []}
+              peak={traffic?.peak ?? null}
+            />
+          </section>
+
           {/*
             Accesos al sistema (login), distinto del bloque "Actividad y
             accesos" de mas abajo, que cuenta ingresos por puerta a un evento.

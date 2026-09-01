@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
@@ -29,6 +29,39 @@ export default function CheckoutDesk({
   selectedOfferId,
 }) {
   const errorId = useId()
+
+  // Una oferta que aparece cuando la lista ya existía entra una vez.
+  //
+  // El caso que lo justifica es el código que destraba el combo: hasta acá la
+  // tarjeta del paquete se sumaba a la lista sin que nada lo dijera, y es el
+  // pago de la exclusividad —lo que el atleta canjeó recién—. Distinguirla de
+  // las que ya estaban necesita memoria: una animación on-mount por CSS
+  // animaría TODAS las ofertas en cada carga del checkout, que es decorar la
+  // pasarela.
+  //
+  // La lista vacía no cuenta como estado conocido: los checkouts la llenan
+  // después de resolver disponibilidad, y tomar ese `[]` como base habría hecho
+  // que en cada visita entraran todas.
+  const offerIds = offers.map((offer) => offer.id).join('|')
+  const knownOffersRef = useRef(null)
+  const [unlockedOffers, setUnlockedOffers] = useState(() => new Set())
+
+  useEffect(() => {
+    const ids = offerIds ? offerIds.split('|') : []
+    if (ids.length === 0) return
+    if (knownOffersRef.current === null) {
+      knownOffersRef.current = new Set(ids)
+      return
+    }
+    const fresh = ids.filter((id) => !knownOffersRef.current.has(id))
+    if (fresh.length === 0) return
+    for (const id of fresh) knownOffersRef.current.add(id)
+    // La marca no se saca nunca. Quitarla en el render siguiente —que puede
+    // llegar 16ms después, cuando el atleta elige la oferta— cortaría la
+    // animación a mitad de camino.
+    setUnlockedOffers((prev) => new Set([...prev, ...fresh]))
+  }, [offerIds])
+
   if (offers.length === 0 && methods.length === 0 && !bar) return null
 
   const selectable = offers.length > 1
@@ -44,6 +77,7 @@ export default function CheckoutDesk({
       selected ? 'is-selected' : '',
       offer.disabled ? 'is-disabled' : '',
       showDeal ? 'has-deal' : '',
+      unlockedOffers.has(offer.id) ? 'is-unlocked' : '',
     ]
       .filter(Boolean)
       .join(' ')
@@ -210,11 +244,20 @@ export function CheckoutBar({
         ) : null}
         <div className="plu-checkout__total">
           <span>{totalLabel || t('pages.register.total')}</span>
+          {/* `key` por importe: es lo que hace que el precio se vuelva a
+              escribir en vez de reemplazarse en un frame. React desmonta y
+              vuelve a montar el nodo cuando el número cambia —código aplicado,
+              código quitado, recotización por medio de pago— y la animación
+              one-shot de `checkout-desk.css` arranca de nuevo. Sin el `key` la
+              animación sólo correría en el primer render, que es justo el
+              momento en que no hay nada que contar. */}
           <span className="plu-checkout__total-amounts">
             {compareLabelText ? (
-              <s className="plu-checkout__total-compare">{compareLabelText}</s>
+              <s className="plu-checkout__total-compare" key={compareLabelText}>
+                {compareLabelText}
+              </s>
             ) : null}
-            <strong>{totalLabelText}</strong>
+            <strong key={totalLabelText}>{totalLabelText}</strong>
           </span>
         </div>
       </div>

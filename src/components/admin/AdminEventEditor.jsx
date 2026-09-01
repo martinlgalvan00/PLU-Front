@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom'
 import {
   AlertTriangle,
   ArrowLeft,
+  Banknote,
   CalendarDays,
   CheckCircle2,
+  CircleAlert,
   Eye,
   Link2,
   MapPin,
@@ -29,6 +31,7 @@ import {
   ADMIN_EVENT_STATUS_OPTIONS,
   EVENT_QUICK_STATUS_VALUES,
   getEventConsistencyWarnings,
+  getEventRegistrationAvailability,
   mapDraftToPreviewEvent,
   withEventStart,
 } from '../../services/eventAdminService.js'
@@ -105,12 +108,53 @@ function FormField({ children, error, htmlFor, label, wide = false }) {
   )
 }
 
-function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEvent }) {
+function AdminEventLivePreview({
+  draft,
+  embedded = false,
+  live = false,
+  showReadiness = false,
+  sourceEvent,
+}) {
   const { t } = useI18n()
   const previewEvent = useMemo(
     () => mapDraftToPreviewEvent(draft, sourceEvent),
     [draft, sourceEvent],
   )
+  const registration = useMemo(
+    () => getEventRegistrationAvailability({ ...sourceEvent, ...previewEvent }),
+    [previewEvent, sourceEvent],
+  )
+  const activeTicketTypes =
+    (draft?.ticketTypes ?? sourceEvent?.ticketTypes)?.filter(
+      (ticketType) => ticketType.active !== false,
+    ).length ?? 0
+
+  const readinessItems = showReadiness
+    ? [
+        {
+          id: 'published',
+          ok: previewEvent.published,
+          label: previewEvent.published
+            ? t('admin.eventEditor.readinessPublished')
+            : t('admin.eventEditor.readinessUnpublished'),
+        },
+        {
+          id: 'registration',
+          ok: registration.isLive,
+          label: registration.isLive
+            ? t('admin.eventEditor.readinessRegistrationLive')
+            : t('admin.eventEditor.readinessRegistrationOff'),
+        },
+        {
+          id: 'tickets',
+          ok: activeTicketTypes > 0,
+          label:
+            activeTicketTypes > 0
+              ? t('admin.eventEditor.readinessTickets', { count: activeTicketTypes })
+              : t('admin.eventEditor.readinessTicketsMissing'),
+        },
+      ]
+    : []
 
   return (
     <div
@@ -139,6 +183,13 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
           )}
         </div>
       )}
+
+      {embedded && live ? (
+        <p className="admin-event-preview__live-caption" role="status">
+          <span className="admin-event-preview__live-dot" aria-hidden />
+          {t('admin.eventEditor.liveHint')}
+        </p>
+      ) : null}
 
       <div className="admin-event-preview__card">
         <EventCard
@@ -219,6 +270,27 @@ function AdminEventLivePreview({ draft, embedded = false, live = false, sourceEv
           </li>
         </ul>
       </div>
+
+      {readinessItems.length > 0 ? (
+        <ul
+          className="admin-event-preview__readiness"
+          aria-label={t('admin.eventEditor.readinessLabel')}
+        >
+          {readinessItems.map((item) => (
+            <li
+              key={item.id}
+              className={`admin-event-preview__readiness-item${item.ok ? ' is-ok' : ' is-pending'}`}
+            >
+              {item.ok ? (
+                <CheckCircle2 size={13} aria-hidden />
+              ) : (
+                <CircleAlert size={13} aria-hidden />
+              )}
+              <span>{item.label}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }
@@ -241,14 +313,18 @@ export default function AdminEventEditor({
   onChange,
   /** La consola registra Escape/backdrop para pedir el mismo cierre con dirty-check. */
   onRegisterClose = null,
+  /**
+   * Acordeón: si la validación falla en otra sección (Datos / Ventas /
+   * Publicación), el padre abre ese fold para que el error sea visible.
+   */
+  onRequestSection = null,
   onSubmit,
   sourceEvent = null,
 }) {
   const { t } = useI18n()
-  // En el acordeón de la consola solo lo elemental de cada sección: el form
-  // completo (canales MP/banco, tipos de entrada, live) sigue disponible fuera
-  // del fold o al editar en modal. Acá el objetivo es ajustar cupo, fechas,
-  // precio y publicación sin scrollear un tab entero en 240px.
+  // En el acordeón de la consola: cupo, precios, medios de cobro y publicación.
+  // Tipos de entrada, alta inline de perfil MP y live siguen fuera del fold
+  // (formulario completo / modal de alta) para no saturar el espacio del fold.
   const essentials = accordion
   const [syncError, setSyncError] = useState(null)
   const [syncing, setSyncing] = useState(false)
@@ -553,6 +629,16 @@ export default function AdminEventEditor({
     if (syncing) return
     if (dirty) {
       setConfirmDiscard(true)
+      // El banner vive al final del body; el dock de Guardar tiene que
+      // quedar a la vista o el operador cree que no puede persistir.
+      requestAnimationFrame(() => {
+        formRef.current
+          ?.querySelector('.admin-event-form__actions')
+          ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        formRef.current
+          ?.querySelector('.admin-event-form__discard-confirmation')
+          ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      })
       return
     }
     onCancelRef.current?.()
@@ -585,7 +671,11 @@ export default function AdminEventEditor({
       setFieldErrors({
         slots: t('admin.eventEditor.validation.slotsBelowRegistered', { count: registered }),
       })
-      setActiveTab('sales')
+      if (accordion && forcedTab !== 'sales') {
+        onRequestSection?.('sales')
+      } else {
+        setActiveTab('sales')
+      }
       requestAnimationFrame(() => requestAnimationFrame(() => focusFirstInvalid('slots')))
       return
     }
@@ -593,7 +683,29 @@ export default function AdminEventEditor({
     const validation = validateAdminEventDraft(draft, t)
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
-      setActiveTab(resolveTabForField(validation.firstKey))
+      const targetTab = resolveTabForField(validation.firstKey)
+      const firstMessage =
+        (validation.firstKey && validation.fieldErrors[validation.firstKey]) ||
+        t('admin.eventEditor.saveError')
+
+      // En acordeón `forcedTab` pisa cualquier setActiveTab: si el error vive
+      // en otra sección, pedimos al padre abrirla. Si el campo no está en el
+      // fold essentials (p. ej. tipos de entrada), al menos el alert se ve.
+      if (accordion) {
+        setSyncError(firstMessage)
+        if (forcedTab && targetTab !== forcedTab) {
+          onRequestSection?.(targetTab)
+        }
+        requestAnimationFrame(() => {
+          formRef.current
+            ?.querySelector('.admin-event-form__alert, [aria-invalid="true"]')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          focusFirstInvalid(validation.firstKey)
+        })
+        return
+      }
+
+      setActiveTab(targetTab)
       requestAnimationFrame(() =>
         requestAnimationFrame(() => focusFirstInvalid(validation.firstKey)),
       )
@@ -601,10 +713,14 @@ export default function AdminEventEditor({
     }
 
     setFieldErrors({})
+    setConfirmDiscard(false)
     setSyncing(true)
     try {
       const result = await onSubmit?.(draft)
       if (result?.error) throw new Error(result.error)
+      // El padre suele cerrar el fold al guardar; si no, reseteamos baseline
+      // para que el dock vuelva a "Al día" sin remount.
+      initialDraftSignatureRef.current = draftSignature(draft)
     } catch (error) {
       setSyncError(
         error?.status === 409
@@ -692,28 +808,9 @@ export default function AdminEventEditor({
           </div>
         ) : null}
 
-        {/* Barra fija: tabs + estado de guardado. En acordeón la sección la
-            elige la consola; acá solo queda el estado de sync. */}
-        {accordion ? (
-          <div className="admin-event-editor__toolbar admin-event-editor__toolbar--accordion">
-            <div
-              className={`admin-event-form__save-state admin-event-form__save-state--toolbar ${saveStateModifier}`}
-              aria-live="polite"
-              aria-label={saveStateLabel}
-              title={t('admin.eventEditor.backendHint')}
-            >
-              <span className={saveStateModifier} aria-hidden />
-              <strong>
-                <span className="admin-event-form__save-label admin-event-form__save-label--full">
-                  {saveStateLabel}
-                </span>
-                <span className="admin-event-form__save-label admin-event-form__save-label--short" aria-hidden>
-                  {saveStateShortLabel}
-                </span>
-              </strong>
-            </div>
-          </div>
-        ) : (
+        {/* Tabs + estado de guardado. En acordeón la sección la elige la
+            consola; el save-state vive en el dock de acciones (sin toolbar huérfana). */}
+        {accordion ? null : (
           <div className="admin-event-editor__toolbar">
             <DetailTabs
               tabs={tabs}
@@ -896,8 +993,10 @@ export default function AdminEventEditor({
                   aria-label={t('admin.eventEditor.navSales')}
                   tabIndex={-1}
                 >
-                  <header className="admin-event-form__section-head">
-                    <h4>{t('admin.eventEditor.sectionSales')}</h4>
+                  <header
+                    className={`admin-event-form__section-head${essentials ? ' admin-event-form__section-head--essentials' : ''}`}
+                  >
+                    {essentials ? null : <h4>{t('admin.eventEditor.sectionSales')}</h4>}
                     <p>
                       {essentials
                         ? t('admin.eventEditor.sectionSalesLeadEssentials')
@@ -1066,53 +1165,51 @@ export default function AdminEventEditor({
                           </span>
                         ) : null}
                       </label>
-                      {!essentials ? (
-                        <>
-                          <label
-                            className={`admin-event-form__rate-card${err('pricing.registrationManual') ? ' is-invalid' : ''}`}
-                          >
-                            <span className="admin-event-form__rate-card-label">
-                              {t('admin.eventEditor.priceRegistrationManual')}
-                            </span>
-                            <span className="admin-event-form__rate-card-input">
-                              <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
-                              <input
-                                name="pricing.registrationManual"
-                                data-field="pricing.registrationManual"
-                                min={1}
-                                type="number"
-                                placeholder={t('admin.eventEditor.priceRegistrationManualPlaceholder')}
-                                value={draft.pricing?.registrationManual ?? ''}
-                                aria-invalid={Boolean(err('pricing.registrationManual'))}
-                                onChange={(event) =>
-                                  patchDraft(
-                                    updatePricingField(
-                                      draft,
-                                      'registrationManual',
-                                      event.target.value,
-                                    ),
-                                  )
-                                }
-                                disabled={!canEdit}
-                              />
-                            </span>
-                            {err('pricing.registrationManual') ? (
-                              <span className="admin-event-form__error" role="alert">
-                                {err('pricing.registrationManual')}
-                              </span>
-                            ) : null}
-                          </label>
-                          <p className="admin-event-form__pricing-note">
-                            {t('admin.eventEditor.pricingCatalogHint')}
-                          </p>
-                        </>
-                      ) : null}
+                      <label
+                        className={`admin-event-form__rate-card${err('pricing.registrationManual') ? ' is-invalid' : ''}`}
+                      >
+                        <span className="admin-event-form__rate-card-label">
+                          {t('admin.eventEditor.priceRegistrationManual')}
+                        </span>
+                        <span className="admin-event-form__rate-card-input">
+                          <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                          <input
+                            name="pricing.registrationManual"
+                            data-field="pricing.registrationManual"
+                            min={1}
+                            type="number"
+                            placeholder={t('admin.eventEditor.priceRegistrationManualPlaceholder')}
+                            value={draft.pricing?.registrationManual ?? ''}
+                            aria-invalid={Boolean(err('pricing.registrationManual'))}
+                            onChange={(event) =>
+                              patchDraft(
+                                updatePricingField(
+                                  draft,
+                                  'registrationManual',
+                                  event.target.value,
+                                ),
+                              )
+                            }
+                            disabled={!canEdit}
+                          />
+                        </span>
+                        {err('pricing.registrationManual') ? (
+                          <span className="admin-event-form__error" role="alert">
+                            {err('pricing.registrationManual')}
+                          </span>
+                        ) : null}
+                      </label>
+                      <p className="admin-event-form__pricing-note">
+                        {t('admin.eventEditor.pricingCatalogHint')}
+                      </p>
                     </div>
+                  </div>
 
-                    {!essentials ? (
+                  <div className="admin-event-form__lane admin-event-form__lane--payment">
                     <div className="admin-event-form__payment-profile">
                       <header className="admin-event-form__lane-head">
                         <h5 className="admin-event-form__lane-title">
+                          <Banknote size={13} aria-hidden />
                           {t('admin.eventEditor.paymentProfileTitle')}
                         </h5>
                         <p>{t('admin.eventEditor.paymentProfileHint')}</p>
@@ -1233,7 +1330,7 @@ export default function AdminEventEditor({
                             </p>
                           ) : null}
 
-                          {canEdit && mpSecretsKeyConfigured ? (
+                          {!essentials && canEdit && mpSecretsKeyConfigured ? (
                             <div className="admin-event-form__grid">
                               <button
                                 className="button button--ghost"
@@ -1245,7 +1342,7 @@ export default function AdminEventEditor({
                             </div>
                           ) : null}
 
-                          {mpCreateOpen ? (
+                          {!essentials && mpCreateOpen ? (
                             <div className="admin-event-form__grid">
                               <FormField
                                 htmlFor="event-mp-name"
@@ -1447,25 +1544,35 @@ export default function AdminEventEditor({
                               />
                             </FormField>
                           </div>
+                          <div
+                            className="admin-event-form__reference-note"
+                            role="note"
+                            data-field="bankTransfer.reference"
+                          >
+                            <strong>{t('admin.eventEditor.bankTransferReferenceLabel')}</strong>
+                            <p>{t('admin.eventEditor.bankTransferReferenceHint')}</p>
+                            <code className="admin-event-form__reference-example">
+                              {t('admin.eventEditor.bankTransferReferenceExample')}
+                            </code>
+                          </div>
                           <p className="admin-event-form__pricing-note">
                             {t('admin.eventEditor.bankTransferSaveCreatesProfile')}
                           </p>
                         </div>
                       ) : null}
                     </div>
-                    ) : null}
                   </div>
 
                   <div
                     id="event-section-tickets"
-                    className="admin-event-form__lane admin-event-form__lane--tickets"
+                    className={`admin-event-form__lane admin-event-form__lane--tickets${essentials ? ' admin-event-form__lane--tickets-essentials' : ''}`}
                   >
                     <header className="admin-event-form__lane-head">
                       <h5 className="admin-event-form__lane-title">
                         <Ticket size={13} aria-hidden />
                         {t('admin.eventEditor.laneSpectators')}
                       </h5>
-                      <p>{t('admin.eventEditor.laneSpectatorsLead')}</p>
+                      {essentials ? null : <p>{t('admin.eventEditor.laneSpectatorsLead')}</p>}
                     </header>
 
                     <label className="admin-event-form__toggle">
@@ -1601,29 +1708,37 @@ export default function AdminEventEditor({
                     ) : null}
                   </header>
 
-                  <AdminFilterChipGroup
-                    compact
-                    disabled={!canEdit}
-                    id="event-status"
-                    label={t('admin.eventEditor.publicStatus')}
-                    value={draft.status}
-                    onChange={(value) => patchDraft({ ...draft, status: value })}
-                    options={statusOptions}
-                  />
+                  {essentials ? (
+                    <p className="admin-event-form__section-note">
+                      {t('admin.eventEditor.visibilityOwnedByConsole')}
+                    </p>
+                  ) : (
+                    <>
+                      <AdminFilterChipGroup
+                        compact
+                        disabled={!canEdit}
+                        id="event-status"
+                        label={t('admin.eventEditor.publicStatus')}
+                        value={draft.status}
+                        onChange={(value) => patchDraft({ ...draft, status: value })}
+                        options={statusOptions}
+                      />
 
-                  {consistencyWarnings.length > 0 ? (
-                    <div className="admin-event-form__consistency" role="status">
-                      <p className="admin-event-form__consistency-head">
-                        <AlertTriangle size={13} aria-hidden />
-                        {t('admin.eventEditor.consistency.title')}
-                      </p>
-                      <ul>
-                        {consistencyWarnings.map((code) => (
-                          <li key={code}>{t(`admin.eventEditor.consistency.${code}`)}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
+                      {consistencyWarnings.length > 0 ? (
+                        <div className="admin-event-form__consistency" role="status">
+                          <p className="admin-event-form__consistency-head">
+                            <AlertTriangle size={13} aria-hidden />
+                            {t('admin.eventEditor.consistency.title')}
+                          </p>
+                          <ul>
+                            {consistencyWarnings.map((code) => (
+                              <li key={code}>{t(`admin.eventEditor.consistency.${code}`)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
 
                   <label className="admin-event-form__toggle">
                     <input
@@ -1643,65 +1758,59 @@ export default function AdminEventEditor({
                     </span>
                   </label>
 
-                  <label className="admin-event-form__toggle">
-                    <input
-                      checked={Boolean(draft.published)}
-                      className="admin-event-form__toggle-input"
-                      type="checkbox"
-                      onChange={(event) =>
-                        patchDraft({ ...draft, published: event.target.checked })
-                      }
-                      disabled={!canEdit}
-                    />
-                    <span className="admin-event-form__toggle-ui" aria-hidden />
-                    <span className="admin-event-form__toggle-copy">
-                      <strong>
-                        <Eye size={13} aria-hidden />
-                        {draft.published
-                          ? t('admin.eventEditor.supabase.publishedTitle')
-                          : t('admin.eventEditor.supabase.unpublishedTitle')}
-                      </strong>
-                      <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
-                    </span>
-                  </label>
+                  {essentials ? null : (
+                    <>
+                      <label className="admin-event-form__toggle">
+                        <input
+                          checked={Boolean(draft.published)}
+                          className="admin-event-form__toggle-input"
+                          type="checkbox"
+                          onChange={(event) =>
+                            patchDraft({ ...draft, published: event.target.checked })
+                          }
+                          disabled={!canEdit}
+                        />
+                        <span className="admin-event-form__toggle-ui" aria-hidden />
+                        <span className="admin-event-form__toggle-copy">
+                          <strong>
+                            <Eye size={13} aria-hidden />
+                            {draft.published
+                              ? t('admin.eventEditor.supabase.publishedTitle')
+                              : t('admin.eventEditor.supabase.unpublishedTitle')}
+                          </strong>
+                          <small>{t('admin.eventEditor.supabase.publishedHint')}</small>
+                        </span>
+                      </label>
 
-                  {/* Acceso al meet. Antes era un checkbox cuya etiqueta era
-                      una afirmación ("Requiere afiliación activa"): había que
-                      leer el estado de la casilla para saber si el meet pedía
-                      afiliación o no, y nada decía qué pasaba en la puerta. Con
-                      dos opciones excluyentes el estado se lee sin interpretar,
-                      y la consecuencia queda escrita entera. Es el mismo
-                      control que la consola de operación del panel, con el
-                      mismo copy, para que no digan dos cosas distintas. */}
-                  <div className="admin-event-form__access">
-                    <AdminFilterChipGroup
-                      compact
-                      disabled={!canEdit}
-                      id="event-access"
-                      label={t('admin.eventEditor.accessLabel')}
-                      value={draft.requiresMembership === false ? 'open' : 'members'}
-                      onChange={(value) =>
-                        patchDraft({ ...draft, requiresMembership: value === 'members' })
-                      }
-                      options={accessOptions}
-                    />
-                    <p className="admin-event-form__access-note">
-                      {draft.requiresMembership === false ? (
-                        <Unlock size={13} aria-hidden />
-                      ) : (
-                        <ShieldCheck size={13} aria-hidden />
-                      )}
-                      {draft.requiresMembership === false
-                        ? t('admin.eventState.accessOpenNote')
-                        : t('admin.eventState.accessMembersNote')}
-                    </p>
-                  </div>
+                      {/* Acceso al meet: misma decisión que StateControl. En el
+                          acordeón de la consola vive solo allá (PATCH parcial). */}
+                      <div className="admin-event-form__access">
+                        <AdminFilterChipGroup
+                          compact
+                          disabled={!canEdit}
+                          id="event-access"
+                          label={t('admin.eventEditor.accessLabel')}
+                          value={draft.requiresMembership === false ? 'open' : 'members'}
+                          onChange={(value) =>
+                            patchDraft({ ...draft, requiresMembership: value === 'members' })
+                          }
+                          options={accessOptions}
+                        />
+                        <p className="admin-event-form__access-note">
+                          {draft.requiresMembership === false ? (
+                            <Unlock size={13} aria-hidden />
+                          ) : (
+                            <ShieldCheck size={13} aria-hidden />
+                          )}
+                          {draft.requiresMembership === false
+                            ? t('admin.eventState.accessOpenNote')
+                            : t('admin.eventState.accessMembersNote')}
+                        </p>
+                      </div>
+                    </>
+                  )}
 
-                  {/* Antes vivía detrás de un <details> ("Avanzado"): con tabs
-                    reales esta pantalla ya está acotada a Publicación, así
-                    que la transmisión queda siempre a la vista. En el acordeón
-                    de la consola queda fuera: lo elemental es estado, acceso y
-                    destacado. */}
+                  {/* Transmisión: fuera del acordeón elemental (solo destacado). */}
                   {!essentials ? (
                   <div className="admin-event-form__ticket-config">
                     <div className="admin-event-form__ticket-config-summary admin-event-form__ticket-config-summary--static">
@@ -1778,43 +1887,72 @@ export default function AdminEventEditor({
                   ) : null}
                 </section>
               )}
-
-
-              {syncError && (
-                <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
-                  {t('admin.eventEditor.supabase.syncError', { message: syncError })}
-                </p>
-              )}
-
-              {confirmDiscard ? (
-                <div className="admin-event-form__discard-confirmation" role="alert">
-                  <div>
-                    <strong>{t('admin.eventEditor.discardTitle')}</strong>
-                    <p>{t('admin.eventEditor.discardLead')}</p>
-                  </div>
-                  <div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="btn--small"
-                      onClick={() => setConfirmDiscard(false)}
-                    >
-                      {t('admin.eventEditor.keepEditing')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="btn--small"
-                      onClick={onCancel}
-                    >
-                      {t('admin.eventEditor.discard')}
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
             </div>
 
+            {syncError ? (
+              <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
+                {t('admin.eventEditor.supabase.syncError', { message: syncError })}
+              </p>
+            ) : null}
+
+            {confirmDiscard ? (
+              <div className="admin-event-form__discard-confirmation" role="alert">
+                <div>
+                  <strong>{t('admin.eventEditor.discardTitle')}</strong>
+                  <p>{t('admin.eventEditor.discardLead')}</p>
+                </div>
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="btn--small"
+                    onClick={() => setConfirmDiscard(false)}
+                  >
+                    {t('admin.eventEditor.keepEditing')}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="gold"
+                    className="btn--small"
+                    disabled={!canEdit || syncing}
+                  >
+                    <Save size={14} aria-hidden />
+                    {syncing
+                      ? t('admin.eventEditor.saving')
+                      : t('admin.eventEditor.saveChanges')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="btn--small"
+                    disabled={syncing}
+                    onClick={onCancel}
+                  >
+                    {t('admin.eventEditor.discard')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="admin-event-form__actions">
+              {accordion ? (
+                <div
+                  className={`admin-event-form__save-state admin-event-form__save-state--actions ${saveStateModifier}`}
+                  aria-live="polite"
+                  aria-label={saveStateLabel}
+                  title={t('admin.eventEditor.backendHint')}
+                >
+                  <span className={saveStateModifier} aria-hidden />
+                  <strong>
+                    <span className="admin-event-form__save-label admin-event-form__save-label--full">
+                      {saveStateLabel}
+                    </span>
+                    <span className="admin-event-form__save-label admin-event-form__save-label--short" aria-hidden>
+                      {saveStateShortLabel}
+                    </span>
+                  </strong>
+                </div>
+              ) : null}
               <div className="admin-event-form__action-buttons">
                 <Button type="button" variant="outline" onClick={requestClose} disabled={syncing}>
                   {accordion ? t('admin.eventConsole.closeSection') : t('common.cancel')}

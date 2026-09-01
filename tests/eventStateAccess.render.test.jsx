@@ -13,7 +13,8 @@ import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
  * grilla de un evento con atletas ya asignados. Estos tests fijan que el camino
  * corto existe y que manda solo ese campo.
  *
- * Desde el modelo auto-save: tocar un chip guarda al toque (un click = un PATCH).
+ * Modelo draft + Guardar: tocar un chip solo selecciona; el PATCH corre al
+ * confirmar con Guardar. Descartar vuelve al estado persistido.
  */
 
 const EVENT = {
@@ -42,6 +43,14 @@ function accessChip(name) {
   )
 }
 
+function pendingSave() {
+  return document.querySelector('.admin-event-state__pending-save')
+}
+
+function pendingDiscard() {
+  return document.querySelector('.admin-event-state__pending-discard')
+}
+
 afterEach(cleanup)
 
 describe('AdminEventStateControl — acceso al meet', () => {
@@ -52,24 +61,44 @@ describe('AdminEventStateControl — acceso al meet', () => {
     expect(accessChip(/^abierto$/i).getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('guarda al toque el cambio de acceso', async () => {
+  it('no guarda al tocar el chip: deja el cambio pendiente hasta Guardar', async () => {
     const onSetState = renderControl(EVENT, vi.fn(async () => ({ event: EVENT, events: [] })))
 
     fireEvent.click(accessChip(/^abierto$/i))
 
+    expect(onSetState).not.toHaveBeenCalled()
+    expect(pendingSave()).toBeTruthy()
+    expect(screen.getByText(/un cambio sin guardar/i)).toBeDefined()
+
+    fireEvent.click(pendingSave())
+
     await waitFor(() => expect(onSetState).toHaveBeenCalledTimes(1))
     expect(onSetState).toHaveBeenCalledWith('pitbull-classic-2026', { requiresMembership: false })
     expect(await screen.findByText(/quedó abierto: no pide afiliación/i)).toBeDefined()
-    expect(document.querySelector('.admin-event-state__pending-save')).toBeNull()
   })
 
-  it('vuelve a exigir afiliación desde el mismo control', async () => {
+  it('descarta el cambio pendiente y vuelve al acceso persistido', () => {
+    const onSetState = renderControl()
+
+    fireEvent.click(accessChip(/^abierto$/i))
+    expect(accessChip(/^abierto$/i).getAttribute('aria-pressed')).toBe('true')
+    expect(pendingSave()).toBeTruthy()
+
+    fireEvent.click(pendingDiscard())
+
+    expect(onSetState).not.toHaveBeenCalled()
+    expect(accessChip(/solo afiliados/i).getAttribute('aria-pressed')).toBe('true')
+    expect(pendingSave()).toBeNull()
+  })
+
+  it('vuelve a exigir afiliación desde el mismo control al guardar', async () => {
     const onSetState = renderControl(
       { ...EVENT, requiresMembership: false },
       vi.fn(async () => ({ event: EVENT, events: [] })),
     )
 
     fireEvent.click(accessChip(/solo afiliados/i))
+    fireEvent.click(pendingSave())
 
     await waitFor(() =>
       expect(onSetState).toHaveBeenCalledWith('pitbull-classic-2026', {
@@ -78,12 +107,13 @@ describe('AdminEventStateControl — acceso al meet', () => {
     )
   })
 
-  it('no vuelve a pedir el cambio si la opción ya está activa', () => {
+  it('no marca dirty si la opción ya está activa', () => {
     const onSetState = renderControl()
 
     fireEvent.click(accessChip(/solo afiliados/i))
 
     expect(onSetState).not.toHaveBeenCalled()
+    expect(pendingSave()).toBeNull()
   })
 
   it('escribe la consecuencia de cada opción, no solo su nombre', () => {
@@ -120,10 +150,15 @@ describe('AdminEventStateControl — acceso al meet', () => {
     expect(accessChip(/^abierto$/i).disabled).toBe(true)
   })
 
-  it('guarda el estado al tocar un chip de estado', async () => {
+  it('agrupa el cambio de estado en draft hasta Guardar', async () => {
     const onSetState = renderControl(EVENT, vi.fn(async () => ({ event: EVENT, events: [] })))
 
     fireEvent.click(screen.getByRole('button', { name: /^cerrado$/i }))
+
+    expect(onSetState).not.toHaveBeenCalled()
+    expect(pendingSave()).toBeTruthy()
+
+    fireEvent.click(pendingSave())
 
     await waitFor(() =>
       expect(onSetState).toHaveBeenCalledWith('pitbull-classic-2026', { status: 'cerrado' }),

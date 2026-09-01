@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import Pill from './Pill.jsx'
+import { CheckCircle2, CircleAlert, LoaderCircle } from 'lucide-react'
 import {
   clearEmailVerificationToken,
   readEmailVerificationToken,
@@ -11,8 +11,9 @@ import { verifyAthleteEmail } from '../../services/athleteApi.js'
  *
  * Consume el deep link `/?verificar=<token>` que llega por email. Es un flujo
  * de un solo paso, así que no merece una pantalla propia: se resuelve al
- * cargar y se informa con el mismo `status-pill` que ya usa el resto del
- * sistema, sin introducir un patrón visual nuevo.
+ * cargar y se informa con una tarjeta flotante compacta —icono de estado,
+ * mensaje y acción de reintento cuando el fallo es de red— sin introducir un
+ * patrón visual nuevo: comparte lenguaje con el toast de sesión.
  *
  * El token se limpia de la URL apenas se consume, para que no quede en el
  * historial ni se reenvíe al compartir el link.
@@ -90,18 +91,30 @@ export default function EmailVerificationNotice() {
 
   return (
     <div className="email-verification-notice" role="status" aria-live="polite">
-      <Pill tone={contenido.tone}>{contenido.text}</Pill>
-      {state === 'error' && retryableError ? (
-        <button
-          type="button"
-          onClick={() => {
-            setState('verificando')
-            setAttempt((current) => current + 1)
-          }}
-        >
-          Reintentar
-        </button>
-      ) : null}
+      <div className={`email-verification-notice__card email-verification-notice__card--${contenido.tone}`}>
+        <span className="email-verification-notice__icon" aria-hidden>
+          {state === 'verificando' ? (
+            <LoaderCircle size={15} className="email-verification-notice__spin" />
+          ) : state === 'confirmado' ? (
+            <CheckCircle2 size={15} />
+          ) : (
+            <CircleAlert size={15} />
+          )}
+        </span>
+        <p className="email-verification-notice__text">{contenido.text}</p>
+        {state === 'error' && retryableError ? (
+          <button
+            type="button"
+            className="email-verification-notice__retry"
+            onClick={() => {
+              setState('verificando')
+              setAttempt((current) => current + 1)
+            }}
+          >
+            Reintentar
+          </button>
+        ) : null}
+      </div>
     </div>
   )
 }

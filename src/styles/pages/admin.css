@@ -2277,6 +2277,82 @@
   margin: 0;
 }
 
+.admin-finance--ledger .admin-finance__breakdown {
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip {
+  align-items: baseline;
+  background: color-mix(in srgb, var(--admin-surface-raised, var(--color-bg-elevated)) 80%, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--color-brand-celeste) 45%,
+    var(--admin-hairline, var(--color-border-subtle))
+  );
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip.is-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip-label {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip-count {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-feature-settings: 'tnum' 1;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-finance--ledger .admin-finance__breakdown-chip-amount {
+  font-feature-settings: 'tnum' 1;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
 .admin-finance--ledger .admin-finance__period {
   align-items: end;
   border-top: 1px solid
@@ -2372,7 +2448,17 @@
 .admin-finance--ledger .admin-finance__toolbar {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.admin-finance--ledger .admin-finance__filter-bar {
+  min-width: 0;
+}
+
+/* El clear unificado vive en `.admin-finance__active-filters` (también
+   limpia composición/rubro, que AdminFilterBar no conoce). */
+.admin-finance--ledger .admin-finance__filter-bar .admin-filters__clear {
+  display: none;
 }
 
 .admin-finance--ledger .admin-finance__field {
@@ -2406,6 +2492,78 @@
   outline-offset: 2px;
 }
 
+.admin-finance--ledger .admin-finance__active-filters {
+  align-items: center;
+  border-top: 1px solid
+    color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 60%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+
+.admin-finance--ledger .admin-finance__active-filters-copy {
+  align-items: baseline;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 6px 8px;
+  margin: 0;
+  min-width: 0;
+}
+
+.admin-finance--ledger .admin-finance__active-filters-count {
+  color: var(--admin-ink, var(--color-text-primary));
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+
+.admin-finance--ledger .admin-finance__active-filters-tags {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.admin-finance--ledger .admin-finance__active-filter-tag {
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-brand-celeste) 28%, var(--admin-hairline, var(--color-border-subtle)));
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-ink, var(--color-text-primary));
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+}
+
+.admin-finance--ledger .admin-finance__active-filters-clear {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-pill);
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.admin-finance--ledger .admin-finance__active-filters-clear:hover {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 40%, transparent);
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-finance--ledger .admin-finance__active-filters-clear:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
 .admin-finance--ledger .admin-finance__export.export-btn--icon-only {
   min-height: 36px;
   min-width: 36px;
@@ -2414,13 +2572,22 @@
 @media (max-width: 720px) {
   .admin-finance--ledger .admin-finance__overview,
   .admin-finance--ledger .admin-finance__period,
-  .admin-finance--ledger .admin-finance__toolbar,
   .admin-finance--ledger .admin-finance__dates {
     grid-template-columns: 1fr;
   }
 
+  .admin-finance--ledger .admin-finance__breakdown-chip {
+    border-radius: 10px;
+    flex-wrap: wrap;
+  }
+
   .admin-finance--ledger .admin-finance__lead {
     display: none;
+  }
+
+  .admin-finance--ledger .admin-finance__active-filters {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -4190,7 +4357,9 @@
 
 .admin-event-form__discard-confirmation > div:last-child {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .admin-event-preview {
@@ -4331,9 +4500,9 @@
 
 .admin-list-section--events > .admin-list-section__chrome {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 12px;
-  padding: 0 2px 10px;
+  padding: 0 2px 14px;
 }
 
 .admin-list-section--events .admin-list-shell__header {
@@ -4345,34 +4514,28 @@
 }
 
 .admin-list-shell--events .admin-list-shell__intro {
-  gap: 4px;
-  padding-left: 12px;
+  gap: 6px;
+  padding-left: 0;
   position: relative;
 }
 
 .admin-list-shell--events .admin-list-shell__intro::before {
-  background: color-mix(in srgb, var(--color-brand-celeste) 58%, transparent);
-  bottom: 2px;
-  content: '';
-  left: 0;
-  position: absolute;
-  top: 2px;
-  width: 2px;
+  display: none;
 }
 
 .admin-list-shell--events .admin-list-shell__eyebrow {
   color: var(--admin-brand, var(--color-brand-celeste));
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .admin-list-shell--events .admin-list-shell__title {
-  font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+  font-size: clamp(1.45rem, 2.6vw, 1.85rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
   margin: 0;
 }
 
@@ -5126,7 +5289,13 @@
 
   .admin-event-form__discard-confirmation > div:last-child {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-event-form__discard-confirmation > div:last-child .btn {
+    justify-content: center;
+    width: 100%;
   }
 
   .admin-event-form__mobile-preview > summary {
@@ -8038,20 +8207,37 @@
   z-index: 1200;
 }
 
+/* Confirmación de borrado: theme-native (no grafito). Velo liviano para
+   que el listado detrás se lea borroso, no tapado; el panel sigue el
+   canvas light/dark. Material grafito unificado queda en admin-modals.css
+   para el resto de modales del panel. */
 .admin-user-delete-dialog__backdrop {
-  background: color-mix(in srgb, var(--color-bg-primary) 76%, transparent);
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-backdrop-filter: blur(var(--admin-modal-backdrop-blur, 12px)) saturate(1.08);
+  backdrop-filter: blur(var(--admin-modal-backdrop-blur, 12px)) saturate(1.08);
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 14%, transparent);
   border: 0;
   cursor: default;
   inset: 0;
+  padding: 0;
   position: absolute;
 }
 
+[data-theme='light'] .admin-user-delete-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 8%, transparent);
+}
+
+[data-theme='dark'] .admin-user-delete-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 16%, transparent);
+}
+
 .admin-user-delete-dialog__panel {
-  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--elevation-lg);
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   display: grid;
   gap: var(--space-md);
   grid-template-columns: auto minmax(0, 1fr);
@@ -8059,6 +8245,36 @@
   padding: clamp(20px, 4vw, 28px);
   position: relative;
   width: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-user-delete-dialog__panel {
+    animation: admin-user-delete-dialog-in var(--motion-base, 240ms)
+      var(--ease-standard, ease) backwards;
+  }
+
+  @keyframes admin-user-delete-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .admin-user-delete-dialog__backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
+  }
+
+  [data-theme='light'] .admin-user-delete-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 22%, transparent);
+  }
+
+  [data-theme='dark'] .admin-user-delete-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
+  }
 }
 
 .admin-user-delete-dialog__icon {
@@ -8289,122 +8505,139 @@
   line-height: 1.4;
 }
 
-/* Revisión de comprobante desde la cola operativa (Validar → Confirmar). */
+/* Revisión de comprobante desde la cola operativa (Validar → Confirmar).
+   Tarjeta flotante compacta: deja ver el panel detrás; el comprobante se
+   abre a tamaño real en pestaña o con zoom. */
 .payment-validation-dialog {
   align-items: center;
   display: grid;
   inset: 0;
   justify-items: center;
-  padding: var(--space-md);
+  padding: clamp(20px, 4vh, 40px) clamp(16px, 3vw, 28px);
   position: fixed;
   z-index: 1300;
 }
 
 .payment-validation-dialog__backdrop {
-  background: var(--admin-modal-backdrop);
+  /* Theme-native: velo liviano + blur, como delete/status. */
+  -webkit-backdrop-filter: blur(10px) saturate(1.06);
+  backdrop-filter: blur(10px) saturate(1.06);
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 14%, transparent);
   border: 0;
   cursor: default;
   inset: 0;
   position: absolute;
 }
 
+[data-theme='light'] .payment-validation-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 8%, transparent);
+}
+
+[data-theme='dark'] .payment-validation-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 18%, transparent);
+}
+
 .payment-validation-dialog__panel {
-  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--elevation-lg);
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   display: grid;
   gap: var(--space-md);
-  max-height: min(92vh, 880px);
-  max-width: 640px;
+  max-height: min(82vh, 680px);
+  max-width: 440px;
   overflow: auto;
-  padding: clamp(var(--space-lg), 3.5vw, calc(var(--space-lg) + var(--space-sm)));
+  padding: clamp(var(--space-md), 2.5vw, var(--space-lg));
   position: relative;
-  width: min(100%, 640px);
+  width: min(100%, 440px);
 }
 
-/* Consulta: split operativo — evidencia a la izquierda, ficha a la derecha. */
+/* Compact card — misma estructura para validate / settle / view. */
+.payment-validation-dialog__panel--workspace,
 .payment-validation-dialog__panel--view {
-  align-items: stretch;
-  column-gap: clamp(18px, 2.4vw, 28px);
-  grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.78fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  max-height: min(92vh, 820px);
-  max-width: min(100%, 1080px);
-  overflow: hidden;
-  padding: clamp(16px, 2.2vw, 22px);
-  row-gap: 14px;
-  width: min(100%, 1080px);
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__head {
-  align-items: start;
-  display: flex;
-  gap: 12px;
-  grid-column: 2;
-  grid-row: 1;
-  justify-content: space-between;
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__proof {
-  grid-column: 1;
-  grid-row: 1 / -1;
-  min-height: 0;
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__meta {
-  align-content: start;
-  grid-column: 2;
-  grid-row: 2;
-  min-height: 0;
+  animation: payment-validation-dialog-enter var(--motion-base) var(--ease-out) both;
+  display: block;
+  max-height: min(78vh, 640px);
+  max-width: min(100%, 440px);
   overflow: auto;
+  padding: 14px 14px 12px;
+  width: min(100%, 440px);
 }
 
-.payment-validation-dialog__panel--view .payment-validation-dialog__error {
-  grid-column: 2;
-}
-
-.payment-validation-dialog__panel--view .payment-validation-dialog__actions {
-  grid-column: 2;
-  grid-row: 3;
-}
-
+.payment-validation-dialog__panel--workspace.payment-validation-dialog__panel--empty-proof,
 .payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto auto auto;
-  max-width: min(100%, 560px);
-  overflow: auto;
-  width: min(100%, 560px);
+  max-height: none;
+  max-width: min(100%, 400px);
+  overflow: visible;
+  width: min(100%, 400px);
 }
 
-.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
-  .payment-validation-dialog__head,
-.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
-  .payment-validation-dialog__meta,
-.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
-  .payment-validation-dialog__proof,
-.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
-  .payment-validation-dialog__actions,
-.payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
-  .payment-validation-dialog__error {
-  grid-column: 1;
-  grid-row: auto;
+.payment-validation-dialog__rail {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
 }
 
+.payment-validation-dialog__panel--workspace .payment-validation-dialog__lead,
 .payment-validation-dialog__panel--view .payment-validation-dialog__lead {
-  font-size: 13px;
-  max-width: 36ch;
+  font-size: 12.5px;
+  line-height: 1.35;
+  max-width: none;
+}
+
+.payment-validation-dialog__panel--empty-proof .payment-validation-dialog__lead {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+@keyframes payment-validation-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y)) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-validation-dialog__panel--workspace,
+  .payment-validation-dialog__panel--view {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .payment-validation-dialog__backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
+  }
+
+  [data-theme='light'] .payment-validation-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 22%, transparent);
+  }
+
+  [data-theme='dark'] .payment-validation-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 32%, transparent);
+  }
 }
 
 .payment-validation-dialog__head {
-  display: grid;
-  gap: var(--space-sm);
+  align-items: start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .payment-validation-dialog__head-copy {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -8778,7 +9011,7 @@
 
 .payment-validation-dialog__head h2 {
   font-family: var(--font-display, var(--font-family));
-  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+  font-size: clamp(1.1rem, 2.2vw, 1.28rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.15;
@@ -8800,15 +9033,19 @@
 }
 
 .payment-validation-dialog__meta--rail {
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  gap: 8px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+  padding-top: 10px;
 }
 
 .payment-validation-dialog__meta--rail > div {
-  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-bottom: 0;
   display: grid;
-  gap: 3px;
-  padding-bottom: 10px;
+  gap: 2px;
+  padding-bottom: 0;
 }
 
 .payment-validation-dialog__meta--rail > div:last-child {
@@ -8817,9 +9054,13 @@
 }
 
 .payment-validation-dialog__meta--rail dd {
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 650;
   letter-spacing: -0.015em;
+}
+
+.payment-validation-dialog__meta--rail > div:nth-child(n + 3) {
+  grid-column: 1 / -1;
 }
 
 .payment-validation-dialog__meta--compact {
@@ -8874,7 +9115,18 @@
 
 .payment-validation-dialog__meta--rail .payment-validation-dialog__amount {
   color: var(--color-brand-gold);
-  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+  font-size: clamp(1.15rem, 2vw, 1.35rem);
+}
+
+.payment-validation-dialog__id {
+  color: var(--admin-text-secondary, var(--color-text-secondary));
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .payment-validation-dialog__proof {
@@ -8882,9 +9134,9 @@
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 2px;
   display: grid;
-  gap: var(--space-md);
-  min-height: 120px;
-  padding: var(--space-md);
+  gap: 8px;
+  min-height: 0;
+  padding: 10px;
 }
 
 .payment-validation-dialog__empty,
@@ -8896,11 +9148,12 @@
   padding: var(--space-sm);
 }
 
+.payment-validation-dialog__empty--workspace,
 .payment-validation-dialog__empty--view {
-  align-items: center;
-  gap: var(--space-md);
-  min-height: 104px;
-  padding: clamp(var(--space-md), 3vw, var(--space-lg));
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 0;
+  padding: 8px 4px;
 }
 
 .payment-validation-dialog__empty-icon {
@@ -8910,8 +9163,8 @@
   border-radius: 50%;
   color: var(--color-brand-gold);
   display: inline-flex;
-  flex: 0 0 44px;
-  height: 44px;
+  flex: 0 0 36px;
+  height: 36px;
   justify-content: center;
 }
 
@@ -8984,57 +9237,62 @@
   border-radius: 2px;
   display: block;
   margin-inline: auto;
-  max-height: 360px;
+  max-height: 220px;
   object-fit: contain;
   width: 100%;
 }
 
+.payment-validation-dialog__panel--workspace .payment-validation-dialog__proof,
 .payment-validation-dialog__panel--view .payment-validation-dialog__proof {
-  align-content: stretch;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
-  padding: 12px;
+  padding: 10px;
 }
 
+.payment-validation-dialog__panel--workspace .payment-validation-dialog__preview,
 .payment-validation-dialog__panel--view .payment-validation-dialog__preview {
-  grid-template-rows: auto minmax(0, 1fr);
-  height: 100%;
   min-height: 0;
 }
 
+.payment-validation-dialog__panel--workspace .payment-validation-dialog__stage,
 .payment-validation-dialog__panel--view .payment-validation-dialog__stage {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 6%, transparent);
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 2px;
   min-height: 0;
-  padding: 10px;
+  padding: 8px;
 }
 
+.payment-validation-dialog__panel--workspace.payment-validation-dialog__panel--empty-proof
+  .payment-validation-dialog__proof,
 .payment-validation-dialog__panel--view.payment-validation-dialog__panel--empty-proof
   .payment-validation-dialog__proof {
   min-height: 0;
 }
 
+.payment-validation-dialog__panel--workspace .payment-validation-dialog__image,
 .payment-validation-dialog__panel--view .payment-validation-dialog__image {
-  max-height: min(68vh, 640px);
+  max-height: min(32vh, 240px);
 }
 
+.payment-validation-dialog__panel--workspace
+  .payment-validation-dialog__image-btn.is-expanded
+  .payment-validation-dialog__image,
 .payment-validation-dialog__panel--view
   .payment-validation-dialog__image-btn.is-expanded
   .payment-validation-dialog__image {
-  max-height: none;
+  max-height: min(52vh, 420px);
 }
 
+.payment-validation-dialog__panel--workspace .payment-validation-dialog__frame,
 .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
-  height: min(68vh, 640px);
+  height: min(32vh, 240px);
 }
 
 .payment-validation-dialog__frame {
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 8%, transparent);
   border: 0;
   border-radius: 2px;
-  height: min(52vh, 380px);
+  height: min(32vh, 240px);
   width: 100%;
 }
 
@@ -9070,16 +9328,16 @@
 
 .payment-validation-dialog__reject-form,
 .payment-validation-dialog__settle-form {
+  border-top: 1px solid var(--color-border-subtle);
   display: grid;
   gap: var(--space-sm);
-  margin-top: var(--space-md);
+  margin-top: 0;
   padding-top: var(--space-md);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .payment-validation-dialog__reject-form label,
 .payment-validation-dialog__settle-form label {
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   font-size: 12.5px;
   font-weight: 650;
 }
@@ -9087,10 +9345,10 @@
 .payment-validation-dialog__reject-form textarea,
 .payment-validation-dialog__settle-form textarea,
 .payment-validation-dialog__settle-form input {
-  background: var(--admin-surface, var(--color-bg-elevated));
+  background: var(--color-bg-surface, var(--color-bg-elevated));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-md);
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   font-family: var(--font-family);
   font-size: 13.5px;
   /* En mobile el alto que dan `rows` y el padding se quedaba en 43px, apenas
@@ -9110,6 +9368,7 @@
 .payment-validation-dialog__settle-form textarea:focus-visible,
 .payment-validation-dialog__settle-form input:focus-visible {
   border-color: var(--color-brand-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
   outline: none;
 }
 
@@ -9169,14 +9428,42 @@
 }
 
 .payment-validation-dialog__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  justify-content: flex-end;
+  background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent);
+  border-top: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 2px;
+  padding-top: 10px;
+  position: sticky;
+  bottom: 0;
+}
+
+/* Con 3 botones: Cancelar | Rechazar arriba, Confirmar ancho completo abajo. */
+.payment-validation-dialog__actions:has(.btn--danger) .btn:not(.btn--secondary):not(.btn--danger) {
+  grid-column: 1 / -1;
+}
+
+/* Solo Cancelar + Confirmar (sin rechazo): una fila equilibrada. */
+.payment-validation-dialog__actions:not(:has(.btn--danger)) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Un solo botón (p.ej. Cerrar en view): ancho completo. */
+.payment-validation-dialog__actions .btn:only-child {
+  grid-column: 1 / -1;
 }
 
 .payment-validation-dialog__actions .btn {
+  justify-content: center;
   min-height: 40px;
+  min-width: 0;
+  padding-inline: 12px;
+  width: 100%;
+}
+
+.payment-validation-dialog__actions .btn svg {
+  flex: none;
 }
 
 @media (min-width: 540px) and (max-width: 768px) {
@@ -9185,130 +9472,132 @@
   }
 }
 
-@media (max-width: 900px) {
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof) {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(220px, 42vh) auto;
-    max-height: min(94vh, 920px);
-    overflow: auto;
-  }
-
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
-    .payment-validation-dialog__head,
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
-    .payment-validation-dialog__meta,
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
-    .payment-validation-dialog__proof,
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
-    .payment-validation-dialog__actions,
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
-    .payment-validation-dialog__error {
-    grid-column: 1;
-    grid-row: auto;
-  }
-
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof)
-    .payment-validation-dialog__proof {
-    grid-row: 3;
-    min-height: 220px;
-  }
-
-  .payment-validation-dialog__panel--view .payment-validation-dialog__image {
-    max-height: min(42vh, 420px);
-  }
-
-  .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
-    height: min(42vh, 420px);
-  }
-}
-
 @media (max-width: 540px) {
   .payment-validation-dialog__actions {
-    display: grid;
-    gap: var(--space-sm);
-    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .payment-validation-dialog__actions .btn {
-    justify-content: center;
     min-height: 44px;
-    width: 100%;
+  }
+
+  .payment-validation-dialog__meta--rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payment-validation-dialog__meta--rail > div:nth-child(n + 3) {
+    grid-column: auto;
   }
 }
 
 @media (max-width: 430px) {
   .payment-validation-dialog {
-    align-items: stretch;
-    justify-items: stretch;
-    padding: 0;
+    align-items: end;
+    padding: 12px;
   }
 
   .payment-validation-dialog__panel,
+  .payment-validation-dialog__panel--workspace,
   .payment-validation-dialog__panel--view {
-    border-radius: 0;
-    max-height: 100dvh;
+    border-radius: 12px 12px 0 0;
+    max-height: min(88dvh, 720px);
     max-width: 100%;
-    min-height: 100dvh;
+    min-height: 0;
     width: 100%;
   }
 
-  .payment-validation-dialog__panel--view:not(.payment-validation-dialog__panel--empty-proof) {
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
-    overflow: hidden;
-  }
-
-  .payment-validation-dialog__panel--empty-proof {
-    grid-template-rows: auto auto auto minmax(40px, 1fr);
-  }
-
-  .payment-validation-dialog__panel--empty-proof .payment-validation-dialog__actions {
-    align-self: end;
-  }
-
+  .payment-validation-dialog__panel--workspace .payment-validation-dialog__image,
   .payment-validation-dialog__panel--view .payment-validation-dialog__image {
-    max-height: min(40dvh, 320px);
+    max-height: min(28dvh, 220px);
   }
 
+  .payment-validation-dialog__panel--workspace .payment-validation-dialog__frame,
   .payment-validation-dialog__panel--view .payment-validation-dialog__frame {
-    height: min(40dvh, 320px);
+    height: min(28dvh, 220px);
   }
 }
 
-/* Corrección de estado de inscripción — mismo material y escala que el diálogo
-   de validación de pagos. Las opciones se muestran como radios grandes y no
-   como un select: son tres, cada una necesita una línea de ayuda para que el
-   operador entienda qué implica, y un select las esconde. */
+/* Corrección de estado + observaciones — theme-native (como delete).
+   Backdrop liviano para leer la lista detrás; panel elevated del canvas. */
 .admin-status-dialog {
   align-items: center;
   display: grid;
   inset: 0;
   justify-items: center;
-  padding: var(--space-md);
+  padding: clamp(20px, 4vh, 40px) clamp(16px, 3vw, 28px);
   position: fixed;
   z-index: 1300;
 }
 
 .admin-status-dialog__backdrop {
-  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-backdrop-filter: blur(10px) saturate(1.06);
+  backdrop-filter: blur(10px) saturate(1.06);
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 14%, transparent);
   border: 0;
   cursor: default;
   inset: 0;
+  padding: 0;
   position: absolute;
 }
 
+[data-theme='light'] .admin-status-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 8%, transparent);
+}
+
+[data-theme='dark'] .admin-status-dialog__backdrop {
+  background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 18%, transparent);
+}
+
 .admin-status-dialog__panel {
-  background: var(--admin-surface-raised, var(--color-bg-elevated));
+  animation: admin-status-dialog-enter var(--motion-base) var(--ease-out) both;
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--elevation-lg);
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   display: grid;
   gap: var(--space-md);
-  max-height: min(92vh, 880px);
+  max-height: min(78vh, 640px);
   overflow: auto;
-  padding: clamp(var(--space-lg), 3.5vw, calc(var(--space-lg) + var(--space-sm)));
+  padding: clamp(18px, 3vw, 24px);
   position: relative;
-  width: min(100%, 560px);
+  width: min(100%, 480px);
+}
+
+@keyframes admin-status-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-enter-y)) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-status-dialog__panel {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .admin-status-dialog__backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 28%, transparent);
+  }
+
+  [data-theme='light'] .admin-status-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 22%, transparent);
+  }
+
+  [data-theme='dark'] .admin-status-dialog__backdrop {
+    background: color-mix(in srgb, var(--plu-cool-950, #0b1220) 32%, transparent);
+  }
 }
 
 .admin-status-dialog__head {
@@ -9319,53 +9608,69 @@
 }
 
 .admin-status-dialog__head h2 {
-  font-size: 19px;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.1rem, 2.2vw, 1.28rem);
   font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
   margin: 0;
 }
 
 .admin-status-dialog__icon {
   align-items: center;
-  background: color-mix(in srgb, var(--color-brand-celeste) 14%, transparent);
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-celeste) 28%, var(--color-border-subtle));
   border-radius: var(--border-radius-md);
   color: var(--color-brand-celeste);
   display: inline-flex;
-  height: 38px;
+  height: 40px;
   justify-content: center;
-  width: 38px;
+  width: 40px;
 }
 
 .admin-status-dialog__lead {
   color: var(--color-text-secondary);
-  font-size: 13.5px;
-  line-height: 1.55;
-  margin: var(--space-xs) 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 6px 0 0;
 }
 
 .admin-status-dialog__meta {
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
-  gap: var(--space-sm);
+  gap: 10px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
-  padding-top: var(--space-md);
+  padding-top: 14px;
 }
 
 .admin-status-dialog__meta > div {
-  align-items: center;
+  align-items: start;
   display: grid;
-  gap: var(--space-md);
-  grid-template-columns: minmax(0, 9rem) 1fr;
+  gap: 3px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-status-dialog__meta > div:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .admin-status-dialog__meta dt {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .admin-status-dialog__meta dd {
   font-size: 13.5px;
+  font-weight: 600;
   margin: 0;
+}
+
+.admin-observations-dialog__panel {
+  width: min(100%, 520px);
 }
 
 .admin-status-dialog__options {
@@ -9377,7 +9682,7 @@
 }
 
 .admin-status-dialog__options legend {
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   font-size: 12.5px;
   font-weight: 650;
   margin-bottom: var(--space-xs);
@@ -9386,13 +9691,13 @@
 
 .admin-status-dialog__option {
   align-items: center;
+  background: var(--color-bg-surface, transparent);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-md);
   cursor: pointer;
   display: grid;
   gap: var(--space-md);
   grid-template-columns: auto 1fr;
-  /* 44px de alto mínimo: es un control táctil, no una fila de tabla. */
   min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   transition:
@@ -9419,10 +9724,6 @@
   outline-offset: 2px;
 }
 
-/* Badge sobre la explicación, no al lado: en línea, la opción cuyo texto no
-   entraba envolvía a una segunda fila y las tres quedaban con alturas y
-   alineaciones distintas según el largo del copy. Apilado, las tres leen igual
-   y no dependen de cuánto mida cada etiqueta. */
 .admin-status-dialog__option-body {
   display: grid;
   gap: var(--space-xs);
@@ -9449,24 +9750,26 @@
 }
 
 .admin-status-dialog__field label {
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   font-size: 12.5px;
   font-weight: 650;
 }
 
 .admin-status-dialog__field textarea {
-  background: var(--admin-surface, var(--color-bg-elevated));
+  background: var(--color-bg-surface, var(--color-bg-elevated));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--border-radius-md);
-  color: var(--admin-ink, var(--color-text-primary));
+  color: var(--color-text-primary);
   font-family: var(--font-family);
   font-size: 13.5px;
+  min-height: 44px;
   padding: var(--space-sm) var(--space-md);
   resize: vertical;
 }
 
 .admin-status-dialog__field textarea:focus-visible {
   border-color: var(--color-brand-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
   outline: none;
 }
 
@@ -9484,9 +9787,12 @@
 }
 
 @media (max-width: 560px) {
-  .admin-status-dialog__meta > div {
-    gap: var(--space-xs);
-    grid-template-columns: 1fr;
+  .admin-status-dialog__meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-status-dialog__meta > div:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 
   .admin-status-dialog__actions .btn {
@@ -17195,6 +17501,38 @@ button.action-queue__proof:focus-visible {
   gap: var(--space-3, 0.75rem);
 }
 
+.admin-event-form__reference-note {
+  background: color-mix(in srgb, var(--admin-ink, currentColor) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-hairline, var(--color-border-subtle)) 80%, transparent);
+  border-radius: 10px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.admin-event-form__reference-note strong {
+  color: var(--admin-ink, var(--color-text));
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.admin-event-form__reference-note p {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.admin-event-form__reference-example {
+  color: var(--admin-ink, var(--color-text));
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 .admin-event-form__field-hint {
   display: block;
   margin-top: 0.35rem;
@@ -19389,10 +19727,11 @@ button.action-queue__proof:focus-visible {
    Acá solo layout base del strip y del split.
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* KPIs de eventos: pulse editorial dentro del chrome (sin glass / cards). */
+/* KPIs de eventos: pulse editorial dentro del chrome (sin glass / cards).
+   El hairline de cierre vive en el chrome; acá solo layout tipográfico. */
 .admin-events-kpis {
   align-items: end;
-  border-block: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-block: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0;
@@ -19401,7 +19740,7 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-events-kpi {
-  align-items: baseline;
+  align-items: flex-start;
   display: inline-flex;
   flex: 0 1 auto;
   flex-direction: column;
@@ -21330,7 +21669,8 @@ button.action-queue__proof:focus-visible {
    El control dual reusa la misma forma visual que el rango inline, pero con
    overrides bajo .admin-shell para que no herede el chrome pensado para la
    barra (ni se estire a cientos de px con labels apilados). */
-.admin-shell .admin-filter-popover .admin-filters__date-range--popover {
+.admin-shell .admin-filter-popover .admin-filters__date-range--popover,
+.admin-shell .admin-filter-panel .admin-filters__date-range--popover {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -21338,13 +21678,15 @@ button.action-queue__proof:focus-visible {
   width: 100%;
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-presets {
+.admin-shell .admin-filter-popover .admin-filters__date-range-presets,
+.admin-shell .admin-filter-panel .admin-filters__date-range-presets {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-preset {
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset,
+.admin-shell .admin-filter-panel .admin-filters__date-range-preset {
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
   border-radius: var(--border-radius-pill);
@@ -21363,34 +21705,40 @@ button.action-queue__proof:focus-visible {
     color var(--transition-fast);
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-preset:hover {
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset:hover,
+.admin-shell .admin-filter-panel .admin-filters__date-range-preset:hover {
   border-color: var(--color-border-light);
   color: var(--color-text-primary);
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-preset.is-active {
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset.is-active,
+.admin-shell .admin-filter-panel .admin-filters__date-range-preset.is-active {
   border-color: var(--color-accent-celeste-border-strong);
   color: color-mix(in srgb, var(--color-brand-celeste) 40%, var(--color-text-primary));
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-preset:focus-visible {
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset:focus-visible,
+.admin-shell .admin-filter-panel .admin-filters__date-range-preset:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
   outline-offset: 2px;
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-preset:disabled {
+.admin-shell .admin-filter-popover .admin-filters__date-range-preset:disabled,
+.admin-shell .admin-filter-panel .admin-filters__date-range-preset:disabled {
   cursor: not-allowed;
   opacity: 0.45;
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-custom {
+.admin-shell .admin-filter-popover .admin-filters__date-range-custom,
+.admin-shell .admin-filter-panel .admin-filters__date-range-custom {
   display: flex;
   flex-direction: column;
   gap: 5px;
   min-width: 0;
 }
 
-.admin-shell .admin-filter-popover .admin-filters__date-range-custom-label {
+.admin-shell .admin-filter-popover .admin-filters__date-range-custom-label,
+.admin-shell .admin-filter-panel .admin-filters__date-range-custom-label {
   color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 650;
@@ -21402,12 +21750,19 @@ button.action-queue__proof:focus-visible {
 .admin-shell
   .admin-filter-popover
   .admin-filters__date-range--popover.is-active
+  .admin-filters__date-range-custom-label,
+.admin-shell
+  .admin-filter-panel
+  .admin-filters__date-range--popover.is-active
   .admin-filters__date-range-custom-label {
   color: color-mix(in srgb, var(--color-brand-celeste) 45%, var(--color-text-muted));
 }
 
 .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range-fields--popover,
+.admin-shell
+  .admin-filter-panel
   .admin-filters__date-range-fields--popover {
   align-items: center;
   background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
@@ -21425,18 +21780,28 @@ button.action-queue__proof:focus-visible {
 [data-theme='light']
   .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range-fields--popover,
+[data-theme='light']
+  .admin-shell
+  .admin-filter-panel
   .admin-filters__date-range-fields--popover {
   background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
 }
 
 .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range-fields--popover:hover,
+.admin-shell
+  .admin-filter-panel
   .admin-filters__date-range-fields--popover:hover {
   border-color: var(--color-border-light);
 }
 
 .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range-fields--popover:focus-within,
+.admin-shell
+  .admin-filter-panel
   .admin-filters__date-range-fields--popover:focus-within {
   border-color: var(--color-accent-celeste-border-strong);
   box-shadow: none;
@@ -21444,6 +21809,10 @@ button.action-queue__proof:focus-visible {
 
 .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input,
+.admin-shell
+  .admin-filter-panel
   .admin-filters__date-range-fields--popover
   .admin-filters__date-range-input {
   background: transparent;
@@ -21469,12 +21838,21 @@ button.action-queue__proof:focus-visible {
   .admin-shell
   .admin-filter-popover
   .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input,
+[data-theme='light']
+  .admin-shell
+  .admin-filter-panel
+  .admin-filters__date-range-fields--popover
   .admin-filters__date-range-input {
   color-scheme: light;
 }
 
 .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-sep,
+.admin-shell
+  .admin-filter-panel
   .admin-filters__date-range-fields--popover
   .admin-filters__date-range-sep {
   color: var(--color-text-muted);
@@ -21486,6 +21864,10 @@ button.action-queue__proof:focus-visible {
 .admin-shell
   .admin-filter-popover
   .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input::-webkit-calendar-picker-indicator,
+.admin-shell
+  .admin-filter-panel
+  .admin-filters__date-range-fields--popover
   .admin-filters__date-range-input::-webkit-calendar-picker-indicator {
   cursor: pointer;
   filter: invert(0.75);
@@ -21495,6 +21877,11 @@ button.action-queue__proof:focus-visible {
 [data-theme='light']
   .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input::-webkit-calendar-picker-indicator,
+[data-theme='light']
+  .admin-shell
+  .admin-filter-panel
   .admin-filters__date-range-fields--popover
   .admin-filters__date-range-input::-webkit-calendar-picker-indicator {
   filter: none;
@@ -21508,12 +21895,24 @@ button.action-queue__proof:focus-visible {
 .admin-shell
   .admin-filter-popover
   .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input:focus::-webkit-calendar-picker-indicator,
+.admin-shell
+  .admin-filter-panel
+  .admin-filters__date-range-fields--popover
+  .admin-filters__date-range-input:hover::-webkit-calendar-picker-indicator,
+.admin-shell
+  .admin-filter-panel
+  .admin-filters__date-range-fields--popover
   .admin-filters__date-range-input:focus::-webkit-calendar-picker-indicator {
   opacity: 1;
 }
 
 .admin-shell
   .admin-filter-popover
+  .admin-filters__date-range--popover.is-active
+  .admin-filters__date-range-fields--popover,
+.admin-shell
+  .admin-filter-panel
   .admin-filters__date-range--popover.is-active
   .admin-filters__date-range-fields--popover {
   border-color: color-mix(in srgb, var(--color-brand-celeste) 35%, var(--color-border-subtle));
@@ -21626,9 +22025,8 @@ button.action-queue__proof:focus-visible {
    Search + un solo botón "Filtros" que abre un panel con todos los grupos
    juntos, en vez de un pill por filtro (ver AdminFilterPillRow arriba). Lo
    aplicado queda como chips removibles debajo del buscador, visibles aunque
-   el panel esté cerrado. Ver AdminFilterPanel.jsx -- ninguna pantalla la usa
-   hoy (Atletas volvió al layout apilado); queda para una sección con más
-   filtros de los que entran cómodos siempre a la vista. */
+   el panel esté cerrado. People (Atletas / Afiliaciones / Inscripciones) usa
+   este layout para un chrome idéntico entre pestañas. */
 
 .admin-filter-panel-trigger {
   align-items: center;
@@ -21740,11 +22138,53 @@ button.action-queue__proof:focus-visible {
   grid-template-columns: repeat(3, minmax(200px, 1fr));
 }
 
+/* Layout editorial del panel: rieles de chips apilados + meta (select/fecha)
+   abajo. Reemplaza la grilla 3-col que estiraba cada faceta en columna densa. */
+.admin-filter-panel__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-filter-panel__meta {
+  display: grid;
+  gap: 18px 24px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.admin-filter-panel__meta:only-child {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
 .admin-filter-panel__field {
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+}
+
+.admin-filter-panel__field--chips .admin-filter-group,
+.admin-filter-panel__field--toggle .admin-filter-group {
+  min-width: 0;
+  width: 100%;
+}
+
+.admin-filter-panel__field--chips .admin-filter-chips-rail,
+.admin-filter-panel__field--toggle .admin-filter-chips-rail {
+  max-width: 100%;
+}
+
+.admin-filter-panel__field--select .admin-filter-popover__combobox {
+  width: 100%;
+}
+
+.admin-filter-panel__field--select .admin-filter-popover__options {
+  max-height: 168px;
 }
 
 /* El combobox buscable (ej. Gimnasio) es mucho más alto que un chip group o
@@ -21753,7 +22193,8 @@ button.action-queue__proof:focus-visible {
    dejan un hueco vacío debajo. Ocupar 2 filas deja que cada fila corta mida
    según su propio contenido. */
 .admin-filter-panel__field--select {
-  grid-row: span 2;
+  grid-row: auto;
+  align-self: start;
 }
 
 .admin-filter-panel__field-label {
@@ -21915,6 +22356,10 @@ button.action-queue__proof:focus-visible {
   }
 
   .admin-filter-panel__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filter-panel__meta {
     grid-template-columns: 1fr;
   }
 

@@ -43,6 +43,7 @@ const PAYMENT_NO_PROOF = {
   paymentId: 'p2',
   hasProof: false,
   paymentProofPath: null,
+  requiresProofOverride: true,
 }
 
 function renderQueue(items, overrides = {}) {
@@ -82,14 +83,14 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar validación' }))
 
     await waitFor(() => {
-      expect(onApprovePayment).toHaveBeenCalledWith('p1')
+      expect(onApprovePayment).toHaveBeenCalledWith('p1', {})
     })
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull()
     })
   })
 
-  it('permite acreditar una transferencia sin comprobante desde la cola', async () => {
+  it('permite acreditar transferencia sin comprobante con motivo de override', async () => {
     const onApprovePayment = vi.fn(async () => ({}))
     renderQueue([PAYMENT_NO_PROOF], { onApprovePayment })
 
@@ -97,24 +98,34 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Sin comprobante cargado')).toBeTruthy()
-    expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeTruthy()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar validación' }))
+    const confirm = within(dialog).getByRole('button', { name: 'Confirmar validación' })
+    expect(confirm.disabled).toBe(true)
+
+    fireEvent.change(within(dialog).getByLabelText('Motivo del override'), {
+      target: { value: 'Verificado en extracto bancario del 30/08.' },
+    })
+    expect(confirm.disabled).toBe(false)
+    fireEvent.click(confirm)
 
     await waitFor(() => {
-      expect(onApprovePayment).toHaveBeenCalledWith('p2')
+      expect(onApprovePayment).toHaveBeenCalledWith('p2', {
+        overrideReason: 'Verificado en extracto bancario del 30/08.',
+    })
     })
   })
 
   it('mantiene el efectivo presencial como validación operativa sin archivo', async () => {
     const onApprovePayment = vi.fn(async () => ({}))
-    renderQueue([{ ...PAYMENT_NO_PROOF, cashAtPitbull: true }], { onApprovePayment })
+    renderQueue([{ ...PAYMENT_NO_PROOF, cashAtPitbull: true, requiresProofOverride: false }], {
+      onApprovePayment,
+    })
 
     fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
     const dialog = await screen.findByRole('dialog')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar validación' }))
 
     await waitFor(() => {
-      expect(onApprovePayment).toHaveBeenCalledWith('p2')
+      expect(onApprovePayment).toHaveBeenCalledWith('p2', {})
     })
   })
 
@@ -125,7 +136,9 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
    */
   it('deja rechazar el efectivo presencial aunque no haya comprobante', async () => {
     const onRejectPayment = vi.fn(async () => ({}))
-    renderQueue([{ ...PAYMENT_NO_PROOF, cashAtPitbull: true }], { onRejectPayment })
+    renderQueue([{ ...PAYMENT_NO_PROOF, cashAtPitbull: true, requiresProofOverride: false }], {
+      onRejectPayment,
+    })
 
     fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
     const dialog = await screen.findByRole('dialog')
@@ -141,15 +154,22 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
     })
   })
 
-  it('no ofrece rechazar una transferencia que todavía no adjuntó nada', async () => {
+  it('permite rechazar una transferencia sin comprobante desde el override', async () => {
     const onRejectPayment = vi.fn(async () => ({}))
     renderQueue([PAYMENT_NO_PROOF], { onRejectPayment })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Validar' }))
     const dialog = await screen.findByRole('dialog')
 
-    expect(within(dialog).queryByRole('button', { name: 'Rechazar' })).toBeNull()
-    expect(onRejectPayment).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Rechazar' }))
+    fireEvent.change(within(dialog).getByLabelText('Motivo del rechazo'), {
+      target: { value: 'No hay evidencia de transferencia.' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar rechazo' }))
+
+    await waitFor(() => {
+      expect(onRejectPayment).toHaveBeenCalledWith('p2', 'No hay evidencia de transferencia.')
+    })
   })
 
   it('no permite confirmar hasta que el comprobante se pueda abrir', async () => {
@@ -239,9 +259,12 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
     await waitFor(() => {
       expect(within(dialog).getByRole('img', { name: 'Comprobante de pago' })).toBeTruthy()
     })
-    expect(within(dialog).getByRole('button', { name: 'Ver el comprobante a tamaño real' })).toBeTruthy()
+    expect(
+      within(dialog).getByRole('button', { name: 'Ver el comprobante a tamaño real' }),
+    ).toBeTruthy()
 
-    fireEvent.click(within(dialog).getAllByRole('button', { name: /^Cerrar$/ })[1])
+    const actions = dialog.querySelector('.payment-validation-dialog__actions')
+    fireEvent.click(within(actions).getByRole('button', { name: /^Cerrar$/ }))
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull()
@@ -258,9 +281,7 @@ describe('ActionQueue — Ver inspecciona el comprobante', () => {
 
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Sin comprobante cargado')).toBeTruthy()
-    expect(
-      within(dialog).getByText('Esta orden todavía no tiene un archivo adjunto.'),
-    ).toBeTruthy()
+    expect(within(dialog).getByText('Esta orden todavía no tiene un archivo adjunto.')).toBeTruthy()
     expect(within(dialog).queryByRole('button', { name: 'Confirmar validación' })).toBeNull()
     expect(onApprovePayment).not.toHaveBeenCalled()
   })

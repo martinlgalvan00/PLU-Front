@@ -19,7 +19,6 @@ import '../../styles/components/transfer-pay-modal.css'
  * footer institucional pintaba encima al scrollear.
  */
 export default function TransferPayModal({
-  athlete,
   amount,
   currency = 'ARS',
   onClose,
@@ -72,7 +71,6 @@ export default function TransferPayModal({
         </header>
         <div className="account-payment-modal__body">
           <TransferReceipt
-            athlete={athlete}
             channel={channel}
             orderId={orderId}
             purpose={purpose}

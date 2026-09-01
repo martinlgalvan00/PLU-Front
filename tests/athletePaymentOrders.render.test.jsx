@@ -92,12 +92,12 @@ describe('Finanzas — comprobante y validación', () => {
     expect(proof.getAttribute('style')).toBeNull()
   })
 
-  it('avisa que falta el comprobante y permite la aprobación manual', async () => {
+  it('avisa que falta el comprobante y sigue ofreciendo validar con override', async () => {
     await renderSection([order({ paymentProofPath: null })])
 
-    // La columna conserva la advertencia y la acción permite que Finanzas
-    // decida si recibió el pago por otra vía.
-    expect(screen.getAllByText('Sin comprobante')).toHaveLength(1)
+    // Columna de comprobante + meta de estado. El CTA Validar queda disponible:
+    // el diálogo pide motivo de override antes de acreditar.
+    expect(screen.getAllByText('Sin comprobante')).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'Validar' })).toBeTruthy()
   })
 
@@ -223,5 +223,23 @@ describe('código de descuento en la fila', () => {
     await renderSection([order({ discountCode: null })])
 
     expect(screen.queryByText('ONLY-PITBULL-GOLD')).toBeNull()
+  })
+})
+
+describe('identidad staff en la fila', () => {
+  it('muestra pill Staff en vez del hash STAFF-uuid', async () => {
+    await renderSection([
+      order({
+        athlete: {
+          fullName: 'Ana Torres',
+          documentId: 'STAFF-660583de-002b-4408-aa10-94fc4f521f0b',
+        },
+      }),
+    ])
+
+    expect(screen.getByText('Staff')).toBeTruthy()
+    expect(
+      screen.queryByText('STAFF-660583de-002b-4408-aa10-94fc4f521f0b'),
+    ).toBeNull()
   })
 })

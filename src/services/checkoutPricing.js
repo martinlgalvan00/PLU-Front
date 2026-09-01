@@ -21,6 +21,23 @@ export function toApiPaymentMethod(paymentMethod) {
 }
 
 /**
+ * El mismo medio, nombrado como canal de la matriz de promociones
+ * (`discount_codes.manual_channels`): la transferencia —`transferencia` en la
+ * UI de afiliacion, `manual_link` en la de inscripcion— es `bank_transfer`.
+ */
+export function paymentMethodToPromotionChannel(paymentMethod) {
+  if (paymentMethod === 'transferencia' || paymentMethod === 'manual_link') return 'bank_transfer'
+  if (
+    paymentMethod === 'mercado_pago' ||
+    paymentMethod === 'cash_pitbull' ||
+    paymentMethod === 'wise_transfer'
+  ) {
+    return paymentMethod
+  }
+  return null
+}
+
+/**
  * Solo previsualizacion: la API vuelve a resolver el precio contra el plan,
  * evento o combo antes de crear la orden.
  */

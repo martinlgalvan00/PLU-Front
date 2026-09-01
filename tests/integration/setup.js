@@ -36,7 +36,9 @@ if (missing.length > 0) {
 // exige localhost salvo que el entorno sea CI o alguien confirme a propósito
 // con ALLOW_REMOTE_INTEGRATION_TESTS=true.
 const supabaseUrl = process.env.SUPABASE_URL.trim()
-const isLocalSupabase = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?\//.test(supabaseUrl)
+const isLocalSupabase = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?(?:\/|$)/.test(
+  supabaseUrl,
+)
 const isCi = process.env.CI === 'true'
 const remoteConfirmed = process.env.ALLOW_REMOTE_INTEGRATION_TESTS === 'true'
 

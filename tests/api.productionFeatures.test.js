@@ -283,6 +283,11 @@ describe('features publicas sin gates de pre-lanzamiento', () => {
           applyCheckoutPrice: vi
             .fn()
             .mockResolvedValue({ id: '22222222-2222-4222-8222-222222222222', concept: 'combo' }),
+          findEventPricing: vi.fn().mockResolvedValue({
+            price: 85000,
+            manual_price: null,
+            payment_channel_overrides: null,
+          }),
           findEventComboOffer: vi.fn().mockResolvedValue({ price: 170000, manualPrice: null }),
           createRegistrationCombo,
         },

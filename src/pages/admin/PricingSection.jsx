@@ -4,6 +4,7 @@ import {
   CalendarClock,
   CalendarOff,
   Check,
+  CheckCircle2,
   CirclePlus,
   Copy,
   FlaskConical,
@@ -63,6 +64,17 @@ const EMPTY_PLAN = {
  * exclusiva ('offer'/'access') están retiradas (20260915100000).
  */
 const CODE_TYPES = ['percent', 'fixed_price', 'combo']
+
+const SIMULATION_DESTINATION_KINDS = new Set([
+  'stay',
+  'membership_checkout',
+  'event_checkout',
+  'account_offer',
+])
+
+function simulationDestinationKind(kind) {
+  return SIMULATION_DESTINATION_KINDS.has(kind) ? kind : 'stay'
+}
 
 /**
  * Tipo del panel para una fila guardada. Se lee de las dos columnas juntas
@@ -2214,31 +2226,47 @@ export default function PricingSection({
                   </p>
                 ) : null}
                 {simulationState.id === code.id && simulationState.data ? (
-                  <div className="admin-pricing__simulation" role="status">
+                  <div
+                    className="admin-pricing__simulation admin-pricing__simulation--journey"
+                    role="status"
+                  >
                     {simulationState.data.error ? (
                       <p className="admin-pricing__promo-note is-error">
                         {simulationState.data.error}
                       </p>
                     ) : (
                       <>
-                        <strong>{t('admin.sections.pricing.simulationTitle')}</strong>
-                        <span>
-                          {t('admin.sections.pricing.simulationDestination', {
-                            destination: simulationState.data.destination?.kind ?? 'stay',
-                          })}
-                        </span>
-                        {/* El recorrido se verifica contra el checkout donde el
-                            código se canjea de verdad: no hay una URL de canje
-                            que abrir en otra pestaña. */}
-                        <span className="admin-pricing__simulation-link">
+                        <header className="admin-pricing__simulation-head">
+                          <div className="admin-pricing__simulation-title">
+                            <CheckCircle2 size={15} aria-hidden />
+                            <strong>{t('admin.sections.pricing.simulationTitle')}</strong>
+                          </div>
+                          <span className="admin-pricing__simulation-destination">
+                            {t(
+                              `admin.sections.pricing.simulationDestinationKind.${simulationDestinationKind(
+                                simulationState.data.destination?.kind,
+                              )}`,
+                            )}
+                          </span>
+                        </header>
+                        <p className="admin-pricing__simulation-hint">
                           {t('admin.sections.pricing.simulationRedeemHint')}
-                        </span>
-                        <ul>
+                        </p>
+                        <ul className="admin-pricing__simulation-checks">
                           {Object.entries(simulationState.data.checks ?? {}).map(
                             ([check, passed]) => (
-                              <li className={passed ? 'is-passed' : 'is-failed'} key={check}>
-                                {passed ? '✓' : '×'}{' '}
-                                {t(`admin.sections.pricing.simulationCheck.${check}`)}
+                              <li
+                                className={passed ? 'is-passed' : 'is-failed'}
+                                key={check}
+                              >
+                                {passed ? (
+                                  <Check size={13} strokeWidth={2.25} aria-hidden />
+                                ) : (
+                                  <X size={13} strokeWidth={2.25} aria-hidden />
+                                )}
+                                <span>
+                                  {t(`admin.sections.pricing.simulationCheck.${check}`)}
+                                </span>
                               </li>
                             ),
                           )}

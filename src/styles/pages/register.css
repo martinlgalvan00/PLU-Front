@@ -2366,13 +2366,45 @@
 }
 
 .register-settle__back,
-.register-settle__alt {
+.register-settle__alt,
+.register-settle__cancel {
   min-height: 44px;
 }
 
-.register-settle__alt:disabled {
+.register-settle__alt:disabled,
+.register-settle__cancel:disabled {
   cursor: wait;
   opacity: 0.6;
+}
+
+/* Cancelar la orden cierra un cobro: se ofrece, no se propone. Queda en el tono
+   de texto secundario y sólo se tiñe de rojo al interactuar, para no competir
+   con "ver datos de transferencia", que es la acción que la mayoría quiere. */
+.register-settle__cancel {
+  color: var(--color-text-muted);
+}
+
+.register-settle__cancel:hover:not(:disabled),
+.register-settle__cancel:focus-visible:not(:disabled) {
+  color: var(--color-brand-red-hover);
+}
+
+/* La confirmación toma la fila entera: con `justify-content: space-between` en
+   la barra, la pregunta y sus dos salidas quedaban repartidas contra los bordes
+   y "Sí, cancelar" terminaba pegado a "Ver datos de transferencia". */
+.register-settle__confirm {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  width: 100%;
+}
+
+.register-settle__confirm-copy {
+  color: var(--color-text-muted);
+  flex: 1 1 240px;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .register-competition-form--change-method {
@@ -5253,6 +5285,7 @@
   display: grid;
   gap: 10px;
   justify-items: start;
+  margin-top: var(--space-lg);
 }
 
 /* Aplicado: la banda del sello más la salida para quitarlo. Era un <p> en fila

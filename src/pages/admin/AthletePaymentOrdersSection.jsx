@@ -4,6 +4,7 @@ import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTab
 import { PaymentStateCell } from '../../components/admin/AdminStateCell.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminFilterChipGroup from '../../components/admin/AdminFilterChipGroup.jsx'
+import AdminFilterSearch from '../../components/admin/AdminFilterSearch.jsx'
 import {
   AdminActionOverflow,
   AdminIdentityCell,
@@ -11,6 +12,7 @@ import {
   AdminTableActions,
 } from '../../components/admin/AdminTableCells.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
+import Pill from '../../components/ui/Pill.jsx'
 import TableSkeleton from '../../components/ui/TableSkeleton.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { PAYMENT_METHODS } from '../../lib/constants.js'
@@ -22,9 +24,10 @@ import { listAthletePaymentOrders } from '../../services/athleteApi.js'
 import {
   OPEN_ORDER_STATUSES,
   buildPaymentValidationItem,
-  canApproveManualOrder,
   canForceSettleOrder,
   canValidateConcept,
+  canValidateManualOrder,
+  requiresProofOverride,
 } from '../../services/paymentValidationService.js'
 import { VALIDATION_DISABLED_CODES } from '../../services/platformSettingsAdminService.js'
 import { revalidatePaymentOrder } from '../../services/paymentService.js'
@@ -182,6 +185,7 @@ export default function AthletePaymentOrdersSection({
   const [revalidatingId, setRevalidatingId] = useState(null)
   const [revalidation, setRevalidation] = useState(null)
   const [serverCounts, setServerCounts] = useState(null)
+  const [query, setQuery] = useState('')
   // URL estable del proxy: no se precargan binarios al listar (egress).
   // El comprobante se pide recién al abrir el diálogo de validación.
   const [proofUrls, setProofUrls] = useState({})
@@ -283,51 +287,59 @@ export default function AthletePaymentOrdersSection({
     })
   }, [counts.openAmount, counts.pending, loading, onSummaryChange])
 
-  // Sin filtro local: la consulta ya trajo solo los estados del chip activo.
-  const rows = useMemo(
-    () =>
-      orders.map((order) => ({
-        id: order.id,
-        athlete: order.athlete?.fullName ?? '—',
-        document: order.athlete?.documentId ?? '—',
-        concept: order.conceptLabel,
-        validatable: canValidateConcept(order.concept, validationEnabled),
-        amount: order.amount,
-        currency: order.currency,
-        method: order.method,
-        manualPaymentChannel: order.manualPaymentChannel,
-        status: order.status,
-        reference: order.reference,
-        rejectedBy: order.rejectedBy ?? null,
-        rejectionReason: order.rejectionReason ?? null,
-        rejectedAt: order.rejectedAt ?? null,
-        cancelledBy: order.cancelledBy ?? null,
-        cancellationReason: order.cancellationReason ?? null,
-        cancelledAt: order.cancelledAt ?? null,
-        // Mismo agregado que ya arma la ficha del atleta (AthleteDetailSection):
-        // el motivo de un rechazo o una cancelacion sale de un solo lugar, para
-        // que las dos pantallas no cuenten historias distintas del mismo pago.
-        progress: derivePaymentProgress({ order, attempts: [] }),
-        createdAt: order.createdAt,
-        notes: order.notes,
-        hasProof: Boolean(order.paymentProofPath),
-        paymentProofPath: order.paymentProofPath ?? null,
-        paymentProofUploadedAt: order.paymentProofUploadedAt,
-        paymentProofPurgedAt: order.paymentProofPurgedAt ?? null,
-        financingAllowed: order.financingAllowed === true,
-        manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
-        financedEntitlementsAt: order.financedEntitlementsAt ?? null,
-        financedPaymentDueAt: order.financedPaymentDueAt ?? null,
-        discountCode: order.discountCode ?? null,
-      })),
-    [orders, validationEnabled],
-  )
+  // Filtro local sobre la página ya cargada: nombre, DNI o referencia.
+  // No es el buscador global del shell (Ctrl+K); solo estrecha esta cola.
+  const rows = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase()
+    const mapped = orders.map((order) => ({
+      id: order.id,
+      athlete: order.athlete?.fullName ?? '—',
+      document: order.athlete?.documentId ?? '—',
+      concept: order.conceptLabel,
+      validatable: canValidateConcept(order.concept, validationEnabled),
+      amount: order.amount,
+      currency: order.currency,
+      method: order.method,
+      manualPaymentChannel: order.manualPaymentChannel,
+      status: order.status,
+      reference: order.reference,
+      rejectedBy: order.rejectedBy ?? null,
+      rejectionReason: order.rejectionReason ?? null,
+      rejectedAt: order.rejectedAt ?? null,
+      cancelledBy: order.cancelledBy ?? null,
+      cancellationReason: order.cancellationReason ?? null,
+      cancelledAt: order.cancelledAt ?? null,
+      // Mismo agregado que ya arma la ficha del atleta (AthleteDetailSection):
+      // el motivo de un rechazo o una cancelacion sale de un solo lugar, para
+      // que las dos pantallas no cuenten historias distintas del mismo pago.
+      progress: derivePaymentProgress({ order, attempts: [] }),
+      createdAt: order.createdAt,
+      notes: order.notes,
+      hasProof: Boolean(order.paymentProofPath),
+      paymentProofPath: order.paymentProofPath ?? null,
+      paymentProofUploadedAt: order.paymentProofUploadedAt,
+      paymentProofPurgedAt: order.paymentProofPurgedAt ?? null,
+      financingAllowed: order.financingAllowed === true,
+      manualPaymentDeclaredAt: order.manualPaymentDeclaredAt ?? null,
+      financedEntitlementsAt: order.financedEntitlementsAt ?? null,
+      financedPaymentDueAt: order.financedPaymentDueAt ?? null,
+      discountCode: order.discountCode ?? null,
+    }))
+    if (!normalized) return mapped
+    return mapped.filter((row) => {
+      const haystack = [row.athlete, row.document, row.reference, row.concept]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase()
+      return haystack.includes(normalized)
+    })
+  }, [orders, query, validationEnabled])
 
-  async function approve(orderId) {
+  async function approve(orderId, { overrideReason } = {}) {
     setApprovingId(orderId)
     setError('')
     try {
-      const result = await onApprovePayment?.(orderId)
+      const result = await onApprovePayment?.(orderId, { overrideReason })
       if (result?.error) {
         setError(result.error)
         notifyError(result.error)
@@ -466,45 +478,55 @@ export default function AthletePaymentOrdersSection({
 
   return (
     <section id="admin-athlete-payments" className="admin-orders-block">
-      <div className="admin-orders-block__toolbar">
-        <AdminFilterChipGroup
-          id="athlete-orders-status"
-          label={t('admin.filters.status')}
-          value={status}
-          onChange={setStatus}
-          compact
-          defaultValue="all"
-          omitNeutral
-          allLabel={t('admin.filters.showingAll')}
-          clearable
-          hideEmpty
-          options={STATUS_FILTERS.map(([value, key]) => [value, t(key), counts[value] ?? 0])}
+      <div className="admin-orders-block__toolbar admin-orders-block__toolbar--athlete">
+        <AdminFilterSearch
+          placeholder={t('admin.athletePayments.searchPlaceholder')}
+          query={query}
+          onQueryChange={setQuery}
         />
-        {/* Canal manual: sin conteos — los chips de estado ya dicen cuántas
-            hay; esto sólo elige cuál de las dos colas se mira. `presentation
-            menu` lo deja como filtro secundario, no compite con el estado. */}
-        <AdminFilterChipGroup
-          id="athlete-orders-channel"
-          label={t('admin.athletePayments.channelLabel')}
-          value={channel}
-          onChange={setChannel}
-          compact
-          defaultValue="all"
-          omitNeutral
-          allLabel={t('admin.athletePayments.channelAll')}
-          clearable
-          presentation="menu"
-          options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
-        />
-        <div className="admin-orders-block__actions">
-          <span className="admin-orders-block__amount admin-orders-block__amount--meta">
-            {t(
-              counts.openAmountTruncated
-                ? 'admin.athletePayments.openAmountPartial'
-                : 'admin.athletePayments.openAmount',
-              { amount: money(counts.openAmount, locale) },
-            )}
-          </span>
+        <div className="admin-orders-block__toolbar-secondary">
+          <div className="admin-orders-block__toolbar-facets">
+            <AdminFilterChipGroup
+              id="athlete-orders-status"
+              ariaLabel={t('admin.filters.status')}
+              value={status}
+              onChange={setStatus}
+              compact
+              defaultValue="all"
+              omitNeutral
+              allLabel={t('admin.filters.showingAll')}
+              clearable
+              hideEmpty
+              options={STATUS_FILTERS.map(([value, key]) => [
+                value,
+                t(key),
+                counts[value] ?? 0,
+              ])}
+            />
+            {/* Canal como riel secundario: misma lectura que el estado, sin
+                menú vertical que estire el toolbar. */}
+            <AdminFilterChipGroup
+              id="athlete-orders-channel"
+              ariaLabel={t('admin.athletePayments.channelLabel')}
+              value={channel}
+              onChange={setChannel}
+              compact
+              defaultValue="all"
+              omitNeutral
+              allLabel={t('admin.filters.showingAll')}
+              clearable
+              options={CHANNEL_FILTERS.map(([value, key]) => [value, t(key)])}
+            />
+          </div>
+          <div className="admin-orders-block__summary" role="status">
+            <strong className="admin-orders-block__amount-value">
+              {money(counts.openAmount, locale)}
+              {counts.openAmountTruncated ? '+' : ''}
+            </strong>
+            <span className="admin-orders-block__amount-caption">
+              {t('admin.athletePayments.openAmountCaption')}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -551,9 +573,20 @@ export default function AthletePaymentOrdersSection({
               label: t('admin.columns.athlete'),
               mobile: 'primary',
               sortable: true,
-              render: (row) => (
-                <AdminIdentityCell accent="gold" name={row.athlete} sub={row.document} subMono />
-              ),
+              render: (row) => {
+                const isStaff = /^STAFF[-_]/i.test(String(row.document ?? ''))
+                return (
+                  <AdminIdentityCell
+                    accent="gold"
+                    name={row.athlete}
+                    sub={isStaff ? undefined : row.document}
+                    subMono={!isStaff}
+                    badge={
+                      isStaff ? <Pill tone="info">{t('admin.athletePayments.staffPill')}</Pill> : null
+                    }
+                  />
+                )
+              },
             },
             {
               key: 'concept',
@@ -689,6 +722,11 @@ export default function AthletePaymentOrdersSection({
                         )}
                       </span>
                     ) : null}
+                    {requiresProofOverride(row) ? (
+                      <span className="status-pill status-pill--warning">
+                        {t('admin.athletePayments.proofMissing')}
+                      </span>
+                    ) : null}
                     {dueInfo ? (
                       <span className={`status-pill status-pill--${dueInfo.tone}`}>
                         {dueInfo.label}
@@ -706,13 +744,13 @@ export default function AthletePaymentOrdersSection({
               className: 'data-table__column--actions',
               render: (row) => (
                 <AdminTableActions className="admin-athlete-order-actions">
-                  {/* Validar / forzar quedan visibles; traza y revalidar van al menú
-                      “más” para no saturar la fila en desktop angosto y cards. */}
+                  {/* Validar queda visible también sin comprobante: el diálogo
+                      pide motivo de override. Traza y revalidar van al menú. */}
                   <AdminIconButton
                     disabled={
                       !canEdit ||
                       !row.validatable ||
-                      !canApproveManualOrder(row) ||
+                      !canValidateManualOrder(row) ||
                       approvingId === row.id
                     }
                     icon={BadgeCheck}
@@ -776,10 +814,12 @@ export default function AthletePaymentOrdersSection({
           busy={approvingId === reviewRow.paymentId}
           error={error}
           onCancel={() => setReviewRow(null)}
-          onConfirm={(settlement) => {
+          onConfirm={(payload) => {
             const paymentId = reviewRow.paymentId
             const action =
-              reviewRow.mode === 'settle' ? forceSettle(paymentId, settlement) : approve(paymentId)
+              reviewRow.mode === 'settle'
+                ? forceSettle(paymentId, payload)
+                : approve(paymentId, payload ?? {})
             void action.then((done) => {
               if (done) setReviewRow(null)
             })

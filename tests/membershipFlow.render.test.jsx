@@ -107,7 +107,8 @@ const RegisterPage = (await import('../src/pages/RegisterPage.jsx')).default
 const MembershipPurchaseSection = (
   await import('../src/pages/profile/MembershipPurchaseSection.jsx')
 ).default
-const { fetchRegistrationAccessRequirements } = await import('../src/services/registrationAccessService.js')
+const { fetchRegistrationAccessRequirements } =
+  await import('../src/services/registrationAccessService.js')
 const { listMembershipPlans } = await import('../src/services/paymentService.js')
 
 const ATHLETE = {
@@ -153,10 +154,20 @@ function renderRegister({
   registrations = [],
   flow = 'membership',
   order = PENDING_ORDER,
-  event = { slug: 'pitbull-classic-2026', title: 'Pitbull Classic 2026', price: 75000, requiresMembership: true },
+  event = {
+    slug: 'pitbull-classic-2026',
+    title: 'Pitbull Classic 2026',
+    price: 75000,
+    requiresMembership: true,
+  },
   onSubmit = () => {},
   total = 75000,
-  form = { paymentMethod: 'mercado_pago', division: 'Open', category: 'Raw', estimatedWeight: '83' },
+  form = {
+    paymentMethod: 'mercado_pago',
+    division: 'Open',
+    category: 'Raw',
+    estimatedWeight: '83',
+  },
 } = {}) {
   return render(
     <I18nProvider>
@@ -284,8 +295,9 @@ describe('credencial de inscripción a torneo', () => {
       },
     })
 
-    const displayedTotals = [...container.querySelectorAll('.register-competition-ticket__total strong')]
-      .map((node) => node.textContent.replace(/\s/g, ''))
+    const displayedTotals = [
+      ...container.querySelectorAll('.register-competition-ticket__total strong'),
+    ].map((node) => node.textContent.replace(/\s/g, ''))
     expect(displayedTotals.some((value) => value.includes('75.000'))).toBe(true)
     expect(displayedTotals.some((value) => /^\$?2$/.test(value))).toBe(false)
   })
@@ -329,8 +341,8 @@ describe('credencial de inscripción a torneo', () => {
           active: true,
           price: 120000,
           currency: 'ARS',
-          startsAt: '2026-08-01T00:00:00-03:00',
-          endsAt: '2026-08-28T23:59:59-03:00',
+          startsAt: '2020-01-01T00:00:00-03:00',
+          endsAt: '2099-12-31T23:59:59-03:00',
         },
       },
     })
@@ -369,8 +381,8 @@ describe('credencial de inscripción a torneo', () => {
           active: true,
           price: 120000,
           currency: 'ARS',
-          startsAt: '2026-08-01T00:00:00-03:00',
-          endsAt: '2026-08-28T23:59:59-03:00',
+          startsAt: '2020-01-01T00:00:00-03:00',
+          endsAt: '2099-12-31T23:59:59-03:00',
         },
       },
     })
@@ -426,9 +438,7 @@ describe('sección de afiliación de la cuenta', () => {
   })
 
   it('no permite reemplazar una transferencia cuyo comprobante está en validación', () => {
-    renderPurchaseSection(
-      membership({ status: 'cancelada', paymentStatus: 'validacion_manual' }),
-    )
+    renderPurchaseSection(membership({ status: 'cancelada', paymentStatus: 'validacion_manual' }))
 
     expect(screen.getByText('Transferencia en validación')).toBeTruthy()
     expect(screen.getAllByText(/puede demorar hasta 48 horas/i)).not.toHaveLength(0)
@@ -445,10 +455,12 @@ describe('sección de afiliación de la cuenta', () => {
   })
 
   it('explica una renovación programada sin ofrecer cobrar otra vez', () => {
-    renderPurchaseSection(membership({
-      startDate: `${new Date().getFullYear() + 1}-01-01`,
-      expirationDate: `${new Date().getFullYear() + 2}-01-01`,
-    }))
+    renderPurchaseSection(
+      membership({
+        startDate: `${new Date().getFullYear() + 1}-01-01`,
+        expirationDate: `${new Date().getFullYear() + 2}-01-01`,
+      }),
+    )
 
     expect(screen.getByText('Afiliación programada')).toBeTruthy()
     expect(screen.getByText(/el pago ya está validado/i)).toBeTruthy()
@@ -462,7 +474,10 @@ describe('sección de afiliación de la cuenta', () => {
 
     rerender(
       <I18nProvider>
-        <MembershipPurchaseSection athlete={ATHLETE} membership={membership({ status: 'reembolsada' })} />
+        <MembershipPurchaseSection
+          athlete={ATHLETE}
+          membership={membership({ status: 'reembolsada' })}
+        />
       </I18nProvider>,
     )
     expect(screen.getByText('Pago reembolsado')).toBeTruthy()
@@ -470,9 +485,12 @@ describe('sección de afiliación de la cuenta', () => {
 
   it('bloquea el doble envío mientras crea la orden', async () => {
     let resolveOrder
-    const onStartMembershipPayment = vi.fn(() => new Promise((resolve) => {
-      resolveOrder = resolve
-    }))
+    const onStartMembershipPayment = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveOrder = resolve
+        }),
+    )
     renderPurchaseSection(membership({ status: 'pendiente_pago' }), { onStartMembershipPayment })
 
     const submit = await waitForMembershipPayButton()
@@ -483,7 +501,9 @@ describe('sección de afiliación de la cuenta', () => {
     expect(screen.getByRole('button', { name: /creando orden segura/i }).disabled).toBe(true)
 
     resolveOrder({ error: 'No se pudo crear la orden.' })
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('No se pudo crear la orden.'))
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain('No se pudo crear la orden.'),
+    )
     expect(screen.getByRole('button', { name: /continuar con mercado pago/i }).disabled).toBe(false)
   })
 
@@ -510,8 +530,9 @@ describe('sección de afiliación de la cuenta', () => {
     // La cuenta de Mercado Pago se ofrece como una fila más de la misma lista,
     // no como un segundo formulario con su propio botón.
     expect(screen.queryByTestId('mp-wallet-brick')).toBeNull()
-    expect(mpBrick.paymentProps.at(-1).customization.paymentMethods.mercadoPago)
-      .toEqual(['wallet_purchase'])
+    expect(mpBrick.paymentProps.at(-1).customization.paymentMethods.mercadoPago).toEqual([
+      'wallet_purchase',
+    ])
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(onStartMembershipPayment).toHaveBeenCalledTimes(1)
 

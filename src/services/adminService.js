@@ -58,6 +58,8 @@ export function buildPendingActions({
       const paymentProofPath = payment.paymentProofPath?.trim() || null
       const hasProof = Boolean(paymentProofPath)
       const cashAtPitbull = payment.manualPaymentChannel === 'cash_pitbull'
+      const requiresProofOverride =
+        payment.method === 'manual_link' && !cashAtPitbull && !hasProof
       actions.push({
         id: `action-pay-${payment.id}`,
         type: 'payment',
@@ -73,6 +75,7 @@ export function buildPendingActions({
         paymentId: payment.id,
         method: payment.method,
         cashAtPitbull,
+        requiresProofOverride,
         documentId: athlete?.documentId ?? null,
         hasProof,
         paymentProofPath,

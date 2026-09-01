@@ -357,8 +357,9 @@ export default function MembershipsSection({
         </div>
       ) : null}
       <AdminListSection
+        variant="memberships"
         filteredCount={rows.length}
-        filterLayout="popover"
+        filterLayout="panel"
         placeholder={t('admin.search.membership')}
         query={query}
         showHeader

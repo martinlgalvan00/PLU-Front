@@ -382,8 +382,8 @@ export default function RegistrationsSection({
   // y el operador no tenía forma de saber por qué. Ahora avisa por toast y, si
   // el 409 confirma el toggle apagado, sincroniza el estado local -- el fetch
   // de arriba corre una sola vez al montar la sección.
-  async function handleApprovePayment(paymentId) {
-    const result = await onApprovePayment?.(paymentId)
+  async function handleApprovePayment(paymentId, options = {}) {
+    const result = await onApprovePayment?.(paymentId, options)
     if (
       result?.code === VALIDATION_DISABLED_CODES.registration ||
       result?.code === VALIDATION_DISABLED_CODES.membership
@@ -617,7 +617,7 @@ export default function RegistrationsSection({
         variant="registrations"
         eyebrow={t('admin.sections.registrations.eyebrow')}
         filteredCount={registrationRows.length}
-        filterLayout="popover"
+        filterLayout="panel"
         placeholder={t('admin.search.registration')}
         query={filters.query ?? ''}
         showHeader

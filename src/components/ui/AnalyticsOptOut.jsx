@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, EyeOff } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { env } from '../../config/env.js'
 import { isOptedOut, setOptedOut } from '../../services/analyticsService.js'
+import { onConsentChange } from '../../services/cookieConsentService.js'
 
 /**
  * AnalyticsOptOut — PLU ARG
@@ -20,6 +21,16 @@ import { isOptedOut, setOptedOut } from '../../services/analyticsService.js'
 export default function AnalyticsOptOut({ className = '' }) {
   const { t } = useI18n()
   const [optedOut, setOptedOutState] = useState(() => isOptedOut())
+
+  // La decisión de cookies escribe el mismo opt-out; sin esta escucha el
+  // botón quedaba con el estado anterior hasta recargar.
+  useEffect(
+    () =>
+      onConsentChange(() => {
+        setOptedOutState(isOptedOut())
+      }),
+    [],
+  )
 
   if (!env.analytics?.enabled) return null
 
