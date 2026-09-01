@@ -23,6 +23,16 @@
   ],
   "headers": [
     {
+      "source": "/api/athletes/admin/payment-orders/:orderId/proof",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; frame-ancestors 'self'; img-src 'self' data: blob:; object-src 'none'"
+        },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

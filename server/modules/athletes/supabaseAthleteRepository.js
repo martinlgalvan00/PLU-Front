@@ -731,7 +731,7 @@ export function createSupabaseAthleteRepository(
       const order = assertSupabaseResult(
         await client
           .from('athlete_payment_orders')
-          .select('method,status')
+          .select('method,status,payment_proof_path,manual_payment_channel')
           .eq('id', orderId)
           .maybeSingle(),
         'No se pudo leer la orden.',
@@ -746,13 +746,29 @@ export function createSupabaseAthleteRepository(
       // transferencia/Wise sin comprobante con motivo auditado (no efectivo).
       const trimmedOverride =
         typeof overrideReason === 'string' ? overrideReason.trim() || null : null
+      const hasProof =
+        typeof order.payment_proof_path === 'string' && order.payment_proof_path.trim().length > 0
+      const isCashPayment = order.manual_payment_channel === 'cash_pitbull'
+      if (!hasProof && !isCashPayment && !trimmedOverride) {
+        throw new HttpError(
+          409,
+          'Para aprobar una transferencia sin comprobante hay que indicar un motivo.',
+        )
+      }
+
+      // El motivo es opcional en la firma nueva. Omitirlo cuando no existe
+      // permite que una base que todavía conserva la firma de dos parámetros
+      // siga aprobando órdenes con comprobante, mientras la migración termina
+      // de propagarse. Nunca se usa esa compatibilidad para un override sin
+      // comprobante: ese caso requiere la RPC nueva y su auditoría.
+      const approvalArgs = {
+        p_order_id: orderId,
+        p_actor: actor,
+      }
+      if (trimmedOverride) approvalArgs.p_override_reason = trimmedOverride
       return rpc(
         'approve_athlete_payment_order',
-        {
-          p_order_id: orderId,
-          p_actor: actor,
-          p_override_reason: trimmedOverride,
-        },
+        approvalArgs,
         'No se pudo aprobar el pago.',
       )
     },
