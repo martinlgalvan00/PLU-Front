@@ -259,6 +259,9 @@ export function mapAthleteData({ athletes, athlete, memberships, registrations, 
       // paymentReconciliationService para saber qué entitlement debería
       // existir sin tener que parsear el label.
       conceptType: order.concept,
+      // Slug del meet ligado a la orden (inscripción o combo). Pagos lo usa
+      // para retomar el checkout del torneo correcto sin reparsear el título.
+      eventSlug: registration?.eventSlug ?? null,
       amount: order.amount,
       method: order.method,
       manualPaymentChannel: normalizedOrder.manualPaymentChannel,
@@ -785,8 +788,10 @@ export async function createCompetitionRegistrationCombo({
   }
 }
 
-export async function approveAthletePaymentOrder(orderId) {
-  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/approve`, {})
+export async function approveAthletePaymentOrder(orderId, { overrideReason } = {}) {
+  const result = await apiPost(`/api/athletes/admin/payment-orders/${orderId}/approve`, {
+    ...(overrideReason ? { overrideReason } : {}),
+  })
   return {
     order: toCamelPaymentOrder(result.order),
     membership: toCamelMembership(result.membership),
@@ -1051,6 +1056,25 @@ export async function confirmAthleteManualPayment(orderId) {
     financed: result.financed === true,
     entitlementsGranted: result.entitlementsGranted === true,
     duplicate: result.duplicate === true,
+  }
+}
+
+/**
+ * Cierra una orden abierta del atleta y le devuelve el cupón, para que pueda
+ * abrir otra por el medio que quiera.
+ *
+ * Los rechazos llegan como ApiError 409 con el motivo escrito por la RPC
+ * (PLU31..PLU34): la pantalla los muestra tal cual en vez de traducirlos, así
+ * "ya subiste un comprobante" no se confunde con "ya está pagada".
+ */
+export async function cancelAthletePaymentOrder(orderId) {
+  const result = await apiPost(`/api/athletes/me/payment-orders/${orderId}/cancel`, {})
+  return {
+    cancelled: result?.cancelled === true,
+    alreadyCancelled: result?.alreadyCancelled === true,
+    releasedCode: result?.releasedCode ?? null,
+    registrationsCancelled: Number(result?.registrationsCancelled ?? 0),
+    order: result?.order ? toCamelPaymentOrder(result.order) : null,
   }
 }
 

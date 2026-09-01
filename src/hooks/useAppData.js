@@ -130,6 +130,8 @@ import {
   updateUserRole,
   updateUserStatus,
 } from '../services/userService.js'
+import { matchPublicViewPath } from '../lib/publicViewPaths.js'
+import { resolveRestoredSession } from '../lib/sessionRestore.js'
 import { canDeleteAthletes, canDeleteEvents, canDeleteUsers, isStaffSession } from '../lib/roles.js'
 import {
   buildAdminExportRows,
@@ -321,6 +323,19 @@ export function useAppData() {
   const ticketAttemptRef = useRef(null)
   const liveRefreshInFlightRef = useRef(false)
   const athleteDataLoadedRef = useRef(false)
+  // Huellas del último payload aplicado de cada poll: sin esto, cada ciclo
+  // pisaba el estado con un array idéntico pero de identidad nueva, y la app
+  // entera se re-renderizaba cada 60-120 s aunque nada hubiera cambiado.
+  const publicCatalogFingerprintRef = useRef(null)
+  const adminEventsFingerprintRef = useRef(null)
+  const staffUsersFingerprintRef = useRef(null)
+  const accessRolesFingerprintRef = useRef(null)
+  // Última escritura efectiva del persist: evita serializar y escribir el
+  // mismo payload en localStorage en cada ciclo de polling.
+  const lastPersistedPayloadRef = useRef(null)
+  // Anti-rebote del manejo de 401 y del re-probe de sesión al recuperar foco.
+  const authExpiredHandledAtRef = useRef(0)
+  const sessionReprobeAtRef = useRef(0)
   // ETags del último snapshot 200: el poll manda If-None-Match y en 304
   // retiene el estado local (cero bytes de body, menos egress a Supabase).
   const adminSnapshotEtagRef = useRef(null)
@@ -352,10 +367,21 @@ export function useAppData() {
   // viven en Supabase (athleteApi.js); las cuentas de demo (que sí siguen
   // siendo locales) tampoco necesitan persistirse entre recargas.
   useEffect(() => {
-    writeStorage({
+    const payload = JSON.stringify({
       createdOrder,
       // En modo real se elimina también cualquier snapshot legacy que haya
       // quedado en el navegador: el próximo arranque nace del catálogo vigente.
+      ...(env.demoMode ? { adminEvents } : {}),
+      shopProducts,
+      users,
+    })
+    // El efecto corre en cada ciclo de polling aunque no persista nada de eso
+    // en modo real: serializar y escribir lo mismo cada 60 s sólo compra
+    // re-renders y desgaste de localStorage.
+    if (lastPersistedPayloadRef.current === payload) return
+    lastPersistedPayloadRef.current = payload
+    writeStorage({
+      createdOrder,
       ...(env.demoMode ? { adminEvents } : {}),
       shopProducts,
       users,
@@ -374,6 +400,12 @@ export function useAppData() {
       refreshInFlight = fetchPublishedEvents()
         .then((remoteEvents) => {
           if (!active) return
+          // Catálogo público sin cambios: conservar el estado actual evita
+          // que cada tick de 60 s re-renderice toda la app (incluye a los
+          // visitantes anónimos de la home) por un array con nueva identidad.
+          const fingerprint = JSON.stringify(remoteEvents)
+          if (publicCatalogFingerprintRef.current === fingerprint) return
+          publicCatalogFingerprintRef.current = fingerprint
           setAdminEvents((current) => {
             const bySlug = new Map(current.map((event) => [event.slug, event]))
             return remoteEvents.map((event) => ({
@@ -454,7 +486,13 @@ export function useAppData() {
     }
     try {
       const remoteEvents = await fetchAdminEvents()
-      setAdminEvents(remoteEvents)
+      // Huella del último catálogo administrativo aplicado: el poll del panel
+      // no debe re-renderizar todo porque sí cuando el catálogo no cambió.
+      const fingerprint = JSON.stringify(remoteEvents)
+      if (adminEventsFingerprintRef.current !== fingerprint) {
+        adminEventsFingerprintRef.current = fingerprint
+        setAdminEvents(remoteEvents)
+      }
       setAdminEventsError(null)
       return remoteEvents
     } catch (error) {
@@ -633,7 +671,13 @@ export function useAppData() {
       if (hasPermission(session, 'admin.users.read')) {
         tasks.push(
           listStaffUsersRequest()
-            .then(({ users: staffUsers }) => setUsers(staffUsers))
+            .then(({ users: staffUsers }) => {
+              const fingerprint = JSON.stringify(staffUsers)
+              if (staffUsersFingerprintRef.current !== fingerprint) {
+                staffUsersFingerprintRef.current = fingerprint
+                setUsers(staffUsers)
+              }
+            })
             .catch((error) => {
               if (!(error instanceof ApiError && error.status === 403)) {
                 console.warn('No se pudo cargar el listado de staff.', error)
@@ -646,9 +690,13 @@ export function useAppData() {
         tasks.push(
           listAccessRolesRequest()
             .then(({ activity = [], permissions, roles: remoteRoles }) => {
-              setAccessRoles(remoteRoles)
-              setRoleActivity(activity)
-              setPermissionCatalog(permissions)
+              const fingerprint = JSON.stringify({ activity, permissions, roles: remoteRoles })
+              if (accessRolesFingerprintRef.current !== fingerprint) {
+                accessRolesFingerprintRef.current = fingerprint
+                setAccessRoles(remoteRoles)
+                setRoleActivity(activity)
+                setPermissionCatalog(permissions)
+              }
             })
             .catch((error) => {
               if (!(error instanceof ApiError && error.status === 403)) {
@@ -778,60 +826,76 @@ export function useAppData() {
 
     let active = true
 
-    meRequest()
-      .then(async ({ user }) => {
-        if (!active) return
-
-        // Soft-probe: { user: null } = anónimo (ya no debería venir como 401).
-        if (user) {
-          setSession(user)
-          return
-        }
-
-        await restoreAthleteOrOAuth()
+    async function applyAthleteSession(athleteSession, { staffAvailable = false } = {}) {
+      setSession({
+        ...athleteSession.user,
+        staffAvailable: Boolean(athleteSession.user.staffAvailable || staffAvailable),
       })
-      .catch(async (error) => {
-        if (!active) return
+      setAthletes(athleteSession.athlete ? [athleteSession.athlete] : [])
+      setMemberships(athleteSession.memberships)
+      setRegistrations(athleteSession.registrations)
+      setPayments(athleteSession.payments)
+    }
 
-        // API caída o sin red: seguimos sin sesión (demo login sigue andando).
-        if (!error?.status || error.status === 0) {
-          if (import.meta.env.DEV) {
-            console.info('Sesión no restaurada: API no disponible en', error?.message ?? error)
-          }
-          return
+    async function restoreSession() {
+      // Staff y atleta pueden coexistir (puente). Se leen en paralelo y
+      // `resolveRestoredSession` decide modo perfil vs panel según el path.
+      const pathView = matchPublicViewPath()
+      const [staffOutcome, athleteOutcome] = await Promise.all([
+        meRequest()
+          .then((me) => ({ user: me?.user ?? null, error: null }))
+          .catch((error) => ({ user: null, error })),
+        fetchAthleteSession()
+          .then((session) => ({ session, error: null }))
+          .catch((error) => ({ session: null, error })),
+      ])
+
+      if (!active) return
+
+      const staffError = staffOutcome.error
+      if (staffError && (!staffError.status || staffError.status === 0)) {
+        if (import.meta.env.DEV) {
+          console.info(
+            'Sesión no restaurada: API no disponible en',
+            staffError?.message ?? staffError,
+          )
         }
-
-        // Compat: APIs viejas todavía respondían 401 en el probe anónimo.
-        if (error.status === 401) {
-          await restoreAthleteOrOAuth()
-          return
-        }
-
-        console.warn('No se pudo restaurar la sesion.', error)
-      })
-      .finally(() => {
-        // Si el SDK de Auth0 sigue inicializando, el efecto se re-ejecuta al
-        // cambiar `oauth` y este finally vuelve a correr en ese momento.
-        if (active && !(oauth.configured && oauth.isLoading)) setSessionPending(false)
-      })
-
-    async function restoreAthleteOrOAuth() {
-      try {
-        const athleteSession = await fetchAthleteSession()
-        if (!active) return
-        if (athleteSession.user) {
-          setSession(athleteSession.user)
-          setAthletes(athleteSession.athlete ? [athleteSession.athlete] : [])
-          setMemberships(athleteSession.memberships)
-          setRegistrations(athleteSession.registrations)
-          setPayments(athleteSession.payments)
-          return
-        }
-      } catch (athleteError) {
-        if (athleteError?.status !== 401)
-          console.warn('No se pudo restaurar la sesion de atleta.', athleteError)
+        return
+      }
+      if (staffError && staffError.status !== 401) {
+        console.warn('No se pudo restaurar la sesion de staff.', staffError)
       }
 
+      const athleteError = athleteOutcome.error
+      if (athleteError && athleteError.status !== 401) {
+        console.warn('No se pudo restaurar la sesion de atleta.', athleteError)
+      }
+
+      const staffUser = staffOutcome.user
+      const athleteSession = athleteOutcome.session
+      const { mode, session: restored } = resolveRestoredSession({
+        staffUser,
+        athleteUser: athleteSession?.user ?? null,
+        pathView,
+      })
+
+      if (mode === 'athlete' && athleteSession?.user) {
+        await applyAthleteSession(
+          {
+            ...athleteSession,
+            user: restored,
+          },
+          { staffAvailable: Boolean(restored?.staffAvailable) },
+        )
+        return
+      }
+
+      if (mode === 'staff' && restored) {
+        setSession(restored)
+        return
+      }
+
+      if (staffError && staffError.status !== 401) return
       if (!oauth.configured || !oauth.isAuthenticated || oauth.isLoading) return
 
       try {
@@ -846,10 +910,88 @@ export function useAppData() {
       }
     }
 
+    restoreSession().finally(() => {
+      // Si el SDK de Auth0 sigue inicializando, el efecto se re-ejecuta al
+      // cambiar `oauth` y este finally vuelve a correr en ese momento.
+      if (active && !(oauth.configured && oauth.isLoading)) setSessionPending(false)
+    })
+
     return () => {
       active = false
     }
   }, [oauth, setSession])
+
+  // Un 401 en un endpoint de sesión activa significa que la cookie murió a
+  // mitad de camino (expiración, revocación desde otro dispositivo). Sin esto
+  // los polls fallaban en silencio y la persona quedaba mirando datos
+  // congelados hasta recargar: la UI nunca se enteraba de que ya no había
+  // sesión.
+  useEffect(() => {
+    function onAuthExpired(event) {
+      const path = String(event?.detail?.path ?? '')
+      const currentSession = sessionRef.current
+      if (!currentSession || isDemoSession(currentSession)) return
+
+      const athleteScoped = path.startsWith('/api/athletes') || path.startsWith('/api/tickets')
+      const isAthleteSession = currentSession.role === 'athlete_plu'
+
+      // Con el puente staff→atleta conviven dos cookies: un 401 en superficie
+      // de atleta sólo mata esa cookie, no el panel; y a la inversa, la caída
+      // del panel puede dejar viva la de atleta, que acá se recupera sola.
+      if (isAthleteSession && !athleteScoped) return
+      if (!isAthleteSession && athleteScoped) return
+
+      const now = Date.now()
+      if (now - authExpiredHandledAtRef.current < 15_000) return
+      authExpiredHandledAtRef.current = now
+
+      if (isAthleteSession) {
+        setSession(null)
+        return
+      }
+
+      // Cookie de staff muerta: intentar caer a la de atleta antes de bajar la
+      // sesión por completo.
+      fetchAthleteSession()
+        .then((athleteSession) => {
+          if (sessionRef.current !== currentSession) return
+          setSession(athleteSession?.user ?? null)
+        })
+        .catch(() => {
+          if (sessionRef.current !== currentSession) return
+          setSession(null)
+        })
+    }
+
+    window.addEventListener('plu:auth-expired', onAuthExpired)
+    return () => window.removeEventListener('plu:auth-expired', onAuthExpired)
+  }, [setSession])
+
+  // Recuperar sesión al volver a la pestaña: la cookie puede seguir viva
+  // (atleta: 30 días) aunque el arranque de esta pestaña no la encontrara —
+  // pestaña que durmió toda la noche, login hecho en otra ventana, o la
+  // restauración inicial cayó con la API momentáneamente abajo. Con cooldown
+  // para que el foco de un visitante anónimo no lo convierta en un poll.
+  useEffect(() => {
+    if (env.demoMode || sessionPending) return undefined
+
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return
+      if (sessionRef.current) return
+      const now = Date.now()
+      if (now - sessionReprobeAtRef.current < 5 * 60_000) return
+      sessionReprobeAtRef.current = now
+
+      meRequest()
+        .then(({ user }) => {
+          if (user && !sessionRef.current) setSession(user)
+        })
+        .catch(() => {})
+    }
+
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [sessionPending, setSession])
 
   const dashboardOverview = useMemo(
     () =>
@@ -2416,13 +2558,15 @@ export function useAppData() {
   }, [setSession])
 
   const handleApprovePayment = useCallback(
-    async (paymentId) => {
+    async (paymentId, { overrideReason } = {}) => {
       if (!hasPermission(session, 'admin.payments.approve')) {
         return { error: 'Sin permisos para aprobar pagos.' }
       }
       try {
-        const { order, membership, registration } =
-          await approveAthletePaymentOrderRequest(paymentId)
+        const { order, membership, registration } = await approveAthletePaymentOrderRequest(
+          paymentId,
+          { overrideReason },
+        )
         setPayments((c) =>
           c.map((p) =>
             p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p,

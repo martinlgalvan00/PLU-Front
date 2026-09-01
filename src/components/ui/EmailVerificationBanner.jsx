@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MailWarning } from 'lucide-react'
+import { CheckCircle2, MailWarning } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { resendAthleteVerification, verifyAthleteEmailCode } from '../../services/athleteApi.js'
 
@@ -91,11 +91,16 @@ export default function EmailVerificationBanner({ athlete }) {
   const resendClass = showOtp
     ? 'account-verify__action account-verify__action--ghost'
     : 'account-verify__action'
+  const isVerified = !showActions
 
   return (
-    <aside className="account-verify account-verify--email" role="status" aria-live="polite">
+    <aside
+      className={`account-verify account-verify--email${isVerified ? ' account-verify--verified' : ''}`}
+      role="status"
+      aria-live="polite"
+    >
       <span className="account-verify__icon" aria-hidden>
-        <MailWarning size={18} />
+        {isVerified ? <CheckCircle2 size={18} /> : <MailWarning size={18} />}
       </span>
       <div className="account-verify__copy">
         <p className="account-verify__title">{t('account.emailVerification.title')}</p>

@@ -5,6 +5,15 @@ const athlete = {
   id: 'storybook-athlete',
   fullName: 'Ana Torres',
   documentId: '30111222',
+  email: 'ana.torres@plu.test',
+  emailVerifiedAt: '2026-01-01T00:00:00.000Z',
+  birthDate: '1999-11-03',
+  sex: 'Femenino',
+  gym: 'Maximal Strength Club',
+  phone: '+54 9 11 2500 7894',
+  country: 'Argentina',
+  province: 'Buenos Aires',
+  city: 'Quilmes',
   credentialToken: 'a4f1c0de-0000-4000-8000-000000000001',
 }
 
@@ -19,8 +28,8 @@ const comboEvent = {
     active: true,
     price: 120000,
     currency: 'ARS',
-    startsAt: '2026-08-01T00:00:00-03:00',
-    endsAt: '2026-08-28T23:59:59-03:00',
+    startsAt: '2020-01-01T00:00:00-03:00',
+    endsAt: '2099-12-31T23:59:59-03:00',
   },
 }
 

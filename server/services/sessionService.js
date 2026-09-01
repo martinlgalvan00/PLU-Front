@@ -6,6 +6,14 @@ import { ACCESS_ROLE_INCLUDE, permissionKeysFromAccessRole } from './accessContr
 export const SESSION_COOKIE_NAME = 'plu_session'
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 8
+/**
+ * Tope absoluto de una sesión staff desde su creación. La duración de 8 h es
+ * un timeout de inactividad que se renueva con el uso (ver
+ * `extendSessionIfActive`); sin un tope absoluto, una sesión que nunca duerme
+ * sería infinita, y la contraseña cambiada o el rol recortado deben poder
+ * vencer solos aunque la persona siga activa.
+ */
+const SESSION_ABSOLUTE_MS = 1000 * 60 * 60 * 24 * 7
 
 export function hashToken(token) {
   return createHash('sha256').update(token).digest('hex')
@@ -45,6 +53,54 @@ export function getClearSessionCookieOptions(env = process.env) {
   const options = getSessionCookieOptions(env)
   delete options.maxAge
   return options
+}
+
+/**
+ * Renovación deslizante de la sesión staff: mientras haya actividad, la
+ * ventana de 8 h se corre hacia adelante. Sin esto, el panel cerraba la
+ * sesión a mitad de una acreditación sólo porque pasaron 8 h desde el login,
+ * aunque la persona no hubiera dejado de usarlo ni un minuto.
+ *
+ * Reglas que la mantienen siendo una decisión de seguridad y no una sesión
+ * eterna:
+ *
+ * - Sólo escribe pasada la mitad de la ventana: a lo sumo un UPDATE cada 4 h
+ *   por sesión activa, no uno por request.
+ * - El tope absoluto (`SESSION_ABSOLUTE_MS`, 7 días desde la creación) manda
+ *   sobre la renovación: pasado ese límite hay que volver a hacer login, y el
+ *   cambio de contraseña o el recorte de permisos siguen cortando por
+ *   revocación como siempre.
+ * - Es best-effort: si el UPDATE falla, la sesión simplemente sigue con el
+ *   vencimiento que ya tenía.
+ */
+export async function extendSessionIfActive({ prisma, result, req, res, now = new Date() }) {
+  const session = result?.session
+  if (!session || !req || !res || typeof prisma?.session?.update !== 'function') return null
+
+  const nowMs = now.getTime()
+  const expiresAtMs = session.expiresAt?.getTime?.() ?? 0
+  if (expiresAtMs - nowMs > SESSION_DURATION_MS / 2) return null
+
+  const createdAtMs = session.createdAt?.getTime?.() ?? expiresAtMs - SESSION_DURATION_MS
+  const nextExpiresMs = Math.min(nowMs + SESSION_DURATION_MS, createdAtMs + SESSION_ABSOLUTE_MS)
+  if (nextExpiresMs <= expiresAtMs) return null
+
+  const nextExpiresAt = new Date(nextExpiresMs)
+  // Primero la caché: el objeto resuelto que viaja en ella sigue cargando el
+  // vencimiento viejo y el próximo request lo leería antes de tocar la base.
+  staffSessionCache.invalidateKey(session.tokenHash)
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { expiresAt: nextExpiresAt },
+  })
+
+  // La cookie del browser también vencía a las 8 h del login aunque la base
+  // ya hubiera extendido la sesión: sin este refresh el navegador la tira y
+  // el siguiente request llega anónimo.
+  const token = req.cookies?.[SESSION_COOKIE_NAME]
+  if (token) res.cookie(SESSION_COOKIE_NAME, token, getSessionCookieOptions())
+
+  return nextExpiresAt
 }
 
 export async function createSession({ prisma, userId, req, now = new Date() }) {

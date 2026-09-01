@@ -8,15 +8,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
  * alguien tipea.
  */
 
-async function loadTracker(envValue) {
+async function loadTracker(envValue, { consent = true } = {}) {
   vi.resetModules()
   vi.doMock('../src/config/env.js', () => ({ env: envValue }))
+  // El tracker sólo mide con consentimiento explícito de cookies: los tests
+  // que verifican medición parten de una decisión ya aceptada.
+  window.localStorage.setItem(
+    'plu-cookie-consent-v1',
+    JSON.stringify({ analytics: consent !== false }),
+  )
   return import('../src/services/analyticsService.js')
 }
 
 afterEach(() => {
   vi.doUnmock('../src/config/env.js')
   vi.resetModules()
+  window.localStorage.clear()
 })
 
 const FULL_ENV = {
@@ -66,6 +73,22 @@ describe('alcance de la medicion', () => {
 
     expect(queue).toHaveLength(1)
     expect(queue[0]).toMatchObject({ name: 'membership_view', path: '/afiliarse' })
+  })
+
+  it('no mide sin consentimiento explicito: el silencio no es un si', async () => {
+    // La decision de cookies es opt-in. Sin ella el tracker queda callado
+    // aunque la configuracion este habilitada y nadie haya pedido salir.
+    const tracker = await loadTracker(FULL_ENV, { consent: false })
+    window.history.replaceState({}, '', '/afiliarse')
+    tracker.resetAnalyticsForTests()
+
+    tracker.trackEvent('membership_view')
+    expect(tracker.peekQueueForTests()).toHaveLength(0)
+
+    // Aceptar despues de navegar habilita la medicion en el acto.
+    window.localStorage.setItem('plu-cookie-consent-v1', JSON.stringify({ analytics: true }))
+    tracker.trackEvent('membership_view')
+    expect(tracker.peekQueueForTests()).toHaveLength(1)
   })
 
   it('respeta la salida explicita del visitante', async () => {

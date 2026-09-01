@@ -135,10 +135,16 @@ describe('superficie de la API', () => {
 
   it('el webhook de Mercado Pago valida cuerpo y firma antes de tocar nada', () => {
     const payments = readFileSync(resolve(ROUTES_DIR, 'payments.js'), 'utf8')
+    const profileRuntime = readFileSync(
+      resolve(process.cwd(), 'server/modules/payments/mercadoPagoProfileRuntime.js'),
+      'utf8',
+    )
     // Los dos paths registrados en el panel de MP (canonico y alias legacy)
     // tienen que compartir handler: uno sin verificar seria una puerta abierta.
     const handlers = [
-      payments.match(/router\.post\(\s*'\/webhook\/mercadopago'[\s\S]*?handleMercadoPagoWebhook/)?.[0],
+      payments.match(
+        /router\.post\(\s*'\/webhook\/mercadopago'[\s\S]*?handleMercadoPagoWebhook/,
+      )?.[0],
       payments.match(/router\.post\(\s*'\/webhook'[\s\S]*?handleMercadoPagoWebhook/)?.[0],
     ]
     for (const middleware of handlers) {
@@ -147,7 +153,12 @@ describe('superficie de la API', () => {
       expect(middleware).toMatch(/validateBody\(webhookSchema\)/)
       expect(middleware).toMatch(/handleMercadoPagoWebhook/)
     }
-    expect(payments).toContain('MERCADO_PAGO_WEBHOOK_SECRET')
+    // La ruta obtiene todos los secretos efectivos (global + perfiles) antes
+    // de delegar la verificacion de firma. El env vive en el resolvedor para
+    // que payments.js no vuelva a asumir una sola cuenta de Mercado Pago.
+    expect(payments).toContain('listMercadoPagoWebhookSecrets')
+    expect(payments).toContain('webhookSecrets')
+    expect(profileRuntime).toContain('MERCADO_PAGO_WEBHOOK_SECRET')
   })
 
   it('el checkout publico no expone acciones de staff', () => {

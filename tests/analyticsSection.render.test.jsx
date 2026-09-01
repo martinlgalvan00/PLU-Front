@@ -25,6 +25,7 @@ const operationalAlerts = vi.fn()
 const failureReasons = vi.fn()
 const accessMetrics = vi.fn()
 const live = vi.fn()
+const timeseries = vi.fn()
 
 vi.mock('../src/services/analyticsReportService.js', async () => {
   const actual = await vi.importActual('../src/services/analyticsReportService.js')
@@ -41,6 +42,7 @@ vi.mock('../src/services/analyticsReportService.js', async () => {
     fetchAthleteJourney: (...args) => journey(...args),
     fetchAccessMetrics: (...args) => accessMetrics(...args),
     fetchAnalyticsLive: (...args) => live(...args),
+    fetchAnalyticsTimeseries: (...args) => timeseries(...args),
   }
 })
 
@@ -144,6 +146,15 @@ beforeEach(() => {
     devices: [],
     countries: [],
     referrers: [],
+  })
+  timeseries.mockResolvedValue({
+    series: [
+      { day: '2026-08-13', visitors: 8, sessions: 9, pageviews: 20 },
+      { day: '2026-08-14', visitors: 25, sessions: 30, pageviews: 61 },
+      { day: '2026-08-15', visitors: 12, sessions: 14, pageviews: 33 },
+    ],
+    peak: { day: '2026-08-14', visitors: 25, pageviews: 61, sessions: 30 },
+    firstDay: '2026-08-13',
   })
 })
 
@@ -427,5 +438,67 @@ describe('alertas accionables', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /revisar y resolver/i }))
     expect(onNavigate).toHaveBeenCalledWith('payments', 'order-1')
+  })
+})
+
+describe('tráfico diario y calendario', () => {
+  it('el gráfico llega con la serie y los tiles marcan pico y extremos del período', async () => {
+    renderSection()
+
+    const block = await waitFor(() => {
+      const node = document.querySelector('#analytics-traffic').closest('section')
+      expect(node).toBeTruthy()
+      return node
+    })
+
+    expect(timeseries).toHaveBeenCalledWith({ days: 30 })
+    expect(block.querySelector('.admin-analytics__traffic-chart')).toBeTruthy()
+    expect(block.textContent).toContain('Pico histórico')
+    expect(block.textContent).toContain('25')
+    expect(block.textContent).toContain('Mejor día del período')
+    expect(block.textContent).toContain('Día más bajo con tráfico')
+    expect(block.textContent).toContain('8')
+  })
+
+  it('sin serie el bloque degradan a su vacío sin tumbar el informe', async () => {
+    timeseries.mockResolvedValue({ series: [], peak: null, firstDay: null })
+
+    renderSection()
+
+    const block = await waitFor(() => {
+      const node = document.querySelector('#analytics-traffic').closest('section')
+      expect(node).toBeTruthy()
+      return node
+    })
+    expect(block.textContent).toContain('Sin visitas registradas en este período.')
+  })
+
+  it('el calendario muestra el mes del último dato y abre el detalle del día', async () => {
+    renderSection()
+
+    const calendar = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__calendar')
+      expect(node).toBeTruthy()
+      return node
+    })
+
+    // El mes inicial es el del último día de la serie (agosto 2026).
+    expect(calendar.querySelector('.admin-analytics__calendar-title').textContent).toContain(
+      '2026',
+    )
+
+    const dayButton = calendar.querySelector(
+      '.admin-analytics__calendar-day.is-peak',
+    )
+    expect(dayButton).toBeTruthy()
+    fireEvent.click(dayButton)
+
+    const detail = await waitFor(() => {
+      const node = document.querySelector('.admin-analytics__calendar-detail')
+      expect(node).toBeTruthy()
+      return node
+    })
+    expect(detail.textContent).toContain('Récord histórico')
+    expect(detail.textContent).toContain('25')
   })
 })

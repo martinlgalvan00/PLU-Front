@@ -800,6 +800,24 @@ export default {
     optOut: 'No medir mi navegación',
     optOutActive: 'Navegación sin medir',
   },
+  cookies: {
+    regionLabel: 'Preferencias de cookies',
+    title: 'Cookies',
+    lead: 'Usamos cookies de sesión para mantener tu cuenta abierta y, solo si lo aceptás, medición de uso del sitio.',
+    acceptAll: 'Aceptar todo',
+    onlyNecessary: 'Solo necesarias',
+    preferences: 'Preferencias',
+    save: 'Guardar preferencias',
+    close: 'Cerrar',
+    necessaryTitle: 'Necesarias',
+    necessaryDetail: 'Mantienen tu sesión iniciada. Sin ellas el sitio no funciona y no se pueden apagar.',
+    alwaysOn: 'Siempre activas',
+    analyticsTitle: 'Medición de uso',
+    analyticsDetail: 'Estadísticas agregadas de navegación. Se vinculan a tu cuenta solo con sesión iniciada.',
+    analyticsOn: 'Activada',
+    analyticsOff: 'Desactivada',
+    reopen: 'Cookies',
+  },
   locale: {
     label: 'Idioma',
     es: 'Español',
@@ -822,9 +840,9 @@ export default {
     errorMessage: 'Revisá tu conexión e intentá de nuevo.',
   },
   pageError: {
-    eyebrow: 'Error de la aplicación',
-    title: 'Esta sección no se pudo mostrar',
-    lead: 'Falló al dibujarse y la cortamos acá para no arrastrar el resto del sitio. El menú y el resto de las páginas siguen funcionando.',
+    eyebrow: 'Sección no disponible',
+    title: 'No pudimos mostrar esta vista',
+    lead: 'Quedó aislada acá para que el menú y el resto del sitio sigan funcionando. Podés reintentar o volver al inicio.',
     retry: 'Reintentar',
     home: 'Ir al inicio',
     actionsAria: 'Opciones de recuperación',
@@ -1156,6 +1174,10 @@ export default {
           'Este código te reserva la afiliación y la inscripción juntas a un precio pactado. Completá los datos y elegí cómo pagarlo.',
         manual:
           'Tu paquete quedó reservado. Terminá el pago con los datos de abajo para confirmarlo.',
+        // La pasarela no se cobra acá: lo que falta es volver al checkout del
+        // torneo, que es donde vive su pantalla de pago.
+        gateway:
+          'Tu paquete quedó reservado y se paga con Mercado Pago. Te falta completar el cobro en el checkout del torneo.',
         granted:
           'Ya estás afiliado e inscripto: PLU te habilitó por adelantado. Falta que completes el pago dentro del plazo.',
         settled: 'Finanzas acreditó el pago. El paquete está cerrado y no queda nada pendiente.',
@@ -1188,6 +1210,9 @@ export default {
       remaining: 'Quedan {{count}} lugares',
       remainingOne: 'Queda 1 lugar',
       dueIn: '{{countdown}} Vencido el plazo se dan de baja la afiliación y la inscripción.',
+      gatewayNote:
+        'Mercado Pago se cobra en el checkout del torneo, con el paquete ya aplicado. No hace falta que avises nada: acredita solo.',
+      resumeGateway: 'Retomar el pago con Mercado Pago',
       settled: 'No queda nada pendiente. Tu credencial y tu inscripción están en las fichas de siempre.',
       refunded:
         'El importe de esta compra se devolvió. Si el reembolso no fue lo que esperabas, contactá al staff de PLU.',
@@ -1243,7 +1268,7 @@ export default {
       alertTitle_one: 'Tenés {{count}} cobro para resolver',
       alertTitle_other: 'Tenés {{count}} cobros para resolver',
       alertBody:
-        'Mercado Pago rechazó el pago y por eso la afiliación o la inscripción no quedó confirmada. Volvé a intentarlo desde el cobro marcado abajo.',
+        'Hay cobros pendientes o que no se confirmaron. Continuá el pago, elegí otro medio o generá un cobro nuevo desde la fila marcada abajo.',
       settledAfterAttempts_one:
         'Se acreditó después de {{count}} intento rechazado. Si te llegó un aviso de rechazo, quedó sin efecto.',
       settledAfterAttempts_other:
@@ -1283,6 +1308,9 @@ export default {
         cash_pitbull: 'Efectivo en la sede',
       },
       action: {
+        continue: 'Continuar pago',
+        uploadProof: 'Subir comprobante',
+        changeMethod: 'Elegir otro medio',
         retry: 'Generar un cobro nuevo',
       },
       reason: {
@@ -1494,6 +1522,7 @@ export default {
       register: 'Inscribirme',
       paymentPending: 'Pago pendiente',
       resumePayment: 'Continuar pago',
+      changePaymentMethod: 'Elegir otro medio',
       membershipRequiredTitle: 'Afiliación para el ingreso',
       membershipRequiredText:
         'Podés inscribirte ahora. El día del meet el ingreso se habilita cuando tu afiliación esté activa.',
@@ -1843,6 +1872,11 @@ export default {
       plansLead:
         'Una afiliación anual por temporada. Pago único para competir en el calendario oficial.',
       plansLeadCheckoutSoon: 'Estamos preparando la apertura de la temporada 26/27.',
+      planIncludes: [
+        'Credencial digital',
+        'Eventos del calendario PLU ARG',
+        'Estado y QR en el check-in',
+      ],
       promoSoonEyebrow: 'Apertura oficial',
       promoSoonTitle: 'Afiliación anual + inscripción Pitbull Classic',
       promoSoonLead:
@@ -1918,10 +1952,9 @@ export default {
       institutionalAria: 'Conexión con Powerlifting United',
       heroRail: {
         metricsAria: 'Precios y vigencia de la afiliación',
-        adult: 'Adultos',
-        junior: 'Junior',
+        annual: 'Afiliación anual',
         validity: 'Vigencia anual',
-        calendarYear: 'Año calendario',
+        calendarYear: 'Temporada',
         affiliateNow: 'Afiliarme ahora',
         viewPlans: 'Ver planes',
       },
@@ -2122,7 +2155,7 @@ export default {
       athleteStatusHint: {
         guest: 'Con cuenta de atleta resolvés afiliación e inscripción en un solo flujo.',
         registered: 'Tu cupo está confirmado. Revisá credencial y detalle del meet en tu perfil.',
-        pending_payment: 'Completá el pago o la validación manual para cerrar la inscripción.',
+        pending_payment: 'Tu cupo está reservado. Continuá el pago o elegí otro medio para cerrarlo.',
         needs_membership: 'Este meet exige afiliación vigente antes del check-in.',
         can_register: 'Tenés todo listo para completar la inscripción.',
         closed: 'Este evento ya no admite altas nuevas.',
@@ -2130,6 +2163,7 @@ export default {
       athleteStatusAction: {
         needs_membership: 'Afiliarme e inscribirme',
         pending_payment: 'Continuar pago',
+        change_payment: 'Elegir otro medio',
       },
       emptyList: 'No hay eventos {{filter}} en este momento.',
       moreEventsSoon: 'Los próximos meets se publican acá cuando se confirmen fechas.',
@@ -3367,6 +3401,10 @@ export default {
       backToMercadoPago: 'Volver a Mercado Pago',
       backToTransfer: 'Volver a transferencia',
       changePaymentLead: 'Tu orden sigue pendiente. Elegí el medio y continuá.',
+      // Los datos de la inscripción se pueden corregir mientras la orden
+      // siga impaga: el POST que la reanuda los reescribe.
+      changePaymentDataDesc:
+        'Podés corregir tus datos de competencia antes de continuar: se guardan con la orden.',
       paymentMethodLocked:
         'Esta orden ya tiene un pago iniciado en Mercado Pago. Completalo o esperá a que venza para usar transferencia.',
       paymentLinkHint: 'Validación administrativa · hasta 48 horas',
@@ -3398,6 +3436,25 @@ export default {
       transferNotice: 'Usá la referencia indicada para que el equipo pueda conciliar tu pago.',
       transferHint: 'Adjuntá el comprobante. Administración valida en hasta 48 horas.',
       transferOpen: 'Ver datos de transferencia',
+      cancelOrderAction: 'Cancelar esta orden',
+      cancelOrderMissing: 'No encontramos la orden a cancelar. Recargá la página e intentá de nuevo.',
+      cancelOrderBusy: 'Cancelando…',
+      cancelOrderDone:
+        'Cancelamos tu orden. Ya podés elegir otro medio de pago y volver a aplicar tu código.',
+      cancelOrderConfirm:
+        '¿Cancelar esta orden? Vas a poder elegir otro medio de pago y tu código queda libre para usarlo de nuevo.',
+      // Cancelar cierra el cobro y da de baja la inscripción que lo esperaba:
+      // se pregunta antes. La confirmación es en línea y no un modal porque la
+      // pregunta ya estaba escrita para esta barra y un diálogo sobre el
+      // checkout tapa el importe que la persona está mirando.
+      cancelOrderConfirmAction: 'Sí, cancelar',
+      // 404 en el endpoint de cancelación: la API que respondió no tiene la
+      // ruta (deploy viejo). El atleta no puede hacer nada con "Ruta no
+      // encontrada", así que se le dice qué sí puede hacer.
+      cancelOrderUnavailable:
+        'La cancelación no está disponible en este momento. Recargá la página; si sigue igual, escribinos y cerramos la orden por vos.',
+      submitInFlight:
+        'Ya hay una operación en curso. Esperá unos segundos antes de volver a intentar.',
       competitionSummaryAthlete: 'Atleta',
       competitionSummaryPending: 'Por definir',
       competitionOrderHint: 'Al confirmar se genera la orden de inscripción.',

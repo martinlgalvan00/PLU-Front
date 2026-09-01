@@ -5,6 +5,12 @@ import { toCamelEventSchedule } from '../lib/eventSchedule.js'
  * Summary público de cupos de inscripción de atletas + recientes sanitizados.
  * Fallback al mock lo resuelve el hook consumidor.
  */
+function sanitizePublicGym(value) {
+  const gym = String(value ?? '').trim()
+  if (!gym || /^[.\s\-_/·•]+$/.test(gym)) return ''
+  return gym
+}
+
 export async function fetchEventRegistrationSummary(eventSlug) {
   const { summary } = await apiGet(
     `/api/events/${encodeURIComponent(eventSlug)}/registration-summary`,
@@ -20,7 +26,7 @@ export async function fetchEventRegistrationSummary(eventSlug) {
     recent: Array.isArray(summary?.recent)
       ? summary.recent.map((item) => ({
           displayName: String(item.displayName ?? item.display_name ?? '').trim() || 'Atleta',
-          gym: String(item.gym ?? '').trim(),
+          gym: sanitizePublicGym(item.gym),
           photoUrl:
             typeof item.photoUrl === 'string' && item.photoUrl.trim() ? item.photoUrl : null,
           registeredAt: item.registeredAt ?? item.registered_at ?? null,

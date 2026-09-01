@@ -236,12 +236,14 @@ combo y entradas Pitbull.
    Acceso y habilitación. Entradas no ofrece "Efectivo en Pitbull" pero sí Wise.
 
 **Aprobación:** misma cola que la transferencia local
-(`AthletePaymentOrdersSection` / `TicketOrdersSection`) y **comprobante
-obligatorio** — `approve_athlete_payment_order` sólo hace excepción para
-`cash_pitbull`, así que Wise cae del lado que lo exige. Acá no hay webhook ni
-conciliación automática: el comprobante que sube el pagador es la única fuente de
-verdad. `npm run payments:trace -- <orderId | correo>` reconstruye el mismo
-informe que para Mercado Pago.
+(`AthletePaymentOrdersSection` / `TicketOrdersSection`). Por defecto el
+comprobante es obligatorio — `approve_athlete_payment_order` solo exceptúa
+`cash_pitbull` sin archivo. Finanzas puede acreditar transferencia/Wise sin
+adjunto con `p_override_reason` (mín. 8 caracteres); la bitácora marca
+`overrideWithoutProof`. Acá no hay webhook ni conciliación automática: el
+comprobante del pagador (o el override auditado) es la fuente de verdad.
+`npm run payments:trace -- <orderId | correo>` reconstruye el mismo informe
+que para Mercado Pago.
 
 ## Readiness y workers
 

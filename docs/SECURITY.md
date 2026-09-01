@@ -214,13 +214,19 @@ De dónde salió la mejora:
 | Job | Horario | Qué hace |
 |---|---|---|
 | `plu-analytics-nightly` | 04:20 | Rollup diario + purga de detalle crudo (90 días) |
-| `plu-storage-nightly` | 04:40 | Contadores de defensa, retención de bitácoras, historial de cron, presupuesto en bytes |
+| `plu-storage-nightly` | 04:40 | Contadores de defensa, retención de bitácoras, historial de cron, presupuesto en bytes y sesiones/cuotas efímeras |
 
 Retención: auditoría operativa y traza de webhooks 365 días, logs de email 180.
 `purge_operational_history` resuelve la columna de fecha contra
 `information_schema` en vez de asumir `created_at` —`payment_integration_events`
 usa `received_at`— y purga cada tabla en su propio bloque, para que una que falle
 no arrastre a las otras.
+
+Las tablas append-only conservan ese contrato. Los cortes de retención usan
+índices BRIN por fecha para no sumar B-trees pesados a las tablas de mayor
+crecimiento. `purge_ephemeral_history` elimina únicamente sesiones vencidas o
+revocadas con más de 30 días y cuotas diarias de analítica con más de 120 días;
+no borra auditoría, ledger ni trazas financieras vigentes.
 
 ### Visibilidad
 

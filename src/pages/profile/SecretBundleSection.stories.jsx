@@ -171,6 +171,46 @@ export const Reservado = {
 }
 
 /**
+ * Reservado por la pasarela: la orden existe y se cobra con Mercado Pago, cuyo
+ * brick vive en el checkout del torneo. Acá no hay comprobante que subir ni
+ * pago que declarar — antes este caso caía en el paso manual y ofrecía "Ya
+ * entregué el efectivo" sobre una orden que la RPC rechaza con PLU10.
+ */
+export const EsperandoLaPasarela = {
+  args: {
+    offers: [
+      {
+        ...OFFER,
+        mercadoPagoEnabled: true,
+        manualChannels: [],
+        financed: false,
+        financingTermDays: null,
+        purchase: {
+          orderId: '22222222-2222-4222-8222-222222222222',
+          status: 'pendiente',
+          amount: 120000,
+          currency: 'ARS',
+          concept: 'combo',
+          method: 'mercado_pago',
+          manualPaymentChannel: null,
+          financingAllowed: false,
+          manualPaymentDeclaredAt: null,
+          financedEntitlementsAt: null,
+          financedPaymentDueAt: null,
+        },
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.queryByRole('button', { name: /Ya entregué el efectivo/i })).toBeNull()
+    await expect(
+      canvas.getByRole('button', { name: /Retomar el pago con Mercado Pago/i }),
+    ).toBeInTheDocument()
+  },
+}
+
+/**
  * Buscando: la ficha se abrió por el destino de un canje y la lectura de
  * códigos todavía no volvió. La cabecera es la misma que va a quedar, así que
  * el título no se mueve cuando aparece el paquete.

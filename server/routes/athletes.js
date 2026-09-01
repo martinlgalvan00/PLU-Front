@@ -12,16 +12,11 @@ import {
 } from '../lib/featureAvailability.js'
 import { resolveDeploymentAppUrl } from '../lib/deploymentEnvironment.js'
 import { etagMatches, PRIVATE_REVALIDATE_CACHE, weakEtagFromParts } from '../lib/http.js'
-import {
-  AUTH_PORTRAIT_CACHE_CONTROL,
-  isSafeStoragePhotoPath,
-} from '../lib/publicPortraitUrl.js'
-import {
-  PUBLIC_PORTRAIT_CACHE_CONTROL,
-  sendPortraitBinary,
-} from '../lib/portraitBinaryCache.js'
+import { AUTH_PORTRAIT_CACHE_CONTROL, isSafeStoragePhotoPath } from '../lib/publicPortraitUrl.js'
+import { PUBLIC_PORTRAIT_CACHE_CONTROL, sendPortraitBinary } from '../lib/portraitBinaryCache.js'
 import { touchProofAccessed } from '../modules/payments/paymentProofRetention.js'
 import { resolveEventRegistrationOpensAt } from '../lib/registrationSchedule.js'
+import { promotionCodeAllowsChannel } from '../../shared/promotionPaymentChannels.js'
 
 // Solo hace falta resolver la fecha del evento cuando el gate va a mirarla:
 // en produccion y sin kill switch. Evita una consulta a Supabase de mas en
@@ -37,6 +32,7 @@ import {
   athleteAuthLimiter,
   athleteWriteLimiter,
   promotionCodeLimiter,
+  publicPromoPreviewLimiter,
   publicReadLimiter,
   publicWriteLimiter,
   registrationAccessCodeLimiter,
@@ -74,12 +70,7 @@ import {
 } from '../modules/payments/paymentAuditTrail.js'
 import { diagnosePaymentFailure } from '../modules/payments/paymentFailureCatalog.js'
 import { logger } from '../lib/logger.js'
-import {
-  getCoreName,
-  isSimilarCore,
-  mergeGymVariants,
-  preferGymName,
-} from '../lib/gymNormalize.js'
+import { getCoreName, isSimilarCore, mergeGymVariants, preferGymName } from '../lib/gymNormalize.js'
 import { hashPassword, verifyPassword } from '../services/passwordService.js'
 import {
   createPasswordResetToken,
@@ -423,6 +414,11 @@ const forceSettlePaymentSchema = z.object({
   reason: z.string().trim().min(3).max(500),
   reference: z.string().trim().max(120).optional(),
 })
+// Override sin comprobante: más estricto que force-settle (3) porque acredita
+// transferencia/Wise sin evidencia de archivo. La RPC vuelve a exigir ≥ 8.
+const approvePaymentSchema = z.object({
+  overrideReason: z.string().trim().min(8).max(500).optional(),
+})
 const registrationStatusSchema = z.object({
   status: z.enum(['confirmada', 'observada', 'cancelada']),
   reason: z.string().trim().min(3).max(500),
@@ -596,11 +592,20 @@ export function createAthleteRoutes({
    */
   const manualChannelOverride = async (body, scope) => {
     if (!isManualPaymentMethod(body?.paymentMethod)) return false
-    return repo().discountCodeManualEligibility(
-      body.discountCode,
-      scope,
-      manualPaymentChannel(body.paymentMethod),
-    )
+    const channel = manualPaymentChannel(body.paymentMethod)
+    if (body?.discountCode && typeof repo().discountCodeChannelPolicy === 'function') {
+      const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
+      if (policy?.found && !promotionCodeAllowsChannel(policy, channel)) {
+        throw new HttpError(409, 'Ese código de promoción no admite el medio de pago elegido.', {
+          code: 'PLU29',
+          requestedChannel: channel,
+          manualChannels: policy.manualChannels,
+          mercadoPagoEnabled: policy.mercadoPagoEnabled,
+        })
+      }
+      if (policy?.found) return promotionCodeAllowsChannel(policy, channel)
+    }
+    return repo().discountCodeManualEligibility(body.discountCode, scope, channel)
   }
   /**
    * El otro sentido del mismo dato: un código que CIERRA la pasarela
@@ -618,7 +623,7 @@ export function createAthleteRoutes({
     if (isManualPaymentMethod(body?.paymentMethod)) return
     if (!body?.discountCode || typeof repo().discountCodeChannelPolicy !== 'function') return
     const policy = await repo().discountCodeChannelPolicy(body.discountCode, scope)
-    if (!policy?.found || policy.mercadoPagoEnabled !== false) return
+    if (!policy?.found || promotionCodeAllowsChannel(policy, 'mercado_pago')) return
     throw new HttpError(409, 'Ese código no se puede pagar con Mercado Pago.', {
       code: 'PLU28',
       manualChannels: policy.manualChannels,
@@ -1085,9 +1090,13 @@ export function createAthleteRoutes({
         const rows = await prisma.organizationAthlete.groupBy({
           by: ['gym'],
           _count: { gym: true },
-          where: {
-            AND: [{ gym: { not: null } }, { gym: { not: '' } }],
-          },
+          // Dos condiciones, no dos veces la misma clave: `{ not: null, not: '' }`
+          // es un objeto con `not` duplicada, así que la segunda pisaba la primera
+          // y de las dos intenciones sólo sobrevivía una. Con `AND` las dos se
+          // aplican, que es lo que este groupBy necesita: sin nulos y sin
+          // cadenas vacías, o el listado de gimnasios ancla arranca con una
+          // fila fantasma.
+          where: { AND: [{ gym: { not: null } }, { gym: { not: '' } }] },
         })
         const anchors = mergeGymVariants(
           rows.map((row) => ({ name: row.gym, count: row._count.gym })),
@@ -1355,6 +1364,31 @@ export function createAthleteRoutes({
       }
 
       const data = await repo().snapshot(auth.athleteId)
+      // Si convive la cookie de staff (puente staff→atleta), el front necesita
+      // `staffAvailable` para mostrar "Administrador" en el menú de perfil.
+      // Sin esto, un reload restauraba atleta puro y el acceso al panel
+      // desaparecía hasta un login fresco.
+      //
+      // Si la cookie de staff ya venció pero el email sigue ligado a una cuenta
+      // staff activa, igual ofrecemos el acceso: al tocar Admin, si no hay
+      // sesión staff el navigate manda a login.
+      let staffAvailable = false
+      try {
+        const staff = await readSessionFromRequest({ prisma, req })
+        staffAvailable = Boolean(staff?.user)
+        if (!staffAvailable && data.athlete?.email) {
+          const email = String(data.athlete.email).trim().toLowerCase()
+          if (email && typeof prisma?.user?.findFirst === 'function') {
+            const linked = await prisma.user.findFirst({
+              where: { email, status: 'active' },
+              select: { id: true },
+            })
+            staffAvailable = Boolean(linked)
+          }
+        }
+      } catch {
+        staffAvailable = false
+      }
       res.json({
         user: {
           role: 'athlete_plu',
@@ -1362,6 +1396,7 @@ export function createAthleteRoutes({
           name: data.athlete.full_name,
           email: data.athlete.email,
           photoUrl: data.athlete.photo_url ?? null,
+          ...(staffAvailable ? { staffAvailable: true } : {}),
         },
         ...data,
       })
@@ -1413,10 +1448,7 @@ export function createAthleteRoutes({
         // Con eventSlug la matriz de inscripción/ticket se intersecta con el
         // perfil del evento; membership sigue siendo solo plataforma.
         const availability = event
-          ? applyEventPaymentChannelOverrides(
-              platformAvailability,
-              event.payment_channel_overrides,
-            )
+          ? applyEventPaymentChannelOverrides(platformAvailability, event.payment_channel_overrides)
           : platformAvailability
         let bankProfile = null
         if (event?.bank_transfer_profile_id) {
@@ -1533,7 +1565,11 @@ export function createAthleteRoutes({
         })
         const membershipWisePrice =
           membershipChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'membership', arsAmount: plan.price, configuredUsd: plan.wise_price })
+            ? wisePriceFor({
+                concept: 'membership',
+                arsAmount: plan.price,
+                configuredUsd: plan.wise_price,
+              })
             : null
         const created = await repo().createMembershipOrder(auth.athleteId, {
           ...req.validatedBody,
@@ -1609,7 +1645,11 @@ export function createAthleteRoutes({
         })
         const registrationWisePrice =
           registrationChannel === 'wise_transfer'
-            ? wisePriceFor({ concept: 'registration', arsAmount: event.price, configuredUsd: event.wise_price })
+            ? wisePriceFor({
+                concept: 'registration',
+                arsAmount: event.price,
+                configuredUsd: event.wise_price,
+              })
             : null
         const created = await repo().createRegistration(auth.athleteId, {
           ...req.validatedBody,
@@ -1814,6 +1854,19 @@ export function createAthleteRoutes({
     else await clearIdentityFailures(identity)
   }
   /**
+   * El balde depende de si viaja un código: con código es un intento sobre el
+   * espacio de códigos y cuenta en el balde estricto de enumeración; sin
+   * código es la consulta de la promo pública —el checkout la dispara en cada
+   * montaje y cambio de canal/paquete— y va al balde holgado de lectura. Sin
+   * esta separación, mirar el checkout agotaba el cupo y el canje real
+   * respondía 429.
+   */
+  const discountPreviewLimiter = (req, res, next) => {
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : ''
+    const limiter = code ? promotionCodeLimiter : publicPromoPreviewLimiter
+    return limiter(req, res, next)
+  }
+  /**
    * Preview de solo lectura de un código de descuento: valida y calcula sin
    * redimir, para que el checkout muestre "ahorrás $X" antes de confirmar. El
    * monto real que se cobra sale únicamente de la respuesta del POST que crea
@@ -1821,7 +1874,7 @@ export function createAthleteRoutes({
    */
   router.post(
     '/me/discount-preview',
-    promotionCodeLimiter,
+    discountPreviewLimiter,
     validateBody(discountPreviewSchema),
     async (req, res, next) => {
       try {
@@ -1871,7 +1924,13 @@ export function createAthleteRoutes({
           }),
           eventSlug,
         )
-        await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        // Sin código no hubo intento que asentar: el preview de la promo
+        // pública no toca el contador del guard — ni para sumar ni para
+        // limpiar, que era la parte peligrosa: intercalar un preview vacío
+        // reseteaba el candado de enumeración de la cuenta.
+        if (code) {
+          await settlePromotionCodeAttempt(codeGuard, preview?.valid ? 'valid' : preview?.reason)
+        }
         res.json({ preview: concealInactiveReason(preview) })
       } catch (error) {
         next(error)
@@ -1962,6 +2021,30 @@ export function createAthleteRoutes({
         const orderId = z.string().uuid().safeParse(req.params.orderId)
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
         res.json(await repo().confirmManualPayment(auth.athleteId, orderId.data))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+  /**
+   * El atleta cierra su propia orden abierta para poder elegir otro medio.
+   *
+   * Sin esto, una orden por transferencia que quedó `pendiente` no tiene salida
+   * del lado del atleta: el checkout la reusa hasta que vence (24 h) y, si
+   * arrastra un cupón consumido, el mismo código rebota con PLU22 en el intento
+   * siguiente. La RPC devuelve el cupón y libera la inscripción; las guardas
+   * (comprobante adjunto, pago declarado, intento de pasarela en vuelo) viajan
+   * con errcode propio para que la pantalla explique cuál aplica.
+   */
+  router.post(
+    '/me/payment-orders/:orderId/cancel',
+    athleteWriteLimiter,
+    async (req, res, next) => {
+      try {
+        const auth = await athlete(req)
+        const orderId = z.string().uuid().safeParse(req.params.orderId)
+        if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
+        res.json(await repo().cancelOpenOrder(auth.athleteId, orderId.data))
       } catch (error) {
         next(error)
       }
@@ -2061,8 +2144,7 @@ export function createAthleteRoutes({
       }
 
       const staff = await readSessionFromRequest({ prisma, req })
-      const staffAllowed =
-        staff?.user && hasPermission(staff.user, 'admin.athletes.read')
+      const staffAllowed = staff?.user && hasPermission(staff.user, 'admin.athletes.read')
       if (!staffAllowed) {
         const athleteAuth = await readAthleteSession({
           client: client(),
@@ -2494,12 +2576,16 @@ export function createAthleteRoutes({
     '/admin/payment-orders/:orderId/approve',
     ...financeGuard,
     staffLimiter,
+    validateBody(approvePaymentSchema),
     async (req, res, next) => {
       const orderId = z.string().uuid().safeParse(req.params.orderId)
       try {
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
         await assertOrderValidationEnabled(orderId.data)
-        const result = await repo().approvePayment(orderId.data, actorLabel(req))
+        const overrideReason = req.validatedBody?.overrideReason ?? null
+        const result = await repo().approvePayment(orderId.data, actorLabel(req), {
+          overrideReason,
+        })
         // La aprobacion manual mueve plata igual que Mercado Pago: queda en la
         // misma bitacora, con el operador que la firmo.
         await paymentTrail().record({
@@ -2507,12 +2593,14 @@ export function createAthleteRoutes({
           entityType: 'athlete_payment_order',
           entityId: orderId.data,
           status: result?.order?.status ?? 'aprobado',
-          severity: 'success',
+          severity: overrideReason ? 'warning' : 'success',
           metadata: {
             stage: 'manual_approval',
             method: result?.order?.method ?? 'manual_link',
             approvedBy: actorLabel(req),
             amount: result?.order?.amount ?? null,
+            overrideWithoutProof: Boolean(overrideReason),
+            overrideReason: overrideReason || null,
           },
         })
         // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.
@@ -2654,9 +2742,9 @@ export function createAthleteRoutes({
         if (!hasPermission(req.auth.user, observationGuardFor(entityType))) {
           throw new HttpError(403, 'Sin permisos para observar esta entidad.')
         }
-        res.status(201).json(
-          await repo().addObservation(entityType, entityId, body, actorLabel(req)),
-        )
+        res
+          .status(201)
+          .json(await repo().addObservation(entityType, entityId, body, actorLabel(req)))
       } catch (error) {
         next(error)
       }

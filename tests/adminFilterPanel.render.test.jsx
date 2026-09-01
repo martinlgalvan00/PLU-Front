@@ -52,72 +52,59 @@ function renderAthletes(props = {}) {
       <AthletesSection athletes={athletes} onSelectAthlete={vi.fn()} {...props} />
     </I18nProvider>,
   )
-  // La tabla repite el label de cada columna (versión mobile + desktop en el
-  // mismo DOM) y algunos valores de estado -- acotar al root de la barra de
-  // filtros evita esas coincidencias con "Gimnasio", "Afiliado activo", etc.
   const filterBar = utils.container.querySelector('.admin-filters')
   return { ...utils, filterBar }
 }
 
-describe('Atletas — barra de filtros (pills + popover)', () => {
-  it('muestra las 5 facetas como pills compactos, sin chips ni conteos a la vista', () => {
+describe('Atletas — barra de filtros (panel único)', () => {
+  it('muestra search + Filtros sin exponer facetas hasta abrir el panel', () => {
     const { filterBar } = renderAthletes()
 
-    // Un pill por faceta: la barra es una sola fila silenciosa, los chips y
-    // conteos viven dentro del popover de cada uno.
-    for (const label of ['Afiliación', 'Inscripción', 'Gimnasio', 'División', 'Fecha de alta']) {
-      expect(within(filterBar).getByRole('button', { name: new RegExp(`^${label}`) })).toBeTruthy()
-    }
-
-    // Nada de la maquinaria interna queda expuesta sin abrir un popover.
-    expect(filterBar.querySelector('.admin-filter-chips')).toBeNull()
-    expect(within(filterBar).queryByText('Maximal Power')).toBeNull()
+    expect(filterBar.classList.contains('admin-filters--panel')).toBe(true)
+    expect(within(filterBar).getByRole('button', { name: /Filtros/ })).toBeTruthy()
+    expect(filterBar.querySelector('.admin-filter-panel')).toBeNull()
     expect(within(filterBar).queryByText('Afiliado activo')).toBeNull()
+    expect(within(filterBar).queryByText('Maximal Power')).toBeNull()
   })
 
-  it('abre opciones de inscripción como menú vertical en el popover', () => {
+  it('abre el panel con rieles de chips y meta (gimnasio + fecha)', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /^Inscripción/ }))
-    const popover = filterBar.querySelector('.admin-filter-popover')
-    expect(popover).toBeTruthy()
-    expect(popover.querySelector('.admin-filter-group--menu')).toBeTruthy()
-    expect(popover.querySelector('.admin-filter-chips--menu')).toBeTruthy()
-    expect(within(popover).getByRole('button', { name: /^Todos/ })).toBeTruthy()
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Filtros/ }))
+    const panel = filterBar.querySelector('.admin-filter-panel')
+    expect(panel).toBeTruthy()
+    expect(panel.querySelector('.admin-filter-panel__stack')).toBeTruthy()
+    expect(panel.querySelector('.admin-filter-panel__meta')).toBeTruthy()
+    expect(panel.querySelector('.admin-filter-panel__field--select')).toBeTruthy()
+    expect(panel.querySelector('.admin-filter-panel__field--date')).toBeTruthy()
+    expect(within(panel).getByText('Afiliación')).toBeTruthy()
+    expect(within(panel).getByText('Inscripción')).toBeTruthy()
+    expect(within(panel).getByRole('button', { name: /Afiliado activo/ })).toBeTruthy()
   })
 
-  it('elige un gimnasio desde el popover y lo refleja en el pill', () => {
+  it('elige un gimnasio desde el combobox del panel', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /^Gimnasio/ }))
-
-    // El select de gimnasio es un combobox con búsqueda: opciones como botones.
-    const popover = filterBar.querySelector('.admin-filter-popover')
-    expect(popover).toBeTruthy()
-    fireEvent.click(within(popover).getByRole('option', { name: 'Pitbull Barbell' }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Filtros/ }))
+    const panel = filterBar.querySelector('.admin-filter-panel')
+    fireEvent.click(within(panel).getByRole('option', { name: 'Pitbull Barbell' }))
 
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
     expect(screen.queryByText('Martina Rivas')).toBeNull()
     expect(screen.queryByText('Florencia López')).toBeNull()
-
-    // El pill activo muestra el valor elegido y su botón de limpieza.
-    expect(within(filterBar).getByRole('button', { name: /^Gimnasio/ }).textContent).toContain(
-      'Pitbull Barbell',
-    )
     expect(within(filterBar).getByRole('button', { name: 'Quitar filtro' })).toBeTruthy()
   })
 
-  it('filtra por Afiliación desde el popover y limpia con la X del pill', () => {
+  it('filtra por Afiliación y limpia con el chip activo del panel', () => {
     const { filterBar } = renderAthletes()
 
-    fireEvent.click(within(filterBar).getByRole('button', { name: /^Afiliación/ }))
-    const popover = filterBar.querySelector('.admin-filter-popover')
-    fireEvent.click(within(popover).getByRole('button', { name: /Afiliado activo/ }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Filtros/ }))
+    const panel = filterBar.querySelector('.admin-filter-panel')
+    fireEvent.click(within(panel).getByRole('button', { name: /Afiliado activo/ }))
 
     expect(screen.getByText('Martina Rivas')).toBeTruthy()
     expect(screen.queryByText('Nicolás Aguirre')).toBeNull()
 
-    // La X del pill activo vuelve al neutro sin reabrir el popover.
     fireEvent.click(within(filterBar).getByRole('button', { name: 'Quitar filtro' }))
     expect(screen.getByText('Nicolás Aguirre')).toBeTruthy()
   })

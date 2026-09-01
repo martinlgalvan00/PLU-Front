@@ -30,7 +30,6 @@ describe('modal de transferencia', () => {
       <I18nProvider>
         <TransferPayModal
           amount={75000}
-          athlete={{ documentId: '30111222', fullName: 'Agustín Demo' }}
           onClose={onClose}
         />
       </I18nProvider>,
@@ -40,6 +39,7 @@ describe('modal de transferencia', () => {
     expect(dialog).toBeTruthy()
     expect(dialog.textContent).toContain('maximal.plu')
     expect(dialog.textContent).toContain('Camila Pérez')
+    expect(dialog.textContent).not.toContain('Referencia')
     expect(dialog.textContent).toContain('El alias y el titular tienen que coincidir exactamente')
     expect(dialog.textContent).not.toContain('Verificá antes de transferir')
     expect(dialog.textContent).not.toContain('Datos para completar')
@@ -55,7 +55,6 @@ describe('modal de transferencia', () => {
       <I18nProvider>
         <TransferPayModal
           amount={75000}
-          athlete={{ documentId: '30111222', fullName: 'Agustín Demo' }}
           onClose={() => {}}
         />
       </I18nProvider>,

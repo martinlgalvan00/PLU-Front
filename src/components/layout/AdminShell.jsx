@@ -493,6 +493,16 @@ export default function AdminShell({
       <Layout className="admin-shell__main">
         <Header className="admin-shell__header">
           <Space>
+            {sidebarHidden && !isPhoneViewport ? (
+              <button
+                className="admin-mobile-bar__menu--reveal"
+                onClick={() => setSidebarMode('collapsed')}
+                title={t('admin.shell.showSidebar')}
+                aria-label={t('admin.shell.showSidebar')}
+              >
+                <PanelLeft size={16} />
+              </button>
+            ) : null}
             {isPhoneViewport && (
               <Button
                 type="text"
@@ -529,16 +539,6 @@ export default function AdminShell({
           ) : null}
 
           <div className="admin-shell__header-actions">
-            {sidebarHidden && !isPhoneViewport && (
-              <button
-                className="admin-mobile-bar__menu--reveal"
-                onClick={() => setSidebarMode('collapsed')}
-                title={t('admin.shell.showSidebar')}
-                aria-label={t('admin.shell.showSidebar')}
-              >
-                <PanelLeft size={16} />
-              </button>
-            )}
             <LanguageToggle compact variant="segment" />
             <ThemeToggle compact />
             <Dropdown

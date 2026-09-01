@@ -40,6 +40,33 @@ export function createSupabaseAnalyticsRepository(
         'No se pudo calcular el resumen de trafico.',
       )
     },
+
+    /**
+     * Serie diaria perpetua del sitio completo. A diferencia de la serie del
+     * `overview`, que vive del detalle crudo (90 dias), esta mezcla los rollups
+     * consolidados con el dia en curso calculado en vivo, y agrega el pico
+     * historico de visitantes.
+     */
+    async timeseries({ from, to }) {
+      return rpc(
+        'get_analytics_timeseries',
+        { p_from: from, p_to: to, p_organization_id: organizationId },
+        'No se pudo calcular la serie diaria.',
+      )
+    },
+
+    /**
+     * Resumen de trafico para el Dashboard: hoy, ayer, semana contra semana y
+     * record historico en una sola lectura. El tablero se sirve entero; no
+     * tiene sentido hacerle pagar cinco llamadas por una franja secundaria.
+     */
+    async dashboardSummary() {
+      return rpc(
+        'get_analytics_dashboard_summary',
+        { p_organization_id: organizationId },
+        'No se pudo calcular el resumen de visitas.',
+      )
+    },
     async operationalSummary({ from, to }) {
       return rpc(
         'get_analytics_operational_summary',

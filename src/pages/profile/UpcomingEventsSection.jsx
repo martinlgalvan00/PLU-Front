@@ -204,23 +204,38 @@ export default function UpcomingEventsSection({
                       ? t('account.events.paymentPending')
                       : EVENT_STATUS[event.status]?.label}
                 </span>
-                <button
-                  type="button"
-                  className={`account-events-list__cta${registered ? ' is-registered' : ''}${paymentPending ? ' is-payment-pending' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
-                  onClick={() => !registered && handleRegisterClick(event)}
-                  disabled={registered || !registrationCheckoutEnabled}
-                  aria-describedby={
-                    showingWarningForThis ? 'account-profile-incomplete-warning' : undefined
-                  }
-                >
-                  {registered
-                    ? t('account.events.alreadyRegistered', { event: event.title })
-                    : !registrationCheckoutEnabled
-                      ? t('pages.members.ctaCheckoutSoon')
-                      : paymentPending
-                        ? t('account.events.resumePayment')
-                        : t('account.events.register')}
-                </button>
+                <div className="account-events-list__actions">
+                  <button
+                    type="button"
+                    className={`account-events-list__cta${registered ? ' is-registered' : ''}${paymentPending ? ' is-payment-pending' : ''}${!profileStatus.complete && !registered ? ' is-profile-incomplete' : ''}`}
+                    onClick={() => !registered && handleRegisterClick(event)}
+                    disabled={registered || !registrationCheckoutEnabled}
+                    aria-describedby={
+                      showingWarningForThis ? 'account-profile-incomplete-warning' : undefined
+                    }
+                  >
+                    {registered
+                      ? t('account.events.alreadyRegistered', { event: event.title })
+                      : !registrationCheckoutEnabled
+                        ? t('pages.members.ctaCheckoutSoon')
+                        : paymentPending
+                          ? t('account.events.resumePayment')
+                          : t('account.events.register')}
+                  </button>
+                  {paymentPending && registrationCheckoutEnabled ? (
+                    <button
+                      type="button"
+                      className="account-events-list__change-method"
+                      onClick={() =>
+                        onSelectEvent
+                          ? onSelectEvent(event, { checkoutIntent: 'change_method' })
+                          : goToRegistration(event)
+                      }
+                    >
+                      {t('account.events.changePaymentMethod')}
+                    </button>
+                  ) : null}
+                </div>
               </article>
             )
           })}

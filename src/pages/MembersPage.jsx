@@ -55,7 +55,6 @@ export default function MembersPage({
     MEMBERSHIP_BENEFITS,
     MEMBERSHIP_FAQ,
     MEMBERSHIP_INSTITUTIONAL,
-    MEMBERSHIP_PLANS,
     MEMBERSHIP_REQUIREMENTS,
   } = useContent()
   const { messages, t } = useI18n()
@@ -65,6 +64,7 @@ export default function MembersPage({
   const [billingMode, setBillingMode] = useState('one_time')
   const [now, setNow] = useState(() => new Date())
   const validityNotes = messages.pages.members.validityNotes
+  const planIncludes = messages.pages.members.planIncludes ?? []
 
   // La promo publicada en esta pagina nombra Pitbull de forma explicita. Un
   // evento de prueba marcado como destacado no puede cambiar el torneo que se
@@ -113,17 +113,13 @@ export default function MembersPage({
     return () => controller.abort()
   }, [loadPlans])
 
+  // Solo catálogo vivo de /api/payments/plans. Nunca inventar adulto/juvenil
+  // desde content estático: la afiliación persistida es un producto anual
+  // (plu-annual ± renovación), no franjas de edad.
   const catalogPlans = useMemo(() => {
-    const featureTemplate = MEMBERSHIP_PLANS.find((plan) => plan.id === 'athlete')?.features ?? []
-    if (livePlans.length) {
-      return livePlans.map((plan) => mapLivePlan(plan, featureTemplate, t))
-    }
-    return MEMBERSHIP_PLANS.filter((plan) => plan.id !== 'combo').map((plan) => ({
-      ...plan,
-      collectionMode: plan.collectionMode ?? 'one_time',
-      highlighted: Boolean(plan.highlighted),
-    }))
-  }, [MEMBERSHIP_PLANS, livePlans, t])
+    if (!livePlans.length) return []
+    return livePlans.map((plan) => mapLivePlan(plan, planIncludes, t))
+  }, [livePlans, planIncludes, t])
 
   const oneTimePlans = useMemo(
     () => catalogPlans.filter((plan) => plan.collectionMode !== 'recurring'),
@@ -154,9 +150,14 @@ export default function MembersPage({
 
   const visiblePlans = useMemo(() => {
     if (!catalogPlans.length) return []
-    if (!billingSwitchEnabled) return catalogPlans
-    const pool = billingMode === 'recurring' ? recurringPlans : oneTimePlans
-    const preferred = pool[0]
+    if (billingSwitchEnabled) {
+      const pool = billingMode === 'recurring' ? recurringPlans : oneTimePlans
+      const preferred = pool[0]
+      return preferred ? [{ ...preferred, highlighted: true }] : []
+    }
+    // Sin switch: un solo producto público (pago único). No listar
+    // one_time + recurring como si fueran dos afiliaciones distintas.
+    const preferred = oneTimePlans[0] ?? catalogPlans[0]
     return preferred ? [{ ...preferred, highlighted: true }] : []
   }, [billingMode, billingSwitchEnabled, catalogPlans, oneTimePlans, recurringPlans])
 
@@ -277,7 +278,7 @@ export default function MembersPage({
           ) : null}
 
           {visiblePlans.length ? (
-            <div className={gridClassName}>
+            <Reveal className={gridClassName} variant="up">
               {visiblePlans.map((plan) => (
                 <MembershipCard
                   key={plan.id}
@@ -295,7 +296,7 @@ export default function MembersPage({
                   variant="plu"
                 />
               ))}
-            </div>
+            </Reveal>
           ) : null}
 
           {!hasActiveMembership && visiblePlans.length ? (

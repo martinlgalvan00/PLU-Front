@@ -8,6 +8,7 @@ export const STORAGE_KEY = 'plu-arg-maximal'
  */
 export const PRICING = {
   membership: 75000,
+  /** @deprecated No hay plan junior persistido; la afiliación es un producto anual único. */
   membershipJunior: 28000,
   event: 75000,
 }

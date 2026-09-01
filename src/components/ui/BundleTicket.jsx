@@ -158,7 +158,9 @@ function channelsLabel(offer, t) {
   const channels = bundleChannels(offer)
   if (!channels.length) return t('account.bundle.noChannel')
   const names = channels.map((channel) => t(`secretOfferRedeemer.payment.channel.${channel}`))
-  return offer.mercadoPagoEnabled === false
+  // Mismo criterio que el reveal: un único medio abierto es exclusivo aunque la
+  // pasarela no esté cerrada. "Con Mercado Pago" se lee como "entre otros".
+  return offer.mercadoPagoEnabled === false || channels.length === 1
     ? t('account.bundle.paymentOnly', { channels: names.join(' · ') })
     : t('account.bundle.paymentWith', { channels: names.join(' · ') })
 }
