@@ -265,20 +265,6 @@ export default function AdminPage({
     setSection('people')
   }
 
-  function handleDashboardSearchSubmit(query) {
-    const normalizedQuery = query.trim()
-    if (!normalizedQuery || !allowedSections.includes('registrations')) return
-
-    onSetFilters((current) => ({
-      ...current,
-      event: 'all',
-      query: normalizedQuery,
-      status: 'all',
-    }))
-    setPeopleTab('registrations')
-    setSection('people')
-  }
-
   function handleManageEventRegistrations(event) {
     if (!allowedSections.includes('registrations')) return
     onSetFilters((current) => ({
@@ -332,10 +318,7 @@ export default function AdminPage({
           onDeleteAthlete={onDeleteAthlete}
           onSelectAthlete={handleSelectAthlete}
           getAthleteDetail={getAthleteDetail}
-          athletes={athletes}
-          events={adminEvents}
-          onSelectEvent={handleManageEventRegistrations}
-          onGlobalSearchSubmit={handleDashboardSearchSubmit}
+          canViewAnalytics={hasPermission(authorization, 'admin.analytics.read')}
         />
       )
     }

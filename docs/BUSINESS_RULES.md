@@ -260,6 +260,13 @@ confirmada alcanza para ingresar.
 Los pagos de Mercado Pago se acreditan únicamente por webhook firmado o por
 conciliación server-side. Finanzas puede aprobar solamente métodos manuales.
 
+Transferencia y Wise exigen comprobante por defecto. Finanzas puede acreditar
+sin archivo solo con un **motivo de override** (≥ 8 caracteres) que queda en
+`domain_audit_logs` (`overrideWithoutProof` + `overrideReason`). El efectivo en
+Pitbull (`cash_pitbull`) sigue sin exigir archivo porque la evidencia es el
+cobro presencial. Force-settle de órdenes perdidas del proveedor **sigue**
+exigiendo comprobante adjunto.
+
 En transferencia y efectivo el atleta puede declarar que realizó la entrega.
 La declaración cambia la orden a `validacion_manual`, evita su vencimiento
 automático y genera auditoría, pero **no acredita el pago** ni crea un asiento

@@ -13,9 +13,9 @@
  * Acá viven la elegibilidad y el mapeo a la forma que consume
  * `PaymentValidationDialog`. El backend sigue siendo la última palabra:
  * `approve_athlete_payment_order` rechaza Mercado Pago, exige comprobante en
- * transferencia y sólo admite órdenes abiertas (ver docs/BUSINESS_RULES.md,
- * "Finanzas puede aprobar solamente métodos manuales"). Esto evita ofrecer una
- * acción que la base va a negar, no la reemplaza.
+ * transferencia (salvo override auditado) y sólo admite órdenes abiertas
+ * (ver docs/BUSINESS_RULES.md). Esto evita ofrecer una acción que la base va
+ * a negar, no la reemplaza.
  */
 
 /** Único método que Finanzas puede acreditar a mano. */
@@ -23,6 +23,9 @@ export const MANUAL_PAYMENT_METHOD = 'manual_link'
 
 /** Efectivo en sede: se cobra en la puerta y no deja archivo adjunto. */
 export const CASH_PAYMENT_CHANNEL = 'cash_pitbull'
+
+/** Motivo mínimo para acreditar transferencia/Wise sin comprobante. */
+export const PROOF_OVERRIDE_REASON_MIN_LENGTH = 8
 
 /** Estados que todavía esperan una decisión operativa. */
 export const OPEN_ORDER_STATUSES = Object.freeze(['pendiente', 'validacion_manual'])
@@ -53,13 +56,25 @@ export function hasPaymentProof(order) {
 }
 
 /**
- * Órdenes que el botón de validar puede tocar. El efectivo entra sin archivo
- * porque la evidencia es el cobro presencial; la transferencia no, porque sin
- * comprobante la acreditación es indistinguible de regalar la afiliación.
+ * Transferencia/Wise abierta sin archivo: se puede validar, pero el diálogo
+ * exige motivo de override (la RPC lo vuelve a chequear).
+ */
+export function requiresProofOverride(order) {
+  return isManualOrder(order) && isOpenOrder(order) && !isCashOrder(order) && !hasPaymentProof(order)
+}
+
+export function isProofOverrideReasonValid(reason) {
+  return typeof reason === 'string' && reason.trim().length >= PROOF_OVERRIDE_REASON_MIN_LENGTH
+}
+
+/**
+ * Órdenes que el botón de validar puede tocar. Efectivo sin archivo (cobro
+ * presencial), transferencia con comprobante, o transferencia sin archivo
+ * vía override de staff con motivo auditado.
  */
 export function canValidateManualOrder(order) {
   if (!isManualOrder(order) || !isOpenOrder(order)) return false
-  return isCashOrder(order) || hasPaymentProof(order)
+  return isCashOrder(order) || hasPaymentProof(order) || requiresProofOverride(order)
 }
 
 /**
@@ -114,6 +129,7 @@ export function buildPaymentValidationItem(
     concept: order.concept ?? order.conceptType ?? null,
     hasProof: hasPaymentProof(order),
     cashAtPitbull: isCashOrder(order),
+    requiresProofOverride: requiresProofOverride(order),
     paymentProofPath: proofPathOf(order),
     paymentProofUploadedAt:
       order.paymentProofUploadedAt ?? order.payment_proof_uploaded_at ?? null,

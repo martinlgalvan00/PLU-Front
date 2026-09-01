@@ -5,29 +5,33 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { neutralValue } from '../../lib/adminFilterValue.js'
 
 /**
- * Grilla con todas las facetas juntas -- el contenido del panel único que
- * abre `AdminFilterBar` (`layout="panel"`), en vez de un pill por filtro (ver
- * `AdminFilterPillRow`).
+ * Panel único de facetas para `AdminFilterBar` (`layout="panel"`).
  *
- * Vive en flujo normal dentro de la misma tarjeta que el buscador (la
- * agranda `AdminFilterBar`, ver `.admin-filter-panel` en admin.css): no es
- * un dropdown flotando con `position: absolute`, así que nunca puede quedar
- * montado sobre la tabla de resultados de abajo -- la empuja como cualquier
- * otro contenido del documento.
+ * Composición editorial: cada faceta de chips es una fila horizontal (riel),
+ * no una columna densa. Select y fechas van abajo en un par más quieto, con
+ * el combobox acotado en altura para no empujar la tabla.
  */
 export default function AdminFilterPanel({ id, filters }) {
   const { t } = useI18n()
 
+  function fieldClass(filter) {
+    if (filter.variant === 'dateRange') return 'admin-filter-panel__field admin-filter-panel__field--date'
+    if (filter.variant === 'select') return 'admin-filter-panel__field admin-filter-panel__field--select'
+    if (filter.variant === 'toggle') return 'admin-filter-panel__field admin-filter-panel__field--toggle'
+    return 'admin-filter-panel__field admin-filter-panel__field--chips'
+  }
+
   function renderField(filter) {
     if (filter.variant === 'dateRange') {
       return (
-        <div key={filter.id} className="admin-filter-panel__field">
+        <div key={filter.id} className={fieldClass(filter)}>
           <span className="admin-filter-panel__field-label">{filter.label}</span>
           <AdminFilterDateRange
             id={filter.id}
             value={filter.value}
             onChange={filter.onChange}
             disabled={filter.disabled}
+            presentation="popover"
           />
         </div>
       )
@@ -35,7 +39,7 @@ export default function AdminFilterPanel({ id, filters }) {
 
     if (filter.variant === 'select') {
       return (
-        <div key={filter.id} className="admin-filter-panel__field admin-filter-panel__field--select">
+        <div key={filter.id} className={fieldClass(filter)}>
           <span className="admin-filter-panel__field-label">{filter.label}</span>
           <AdminFilterCombobox filter={filter} t={t} onSelect={filter.onChange} autoFocus={false} />
         </div>
@@ -43,7 +47,7 @@ export default function AdminFilterPanel({ id, filters }) {
     }
 
     return (
-      <div key={filter.id} className="admin-filter-panel__field">
+      <div key={filter.id} className={fieldClass(filter)}>
         <span className="admin-filter-panel__field-label">{filter.label}</span>
         <AdminFilterChipGroup
           id={filter.id}
@@ -57,14 +61,27 @@ export default function AdminFilterPanel({ id, filters }) {
           allLabel={filter.allLabel ?? t('admin.filters.showingAll')}
           clearable
           hideEmpty
+          compact
         />
       </div>
     )
   }
 
+  const chipFilters = filters.filter(
+    (filter) => filter.variant !== 'select' && filter.variant !== 'dateRange',
+  )
+  const metaFilters = filters.filter(
+    (filter) => filter.variant === 'select' || filter.variant === 'dateRange',
+  )
+
   return (
     <div id={id} className="admin-filter-panel" role="region" aria-label={t('admin.filters.toggle')}>
-      <div className="admin-filter-panel__grid">{filters.map(renderField)}</div>
+      {chipFilters.length > 0 ? (
+        <div className="admin-filter-panel__stack">{chipFilters.map(renderField)}</div>
+      ) : null}
+      {metaFilters.length > 0 ? (
+        <div className="admin-filter-panel__meta">{metaFilters.map(renderField)}</div>
+      ) : null}
     </div>
   )
 }

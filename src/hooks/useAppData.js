@@ -2547,13 +2547,15 @@ export function useAppData() {
   }, [setSession])
 
   const handleApprovePayment = useCallback(
-    async (paymentId) => {
+    async (paymentId, { overrideReason } = {}) => {
       if (!hasPermission(session, 'admin.payments.approve')) {
         return { error: 'Sin permisos para aprobar pagos.' }
       }
       try {
-        const { order, membership, registration } =
-          await approveAthletePaymentOrderRequest(paymentId)
+        const { order, membership, registration } = await approveAthletePaymentOrderRequest(
+          paymentId,
+          { overrideReason },
+        )
         setPayments((c) =>
           c.map((p) =>
             p.id === paymentId ? { ...p, status: order.status, reference: order.reference } : p,

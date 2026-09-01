@@ -119,7 +119,7 @@ describe('Check-in — cobro en la puerta', () => {
     expect(within(dialog).getByText('Ana Torres')).toBeTruthy()
 
     fireEvent.click(within(dialog).getByRole('button', { name: /confirmar validación/i }))
-    await waitFor(() => expect(onApprovePayment).toHaveBeenCalledWith('ord-1'))
+    await waitFor(() => expect(onApprovePayment).toHaveBeenCalledWith('ord-1', {}))
   })
 
   it('cuenta las órdenes por cobrar y las deja filtrar', () => {

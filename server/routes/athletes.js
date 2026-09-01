@@ -414,6 +414,11 @@ const forceSettlePaymentSchema = z.object({
   reason: z.string().trim().min(3).max(500),
   reference: z.string().trim().max(120).optional(),
 })
+// Override sin comprobante: más estricto que force-settle (3) porque acredita
+// transferencia/Wise sin evidencia de archivo. La RPC vuelve a exigir ≥ 8.
+const approvePaymentSchema = z.object({
+  overrideReason: z.string().trim().min(8).max(500).optional(),
+})
 const registrationStatusSchema = z.object({
   status: z.enum(['confirmada', 'observada', 'cancelada']),
   reason: z.string().trim().min(3).max(500),
@@ -2555,12 +2560,16 @@ export function createAthleteRoutes({
     '/admin/payment-orders/:orderId/approve',
     ...financeGuard,
     staffLimiter,
+    validateBody(approvePaymentSchema),
     async (req, res, next) => {
       const orderId = z.string().uuid().safeParse(req.params.orderId)
       try {
         if (!orderId.success) throw new HttpError(400, 'Orden inválida.')
         await assertOrderValidationEnabled(orderId.data)
-        const result = await repo().approvePayment(orderId.data, actorLabel(req))
+        const overrideReason = req.validatedBody?.overrideReason ?? null
+        const result = await repo().approvePayment(orderId.data, actorLabel(req), {
+          overrideReason,
+        })
         // La aprobacion manual mueve plata igual que Mercado Pago: queda en la
         // misma bitacora, con el operador que la firmo.
         await paymentTrail().record({
@@ -2568,12 +2577,14 @@ export function createAthleteRoutes({
           entityType: 'athlete_payment_order',
           entityId: orderId.data,
           status: result?.order?.status ?? 'aprobado',
-          severity: 'success',
+          severity: overrideReason ? 'warning' : 'success',
           metadata: {
             stage: 'manual_approval',
             method: result?.order?.method ?? 'manual_link',
             approvedBy: actorLabel(req),
             amount: result?.order?.amount ?? null,
+            overrideWithoutProof: Boolean(overrideReason),
+            overrideReason: overrideReason || null,
           },
         })
         // Best-effort: el pago ya quedó acreditado, un fallo de email no lo revierte.

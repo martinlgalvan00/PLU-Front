@@ -23,13 +23,28 @@ function createAnalyticsRepositoryDouble() {
   const flows = vi.fn(async () => [{ from_path: '/', to_path: '/afiliarse', transitions: 5 }])
   const heatmap = vi.fn(async () => ({ path: '/', total: 3, max: 2, cells: [], elements: [] }))
   const funnel = vi.fn(async () => [{ step_index: 1, step_name: 'landing_view', visitors: 10 }])
+  const timeseries = vi.fn(async () => ({
+    series: [{ day: '2026-08-30', visitors: 12, sessions: 15, pageviews: 40 }],
+    peak: { day: '2026-08-30', visitors: 12, pageviews: 40, sessions: 15 },
+    firstDay: '2026-08-30',
+  }))
+  const dashboardSummary = vi.fn(async () => ({
+    today: { visitors: 3, pageviews: 9, sessions: 4 },
+    yesterday: { visitors: 5, pageviews: 11, sessions: 6 },
+    last7: { visitors: 21, pageviews: 60, sessions: 30 },
+    previous7: { visitors: 18, sessions: 25 },
+    peak: { day: '2026-08-30', visitors: 12, pageviews: 40 },
+    firstDay: '2026-08-01',
+  }))
   return {
-    repository: { ingest, overview, pages, flows, heatmap, funnel },
+    repository: { ingest, overview, pages, flows, heatmap, funnel, timeseries, dashboardSummary },
     ingest,
     overview,
     pages,
     heatmap,
     funnel,
+    timeseries,
+    dashboardSummary,
   }
 }
 
@@ -200,12 +215,49 @@ describe('lectura del informe', () => {
     const { target, cookie } = await setup({ role: 'seguridad_plu_arg' })
 
     try {
-      for (const path of ['overview', 'pages', 'flows', 'funnel']) {
+      for (const path of ['overview', 'pages', 'flows', 'funnel', 'timeseries', 'dashboard-summary']) {
         const response = await fetch(`${target.url}/api/analytics/${path}`, {
           headers: { Cookie: cookie },
         })
         expect(response.status).toBe(403)
       }
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('devuelve la serie diaria perpetua con el rango resuelto', async () => {
+    const { target, cookie, analytics } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/analytics/timeseries?days=90`, {
+        headers: { Cookie: cookie },
+      })
+
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(body.series).toHaveLength(1)
+      expect(body.peak).toMatchObject({ visitors: 12 })
+      // La ventana viaja resuelta al repositorio, no como atajo de dias.
+      expect(analytics.timeseries).toHaveBeenCalledWith(
+        expect.objectContaining({ from: expect.any(String), to: expect.any(String) }),
+      )
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('el resumen del tablero no se cachea: "hoy" cambia con la hora', async () => {
+    const { target, cookie } = await setup()
+
+    try {
+      const response = await fetch(`${target.url}/api/analytics/dashboard-summary`, {
+        headers: { Cookie: cookie },
+      })
+
+      expect(response.status).toBe(200)
+      expect(response.headers.get('cache-control')).toBe('no-store')
+      expect(await response.json()).toMatchObject({ today: { visitors: 3 } })
     } finally {
       await target.close()
     }

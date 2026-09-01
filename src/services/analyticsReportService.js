@@ -26,6 +26,23 @@ function rangeQuery({ days = 30, from, to, limit, path, deviceType } = {}) {
 export async function fetchAnalyticsOverview(range) {
   return apiGet(`/api/analytics/overview?${rangeQuery(range)}`)
 }
+
+/**
+ * Serie diaria perpetua con pico historico. Acepta hasta 365 dias porque los
+ * dias cerrados salen de los rollups; el detalle crudo que usa el resto del
+ * informe se purga a los 90.
+ */
+export async function fetchAnalyticsTimeseries(range) {
+  return apiGet(`/api/analytics/timeseries?${rangeQuery(range)}`)
+}
+
+/**
+ * Resumen de tráfico del tablero: hoy, ayer, semana contra semana y record.
+ * No lleva rango: "hoy" lo define el servidor contra su propio reloj.
+ */
+export async function fetchAnalyticsDashboardSummary() {
+  return apiGet('/api/analytics/dashboard-summary')
+}
 export async function fetchAnalyticsOperationalSummary(range) {
   return apiGet(`/api/analytics/operational-summary?${rangeQuery(range)}`)
 }
