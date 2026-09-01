@@ -92,15 +92,13 @@ describe('Finanzas — comprobante y validación', () => {
     expect(proof.getAttribute('style')).toBeNull()
   })
 
-  it('avisa que falta el comprobante en vez de dejar un botón muerto', async () => {
+  it('avisa que falta el comprobante y permite la aprobación manual', async () => {
     await renderSection([order({ paymentProofPath: null })])
 
-    // Dos veces: la columna de comprobante (que ya existía) y la celda de
-    // acción, que es la que reemplaza al botón muerto por el motivo.
-    expect(screen.getAllByText('Sin comprobante')).toHaveLength(2)
-    // Y no ofrece validar: acreditar sin comprobante es indistinguible de
-    // regalar la afiliación, y el backend lo rechaza igual.
-    expect(screen.queryByRole('button', { name: 'Validar' })).toBeNull()
+    // La columna conserva la advertencia y la acción permite que Finanzas
+    // decida si recibió el pago por otra vía.
+    expect(screen.getAllByText('Sin comprobante')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Validar' })).toBeTruthy()
   })
 
   it('el efectivo en sede se puede validar sin comprobante', async () => {

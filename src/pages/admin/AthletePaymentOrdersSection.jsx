@@ -22,13 +22,9 @@ import { listAthletePaymentOrders } from '../../services/athleteApi.js'
 import {
   OPEN_ORDER_STATUSES,
   buildPaymentValidationItem,
+  canApproveManualOrder,
   canForceSettleOrder,
   canValidateConcept,
-  canValidateManualOrder,
-  hasPaymentProof,
-  isCashOrder,
-  isManualOrder,
-  isOpenOrder,
 } from '../../services/paymentValidationService.js'
 import { VALIDATION_DISABLED_CODES } from '../../services/platformSettingsAdminService.js'
 import { revalidatePaymentOrder } from '../../services/paymentService.js'
@@ -712,33 +708,24 @@ export default function AthletePaymentOrdersSection({
                 <AdminTableActions className="admin-athlete-order-actions">
                   {/* Validar / forzar quedan visibles; traza y revalidar van al menú
                       “más” para no saturar la fila en desktop angosto y cards. */}
-                  {isManualOrder(row) &&
-                  isOpenOrder(row) &&
-                  !isCashOrder(row) &&
-                  !hasPaymentProof(row) ? (
-                    <span className="status-pill status-pill--warning">
-                      {t('admin.athletePayments.proofMissing')}
-                    </span>
-                  ) : (
-                    <AdminIconButton
-                      disabled={
-                        !canEdit ||
-                        !row.validatable ||
-                        !canValidateManualOrder(row) ||
-                        approvingId === row.id
-                      }
-                      icon={BadgeCheck}
-                      label={
-                        row.method === 'mercado_pago'
-                          ? t('admin.athletePayments.webhookOnly')
-                          : row.validatable
-                            ? t('admin.actions.validate')
-                            : t('admin.athletePayments.validationPaused')
-                      }
-                      onClick={() => openReview(row)}
-                      variant="celeste"
-                    />
-                  )}
+                  <AdminIconButton
+                    disabled={
+                      !canEdit ||
+                      !row.validatable ||
+                      !canApproveManualOrder(row) ||
+                      approvingId === row.id
+                    }
+                    icon={BadgeCheck}
+                    label={
+                      row.method === 'mercado_pago'
+                        ? t('admin.athletePayments.webhookOnly')
+                        : row.validatable
+                          ? t('admin.actions.validate')
+                          : t('admin.athletePayments.validationPaused')
+                    }
+                    onClick={() => openReview(row)}
+                    variant="celeste"
+                  />
                   {canForceSettle && canForceSettleOrder(row) ? (
                     <AdminIconButton
                       disabled={!row.validatable || approvingId === row.id}

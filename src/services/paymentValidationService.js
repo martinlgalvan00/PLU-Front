@@ -12,8 +12,8 @@
  *
  * Acá viven la elegibilidad y el mapeo a la forma que consume
  * `PaymentValidationDialog`. El backend sigue siendo la última palabra:
- * `approve_athlete_payment_order` rechaza Mercado Pago, exige comprobante en
- * transferencia y sólo admite órdenes abiertas (ver docs/BUSINESS_RULES.md,
+ * `approve_athlete_payment_order` rechaza Mercado Pago y sólo admite órdenes
+ * manuales abiertas (ver docs/BUSINESS_RULES.md,
  * "Finanzas puede aprobar solamente métodos manuales"). Esto evita ofrecer una
  * acción que la base va a negar, no la reemplaza.
  */
@@ -53,13 +53,21 @@ export function hasPaymentProof(order) {
 }
 
 /**
- * Órdenes que el botón de validar puede tocar. El efectivo entra sin archivo
- * porque la evidencia es el cobro presencial; la transferencia no, porque sin
- * comprobante la acreditación es indistinguible de regalar la afiliación.
+ * Órdenes que necesitan evidencia para otros flujos operativos, como el
+ * check-in. La aprobación administrativa tiene una regla distinta: Finanzas
+ * puede decidir también sobre una transferencia sin archivo.
  */
 export function canValidateManualOrder(order) {
   if (!isManualOrder(order) || !isOpenOrder(order)) return false
   return isCashOrder(order) || hasPaymentProof(order)
+}
+
+/**
+ * Ordenes manuales abiertas que Finanzas puede aprobar. La falta de archivo
+ * no bloquea la decision humana; el backend registra la aprobacion y su actor.
+ */
+export function canApproveManualOrder(order) {
+  return isManualOrder(order) && isOpenOrder(order)
 }
 
 /**
@@ -112,6 +120,9 @@ export function buildPaymentValidationItem(
     type: 'payment',
     paymentId: order.id,
     concept: order.concept ?? order.conceptType ?? null,
+    // Solo la aprobacion normal de una orden manual de atleta puede omitir el
+    // archivo. El modo settle conserva su propia guarda.
+    allowApprovalWithoutProof: isManualOrder(order),
     hasProof: hasPaymentProof(order),
     cashAtPitbull: isCashOrder(order),
     paymentProofPath: proofPathOf(order),

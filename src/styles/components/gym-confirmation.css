@@ -1,0 +1,102 @@
+.gym-confirmation-dialog {
+  align-items: center;
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: var(--space-md, 16px);
+  position: fixed;
+  z-index: 1200;
+}
+
+.gym-confirmation-dialog__backdrop {
+  background: color-mix(in srgb, var(--color-bg-primary) 78%, transparent);
+  border: 0;
+  cursor: default;
+  inset: 0;
+  position: absolute;
+}
+
+.gym-confirmation-dialog__panel {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--elevation-lg);
+  color: var(--color-text-primary);
+  display: grid;
+  gap: var(--space-md, 16px);
+  grid-template-columns: auto minmax(0, 1fr);
+  max-width: 520px;
+  padding: clamp(20px, 4vw, 28px);
+  position: relative;
+  width: 100%;
+}
+
+.gym-confirmation-dialog__icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-brand-gold) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-brand-gold) 36%, transparent);
+  border-radius: var(--border-radius-md);
+  color: var(--color-brand-gold);
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.gym-confirmation-dialog__copy {
+  display: grid;
+  gap: var(--space-sm, 8px);
+  min-width: 0;
+}
+
+.gym-confirmation-dialog__copy h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.gym-confirmation-dialog__copy p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.gym-confirmation-dialog__copy .gym-confirmation-dialog__name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.gym-confirmation-dialog__copy .gym-confirmation-dialog__warning {
+  color: var(--color-text-muted);
+}
+
+.gym-confirmation-dialog__actions {
+  display: flex;
+  gap: var(--space-sm, 8px);
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.gym-confirmation-dialog__actions .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 540px) {
+  .gym-confirmation-dialog__panel {
+    grid-template-columns: 1fr;
+  }
+
+  .gym-confirmation-dialog__actions {
+    display: grid;
+  }
+
+  .gym-confirmation-dialog__actions .btn {
+    justify-content: center;
+    width: 100%;
+  }
+}
