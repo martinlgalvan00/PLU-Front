@@ -386,6 +386,91 @@ describe('supabase athlete repository manual payment declaration', () => {
   })
 })
 
+describe('supabase athlete repository manual payment approval', () => {
+  function paymentClient(order, rpc) {
+    const query = {
+      select: () => query,
+      eq: () => query,
+      maybeSingle: async () => ({ data: order, error: null }),
+    }
+    return {
+      from: (table) => {
+        expect(table).toBe('athlete_payment_orders')
+        return query
+      },
+      rpc,
+    }
+  }
+
+  it('omite el override cuando no hace falta y conserva compatibilidad con la RPC anterior', async () => {
+    const rpc = vi.fn(async () => ({ data: { order: { status: 'aprobado' } }, error: null }))
+    const repository = createSupabaseAthleteRepository(
+      paymentClient(
+        {
+          method: 'manual_link',
+          status: 'validacion_manual',
+          payment_proof_path: 'order-1/proof.pdf',
+          manual_payment_channel: 'bank_transfer',
+        },
+        rpc,
+      ),
+    )
+
+    await expect(repository.approvePayment('order-1', 'staff:admin')).resolves.toEqual({
+      order: { status: 'aprobado' },
+    })
+    expect(rpc).toHaveBeenCalledWith('approve_athlete_payment_order', {
+      p_order_id: 'order-1',
+      p_actor: 'staff:admin',
+    })
+  })
+
+  it('no deja que una base vieja apruebe una transferencia sin comprobante ni motivo', async () => {
+    const rpc = vi.fn()
+    const repository = createSupabaseAthleteRepository(
+      paymentClient(
+        {
+          method: 'manual_link',
+          status: 'validacion_manual',
+          payment_proof_path: null,
+          manual_payment_channel: 'bank_transfer',
+        },
+        rpc,
+      ),
+    )
+
+    await expect(repository.approvePayment('order-1', 'staff:admin')).rejects.toMatchObject({
+      name: 'HttpError',
+      status: 409,
+    })
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('envia el motivo solo cuando se usa el override sin comprobante', async () => {
+    const rpc = vi.fn(async () => ({ data: { order: { status: 'aprobado' } }, error: null }))
+    const repository = createSupabaseAthleteRepository(
+      paymentClient(
+        {
+          method: 'manual_link',
+          status: 'validacion_manual',
+          payment_proof_path: null,
+          manual_payment_channel: 'bank_transfer',
+        },
+        rpc,
+      ),
+    )
+
+    await repository.approvePayment('order-1', 'staff:admin', {
+      overrideReason: 'Verificado en la cuenta bancaria.',
+    })
+    expect(rpc).toHaveBeenCalledWith('approve_athlete_payment_order', {
+      p_order_id: 'order-1',
+      p_actor: 'staff:admin',
+      p_override_reason: 'Verificado en la cuenta bancaria.',
+    })
+  })
+})
+
 /**
  * El paquete de la oferta cuando el evento no tiene combo (20260913100000).
  * Antes esto era un 404 y obligaba a cargar un combo sólo para poder pactar un
