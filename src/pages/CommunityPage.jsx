@@ -6,6 +6,7 @@ import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.js
 import Reveal from '../components/ui/Reveal.jsx'
 import StaggerGroup from '../motion/StaggerGroup.tsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { buildMailtoHref, CONTACT_EMAIL } from '../lib/contact.js'
 
 function CommunityAction({ description, icon: Icon, label, onClick }) {
   return (
@@ -99,13 +100,13 @@ export default function CommunityPage({ onNavigate }) {
 
           <div className="community-directory__grid">
             <StaggerGroup className="community-directory__actions" stagger={50}>
-              <a className="community-action-row" href="mailto:hola@pluarg.com.ar">
+              <a className="community-action-row" href={buildMailtoHref()}>
                 <span className="community-action-row__icon">
                   <Mail size={19} aria-hidden />
                 </span>
                 <span className="community-action-row__copy">
                   <strong>{t('pages.community.emailTitle')}</strong>
-                  <small>hola@pluarg.com.ar</small>
+                  <small>{CONTACT_EMAIL}</small>
                 </span>
                 <ArrowRight size={16} aria-hidden />
               </a>

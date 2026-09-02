@@ -5,6 +5,7 @@ import InstitutionalPageHero from '../components/layout/InstitutionalPageHero.js
 import ContactForm from '../components/ui/ContactForm.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
+import { buildMailtoHref, CONTACT_EMAIL } from '../lib/contact.js'
 
 export default function ContactPage({ onNavigate }) {
   const { t } = useI18n()
@@ -21,8 +22,8 @@ export default function ContactPage({ onNavigate }) {
             <div>
               <dt>{t('pages.contact.sidebarEmail')}</dt>
               <dd>
-                <a className="contact-hero__email" href={`mailto:${t('contact.sidebarEmail')}`}>
-                  {t('contact.sidebarEmail')}
+                <a className="contact-hero__email" href={buildMailtoHref()}>
+                  {CONTACT_EMAIL}
                 </a>
               </dd>
             </div>
@@ -67,7 +68,7 @@ export default function ContactPage({ onNavigate }) {
                     {t('pages.contact.sidebarEmail')}
                   </span>
                   <p className="contact-sidebar__item-value">
-                    <a href={`mailto:${t('contact.sidebarEmail')}`}>{t('contact.sidebarEmail')}</a>
+                    <a href={buildMailtoHref()}>{CONTACT_EMAIL}</a>
                   </p>
                 </div>
               </li>

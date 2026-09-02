@@ -24,8 +24,8 @@ function escapeHtml(value) {
 
 /**
  * Bandeja de Contacto: hoy es un solo email a `CONTACT_NOTIFY_EMAIL` (por
- * defecto la misma dirección `hola@pluarg.com.ar` que ya se muestra en la
- * página) con reply-to del remitente, para que Comunicación conteste
+ * defecto la misma dirección `Maximalstrengthcorp@gmail.com` que ya se muestra
+ * en la página) con reply-to del remitente, para que Comunicación conteste
  * directo desde su cliente de mail. No hay tabla propia todavía — si el
  * volumen lo justifica más adelante, el archivo pasa a ser esa bandeja.
  */
@@ -33,7 +33,7 @@ export function createContactRoutes(deps = {}) {
   const router = Router()
   const brevo = deps.brevo ?? createBrevoAdapter({ env: deps.env ?? process.env })
   const env = deps.env ?? process.env
-  const notifyEmail = env.CONTACT_NOTIFY_EMAIL?.trim() || 'hola@pluarg.com.ar'
+  const notifyEmail = env.CONTACT_NOTIFY_EMAIL?.trim() || 'Maximalstrengthcorp@gmail.com'
 
   router.post('/', publicWriteLimiter, validateBody(contactSchema), async (req, res, next) => {
     try {
