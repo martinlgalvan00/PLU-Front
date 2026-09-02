@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { buildMailtoHref, CONTACT_EMAIL } from '../../lib/contact.js'
 import AnalyticsOptOut from '../ui/AnalyticsOptOut.jsx'
 import BrandLogo from '../ui/BrandLogo.jsx'
 import { openCookiePreferences } from '../../services/cookieConsentService.js'
@@ -57,8 +58,8 @@ export default function Footer({ onNavigate }) {
               <span>{t('footer.actionCta')}</span>
               <ArrowRight size={20} aria-hidden className="motion-icon-shift__target" />
             </button>
-            <a href="mailto:hola@pluarg.com.ar" className="institutional-footer__mail-editorial">
-              hola@pluarg.com.ar
+            <a href={buildMailtoHref()} className="institutional-footer__mail-editorial">
+              {CONTACT_EMAIL}
             </a>
           </div>
         </div>

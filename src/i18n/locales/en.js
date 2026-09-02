@@ -964,7 +964,7 @@ export default {
     errorDesc: 'Try again in a moment, or write to us directly at {{email}}.',
     errorRetry: 'Retry',
     sidebarTitle: 'Contact details',
-    sidebarEmail: 'hola@pluarg.com.ar',
+    sidebarEmail: 'Maximalstrengthcorp@gmail.com',
     sidebarLocation: 'Buenos Aires, Argentina',
     sidebarResponse: '24–48 business hours',
     sidebarNote:
