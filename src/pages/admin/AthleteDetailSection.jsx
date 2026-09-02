@@ -18,7 +18,7 @@ import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { ATHLETE_FILTER_STATUSES, PAYMENT_METHODS } from '../../lib/constants.js'
 import { money } from '../../lib/format.js'
 import { actorLabel, formatStateDateTime } from '../../lib/stateProvenance.js'
-import { canValidateManualOrder } from '../../services/paymentValidationService.js'
+import { canApproveManualOrder } from '../../services/paymentValidationService.js'
 import {
   findAthleteStateDivergences,
   isPlaceholderReason,
@@ -563,7 +563,7 @@ export default function AthleteDetailSection({
                     <PaymentValidationAction
                       athlete={athlete}
                       detail={[row.concept, row.reference].filter(Boolean).join(' · ')}
-                      disabled={!canValidatePayments || !canValidateManualOrder(row)}
+                      disabled={!canValidatePayments || !canApproveManualOrder(row)}
                       onApprove={onApprovePayment}
                       onReject={onRejectPayment}
                       order={row}

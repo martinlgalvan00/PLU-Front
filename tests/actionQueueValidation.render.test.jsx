@@ -110,7 +110,7 @@ describe('ActionQueue — Validar abre modal de revisión', () => {
     await waitFor(() => {
       expect(onApprovePayment).toHaveBeenCalledWith('p2', {
         overrideReason: 'Verificado en extracto bancario del 30/08.',
-      })
+    })
     })
   })
 

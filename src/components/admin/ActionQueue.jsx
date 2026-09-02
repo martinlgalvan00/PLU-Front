@@ -89,8 +89,8 @@ function QueueItemRow({
   const hasPrimaryAction = Boolean(
     canEdit &&
       ((item.paymentId &&
-        item.method === 'manual_link' &&
-        (hasProof || item.cashAtPitbull || canOverrideWithoutProof)) ||
+         item.method === 'manual_link' &&
+         (hasProof || item.cashAtPitbull || canOverrideWithoutProof)) ||
         (item.orderId && item.provider === 'manual' && hasProof)),
   )
 

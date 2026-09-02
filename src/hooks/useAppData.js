@@ -34,6 +34,7 @@ import {
   updateStaffUserStatusRequest,
 } from '../lib/api.js'
 import { DEFAULT_FORM } from '../lib/constants.js'
+import { normalizeAdminFacetValue } from '../lib/adminPeopleFilters.js'
 import { env } from '../config/env.js'
 import { sessionDisplayName } from '../lib/format.js'
 import { markSignedOut, markSignedIn } from '../lib/sessionNotice.js'
@@ -312,6 +313,8 @@ export function useAppData() {
     status: 'all',
     event: 'all',
     affiliationStatus: 'all',
+    gym: 'all',
+    division: 'all',
     query: '',
     createdAtRange: { from: '', to: '' },
   })
@@ -1123,6 +1126,14 @@ export function useAppData() {
         !filters.affiliationStatus ||
         filters.affiliationStatus === 'all' ||
         registration.athlete?.status === filters.affiliationStatus
+      const gymMatch =
+        !filters.gym ||
+        filters.gym === 'all' ||
+        normalizeAdminFacetValue(registration.athlete?.gym) === filters.gym
+      const divisionMatch =
+        !filters.division ||
+        filters.division === 'all' ||
+        normalizeAdminFacetValue(registration.division) === filters.division
       const dateMatch = matchesDateRange(registration.createdAt, filters.createdAtRange)
       const query = filters.query.trim().toLowerCase()
       const queryMatch =
@@ -1139,7 +1150,7 @@ export function useAppData() {
         // resuelve el caso está en la observación y no en ningún otro campo de
         // la fila. Sin esto había que abrir inscripción por inscripción.
         registration.manualOverride?.reason?.toLowerCase().includes(query)
-      return statusMatch && eventMatch && affiliationMatch && dateMatch && queryMatch
+      return statusMatch && eventMatch && affiliationMatch && gymMatch && divisionMatch && dateMatch && queryMatch
     })
   }, [enrichedRegistrations, filters, gatePendingIds])
 
