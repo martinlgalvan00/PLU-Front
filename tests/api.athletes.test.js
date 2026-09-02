@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createApp } from '../server/app.js'
 import { HttpError } from '../server/lib/errors.js'
 import { hashPassword } from '../server/services/passwordService.js'
@@ -64,10 +64,12 @@ function createPrismaDouble(seedUsers) {
 // endpoint. Registra las llamadas para verificar id y actor.
 function createAthleteRepoDouble() {
   const calls = []
+  const updateCalls = []
   const visibilityCalls = []
   const adminDataScopes = []
   return {
     calls,
+    updateCalls,
     visibilityCalls,
     adminDataScopes,
     adminDataRevision: async () => '1:2026-01-01T00:00:00.000Z|skip|skip|1:2026-01-01T00:00:00.000Z',
@@ -95,6 +97,15 @@ function createAthleteRepoDouble() {
       return {
         id: athleteId,
         removed: { checkIns: 0, memberships: 1, registrations: 1, paymentOrders: 1 },
+      }
+    },
+    updateAthleteAdmin: async (athleteId, patch, actor) => {
+      updateCalls.push({ athleteId, patch, actor })
+      return {
+        id: athleteId,
+        full_name: 'Atleta visible',
+        gym: patch.gym ?? 'Gimnasio anterior',
+        status: patch.status ?? 'registrado',
       }
     },
     setRegistrationPublicVisibility: async (registrationId, publicVisible, actor) => {
@@ -221,6 +232,89 @@ describe('borrado de atletas (DELETE /api/athletes/admin/:athleteId)', () => {
 
       expect(response.status).toBe(401)
       expect(athleteRepository.calls).toHaveLength(0)
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('edición administrativa de atletas (PATCH /api/athletes/admin/:athleteId)', () => {
+  it('permite a un admin corregir el gimnasio y registra el actor', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/athletes/admin/${ATHLETE_ID}`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ gym: 'Pitbull Barbell Club' }),
+      })
+      const body = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(body.athlete).toMatchObject({
+        id: ATHLETE_ID,
+        gym: 'Pitbull Barbell Club',
+      })
+      expect(athleteRepository.updateCalls).toEqual([
+        {
+          athleteId: ATHLETE_ID,
+          patch: { gym: 'Pitbull Barbell Club' },
+          actor: 'usr-admin:admin@pluarg.test',
+        },
+      ])
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('rechaza un gimnasio vacío antes de tocar el repositorio', async () => {
+    const prisma = createPrismaDouble([await buildAdmin('admin_maximal')])
+    const athleteRepository = createAthleteRepoDouble()
+    const target = listen(createApp({ prisma, athleteRepository, env: ENV }))
+
+    try {
+      const cookie = await loginAdmin(target.url)
+      const response = await fetch(`${target.url}/api/athletes/admin/${ATHLETE_ID}`, {
+        method: 'PATCH',
+        headers: authHeaders(cookie),
+        body: JSON.stringify({ gym: '   ' }),
+      })
+
+      expect(response.status).toBe(400)
+      expect(athleteRepository.updateCalls).toHaveLength(0)
+    } finally {
+      await target.close()
+    }
+  })
+})
+
+describe('catÃ¡logo de gimnasios (GET /api/athletes/gyms)', () => {
+  it('lee los nombres de los atletas actuales de Supabase y los devuelve para autocomplete', async () => {
+    const select = vi.fn().mockResolvedValue({
+      data: [
+        { gym: 'Pitbull' },
+        { gym: 'Pitbull Barbell Club' },
+        { gym: 'Iron Temple' },
+        { gym: null },
+      ],
+      error: null,
+    })
+    const supabaseAdmin = { from: vi.fn(() => ({ select })) }
+    const prisma = { organization: { findFirst: vi.fn() } }
+    const target = listen(createApp({ prisma, supabaseAdmin, env: ENV }))
+
+    try {
+      const response = await fetch(`${target.url}/api/athletes/gyms`)
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({
+        gyms: ['Iron Temple', 'Pitbull Barbell Club'],
+      })
+      expect(supabaseAdmin.from).toHaveBeenCalledWith('athletes')
+      expect(select).toHaveBeenCalledWith('gym')
     } finally {
       await target.close()
     }

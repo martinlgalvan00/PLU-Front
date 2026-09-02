@@ -190,3 +190,10 @@ export function findUniqueCoreMatch(options, query) {
   }
   return null
 }
+
+export function isNewGymName(options, query) {
+  const value = String(query ?? '').trim()
+  if (!value) return false
+  const exactMatch = (options ?? []).some((option) => normalizeGym(option) === normalizeGym(value))
+  return !exactMatch && !findUniqueCoreMatch(options, value)
+}

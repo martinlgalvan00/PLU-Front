@@ -2133,7 +2133,8 @@ export default {
     rejectedByLabel: 'Previous rejection',
     proofPending: 'File pending',
     noProofTitle: 'No receipt uploaded',
-    noProofLead: 'A bank transfer can only be credited after a receipt is attached and reviewed.',
+    noProofLead:
+      'You can approve it if you verified the payment. The order will be audited as a manual approval without a receipt.',
     proofLoading: 'Loading receipt…',
     proofErrorTitle: 'Could not load the receipt',
     proofError: "Couldn't open the receipt. Try again.",

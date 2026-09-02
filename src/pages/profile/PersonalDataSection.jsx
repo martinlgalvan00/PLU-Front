@@ -12,7 +12,9 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { AutocompleteField, DateField, Field, Select } from '../../components/ui/FormFields.jsx'
+import GymNameConfirmationDialog from '../../components/ui/GymNameConfirmationDialog.jsx'
 import { formatIdentityDocumentId, formatShortDate, initials } from '../../lib/format.js'
+import { isNewGymName } from '../../lib/gymNormalize.js'
 import { isProfileComplete } from '../../lib/athleteProfile.js'
 import { getFormOptions } from '../../lib/formOptions.js'
 import { fetchGyms } from '../../services/athleteApi.js'
@@ -63,10 +65,25 @@ export default function PersonalDataSection({
     }
   })
   const [gyms, setGyms] = useState([])
+  const [gymsReady, setGymsReady] = useState(false)
+  const [pendingGymConfirmation, setPendingGymConfirmation] = useState('')
+  const pendingGymSaveRef = useRef(false)
+  const confirmedGymNameRef = useRef('')
   const fileInputRef = useRef(null)
 
   useEffect(() => {
-    fetchGyms().then(setGyms).catch(console.error)
+    let mounted = true
+    fetchGyms()
+      .then((values) => {
+        if (mounted) setGyms(values)
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (mounted) setGymsReady(true)
+      })
+    return () => {
+      mounted = false
+    }
   }, [])
 
   // Libera el object URL del preview anterior cada vez que cambia o al desmontar.
@@ -152,11 +169,43 @@ export default function PersonalDataSection({
   function changeField(event) {
     const { name, value } = event.target
     setForm((current) => ({ ...current, [name]: value }))
+    if (name === 'gym' && confirmedGymNameRef.current !== String(value ?? '').trim()) {
+      confirmedGymNameRef.current = ''
+    }
     setMessage('')
   }
 
   function toggleGroup(group) {
     setOpenGroups((current) => ({ ...current, [group]: !current[group] }))
+  }
+
+  function ensureGymNameConfirmed() {
+    const gymName = String(form.gym ?? '').trim()
+    if (
+      !gymsReady ||
+      !isNewGymName(gyms, gymName) ||
+      confirmedGymNameRef.current === gymName
+    ) {
+      return true
+    }
+    pendingGymSaveRef.current = true
+    setPendingGymConfirmation(gymName)
+    return false
+  }
+
+  function cancelGymNameConfirmation() {
+    pendingGymSaveRef.current = false
+    setPendingGymConfirmation('')
+    window.requestAnimationFrame(() => document.querySelector('[name="gym"]')?.focus())
+  }
+
+  function confirmGymName() {
+    const gymName = pendingGymConfirmation
+    const shouldSave = pendingGymSaveRef.current
+    confirmedGymNameRef.current = gymName
+    pendingGymSaveRef.current = false
+    setPendingGymConfirmation('')
+    if (shouldSave) void handleSubmit({ preventDefault() {} })
   }
 
   async function handleSubmit(event) {
@@ -201,6 +250,8 @@ export default function PersonalDataSection({
       }))
       return
     }
+
+    if (!ensureGymNameConfirmed()) return
 
     setErrors({})
     setSaving(true)
@@ -644,6 +695,13 @@ export default function PersonalDataSection({
           )}
         </div>
       </form>
+      {pendingGymConfirmation ? (
+        <GymNameConfirmationDialog
+          gymName={pendingGymConfirmation}
+          onCancel={cancelGymNameConfirmation}
+          onConfirm={confirmGymName}
+        />
+      ) : null}
     </section>
   )
 }

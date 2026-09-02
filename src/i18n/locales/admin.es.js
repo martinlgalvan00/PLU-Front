@@ -2174,7 +2174,7 @@ export default {
     proofPending: 'Archivo pendiente',
     noProofTitle: 'Sin comprobante cargado',
     noProofLead:
-      'La transferencia se puede acreditar sólo después de adjuntar y revisar un comprobante.',
+      'Podés aprobarla si verificaste el ingreso. La orden quedará auditada como aprobación manual sin comprobante.',
     proofLoading: 'Cargando comprobante…',
     proofErrorTitle: 'No se pudo cargar el comprobante',
     proofError: 'No se pudo abrir el comprobante. Intentá de nuevo.',

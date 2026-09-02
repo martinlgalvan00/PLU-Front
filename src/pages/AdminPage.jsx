@@ -400,6 +400,7 @@ export default function AdminPage({
               filters={filters}
               filteredRegistrations={filteredRegistrations}
               gatePendingIds={gatePendingIds}
+              athletes={athletes}
               payments={payments}
               registrations={registrations}
               registrationsCount={registrations.length}

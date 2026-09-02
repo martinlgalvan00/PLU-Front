@@ -45,6 +45,10 @@ import {
   resolveStateBacking,
 } from '../../services/stateCoherenceService.js'
 import { findMatchingView, useAdminSavedFilterViews } from '../../hooks/useAdminSavedFilterViews.js'
+import {
+  buildAdminFacetOptions,
+  normalizeAdminFacetValue,
+} from '../../lib/adminPeopleFilters.js'
 
 // Una inscripción cancelada o todavía en borrador no cuenta como "inscripto
 // a un torneo" — el socio no tiene ahí una participación real en curso.
@@ -85,6 +89,8 @@ export default function MembershipsSection({
   }, [])
   const [expiring, setExpiring] = useState('all')
   const [registeredToTournament, setRegisteredToTournament] = useState('all')
+  const [gym, setGym] = useState('all')
+  const [division, setDivision] = useState('all')
   const { views: savedViews, saveView, removeView } = useAdminSavedFilterViews('memberships')
   // Credencial abierta en modal. Guardamos id + nombre para el encabezado
   // sin esperar al fetch; solo una abierta a la vez.
@@ -235,22 +241,48 @@ export default function MembershipsSection({
     [tournamentRegisteredCount, t],
   )
 
+  const gymOptions = useMemo(
+    () =>
+      buildAdminFacetOptions(
+        projectedMemberships,
+        (item) => item.athlete?.gym,
+        t('admin.filters.allGyms'),
+      ),
+    [projectedMemberships, t],
+  )
+  const divisionOptions = useMemo(
+    () =>
+      buildAdminFacetOptions(
+        projectedMemberships,
+        (item) => item.athlete?.division,
+        t('admin.filters.allDivisions'),
+      ),
+    [projectedMemberships, t],
+  )
+
   const savedViewSnapshot = useMemo(
-    () => ({ query, status, expiring, registeredToTournament }),
-    [query, status, expiring, registeredToTournament],
+    () => ({ query, status, expiring, registeredToTournament, gym, division }),
+    [query, status, expiring, registeredToTournament, gym, division],
   )
   const activeSavedView = useMemo(
     () => findMatchingView(savedViews, savedViewSnapshot),
     [savedViews, savedViewSnapshot],
   )
   const hasFiltersToSave =
-    query.trim() !== '' || status !== 'all' || expiring !== 'all' || registeredToTournament !== 'all'
+    query.trim() !== '' ||
+    status !== 'all' ||
+    expiring !== 'all' ||
+    registeredToTournament !== 'all' ||
+    gym !== 'all' ||
+    division !== 'all'
 
   function applySavedView(view) {
     setQuery(view.snapshot.query ?? '')
     setStatus(view.snapshot.status ?? 'all')
     setExpiring(view.snapshot.expiring ?? 'all')
     setRegisteredToTournament(view.snapshot.registeredToTournament ?? 'all')
+    setGym(view.snapshot.gym ?? 'all')
+    setDivision(view.snapshot.division ?? 'all')
   }
 
   function clearSavedView() {
@@ -258,6 +290,8 @@ export default function MembershipsSection({
     setStatus('all')
     setExpiring('all')
     setRegisteredToTournament('all')
+    setGym('all')
+    setDivision('all')
   }
 
   const rows = useMemo(
@@ -267,7 +301,14 @@ export default function MembershipsSection({
         status,
         expiring,
         registeredToTournament,
-      }).map((item) => ({
+      })
+        .filter((item) => {
+          const gymMatch = gym === 'all' || normalizeAdminFacetValue(item.athlete?.gym) === gym
+          const divisionMatch =
+            division === 'all' || normalizeAdminFacetValue(item.athlete?.division) === division
+          return gymMatch && divisionMatch
+        })
+        .map((item) => ({
         id: item.id,
         athlete: item.athlete?.fullName ?? '—',
         athleteId: item.athleteId,
@@ -297,7 +338,7 @@ export default function MembershipsSection({
           MEMBERSHIP_LIFECYCLE.SCHEDULED,
         ].includes(item.lifecycle),
       })),
-    [projectedMemberships, payments, query, status, expiring, registeredToTournament],
+    [projectedMemberships, payments, query, status, expiring, registeredToTournament, gym, division],
   )
 
   return (
@@ -353,6 +394,22 @@ export default function MembershipsSection({
             onChange: setRegisteredToTournament,
             options: tournamentOptions,
             variant: 'toggle',
+          },
+          {
+            id: 'gym',
+            label: t('admin.filters.gym'),
+            value: gym,
+            onChange: setGym,
+            options: gymOptions,
+            variant: 'select',
+          },
+          {
+            id: 'division',
+            label: t('admin.filters.division'),
+            value: division,
+            onChange: setDivision,
+            options: divisionOptions,
+            variant: 'select',
           },
         ]}
         onQueryChange={setQuery}

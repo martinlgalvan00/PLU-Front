@@ -107,7 +107,7 @@ const SERVICE_ROLE_ONLY = [
   'public.get_athlete_snapshot(uuid)',
   'public.list_athlete_admin_data()',
   'public.create_membership_order_v3(uuid,text,text,text)',
-  'public.approve_athlete_payment_order(uuid,text)',
+  'public.approve_athlete_payment_order(uuid,text,text)',
   'public.apply_mercado_pago_payment(uuid,text,text,int,text,text,text,jsonb)',
   'public.staff_get_membership_by_code_or_token(text,text)',
 ]
