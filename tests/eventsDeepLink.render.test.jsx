@@ -106,4 +106,48 @@ describe('deep-link de eventos con datos asincronos', () => {
     expect(titles).toEqual([pitbull.title])
     expect(container.textContent).not.toMatch(/\btest\b/i)
   })
+
+  it('muestra pesajes del evento y los oculta si no hay ventanas', async () => {
+    const withWindows = {
+      ...pitbull,
+      weighInWindows: [
+        {
+          id: 'weighin-1',
+          label: 'Sábado',
+          date: '2026-12-12',
+          startsAt: '2026-12-12T07:00',
+          endsAt: '2026-12-12T08:30',
+          note: 'Último llamado.',
+          sortOrder: 0,
+        },
+      ],
+    }
+
+    const emptyRender = render(
+      <I18nProvider>
+        <EventsPage events={[pitbull]} onNavigate={vi.fn()} onSelectEvent={vi.fn()} session={null} />
+      </I18nProvider>,
+    )
+    expect(emptyRender.container.querySelector('.events-detail__weighins')).toBeNull()
+    emptyRender.unmount()
+
+    const { container } = render(
+      <I18nProvider>
+        <EventsPage
+          events={[withWindows]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+          session={null}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.events-detail__weighins')).not.toBeNull()
+    })
+    expect(container.querySelector('.events-detail__weighins')?.textContent).toContain('Sábado')
+    expect(container.querySelector('.events-detail__weighins')?.textContent).toContain(
+      '07:00 — 08:30',
+    )
+  })
 })

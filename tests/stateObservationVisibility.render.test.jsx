@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 import AthleteDetailSection from '../src/pages/admin/AthleteDetailSection.jsx'
@@ -150,6 +150,10 @@ describe('la observación de una inscripción se lee donde se opera', () => {
 })
 
 describe('la afiliación dice por qué está en el estado que está', () => {
+  const originalInnerWidth = window.innerWidth
+  const SWITCH_NOTE =
+    'Switch operativo: el cobro MP de afiliación ($85.000, MORD-f9f6a33969dd24ed) se aplica a la inscripción Pitbull; se da de baja la afiliación.'
+
   const membership = {
     id: 'd5fe8171-fd58-4906-a3bd-2d08f5c66073',
     athleteId: '57220358-ed7b-44ee-8c59-93287bda9a75',
@@ -167,6 +171,15 @@ describe('la afiliación dice por qué está en el estado que está', () => {
     },
   }
 
+  afterEach(() => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    })
+    window.dispatchEvent(new Event('resize'))
+  })
+
   it('la lista de Afiliaciones muestra el motivo de una activación manual', () => {
     render(
       <I18nProvider>
@@ -177,6 +190,52 @@ describe('la afiliación dice por qué está en el estado que está', () => {
     expect(reasons().some((text) => text.includes('A mano'))).toBe(true)
     expect(reasons().some((text) => text.includes('maximalstrengthcorp@gmail.com'))).toBe(true)
     expect(notes()).toContain('Pagó por transferencia el 20/08, comprobante en el grupo.')
+  })
+
+  it('en la card compacta el motivo largo queda dentro de la fila, no al lado del nombre', async () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      writable: true,
+      value: 480,
+    })
+    window.dispatchEvent(new Event('resize'))
+
+    const { container } = render(
+      <I18nProvider>
+        <MembershipsSection
+          canManage
+          memberships={[
+            {
+              ...membership,
+              athlete: { fullName: 'Iara Sirica', documentId: '30111222', gym: 'Iron Method' },
+              status: 'cancelada',
+              manualOverride: {
+                ...OVERRIDE,
+                status: 'cancelada',
+                channel: 'error_correction',
+                reason: SWITCH_NOTE,
+                by: 'agus-switch',
+              },
+            },
+          ]}
+        />
+      </I18nProvider>,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.data-table-card--compact')).toBeTruthy()
+    })
+
+    const card = container.querySelector('.data-table-card--compact')
+    const note = card?.querySelector('.admin-state-cell__note--written')
+    const provenance = card?.querySelector('.admin-state-cell__provenance')
+    const head = card?.querySelector('.admin-state-cell__head')
+
+    expect(note?.textContent).toBe(SWITCH_NOTE)
+    expect(provenance).toBeTruthy()
+    expect(head).toBeTruthy()
+    expect(card.contains(provenance)).toBe(true)
+    expect(reasons().some((text) => text.includes('A mano'))).toBe(true)
   })
 })
 

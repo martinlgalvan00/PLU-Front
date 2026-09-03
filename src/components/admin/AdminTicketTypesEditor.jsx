@@ -1,15 +1,8 @@
-import { CalendarDays, HelpCircle, Plus, Tag, Trash2 } from 'lucide-react'
+import { HelpCircle, Plus, Tag, Trash2 } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
-
-function reindexDays(days) {
-  return days.map((day, index) => ({ ...day, dayIndex: index }))
-}
-
-function createEmptyDay(index) {
-  return { dayIndex: index, label: '', date: '' }
-}
+import AdminEventDaysEditor from './AdminEventDaysEditor.jsx'
 
 function createEmptyTicketType(index) {
   return {
@@ -24,45 +17,22 @@ function createEmptyTicketType(index) {
 }
 
 /**
- * Catálogo de días del evento + tipos de entrada, configurable por evento.
- * Reemplaza el enum fijo day1/day2/both: un evento puede durar más de 2
- * días, y cada tipo de entrada puede incluir addons sin cargo ("packs").
+ * Tipos de entrada del evento. Los días se cargan en Estructura; acá cada tipo
+ * elige a cuáles da acceso. En el alta completa (sin consola) todavía se
+ * pueden editar los días in-place.
  */
 export default function AdminTicketTypesEditor({
   addonsCatalog = [],
+  allowEditDays = false,
   canEdit,
   errors = {},
   eventDays = [],
   onChangeEventDays,
   onChangeTicketTypes,
+  onOpenStructure,
   ticketTypes = [],
 }) {
   const { locale, t } = useI18n()
-
-  function addDay() {
-    onChangeEventDays(reindexDays([...eventDays, createEmptyDay(eventDays.length)]))
-  }
-
-  function removeDay(index) {
-    const remainingDays = eventDays.filter((_, i) => i !== index)
-    const nextDays = reindexDays(remainingDays)
-    const nextIndexByPreviousIndex = new Map(
-      remainingDays.map((day, nextIndex) => [day.dayIndex, nextIndex]),
-    )
-    onChangeEventDays(nextDays)
-    onChangeTicketTypes(
-      ticketTypes.map((type) => ({
-        ...type,
-        dayIndexes: (type.dayIndexes ?? [])
-          .map((dayIndex) => nextIndexByPreviousIndex.get(dayIndex))
-          .filter((dayIndex) => dayIndex !== undefined),
-      })),
-    )
-  }
-
-  function patchDay(index, field, value) {
-    onChangeEventDays(eventDays.map((day, i) => (i === index ? { ...day, [field]: value } : day)))
-  }
 
   function addTicketType() {
     onChangeTicketTypes([...ticketTypes, createEmptyTicketType(ticketTypes.length)])
@@ -94,88 +64,16 @@ export default function AdminTicketTypesEditor({
 
   return (
     <>
-      <section className="admin-event-form__block admin-ticket-types">
-        <header className="admin-event-form__block-head">
-          <h3 className="admin-event-form__block-title">
-            <CalendarDays size={13} aria-hidden />
-            {t('admin.eventEditor.supabase.ticketDaysTitle')}
-          </h3>
-          <p className="admin-event-form__block-lead">
-            {t('admin.eventEditor.supabase.ticketDaysHint')}
-          </p>
-        </header>
-
-        {eventDays.length === 0 ? (
-          <p className="admin-ticket-types__empty">
-            {t('admin.eventEditor.supabase.ticketDaysEmpty')}
-          </p>
-        ) : (
-          <ul className="admin-ticket-types__day-list">
-            {eventDays.map((day, index) => (
-              <li key={index} className="admin-ticket-types__day-item">
-                <label className="admin-event-form__field">
-                  <span>{t('admin.eventEditor.supabase.ticketDayLabel')}</span>
-                  <input
-                    disabled={!canEdit}
-                    type="text"
-                    value={day.label}
-                    name={`eventDays.${index}.label`}
-                    data-field={`eventDays.${index}.label`}
-                    aria-invalid={Boolean(errors[`eventDays.${index}.label`])}
-                    onChange={(event) => patchDay(index, 'label', event.target.value)}
-                    placeholder={t('admin.eventEditor.supabase.ticketDayLabelPlaceholder')}
-                  />
-                  {errors[`eventDays.${index}.label`] ? (
-                    <small className="admin-event-form__error" role="alert">
-                      {errors[`eventDays.${index}.label`]}
-                    </small>
-                  ) : null}
-                </label>
-                <label className="admin-event-form__field">
-                  <span>{t('admin.eventEditor.supabase.ticketDayDate')}</span>
-                  <input
-                    disabled={!canEdit}
-                    type="date"
-                    value={day.date ?? ''}
-                    name={`eventDays.${index}.date`}
-                    data-field={`eventDays.${index}.date`}
-                    aria-invalid={Boolean(errors[`eventDays.${index}.date`])}
-                    onChange={(event) => patchDay(index, 'date', event.target.value)}
-                  />
-                  {errors[`eventDays.${index}.date`] ? (
-                    <small className="admin-event-form__error" role="alert">
-                      {errors[`eventDays.${index}.date`]}
-                    </small>
-                  ) : null}
-                </label>
-                {canEdit ? (
-                  <button
-                    type="button"
-                    className="admin-ticket-types__remove"
-                    onClick={() => removeDay(index)}
-                    aria-label={t('admin.eventEditor.supabase.ticketDayRemove', {
-                      number: index + 1,
-                    })}
-                  >
-                    <Trash2 size={14} aria-hidden />
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {canEdit ? (
-          <Button
-            className="btn--small btn--ghost admin-ticket-types__add"
-            type="button"
-            onClick={addDay}
-          >
-            <Plus size={14} aria-hidden />
-            {t('admin.eventEditor.supabase.ticketDayAdd')}
-          </Button>
-        ) : null}
-      </section>
+      {allowEditDays ? (
+        <AdminEventDaysEditor
+          canEdit={canEdit}
+          errors={errors}
+          eventDays={eventDays}
+          onChangeEventDays={onChangeEventDays}
+          onChangeTicketTypes={onChangeTicketTypes}
+          ticketTypes={ticketTypes}
+        />
+      ) : null}
 
       <section className="admin-event-form__block admin-ticket-types">
         <header className="admin-event-form__block-head">
@@ -196,6 +94,19 @@ export default function AdminTicketTypesEditor({
             </span>
           </h3>
         </header>
+
+        {!allowEditDays && eventDays.length === 0 ? (
+          <div className="admin-ticket-types__need-days">
+            <p className="admin-ticket-types__empty">
+              {t('admin.eventEditor.supabase.ticketTypesNeedDays')}
+            </p>
+            {onOpenStructure ? (
+              <Button className="btn--small btn--ghost" type="button" onClick={onOpenStructure}>
+                {t('admin.eventEditor.supabase.ticketTypesNeedDaysCta')}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
 
         {ticketTypes.length === 0 ? (
           <p className="admin-ticket-types__empty">

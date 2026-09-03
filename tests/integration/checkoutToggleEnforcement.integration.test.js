@@ -118,6 +118,7 @@ describe('interruptores de canal manual y validación por HTTP', () => {
         ends_at: new Date(Date.now() + 2 * 86_400_000).toISOString(),
         published: true,
         status: 'cupos_limitados',
+        rules: { ticketsEnabled: true },
       })
       .select('id')
       .single()

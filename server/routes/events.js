@@ -134,6 +134,16 @@ const ticketTypeSchema = z.object({
   includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
 })
 
+const weighInWindowSchema = z.object({
+  id: z.string().trim().min(1).max(80).optional(),
+  label: z.string().trim().min(1).max(80),
+  date: optionalDate,
+  startsAt: optionalDateTime,
+  endsAt: optionalDateTime,
+  note: z.string().trim().max(160).optional(),
+  sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
+})
+
 export const eventSchema = z
   .object({
     id: z.string().uuid().optional(),
@@ -171,6 +181,17 @@ export const eventSchema = z
     ticketSalesClosesAt: optionalDateTime,
     eventDays: z.array(eventDaySchema).max(31).optional(),
     ticketTypes: z.array(ticketTypeSchema).max(50).optional(),
+    weighInWindows: z.array(weighInWindowSchema).max(60).optional(),
+    publicSurface: z
+      .object({
+        calendar: z.boolean().optional(),
+        weighIns: z.boolean().optional(),
+        livestream: z.boolean().optional(),
+        experience: z.boolean().optional(),
+        categories: z.boolean().optional(),
+        location: z.boolean().optional(),
+      })
+      .optional(),
     liveStreamUrl: z
       .string()
       .trim()
@@ -257,6 +278,50 @@ export const eventSchema = z
           code: z.ZodIssueCode.custom,
           path: ['ticketTypes', index, 'includedAddonIds'],
           message: 'El tipo de entrada referencia un beneficio inexistente.',
+        })
+      }
+    }
+
+    if (event.pricing.ticketsEnabled === true) {
+      if (!(event.eventDays ?? []).length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['eventDays'],
+          message: 'La venta de entradas necesita al menos un día del evento.',
+        })
+      }
+      const sellableTypes = (event.ticketTypes ?? []).filter(
+        (ticketType) => ticketType.active !== false && Number(ticketType.price) > 0,
+      )
+      if (sellableTypes.length === 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTypes'],
+          message: 'La venta de entradas necesita al menos un tipo activo con precio.',
+        })
+      }
+    }
+
+    for (const [index, window] of (event.weighInWindows ?? []).entries()) {
+      if (!window.startsAt) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'startsAt'],
+          message: 'Cada franja de pesaje necesita horario de apertura.',
+        })
+      }
+      if (!window.endsAt) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'endsAt'],
+          message: 'Cada franja de pesaje necesita horario de cierre.',
+        })
+      }
+      if (window.startsAt && window.endsAt && window.startsAt >= window.endsAt) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'endsAt'],
+          message: 'El cierre del pesaje tiene que ser después de la apertura.',
         })
       }
     }
@@ -531,6 +596,23 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }),
           'No se pudo guardar el evento.',
         )
+
+        const publicSurface = {
+          calendar: pEvent.publicSurface?.calendar !== false,
+          weighIns: pEvent.publicSurface?.weighIns !== false,
+          livestream: pEvent.publicSurface?.livestream !== false,
+          experience: pEvent.publicSurface?.experience !== false,
+          categories: pEvent.publicSurface?.categories !== false,
+          location: pEvent.publicSurface?.location !== false,
+        }
+        assertSupabaseResult(
+          await client.rpc('staff_merge_event_public_surface', {
+            p_slug: pEvent.slug,
+            p_surface: publicSurface,
+          }),
+          'No se pudo guardar la superficie pública del evento.',
+        )
+
         const events = await readEvents(client)
         const event = events.find((candidate) => candidate.id === savedEvent.id)
         if (!event) {

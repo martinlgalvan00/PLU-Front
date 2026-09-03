@@ -159,7 +159,7 @@ describe('EventsSection — meets abiertos en el listado', () => {
     const access = dialog.querySelector('.admin-event-state__access')
     expect(access).not.toBeNull()
     expect(
-      access.querySelector('.admin-filter-chip[aria-pressed="true"]').textContent,
+      access.querySelector('[role="radio"][aria-pressed="true"]')?.textContent,
     ).toContain('Abierto')
   })
 })

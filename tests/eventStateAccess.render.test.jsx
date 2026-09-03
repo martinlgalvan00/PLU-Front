@@ -38,8 +38,8 @@ function renderControl(event = EVENT, onSetState = vi.fn()) {
 
 function accessChip(name) {
   const group = document.querySelector('.admin-event-state__access')
-  return [...group.querySelectorAll('.admin-filter-chip')].find((chip) =>
-    name.test(chip.textContent),
+  return [...group.querySelectorAll('[role="radio"]')].find((chip) =>
+    name.test(chip.querySelector('strong')?.textContent ?? ''),
   )
 }
 

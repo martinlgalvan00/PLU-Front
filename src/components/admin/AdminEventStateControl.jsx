@@ -5,7 +5,6 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
-  ShieldCheck,
   Unlock,
   UserCheck,
 } from 'lucide-react'
@@ -101,14 +100,6 @@ export default function AdminEventStateControl({
         published: draft.published,
       }),
     [draft.published, draft.status, event],
-  )
-
-  const accessOptions = useMemo(
-    () => [
-      ['members', t('admin.eventState.accessMembers')],
-      ['open', t('admin.eventState.accessOpen')],
-    ],
-    [t],
   )
 
   const statusOptions = useMemo(() => {
@@ -310,37 +301,39 @@ export default function AdminEventStateControl({
           >
             {t('admin.eventState.accessLabel')}
           </span>
-          <div className="admin-event-state__access">
-            <AdminFilterChipGroup
-              compact
-              inline
-              disabled={!canEdit || busy}
-              id={`event-access-${event?.id ?? 'none'}`}
-              ariaLabel={t('admin.eventState.accessLabel')}
-              onChange={handleAccessChange}
-              options={accessOptions}
-              value={draft.requiresMembership ? 'members' : 'open'}
-            />
-
-            <p
-              className="admin-event-state__note admin-event-state__note--muted admin-event-state__note--caption"
-              title={
-                draft.requiresMembership
-                  ? t('admin.eventState.accessMembersNote')
-                  : t('admin.eventState.accessOpenNote')
-              }
-            >
-              {draft.requiresMembership ? (
-                <ShieldCheck size={12} aria-hidden />
-              ) : (
-                <Unlock size={12} aria-hidden />
-              )}
-              <span>
-                {draft.requiresMembership
-                  ? t('admin.eventState.accessMembersNote')
-                  : t('admin.eventState.accessOpenNote')}
-              </span>
-            </p>
+          <div
+            className="admin-event-state__access"
+            role="radiogroup"
+            aria-labelledby={`event-access-${event?.id ?? 'none'}-row`}
+          >
+            {[
+              {
+                id: 'members',
+                label: t('admin.eventState.accessMembers'),
+                note: t('admin.eventState.accessMembersNote'),
+                selected: draft.requiresMembership,
+              },
+              {
+                id: 'open',
+                label: t('admin.eventState.accessOpen'),
+                note: t('admin.eventState.accessOpenNote'),
+                selected: !draft.requiresMembership,
+              },
+            ].map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                className={`admin-event-state__access-option${option.selected ? ' is-active' : ''}`}
+                aria-checked={option.selected}
+                aria-pressed={option.selected}
+                disabled={!canEdit || busy}
+                onClick={() => handleAccessChange(option.id)}
+              >
+                <strong>{option.label}</strong>
+                <small>{option.note}</small>
+              </button>
+            ))}
 
             {draft.requiresMembership && registered > 0 ? (
               <p className="admin-event-state__note admin-event-state__note--info">

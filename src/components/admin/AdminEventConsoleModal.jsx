@@ -21,10 +21,14 @@ import AdminEventTicketAddonReport from './AdminEventTicketAddonReport.jsx'
 import AdminEventTicketInsights from './AdminEventTicketInsights.jsx'
 import StatusPill from '../ui/StatusPill.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
-import { formatDayMonth } from '../../lib/format.js'
+import { formatDayMonth, money } from '../../lib/format.js'
 import { buildEventPagePath } from '../../lib/eventPageRoute.js'
 import { buildSecurityGatePath } from '../../lib/securityGateRoute.js'
 import { TICKETS_PATH } from '../../lib/ticketsRoute.js'
+import {
+  eventPublicSurfaceFromEvent,
+  publicSurfaceModulesForEvent,
+} from '../../lib/eventPublicSurface.js'
 
 /** Venue y sede pueden ser el mismo dato escrito distinto (o exactamente
  * igual): mostrarlos como una sola línea evita la redundancia en la ficha. */
@@ -65,14 +69,17 @@ function joinSummaryParts(parts) {
   return parts.map((part) => String(part ?? '').trim()).filter(Boolean).join(' · ')
 }
 
+function surfaceModuleTitleKey(key) {
+  return `admin.eventEditor.publicSurface${key.charAt(0).toUpperCase()}${key.slice(1)}Title`
+}
+
 const EDIT_SECTIONS = new Set(['basics', 'sales', 'visibility'])
 const FOLD_SECTIONS = new Set(['basics', 'sales', 'visibility', 'structure'])
 
 /**
- * Consola del evento como modal. Datos / Ventas / Publicación / Estructura se
- * expanden in-place (acordeón). El draft del evento vive en el padre; las
- * tandas (Estructura) guardan por su cuenta. La preview queda sticky y sigue
- * al draft mientras se edita.
+ * Consola del evento como modal. Ficha / Sitio / Operación / Actividad.
+ * Datos, Publicación, Ventas y Estructura se expanden in-place. El draft
+ * vive en el padre; las tandas guardan por su cuenta. La preview queda sticky.
  */
 export default function AdminEventConsoleModal({
   canDelete = false,
@@ -89,8 +96,12 @@ export default function AdminEventConsoleModal({
   onOpenZones,
   onSetEventState,
   onToggleSection,
+  onSelectChapter,
+  onTogglePublicModule,
+  onToggleOccupancy,
   open,
   openSection = null,
+  openChapter = null,
   paymentSummary = '',
   previewDraft = null,
   structureEditor = null,
@@ -238,9 +249,80 @@ export default function AdminEventConsoleModal({
         })
       : t('admin.eventConsole.editSalesValue')
 
-  const visibilitySummary = summarySource?.featured
-    ? t('admin.eventConsole.visibilityFeatured')
-    : t('admin.eventConsole.visibilityStandard')
+  const surface = eventPublicSurfaceFromEvent(summarySource ?? event)
+  const surfaceModules = publicSurfaceModulesForEvent(event)
+  const visibilitySummary = joinSummaryParts([
+    summarySource?.featured
+      ? t('admin.eventConsole.visibilityFeatured')
+      : t('admin.eventConsole.visibilityStandard'),
+    t('admin.eventConsole.surfaceSummary', {
+      visible: surfaceModules.filter((module) => surface[module.key]).length,
+      total: surfaceModules.length,
+    }),
+  ])
+
+  const salesChapters = [
+    {
+      id: 'cupo',
+      label: t('admin.eventEditor.salesChapterCapacity'),
+      value: t('admin.eventConsole.registrationsValue', {
+        count: summarySource?.registered ?? event.registered ?? 0,
+        slots: summarySource?.slots ?? event.slots ?? 0,
+      }),
+    },
+    {
+      id: 'prices',
+      label: t('admin.eventEditor.salesChapterPrices'),
+      value: money(summarySource?.pricing?.registration ?? event.pricing?.registration, locale),
+    },
+    {
+      id: 'tickets',
+      label: t('admin.eventEditor.salesChapterTickets'),
+      value: t('admin.eventConsole.ticketsValue', { count: activeTicketTypeCount }),
+    },
+    {
+      id: 'payment',
+      label: t('admin.eventEditor.salesChapterPayment'),
+      value: t('admin.eventConsole.paymentChapterValue'),
+    },
+  ]
+
+  const structureChapters = [
+    {
+      id: 'days',
+      label: t('admin.eventConsole.structureChapterDays'),
+      value: t('admin.eventConsole.structureChapterDaysValue', {
+        count: event.eventDays?.length ?? 0,
+      }),
+    },
+    {
+      id: 'weighIns',
+      label: t('admin.eventConsole.structureChapterWeighIns'),
+      value: t('admin.eventConsole.structureChapterWeighInsValue', {
+        count: event.weighInWindows?.length ?? 0,
+      }),
+    },
+    {
+      id: 'sessions',
+      label: t('admin.eventConsole.structureChapterSessions'),
+      value: t('admin.eventConsole.structureChapterSessionsValue'),
+    },
+  ]
+
+  const siteChapters = [
+    ...publicSurfaceModulesForEvent(event).map((module) => ({
+      id: module.key,
+      kind: 'surface',
+      label: t(surfaceModuleTitleKey(module.key)),
+      on: surface[module.key] === true,
+    })),
+    {
+      id: 'occupancy',
+      kind: 'occupancy',
+      label: t('admin.eventEditor.capacityVisibilityTitle'),
+      on: (summarySource ?? event).capacityProgressPublic !== false,
+    },
+  ]
 
   const editRows = canEdit
     ? [
@@ -265,6 +347,10 @@ export default function AdminEventConsoleModal({
       ]
     : []
 
+  const basicsRow = editRows.find((row) => row.section === 'basics') ?? null
+  const salesRow = editRows.find((row) => row.section === 'sales') ?? null
+  const visibilityRow = editRows.find((row) => row.section === 'visibility') ?? null
+
   function renderEditRow({ section, icon: Icon, label, value }) {
     const expanded = openSection === section
     const Chevron = expanded ? ChevronDown : ChevronRight
@@ -281,6 +367,115 @@ export default function AdminEventConsoleModal({
         <em>{value}</em>
         <Chevron size={14} aria-hidden className="admin-event-console__row-chevron" />
       </button>
+    )
+  }
+
+  function renderActionRow({ icon: Icon, label, value, onClick }) {
+    return (
+      <button type="button" className="admin-event-console__row admin-event-console__row--drill" onClick={onClick}>
+        <Icon size={17} aria-hidden />
+        <strong>{label}</strong>
+        {value ? <em>{value}</em> : <span className="admin-event-console__row-spacer" />}
+        <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
+      </button>
+    )
+  }
+
+  function renderTabSubmenu(chapters, section, fallback, ariaLabel, variant) {
+    return (
+      <div
+        className={`admin-event-console__submenu${variant === 'chapters' ? ' admin-event-console__submenu--chapters' : ''}`}
+        role="tablist"
+        aria-label={ariaLabel}
+      >
+        {chapters.map((chapter) => {
+          const selected = (openChapter ?? fallback) === chapter.id
+          return (
+            <button
+              key={chapter.id}
+              type="button"
+              role="tab"
+              id={`event-${section}-chapter-${chapter.id}`}
+              className={`admin-event-console__subrow${selected ? ' is-active' : ''}`}
+              aria-selected={selected}
+              onClick={() => onSelectChapter?.(event, section, chapter.id)}
+            >
+              <strong>{chapter.label}</strong>
+              <em>{chapter.value}</em>
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
+  function renderFoldItem(row) {
+    const expanded = openSection === row.section
+    const foldBody = row.section === 'structure' ? structureEditor : editor
+    const foldClass =
+      row.section === 'structure'
+        ? 'admin-event-console__fold admin-event-console__fold--structure'
+        : 'admin-event-console__fold'
+    return (
+      <div
+        key={row.section}
+        className={`admin-event-console__item${expanded ? ' admin-event-console__item--expanded' : ''}`}
+      >
+        {renderEditRow(row)}
+        {expanded && row.section === 'sales'
+          ? renderTabSubmenu(
+              salesChapters,
+              'sales',
+              'cupo',
+              t('admin.eventEditor.salesChapterNavAria'),
+              'chapters',
+            )
+          : null}
+        {expanded && row.section === 'structure'
+          ? renderTabSubmenu(
+              structureChapters,
+              'structure',
+              'days',
+              t('admin.eventConsole.structureChapterNavAria'),
+              'chapters',
+            )
+          : null}
+        {expanded && row.section === 'visibility' ? (
+          <div
+            className="admin-event-console__submenu"
+            role="group"
+            aria-label={t('admin.eventEditor.publicSurfaceLegend')}
+          >
+            {siteChapters.map((chapter) => (
+              <button
+                key={chapter.id}
+                type="button"
+                role="switch"
+                className={`admin-event-console__subrow admin-event-console__subrow--switch${chapter.on ? ' is-on' : ''}`}
+                aria-checked={chapter.on}
+                onClick={() => {
+                  if (chapter.kind === 'occupancy') onToggleOccupancy?.(event)
+                  else onTogglePublicModule?.(event, chapter.id)
+                }}
+              >
+                <strong>{chapter.label}</strong>
+                <em>{chapter.on ? t('admin.eventConsole.surfaceOn') : t('admin.eventConsole.surfaceOff')}</em>
+                <span className="admin-event-console__switch" aria-hidden />
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {expanded && foldBody ? (
+          <div
+            ref={foldRef}
+            id={`admin-event-console-fold-${row.section}`}
+            className={foldClass}
+            data-section={row.section}
+          >
+            {foldBody}
+          </div>
+        ) : null}
+      </div>
     )
   }
 
@@ -381,67 +576,46 @@ export default function AdminEventConsoleModal({
             ) : null}
 
             <div className="admin-event-console__sections">
+              {basicsRow ? (
+                <>
+                  <span className="admin-event-console__group-label">
+                    {t('admin.eventConsole.fichaLabel')}
+                  </span>
+                  {renderFoldItem(basicsRow)}
+                </>
+              ) : null}
+
+              {visibilityRow ? (
+                <>
+                  <span className="admin-event-console__group-label">
+                    {t('admin.eventConsole.siteLabel')}
+                  </span>
+                  {renderFoldItem(visibilityRow)}
+                </>
+              ) : null}
+
               <span className="admin-event-console__group-label">
-                {t('admin.eventConsole.configLabel')}
+                {t('admin.eventConsole.operationLabel')}
               </span>
 
-              {editRows.map((row) => {
-                const expanded = openSection === row.section
-                return (
-                  <div
-                    key={row.section}
-                    className={`admin-event-console__item${expanded ? ' admin-event-console__item--expanded' : ''}`}
-                  >
-                    {renderEditRow(row)}
-                    {expanded && editor ? (
-                      <div
-                        ref={foldRef}
-                        id={`admin-event-console-fold-${row.section}`}
-                        className="admin-event-console__fold"
-                        data-section={row.section}
-                      >
-                        {editor}
-                      </div>
-                    ) : null}
-                  </div>
-                )
+              {salesRow ? renderFoldItem(salesRow) : null}
+
+              {renderFoldItem({
+                section: 'structure',
+                icon: Layers,
+                label: t('admin.eventConsole.structure'),
+                value: t('admin.eventConsole.structureValue', {
+                  count: event.eventDays?.length ?? 0,
+                }),
               })}
 
-              <div
-                className={`admin-event-console__item${openSection === 'structure' ? ' admin-event-console__item--expanded' : ''}`}
-              >
-                {renderEditRow({
-                  section: 'structure',
-                  icon: Layers,
-                  label: t('admin.eventConsole.structure'),
-                  value: t('admin.eventConsole.structureValue', {
-                    count: event.eventDays?.length ?? 0,
-                  }),
-                })}
-
-                {openSection === 'structure' && structureEditor ? (
-                  <div
-                    ref={foldRef}
-                    id="admin-event-console-fold-structure"
-                    className="admin-event-console__fold admin-event-console__fold--structure"
-                    data-section="structure"
-                  >
-                    {structureEditor}
-                  </div>
-                ) : null}
-              </div>
-
               {canManageUsers ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => onOpenZones?.(event)}
-                >
-                  <ShieldCheck size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.zones')}</strong>
-                  <em>{t('admin.eventConsole.zonesValue')}</em>
-                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-                </button>
+                renderActionRow({
+                  icon: ShieldCheck,
+                  label: t('admin.eventConsole.zones'),
+                  value: t('admin.eventConsole.zonesValue'),
+                  onClick: () => onOpenZones?.(event),
+                })
               ) : null}
 
               {onManageRegistrations || onManagePayments || onManageCheckin ? (
@@ -451,46 +625,33 @@ export default function AdminEventConsoleModal({
               ) : null}
 
               {onManageRegistrations ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => onManageRegistrations?.(event)}
-                >
-                  <ClipboardList size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.registrations')}</strong>
-                  <em>
-                    {t('admin.eventConsole.registrationsValue', {
-                      count: event.registered ?? 0,
-                      slots: event.slots ?? 0,
-                    })}
-                  </em>
-                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-                </button>
+                renderActionRow({
+                  icon: ClipboardList,
+                  label: t('admin.eventConsole.registrations'),
+                  value: t('admin.eventConsole.registrationsValue', {
+                    count: event.registered ?? 0,
+                    slots: event.slots ?? 0,
+                  }),
+                  onClick: () => onManageRegistrations?.(event),
+                })
               ) : null}
 
               {onManagePayments ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => onManagePayments?.(event)}
-                >
-                  <CreditCard size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.payments')}</strong>
-                  <em>{paymentSummary || t('admin.eventConsole.paymentsClear')}</em>
-                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-                </button>
+                renderActionRow({
+                  icon: CreditCard,
+                  label: t('admin.eventConsole.payments'),
+                  value: paymentSummary || t('admin.eventConsole.paymentsClear'),
+                  onClick: () => onManagePayments?.(event),
+                })
               ) : null}
 
               {onManageCheckin ? (
-                <button
-                  type="button"
-                  className="admin-event-console__row"
-                  onClick={() => onManageCheckin?.(event)}
-                >
-                  <ScanLine size={17} aria-hidden />
-                  <strong>{t('admin.eventConsole.checkin')}</strong>
-                  <ChevronRight size={14} aria-hidden className="admin-event-console__row-chevron" />
-                </button>
+                renderActionRow({
+                  icon: ScanLine,
+                  label: t('admin.eventConsole.checkin'),
+                  value: t('admin.eventConsole.checkinValue'),
+                  onClick: () => onManageCheckin?.(event),
+                })
               ) : null}
             </div>
           </div>

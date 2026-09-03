@@ -27,6 +27,9 @@ import CTASection from '../components/ui/CTASection.jsx'
 import EventVenueMap from '../components/ui/EventVenueMap.jsx'
 import LaunchRegistrationTeaser from '../components/ui/LaunchRegistrationTeaser.jsx'
 import Reveal from '../components/ui/Reveal.jsx'
+import EventWeighInSchedule, {
+  eventHasWeighInWindows,
+} from '../components/ui/EventWeighInSchedule.jsx'
 import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import SeasonComboOffer from '../components/ui/SeasonComboOffer.jsx'
 import { useContent } from '../hooks/useContent.js'
@@ -34,6 +37,12 @@ import { useEventRegistrationCapacity } from '../hooks/useEventRegistrationCapac
 import { useTicketCheckoutAvailability } from '../hooks/useTicketAvailability.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { resolveEventPricing, resolveLiveComboOffer } from '../lib/eventPricing.js'
+import {
+  eventShowsPublicCategories,
+  eventShowsPublicExperience,
+  eventShowsPublicLocation,
+  eventShowsPublicWeighIns,
+} from '../lib/eventPublicSurface.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
 import { getPitbullClassicEvent } from '../lib/eventNavigation.js'
@@ -415,8 +424,9 @@ function PitbullExperienceSection({ t }) {
   )
 }
 
-function PitbullWeighInSnapshot() {
+function PitbullWeighInSnapshot({ windows }) {
   const { t } = useI18n()
+  if (!eventHasWeighInWindows({ weighInWindows: windows })) return null
 
   return (
     <PitbullDossierSection
@@ -429,45 +439,7 @@ function PitbullWeighInSnapshot() {
       titleId="pitbull-weighins-title"
       framed
     >
-      <div className="pitbull-weighins" role="list">
-        <article className="pitbull-weighin" role="listitem">
-          <span className="pitbull-weighin__node" aria-hidden />
-          <p className="pitbull-weighin__day">
-            <span className="pitbull-weighin__day-index motif-num" aria-hidden>
-              01
-            </span>
-            {t('pages.pitbull.weighInsFriday')}
-          </p>
-          <div className="pitbull-weighin__content">
-            <div className="pitbull-weighin__slots">
-              <time className="pitbull-weighin__time" dateTime="09:00/12:00">
-                {t('pages.pitbull.weighInsFridaySlot1')}
-              </time>
-              <time className="pitbull-weighin__time" dateTime="16:00/19:00">
-                {t('pages.pitbull.weighInsFridaySlot2')}
-              </time>
-            </div>
-            <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsFridayNote')}</p>
-          </div>
-        </article>
-        <article className="pitbull-weighin" role="listitem">
-          <span className="pitbull-weighin__node" aria-hidden />
-          <p className="pitbull-weighin__day">
-            <span className="pitbull-weighin__day-index motif-num" aria-hidden>
-              02
-            </span>
-            {t('pages.pitbull.weighInsSaturday')}
-          </p>
-          <div className="pitbull-weighin__content">
-            <div className="pitbull-weighin__slots">
-              <time className="pitbull-weighin__time" dateTime="07:00/08:30">
-                {t('pages.pitbull.weighInsSaturdaySlot')}
-              </time>
-            </div>
-            <p className="pitbull-weighin__note">{t('pages.pitbull.weighInsSaturdayNote')}</p>
-          </div>
-        </article>
-      </div>
+      <EventWeighInSchedule className="pitbull-weighins" windows={windows} />
     </PitbullDossierSection>
   )
 }
@@ -1197,12 +1169,25 @@ export default function PitbullPage({
     fallbackRegistered: 0,
     fallbackSlots: pitbullEvent?.slots ?? PITBULL_CLASSIC.slots ?? 180,
   })
+  const showWeighIns =
+    eventHasWeighInWindows(pitbullEvent) && eventShowsPublicWeighIns(pitbullEvent)
+  const showCategories = eventShowsPublicCategories(pitbullEvent)
+  const showExperience = eventShowsPublicExperience(pitbullEvent)
+  const showLocation = eventShowsPublicLocation(pitbullEvent)
   const sectionNavItems = [
     { id: 'inscripcion', index: '01', label: t('pages.pitbull.inscriptionEyebrow') },
-    { id: 'experiencia', index: '02', label: t('pages.pitbull.experienceEyebrow') },
-    { id: 'pesajes', index: '03', label: t('pages.pitbull.weighInsEyebrow') },
-    { id: 'categorias', index: '04', label: t('pages.pitbull.categoriesEyebrow') },
-    { id: 'lugar', index: '05', label: t('pages.pitbull.locationEyebrow') },
+    ...(showExperience
+      ? [{ id: 'experiencia', index: '02', label: t('pages.pitbull.experienceEyebrow') }]
+      : []),
+    ...(showWeighIns
+      ? [{ id: 'pesajes', index: '03', label: t('pages.pitbull.weighInsEyebrow') }]
+      : []),
+    ...(showCategories
+      ? [{ id: 'categorias', index: '04', label: t('pages.pitbull.categoriesEyebrow') }]
+      : []),
+    ...(showLocation
+      ? [{ id: 'lugar', index: '05', label: t('pages.pitbull.locationEyebrow') }]
+      : []),
     { id: 'entradas', index: '06', label: t('pages.pitbull.ticketsEyebrow') },
   ]
 
@@ -1312,21 +1297,27 @@ export default function PitbullPage({
             t={t}
           />
 
-          <PitbullExperienceSection t={t} />
+          {showExperience ? <PitbullExperienceSection t={t} /> : null}
 
-          <PitbullWeighInSnapshot />
+          {showWeighIns ? <PitbullWeighInSnapshot windows={pitbullEvent?.weighInWindows} /> : null}
 
-          <div className="pitbull-dossier__ticket-divider" aria-hidden>
-            <span>{t('pages.pitbull.normativeDividerLabel')}</span>
-          </div>
+          {showWeighIns && showCategories ? (
+            <div className="pitbull-dossier__ticket-divider" aria-hidden>
+              <span>{t('pages.pitbull.normativeDividerLabel')}</span>
+            </div>
+          ) : null}
 
-          <PitbullCategoriesSection
-            pitbullClassic={PITBULL_CLASSIC}
-            onNavigate={onNavigate}
-            t={t}
-          />
+          {showCategories ? (
+            <PitbullCategoriesSection
+              pitbullClassic={PITBULL_CLASSIC}
+              onNavigate={onNavigate}
+              t={t}
+            />
+          ) : null}
 
-          <PitbullLocationSection event={pitbullMapEvent} venue={PITBULL_VENUE} t={t} />
+          {showLocation ? (
+            <PitbullLocationSection event={pitbullMapEvent} venue={PITBULL_VENUE} t={t} />
+          ) : null}
 
           {ticketsOpen ? (
             <Reveal as="div" direction="up" className="pitbull-tickets-band-wrap">

@@ -1,3 +1,8 @@
+import { normalizeWeighInWindows } from '../lib/weighInWindows.js'
+import {
+  DEFAULT_EVENT_PUBLIC_SURFACE,
+  normalizeEventPublicSurface,
+} from '../lib/eventPublicSurface.js'
 import {
   DEFAULT_EVENT_PRICING,
   isComboOfferLive,
@@ -64,6 +69,7 @@ export function createAdminEventDraft() {
     pricing: clonePricing(ADMIN_EVENT_FORM_DEFAULT.pricing),
     eventDays: [],
     ticketTypes: [],
+    weighInWindows: [],
   }
 }
 
@@ -96,6 +102,8 @@ export function buildAdminEventDraft(event) {
       dayIndexes: [...(type.dayIndexes ?? [])],
       includedAddonIds: [...(type.includedAddonIds ?? [])],
     })),
+    weighInWindows: normalizeWeighInWindows(event.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(event.publicSurface),
     liveStreamUrl: event.liveStreamUrl ?? '',
     liveStreamProvider: event.liveStreamProvider ?? 'youtube',
     liveStatus: event.liveStatus ?? 'offline',
@@ -322,6 +330,8 @@ export function createAdminEvent(events, payload) {
     ticketSalesClosesAt: payload.ticketSalesClosesAt ?? '',
     eventDays: payload.eventDays ?? [],
     ticketTypes: payload.ticketTypes ?? [],
+    weighInWindows: normalizeWeighInWindows(payload.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(payload.publicSurface),
     liveStreamUrl: payload.liveStreamUrl ?? '',
     liveStreamProvider: payload.liveStreamProvider ?? 'youtube',
     liveStatus: payload.liveStatus ?? 'offline',
@@ -376,6 +386,8 @@ export function updateAdminEvent(events, eventId, payload) {
       ticketSalesClosesAt: payload.ticketSalesClosesAt ?? event.ticketSalesClosesAt ?? '',
       eventDays: payload.eventDays ?? event.eventDays ?? [],
       ticketTypes: payload.ticketTypes ?? event.ticketTypes ?? [],
+      weighInWindows: normalizeWeighInWindows(payload.weighInWindows ?? event.weighInWindows),
+      publicSurface: normalizeEventPublicSurface(payload.publicSurface ?? event.publicSurface),
       liveStreamUrl: payload.liveStreamUrl ?? event.liveStreamUrl ?? '',
       liveStreamProvider: payload.liveStreamProvider ?? event.liveStreamProvider ?? 'youtube',
       liveStatus: payload.liveStatus ?? event.liveStatus ?? 'offline',
@@ -518,6 +530,8 @@ export const ADMIN_EVENT_FORM_DEFAULT = {
   ticketSalesClosesAt: '',
   eventDays: [],
   ticketTypes: [],
+  weighInWindows: [],
+  publicSurface: { ...DEFAULT_EVENT_PUBLIC_SURFACE },
   liveStreamUrl: '',
   liveStreamProvider: 'youtube',
   liveStatus: 'offline',
@@ -681,6 +695,8 @@ export function mapSupabaseEventRow(row) {
     updatedAt: row.updated_at ?? '',
     eventDays,
     ticketTypes,
+    weighInWindows: normalizeWeighInWindows(rules.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(rules.publicSurface),
     pricing: normalizeEventPricingInput({
       registration: row.price,
       registrationManual: row.manual_price,
@@ -795,6 +811,8 @@ export async function saveAdminEventRequest(draft, sourceEvent = null) {
     startsAt,
     endsAt,
     pricing: normalizeEventPricingInput(draft.pricing),
+    weighInWindows: normalizeWeighInWindows(draft.weighInWindows),
+    publicSurface: normalizeEventPublicSurface(draft.publicSurface),
     paymentChannelOverrides: draft.paymentChannelOverrides ?? null,
     bankTransfer: {
       alias: draft.bankTransfer?.alias ?? '',

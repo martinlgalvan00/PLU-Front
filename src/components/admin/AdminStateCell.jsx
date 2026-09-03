@@ -103,13 +103,11 @@ export function EntitlementStateCell({ status, backing, badge = null }) {
   const { locale, t } = useI18n()
   const manual = backing?.manualOverride ?? null
 
-  const head = badge ? (
+  const head = (
     <div className="admin-state-cell__head">
       <StatusBadge value={status} />
       {badge}
     </div>
-  ) : (
-    <StatusBadge value={status} />
   )
 
   if (!manual) {

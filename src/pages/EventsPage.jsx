@@ -25,6 +25,10 @@ import {
   isPitbullClassicEvent,
 } from '../lib/eventNavigation.js'
 import EventCalendarActions from '../components/ui/EventCalendarActions.jsx'
+import EventWeighInSchedule, {
+  eventHasWeighInWindows,
+} from '../components/ui/EventWeighInSchedule.jsx'
+import { eventShowsPublicWeighIns, eventShowsPublicLivestream } from '../lib/eventPublicSurface.js'
 import { ensureEventCalendarFields } from '../lib/calendar.js'
 import { resolveAthleteEventStatus } from '../lib/athleteEventStatus.js'
 import { isStaffSession } from '../lib/roles.js'
@@ -144,6 +148,13 @@ function EventsDetailPanel({
 
         {hasHint ? <p className="events-detail__athlete-hint">{athleteStatusHint}</p> : null}
 
+        {eventHasWeighInWindows(event) && eventShowsPublicWeighIns(event) ? (
+          <section className="events-detail__weighins" aria-label={t('pages.events.weighInsTitle')}>
+            <h4 className="events-detail__weighins-title">{t('pages.events.weighInsTitle')}</h4>
+            <EventWeighInSchedule windows={event.weighInWindows} />
+          </section>
+        ) : null}
+
         {showCombo ? (
           <SeasonComboOffer
             variant="compact"
@@ -183,11 +194,13 @@ function EventsDetailPanel({
           ) : null}
         </div>
 
-        <EventLiveStream
-          liveStatus={event.liveStatus}
-          liveStreamUrl={event.liveStreamUrl}
-          liveStreamProvider={event.liveStreamProvider}
-        />
+        {eventShowsPublicLivestream(event) ? (
+          <EventLiveStream
+            liveStatus={event.liveStatus}
+            liveStreamUrl={event.liveStreamUrl}
+            liveStreamProvider={event.liveStreamProvider}
+          />
+        ) : null}
 
         <EventCalendarActions event={event} className="events-detail__calendar" variant="minimal" />
       </div>
@@ -229,6 +242,13 @@ function EventsDetailPanel({
         <p className="events-detail__athlete-hint">{athleteStatusHint}</p>
       ) : null}
 
+      {eventHasWeighInWindows(event) && eventShowsPublicWeighIns(event) ? (
+        <section className="events-detail__weighins" aria-label={t('pages.events.weighInsTitle')}>
+          <h4 className="events-detail__weighins-title">{t('pages.events.weighInsTitle')}</h4>
+          <EventWeighInSchedule windows={event.weighInWindows} />
+        </section>
+      ) : null}
+
       {showCombo ? (
         <SeasonComboOffer
           variant="compact"
@@ -267,11 +287,13 @@ function EventsDetailPanel({
         ) : null}
       </div>
 
-      <EventLiveStream
-        liveStatus={event.liveStatus}
-        liveStreamUrl={event.liveStreamUrl}
-        liveStreamProvider={event.liveStreamProvider}
-      />
+      {eventShowsPublicLivestream(event) ? (
+        <EventLiveStream
+          liveStatus={event.liveStatus}
+          liveStreamUrl={event.liveStreamUrl}
+          liveStreamProvider={event.liveStreamProvider}
+        />
+      ) : null}
 
       <EventCalendarActions event={event} className="events-detail__calendar" compact />
     </div>

@@ -5,6 +5,7 @@ import '../../styles/layout/admin-shell.css'
 import '../../styles/pages/admin.css'
 import '../../styles/pages/admin-minimal.css'
 import '../../styles/pages/admin-event-console.css'
+import '../../styles/pages/admin-modals.css'
 
 const PITBULL = {
   id: 'evt-1',

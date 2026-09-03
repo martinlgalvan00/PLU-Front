@@ -96,6 +96,21 @@ const ticketTypeSchema = z.object({
     .optional(),
 })
 
+const weighInWindowSchema = z.object({
+  id: z.string().trim().min(1).max(80).optional(),
+  label: z.string().trim().min(1, 'weighInLabelRequired').max(80, 'weighInLabelMax'),
+  date: optionalDayDate,
+  startsAt: optionalDateTime(),
+  endsAt: optionalDateTime(),
+  note: optionalText(160, 'weighInNoteMax'),
+  sortOrder: z.coerce
+    .number()
+    .int('sortOrderInvalid')
+    .min(0, 'sortOrderInvalid')
+    .max(1000, 'sortOrderInvalid')
+    .optional(),
+})
+
 function optionalDateTime(message = 'dateTimeInvalid') {
   return z
     .string()
@@ -160,6 +175,17 @@ export const adminEventDraftSchema = z
     liveStatus: z.enum(['offline', 'live', 'ended']).optional(),
     eventDays: z.array(eventDaySchema).max(31, 'eventDaysMax').optional(),
     ticketTypes: z.array(ticketTypeSchema).max(50, 'ticketTypesMax').optional(),
+    weighInWindows: z.array(weighInWindowSchema).max(60, 'weighInWindowsMax').optional(),
+    publicSurface: z
+      .object({
+        calendar: z.boolean().optional(),
+        weighIns: z.boolean().optional(),
+        livestream: z.boolean().optional(),
+        experience: z.boolean().optional(),
+        categories: z.boolean().optional(),
+        location: z.boolean().optional(),
+      })
+      .optional(),
     paymentChannelOverrides: z
       .object({
         mercado_pago: z.boolean().optional(),
@@ -252,6 +278,50 @@ export const adminEventDraftSchema = z
         })
       }
     }
+
+    if (data.pricing.ticketsEnabled === true) {
+      if (!(data.eventDays ?? []).length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['eventDays'],
+          message: 'ticketsNeedDays',
+        })
+      }
+      const sellableTypes = (data.ticketTypes ?? []).filter(
+        (ticketType) => ticketType.active !== false && Number(ticketType.price) > 0,
+      )
+      if (sellableTypes.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTypes'],
+          message: 'ticketsNeedType',
+        })
+      }
+    }
+
+    for (const [index, window] of (data.weighInWindows ?? []).entries()) {
+      if (!window.startsAt) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'startsAt'],
+          message: 'weighInStartsRequired',
+        })
+      }
+      if (!window.endsAt) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'endsAt'],
+          message: 'weighInEndsRequired',
+        })
+      }
+      if (window.startsAt && window.endsAt && window.startsAt >= window.endsAt) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'endsAt'],
+          message: 'weighInWindowInvalid',
+        })
+      }
+    }
   })
 
 function pathKey(path) {
@@ -290,6 +360,8 @@ export function validateAdminEventDraft(draft, t) {
     liveStatus: draft?.liveStatus ?? 'offline',
     eventDays: draft?.eventDays ?? [],
     ticketTypes: draft?.ticketTypes ?? [],
+    weighInWindows: draft?.weighInWindows ?? [],
+    publicSurface: draft?.publicSurface,
   })
 
   if (result.success) {

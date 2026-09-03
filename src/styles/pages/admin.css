@@ -3267,6 +3267,124 @@
   max-width: 48ch;
 }
 
+.admin-event-form__lane[hidden] {
+  display: none;
+}
+
+.admin-event-form__section--sales .admin-event-form__lane-head p {
+  display: none;
+}
+
+.admin-event-form__section-head--sales {
+  gap: 10px;
+}
+
+.admin-event-form__sales-nav {
+  background: var(--admin-surface-muted, var(--color-bg-elevated));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  width: 100%;
+}
+
+.admin-event-form__sales-nav-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 1 1 8rem;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.admin-event-form__sales-nav-item:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-event-form__sales-nav-item:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-event-form__sales-nav-item.is-active {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 0 var(--admin-hairline, var(--color-border-subtle));
+}
+
+.admin-event-form__sales-nav-item.has-error::after {
+  background: var(--color-brand-red);
+  border-radius: 50%;
+  content: '';
+  height: 6px;
+  width: 6px;
+}
+
+.admin-event-editor--accordion .admin-event-form__lane,
+.admin-event-editor--accordion .admin-event-form__lane.admin-event-form__lane--tickets {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.admin-event-editor--accordion .admin-event-form__lane + .admin-event-form__lane {
+  margin-top: 0;
+}
+
+.admin-event-editor--accordion .admin-event-form__occupancy {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 2px 0 6px;
+}
+
+.admin-event-form__section--sales .admin-event-form__lane--payment .admin-event-form__payment-profile {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.admin-event-form__surface {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-event-form__surface legend {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+@media (pointer: coarse) {
+  .admin-event-form__sales-nav-item {
+    min-height: 44px;
+  }
+}
+
 .admin-event-form__lane--tickets .admin-event-form__lane-title svg {
   color: var(--color-brand-gold);
 }
@@ -16396,27 +16514,11 @@ button.action-queue__proof:focus-visible {
   flex: none;
 }
 
-/* El badge de estado con otra marca al lado (el "inscripto a un torneo" de
-   Afiliaciones): son dos hechos del mismo renglón, no una explicación arriba de
-   la otra. El motivo sigue yendo debajo, en su propio párrafo. */
-.admin-state-cell__head {
-  align-items: center;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.admin-state-cell__head .pill,
-.admin-state-cell__head .status-badge {
-  flex: none;
-}
-
 .admin-state-cell__provenance {
   display: grid;
   gap: 3px;
   min-width: 0;
+  position: relative;
   width: 100%;
 }
 
@@ -16477,10 +16579,16 @@ button.action-queue__proof:focus-visible {
 
 /* El mail del operador queda en el DOM para Ctrl+F, fuera del layout. */
 .admin-state-cell__actor-search {
-  height: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
   overflow: hidden;
+  padding: 0;
   position: absolute;
-  width: 0;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .admin-state-cell__note {
@@ -16509,17 +16617,87 @@ button.action-queue__proof:focus-visible {
   padding-left: 7px;
 }
 
-/* En la tarjeta mobile la celda de estado vive en una fila angosta: el motivo
-   pasa a ocupar el ancho completo en vez de competir con el badge. */
-@media (max-width: 768px) {
-  .admin-state-cell__reason,
-  .admin-state-cell__note {
-    max-width: none;
-  }
+/* En compact, -webkit-line-clamp no achica el ancho intrínseco: si el badge
+   es `flex: 0 0 auto` la nota estira la card (el caso Iara / switch operativo).
+   Pills a la derecha del nombre; firma y motivo a todo el ancho, debajo.
+   Inscripciones tiene cobro + estado en el mismo slot: no aplanar. */
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell)) {
+  align-items: start;
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
 
-  .admin-state-cell__note {
-    -webkit-line-clamp: 3;
-  }
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  > .data-table-card__primary {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  > .data-table-card__badges,
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .data-table-card__badge:has(.admin-state-cell__provenance),
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .admin-state-cell {
+  display: contents;
+}
+
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .admin-state-cell__head {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .admin-state-cell__provenance {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
+}
+
+.data-table-card--compact .data-table-card__badge .admin-state-cell,
+.data-table-card--compact .admin-state-cell__provenance,
+.data-table-card--compact .admin-state-cell__reason,
+.data-table-card--compact .admin-state-cell__note {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.data-table-card--compact .admin-state-cell__note {
+  -webkit-line-clamp: 3;
+}
+
+/* Fallback si `display: contents` no aplica: el badge no puede superar
+   la card. Con contents, max-width sobre el wrapper se ignora. */
+.admin-shell .data-table-card.data-table__row--membership.data-table-card--compact {
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.admin-shell
+  .data-table-card.data-table__row--membership.data-table-card--compact
+  .data-table-card__badges {
+  max-width: min(52%, 280px);
+  min-width: 0;
 }
 
 .athlete-detail__panel .data-table-card__badge .admin-state-cell,
@@ -17676,6 +17854,11 @@ button.action-queue__proof:focus-visible {
   justify-content: center;
   width: 32px;
   flex-shrink: 0;
+}
+
+.admin-ticket-types__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .admin-ticket-types__grid {
@@ -21114,6 +21297,121 @@ button.action-queue__proof:focus-visible {
   margin: 0;
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+.admin-event-structure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.admin-ticket-types__need-days {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.admin-weigh-in-windows__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-weigh-in-windows__row {
+  align-items: flex-end;
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) auto;
+  padding: 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+}
+
+.admin-weigh-in-windows__note {
+  grid-column: 1 / -2;
+}
+
+.admin-weigh-in-windows__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.admin-weigh-in-windows__preview {
+  display: grid;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+}
+
+.admin-weigh-in-windows__preview-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-structure .event-weighins {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-event-structure .event-weighin {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-event-structure .event-weighin__node {
+  display: none;
+}
+
+.admin-event-structure .event-weighin__day {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-event-structure .event-weighin__day-index {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-structure .event-weighin__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-event-structure .event-weighin__time {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-structure .event-weighin__note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .admin-weigh-in-windows__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-weigh-in-windows__note {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 720px) {

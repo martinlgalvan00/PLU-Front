@@ -107,6 +107,9 @@ describe('EventsSection — filas de sección de la consola', () => {
     const panel = consolePanel()
 
     expect(within(panel).getByRole('button', { name: /ventas y cupos/i })).toBeTruthy()
+    expect(panel.textContent).toContain('Ficha')
+    expect(panel.textContent).toContain('Sitio público')
+    expect(panel.textContent).toContain('Operación')
     // El valor sale del evento, no de un número decorativo.
     expect(panel.textContent).toContain('1 tipos · 48/80')
     expect(panel.textContent).toContain('1 días')
@@ -153,6 +156,13 @@ describe('EventsSection — filas de sección de la consola', () => {
     expect(fold.querySelector('#event-status')).toBeNull()
     expect(fold.querySelector('#event-access')).toBeNull()
     expect(fold.textContent).toContain('Estado, sitio y acceso se controlan arriba')
+    const item = fold.closest('.admin-event-console__item')
+    expect(within(item).getByRole('group', { name: /qué se muestra en el sitio/i })).toBeTruthy()
+    expect(within(item).getByRole('switch', { name: /calendario/i })).toBeTruthy()
+    expect(within(item).getByRole('switch', { name: /pesajes/i })).toBeTruthy()
+    expect(within(item).getByRole('switch', { name: /categorías/i })).toBeTruthy()
+    expect(within(item).getByRole('switch', { name: /experiencia/i })).toBeTruthy()
+    expect(within(item).getByRole('switch', { name: /mostrar ocupación en el sitio/i })).toBeTruthy()
   })
 
   it('no ofrece zonas a quien no puede gestionar usuarios', () => {
@@ -278,6 +288,112 @@ describe('EventsSection — filas de sección de la consola', () => {
     expect(fold.querySelector('.admin-event-form__lane--athletes .admin-event-form__payment-profile')).toBeNull()
     expect(fold.querySelector('.admin-event-form__ticket-config')).toBeNull()
     expect(fold.querySelector('.admin-event-editor__toolbar--accordion')).toBeNull()
+  })
+
+  it('divide Ventas en Cupo, Precios, Entradas y Cobro, un capítulo a la vez', () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /ventas y cupos/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    const fold = dialog.querySelector('.admin-event-console__fold[data-section="sales"]')
+    const item = fold.closest('.admin-event-console__item')
+
+    expect(within(item).getByRole('tab', { name: /cupo/i })).toBeTruthy()
+    expect(within(item).getByRole('tab', { name: /precios/i })).toBeTruthy()
+    expect(within(item).getByRole('tab', { name: /entradas/i })).toBeTruthy()
+    expect(within(item).getByRole('tab', { name: /cobro/i })).toBeTruthy()
+    expect(fold.querySelector('.admin-event-form__lane--cupo').hidden).toBe(false)
+    expect(fold.querySelector('.admin-event-form__lane--prices').hidden).toBe(true)
+    expect(fold.querySelector('.admin-event-form__lane--tickets').hidden).toBe(true)
+    expect(fold.querySelector('.admin-event-form__lane--payment').hidden).toBe(true)
+
+    const salesSubmenu = item.querySelector('.admin-event-console__submenu--chapters')
+    expect(salesSubmenu).not.toBeNull()
+    const cupoLane = fold.querySelector('.admin-event-form__lane--cupo')
+    const occupancy = cupoLane.querySelector('.admin-event-form__occupancy')
+    expect(occupancy).not.toBeNull()
+    expect(occupancy.closest('.admin-event-form__grid')).toBeNull()
+    expect(cupoLane.querySelector('.admin-event-form__lane-head')).toBeNull()
+    expect(fold.querySelector('.admin-event-form__lane--prices .admin-event-form__lane-head')).toBeNull()
+    expect(fold.querySelector('.admin-event-form__payment-profile > .admin-event-form__lane-head')).toBeNull()
+
+    fireEvent.click(within(item).getByRole('tab', { name: /cobro/i }))
+    expect(fold.querySelector('.admin-event-form__lane--payment').hidden).toBe(false)
+    expect(fold.querySelector('.admin-event-form__lane--cupo').hidden).toBe(true)
+
+    fireEvent.click(within(item).getByRole('tab', { name: /entradas/i }))
+    expect(fold.querySelector('.admin-event-form__lane--tickets').hidden).toBe(false)
+    expect(fold.querySelector('#event-section-tickets').hidden).toBe(false)
+  })
+
+  it('con entradas habilitadas, Ventas muestra ventana, tipos y add-ons', () => {
+    renderEvents({
+      adminEvents: [
+        {
+          ...EVENT,
+          pricing: { ...EVENT.pricing, ticketsEnabled: true },
+        },
+      ],
+    })
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /ventas y cupos/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    const fold = dialog.querySelector('.admin-event-console__fold[data-section="sales"]')
+    const item = fold.closest('.admin-event-console__item')
+
+    expect(fold.querySelector('.admin-event-form__ticket-config')).not.toBeNull()
+    expect(fold.querySelector('#event-ticket-opens')).not.toBeNull()
+    expect(fold.querySelector('#event-ticket-closes')).not.toBeNull()
+    expect(fold.querySelector('.admin-ticket-types')).not.toBeNull()
+    expect(fold.querySelector('.admin-ticket-addons')).not.toBeNull()
+    expect(fold.querySelector('.admin-ticket-types__day-list')).toBeNull()
+    expect(within(fold).queryByRole('button', { name: /agregar día/i })).toBeNull()
+    fireEvent.click(within(item).getByRole('tab', { name: /entradas/i }))
+    expect(fold.querySelector('.admin-ticket-types__days-list')).not.toBeNull()
+  })
+
+  it('sin días, Ventas invita a cargarlos en Estructura', () => {
+    renderEvents({
+      adminEvents: [
+        {
+          ...EVENT,
+          eventDays: [],
+          pricing: { ...EVENT.pricing, ticketsEnabled: true },
+        },
+      ],
+    })
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /ventas y cupos/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    const fold = dialog.querySelector('.admin-event-console__fold[data-section="sales"]')
+    const item = fold.closest('.admin-event-console__item')
+
+    expect(fold.querySelector('.admin-ticket-types__need-days')).not.toBeNull()
+    fireEvent.click(within(item).getByRole('tab', { name: /entradas/i }))
+    expect(within(fold).getByRole('button', { name: /ir a estructura/i })).toBeTruthy()
+    expect(fold.querySelector('.admin-ticket-types__day-list')).toBeNull()
+  })
+
+  it('en Estructura muestra días, pesajes públicos y tandas', () => {
+    renderEvents()
+    const panel = consolePanel()
+    fireEvent.click(within(panel).getByRole('button', { name: /^estructura/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    const fold = dialog.querySelector('.admin-event-console__fold[data-section="structure"]')
+    const item = fold.closest('.admin-event-console__item')
+
+    expect(fold).not.toBeNull()
+    expect(fold.querySelector('.admin-event-structure')).not.toBeNull()
+    expect(within(item).getByRole('tab', { name: /días/i })).toBeTruthy()
+    expect(within(item).getByRole('tab', { name: /pesajes/i })).toBeTruthy()
+    expect(within(item).getByRole('tab', { name: /tandas/i })).toBeTruthy()
+    expect(item.querySelector('.admin-event-console__submenu--chapters')).not.toBeNull()
+    expect(fold.textContent).toMatch(/días del evento/i)
+    expect(fold.querySelector('.admin-ticket-types__day-list')).not.toBeNull()
+
+    fireEvent.click(within(item).getByRole('tab', { name: /pesajes/i }))
+    expect(fold.querySelector('.admin-weigh-in-windows')).not.toBeNull()
+    expect(within(fold).getByRole('button', { name: /armar franjas desde los días/i })).toBeTruthy()
   })
 })
 

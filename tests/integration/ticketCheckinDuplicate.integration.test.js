@@ -57,6 +57,7 @@ describe('check-in de tickets rechaza un segundo escaneo (unique constraint real
           ends_at: new Date(Date.now() + 2 * 86400000).toISOString(),
           published: true,
           status: 'cupos_limitados',
+          rules: { ticketsEnabled: true },
         })
         .select('id')
         .single()

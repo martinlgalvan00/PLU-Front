@@ -1,6 +1,7 @@
 import { CalendarPlus, Download } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { buildGoogleCalendarUrl, downloadIcs } from '../../lib/calendar.js'
+import { eventShowsPublicCalendar } from '../../lib/eventPublicSurface.js'
 import Button from './Button.jsx'
 
 export default function EventCalendarActions({
@@ -11,6 +12,7 @@ export default function EventCalendarActions({
 }) {
   const { t } = useI18n()
 
+  if (!eventShowsPublicCalendar(event)) return null
   if (!event?.startsAt || !event?.endsAt) {
     return null
   }

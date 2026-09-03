@@ -2133,6 +2133,8 @@ export default {
       publicTicketsFromCaption: 'Desde',
       publicTicketsClosed: 'Próximamente',
       publicTicketsCta: 'Comprar entradas',
+      weighInsTitle: 'Pesajes',
+      weighInsEmpty: 'Los horarios de pesaje se publican cuando el organizador los carga.',
       spotlightActionsAria: 'Acciones del meet destacado',
       eventCount_one: '{{count}} evento',
       eventCount_other: '{{count}} eventos',
