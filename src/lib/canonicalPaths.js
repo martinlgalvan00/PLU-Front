@@ -4,6 +4,7 @@
  * Flujos por query (credencial, reset, invitaciones) también viven en `/`.
  */
 
+import { matchAdminEventRoute } from './adminEventRoute.js'
 import { matchEventPageRoute } from './eventPageRoute.js'
 import { matchPublicViewPath } from './publicViewPaths.js'
 import { matchSecurityGateRoute } from './securityGateRoute.js'
@@ -25,6 +26,7 @@ export function isCanonicalPathname(
   if (path === '/') return true
   if (matchTicketsRoute(path)) return true
   if (matchSecurityGateRoute(path)) return true
+  if (matchAdminEventRoute(path)) return true
   if (matchEventPageRoute(path)) return true
   if (matchPublicViewPath(path)) return true
   return false

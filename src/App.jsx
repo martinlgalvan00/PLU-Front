@@ -14,6 +14,7 @@ import {
   matchEventPageRoute,
   pushEventPageRoute,
 } from './lib/eventPageRoute.js'
+import { matchAdminEventRoute } from './lib/adminEventRoute.js'
 import { isCanonicalPathname, resolvePathnamePublicView } from './lib/canonicalPaths.js'
 import {
   buildPublicViewPath,
@@ -71,11 +72,38 @@ import {
   isStaffSession,
 } from './lib/roles.js'
 import { getAllowedAdminSections } from './lib/permissions.js'
-import HomePage from './pages/HomePage.jsx'
 
-const AdminPage = lazy(() => import('./pages/AdminPage.jsx'))
-const CheckInAppPage = lazy(() => import('./pages/CheckInAppPage.jsx'))
+// Ant Design sólo existe en las superficies operativas. Cargar también su
+// ConfigProvider de forma diferida evita que un visitante de la web pública
+// parseé y mantenga en memoria ese runtime completo.
+const AdminPage = lazy(async () => {
+  const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
+    import('./pages/AdminPage.jsx'),
+    import('./providers/AppConfigProvider.jsx'),
+  ])
+  return {
+    default: (props) => (
+      <AppConfigProvider>
+        <Page {...props} />
+      </AppConfigProvider>
+    ),
+  }
+})
+const CheckInAppPage = lazy(async () => {
+  const [{ default: Page }, { AppConfigProvider }] = await Promise.all([
+    import('./pages/CheckInAppPage.jsx'),
+    import('./providers/AppConfigProvider.jsx'),
+  ])
+  return {
+    default: (props) => (
+      <AppConfigProvider>
+        <Page {...props} />
+      </AppConfigProvider>
+    ),
+  }
+})
 const SecurityGatePage = lazy(() => import('./pages/SecurityGatePage.jsx'))
+const HomePage = lazy(() => import('./pages/HomePage.jsx'))
 const AthleteProfilePage = lazy(() => import('./pages/AthleteProfilePage.jsx'))
 const CommunityPage = lazy(() => import('./pages/CommunityPage.jsx'))
 const CredentialPage = lazy(() => import('./pages/CredentialPage.jsx'))
@@ -127,8 +155,12 @@ const PUBLIC_VIEWS = {
 export default function App() {
   const [view, setView] = useState(() => {
     if (readPasswordResetToken()) return 'login'
+    if (matchAdminEventRoute()) return 'admin'
     return resolvePathnamePublicView()
   })
+  const [adminEventWorkspaceSlug, setAdminEventWorkspaceSlug] = useState(() =>
+    matchAdminEventRoute()?.eventSlug ?? null,
+  )
   const [transitionDirection, setTransitionDirection] = useState('forward')
   const [selectedEvent, setSelectedEvent] = useState(UPCOMING_EVENTS[0])
   const [pendingAthleteDestination, setPendingAthleteDestination] = useState(null)
@@ -285,6 +317,12 @@ export default function App() {
       if (eventPageMatch) {
         setEventPageSlug(eventPageMatch.eventSlug)
         setView('events')
+        return
+      }
+      const adminEventMatch = matchAdminEventRoute()
+      if (adminEventMatch) {
+        setAdminEventWorkspaceSlug(adminEventMatch.eventSlug)
+        setView('admin')
         return
       }
       if (!isCanonicalPathname()) {
@@ -614,6 +652,7 @@ export default function App() {
           onDismissQueueItem={app.dismissQueueItem}
           onUndismissQueueItem={app.undismissQueueItem}
           adminNavBadges={app.adminNavBadges}
+          adminEventWorkspaceSlug={adminEventWorkspaceSlug}
           getAthleteDetail={app.getAthleteDetail}
           onApprovePayment={app.handleApprovePayment}
           onForceSettlePayment={app.handleForceSettlePayment}

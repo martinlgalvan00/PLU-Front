@@ -155,3 +155,28 @@ export const ConError = {
     onSetState: async () => ({ error: 'No se pudo cambiar el estado del evento.' }),
   },
 }
+
+/**
+ * Ventana de inscripción vencida: `registrationClosesAt` quedó en el pasado.
+ * "Habilitar inscripciones" no alcanza acá -- el chip de estado puede decir
+ * `inscripcion_abierta` y seguir sin mostrar en vivo -- así que la banda ofrece
+ * el atajo directo a "Ventas y cupos" en vez de dejar al operador buscándolo.
+ */
+export const VentanaVencida = {
+  args: {
+    canEdit: true,
+    event: { ...BASE_EVENT, registrationClosesAt: '2026-01-01T00:00:00Z' },
+    onEditWindow: () => {},
+    onSetState: acceptState,
+  },
+}
+
+/** Apertura programada a futuro: mismo atajo, para adelantarla sin buscarla. */
+export const AperturaProgramada = {
+  args: {
+    canEdit: true,
+    event: { ...BASE_EVENT, status: 'proximamente', registrationOpensAt: '2099-01-01T00:00:00Z' },
+    onEditWindow: () => {},
+    onSetState: acceptState,
+  },
+}
