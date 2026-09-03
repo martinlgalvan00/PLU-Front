@@ -314,6 +314,22 @@ aplica sola a todas las compras del concepto. La bandera nunca se apaga sola:
 habilitar es automático, revocar es una decisión de Finanzas al rechazar o del
 plazo al vencer.
 
+Fuera del financiamiento, una orden de transferencia/efectivo (`manual_link`)
+sin ninguna declaración tiene **5 días** para completarse antes de que
+`expire_domain_orders` la cancele (antes: 1 día) — el plazo vive en
+`plu_private.manual_link_checkout_window()`, un único punto de ajuste que
+consultan las tres funciones de creación de orden, el switch de medio de pago
+en un checkout retomado y `settle_manual_checkout_pricing` (que recotizaba el
+canal `bank_transfer` de vuelta a 1 día en cada checkout si no se tocaba
+también ahí). El efectivo en el evento (`cash_pitbull`) no usa este helper:
+sigue con su propio vencimiento anclado a la fecha del evento
+(`plu_private.cash_checkout_deadline`), casi siempre más generoso. Dos emails
+avisan sobre este plazo — `payment_order_reminder` (~2 días antes) y
+`payment_order_expired` (al cancelarse) — encolados por
+`claim_payment_order_expiry_notifications` sobre la tabla
+`payment_order_expiry_notifications`, mismo patrón de cola con reintentos que
+`membership_renewal_notifications`.
+
 En el panel esas tres columnas —`mercado_pago_enabled`, `manual_channels`,
 `financed`— se cargan como **una sola decisión**, "cómo se cobra", con tres
 modos: _Mercado Pago_ (la pasarela acredita sola), _sólo efectivo o

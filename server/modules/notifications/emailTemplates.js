@@ -676,6 +676,40 @@ const BODIES = {
     ].join(''),
   }),
 
+  payment_order_reminder: (p) => ({
+    title: 'Tu pago vence pronto',
+    preheader: `Tenés hasta ${formatDate(p.expiresAt)} para completarlo.`,
+    body: [
+      paragraph(`${greeting(p.name)} todavía no completaste tu pago de ${escapeHtml(p.concept)}.`),
+      dataPanel([
+        ['Concepto', p.concept],
+        ['Referencia', p.reference],
+        ['Vence el', formatDate(p.expiresAt)],
+      ]),
+      button(p.accountUrl, 'Completar pago'),
+      fallbackLink(p.accountUrl),
+    ].join(''),
+  }),
+
+  payment_order_expired: (p) => ({
+    title: 'Tu orden de pago venció',
+    preheader: 'La cancelamos porque no llegó el pago a tiempo.',
+    body: [
+      paragraph(
+        `${greeting(p.name)} tu orden de ${escapeHtml(p.concept)} venció sin registrar el pago y la cancelamos.`,
+      ),
+      dataPanel(
+        [
+          ['Concepto', p.concept],
+          ['Referencia', p.reference],
+        ],
+        { accent: RED_500 },
+      ),
+      button(p.accountUrl, 'Iniciar un nuevo pago'),
+      fallbackLink(p.accountUrl),
+    ].join(''),
+  }),
+
   payment_rejected: (p) => ({
     title: 'Pago rechazado',
     preheader: 'El pago fue rechazado.',
