@@ -52,6 +52,10 @@ export function useScrolled(threshold = 20) {
     }
 
     function onScroll() {
+      if (document.documentElement.dataset.motionTier === 'low') {
+        node.style.removeProperty('--hero-parallax-shift')
+        return
+      }
       if (rafId == null) rafId = requestAnimationFrame(tick)
     }
 
@@ -135,7 +139,8 @@ export function usePointerParallax(ref) {
 
     if (
       window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-      window.matchMedia('(pointer: coarse)').matches
+      window.matchMedia('(pointer: coarse)').matches ||
+      getDeviceTier() === 'low'
     ) {
       return undefined
     }
@@ -157,6 +162,10 @@ export function usePointerParallax(ref) {
     }
 
     function onMove(event) {
+      if (document.documentElement.dataset.motionTier === 'low') {
+        reset()
+        return
+      }
       pending = { x: event.clientX, y: event.clientY }
       if (rafId == null) rafId = requestAnimationFrame(tick)
     }

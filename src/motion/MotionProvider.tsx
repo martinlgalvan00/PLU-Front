@@ -2,7 +2,12 @@
 import { LazyMotion, domAnimation } from 'motion/react'
 import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { getDeviceTier, type MotionTier } from './deviceTier'
+import {
+  getDeviceTier,
+  getLowerMotionTier,
+  observeRuntimeMotionTier,
+  type MotionTier,
+} from './deviceTier'
 import { MOTION_DEFAULT_TRANSITION } from './tokens'
 import { useReducedMotion } from './useReducedMotion'
 
@@ -28,7 +33,15 @@ type MotionProviderProps = {
 
 export default function MotionProvider({ children }: MotionProviderProps) {
   const reducedMotion = useReducedMotion()
-  const [tier] = useState(getDeviceTier)
+  const [tier, setTier] = useState(getDeviceTier)
+
+  useEffect(
+    () =>
+      observeRuntimeMotionTier((measuredTier) => {
+        setTier((current) => getLowerMotionTier(current, measuredTier))
+      }),
+    [],
+  )
 
   useEffect(() => {
     document.documentElement.setAttribute('data-motion-tier', tier)

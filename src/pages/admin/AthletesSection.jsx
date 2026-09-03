@@ -290,7 +290,6 @@ export default function AthletesSection({
     <AdminListSection
       variant="athletes"
       filteredCount={rows.length}
-      filterLayout="panel"
       placeholder={t('admin.search.athlete')}
       query={query}
       showHeader
@@ -323,6 +322,7 @@ export default function AthletesSection({
           onChange: setGym,
           options: gymOptions,
           variant: 'select',
+          advanced: true,
         },
         {
           id: 'division',
@@ -330,7 +330,7 @@ export default function AthletesSection({
           value: division,
           onChange: setDivision,
           options: divisionOptions,
-          showLabel: true,
+          advanced: true,
         },
         {
           id: 'registeredAt',
@@ -339,6 +339,7 @@ export default function AthletesSection({
           onChange: setRegisteredRange,
           variant: 'dateRange',
           defaultValue: { from: '', to: '' },
+          advanced: true,
         },
       ]}
       onQueryChange={setQuery}

@@ -483,7 +483,7 @@ export default function RegistrationsSection({
     value: filters.affiliationStatus ?? 'all',
     onChange: handleAffiliationChange,
     options: affiliationOptions,
-    showLabel: true,
+    advanced: true,
   }
   const gymFilter = {
     id: 'gym',
@@ -492,6 +492,7 @@ export default function RegistrationsSection({
     onChange: handleGymChange,
     options: gymOptions,
     variant: 'select',
+    advanced: true,
   }
   const divisionFilter = {
     id: 'division',
@@ -500,6 +501,7 @@ export default function RegistrationsSection({
     onChange: handleDivisionChange,
     options: divisionOptions,
     variant: 'select',
+    advanced: true,
   }
   const createdAtRange = filters.createdAtRange ?? EMPTY_DATE_RANGE
   const createdAtFilter = {
@@ -509,6 +511,7 @@ export default function RegistrationsSection({
     onChange: handleCreatedAtRangeChange,
     variant: 'dateRange',
     defaultValue: { ...EMPTY_DATE_RANGE },
+    advanced: true,
   }
 
   const savedViewSnapshot = useMemo(
@@ -617,7 +620,6 @@ export default function RegistrationsSection({
         variant="registrations"
         eyebrow={t('admin.sections.registrations.eyebrow')}
         filteredCount={registrationRows.length}
-        filterLayout="panel"
         placeholder={t('admin.search.registration')}
         query={filters.query ?? ''}
         showHeader

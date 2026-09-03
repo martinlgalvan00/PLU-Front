@@ -3,14 +3,20 @@
  * Colores: usá var(--color-*) en CSS o PLU_CSS_VARS en estilos inline.
  */
 import pluOfficialLogo from '../assets/brand/plu-official-logo.png'
+import pluOfficialLogoUi from '../assets/brand/plu-official-logo-ui.png'
 import pluArgentinaEmblem from '../assets/brand/plu-argentina-emblem-display.png'
+import pluArgentinaEmblemUi from '../assets/brand/plu-argentina-emblem-ui.png'
 
 export const BRAND = {
   /** Powerlifting United — letterhead horizontal (fondo negro) */
   logoUrl: pluOfficialLogo,
-  logoLetterheadUrl: pluOfficialLogo,
+  // Las variantes de interfaz evitan decodificar PNG de impresión para logos
+  // que en navbar/footer nunca superan unas pocas decenas de píxeles.
+  logoLetterheadUrl: pluOfficialLogoUi,
   /** Emblema circular PLU Argentina — crop display (sin padding muerto) */
   logoArgentinaUrl: pluArgentinaEmblem,
+  logoArgentinaDisplayUrl: pluArgentinaEmblemUi,
+  qrLogoUrl: pluArgentinaEmblemUi,
   logoAlt: 'PLU ARG — Powerlifting United',
   logoArgentinaAlt: 'PLU Argentina — emblema oficial',
   faviconUrl: '/brand/plu-argentina-favicon.png',

@@ -707,8 +707,6 @@ export default function RolesSection({
             <p>{t('admin.roles.createHint')}</p>
           </form>
         ) : null}
-
-        {toolbar}
       </div>
 
       <div className="admin-roles__workspace">
@@ -746,16 +744,23 @@ export default function RolesSection({
               >
                 <div className="admin-roles__meta-stats">
                   <span className="admin-roles__stat">
-                    {t('admin.roles.usersCount', { count: selectedRole.userCount ?? 0 })}
+                    <strong className="admin-roles__stat-value">
+                      {selectedRole.userCount ?? 0}
+                    </strong>
+                    <span className="admin-roles__stat-label">{t('admin.roles.statUsers')}</span>
                   </span>
                   <span className="admin-roles__stat">
-                    {t('admin.roles.modulesCount', { count: roleStats.modules })}
+                    <strong className="admin-roles__stat-value">{roleStats.modules}</strong>
+                    <span className="admin-roles__stat-label">{t('admin.roles.statModules')}</span>
                   </span>
                   <span className="admin-roles__stat admin-roles__stat--accent">
-                    {t('admin.roles.activeCount', {
-                      active: activePermissionCount,
-                      total: permissionCatalog.length,
-                    })}
+                    <strong className="admin-roles__stat-value">
+                      {activePermissionCount}
+                      <span className="admin-roles__stat-total">/{permissionCatalog.length}</span>
+                    </strong>
+                    <span className="admin-roles__stat-label">
+                      {t('admin.roles.statPermissions')}
+                    </span>
                   </span>
                 </div>
                 {permissionCatalog.length > 0 ? (
@@ -781,13 +786,15 @@ export default function RolesSection({
                     onClick={handleRoleStatus}
                   >
                     {isUpdatingStatus
-                      ? 'Actualizando…'
+                      ? t('admin.roles.updatingStatus')
                       : selectedRole.active
-                        ? 'Desactivar rol'
-                        : 'Activar rol'}
+                        ? t('admin.roles.deactivateRole')
+                        : t('admin.roles.activateRole')}
                   </Button>
                 </div>
               ) : null}
+
+              {toolbar}
             </header>
 
             {activitySection}

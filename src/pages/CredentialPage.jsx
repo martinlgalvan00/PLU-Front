@@ -916,7 +916,7 @@ function CredentialShell({
 
       <div className="credential-page__panel">
         <header className="credential-page__brand">
-          <img src={BRAND.logoArgentinaUrl} alt="" className="credential-page__logo" />
+          <img src={BRAND.logoArgentinaDisplayUrl} alt="" className="credential-page__logo" />
           <div className="credential-page__brand-text">
             <span className="credential-page__brand-name">PLU Argentina</span>
             <span className="credential-page__brand-mark">{brandMark}</span>

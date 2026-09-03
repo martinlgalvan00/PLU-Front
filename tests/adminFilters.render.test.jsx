@@ -100,11 +100,10 @@ describe('Afiliaciones — toggle de vencimiento', () => {
       </I18nProvider>,
     )
 
-    // layout="popover": el toggle vive detrás del pill; hay que abrirlo.
-    fireEvent.click(screen.getByRole('button', { name: 'Vencen en 30 días' }))
-    const chip = await screen.findByRole('button', { name: /Vencen pronto/ })
+    const chip = screen.getByRole('button', { name: /Vencen pronto/ })
     expect(chip.textContent).toMatch(/Vencen pronto/)
     expect(chip.querySelector('.admin-filter-chip__count')?.textContent).toBe('1')
+    expect(screen.getByText('Vencimiento')).toBeTruthy()
   })
 
   it('oculta el toggle si no hay afiliaciones por vencer', async () => {
@@ -127,7 +126,6 @@ describe('Afiliaciones — toggle de vencimiento', () => {
       </I18nProvider>,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Vencen en 30 días' }))
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /Vencen pronto/ })).toBeNull()
     })
@@ -317,9 +315,6 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
     )
 
     expect(screen.queryByText('status.gate_pending')).toBeNull()
-
-    // El chip vive dentro del popover del pill "Estado".
-    fireEvent.click(screen.getByRole('button', { name: /^Estado/ }))
     expect(screen.getByRole('button', { name: /Confirmada sin afiliación/ })).toBeTruthy()
   })
 
@@ -362,7 +357,7 @@ describe('Inscripciones — exportaciones con etiqueta', () => {
 
     const filterBar = container.querySelector('.admin-filters')
     expect(filterBar).toBeTruthy()
-    fireEvent.click(within(filterBar).getByRole('button', { name: /^Fecha de inscripción/ }))
+    fireEvent.click(within(filterBar).getByRole('button', { name: /Más criterios/ }))
     expect(screen.getByRole('button', { name: 'Últimos 7 días' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Últimos 30' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Este mes' })).toBeTruthy()

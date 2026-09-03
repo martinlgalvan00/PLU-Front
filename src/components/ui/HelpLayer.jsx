@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
-import AssistNavBar from '../layout/AssistNavBar.jsx'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react'
 import HelpDock from './HelpDock.jsx'
-import HelpPanel from './HelpPanel.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useHelp } from '../../providers/HelpProvider.jsx'
 import { useAssist } from '../../providers/AssistProvider.jsx'
@@ -9,6 +7,9 @@ import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { isJourneyActionRedundant, resolveAthleteJourney } from '../../lib/athleteJourney.js'
 import { getOrientationTour, getPublicTour } from '../../lib/publicTourSteps.js'
 import { markHomeGuideSeen } from '../../lib/homeGuideStorage.js'
+
+const AssistNavBar = lazy(() => import('../layout/AssistNavBar.jsx'))
+const HelpPanel = lazy(() => import('./HelpPanel.jsx'))
 
 /**
  * Capa de ayuda y navegación asistida de las pantallas públicas y de la cuenta.
@@ -100,31 +101,35 @@ export default function HelpLayer({
   return (
     <>
       {open ? (
-        <HelpPanel
-          journey={journey}
-          view={view}
-          atDestination={isJourneyActionRedundant(journey.next, view)}
-          tourKind={tour?.kind ?? null}
-          resume={resume}
-          onClose={closeHelp}
-          onNavigate={onNavigate}
-          onRunNext={runJourneyAction}
-          onLogin={() => onNavigate?.('login')}
-          onStartTour={tour ? runTour : null}
-        />
+        <Suspense fallback={null}>
+          <HelpPanel
+            journey={journey}
+            view={view}
+            atDestination={isJourneyActionRedundant(journey.next, view)}
+            tourKind={tour?.kind ?? null}
+            resume={resume}
+            onClose={closeHelp}
+            onNavigate={onNavigate}
+            onRunNext={runJourneyAction}
+            onLogin={() => onNavigate?.('login')}
+            onStartTour={tour ? runTour : null}
+          />
+        </Suspense>
       ) : null}
 
       {assist ? (
-        <AssistNavBar
-          view={view}
-          actionKey={journey.next.actionKey}
-          isAthlete={isAthlete}
-          pending={pending}
-          helpOpen={open}
-          onNavigate={onNavigate}
-          onRunAction={runJourneyAction}
-          onOpenHelp={() => toggleHelp('assist-nav')}
-        />
+        <Suspense fallback={null}>
+          <AssistNavBar
+            view={view}
+            actionKey={journey.next.actionKey}
+            isAthlete={isAthlete}
+            pending={pending}
+            helpOpen={open}
+            onNavigate={onNavigate}
+            onRunAction={runJourneyAction}
+            onOpenHelp={() => toggleHelp('assist-nav')}
+          />
+        </Suspense>
       ) : (
         <HelpDock open={open} pending={pending} onToggle={() => toggleHelp('dock')} />
       )}

@@ -120,7 +120,9 @@ function renderBrandedQr(url) {
       data: url,
       margin: 8,
       qrOptions: { errorCorrectionLevel: 'H' },
-      image: BRAND.logoArgentinaUrl,
+      // El isotipo ocupa ~70 px dentro de un QR de 320 px. Usar el PNG de
+      // captura 1024x1024 retenía varios MB decodificados sin sumar detalle.
+      image: BRAND.qrLogoUrl,
       imageOptions: {
         crossOrigin: 'anonymous',
         hideBackgroundDots: true,
@@ -155,11 +157,27 @@ function renderBrandedQr(url) {
  * @param {string} url
  * @returns {Promise<string>}
  */
+const QR_CACHE_MAX_ENTRIES = 24
 const qrDataUrlCache = new Map()
+
+function rememberQr(url, pending) {
+  // Map conserva orden de inserción: al volver a usar una entrada la movemos
+  // al final y descartamos primero la menos reciente. Cada valor es un PNG en
+  // data URL; sin límite, una sesión larga de acreditación crecía para siempre.
+  qrDataUrlCache.delete(url)
+  qrDataUrlCache.set(url, pending)
+  while (qrDataUrlCache.size > QR_CACHE_MAX_ENTRIES) {
+    const oldestUrl = qrDataUrlCache.keys().next().value
+    qrDataUrlCache.delete(oldestUrl)
+  }
+}
 
 export function generateCredentialQr(url) {
   const cached = qrDataUrlCache.get(url)
-  if (cached) return cached
+  if (cached) {
+    rememberQr(url, cached)
+    return cached
+  }
 
   const pending = renderBrandedQr(url)
     .catch(() => renderPlainQr(url))
@@ -168,7 +186,7 @@ export function generateCredentialQr(url) {
       throw error
     })
 
-  qrDataUrlCache.set(url, pending)
+  rememberQr(url, pending)
   return pending
 }
 

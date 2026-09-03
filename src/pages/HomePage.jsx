@@ -1,5 +1,6 @@
 import { m } from 'motion/react'
 import { useCallback, useRef } from 'react'
+import '../styles/pages/home.css'
 import AboutSection from '../components/ui/AboutSection.jsx'
 import CommunitySpotlight from '../components/ui/CommunitySpotlight.jsx'
 import HeroSection from '../components/layout/HeroSection.jsx'

@@ -1236,11 +1236,11 @@
 
 .admin-shell .admin-filters--inline .admin-filters__groups--multi,
 .admin-shell .admin-filters__panel .admin-filters__groups--multi {
-  align-items: center;
+  align-items: stretch;
   display: flex !important;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 8px 10px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
   grid-template-columns: none;
 }
 
@@ -1263,9 +1263,9 @@
    fuerza un mínimo. Con el piso, cuando no entran, saltan de línea solos. */
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-  flex: 1 1 160px;
-  min-width: min(100%, 160px);
-  width: auto;
+  flex: none;
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle,
@@ -1356,13 +1356,34 @@
 
 .admin-shell .admin-filters--inline .admin-filter-group--rail,
 .admin-shell .admin-filters__panel .admin-filter-group--rail {
-  align-items: stretch;
-  display: flex;
+  align-items: center;
+  display: grid;
   flex: none;
-  flex-direction: column;
-  gap: 6px;
+  gap: 6px 14px;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   width: 100%;
+}
+
+.admin-shell .admin-filters--inline .admin-filter-group--labeled:not(.admin-filter-group--menu),
+.admin-shell .admin-filters__panel .admin-filter-group--labeled:not(.admin-filter-group--menu),
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group--labeled {
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+}
+
+@media (max-width: 520px) {
+  .admin-shell .admin-filters--inline .admin-filter-group--labeled:not(.admin-filter-group--menu),
+  .admin-shell .admin-filters__panel .admin-filter-group--labeled:not(.admin-filter-group--menu),
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar-facets
+    .admin-filter-group--labeled {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
 }
 
 .admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filter-group--inline,
@@ -1381,15 +1402,19 @@
 }
 
 .admin-shell .admin-filters--inline .admin-filter-group__label,
-.admin-shell .admin-filters__panel .admin-filter-group__label {
+.admin-shell .admin-filters__panel .admin-filter-group__label,
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group__label {
   color: var(--admin-muted);
   display: block;
   flex: none;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -1398,28 +1423,12 @@
   display: block;
 }
 
-/* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice
-   -- los chips son autodescriptivos. Con 2+ grupos (`.admin-filters__groups--multi`, ver
-   AdminFilterBar.jsx) varios chips comparten el mismo neutro "Todos" y sin la etiqueta
-   arriba de cada riel no se distingue qué filtra cada uno. Antes esto solo se resolvía
-   para Atletas con un opt-in por variante (`.admin-filters--athletes`); ahora es el
-   criterio general -- mismo lenguaje visual en Atletas, Afiliaciones e Inscripciones en
-   vez de una lista de variantes que hay que recordar actualizar cada vez que un filtro
-   nuevo empuja a una pantalla de 1 a 2+ grupos. */
-.admin-shell
-  .admin-filters--inline
-  .admin-filters__groups:not(.admin-filters__groups--multi)
-  .admin-filter-group--inline
-  > .admin-filter-group__label {
-  display: none;
-}
-
-/* Fila que une los chips principales con el toggle de avanzados.
-   Los chips se expanden y el toggle queda pegado a la derecha. */
+/* Fila que une los rieles etiquetados con el toggle de avanzados. */
 .admin-shell .admin-filters__chips-row {
-  align-items: center;
+  align-items: stretch;
   display: flex;
-  gap: 0;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
   width: 100%;
 }
@@ -1427,11 +1436,13 @@
 .admin-shell .admin-filters__chips-row > .admin-filters__groups {
   flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__chips-row > .admin-filters__advanced-toggle {
+  align-self: flex-start;
   flex: 0 0 auto;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .admin-shell .admin-filters__clear {
@@ -3234,7 +3245,7 @@
 
 .admin-shell .admin-filters--inline.admin-filters--compact {
   align-items: stretch;
-  background: color-mix(in srgb, var(--admin-surface-raised) 45%, transparent);
+  background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-direction: column;
@@ -3269,33 +3280,28 @@
 
 .admin-shell .admin-filters__primary .admin-filters__search {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-control-bg) 92%, var(--admin-surface-raised));
-  border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
-  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  border-radius: 0;
   color: var(--admin-muted);
   display: flex;
   flex: 1 1 auto;
   gap: 12px;
-  height: 52px;
+  height: 40px;
   margin: 0;
-  min-height: 52px;
+  min-height: 40px;
   min-width: 0;
-  padding: 0 16px 0 18px;
-  transition:
-    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
+  padding: 0 2px 8px;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-standard, ease);
   width: auto;
 }
 
 .admin-shell .admin-filters__search:focus-within {
-  background: var(--admin-surface-raised);
-  border-color: var(--admin-brand-border, var(--color-brand-celeste));
-  box-shadow:
-    0 6px 16px color-mix(in srgb, var(--admin-ink) 7%, transparent),
-    0 0 0 3px var(--admin-focus-soft);
-  transform: translateY(-1px);
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--admin-ink) 42%, transparent);
+  box-shadow: none;
+  transform: none;
 }
 
 .admin-shell .admin-filters__search-icon {
@@ -3443,13 +3449,13 @@
   overflow: visible;
 }
 
-/* Multi después del panel column: chips + toggle (o selects) en fila. */
+/* Multi: un riel etiquetado por faceta, apilados. */
 .admin-shell .admin-filters__panel .admin-filters__groups--multi {
-  align-items: center;
+  align-items: stretch;
   display: flex !important;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 16px 14px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .admin-shell
@@ -3462,9 +3468,9 @@
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-  flex: 1 1 160px;
-  min-width: min(100%, 160px);
-  width: auto;
+  flex: none;
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group--toggle {
@@ -3507,8 +3513,8 @@
     .admin-filters--athletes.admin-filters--inline
     .admin-filters__groups--multi
     .admin-filter-group {
-    flex: 0 1 auto;
-    width: auto;
+    flex: none;
+    width: 100%;
   }
 }
 
@@ -3737,29 +3743,22 @@
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
   background: transparent;
   border: 0;
-  border-radius: 9px;
+  border-radius: 0;
   box-shadow: none;
   color: var(--admin-muted);
   flex: none;
   font-size: 13px;
-  font-weight: 550;
-  gap: 7px;
+  font-weight: 500;
+  gap: 6px;
   justify-content: center;
   letter-spacing: -0.01em;
   min-height: 36px;
   min-width: max-content;
-  padding: 10px 16px;
+  padding: 6px 12px;
   position: relative;
   transform: none;
   transition:
-    color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
-}
-
-.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip::after {
-  display: none;
+    color var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-shell
@@ -3769,21 +3768,19 @@
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip:hover {
-  background: color-mix(in srgb, var(--admin-surface-raised) 72%, transparent);
+  background: transparent;
   color: var(--admin-ink);
 }
 
-/* Chip activo: cápsula rellena, sin subrayado. Un solo tono neutro (el
-   mismo `--admin-ink` de la tipografía, no el celeste de marca) para que
-   la cápsula no compita como segundo acento dentro del mismo bloque. */
+/* Chip activo: peso + subrayado de tinta. Un acento, sin cápsula. */
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip.is-active,
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--admin-ink) 9%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  background: transparent !important;
+  border: 0 !important;
   box-shadow: none;
   color: var(--admin-ink);
   font-weight: 650;
@@ -3796,24 +3793,32 @@
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true']::after {
-  display: none;
+  background: var(--admin-ink);
+  bottom: 4px;
+  content: '';
+  display: block;
+  height: 1px;
+  left: 12px;
+  opacity: 0.55;
+  position: absolute;
+  right: 12px;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip__count {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-ink) 6%, transparent);
+  background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   color: var(--admin-muted);
   display: inline-flex;
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 650;
+  font-weight: 500;
   justify-content: center;
-  letter-spacing: 0.01em;
-  min-width: 1.3em;
+  letter-spacing: 0;
+  min-width: 0;
   opacity: 1;
-  padding: 1px 5px;
+  padding: 0;
 }
 
 .admin-shell
@@ -3824,8 +3829,8 @@
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true']
   .admin-filter-chip__count {
-  background: color-mix(in srgb, var(--admin-ink) 16%, transparent);
-  color: var(--admin-ink);
+  background: transparent;
+  color: color-mix(in srgb, var(--admin-ink) 72%, transparent);
   opacity: 1;
 }
 
@@ -5338,22 +5343,14 @@
   }
 
   .admin-shell .admin-filters__panel .admin-filter-group--inline {
-    align-items: stretch;
+    align-items: center;
     display: grid;
-    gap: 7px;
+    gap: 6px 14px;
     width: 100%;
   }
 
-  .admin-shell
-    .admin-filters__panel
-    .admin-filters__groups:not(.admin-filters__groups--multi)
-    .admin-filter-group--inline
-    > .admin-filter-group__label {
-    display: none;
-  }
-
   .admin-shell .admin-filters__panel .admin-filter-group--toggle .admin-filter-group__label {
-    display: inline;
+    display: block;
   }
 
   .admin-shell .admin-filters__panel .admin-filter-chips {
@@ -9100,31 +9097,17 @@
     .admin-shell
       .admin-filters__panel
       .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
-      align-items: center;
-      flex-direction: row;
+      align-items: stretch;
+      flex-direction: column;
       flex-wrap: nowrap;
-      gap: 8px 10px;
-    }
-
-    /* Sin piso de ancho el `nowrap` de arriba nunca cede: 2+ grupos de chips
-       se encogen hasta ilegibles en vez de saltar de línea (mismo criterio
-       que la rama ancha, arriba en el archivo). El piso hace innecesario un
-       `flex-wrap: wrap` aparte por variante -- cualquier pantalla con
-       suficientes grupos salta de línea sola. */
-    .admin-shell
-      .admin-filters--inline
-      .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only),
-    .admin-shell
-      .admin-filters__panel
-      .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
-      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
     .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-      flex: 1 1 160px;
-      min-width: min(100%, 160px);
-      width: auto;
+      flex: none;
+      min-width: 0;
+      width: 100%;
     }
 
     .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle,

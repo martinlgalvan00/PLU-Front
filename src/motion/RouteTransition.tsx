@@ -32,8 +32,12 @@ export default function RouteTransition({
   const { reducedMotion, tier } = useMotionConfig()
   const isMobile = useMobileViewport()
 
-  if (reducedMotion) {
-    return <div className="page-transition page-transition--idle" id={id} tabIndex={tabIndex}>{children}</div>
+  if (reducedMotion || tier === 'low') {
+    return (
+      <div className="page-transition page-transition--idle" id={id} tabIndex={tabIndex}>
+        {children}
+      </div>
+    )
   }
 
   const mobileEnterX = direction === 'back' ? -14 : 24

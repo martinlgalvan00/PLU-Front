@@ -4735,47 +4735,31 @@
   gap: 0;
 }
 
-/* Filtros de eventos: pills de vidrio con transición de estado — el
-   activo se lee como material, no como subrayado. */
 .admin-list-shell--events .admin-filter-chip {
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 999px;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  min-height: 34px;
-  padding: 6px 13px;
+  min-height: 36px;
+  padding: 6px 12px;
   position: relative;
-  transition:
-    background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
-    color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-list-shell--events .admin-filter-chip:hover {
-  background: var(--admin-glass-bg, rgba(255, 255, 255, 0.04));
-  border-color: var(--admin-glass-border, var(--color-border-subtle));
+  background: transparent;
   color: var(--color-text-primary);
-  transform: translateY(-1px);
 }
 
 .admin-list-shell--events .admin-filter-chip.is-active,
 .admin-list-shell--events .admin-filter-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 36%, transparent);
-  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   color: var(--color-text-primary);
-  font-weight: 600;
-}
-
-.admin-list-shell--events .admin-filter-chip.is-active:hover,
-.admin-list-shell--events .admin-filter-chip[aria-pressed='true']:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 16%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 44%, transparent);
+  font-weight: 650;
 }
 
 .admin-list-shell--events .admin-filter-chip.is-active .admin-filter-chip__count,
@@ -10740,7 +10724,7 @@
   overflow: hidden;
 }
 
-/* Header editorial: título + meta + acción en una franja */
+/* Header editorial: título + cifras + herramientas de la matriz */
 .admin-roles__matrix-head {
   align-items: start;
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 1.5%, transparent);
@@ -10749,7 +10733,11 @@
   flex: 0 0 auto;
   gap: 14px 24px;
   grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.95fr) auto;
-  padding: 20px 22px 18px;
+  padding: 20px 22px 16px;
+}
+
+.admin-roles__matrix-head > .admin-roles__toolbar {
+  grid-column: 1 / -1;
 }
 
 .admin-roles__matrix-title {
@@ -10767,13 +10755,11 @@
 
 /* Chip de nivel — acento editorial a la izquierda */
 .admin-roles__matrix-level {
-  border-left: 2px solid var(--admin-brand, var(--color-brand-celeste));
   color: var(--admin-muted, var(--color-text-muted));
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  padding-left: 8px;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-roles__readonly {
@@ -10816,26 +10802,52 @@
 .admin-roles__meta-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 16px 20px;
   justify-content: flex-end;
 }
 
 .admin-roles__stat {
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 550;
+  font-weight: 500;
+  gap: 2px;
   line-height: 1.2;
-  padding: 5px 10px;
+  padding: 0;
+  text-align: right;
   white-space: nowrap;
 }
 
+.admin-roles__stat-value {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.admin-roles__stat-total {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-roles__stat-label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .admin-roles__stat--accent {
-  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 35%, transparent);
-  color: var(--admin-brand, var(--color-brand-celeste));
+  border: 0;
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-roles__stat--accent .admin-roles__stat-value {
+  color: var(--admin-ink, var(--color-text-primary));
 }
 
 .admin-roles__meta-line {
@@ -11814,6 +11826,10 @@
 
   .admin-roles__meta-stats {
     justify-content: flex-start;
+  }
+
+  .admin-roles__stat {
+    text-align: left;
   }
 
   .admin-roles__matrix-actions {
@@ -14634,7 +14650,9 @@
    ============================================= */
 
 .admin-action-drawer__backdrop {
-  background: rgba(4, 6, 10, 0.65);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  backdrop-filter: blur(6px) saturate(1.1);
+  background: rgba(4, 6, 10, 0.42);
   border: 0;
   cursor: pointer;
   inset: 0;
@@ -20063,34 +20081,32 @@ button.action-queue__proof:focus-visible {
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .admin-roles__toolbar {
   align-items: center;
-  border-bottom: 0;
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
   justify-content: space-between;
-  padding: 2px 2px 0;
+  margin: 2px -6px 0;
+  padding: 12px 6px 0;
 }
 
 .admin-roles__search-box {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 2.5%, transparent);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 9px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 0;
   display: flex;
   flex: 1 1 220px;
   gap: 8px;
   max-width: 360px;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 2px 6px;
   transition: border-color var(--motion-fast, 140ms) ease;
 }
 
 .admin-roles__search-box:focus-within {
-  border-color: color-mix(
-    in srgb,
-    var(--color-brand-celeste) 55%,
-    var(--admin-hairline, var(--color-border-subtle))
-  );
+  border-bottom-color: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 42%, transparent);
 }
 
 .admin-roles__search-icon {
