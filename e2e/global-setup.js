@@ -181,6 +181,51 @@ export default async function globalSetup() {
     'utf8',
   )
 
+  const ticketEventSlug = `e2e-tickets-${run}`
+  const ticketEventTitle = `E2E Entradas ${run}`
+
+  const { data: ticketEvent, error: ticketEventError } = await admin
+    .from('events')
+    .insert({
+      organization_id: ORG_ID,
+      slug: ticketEventSlug,
+      title: ticketEventTitle,
+      venue: 'QA Gym',
+      location: 'CABA',
+      price: 75000,
+      currency: 'ARS',
+      status: 'inscripcion_abierta',
+      published: true,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      pricing: { ticketsEnabled: true },
+    })
+    .select('id')
+    .single()
+  if (ticketEventError) {
+    throw new Error(`No se pudo crear el evento de entradas de QA: ${ticketEventError.message}`)
+  }
+
+  const { error: ticketTypesError } = await admin.from('ticket_types').insert([
+    {
+      event_id: ticketEvent.id,
+      name: 'Entrenadores',
+      price: 10000,
+      sort_order: 1,
+      active: true,
+    },
+    {
+      event_id: ticketEvent.id,
+      name: 'Público general',
+      price: 20000,
+      sort_order: 2,
+      active: true,
+    },
+  ])
+  if (ticketTypesError) {
+    throw new Error(`No se pudieron crear los tipos de entrada de QA: ${ticketTypesError.message}`)
+  }
+
   await writeFile(
     FIXTURE_PATH,
     JSON.stringify({
@@ -194,6 +239,9 @@ export default async function globalSetup() {
       manualOnlyEventTitle,
       manualOnlyEventId: manualOnlyEvent.id,
       manualOnlyDiscountCode,
+      ticketEventSlug,
+      ticketEventTitle,
+      ticketEventId: ticketEvent.id,
     }),
     'utf8',
   )

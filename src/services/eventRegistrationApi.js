@@ -85,6 +85,7 @@ function toCamelBoardAthlete(row) {
     division: row.division ?? '',
     category: row.category ?? '',
     bodyweightKg: row.bodyweightKg ?? row.bodyweight_kg ?? null,
+    sex: row.sex ?? null,
     status: row.status,
     checkedIn: Boolean(row.checkedIn ?? row.checked_in),
   }

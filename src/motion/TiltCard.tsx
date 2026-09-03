@@ -1,7 +1,15 @@
-import { useCallback, useRef, useState, type ReactNode, type CSSProperties, type PointerEvent } from 'react'
-import { getDeviceTier } from './deviceTier'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type CSSProperties,
+  type PointerEvent,
+} from 'react'
 import { MOTION_TIER_SCALE, TILT_MAX_DEG } from './tokens'
-import { hasFinePointer, useReducedMotion } from './useReducedMotion'
+import { hasFinePointer } from './useReducedMotion'
+import { useMotionConfig } from './MotionProvider'
 
 type TiltCardProps = {
   children: ReactNode
@@ -23,13 +31,21 @@ export default function TiltCard({
   style,
   innerClassName = 'tilt-card__inner',
 }: TiltCardProps) {
-  const reducedMotion = useReducedMotion()
-  const canTilt = !reducedMotion && hasFinePointer()
-  const resolvedMaxTilt = (maxTilt ?? TILT_MAX_DEG) * MOTION_TIER_SCALE[getDeviceTier()]
+  const { reducedMotion, tier } = useMotionConfig()
+  const canTilt = !reducedMotion && tier !== 'low' && hasFinePointer()
+  const resolvedMaxTilt = (maxTilt ?? TILT_MAX_DEG) * MOTION_TIER_SCALE[tier]
   const rootRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<number | null>(null)
   const leaveTimerRef = useRef<number | null>(null)
   const [tiltActive, setTiltActive] = useState(false)
+
+  useEffect(
+    () => () => {
+      if (frameRef.current != null) cancelAnimationFrame(frameRef.current)
+      if (leaveTimerRef.current != null) window.clearTimeout(leaveTimerRef.current)
+    },
+    [],
+  )
 
   const resetTilt = useCallback(() => {
     const node = rootRef.current

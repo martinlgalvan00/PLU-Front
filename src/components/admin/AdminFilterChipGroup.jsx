@@ -186,6 +186,7 @@ export default function AdminFilterChipGroup({
         isMenu ? 'admin-filter-group--menu' : '',
         compact ? 'admin-filter-group--compact' : '',
         inline ? 'admin-filter-group--inline' : '',
+        label ? 'admin-filter-group--labeled' : '',
         allActive ? 'admin-filter-group--all' : '',
       ]
         .filter(Boolean)

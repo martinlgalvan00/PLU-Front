@@ -359,7 +359,6 @@ export default function MembershipsSection({
       <AdminListSection
         variant="memberships"
         filteredCount={rows.length}
-        filterLayout="panel"
         placeholder={t('admin.search.membership')}
         query={query}
         showHeader
@@ -394,6 +393,7 @@ export default function MembershipsSection({
             onChange: setRegisteredToTournament,
             options: tournamentOptions,
             variant: 'toggle',
+            advanced: true,
           },
           {
             id: 'gym',
@@ -402,6 +402,7 @@ export default function MembershipsSection({
             onChange: setGym,
             options: gymOptions,
             variant: 'select',
+            advanced: true,
           },
           {
             id: 'division',
@@ -410,6 +411,7 @@ export default function MembershipsSection({
             onChange: setDivision,
             options: divisionOptions,
             variant: 'select',
+            advanced: true,
           },
         ]}
         onQueryChange={setQuery}

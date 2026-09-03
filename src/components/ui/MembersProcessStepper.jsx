@@ -75,14 +75,15 @@ const sceneChild = {
  */
 export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, title, lead }) {
   const { t } = useI18n()
-  const { reducedMotion } = useMotionConfig()
+  const { reducedMotion, tier } = useMotionConfig()
+  const minimalMotion = reducedMotion || tier === 'low'
   const [activeIndex, setActiveIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const [paused, setPaused] = useState(false)
   const stepCount = Math.max(steps.length, 1)
 
   useEffect(() => {
-    if (reducedMotion || paused || steps.length < 2) return undefined
+    if (minimalMotion || paused || steps.length < 2) return undefined
 
     const timer = window.setInterval(() => {
       setDirection(1)
@@ -90,7 +91,7 @@ export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, 
     }, SCENE_INTERVAL_MS)
 
     return () => window.clearInterval(timer)
-  }, [paused, reducedMotion, steps.length])
+  }, [minimalMotion, paused, steps.length])
 
   function selectStep(index) {
     if (index === activeIndex) return
@@ -99,7 +100,7 @@ export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, 
   }
 
   function handleStagePointer(event) {
-    if (reducedMotion) return
+    if (minimalMotion) return
     const el = event.currentTarget
     const rect = el.getBoundingClientRect()
     const nx = (event.clientX - rect.left) / rect.width
@@ -135,7 +136,7 @@ export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, 
 
   return (
     <div className="members-plu-stepper members-plu-stepper--timeline" aria-label={ariaLabel}>
-      {reducedMotion ? (
+      {minimalMotion ? (
         head
       ) : (
         <m.div variants={headMotion} initial="hidden" whileInView="show" viewport={MOTION_VIEWPORT}>
@@ -155,8 +156,8 @@ export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, 
         <div
           className="members-plu-stepper__stage"
           aria-live="polite"
-          onPointerMove={reducedMotion ? undefined : handleStagePointer}
-          onPointerLeave={reducedMotion ? undefined : resetStagePointer}
+          onPointerMove={minimalMotion ? undefined : handleStagePointer}
+          onPointerLeave={minimalMotion ? undefined : resetStagePointer}
         >
           <span className="members-plu-stepper__glow" aria-hidden />
           <span className="members-plu-stepper__ghost" aria-hidden>
@@ -165,7 +166,7 @@ export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, 
 
           <div className="members-plu-stepper__stage-meta">
             <span className="members-plu-stepper__counter">
-              {reducedMotion ? (
+              {minimalMotion ? (
                 <>
                   {indexLabel}
                   <span aria-hidden> / </span>
@@ -195,7 +196,7 @@ export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, 
             <div className="members-plu-stepper__progress" aria-hidden>
               <span
                 key={activeIndex}
-                className={`members-plu-stepper__progress-bar${paused || reducedMotion ? ' is-paused' : ''}`}
+                className={`members-plu-stepper__progress-bar${paused || minimalMotion ? ' is-paused' : ''}`}
                 style={{ '--scene-duration': `${SCENE_INTERVAL_MS}ms` }}
               />
             </div>
@@ -220,7 +221,7 @@ export default function MembersProcessStepper({ steps = [], ariaLabel, eyebrow, 
             </div>
           </div>
 
-          {reducedMotion ? (
+          {minimalMotion ? (
             <div className="members-plu-stepper__scene">
               <span className="members-plu-stepper__scene-icon" aria-hidden>
                 <Icon size={28} strokeWidth={1.5} />

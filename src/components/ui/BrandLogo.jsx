@@ -8,7 +8,7 @@ const LOGO_VARIANTS = {
     aspect: 3.75,
   },
   argentina: {
-    src: BRAND.logoArgentinaUrl,
+    src: BRAND.logoArgentinaDisplayUrl,
     altKey: 'logoArgentinaAlt',
     aspect: 1,
   },

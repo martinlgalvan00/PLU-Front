@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Camera, QrCode } from 'lucide-react'
 import { m } from 'motion/react'
 import TiltCard from '../../motion/TiltCard.tsx'
@@ -50,10 +50,32 @@ export default function HomeMembershipCredential() {
   const { t } = useI18n()
   const { reducedMotion } = useMotionConfig()
   const [qrSrc, setQrSrc] = useState('')
+  const [shouldGenerateQr, setShouldGenerateQr] = useState(false)
+  const credentialRef = useRef(null)
 
   const seasonYear = HOME_MEMBERSHIP.seasonNote.match(/\d+/)?.[0] ?? ''
 
   useEffect(() => {
+    const node = credentialRef.current
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setShouldGenerateQr(true)
+      return undefined
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        setShouldGenerateQr(true)
+        observer.disconnect()
+      },
+      { rootMargin: '240px 0px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!shouldGenerateQr) return undefined
     let cancelled = false
     const url = buildCredentialUrl({ code: PREVIEW_MEMBER_CODE })
 
@@ -68,7 +90,7 @@ export default function HomeMembershipCredential() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [shouldGenerateQr])
 
   const body = (
     <div className="home-credential__stack" aria-label={t('pages.home.credentialAria')}>
@@ -106,7 +128,7 @@ export default function HomeMembershipCredential() {
 
   if (reducedMotion) {
     return (
-      <div className="home-credential">
+      <div ref={credentialRef} className="home-credential">
         {tilt}
         {caption}
       </div>
@@ -115,6 +137,7 @@ export default function HomeMembershipCredential() {
 
   return (
     <m.div
+      ref={credentialRef}
       className="home-credential"
       variants={cardShell}
       initial="hidden"
