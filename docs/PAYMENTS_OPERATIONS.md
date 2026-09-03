@@ -265,6 +265,15 @@ que para Mercado Pago.
   diaria del plan Hobby.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
+- `PAYMENT_ORDER_EXPIRY_JOB_ENABLED` (default on, `=false` lo apaga): reclama
+  y envia el recordatorio (~2 dias antes) y el aviso final de vencimiento de
+  ordenes de pago manual (transferencia/efectivo, plazo de 5 dias desde
+  `plu_private.manual_link_checkout_window()`). A diferencia de
+  `membership-renewal` (opt-in), este es opt-out: es puramente DB + dispatcher
+  idempotente, sin riesgo de doble-cobro contra un proveedor externo. Cron
+  `/api/internal/jobs/payment-order-expiry`, diario en Vercel y complementado
+  cada hora por `.github/workflows/payment-order-expiry-cron.yml` (mismo
+  patron que `payment-revalidation-cron.yml`).
 - `PAYMENT_PROOF_RETENTION_JOB_ENABLED` (default on): borra de Storage los
   comprobantes de ordenes ya `aprobado`/`rechazado` pasadas
   `PROOF_RETENTION_HOURS` (default 24). No toca pendientes. Cron
@@ -274,6 +283,7 @@ que para Mercado Pago.
 En Vercel, un scheduler invoca por `GET` los endpoints
 `/api/internal/jobs/payment-recovery`,
 `/api/internal/jobs/payment-revalidation`,
+`/api/internal/jobs/payment-order-expiry`,
 `/api/internal/jobs/payment-proof-retention`,
 `/api/internal/jobs/membership-renewal` y
 `/api/internal/jobs/security-user-lifecycle` con

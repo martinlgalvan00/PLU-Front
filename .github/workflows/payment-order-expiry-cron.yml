@@ -1,0 +1,36 @@
+name: Payment order expiry cron
+
+# Vercel Hobby solo permite una ejecución diaria por cron job
+# (ver tests/deploymentConfig.test.js), así que el cron nativo de
+# /api/internal/jobs/payment-order-expiry en vercel.json queda una vez por
+# día como red de contención mínima. Este workflow lo complementa disparando
+# el mismo endpoint cada hora desde afuera. No hay plata en vuelo acá (a
+# diferencia de payment-recovery, cada 15 min): son avisos informativos sobre
+# una ventana de días, así que una hora de latencia es imperceptible.
+# Desfasado del minuto 0 para no coincidir con payment-revalidation-cron.
+
+on:
+  schedule:
+    - cron: '20 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Disparar avisos de vencimiento de pago
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "Falta el secreto CRON_SECRET en este repo (Settings > Secrets and variables > Actions)." >&2
+            exit 1
+          fi
+          curl --fail --show-error --silent \
+            --retry 3 --retry-delay 5 --max-time 20 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.powerliftingunited.ar/api/internal/jobs/payment-order-expiry"
