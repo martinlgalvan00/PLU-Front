@@ -21,7 +21,7 @@ import AdminEventEditor, {
 import AdminEventPaymentsTriage from '../../components/admin/AdminEventPaymentsTriage.jsx'
 import AdminEventQuickCreate from '../../components/admin/AdminEventQuickCreate.jsx'
 import AdminEventSecuritySection from '../../components/admin/AdminEventSecuritySection.jsx'
-import AdminEventSessionsEditor from '../../components/admin/AdminEventSessionsEditor.jsx'
+import AdminEventStructureEditor from '../../components/admin/AdminEventStructureEditor.jsx'
 import AdminEventZonesSection from '../../components/admin/AdminEventZonesSection.jsx'
 import AdminIconButton from '../../components/admin/AdminIconButton.jsx'
 import AdminListSection from '../../components/admin/AdminListSection.jsx'
@@ -39,6 +39,7 @@ import {
   createAdminEventDraft,
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
+import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
 import {
   buildEventPaymentTriage,
   formatEventPaymentTriageSummary,
@@ -238,6 +239,7 @@ export default function EventsSection({
   const [consoleView, setConsoleView] = useState('list')
   /** Sección del acordeón abierta en la consola: basics | sales | visibility. */
   const [consoleSection, setConsoleSection] = useState(null)
+  const [consoleChapter, setConsoleChapter] = useState(null)
   /** Firma del draft al abrir el acordeón: el dirty sobrevive al cambiar de sección. */
   const [editorBaselineSignature, setEditorBaselineSignature] = useState(null)
   const [zonesReloadToken, setZonesReloadToken] = useState(0)
@@ -256,6 +258,7 @@ export default function EventsSection({
   const exitEditRef = useRef(null)
   /** Si el editor dirty pide confirmación, abrir esta sección al descartar. */
   const pendingConsoleSectionRef = useRef(null)
+  const pendingConsoleChapterRef = useRef(null)
 
   function handleSelectEvent(id) {
     setSelectedId(id)
@@ -265,7 +268,9 @@ export default function EventsSection({
   function closeEventConsole() {
     setConsoleOpen(false)
     setConsoleSection(null)
+    setConsoleChapter(null)
     pendingConsoleSectionRef.current = null
+    pendingConsoleChapterRef.current = null
   }
 
   /** Zonas y pagos reemplazan al listado: la consola se cierra para dejar el
@@ -273,6 +278,7 @@ export default function EventsSection({
   function openDrillFromConsole(view) {
     setConsoleOpen(false)
     setConsoleSection(null)
+    setConsoleChapter(null)
     setConsoleView(view)
   }
 
@@ -421,26 +427,28 @@ export default function EventsSection({
     return 'basics'
   }
 
-  function openStructureSection() {
+  function openStructureSection(chapter = 'days') {
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
     setConsoleSection('structure')
+    setConsoleChapter(chapter ?? 'days')
     setConsoleView('list')
     setConsoleOpen(true)
   }
 
-  function openEditForm(event, focus = 'basics') {
+  function openEditForm(event, focus = 'basics', chapter = null) {
     if (!event) return
     const section = resolveConsoleSection(focus)
     if (section === 'structure') {
-      openStructureSection()
+      openStructureSection(chapter ?? 'days')
       return
     }
     const nextDraft = buildAdminEventDraft(event)
     setSelectedId(event.id)
     setEditorFocus(section)
     setConsoleSection(section)
+    setConsoleChapter(section === 'sales' ? (chapter ?? 'cupo') : chapter)
     setDraft(nextDraft)
     setEditorBaselineSignature(getAdminEventDraftSignature(nextDraft))
     setMessage(null)
@@ -455,6 +463,7 @@ export default function EventsSection({
     if (section === 'structure') {
       if (consoleSection === 'structure') {
         setConsoleSection(null)
+        setConsoleChapter(null)
         return
       }
       if (formOpen && draft.id) {
@@ -462,7 +471,7 @@ export default function EventsSection({
         exitEditRef.current?.()
         return
       }
-      openStructureSection()
+      openStructureSection('days')
       return
     }
 
@@ -474,23 +483,105 @@ export default function EventsSection({
     if (formOpen && draft.id) {
       setEditorFocus(section)
       setConsoleSection(section)
+      setConsoleChapter(section === 'sales' ? 'cupo' : null)
       return
     }
     openEditForm(event, section)
   }
 
+  function selectConsoleChapter(event, section, chapter) {
+    if (!event) return
+    if (section === 'structure') {
+      if (consoleSection === 'structure') {
+        setConsoleChapter(chapter)
+        return
+      }
+      if (formOpen && draft.id) {
+        pendingConsoleSectionRef.current = 'structure'
+        pendingConsoleChapterRef.current = chapter
+        exitEditRef.current?.()
+        return
+      }
+      openStructureSection(chapter)
+      return
+    }
+    if (!canEdit) return
+    if (formOpen && draft.id === event.id && consoleSection === section) {
+      setConsoleChapter(chapter)
+      return
+    }
+    openEditForm(event, section, chapter)
+  }
+
+  function togglePublicModule(event, key) {
+    if (!event || !canEdit) return
+    const apply = (current) => {
+      const surface = normalizeEventPublicSurface(current.publicSurface)
+      return {
+        ...current,
+        publicSurface: { ...surface, [key]: !surface[key] },
+      }
+    }
+    if (formOpen && draft.id === event.id) {
+      setDraft(apply)
+      setConsoleSection('visibility')
+      setEditorFocus('visibility')
+      return
+    }
+    const baseline = buildAdminEventDraft(event)
+    setSelectedId(event.id)
+    setEditorFocus('visibility')
+    setConsoleSection('visibility')
+    setConsoleChapter(null)
+    setDraft(apply(baseline))
+    setEditorBaselineSignature(getAdminEventDraftSignature(baseline))
+    setMessage(null)
+    setConsoleView('list')
+    setConsoleOpen(true)
+    setFormOpen(true)
+  }
+
+  function toggleOccupancy(event) {
+    if (!event || !canEdit) return
+    const apply = (current) => ({
+      ...current,
+      capacityProgressPublic: current.capacityProgressPublic === false,
+    })
+    if (formOpen && draft.id === event.id) {
+      setDraft(apply)
+      setConsoleSection('visibility')
+      setEditorFocus('visibility')
+      return
+    }
+    const baseline = buildAdminEventDraft(event)
+    setSelectedId(event.id)
+    setEditorFocus('visibility')
+    setConsoleSection('visibility')
+    setConsoleChapter(null)
+    setDraft(apply(baseline))
+    setEditorBaselineSignature(getAdminEventDraftSignature(baseline))
+    setMessage(null)
+    setConsoleView('list')
+    setConsoleOpen(true)
+    setFormOpen(true)
+  }
+
   function closeForm() {
     const wasEditingExisting = Boolean(draft.id)
     const pendingSection = pendingConsoleSectionRef.current
+    const pendingChapter = pendingConsoleChapterRef.current
     pendingConsoleSectionRef.current = null
+    pendingConsoleChapterRef.current = null
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
     if (pendingSection === 'structure') {
       setConsoleSection('structure')
+      setConsoleChapter(pendingChapter ?? 'days')
       setConsoleOpen(true)
       return
     }
+    setConsoleChapter(null)
     setConsoleSection(null)
     // Volver a la consola del mismo evento, no cerrar el modal.
     if (wasEditingExisting) setConsoleOpen(true)
@@ -527,6 +618,16 @@ export default function EventsSection({
       text: submittedDraft.id
         ? t('admin.sections.events.updated')
         : t('admin.sections.events.created'),
+    })
+    return saved
+  }
+
+  async function handleStructureSave(submittedDraft) {
+    const saved = await onSaveEvent?.(submittedDraft)
+    if (saved?.error) throw new Error(saved.error)
+    setMessage({
+      tone: 'success',
+      text: t('admin.sections.events.updated'),
     })
     return saved
   }
@@ -859,6 +960,7 @@ export default function EventsSection({
               canEdit={canEdit}
               draft={draft}
               forcedTab={consoleSection}
+              forcedChapter={consoleChapter}
               sourceEvent={editingSource}
               onCancel={closeForm}
               onChange={setDraft}
@@ -868,6 +970,7 @@ export default function EventsSection({
               onRequestSection={(section) => {
                 setEditorFocus(section)
                 setConsoleSection(section)
+                setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'cupo') : null)
               }}
               onSubmit={handleSubmit}
             />
@@ -876,16 +979,19 @@ export default function EventsSection({
         event={selectedEvent}
         open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent)}
         openSection={consoleSection}
+        openChapter={consoleChapter}
         paymentSummary={selectedPaymentSummary}
         previewDraft={
           formOpen && draft.id && selectedEvent && draft.id === selectedEvent.id ? draft : null
         }
         structureEditor={
           consoleSection === 'structure' && selectedEvent ? (
-            <AdminEventSessionsEditor
-              embedded
+            <AdminEventStructureEditor
               canEdit={canEdit}
+              chapter={consoleChapter ?? 'days'}
+              event={selectedEvent}
               eventSlug={selectedEvent.slug}
+              onSaveEvent={handleStructureSave}
             />
           ) : null
         }
@@ -895,6 +1001,7 @@ export default function EventsSection({
         onExitSection={() => {
           if (consoleSection === 'structure') {
             setConsoleSection(null)
+            setConsoleChapter(null)
             return
           }
           exitEditRef.current?.()
@@ -907,7 +1014,10 @@ export default function EventsSection({
         }
         onManageRegistrations={onManageRegistrations}
         onOpenZones={() => openDrillFromConsole('zones')}
+        onSelectChapter={selectConsoleChapter}
         onSetEventState={onSetEventState}
+        onToggleOccupancy={toggleOccupancy}
+        onTogglePublicModule={togglePublicModule}
         onToggleSection={toggleConsoleSection}
       />
 

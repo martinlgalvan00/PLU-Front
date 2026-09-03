@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_EVENT_PUBLIC_SURFACE } from '../src/lib/eventPublicSurface.js'
 import {
   buildAdminEventDraft,
   createAdminEventDraft,
@@ -136,6 +137,91 @@ describe('eventAdminService', () => {
     expect(event.eventDays).toEqual([
       { id: 'day-1', dayIndex: 0, label: 'Día 1', date: '2026-08-15' },
     ])
+  })
+
+  it('mapea las ventanas de pesaje públicas desde rules', () => {
+    const event = mapSupabaseEventRow({
+      id: '11111111-1111-4111-8111-111111111111',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal',
+      location: 'Buenos Aires',
+      starts_at: '2026-12-12T12:00:00.000Z',
+      ends_at: '2026-12-13T20:00:00.000Z',
+      capacity: 180,
+      price: 75000,
+      currency: 'ARS',
+      rules: {
+        ticketsEnabled: true,
+        weighInWindows: [
+          {
+            id: 'weighin-fri-am',
+            label: 'Viernes',
+            date: '2026-12-11',
+            startsAt: '2026-12-11T09:00',
+            endsAt: '2026-12-11T12:00',
+            note: 'Pesaje adelantado.',
+            sortOrder: 0,
+          },
+        ],
+      },
+      eventDays: [],
+      ticketTypes: [],
+    })
+
+    expect(event.weighInWindows).toEqual([
+      {
+        id: 'weighin-fri-am',
+        label: 'Viernes',
+        date: '2026-12-11',
+        startsAt: '2026-12-11T09:00',
+        endsAt: '2026-12-11T12:00',
+        note: 'Pesaje adelantado.',
+        sortOrder: 0,
+      },
+    ])
+    expect(event.pricing.ticketsEnabled).toBe(true)
+  })
+
+  it('mapea la superficie pública desde rules y enciende todo si falta', () => {
+    const withFlags = mapSupabaseEventRow({
+      id: '11111111-1111-4111-8111-111111111111',
+      slug: 'pitbull-classic-2026',
+      title: 'Pitbull Classic',
+      venue: 'Maximal',
+      location: 'Buenos Aires',
+      starts_at: '2026-12-12T12:00:00.000Z',
+      ends_at: '2026-12-13T20:00:00.000Z',
+      capacity: 180,
+      price: 75000,
+      currency: 'ARS',
+      rules: { publicSurface: { calendar: false, weighIns: true, categories: false } },
+      eventDays: [],
+      ticketTypes: [],
+    })
+    expect(withFlags.publicSurface).toEqual({
+      ...DEFAULT_EVENT_PUBLIC_SURFACE,
+      calendar: false,
+      weighIns: true,
+      categories: false,
+    })
+
+    const defaults = mapSupabaseEventRow({
+      id: '11111111-1111-4111-8111-111111111111',
+      slug: 'winter-open-2026',
+      title: 'Winter Open',
+      venue: 'Maximal',
+      location: 'Buenos Aires',
+      starts_at: '2026-08-15T12:00:00.000Z',
+      ends_at: '2026-08-15T20:00:00.000Z',
+      capacity: 80,
+      price: 75000,
+      currency: 'ARS',
+      rules: {},
+      eventDays: [],
+      ticketTypes: [],
+    })
+    expect(defaults.publicSurface).toEqual(DEFAULT_EVENT_PUBLIC_SURFACE)
   })
 
   it('usa el count agregado del catálogo público sin traer filas de inscripciones', () => {

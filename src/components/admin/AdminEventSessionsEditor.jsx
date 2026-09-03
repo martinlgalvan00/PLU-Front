@@ -41,14 +41,25 @@ function toFormSession(session) {
  * Guarda por su cuenta y no contra el draft del evento: las tandas cuelgan de
  * los días, que recién existen una vez que el evento está guardado. Por eso el
  * bloque solo aparece para un evento ya creado.
+ *
+ * Estructura puede inyectar `scheduleState` para no pedir la grilla dos veces.
  */
 export default function AdminEventSessionsEditor({
   canEdit = false,
   embedded = false,
   eventSlug,
+  reloadToken = 0,
+  scheduleState = null,
 }) {
   const { t } = useI18n()
-  const { days, saveSessions, sessions, status } = useEventSchedule(eventSlug)
+  const fetched = useEventSchedule(eventSlug, {
+    reloadToken,
+    enabled: !scheduleState && Boolean(eventSlug),
+  })
+  const days = scheduleState?.days ?? fetched.days
+  const saveSessions = scheduleState?.saveSessions ?? fetched.saveSessions
+  const sessions = scheduleState?.sessions ?? fetched.sessions
+  const status = scheduleState?.status ?? fetched.status
   const [draft, setDraft] = useState([])
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -115,8 +126,10 @@ export default function AdminEventSessionsEditor({
   }
 
   const hasBlankName = draft.some((session) => !session.name.trim())
+  const waitingForSchedule =
+    Boolean(eventSlug) && (status === 'idle' || status === 'loading')
 
-  if (status === 'loading') {
+  if (waitingForSchedule) {
     return (
       <div className={`admin-event-sessions${embedded ? ' admin-event-sessions--embedded' : ''}`}>
         <p className="admin-event-form__section-note">{t('admin.schedule.sessions.loading')}</p>

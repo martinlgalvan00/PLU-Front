@@ -36,6 +36,10 @@ import {
   withEventStart,
 } from '../../services/eventAdminService.js'
 import { DEFAULT_EVENT_PRICING } from '../../lib/eventPricing.js'
+import {
+  normalizeEventPublicSurface,
+  publicSurfaceModulesForEvent,
+} from '../../lib/eventPublicSurface.js'
 import { validateAdminEventDraft } from '../../lib/schemas/adminEvent.js'
 import { createPaymentProfile, fetchPaymentProfiles } from '../../services/paymentProfileService.js'
 import AdminTicketAddonsEditor from './AdminTicketAddonsEditor.jsx'
@@ -67,6 +71,38 @@ const SALES_FIELD_KEYS = new Set([
   'ticketSalesOpensAt',
   'ticketSalesClosesAt',
 ])
+
+function resolveSalesChapterForField(key) {
+  if (!key) return 'cupo'
+  if (
+    key.startsWith('ticketTypes.') ||
+    key.startsWith('pricing.ticketAddons') ||
+    key === 'ticketSalesOpensAt' ||
+    key === 'ticketSalesClosesAt'
+  ) {
+    return 'tickets'
+  }
+  if (
+    key.startsWith('bankTransfer') ||
+    key.startsWith('paymentChannel') ||
+    key === 'mercadoPagoProfileId' ||
+    key === 'bankTransferProfileId'
+  ) {
+    return 'payment'
+  }
+  if (key.startsWith('pricing.')) return 'prices'
+  return 'cupo'
+}
+
+function patchPublicSurface(draft, key, value) {
+  return {
+    ...draft,
+    publicSurface: {
+      ...normalizeEventPublicSurface(draft.publicSurface),
+      [key]: value,
+    },
+  }
+}
 
 const VISIBILITY_FIELD_KEYS = new Set([
   'status',
@@ -308,6 +344,7 @@ export default function AdminEventEditor({
   /** Firma del draft al abrir el acordeón; si viene, define dirty sin remount. */
   baselineSignature = null,
   forcedTab = null,
+  forcedChapter = null,
   initialFocus = 'details',
   onCancel,
   onChange,
@@ -322,15 +359,16 @@ export default function AdminEventEditor({
   sourceEvent = null,
 }) {
   const { t } = useI18n()
-  // En el acordeón de la consola: cupo, precios, medios de cobro y publicación.
-  // Tipos de entrada, alta inline de perfil MP y live siguen fuera del fold
-  // (formulario completo / modal de alta) para no saturar el espacio del fold.
+  // En el acordeón de la consola se recortan barra de tabs, live y alta inline
+  // de perfil MP. El catálogo de entradas (ventanas, tipos, precios) sí viaja
+  // acá: es el único lugar para configurar la venta de un evento ya creado.
   const essentials = accordion
   const [syncError, setSyncError] = useState(null)
   const [syncing, setSyncing] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [activeTab, setActiveTab] = useState('basics')
+  const [salesChapter, setSalesChapter] = useState('cupo')
   const [bankProfiles, setBankProfiles] = useState([])
   const [bankProfilesLoading, setBankProfilesLoading] = useState(false)
   const [mpProfiles, setMpProfiles] = useState([])
@@ -502,6 +540,16 @@ export default function AdminEventEditor({
     return set
   }, [fieldErrors])
 
+  const salesChaptersWithErrors = useMemo(() => {
+    const set = new Set()
+    for (const key of Object.keys(fieldErrors)) {
+      if (resolveTabForField(key) === 'sales') {
+        set.add(resolveSalesChapterForField(key))
+      }
+    }
+    return set
+  }, [fieldErrors])
+
   /**
    * Grilla y zonas de seguridad ya no son pestañas de acá: viven en la consola
    * del evento, a ancho completo y guardando por su cuenta. Tenerlas en el
@@ -595,11 +643,15 @@ export default function AdminEventEditor({
   useEffect(() => {
     if (forcedTab === 'basics' || forcedTab === 'sales' || forcedTab === 'visibility') {
       setActiveTab(forcedTab)
+      if (forcedTab === 'sales' && ['cupo', 'prices', 'tickets', 'payment'].includes(forcedChapter)) {
+        setSalesChapter(forcedChapter)
+      }
       formBodyRef.current?.scrollTo?.({ top: 0, behavior: 'auto' })
       return undefined
     }
     if (initialFocus === 'tickets' || initialFocus === 'sales') {
       setActiveTab('sales')
+      if (initialFocus === 'tickets') setSalesChapter('tickets')
       const frame = requestAnimationFrame(() => {
         panelRef.current
           ?.querySelector('#event-section-tickets')
@@ -616,7 +668,7 @@ export default function AdminEventEditor({
       return undefined
     }
     return undefined
-  }, [forcedTab, initialFocus])
+  }, [forcedChapter, forcedTab, initialFocus])
 
   function patchDraft(next) {
     onChange(next)
@@ -653,13 +705,28 @@ export default function AdminEventEditor({
     requestAnimationFrame(() => activePanelRef.current?.focus?.())
   }
 
+  function handleSalesChapterChange(nextChapter) {
+    if (nextChapter === salesChapter) return
+    setSalesChapter(nextChapter)
+    formBodyRef.current?.scrollTo?.({ top: 0, behavior: 'auto' })
+  }
+
+  function revealFieldChapter(firstKey) {
+    if (resolveTabForField(firstKey) !== 'sales') return
+    setSalesChapter(resolveSalesChapterForField(firstKey))
+  }
+
   function focusFirstInvalid(firstKey) {
     if (!firstKey || !formRef.current) return
-    const byName = formRef.current.querySelector(`[name="${firstKey}"]`)
-    const byData = formRef.current.querySelector(`[data-field="${firstKey}"]`)
-    const target = byName ?? byData ?? formRef.current.querySelector('[aria-invalid="true"]')
-    target?.focus?.()
-    target?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    revealFieldChapter(firstKey)
+    requestAnimationFrame(() => {
+      if (!formRef.current) return
+      const byName = formRef.current.querySelector(`[name="${firstKey}"]`)
+      const byData = formRef.current.querySelector(`[data-field="${firstKey}"]`)
+      const target = byName ?? byData ?? formRef.current.querySelector('[aria-invalid="true"]')
+      target?.focus?.()
+      target?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    })
   }
 
   async function handleFormSubmit(event) {
@@ -671,6 +738,7 @@ export default function AdminEventEditor({
       setFieldErrors({
         slots: t('admin.eventEditor.validation.slotsBelowRegistered', { count: registered }),
       })
+      setSalesChapter('cupo')
       if (accordion && forcedTab !== 'sales') {
         onRequestSection?.('sales')
       } else {
@@ -683,6 +751,7 @@ export default function AdminEventEditor({
     const validation = validateAdminEventDraft(draft, t)
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
+      setSalesChapter(resolveSalesChapterForField(validation.firstKey))
       const targetTab = resolveTabForField(validation.firstKey)
       const firstMessage =
         (validation.firstKey && validation.fieldErrors[validation.firstKey]) ||
@@ -994,79 +1063,137 @@ export default function AdminEventEditor({
                   tabIndex={-1}
                 >
                   <header
-                    className={`admin-event-form__section-head${essentials ? ' admin-event-form__section-head--essentials' : ''}`}
+                    className={`admin-event-form__section-head admin-event-form__section-head--sales${essentials ? ' admin-event-form__section-head--essentials' : ''}`}
                   >
                     {essentials ? null : <h4>{t('admin.eventEditor.sectionSales')}</h4>}
+                    {essentials ? null : (
+                      <div
+                        className="admin-event-form__sales-nav"
+                        role="tablist"
+                        aria-label={t('admin.eventEditor.salesChapterNavAria')}
+                      >
+                      {[
+                        {
+                          id: 'cupo',
+                          label: t('admin.eventEditor.salesChapterCapacity'),
+                          panelId: 'event-section-sales-cupo',
+                        },
+                        {
+                          id: 'prices',
+                          label: t('admin.eventEditor.salesChapterPrices'),
+                          panelId: 'event-section-sales-prices',
+                        },
+                        {
+                          id: 'tickets',
+                          label: t('admin.eventEditor.salesChapterTickets'),
+                          panelId: 'event-section-tickets',
+                        },
+                        {
+                          id: 'payment',
+                          label: t('admin.eventEditor.salesChapterPayment'),
+                          panelId: 'event-section-sales-payment',
+                        },
+                      ].map((chapter) => {
+                        const selected = salesChapter === chapter.id
+                        return (
+                          <button
+                            key={chapter.id}
+                            type="button"
+                            role="tab"
+                            id={`event-sales-chapter-${chapter.id}`}
+                            className={`admin-event-form__sales-nav-item${selected ? ' is-active' : ''}${salesChaptersWithErrors.has(chapter.id) ? ' has-error' : ''}`}
+                            aria-selected={selected}
+                            aria-controls={chapter.panelId}
+                            onClick={() => handleSalesChapterChange(chapter.id)}
+                          >
+                            {chapter.label}
+                          </button>
+                        )
+                      })}
+                      </div>
+                    )}
                     <p>
-                      {essentials
-                        ? t('admin.eventEditor.sectionSalesLeadEssentials')
-                        : t('admin.eventEditor.sectionSalesLead')}
+                      {salesChapter === 'tickets'
+                        ? t('admin.eventEditor.laneSpectatorsLead')
+                        : salesChapter === 'payment'
+                          ? t('admin.eventEditor.paymentProfileHint')
+                          : salesChapter === 'prices'
+                            ? t('admin.eventEditor.lanePricesLead')
+                            : t('admin.eventEditor.laneAthletesLead')}
                     </p>
                   </header>
 
-                  <div className="admin-event-form__lane admin-event-form__lane--athletes">
-                    <header className="admin-event-form__lane-head">
-                      <h5 className="admin-event-form__lane-title">
-                        <Users size={13} aria-hidden />
-                        {t('admin.eventEditor.laneAthletes')}
-                      </h5>
-                      <p>{t('admin.eventEditor.laneAthletesLead')}</p>
-                    </header>
+                  <div
+                    id="event-section-sales-cupo"
+                    className="admin-event-form__lane admin-event-form__lane--athletes admin-event-form__lane--cupo"
+                    role="tabpanel"
+                    aria-labelledby="event-sales-chapter-cupo"
+                    hidden={salesChapter !== 'cupo'}
+                  >
+                    {essentials ? null : (
+                      <header className="admin-event-form__lane-head">
+                        <h5 className="admin-event-form__lane-title">
+                          <Users size={13} aria-hidden />
+                          {t('admin.eventEditor.laneAthletes')}
+                        </h5>
+                        <p>{t('admin.eventEditor.laneAthletesLead')}</p>
+                      </header>
+                    )}
+
+                    <div
+                      className="admin-event-form__occupancy"
+                      role="status"
+                      aria-label={t('admin.eventEditor.occupancyAria', {
+                        registered: registeredCount,
+                        total: slotsTotal,
+                        percent: fillPercent,
+                      })}
+                    >
+                      <div className="admin-event-form__occupancy-copy">
+                        <span className="admin-event-form__occupancy-value">
+                          {t('admin.eventEditor.occupancyPulse', {
+                            registered: registeredCount,
+                            total: slotsTotal,
+                          })}
+                        </span>
+                        <span className="admin-event-form__occupancy-sep" aria-hidden="true">
+                          ·
+                        </span>
+                        <span className="admin-event-form__occupancy-pct">
+                          {t('admin.eventEditor.occupancyPercent', { percent: fillPercent })}
+                        </span>
+                        <span className="admin-event-form__occupancy-hint">
+                          {t('admin.eventEditor.slotsRemaining', { count: slotsRemaining })}
+                        </span>
+                      </div>
+                      <div className="admin-event-form__occupancy-meter" aria-hidden="true">
+                        <span
+                          className="admin-event-form__occupancy-meter-fill"
+                          style={{ width: `${Math.min(100, Math.max(0, fillPercent))}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <FormField
+                      htmlFor="event-slots"
+                      label={t('admin.eventEditor.totalSlots')}
+                      error={err('slots')}
+                    >
+                      <input
+                        id="event-slots"
+                        name="slots"
+                        data-field="slots"
+                        min={1}
+                        required
+                        type="number"
+                        value={draft.slots}
+                        aria-invalid={Boolean(err('slots'))}
+                        onChange={(event) => patchDraft({ ...draft, slots: event.target.value })}
+                        disabled={!canEdit}
+                      />
+                    </FormField>
 
                     <div className="admin-event-form__grid">
-                      <FormField
-                        htmlFor="event-slots"
-                        label={t('admin.eventEditor.totalSlots')}
-                        error={err('slots')}
-                      >
-                        <input
-                          id="event-slots"
-                          name="slots"
-                          data-field="slots"
-                          min={1}
-                          required
-                          type="number"
-                          value={draft.slots}
-                          aria-invalid={Boolean(err('slots'))}
-                          onChange={(event) => patchDraft({ ...draft, slots: event.target.value })}
-                          disabled={!canEdit}
-                        />
-                      </FormField>
-
-                      <div
-                        className="admin-event-form__occupancy"
-                        role="status"
-                        aria-label={t('admin.eventEditor.occupancyAria', {
-                          registered: registeredCount,
-                          total: slotsTotal,
-                          percent: fillPercent,
-                        })}
-                      >
-                        <div className="admin-event-form__occupancy-copy">
-                          <span className="admin-event-form__occupancy-value">
-                            {t('admin.eventEditor.occupancyPulse', {
-                              registered: registeredCount,
-                              total: slotsTotal,
-                            })}
-                          </span>
-                          <span className="admin-event-form__occupancy-sep" aria-hidden="true">
-                            ·
-                          </span>
-                          <span className="admin-event-form__occupancy-pct">
-                            {t('admin.eventEditor.occupancyPercent', { percent: fillPercent })}
-                          </span>
-                          <span className="admin-event-form__occupancy-hint">
-                            {t('admin.eventEditor.slotsRemaining', { count: slotsRemaining })}
-                          </span>
-                        </div>
-                        <div className="admin-event-form__occupancy-meter" aria-hidden="true">
-                          <span
-                            className="admin-event-form__occupancy-meter-fill"
-                            style={{ width: `${Math.min(100, Math.max(0, fillPercent))}%` }}
-                          />
-                        </div>
-                      </div>
-
                       <FormField
                         htmlFor="event-reg-opens"
                         label={t('admin.eventEditor.supabase.registrationOpensAt')}
@@ -1103,34 +1230,24 @@ export default function AdminEventEditor({
                         />
                       </FormField>
                     </div>
+                  </div>
 
-                    {/* La ocupación es información del organizador; exhibirla en
-                        el sitio es una decisión. El panel sigue viendo la
-                        barra y los números acá y en la lista pase lo que pase. */}
-                    {!essentials ? (
-                      <label className="admin-event-form__toggle">
-                        <input
-                          checked={draft.capacityProgressPublic !== false}
-                          className="admin-event-form__toggle-input"
-                          type="checkbox"
-                          onChange={(event) =>
-                            patchDraft({
-                              ...draft,
-                              capacityProgressPublic: event.target.checked,
-                            })
-                          }
-                          disabled={!canEdit}
-                        />
-                        <span className="admin-event-form__toggle-ui" aria-hidden />
-                        <span className="admin-event-form__toggle-copy">
-                          <strong>
-                            <Eye size={13} aria-hidden />
-                            {t('admin.eventEditor.capacityVisibilityTitle')}
-                          </strong>
-                          <small>{t('admin.eventEditor.capacityVisibilityHint')}</small>
-                        </span>
-                      </label>
-                    ) : null}
+                  <div
+                    id="event-section-sales-prices"
+                    className="admin-event-form__lane admin-event-form__lane--prices"
+                    role="tabpanel"
+                    aria-labelledby="event-sales-chapter-prices"
+                    hidden={salesChapter !== 'prices'}
+                  >
+                    {essentials ? null : (
+                      <header className="admin-event-form__lane-head">
+                        <h5 className="admin-event-form__lane-title">
+                          <Banknote size={13} aria-hidden />
+                          {t('admin.eventEditor.salesChapterPrices')}
+                        </h5>
+                        <p>{t('admin.eventEditor.lanePricesLead')}</p>
+                      </header>
+                    )}
 
                     <div className="admin-event-form__rate-cards">
                       <label
@@ -1205,15 +1322,23 @@ export default function AdminEventEditor({
                     </div>
                   </div>
 
-                  <div className="admin-event-form__lane admin-event-form__lane--payment">
+                  <div
+                    id="event-section-sales-payment"
+                    className="admin-event-form__lane admin-event-form__lane--payment"
+                    role="tabpanel"
+                    aria-labelledby="event-sales-chapter-payment"
+                    hidden={salesChapter !== 'payment'}
+                  >
                     <div className="admin-event-form__payment-profile">
-                      <header className="admin-event-form__lane-head">
-                        <h5 className="admin-event-form__lane-title">
-                          <Banknote size={13} aria-hidden />
-                          {t('admin.eventEditor.paymentProfileTitle')}
-                        </h5>
-                        <p>{t('admin.eventEditor.paymentProfileHint')}</p>
-                      </header>
+                      {essentials ? null : (
+                        <header className="admin-event-form__lane-head">
+                          <h5 className="admin-event-form__lane-title">
+                            <Banknote size={13} aria-hidden />
+                            {t('admin.eventEditor.paymentProfileTitle')}
+                          </h5>
+                          <p>{t('admin.eventEditor.paymentProfileHint')}</p>
+                        </header>
+                      )}
 
                       <label className="admin-event-form__toggle">
                         <input
@@ -1566,14 +1691,19 @@ export default function AdminEventEditor({
                   <div
                     id="event-section-tickets"
                     className={`admin-event-form__lane admin-event-form__lane--tickets${essentials ? ' admin-event-form__lane--tickets-essentials' : ''}`}
+                    role="tabpanel"
+                    aria-labelledby="event-sales-chapter-tickets"
+                    hidden={salesChapter !== 'tickets'}
                   >
-                    <header className="admin-event-form__lane-head">
-                      <h5 className="admin-event-form__lane-title">
-                        <Ticket size={13} aria-hidden />
-                        {t('admin.eventEditor.laneSpectators')}
-                      </h5>
-                      {essentials ? null : <p>{t('admin.eventEditor.laneSpectatorsLead')}</p>}
-                    </header>
+                    {essentials ? null : (
+                      <header className="admin-event-form__lane-head">
+                        <h5 className="admin-event-form__lane-title">
+                          <Ticket size={13} aria-hidden />
+                          {t('admin.eventEditor.laneSpectators')}
+                        </h5>
+                        <p>{t('admin.eventEditor.laneSpectatorsLead')}</p>
+                      </header>
+                    )}
 
                     <label className="admin-event-form__toggle">
                       <input
@@ -1598,15 +1728,6 @@ export default function AdminEventEditor({
                     </label>
 
                     {ticketSalesEnabled ? (
-                      essentials ? (
-                        <p className="admin-event-form__section-note">
-                          {t('admin.eventEditor.essentialsTicketsNote', {
-                            count:
-                              draft.ticketTypes?.filter((ticketType) => ticketType.active !== false)
-                                .length ?? 0,
-                          })}
-                        </p>
-                      ) : (
                       <>
                         {/* La ventana de venta queda al mismo nivel que la de
                         inscripción: son las dos palancas de cierre del evento y
@@ -1671,6 +1792,7 @@ export default function AdminEventEditor({
 
                             <AdminTicketTypesEditor
                               addonsCatalog={draft.pricing?.ticketAddons ?? []}
+                              allowEditDays={!accordion}
                               canEdit={canEdit}
                               errors={fieldErrors}
                               eventDays={draft.eventDays ?? []}
@@ -1678,12 +1800,14 @@ export default function AdminEventEditor({
                               onChangeTicketTypes={(ticketTypes) =>
                                 patchDraft({ ...draft, ticketTypes })
                               }
+                              onOpenStructure={
+                                accordion ? () => onRequestSection?.('structure') : undefined
+                              }
                               ticketTypes={draft.ticketTypes ?? []}
                             />
                           </div>
                         </div>
                       </>
-                      )
                     ) : (
                       <p className="admin-event-form__section-note">
                         {t('admin.eventEditor.ticketsDisabledNote')}
@@ -1757,6 +1881,60 @@ export default function AdminEventEditor({
                       <small>{t('admin.eventEditor.featuredHint')}</small>
                     </span>
                   </label>
+
+                  {essentials ? null : (
+                  <fieldset className="admin-event-form__surface">
+                    <legend>{t('admin.eventEditor.publicSurfaceLegend')}</legend>
+                    {publicSurfaceModulesForEvent(sourceEvent ?? draft).map((module) => (
+                      <label key={module.key} className="admin-event-form__toggle">
+                        <input
+                          checked={normalizeEventPublicSurface(draft.publicSurface)[module.key]}
+                          className="admin-event-form__toggle-input"
+                          type="checkbox"
+                          onChange={(event) =>
+                            patchDraft(patchPublicSurface(draft, module.key, event.target.checked))
+                          }
+                          disabled={!canEdit}
+                        />
+                        <span className="admin-event-form__toggle-ui" aria-hidden />
+                        <span className="admin-event-form__toggle-copy">
+                          <strong>
+                            {t(
+                              `admin.eventEditor.publicSurface${module.key.charAt(0).toUpperCase()}${module.key.slice(1)}Title`,
+                            )}
+                          </strong>
+                          <small>
+                            {t(
+                              `admin.eventEditor.publicSurface${module.key.charAt(0).toUpperCase()}${module.key.slice(1)}Hint`,
+                            )}
+                          </small>
+                        </span>
+                      </label>
+                    ))}
+                    <label className="admin-event-form__toggle">
+                      <input
+                        checked={draft.capacityProgressPublic !== false}
+                        className="admin-event-form__toggle-input"
+                        type="checkbox"
+                        onChange={(event) =>
+                          patchDraft({
+                            ...draft,
+                            capacityProgressPublic: event.target.checked,
+                          })
+                        }
+                        disabled={!canEdit}
+                      />
+                      <span className="admin-event-form__toggle-ui" aria-hidden />
+                      <span className="admin-event-form__toggle-copy">
+                        <strong>
+                          <Eye size={13} aria-hidden />
+                          {t('admin.eventEditor.capacityVisibilityTitle')}
+                        </strong>
+                        <small>{t('admin.eventEditor.capacityVisibilityHint')}</small>
+                      </span>
+                    </label>
+                  </fieldset>
+                  )}
 
                   {essentials ? null : (
                     <>

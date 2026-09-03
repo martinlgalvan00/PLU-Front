@@ -214,4 +214,68 @@ describe('precio publico de Pitbull Classic', () => {
     expect(container.querySelector('.season-combo-offer')).toBeNull()
     expect(container.textContent).not.toContain('$\u00a0120.000')
   })
+
+  it('no inventa horarios de pesaje si el evento no tiene ventanas', () => {
+    const { container } = render(
+      <I18nProvider>
+        <PitbullPage
+          events={[
+            {
+              slug: 'pitbull-classic-2026',
+              title: 'Pitbull Classic',
+              featured: true,
+              status: 'inscripcion_abierta',
+              price: 75000,
+              pricing: { membership: 75000, registration: 75000, combo: 120000 },
+            },
+          ]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    expect(container.querySelector('#pesajes')).toBeNull()
+    expect(container.textContent).not.toContain('09:00 — 12:00')
+    expect(container.textContent).not.toContain('07:00 — 08:30')
+  })
+
+  it('publica las franjas de pesaje del evento, no el copy fijo', () => {
+    const { container } = render(
+      <I18nProvider>
+        <PitbullPage
+          events={[
+            {
+              slug: 'pitbull-classic-2026',
+              title: 'Pitbull Classic',
+              featured: true,
+              status: 'inscripcion_abierta',
+              price: 75000,
+              pricing: { membership: 75000, registration: 75000, combo: 120000 },
+              weighInWindows: [
+                {
+                  id: 'custom-am',
+                  label: 'Jueves técnico',
+                  date: '2026-12-10',
+                  startsAt: '2026-12-10T11:00',
+                  endsAt: '2026-12-10T13:30',
+                  note: 'Solo atletas invitados.',
+                  sortOrder: 0,
+                },
+              ],
+            },
+          ]}
+          onNavigate={vi.fn()}
+          onSelectEvent={vi.fn()}
+        />
+      </I18nProvider>,
+    )
+
+    const section = container.querySelector('#pesajes')
+    expect(section).not.toBeNull()
+    expect(section.textContent).toContain('Jueves técnico')
+    expect(section.textContent).toContain('11:00 — 13:30')
+    expect(section.textContent).toContain('Solo atletas invitados.')
+    expect(section.textContent).not.toContain('09:00 — 12:00')
+  })
 })

@@ -22,7 +22,36 @@ insert into public.events (
     'comboManualPrice', 120000,
     'ticketsEnabled', true,
     'ticketAddons', '[]'::jsonb,
-    'featured', true
+    'featured', true,
+    'weighInWindows', jsonb_build_array(
+      jsonb_build_object(
+        'id', 'weighin-fri-am',
+        'label', 'Viernes',
+        'date', '2026-12-11',
+        'startsAt', '2026-12-11T09:00',
+        'endsAt', '2026-12-11T12:00',
+        'note', 'Pesaje adelantado. Opcional para todas las categorías.',
+        'sortOrder', 0
+      ),
+      jsonb_build_object(
+        'id', 'weighin-fri-pm',
+        'label', 'Viernes',
+        'date', '2026-12-11',
+        'startsAt', '2026-12-11T16:00',
+        'endsAt', '2026-12-11T19:00',
+        'note', 'Pesaje adelantado. Opcional para todas las categorías.',
+        'sortOrder', 1
+      ),
+      jsonb_build_object(
+        'id', 'weighin-sat',
+        'label', 'Sábado',
+        'date', '2026-12-12',
+        'startsAt', '2026-12-12T07:00',
+        'endsAt', '2026-12-12T08:30',
+        'note', 'Último llamado. Exclusivo para atletas que compiten y no se pesaron el viernes.',
+        'sortOrder', 2
+      )
+    )
   ),
   '2020-01-01 00:00:00-03', '2026-12-13 18:00:00-03', 180
 ), (

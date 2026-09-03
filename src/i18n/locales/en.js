@@ -2129,6 +2129,8 @@ export default {
       publicTicketsFromCaption: 'From',
       publicTicketsClosed: 'Coming soon',
       publicTicketsCta: 'Buy tickets',
+      weighInsTitle: 'Weigh-ins',
+      weighInsEmpty: 'Weigh-in times are published once the organizer sets them.',
       spotlightActionsAria: 'Featured meet actions',
       eventCount_one: '{{count}} event',
       eventCount_other: '{{count}} events',
