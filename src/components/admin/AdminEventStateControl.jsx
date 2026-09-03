@@ -54,6 +54,7 @@ export default function AdminEventStateControl({
   canEdit = false,
   event,
   onDirtyChange,
+  onEditWindow,
   onSetState,
 }) {
   const { locale, t } = useI18n()
@@ -272,6 +273,17 @@ export default function AdminEventStateControl({
             >
               <CalendarClock size={14} aria-hidden />
               {t('admin.eventState.setUpcoming')}
+            </button>
+          ) : null}
+          {(registration.scheduled || registration.closedByWindow) && onEditWindow ? (
+            <button
+              type="button"
+              className="admin-event-state__registration-action"
+              disabled={!canEdit || busy}
+              onClick={() => onEditWindow(event)}
+            >
+              <CalendarClock size={14} aria-hidden />
+              {t('admin.eventState.editWindowAction')}
             </button>
           ) : null}
         </div>
