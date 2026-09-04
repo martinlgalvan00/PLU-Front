@@ -83,6 +83,9 @@ function buildOfflineScanResult(found) {
         document: entry.attendeeDni,
         meta: entry.ticketTypeName ?? entry.ticketCode,
         ticketTypeName: entry.ticketTypeName,
+        // Sin señal en la puerta esto es lo único que tiene el escáner.
+        credentialLabel: entry.credentialLabel ?? null,
+        credentialScopes: entry.credentialScopes ?? [],
         status: alreadyUsed ? 'usada' : entry.status,
       },
     }

@@ -55,7 +55,7 @@ async function comprarEntrada({ fullName, dni, ticketTypeId, idempotencyKey }) {
 async function credentialsForDni(dni) {
   const { data, error } = await admin
     .from('tickets')
-    .select('id, qr_token, credential_label, credential_scopes, bundle_id, is_primary_credential, unit_price, status')
+    .select('id, ticket_code, qr_token, credential_label, credential_scopes, bundle_id, is_primary_credential, unit_price, status')
     .eq('event_id', fixture.ticketEventId)
     .eq('attendee_dni', dni)
     .order('is_primary_credential', { ascending: false })
@@ -80,8 +80,17 @@ test.describe('Credenciales de ingreso', () => {
     expect(new Set(credentials.map((c) => c.bundle_id)).size).toBe(1)
     expect(credentials.map((c) => c.credential_label)).toEqual(['Espectador', 'ENTRENADOR'])
 
-    // Cada una con su QR: son dos canjes distintos en dos puestos distintos.
+    // Cada una con su QR REAL y distinto: son dos canjes en dos puestos.
+    // Se verifica el formato además de la unicidad -- un `qr_token` vacío o
+    // repetido pasaría un `toBeTruthy()` y sería una entrada que no se puede
+    // escanear, o dos que se pisan.
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    for (const credential of credentials) {
+      expect(credential.qr_token).toMatch(UUID)
+      expect(credential.ticket_code).toMatch(/^TCK-\d{8}$/)
+    }
     expect(new Set(credentials.map((c) => c.qr_token)).size).toBe(2)
+    expect(new Set(credentials.map((c) => c.ticket_code)).size).toBe(2)
 
     // La segunda va en 0: ya está paga dentro de la misma compra, y contarla
     // de nuevo inflaría la recaudación del evento.
@@ -167,6 +176,22 @@ test.describe('Credenciales de ingreso', () => {
     })
     expect(puerta.error).toBeNull()
     expect(puerta.data.ticket.credential_label).toBe('Espectador')
+  })
+
+  /**
+   * Lo que ve quien escanea. Sin esto las dos credenciales del entrenador son
+   * dos QR indistinguibles en la puerta, que era el problema original.
+   */
+  test('al escanear, el puesto ve QUÉ credencial leyó', async () => {
+    const credentials = await credentialsForDni('30111222')
+    const entrenador = credentials.find((c) => c.credential_label === 'ENTRENADOR')
+
+    const { data, error } = await admin.rpc('get_ticket_by_qr_token', {
+      p_qr_token: entrenador.qr_token,
+    })
+    expect(error).toBeNull()
+    expect(data.ticket.credential_label).toBe('ENTRENADOR')
+    expect(data.ticket.credential_scopes).toEqual(['athletes_coaches'])
   })
 
   test('una entrada de público general emite una sola credencial', async () => {

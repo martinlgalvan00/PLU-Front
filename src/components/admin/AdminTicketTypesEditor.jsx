@@ -32,6 +32,7 @@ export default function AdminTicketTypesEditor({
   canEdit,
   errors = {},
   eventDays = [],
+  lockedDayIndexes,
   onChangeEventDays,
   onChangeTicketTypes,
   onOpenStructure,
@@ -74,6 +75,7 @@ export default function AdminTicketTypesEditor({
           canEdit={canEdit}
           errors={errors}
           eventDays={eventDays}
+          lockedDayIndexes={lockedDayIndexes}
           onChangeEventDays={onChangeEventDays}
           onChangeTicketTypes={onChangeTicketTypes}
           ticketTypes={ticketTypes}
@@ -172,19 +174,22 @@ export default function AdminTicketTypesEditor({
                   </label>
                   <label className="admin-event-form__field">
                     <span>{t('admin.eventEditor.supabase.ticketTypePrice')}</span>
-                    <input
-                      disabled={!canEdit}
-                      min={0}
-                      required
-                      type="number"
-                      value={type.price}
-                      name={`ticketTypes.${index}.price`}
-                      data-field={`ticketTypes.${index}.price`}
-                      aria-invalid={Boolean(errors[`ticketTypes.${index}.price`])}
-                      onChange={(event) =>
-                        patchTicketType(index, { price: Number(event.target.value) || 0 })
-                      }
-                    />
+                    <span className="admin-event-form__rate-card-input">
+                      <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
+                      <input
+                        disabled={!canEdit}
+                        min={0}
+                        required
+                        type="number"
+                        value={type.price}
+                        name={`ticketTypes.${index}.price`}
+                        data-field={`ticketTypes.${index}.price`}
+                        aria-invalid={Boolean(errors[`ticketTypes.${index}.price`])}
+                        onChange={(event) =>
+                          patchTicketType(index, { price: Number(event.target.value) || 0 })
+                        }
+                      />
+                    </span>
                     {errors[`ticketTypes.${index}.price`] ? (
                       <small className="admin-event-form__error" role="alert">
                         {errors[`ticketTypes.${index}.price`]}
@@ -212,8 +217,13 @@ export default function AdminTicketTypesEditor({
                         {errors[`ticketTypes.${index}.quota`]}
                       </small>
                     ) : null}
-                    <small>{t('admin.eventEditor.supabase.ticketTypeQuotaHint')}</small>
                   </label>
+                  {/* La aclaración del cupo sale de la celda y va debajo, a todo
+                      el ancho: adentro medía tres líneas, estiraba la fila y
+                      dejaba las otras dos columnas con un hueco al costado. */}
+                  <small className="admin-ticket-types__grid-note">
+                    {t('admin.eventEditor.supabase.ticketTypeQuotaHint')}
+                  </small>
                 </div>
 
                 {eventDays.length > 0 ? (

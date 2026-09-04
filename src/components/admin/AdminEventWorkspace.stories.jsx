@@ -170,6 +170,29 @@ export default {
   decorators: [withShell],
 }
 
+/** Resumen: KPIs de inscripción/recaudación/check-in y accesos rápidos. */
+export const Resumen = {
+  args: {
+    ...baseArgs,
+    activeSection: 'dashboard',
+    tickets: [
+      { id: 'tk-1', amountPaid: 12000, checkedInAt: '2026-11-14T09:03:00Z' },
+      { id: 'tk-2', amountPaid: 12000, checkedInAt: null },
+      { id: 'tk-3', amountPaid: 12000, checkedInAt: '2026-11-14T09:11:00Z' },
+    ],
+  },
+}
+
+/** Resumen sin cupo tope ni entradas emitidas: los dos estados vacíos a la vez. */
+export const ResumenSinDatos = {
+  args: {
+    ...baseArgs,
+    activeSection: 'dashboard',
+    event: { ...EVENT, slots: 0, registered: 0 },
+    tickets: [],
+  },
+}
+
 /** Datos: estado del evento arriba, ocupación y accesos en el rail. */
 export const Datos = {
   args: {

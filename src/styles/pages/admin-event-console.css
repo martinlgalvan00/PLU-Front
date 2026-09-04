@@ -2011,8 +2011,15 @@
 
 }
 
+/* `align-items: flex-start` y no `center`: en una columna de 260px el texto
+   envuelve en dos líneas, y centrado el chevron quedaba flotando a media altura
+   en vez de apoyado en la primera línea. `text-align: left` porque el botón
+   hereda el centrado del contenedor. */
 .admin-event-workspace__back {
-  align-items: center;
+  align-items: flex-start;
+  /* Mismo borde izquierdo que el título y la navegación: quedaba 20px adentro
+     y la columna se leía desalineada. */
+  align-self: flex-start;
   background: transparent;
   border: 0;
   color: var(--admin-muted);
@@ -2021,9 +2028,26 @@
   font-size: 13px;
   font-weight: 500;
   gap: 6px;
+  line-height: 1.35;
   margin-bottom: 24px;
   padding: 0;
-  transition: color 0.15s ease;
+  text-align: left;
+  transition: color var(--motion-fast, 150ms) var(--ease-standard, ease);
+}
+
+/* El ícono no se encoge ni se estira con el texto envuelto. */
+.admin-event-workspace__back > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* Dentro de la barra lateral el botón arrastraba `margin-left: 20px` y
+   `padding-left: 6px` de otra regla, pensada para cuando vivía arriba del
+   panel. Acá lo dejaban 20px adentro del borde que comparten el título y la
+   navegación, y la columna se leía desalineada. */
+.admin-event-workspace__sidebar .admin-event-workspace__back {
+  margin-left: 0;
+  padding-left: 0;
 }
 
 .admin-event-workspace__back:hover {
@@ -2313,9 +2337,13 @@
   color: var(--admin-ink);
 }
 
+/* Mismo caso que `.admin-event-workspace__nav-item.is-active`: `--admin-primary`
+   no existe en el proyecto, así que estas dos declaraciones no pintaban nada y
+   la pestaña activa no se distinguía de las demás. El alias real es
+   `--admin-brand` (celeste: identidad y navegación). */
 .admin-event-workspace__tab--active {
-  color: var(--admin-primary);
-  border-bottom-color: var(--admin-primary);
+  border-bottom-color: var(--admin-brand);
+  color: var(--admin-brand);
 }
 
 .admin-event-workspace__title-row {
@@ -2388,9 +2416,9 @@
 
 .admin-event-dashboard__kpi-icon {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-primary) 10%, transparent);
+  background: color-mix(in srgb, var(--admin-brand) 10%, transparent);
   border-radius: 8px;
-  color: var(--admin-primary);
+  color: var(--admin-brand);
   display: flex;
   flex: none;
   height: 48px;
@@ -2466,7 +2494,7 @@
 }
 
 .admin-event-dashboard__action-card:hover svg {
-  color: var(--admin-primary);
+  color: var(--admin-brand);
 }
 
 .admin-event-dashboard__action-card span {
@@ -3157,14 +3185,15 @@
   .admin-event-workspace__panel
   .admin-event-state__row:not(.admin-event-state__row--access)
   .admin-filter-chips-rail {
-  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  /* Envuelve en vez de scrollear. El riel horizontal con degradado venía del
+     modal, donde la fila era ancha; con la barra lateral la columna principal
+     baja a ~230px y ahí quedaban 3 de 5 estados detrás de un scroll que no se
+     anuncia. Los cinco juntos ocupan 462px: entran en dos líneas y se ven
+     todos, que es lo que importa en un selector de estado. */
   display: flex;
-  flex-wrap: nowrap;
-  gap: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
+  flex-wrap: wrap;
+  gap: 0 2px;
+  overflow-x: visible;
 }
 
 .admin-shell
@@ -3184,7 +3213,13 @@
   border-radius: 0;
   box-shadow: none;
   color: var(--admin-muted);
+  /* Cada chip al ancho de su texto. Sin esto se estiraban al ancho COMPLETO
+     del riel -- medido: 371px cuando "Próximamente" ocupa 98 -- así que entraba
+     uno solo y había que scrollear cinco pantallas para llegar a "Finalizado".
+     Con la barra lateral ocupando 260px el riel se angostó y el problema pasó
+     de molesto a bloqueante. */
   flex: 0 0 auto;
+  width: max-content;
   font-size: 12px;
   font-weight: 550;
   min-height: 32px;
@@ -3873,6 +3908,20 @@
   gap: 16px;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
+}
+
+/* El split se parte en dos columnas a 1080px, pero ese umbral es del viewport y
+   no descuenta la barra lateral: con 260px de barra + 320 de rail, a 1100px la
+   columna principal quedaba en ~330px y el formulario y su dock de acciones se
+   apilaban encima. Con barra lateral el reparto espera a tener lugar de verdad. */
+.admin-event-workspace--sidebar .admin-event-workspace__split {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+  .admin-event-workspace--sidebar .admin-event-workspace__split {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
 }
 
 @media (min-width: 1080px) {

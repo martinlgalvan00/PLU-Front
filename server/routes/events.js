@@ -56,8 +56,7 @@ const CATALOG_EVENT_SELECT = `
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id),
-    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
+    includedAddons:ticket_type_included_addons(addon_id)
   )
 `
 
@@ -452,11 +451,48 @@ async function removeTicketProofs(client, orderIds) {
   }
 }
 
-async function readEvents(client) {
-  return assertSupabaseResult(
-    await client.from('events').select(EVENT_SELECT).order('starts_at'),
-    'No se pudieron leer los eventos.',
+/**
+ * Select del panel sin las credenciales de entrada. Es el mismo, y existe por
+ * una sola razón: si el código llega a un entorno donde todavía no corrió la
+ * migración de `ticket_type_credentials`, PostgREST no falla el embed, falla la
+ * CONSULTA ENTERA -- y la sección de eventos se cae del todo por una tabla que
+ * sólo hace falta para una subpestaña.
+ */
+const EVENT_SELECT_SIN_CREDENCIALES = EVENT_SELECT.replace(
+  /,\s*credentials:ticket_type_credentials\([^)]*\)/,
+  '',
+)
+
+/**
+ * PostgREST cuando no encuentra algo en el schema cache: PGRST200 es una tabla
+ * o su relación, PGRST202 una función. Los dos casos son "la migración no
+ * corrió acá todavía", no "el pedido estaba mal".
+ */
+function esRelacionFaltante(error) {
+  return (
+    error?.code === 'PGRST200' ||
+    error?.code === 'PGRST202' ||
+    /schema cache/i.test(error?.message ?? '')
   )
+}
+
+async function readEvents(client) {
+  const result = await client.from('events').select(EVENT_SELECT).order('starts_at')
+
+  // Degradar antes que caerse: sin la migración aplicada el panel sigue
+  // funcionando y lo único que falta es el detalle de credenciales por tipo de
+  // entrada. El aviso queda en el log del servidor para que la deuda se vea.
+  if (result.error && esRelacionFaltante(result.error)) {
+    console.warn(
+      '[eventos] `ticket_type_credentials` no existe en esta base: se leen los eventos sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
+    )
+    return assertSupabaseResult(
+      await client.from('events').select(EVENT_SELECT_SIN_CREDENCIALES).order('starts_at'),
+      'No se pudieron leer los eventos.',
+    )
+  }
+
+  return assertSupabaseResult(result, 'No se pudieron leer los eventos.')
 }
 
 function attachRecentRegistrationPortraits(summary) {
@@ -659,13 +695,24 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
         // las dos de arriba, y además porque cuelgan de tipos de entrada cuyos
         // ids recién existen después del guardado.
         if (Array.isArray(pEvent.ticketTypes) && pEvent.ticketTypes.length > 0) {
-          assertSupabaseResult(
-            await client.rpc('staff_merge_ticket_type_credentials', {
-              p_event_slug: pEvent.slug,
-              p_credentials: buildTicketCredentialsPayload(pEvent.ticketTypes),
-            }),
-            'No se pudieron guardar las credenciales de las entradas.',
-          )
+          const credenciales = await client.rpc('staff_merge_ticket_type_credentials', {
+            p_event_slug: pEvent.slug,
+            p_credentials: buildTicketCredentialsPayload(pEvent.ticketTypes),
+          })
+
+          // Mismo criterio que la lectura: sin la migración aplicada, el evento
+          // se guarda igual y lo único que no persiste son las credenciales. Un
+          // guardado de evento no puede fallar entero por una subpestaña.
+          if (credenciales.error && esRelacionFaltante(credenciales.error)) {
+            console.warn(
+              '[eventos] `staff_merge_ticket_type_credentials` no existe en esta base: el evento se guardó sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
+            )
+          } else {
+            assertSupabaseResult(
+              credenciales,
+              'No se pudieron guardar las credenciales de las entradas.',
+            )
+          }
         }
 
         const events = await readEvents(client)

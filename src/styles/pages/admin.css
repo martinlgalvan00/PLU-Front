@@ -3379,8 +3379,15 @@
   text-transform: uppercase;
 }
 
+/* Mínimo táctil de los chips del editor y del selector de pestañas de
+   ventas. `.admin-filter-chip` no declara `min-height`: la altura sale del
+   padding y queda en 26px, así que estado público y acceso al meet quedaban
+   por debajo del target táctil. El editor es un modal que también se usa en
+   tablet. Solo con puntero grueso: en mouse la densidad del panel se
+   conserva. */
 @media (pointer: coarse) {
-  .admin-event-form__sales-nav-item {
+  .admin-event-form__sales-nav-item,
+  .admin-event-form .admin-filter-chip {
     min-height: 44px;
   }
 }
@@ -3573,19 +3580,6 @@
 .admin-event-form__access-note svg {
   margin-right: 5px;
   vertical-align: -2px;
-}
-
-/* Mínimo táctil de los chips del editor.
-   `.admin-filter-chip` no declara `min-height`: la altura sale del padding y
-   queda en 26px, así que los dos grupos de esta pestaña —estado público y
-   acceso al meet— quedaban por debajo del target táctil. La consola de
-   operación ya lo tenía resuelto (admin-minimal.css, `@media pointer: coarse`)
-   pero el editor es un modal que también se usa en tablet. Solo con puntero
-   grueso: en mouse la densidad del panel se conserva. */
-@media (pointer: coarse) {
-  .admin-event-form .admin-filter-chip {
-    min-height: 44px;
-  }
 }
 
 .admin-event-form__consistency ul {
@@ -17879,10 +17873,16 @@ button.action-queue__proof:focus-visible {
   opacity: 0.4;
 }
 
+/* `align-items: start` y no el estiramiento por defecto: la fila la mide el
+   campo más alto (Cupo, que lleva su aclaración debajo) y sin esto el input de
+   Nombre se estiraba a 66px contra 38 de los demás, y los tres arrancaban a
+   distinta altura. Las columnas dejan de ser iguales: el nombre es texto libre
+   y el precio y el cupo son números cortos. */
 .admin-ticket-types__grid {
+  align-items: start;
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 14px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .admin-ticket-types__days,
@@ -17905,30 +17905,134 @@ button.action-queue__proof:focus-visible {
   gap: 8px;
 }
 
+/* ── Chips de selección: días de acceso y zonas de la credencial ────────────
+   El checkbox nativo era el elemento más pesado de toda la sección -- un
+   cuadrado grande, con el color del sistema (violeta en Windows), repetido
+   hasta ocho veces por tipo de entrada. El estado lo dice el chip entero:
+   borde, fondo y texto en celeste, que es el acento de selección del panel.
+   El input sigue en el DOM y sigue recibiendo foco: no se pierde teclado ni
+   lector de pantalla, sólo deja de dibujarse. */
 .admin-ticket-types__day-chip {
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-subtle);
+  background: var(--admin-control-bg, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 999px;
+  color: var(--admin-text-secondary, var(--color-text-muted));
+  cursor: pointer;
   display: inline-flex;
   font-size: 12px;
+  font-weight: 550;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 6px 12px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease);
 }
 
+.admin-ticket-types__day-chip input[type='checkbox'] {
+  /* Fuera de la vista, no del árbol de accesibilidad. */
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.admin-ticket-types__day-chip:hover:not(:has(input:disabled)) {
+  border-color: var(--admin-hairline-strong, var(--color-border-subtle));
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+/* El seleccionado tiene que leerse de un vistazo: acá se decide qué días cubre
+   una entrada y qué zonas abre una credencial, y un matiz de más no alcanza.
+   Los valores van explícitos y no vía `--admin-brand-soft` para que el
+   contraste sea el mismo en los dos temas. */
+.admin-ticket-types__day-chip:has(input:checked) {
+  background: color-mix(in srgb, var(--admin-brand) 16%, transparent);
+  border-color: color-mix(in srgb, var(--admin-brand) 62%, transparent);
+  color: var(--admin-brand);
+  font-weight: 650;
+}
+
+/* El foco del input invisible tiene que verse en el chip, o el recorrido por
+   teclado queda a ciegas. */
+.admin-ticket-types__day-chip:has(input:focus-visible) {
+  outline: 2px solid var(--admin-focus, var(--admin-brand));
+  outline-offset: 2px;
+}
+
+.admin-ticket-types__day-chip:has(input:disabled) {
+  cursor: default;
+  opacity: 0.55;
+}
+
+@media (pointer: coarse) {
+  .admin-ticket-types__day-chip {
+    min-height: 44px;
+  }
+}
+
+/* Nota al pie de la grilla: ocupa las tres columnas, así ninguna fila crece por
+   una aclaración y las celdas vecinas no quedan con un hueco al costado. */
+.admin-ticket-types__grid-note {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+  grid-column: 1 / -1;
+  line-height: 1.4;
+  margin-top: -4px;
+}
+
+/* Una aclaración no es una tarjeta. El recuadro punteado le daba el mismo peso
+   que a un tipo de entrada y metía una card adentro de otra, que es justo lo
+   que el presupuesto de elegancia prohíbe. Una regla al margen alcanza. */
 .admin-ticket-types__empty {
-  background: color-mix(
-    in srgb,
-    var(--admin-surface-muted, rgba(255, 255, 255, 0.02)) 80%,
-    transparent
-  );
-  border: 1px dashed var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
+  border-radius: 0;
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
-  padding: 14px 14px;
+  padding: 2px 0 2px 12px;
+}
+
+/* ── Precio: un solo control, con la moneda adentro ─────────────────────────
+   `__rate-card-input` es de las tarjetas de tarifa: un número de 20px sin borde
+   con la moneda al costado, pensado para vivir DENTRO de una tarjeta que pone
+   el marco. Acá no hay tarjeta, así que "ARS" quedaba flotando afuera de la
+   caja del input. En este contexto el marco lo pone el envoltorio. */
+.admin-ticket-types .admin-event-form__rate-card-input {
+  align-items: center;
+  background: var(--admin-control-bg, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  gap: 8px;
+  padding: 0 10px;
+}
+
+.admin-ticket-types .admin-event-form__rate-card-input:focus-within {
+  border-color: var(--admin-brand);
+  outline: 2px solid var(--admin-focus-soft, transparent);
+}
+
+.admin-ticket-types .admin-event-form__rate-card-input > span {
+  color: var(--admin-muted, var(--color-text-muted));
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* El número vuelve al tamaño de un campo de formulario: 20px y peso 600 es la
+   escala de una tarifa destacada, no la de una celda en una lista de tipos. */
+.admin-ticket-types .admin-event-form__rate-card-input input {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  min-height: 38px;
 }
 
 .admin-ticket-types__add {
@@ -22802,4 +22906,54 @@ button.action-queue__proof:focus-visible {
   .admin-ticket-credentials__row .admin-ticket-types__remove {
     align-self: flex-end;
   }
+}
+
+/* ── Resultado del escaneo: jerarquía para leer en la puerta ─────────────────
+   Quien controla el ingreso mira esta tarjeta de pie, apurado y a veces al sol.
+   Los dos datos sobre los que actúa son el veredicto y QUÉ credencial leyó, y
+   eran los dos más chicos: el titular en 14px y la credencial en 13px, debajo
+   de un rótulo diminuto. El resto (nombre, documento, estado) es verificación
+   secundaria y se queda donde está. */
+.admin-checkin-result__header strong {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+/* La credencial, en grande. Es lo que distingue las dos entradas de un
+   entrenador -- mismo nombre y mismo DNI en las dos -- y por lo tanto lo único
+   que decide si esta persona pasa por este puesto. */
+.admin-checkin-result__meta dd.admin-checkin-result__credential {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+/* El acento sigue el veredicto: no se le pone un color propio, porque una
+   credencial válida y una ya usada se leen distinto y el color ya lo dice. */
+.admin-checkin-result--success .admin-checkin-result__credential {
+  color: var(--admin-status-success, var(--color-text-primary));
+}
+
+.admin-checkin-result--warning .admin-checkin-result__credential {
+  color: var(--admin-status-warning, var(--color-text-primary));
+}
+
+.admin-checkin-result--danger .admin-checkin-result__credential {
+  color: var(--admin-status-danger, var(--color-text-primary));
+}
+
+/* Con la credencial en 19px, el rótulo "TIPO" arriba sobra: la palabra
+   ENTRENADOR no necesita que le expliquen que es un tipo. */
+.admin-checkin-result__meta div:has(.admin-checkin-result__credential) dt {
+  display: none;
+}
+
+/* Al sacar ese rótulo la credencial queda más baja que las columnas que sí lo
+   tienen. Alineadas por abajo, la credencial y el estado comparten línea. */
+.admin-checkin-result__meta:has(.admin-checkin-result__credential) {
+  align-items: end;
 }

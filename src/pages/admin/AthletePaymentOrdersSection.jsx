@@ -504,6 +504,7 @@ export default function AthletePaymentOrdersSection({
                 counts[value] ?? 0,
               ])}
             />
+            <span className="admin-orders-block__facet-divider" aria-hidden="true" />
             <AdminFilterChipGroup
               id="athlete-orders-channel"
               label={t('admin.athletePayments.channelLabel')}
@@ -714,7 +715,7 @@ export default function AthletePaymentOrdersSection({
                       <StatusBadge value={row.status} />
                     )}
                     {row.manualPaymentDeclaredAt ? (
-                      <span className="status-pill status-pill--info">
+                      <span className="admin-orders-block__tag">
                         {t(
                           row.financingAllowed && row.financedEntitlementsAt
                             ? 'admin.athletePayments.financedActive'

@@ -1419,12 +1419,14 @@ export default function AdminEventEditor({
                           <FormField
                             htmlFor="event-mp-profile"
                             label={t('admin.eventEditor.mercadoPagoProfile')}
+                            error={err('mercadoPagoProfileId')}
                             wide
                           >
                             <select
                               id="event-mp-profile"
                               name="mercadoPagoProfileId"
                               value={draft.mercadoPagoProfileId ?? ''}
+                              aria-invalid={Boolean(err('mercadoPagoProfileId'))}
                               onChange={(changeEvent) =>
                                 applyMpProfile(changeEvent.target.value || null)
                               }
@@ -1559,12 +1561,14 @@ export default function AdminEventEditor({
                           <FormField
                             htmlFor="event-bank-profile"
                             label={t('admin.eventEditor.bankTransferProfile')}
+                            error={err('bankTransferProfileId')}
                             wide
                           >
                             <select
                               id="event-bank-profile"
                               name="bankTransferProfileId"
                               value={draft.bankTransferProfileId ?? ''}
+                              aria-invalid={Boolean(err('bankTransferProfileId'))}
                               onChange={(changeEvent) =>
                                 applyBankProfile(changeEvent.target.value || null)
                               }
@@ -1591,6 +1595,15 @@ export default function AdminEventEditor({
                                 name: selectedBankProfile.name,
                                 alias: selectedBankProfile.config?.alias || '—',
                               })}
+                            </p>
+                          ) : null}
+
+                          {!draft.bankTransferProfileId &&
+                          (draft.bankTransfer?.alias ||
+                            draft.bankTransfer?.cbu ||
+                            draft.bankTransfer?.holder) ? (
+                            <p className="admin-event-form__pricing-note" role="status">
+                              {t('admin.eventEditor.bankTransferSaveCreatesProfile')}
                             </p>
                           ) : null}
 
@@ -1680,9 +1693,6 @@ export default function AdminEventEditor({
                               {t('admin.eventEditor.bankTransferReferenceExample')}
                             </code>
                           </div>
-                          <p className="admin-event-form__pricing-note">
-                            {t('admin.eventEditor.bankTransferSaveCreatesProfile')}
-                          </p>
                         </div>
                       ) : null}
                     </div>
@@ -2112,26 +2122,40 @@ export default function AdminEventEditor({
                             disabled={!canEdit}
                           />
                         </FormField>
-                        <label className="admin-event-form__field" htmlFor="event-live-provider">
-                          <span>{t('admin.eventEditor.supabase.liveStreamProvider')}</span>
+                        <FormField
+                          htmlFor="event-live-provider"
+                          label={t('admin.eventEditor.supabase.liveStreamProvider')}
+                          error={err('liveStreamProvider')}
+                        >
                           <select
                             id="event-live-provider"
                             value={draft.liveStreamProvider ?? 'youtube'}
+                            aria-invalid={Boolean(err('liveStreamProvider'))}
                             onChange={(event) =>
                               patchDraft({ ...draft, liveStreamProvider: event.target.value })
                             }
                             disabled={!canEdit}
                           >
-                            <option value="youtube">YouTube</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="twitch">Twitch</option>
+                            <option value="youtube">
+                              {t('admin.eventEditor.supabase.liveProviderYoutube')}
+                            </option>
+                            <option value="instagram">
+                              {t('admin.eventEditor.supabase.liveProviderInstagram')}
+                            </option>
+                            <option value="twitch">
+                              {t('admin.eventEditor.supabase.liveProviderTwitch')}
+                            </option>
                           </select>
-                        </label>
-                        <label className="admin-event-form__field" htmlFor="event-live-status">
-                          <span>{t('admin.eventEditor.supabase.liveStatus')}</span>
+                        </FormField>
+                        <FormField
+                          htmlFor="event-live-status"
+                          label={t('admin.eventEditor.supabase.liveStatus')}
+                          error={err('liveStatus')}
+                        >
                           <select
                             id="event-live-status"
                             value={draft.liveStatus ?? 'offline'}
+                            aria-invalid={Boolean(err('liveStatus'))}
                             onChange={(event) =>
                               patchDraft({ ...draft, liveStatus: event.target.value })
                             }
@@ -2147,7 +2171,7 @@ export default function AdminEventEditor({
                               {t('admin.eventEditor.supabase.liveStatusEnded')}
                             </option>
                           </select>
-                        </label>
+                        </FormField>
                       </div>
                     </div>
                   </div>

@@ -1288,6 +1288,16 @@ export default {
     zoneScopeNotice:
       'Today the scanner authorises by check-in permission, not by post: any enabled account can read any credential, and a ticket is scanned once for the whole event. A post defines which credentials it reads, not who gets in.',
   },
+  eventDashboard: {
+    revenue: 'Revenue',
+    checkinsLabel: 'Check-ins',
+    quickActions: 'Quick actions',
+    noSlotLimit: 'No slot cap',
+    ticketsIssued: 'Based on {{count}} tickets issued',
+    attendanceRate: '{{percent}}% attendance',
+    noAttendanceData: 'No data yet',
+    viewPublicPage: 'View public page',
+  },
 
   eventPayments: {
     label: 'Event payments',
@@ -1365,7 +1375,7 @@ export default {
       athletes_only:
         'Reads only credentials of athletes registered for the meet. Does not open spectator tickets.',
       athletes_coaches:
-        'Reads credentials of registered athletes and members. Does not open spectator tickets.',
+        'Reads credentials of registered athletes and coaches with a paid ticket. Membership alone no longer opens it.',
       staff_only: 'Does not scan credentials: the zone is internal control.',
     },
     memberStatus: {
@@ -2762,7 +2772,7 @@ export default {
       ticketTypeUntitled: 'Untitled ticket type',
       ticketTypeName: 'Name',
       ticketTypeNamePlaceholder: 'E.g. Day 1, Full pass + sandwich',
-      ticketTypePrice: 'Price (ARS)',
+      ticketTypePrice: 'Price',
       ticketTypeQuota: 'Own quota',
       ticketTypeQuotaHint: 'Empty = no own limit (only the event-wide capacity applies).',
       ticketTypeActive: 'On sale',
@@ -2793,6 +2803,9 @@ export default {
       liveTitle: 'Live stream',
       liveStreamUrl: 'Stream URL',
       liveStreamProvider: 'Platform',
+      liveProviderYoutube: 'YouTube',
+      liveProviderInstagram: 'Instagram',
+      liveProviderTwitch: 'Twitch',
       liveStatus: 'Live status',
       liveStatusOffline: 'Offline',
       liveStatusLive: 'Live',
