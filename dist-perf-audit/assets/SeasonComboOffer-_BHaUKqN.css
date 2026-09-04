@@ -1,0 +1,280 @@
+/* Promo combo: el precio conjunto es el dato protagonista.
+   Un acento (oro) en −20% y $120.000. Sin card, glow ni segunda tinta. */
+
+.season-combo-offer {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.season-combo-offer--band {
+  isolation: isolate;
+  padding: 4px 0 2px;
+}
+
+.season-combo-offer--inline {
+  gap: 14px;
+}
+
+.season-combo-offer--compact {
+  gap: 12px;
+}
+
+.season-combo-offer__stage {
+  align-items: end;
+  display: grid;
+  gap: 20px 40px;
+  min-width: 0;
+}
+
+.season-combo-offer__hero {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.season-combo-offer__mark {
+  align-items: baseline;
+  color: var(--color-brand-gold);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display, inherit);
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 0;
+  position: relative;
+  width: fit-content;
+}
+
+.season-combo-offer__mark-value {
+  display: inline-block;
+}
+
+.season-combo-offer__mark-rule {
+  background: currentColor;
+  display: block;
+  height: 1px;
+  margin-top: 7px;
+  opacity: 0.45;
+  transform-origin: left center;
+  width: 2.25rem;
+}
+
+.season-combo-offer__mark-copy {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.season-combo-offer__eyebrow {
+  color: var(--color-text-muted);
+  font-family: var(--font-display, inherit);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.season-combo-offer__title {
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.season-combo-offer__price {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.season-combo-offer__amount {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display, inherit);
+  font-size: clamp(2.55rem, 7.2vw, 4.05rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.07em;
+  line-height: 0.86;
+}
+
+.season-combo-offer__compare {
+  color: var(--color-text-muted);
+  font-family: var(--font-display, inherit);
+  font-size: clamp(0.95rem, 1.6vw, 1.12rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.season-combo-offer__ledger {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  max-width: 18rem;
+}
+
+.season-combo-offer__row {
+  align-items: baseline;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.season-combo-offer__row dt {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.season-combo-offer__row dd {
+  color: var(--color-text-primary);
+  font-family: var(--font-display, inherit);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 0;
+  text-align: right;
+}
+
+.season-combo-offer__until {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.season-combo-offer__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+}
+
+.season-combo-offer__cta {
+  min-height: 44px;
+}
+
+.season-combo-offer__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.season-combo-offer__cta:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.season-combo-offer__cta-icon {
+  transition: transform var(--motion-fast, 180ms) var(--ease-out, ease);
+}
+
+.season-combo-offer__cta:hover:not(:disabled) .season-combo-offer__cta-icon {
+  transform: translateX(4px);
+}
+
+.season-combo-offer__cta-secondary {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 2px;
+}
+
+.season-combo-offer__cta-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.season-combo-offer__cta-secondary:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.season-combo-offer__cta-secondary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.season-combo-offer--inline .season-combo-offer__amount {
+  font-size: clamp(2.15rem, 5.4vw, 3.15rem);
+}
+
+.season-combo-offer--compact .season-combo-offer__stage {
+  gap: 12px 24px;
+}
+
+.season-combo-offer--compact .season-combo-offer__amount {
+  font-size: clamp(1.7rem, 3.6vw, 2.25rem);
+}
+
+.season-combo-offer--compact .season-combo-offer__mark {
+  font-size: 1.05rem;
+}
+
+.season-combo-offer--compact .season-combo-offer__until {
+  font-size: 12.5px;
+}
+
+[data-theme='light'] .season-combo-offer__mark,
+[data-theme='light'] .season-combo-offer__amount {
+  color: var(--color-brand-gold-dark, var(--color-brand-gold));
+}
+
+@media (min-width: 640px) {
+  .season-combo-offer--band .season-combo-offer__stage,
+  .season-combo-offer--inline .season-combo-offer__stage {
+    grid-template-columns: minmax(0, 1.2fr) minmax(10rem, 0.7fr);
+  }
+
+  .season-combo-offer--band .season-combo-offer__ledger,
+  .season-combo-offer--inline .season-combo-offer__ledger {
+    border-left: 1px solid var(--color-border-subtle);
+    padding-left: clamp(16px, 2.4vw, 24px);
+  }
+}
+
+@media (max-width: 429px) {
+  .season-combo-offer {
+    gap: 16px;
+  }
+
+  .season-combo-offer__cta,
+  .season-combo-offer__cta-secondary {
+    width: 100%;
+  }
+
+  .season-combo-offer__cta-secondary {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-combo-offer__cta-icon {
+    transition: none;
+  }
+
+  .season-combo-offer__cta:hover:not(:disabled) .season-combo-offer__cta-icon {
+    transform: none;
+  }
+}

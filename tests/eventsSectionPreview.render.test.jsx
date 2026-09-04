@@ -64,65 +64,71 @@ function renderEvents(overrides = {}) {
 
 function openConsole(rowTitle) {
   fireEvent.click(screen.getByTitle(rowTitle))
-  return screen.getByRole('dialog', { name: 'Evento seleccionado' })
+  return screen.getByRole('region', { name: 'Evento seleccionado' })
 }
 
-describe('EventsSection — consola como modal', () => {
-  it('la lista es la única superficie: sin consola hasta tocar una fila', () => {
+describe('EventsSection — la página del evento', () => {
+  it('la lista es la única superficie: sin evento abierto hasta tocar una fila', () => {
     renderEvents()
     expect(document.querySelector('.admin-event-preview--panel')).toBeNull()
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
   })
 
-  it('abre la consola del evento al tocar la fila', () => {
+  it('abre la página del evento al tocar la fila', () => {
     renderEvents({ adminEvents: [EVENT, OTHER] })
-    const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
 
-    expect(dialog.querySelector('.admin-event-console-modal__title')?.textContent).toBe(
+    expect(panel.querySelector('.admin-event-workspace__title')?.textContent).toBe(
       'Pitbull Classic',
     )
-    expect(dialog.querySelector('.admin-event-console-modal__meta-line')?.textContent).toMatch(
+    expect(panel.querySelector('.admin-event-workspace__meta')?.textContent).toMatch(
       /Maximal Strength Club/,
     )
-    expect(within(dialog).queryByRole('button', { name: 'Editar evento' })).toBeNull()
-    expect(within(dialog).getByRole('button', { name: /datos/i })).toBeTruthy()
-    expect(within(dialog).getByRole('button', { name: /ventas y cupos/i })).toBeTruthy()
+    expect(within(panel).queryByRole('button', { name: 'Editar evento' })).toBeNull()
+
+    const rail = within(panel).getByRole('tablist', { name: /secciones del evento/i })
+    expect(within(rail).getByRole('tab', { name: /datos/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^entradas/i })).toBeTruthy()
   })
 
-  it('cambia de evento tocando otra fila con la consola abierta', () => {
+  it('cambia de evento tocando otra fila desde la lista', () => {
     renderEvents({ adminEvents: [EVENT, OTHER] })
-    const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
-    expect(dialog.querySelector('.admin-event-console-modal__title')?.textContent).toBe(
+    const panel = openConsole(/Pitbull Classic · pitbull-classic-2026/)
+    expect(panel.querySelector('.admin-event-workspace__title')?.textContent).toBe(
       'Pitbull Classic',
     )
 
-    // La lista sigue visible detrás del modal: tocar la otra fila renueva la consola.
+    // La página reemplaza la lista, así que hay que volver para cambiar de meet
+    // -- que es justamente lo que evita operar el evento equivocado.
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
     fireEvent.click(screen.getByTitle(/pit elite · agosto-elite/))
+
     expect(
-      screen.getByRole('dialog', { name: 'Evento seleccionado' }).querySelector(
-        '.admin-event-console-modal__title',
-      )?.textContent,
+      screen
+        .getByRole('region', { name: 'Evento seleccionado' })
+        .querySelector('.admin-event-workspace__title')?.textContent,
     ).toBe('pit elite')
   })
 
   it('no duplica la sede cuando venue y location coinciden', () => {
     renderEvents({ adminEvents: [OTHER] })
-    const dialog = openConsole(/pit elite · agosto-elite/)
-    const meta = dialog.querySelector('.admin-event-console-modal__meta-line')?.textContent
+    const panel = openConsole(/pit elite · agosto-elite/)
+    const meta = panel.querySelector('.admin-event-workspace__meta')?.textContent
     expect(meta).toMatch(/pit elite/)
     expect(meta).not.toMatch(/pit elite,\s*pit elite/)
   })
 
-  it('cierra la consola con Escape y con el botón de cierre', () => {
+  it('vuelve a la lista con Volver, y Escape no se lleva el trabajo', () => {
     renderEvents({ adminEvents: [EVENT] })
     openConsole(/Pitbull Classic · pitbull-classic-2026/)
 
+    // Ya no es un modal: Escape no cierra. Perder cambios sin guardar por
+    // apretar Escape en una página es peor que no tener el atajo.
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
 
-    const dialog = openConsole(/Pitbull Classic · pitbull-classic-2026/)
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }))
-    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
+    expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull()
   })
 })
 

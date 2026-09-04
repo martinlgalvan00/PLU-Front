@@ -49,6 +49,10 @@ const webEnv = {
   PORT: String(API_PORT),
   PAYMENTS_MOCK: 'true',
   APP_PRODUCTION: 'false',
+  // Interruptor global de venta de entradas. Sin él la página muestra
+  // "Próximamente" y nunca llega a renderizar el formulario: los tests de
+  // compra no podían ejercitar nada.
+  VITE_TICKET_SALES_ENABLED: 'true',
 }
 
 export default defineConfig({

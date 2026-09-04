@@ -11,19 +11,31 @@ import {
  */
 export default function EventWeighInSchedule({ className = '', windows }) {
   const { locale } = useI18n()
-  const groups = groupWeighInWindowsByDay(windows)
+  const groups = groupWeighInWindowsByDay(windows, locale)
   if (groups.length === 0) return null
 
   return (
     <div className={`event-weighins ${className}`.trim()} role="list">
-      {groups.map((group, index) => (
+      {groups.map((group, index) => {
+        // La fecha manda como encabezado; el label editorial pasa a acompañar
+        // cada franja. Sin fecha cargada se cae al label, que es lo único que
+        // hay -- y es exactamente el caso que el panel ahora avisa.
+        const heading = group.dayLabel || group.label
+        const showSlotLabels = Boolean(group.dayLabel)
+        return (
         <article key={group.key} className="event-weighin pitbull-weighin" role="listitem">
           <span className="event-weighin__node pitbull-weighin__node" aria-hidden />
           <p className="event-weighin__day pitbull-weighin__day">
             <span className="event-weighin__day-index pitbull-weighin__day-index motif-num" aria-hidden>
               {String(index + 1).padStart(2, '0')}
             </span>
-            {group.label}
+            {group.date ? (
+              <time className="event-weighin__day-date" dateTime={group.date}>
+                {heading}
+              </time>
+            ) : (
+              heading
+            )}
           </p>
           <div className="event-weighin__content pitbull-weighin__content">
             <div className="event-weighin__slots pitbull-weighin__slots">
@@ -33,6 +45,9 @@ export default function EventWeighInSchedule({ className = '', windows }) {
                   className="event-weighin__time pitbull-weighin__time"
                   dateTime={`${slot.startsAt}/${slot.endsAt}`}
                 >
+                  {showSlotLabels && slot.label ? (
+                    <span className="event-weighin__slot-label">{slot.label}</span>
+                  ) : null}
                   {formatWeighInSlotRange(slot, locale)}
                 </time>
               ))}
@@ -44,7 +59,8 @@ export default function EventWeighInSchedule({ className = '', windows }) {
             ))}
           </div>
         </article>
-      ))}
+        )
+      })}
     </div>
   )
 }

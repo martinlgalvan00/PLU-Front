@@ -42,6 +42,7 @@ import {
   eventShowsPublicExperience,
   eventShowsPublicLocation,
   eventShowsPublicWeighIns,
+  normalizeEventPublicCopy,
 } from '../lib/eventPublicSurface.js'
 import { env } from '../config/env.js'
 import { isPaidCheckoutOpen } from '../lib/registrationSchedule.js'
@@ -1118,6 +1119,18 @@ export default function PitbullPage({
     title: pitbullEvent?.title ?? PITBULL_CLASSIC.title,
   }
   const eventStatus = pitbullEvent?.status ?? 'proximamente'
+
+  /**
+   * El hero se presenta con el copy que cargó el staff en Vista pública. Antes
+   * el H1 salía de `PITBULL_CLASSIC.title`, una constante de código: para
+   * cambiar el título de un meet -- o para la edición siguiente -- había que
+   * tocar el repo. Vacío cae al título del evento y, si tampoco hay, a la
+   * constante y a los textos del diseño.
+   */
+  const publicCopy = normalizeEventPublicCopy(pitbullEvent?.publicCopy)
+  const heroTitle = publicCopy.publicTitle || pitbullEvent?.title || PITBULL_CLASSIC.title
+  const heroLead = publicCopy.heroLead || t('pages.pitbull.heroLead')
+  const heroCtaLabel = publicCopy.ctaLabel || undefined
   const registrationCheckoutEnabled = checkoutAvailability.registrationEnabled !== false
   const paidCheckoutOpen =
     registrationCheckoutEnabled &&
@@ -1268,7 +1281,9 @@ export default function PitbullPage({
         onSecondary={handleHeroSecondary}
         registrationFee={money(eventPricing.registration, locale)}
         ticketsOpen={ticketsOpen}
-        title={PITBULL_CLASSIC.title}
+        title={heroTitle}
+        lead={heroLead}
+        registerLabel={heroCtaLabel}
       />
 
       <PitbullSectionNav items={sectionNavItems} t={t} />

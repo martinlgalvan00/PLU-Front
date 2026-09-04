@@ -35,10 +35,19 @@ const USERS = [
 ]
 
 describe('securityZoneService — alcance de escaneo', () => {
-  it('la puerta es el único alcance que abre entradas de público', () => {
+  /**
+   * Antes la puerta era el único alcance que leía entradas. Dejó de serlo
+   * cuando la entrada de entrenador pasó a emitir una credencial propia: esa
+   * credencial es un `ticket` y tiene que poder leerse en la entrada en calor.
+   * Pesaje y plataforma siguen sin leer entradas.
+   */
+  it('la puerta y la entrada en calor son las únicas que abren entradas', () => {
     expect(canZoneScanCredential('gate_tickets', 'ticket')).toBe(true)
+    expect(canZoneScanCredential('athletes_coaches', 'ticket')).toBe(true)
 
-    for (const scope of ZONE_SCOPES.filter((value) => value !== 'gate_tickets')) {
+    for (const scope of ZONE_SCOPES.filter(
+      (value) => value !== 'gate_tickets' && value !== 'athletes_coaches',
+    )) {
       expect(canZoneScanCredential(scope, 'ticket')).toBe(false)
     }
   })
@@ -46,6 +55,12 @@ describe('securityZoneService — alcance de escaneo', () => {
   it('pesaje lee inscripciones pero no credenciales de afiliación', () => {
     expect(canZoneScanCredential('athletes_only', 'registration')).toBe(true)
     expect(canZoneScanCredential('athletes_only', 'membership')).toBe(false)
+  })
+
+  /** La decisión que cierra el agujero: la entrada en calor deja de aceptar
+   *  afiliación, que era lo que hacía entrar a cualquier afiliado. */
+  it('la entrada en calor deja de aceptar afiliación', () => {
+    expect(canZoneScanCredential('athletes_coaches', 'membership')).toBe(false)
   })
 
   it('staff técnico no escanea nada: es control interno', () => {

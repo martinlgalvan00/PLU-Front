@@ -132,72 +132,144 @@ export default function AdminEventStructureEditor({
   const showSessions = showAll || chapter === 'sessions'
   const showEventSave = showDays || showWeighIns
 
-  return (
-    <div className="admin-event-structure">
-      {showAll ? (
+  const daysEditor = (
+    <AdminEventDaysEditor
+      canEdit={canEdit}
+      errors={fieldErrors}
+      eventDays={days}
+      lockedDayIndexes={lockedDayIndexes}
+      onChangeEventDays={patchDays}
+      onChangeTicketTypes={patchTicketTypes}
+      ticketTypes={ticketTypes}
+    />
+  )
+
+  const weighInsEditor = (
+    <AdminEventWeighInWindowsEditor
+      canEdit={canEdit}
+      errors={fieldErrors}
+      eventDays={days}
+      onChange={patchWindows}
+      onPrefillFromDays={prefillWindowsFromDays}
+      windows={windows}
+    />
+  )
+
+  const sessionsEditor = (
+    <AdminEventSessionsEditor
+      embedded
+      canEdit={canEdit}
+      eventSlug={eventSlug}
+      scheduleState={{
+        days: scheduleDays,
+        saveSessions,
+        sessions,
+        status: scheduleStatus,
+      }}
+    />
+  )
+
+  /** Guarda jornadas y pesajes juntos: los dos viven en el evento. */
+  const eventSave = showEventSave ? (
+    <>
+      {error ? (
+        <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div className="admin-event-sessions__actions">
+        <Button
+          type="button"
+          className="btn--small"
+          onClick={() => void handleSave()}
+          disabled={!canEdit || !dirty || saving}
+        >
+          {saving ? t('admin.schedule.structureSaving') : t('admin.schedule.structureSave')}
+        </Button>
+      </div>
+    </>
+  ) : null
+
+  /**
+   * Los tres bloques no son alternativas: son un orden. Sin jornadas no hay
+   * ventana de pesaje que cargar, y sin pesaje la tanda no cierra. Numerarlos
+   * y unirlos con un riel dice eso; la pila plana anterior no lo decía.
+   */
+  if (showAll) {
+    return (
+      <div className="admin-event-structure admin-event-structure--stepped">
         <div className="admin-event-sessions__intro">
           <span className="admin-event-sessions__icon" aria-hidden>
             <CalendarClock size={16} strokeWidth={1.8} />
           </span>
           <p>{t('admin.schedule.structureLead')}</p>
         </div>
-      ) : null}
 
-      <div hidden={!showDays}>
-        <AdminEventDaysEditor
-          canEdit={canEdit}
-          errors={fieldErrors}
-          eventDays={days}
-          lockedDayIndexes={lockedDayIndexes}
-          onChangeEventDays={patchDays}
-          onChangeTicketTypes={patchTicketTypes}
-          ticketTypes={ticketTypes}
-        />
+        <ol className="admin-event-structure__steps">
+          <li className="admin-event-structure__step">
+            <span className="admin-event-structure__step-rail" aria-hidden>
+              <span className="admin-event-structure__step-number">1</span>
+              <span className="admin-event-structure__step-line" />
+            </span>
+            <div className="admin-event-structure__step-body">
+              <div className="admin-event-structure__step-head">
+                <h4 className="admin-event-structure__step-title">
+                  {t('admin.schedule.stepDaysTitle')}
+                </h4>
+                <p className="admin-event-structure__step-hint">
+                  {t('admin.schedule.stepDaysHint')}
+                </p>
+              </div>
+              {daysEditor}
+            </div>
+          </li>
+
+          <li className="admin-event-structure__step">
+            <span className="admin-event-structure__step-rail" aria-hidden>
+              <span className="admin-event-structure__step-number">2</span>
+              <span className="admin-event-structure__step-line" />
+            </span>
+            <div className="admin-event-structure__step-body">
+              <div className="admin-event-structure__step-head">
+                <h4 className="admin-event-structure__step-title">
+                  {t('admin.schedule.stepWeighInsTitle')}
+                </h4>
+                <p className="admin-event-structure__step-hint">
+                  {t('admin.schedule.stepWeighInsHint')}
+                </p>
+              </div>
+              {weighInsEditor}
+              {eventSave}
+            </div>
+          </li>
+
+          <li className="admin-event-structure__step admin-event-structure__step--last">
+            <span className="admin-event-structure__step-rail" aria-hidden>
+              <span className="admin-event-structure__step-number">3</span>
+            </span>
+            <div className="admin-event-structure__step-body">
+              <div className="admin-event-structure__step-head">
+                <h4 className="admin-event-structure__step-title">
+                  {t('admin.schedule.stepSessionsTitle')}
+                </h4>
+                <p className="admin-event-structure__step-hint">
+                  {t('admin.schedule.stepSessionsHint')}
+                </p>
+              </div>
+              {sessionsEditor}
+            </div>
+          </li>
+        </ol>
       </div>
+    )
+  }
 
-      <div hidden={!showWeighIns}>
-        <AdminEventWeighInWindowsEditor
-          canEdit={canEdit}
-          errors={fieldErrors}
-          eventDays={days}
-          onChange={patchWindows}
-          onPrefillFromDays={prefillWindowsFromDays}
-          windows={windows}
-        />
-      </div>
-
-      {error && showEventSave ? (
-        <p className="admin-event-form__alert admin-event-form__alert--danger" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      {showEventSave ? (
-        <div className="admin-event-sessions__actions">
-          <Button
-            type="button"
-            className="btn--small"
-            onClick={() => void handleSave()}
-            disabled={!canEdit || !dirty || saving}
-          >
-            {saving ? t('admin.schedule.structureSaving') : t('admin.schedule.structureSave')}
-          </Button>
-        </div>
-      ) : null}
-
-      <div hidden={!showSessions}>
-        <AdminEventSessionsEditor
-          embedded
-          canEdit={canEdit}
-          eventSlug={eventSlug}
-          scheduleState={{
-            days: scheduleDays,
-            saveSessions,
-            sessions,
-            status: scheduleStatus,
-          }}
-        />
-      </div>
+  return (
+    <div className="admin-event-structure">
+      <div hidden={!showDays}>{daysEditor}</div>
+      <div hidden={!showWeighIns}>{weighInsEditor}</div>
+      {eventSave}
+      <div hidden={!showSessions}>{sessionsEditor}</div>
     </div>
   )
 }

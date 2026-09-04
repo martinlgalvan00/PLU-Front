@@ -325,6 +325,9 @@ export default function App() {
         setView('admin')
         return
       }
+      // Salir de /admin/eventos/:slug tiene que soltar el slug: si no, el
+      // workspace queda pegado y el listado nunca vuelve a aparecer.
+      setAdminEventWorkspaceSlug(null)
       if (!isCanonicalPathname()) {
         setView('notFound')
         return

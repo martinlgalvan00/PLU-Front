@@ -1278,6 +1278,7 @@ export default {
   // Consola del evento: estado, acceso y entrada a cada sección.
   eventConsole: {
     close: 'Cerrar',
+    dashboard: 'Resumen',
     configLabel: 'Configuración del evento',
     fichaLabel: 'Ficha',
     siteLabel: 'Sitio público',
@@ -1322,6 +1323,13 @@ export default {
     surfaceOn: 'Visible',
     surfaceOff: 'Oculto',
     paymentChapterValue: 'Medios de cobro',
+    visibilityLabel: 'Vista pública',
+    tabsLabel: 'Secciones del evento',
+    occupancy: 'Ocupación',
+    occupancyDetail: 'de {{slots}} cupos · quedan {{remaining}}',
+    zoneScopeNoticeTitle: 'El puesto todavía no filtra el ingreso',
+    zoneScopeNotice:
+      'Hoy el escáner autoriza por permiso de check-in, no por puesto: cualquier cuenta habilitada puede leer cualquier credencial, y una entrada se escanea una sola vez en todo el evento. El puesto define qué credenciales lee, no a quién deja pasar.',
   },
 
   eventPayments: {
@@ -1439,10 +1447,19 @@ export default {
     unassignedShort: 'Sin asignar',
     structureLead:
       'Días del meet, cuándo se puede pesar y las tandas de plataforma. Los días también alimentan las entradas de público.',
+    stepDaysTitle: 'Jornadas',
+    stepDaysHint: 'Los días en que se compite. Las entradas se venden contra estos días.',
+    stepWeighInsTitle: 'Pesajes',
+    stepWeighInsHint:
+      'Ventanas de pesaje por jornada. Cada una se puede mostrar en la página pública del evento.',
+    stepSessionsTitle: 'Tandas',
+    stepSessionsHint:
+      'Grupos que levantan juntos, por plataforma y horario. El armado fino vive en Grilla.',
     structureSave: 'Guardar días y pesajes',
     structureSaving: 'Guardando…',
     structureSaveError: 'No se pudieron guardar los días o los pesajes.',
     weighInWindows: {
+      dateRequired: 'Cargá la fecha: sin fecha el horario no se publica.',
       title: 'Pesajes públicos',
       lead: 'Horarios en los que los atletas pueden pesarse. Independiente de la hora de pesaje de cada tanda.',
       empty: 'Todavía no hay franjas de pesaje. Sin esto, el sitio no publica horarios.',
@@ -2820,6 +2837,26 @@ export default {
       ticketTypeAddonsLabel: 'Beneficios incluidos sin cargo (pack)',
       ticketTypeAddonsEmpty:
         'Configurá primero el catálogo de beneficios para poder incluirlos en un pack.',
+      credentialsLabel: 'Credenciales que emite',
+      credentialName: 'Nombre de la credencial',
+      credentialNamePrimary: 'Credencial principal',
+      credentialNamePlaceholder: 'Ej: ENTRENADOR',
+      credentialZones: 'Zonas que abre',
+      credentialAdd: 'Agregar credencial',
+      credentialRemove: 'Quitar credencial',
+      credentialCoachPreset: 'Armar entrada de entrenador',
+      credentialsPerPurchase: 'Cada compra emite {{count}} credenciales, y ocupa un solo lugar.',
+      credentialsPerPurchaseQuota:
+        'Cada compra emite {{count}} credenciales: {{quota}} lugares y {{total}} credenciales en total.',
+      credentialError: {
+        required: 'Poné un nombre.',
+        zonesRequired: 'Elegí al menos una zona: una credencial que no abre nada no sirve.',
+        tooLong: 'Máximo 40 caracteres.',
+        duplicate: 'Ya hay otra credencial con este nombre: impresas serían iguales.',
+        empty: 'La entrada necesita al menos una credencial.',
+        tooMany: 'Máximo 4 credenciales por entrada.',
+        invalid: 'Zona desconocida.',
+      },
       liveTitle: 'Transmisión en vivo',
       liveStreamUrl: 'URL del stream',
       liveStreamProvider: 'Plataforma',
@@ -2870,6 +2907,15 @@ export default {
     sectionVisibility: 'Publicación',
     sectionVisibilityLeadEssentials:
       'Destacá el meet y elegí qué bloques ve el público. Estado y acceso se controlan arriba en la consola.',
+    publicCopyLegend: 'Cómo se presenta al público',
+    publicCopyHint:
+      'Vacío deja el título del evento y los textos del diseño. Los encabezados de cada bloque no se editan: son los que mantienen el sitio coherente entre meets.',
+    publicTitleField: 'Título público',
+    publicTitlePlaceholder: 'Igual al título del evento',
+    heroLeadField: 'Bajada del hero',
+    heroLeadPlaceholder: 'Una línea que diga de qué se trata el meet',
+    ctaLabelField: 'Texto del boton',
+    ctaLabelPlaceholder: 'Inscribirme',
     publicSurfaceLegend: 'Qué se muestra en el sitio',
     publicSurfaceCalendarTitle: 'Calendario',
     publicSurfaceCalendarHint: 'Botones para agregar el meet a Google Calendar o descargar el .ics.',

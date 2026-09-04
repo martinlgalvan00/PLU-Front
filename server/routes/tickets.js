@@ -529,11 +529,36 @@ export function createTicketRoutes({
       next(error)
     }
   })
+  /**
+   * Alcance de la zona de quien escanea. Es lo que decide qué credencial abre
+   * qué puesto: la de ENTRENADOR entra al calentamiento y la de espectador no.
+   * El alcance sale de la cuenta, nunca del cuerpo del request -- si lo mandara
+   * el cliente, cualquiera abriría cualquier zona diciendo que está en ella.
+   * Sin zona asignada devuelve null y la RPC no valida, que es el
+   * comportamiento anterior.
+   */
+  async function scannerZoneScope(req) {
+    const zoneId = req.auth?.user?.securityZoneId
+    if (!zoneId) return null
+    const zone = await getPrisma().eventSecurityZone.findUnique({
+      where: { id: zoneId },
+      select: { scope: true },
+    })
+    return zone?.scope ?? null
+  }
+
   router.post('/checkin/:qrToken', ...guard, staffLimiter, async (req, res, next) => {
     try {
       const ticket = await repo().verify(req.params.qrToken)
       assertEventScope(req, verifiedTicketEventId(ticket))
-      res.json(await repo().checkIn(req.params.qrToken, req.body?.gate, actor(req)))
+      res.json(
+        await repo().checkIn(
+          req.params.qrToken,
+          req.body?.gate,
+          actor(req),
+          await scannerZoneScope(req),
+        ),
+      )
     } catch (error) {
       next(error)
     }

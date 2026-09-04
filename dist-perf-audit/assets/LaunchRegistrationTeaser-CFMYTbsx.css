@@ -1,0 +1,1444 @@
+/* Launch teaser — composición editorial refinada. Sin cards. */
+
+.launch-teaser__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.launch-teaser {
+  position: relative;
+  color: var(--color-text-primary);
+  padding-block: clamp(1.25rem, 3.5vw, 2.25rem);
+  margin-block: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.launch-teaser__layout {
+  display: grid;
+  gap: clamp(1.5rem, 3.5vw, 2.35rem);
+  max-width: 42rem;
+}
+
+.launch-teaser--full .launch-teaser__layout,
+.launch-teaser--hero .launch-teaser__layout {
+  max-width: min(64rem, 100%);
+}
+
+/* Copy */
+
+.launch-teaser__copy {
+  display: grid;
+  gap: 0.7rem;
+  align-content: start;
+}
+
+/* Numerado editorial (dossier anfitrión, ej. Pitbull "05") — inline con el
+   eyebrow, mismo renglón: evita apilar una línea de kicker más. */
+.launch-teaser__index-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.launch-teaser__index {
+  color: color-mix(
+    in oklab,
+    var(--plu-gold-500, var(--color-brand-gold)) 82%,
+    var(--color-text-muted)
+  );
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.launch-teaser__index-sep {
+  width: 0.8rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+}
+
+.launch-teaser__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-brand-celeste);
+}
+
+.launch-teaser__live {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-brand-gold);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .launch-teaser__live {
+    animation: launch-teaser-pulse var(--launch-live-duration, 2.8s) var(--ease-in-out) infinite;
+  }
+}
+
+@keyframes launch-teaser-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.launch-teaser__event {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.launch-teaser__title {
+  display: grid;
+  gap: 0.08em;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.35rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  color: var(--color-text-primary);
+  overflow: visible;
+}
+
+.launch-teaser__title-line {
+  display: block;
+}
+
+.launch-teaser__title-line--accent {
+  color: color-mix(in srgb, var(--color-text-primary) 78%, var(--color-brand-gold) 22%);
+}
+
+/* Título como sentencia (intro override): frase de una sola voz, no display hero */
+.launch-teaser__title--sentence {
+  display: block;
+  max-width: 26ch;
+  font-size: clamp(1.4rem, 2.8vw, 1.95rem);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+}
+
+.launch-teaser__lead {
+  margin: 0.15rem 0 0;
+  max-width: 34rem;
+  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* Countdown */
+
+.launch-teaser__countdown {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+  padding-block: 0.15rem;
+}
+
+.launch-teaser__countdown-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
+
+.launch-teaser__ticker {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.launch-teaser__unit {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.launch-teaser__sep {
+  display: inline-flex;
+  align-items: flex-start;
+  padding-top: 0.08em;
+  margin-inline: clamp(0.15rem, 1vw, 0.45rem);
+  font-family: var(--font-mono);
+  font-size: clamp(1.7rem, 5.2vw, 3rem);
+  font-weight: 500;
+  line-height: 1;
+  color: color-mix(in srgb, var(--color-brand-gold) 55%, transparent);
+  user-select: none;
+}
+
+.launch-teaser__unit-body {
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+  min-width: 2.35ch;
+}
+
+.launch-teaser__value {
+  font-family: var(--font-mono);
+  font-size: clamp(2rem, 6.2vw, 3.5rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  display: inline-grid;
+  overflow: hidden;
+}
+
+.launch-teaser__digit-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.launch-teaser__digit-slot {
+  display: inline-grid;
+  justify-items: center;
+  min-width: 1ch;
+  overflow: hidden;
+  position: relative;
+}
+
+.launch-teaser__digit {
+  display: inline-block;
+  grid-area: 1 / 1;
+  will-change: transform, opacity;
+}
+
+.launch-teaser__unit-label {
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
+
+.launch-teaser__when {
+  margin: 0.15rem 0 0;
+  font-size: 0.86rem;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.launch-teaser__pending {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.launch-teaser__stage {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.launch-teaser__stage-mark {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-brand-gold);
+  overflow: hidden;
+  position: relative;
+  width: fit-content;
+}
+
+.launch-teaser__stage-mark-text {
+  position: relative;
+  z-index: 1;
+}
+
+.launch-teaser--inauguration .launch-teaser__stage-mark {
+  font-size: clamp(0.78rem, 1.4vw, 0.92rem);
+  letter-spacing: 0.22em;
+}
+
+.launch-teaser--inauguration .launch-teaser__stage-mark::after {
+  animation: launch-stage-shimmer var(--launch-shimmer-duration, 2.8s)
+    var(--ease-in-out, cubic-bezier(0.65, 0, 0.35, 1)) 0.5s infinite;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in oklab, var(--color-brand-gold) 55%, transparent) 50%,
+    transparent 65%
+  );
+  content: '';
+  inset: -2px -14px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.launch-teaser--inauguration .launch-teaser__pending {
+  font-size: clamp(1.2rem, 2.6vw, 1.65rem);
+  max-width: 28ch;
+}
+
+.launch-teaser__stage-price {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Acciones */
+
+.launch-teaser__actions {
+  display: grid;
+  gap: 0.95rem;
+  justify-items: start;
+  padding-top: 0.15rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+.launch-teaser__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.85rem;
+  padding-inline: 1.35rem;
+  border: 0;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    filter var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.launch-teaser__cta--primary {
+  background: var(--color-brand-action);
+  color: #0b0c10;
+}
+
+.launch-teaser__cta--primary:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.launch-teaser__cta--primary:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+}
+
+.launch-teaser__cta--primary:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+}
+
+.launch-teaser__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  width: min(100%, 28rem);
+  align-items: center;
+}
+
+.launch-teaser__input {
+  min-width: 0;
+  height: 2.85rem;
+  padding-inline: 1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 16%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--color-bg-elevated, var(--color-bg-surface)) 92%,
+    transparent
+  );
+  color: var(--color-text-primary);
+  font-size: 0.92rem;
+}
+
+.launch-teaser__input:focus {
+  outline: none;
+  border-color: var(--color-brand-celeste);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-celeste) 24%, transparent);
+}
+
+.launch-teaser__form .launch-teaser__cta--primary {
+  border-radius: 999px;
+  padding-inline: 1.1rem;
+}
+
+.launch-teaser__confirmed {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  min-height: 2.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-brand-gold);
+}
+
+.launch-teaser__confirmed strong {
+  display: block;
+  font-weight: 700;
+  color: var(--color-brand-gold);
+}
+
+.launch-teaser__confirmed-desc {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.launch-teaser__notify-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
+
+.launch-teaser__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-status-danger, #ef4444);
+}
+
+.launch-teaser__secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+}
+
+.launch-teaser__dot {
+  color: color-mix(in srgb, var(--color-text-secondary) 55%, transparent);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.launch-teaser__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-brand-celeste);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.launch-teaser__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.launch-teaser__link--quiet {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.launch-teaser__link:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Desktop split: copy | countdown */
+
+@media (min-width: 900px) {
+  .launch-teaser--full .launch-teaser__layout,
+  .launch-teaser--hero .launch-teaser__layout {
+    grid-template-columns: minmax(0, 1.05fr) minmax(16rem, 0.95fr);
+    column-gap: clamp(2.5rem, 6vw, 4.5rem);
+    row-gap: clamp(1.5rem, 3vw, 2rem);
+    align-items: end;
+  }
+
+  .launch-teaser--full .launch-teaser__copy,
+  .launch-teaser--hero .launch-teaser__copy {
+    grid-column: 1;
+    grid-row: 1;
+    padding-bottom: 0.35rem;
+  }
+
+  .launch-teaser--full .launch-teaser__countdown,
+  .launch-teaser--hero .launch-teaser__countdown {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: stretch;
+    align-self: start;
+    padding-left: clamp(1.25rem, 3vw, 2rem);
+    border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 35%, transparent);
+  }
+
+  .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__countdown {
+    padding-top: 0.35rem;
+  }
+
+  .launch-teaser--full .launch-teaser__actions,
+  .launch-teaser--hero .launch-teaser__actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .launch-teaser--full .launch-teaser__value,
+  .launch-teaser--hero .launch-teaser__value {
+    font-size: clamp(2.4rem, 4.2vw, 3.6rem);
+  }
+}
+
+/* Compact — Members / soft-launch: franja editorial, sin ruido */
+
+.launch-teaser--compact {
+  padding-block: 0.25rem 0.1rem;
+  width: 100%;
+}
+
+.launch-teaser--compact .launch-teaser__layout {
+  gap: clamp(1rem, 2.6vw, 1.45rem);
+  max-width: min(42rem, 100%);
+  width: 100%;
+}
+
+.launch-teaser--compact .launch-teaser__eyebrow {
+  color: var(--color-text-muted);
+  letter-spacing: 0.14em;
+}
+
+.launch-teaser--compact .launch-teaser__event {
+  color: color-mix(in srgb, var(--color-brand-gold) 72%, var(--color-text-secondary));
+  font-family: var(--font-display, inherit);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.launch-teaser--compact .launch-teaser__title {
+  font-size: clamp(1.55rem, 5.2vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  max-width: 14ch;
+}
+
+.launch-teaser--compact .launch-teaser__title--sentence {
+  font-size: clamp(1.2rem, 3.8vw, 1.65rem);
+  max-width: min(28ch, 100%);
+}
+
+.launch-teaser--compact .launch-teaser__countdown {
+  gap: 0.45rem;
+}
+
+.launch-teaser--compact .launch-teaser__countdown-label {
+  letter-spacing: 0.12em;
+}
+
+.launch-teaser--compact .launch-teaser__pending {
+  font-size: clamp(1.05rem, 2.8vw, 1.28rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  max-width: min(22ch, 100%);
+}
+
+.launch-teaser--compact .launch-teaser__stage-price {
+  font-size: clamp(1.25rem, 3.2vw, 1.6rem);
+}
+
+.launch-teaser--compact .launch-teaser__value {
+  font-size: clamp(1.45rem, 5vw, 2.15rem);
+}
+
+.launch-teaser--compact .launch-teaser__sep {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+}
+
+.launch-teaser--compact .launch-teaser__actions {
+  align-items: stretch;
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.15rem;
+  justify-items: start;
+  padding-top: 1rem;
+  width: 100%;
+}
+
+.launch-teaser--compact .launch-teaser__cta {
+  border-radius: 2px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  padding-inline: 1.15rem;
+}
+
+.launch-teaser--compact .launch-teaser__form {
+  grid-template-columns: 1fr;
+  width: 100%;
+}
+
+.launch-teaser--compact .launch-teaser__input,
+.launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
+  border-radius: 2px;
+  width: 100%;
+}
+
+.launch-teaser--compact .launch-teaser__secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  width: 100%;
+}
+
+.launch-teaser--compact .launch-teaser__link {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-celeste) 42%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.launch-teaser--compact .launch-teaser__link:hover {
+  border-bottom-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.launch-teaser--compact .launch-teaser__confirmed {
+  min-height: 44px;
+  width: 100%;
+}
+
+/* Mobile estrecho: stage debajo del copy, tipografía y CTA a ancho completo */
+@media (max-width: 559px) {
+  .launch-teaser--compact .launch-teaser__layout {
+    gap: 1.05rem;
+  }
+
+  .launch-teaser--compact .launch-teaser__countdown {
+    border-top: 1px solid color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
+    padding-top: 0.9rem;
+  }
+
+  .launch-teaser--compact .launch-teaser__title--sentence {
+    max-width: none;
+  }
+
+  .launch-teaser--compact .launch-teaser__cta {
+    width: 100%;
+  }
+
+  .launch-teaser--compact .launch-teaser__actions {
+    gap: 0.75rem;
+  }
+}
+
+/* Tablet / notebook angosto: form en fila, stage aún debajo */
+@media (min-width: 560px) and (max-width: 719px) {
+  .launch-teaser--compact .launch-teaser__form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: min(100%, 34rem);
+  }
+
+  .launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
+    width: auto;
+  }
+
+  .launch-teaser--compact .launch-teaser__actions {
+    align-items: center;
+  }
+
+  .launch-teaser--compact .launch-teaser__confirmed {
+    width: auto;
+  }
+}
+
+@media (min-width: 560px) {
+  .launch-teaser--compact .launch-teaser__form {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
+    width: auto;
+  }
+}
+
+/* Notebook / desktop: copy | stage, acciones full-bleed abajo */
+@media (min-width: 720px) {
+  .launch-teaser--compact .launch-teaser__layout {
+    --launch-teaser-compact-gap: clamp(1.5rem, 3.5vw, 2.75rem);
+    --launch-teaser-compact-stage-pad: clamp(1rem, 2.4vw, 1.65rem);
+    align-items: end;
+    column-gap: var(--launch-teaser-compact-gap);
+    grid-template-columns: minmax(0, 1.2fr) minmax(11.5rem, 0.8fr);
+    max-width: min(52rem, 100%);
+  }
+
+  .launch-teaser--compact .launch-teaser__copy {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .launch-teaser--compact .launch-teaser__countdown {
+    border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+    border-top: 0;
+    grid-column: 2;
+    grid-row: 1;
+    padding-left: var(--launch-teaser-compact-stage-pad);
+    padding-top: 0;
+  }
+
+  /* Misma grilla que copy|stage: form ocupa la columna ancha; link bajo el precio. */
+  .launch-teaser--compact .launch-teaser__actions {
+    align-items: end;
+    column-gap: var(--launch-teaser-compact-gap);
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: minmax(0, 1.2fr) minmax(11.5rem, 0.8fr);
+    row-gap: 0.65rem;
+  }
+
+  .launch-teaser--compact .launch-teaser__form,
+  .launch-teaser--compact .launch-teaser__confirmed {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+  }
+
+  .launch-teaser--compact .launch-teaser__actions > .launch-teaser__cta--primary {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    width: auto;
+  }
+
+  .launch-teaser--compact .launch-teaser__form {
+    max-width: none;
+  }
+
+  .launch-teaser--compact .launch-teaser__error {
+    grid-column: 1;
+  }
+
+  .launch-teaser--compact .launch-teaser__notify-hint {
+    grid-column: 1;
+    margin: 0;
+  }
+
+  .launch-teaser--compact .launch-teaser__secondary {
+    align-self: center;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-start;
+    padding-left: var(--launch-teaser-compact-stage-pad);
+    width: auto;
+  }
+}
+
+@media (min-width: 900px) {
+  .launch-teaser--compact .launch-teaser__layout {
+    --launch-teaser-compact-gap: clamp(2rem, 4vw, 3.25rem);
+    max-width: min(64rem, 100%);
+  }
+
+  .launch-teaser--compact .launch-teaser__title--sentence {
+    font-size: clamp(1.4rem, 1.8vw, 1.75rem);
+    max-width: 30ch;
+  }
+
+  .launch-teaser--compact .launch-teaser__pending {
+    font-size: clamp(1.15rem, 1.5vw, 1.4rem);
+  }
+
+  .launch-teaser--compact .launch-teaser__form .launch-teaser__cta--primary {
+    min-width: 9.5rem;
+    padding-inline: 1.35rem;
+  }
+}
+
+/* Members nest */
+
+/* Misma columna que planes/combo: hairline editorial, sin card ni atmósfera. */
+.members-launch-gate {
+  border-block: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-top-color: color-mix(in srgb, var(--color-brand-gold) 55%, var(--color-border-subtle));
+  display: grid;
+  gap: 0;
+  margin: 0 0 clamp(1.75rem, 3.2vw, 2.5rem);
+  max-width: var(--members-plans-col-max, min(100%, 42rem));
+  padding-block: clamp(1.35rem, 3vw, 2.1rem);
+  width: 100%;
+}
+
+.members-launch-gate .launch-teaser--compact {
+  padding-block: 0;
+}
+
+.members-launch-gate .launch-teaser--compact .launch-teaser__layout {
+  max-width: none;
+}
+
+.members-launch-gate .launch-teaser--compact.launch-teaser--inauguration {
+  padding-block: 0;
+}
+
+/* Sin fondo degradado: el lujo lo llevan tipografía, oro y espacio. */
+.members-launch-gate .launch-teaser__atmosphere,
+.launch-teaser--compact .launch-teaser__atmosphere {
+  display: none;
+}
+
+.members-launch-gate .launch-teaser__rule {
+  height: 1px;
+  margin-bottom: clamp(1rem, 2vw, 1.35rem);
+  width: min(4.25rem, 26vw);
+  background: var(--color-brand-gold);
+}
+
+@media (max-width: 559px) {
+  .members-launch-gate {
+    margin-bottom: 1.35rem;
+    padding-block: 1.15rem 1.35rem;
+  }
+}
+
+@media (min-width: 900px) {
+  .members-launch-gate {
+    padding-block: clamp(1.55rem, 2.4vw, 2.25rem);
+  }
+}
+
+/* Inauguración — tipografía + regla oro (sin atmósfera) */
+
+.launch-teaser--inauguration {
+  isolation: isolate;
+  padding-block: clamp(1.5rem, 4vw, 2.75rem);
+}
+
+.launch-teaser__atmosphere {
+  pointer-events: none;
+  position: absolute;
+  inset: -8% -4% auto;
+  height: min(70%, 22rem);
+  z-index: -1;
+  background:
+    radial-gradient(
+      ellipse 70% 85% at 12% 20%,
+      color-mix(in srgb, var(--color-brand-gold) 14%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse 55% 70% at 88% 10%,
+      color-mix(in srgb, var(--color-brand-celeste) 10%, transparent),
+      transparent 62%
+    );
+  opacity: 0.9;
+}
+
+.launch-teaser__rule {
+  width: min(7.5rem, 28vw);
+  height: 1px;
+  margin: 0 0 clamp(1rem, 2.2vw, 1.45rem);
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-gold) 0%,
+    color-mix(in srgb, var(--color-brand-gold) 35%, transparent) 100%
+  );
+}
+
+.launch-teaser--inauguration .launch-teaser__eyebrow {
+  color: color-mix(in srgb, var(--color-brand-gold) 62%, var(--color-text-secondary));
+}
+
+.launch-teaser--inauguration .launch-teaser__title-line--accent {
+  color: color-mix(in srgb, var(--color-brand-gold) 72%, var(--color-text-primary));
+}
+
+.launch-teaser--inauguration .launch-teaser__lead {
+  max-width: 36rem;
+}
+
+.launch-teaser--inauguration.launch-teaser--full .launch-teaser__layout,
+.launch-teaser--inauguration.launch-teaser--hero .launch-teaser__layout {
+  max-width: none;
+  width: 100%;
+}
+
+.launch-teaser--inauguration .launch-teaser__actions {
+  border-top-color: color-mix(in srgb, var(--color-brand-gold) 18%, transparent);
+}
+
+/* Compact inauguration — editorial premium (Members / Register) */
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__title--sentence {
+  font-weight: 800;
+  letter-spacing: -0.038em;
+  line-height: 1.12;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__lead {
+  color: var(--color-text-secondary);
+  font-size: clamp(0.9rem, 2vw, 0.98rem);
+  line-height: 1.55;
+  margin-top: 0.45rem;
+  max-width: min(42ch, 100%);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage {
+  gap: 0.55rem;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-mark {
+  color: var(--color-brand-gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  padding-bottom: 0.35rem;
+}
+
+/* Sin shimmer decorativo: subrayado oro estático */
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-mark::after {
+  animation: none;
+  background: var(--color-brand-gold);
+  content: '';
+  height: 1px;
+  inset: auto 0 0 0;
+  opacity: 0.85;
+  position: absolute;
+  width: 100%;
+  z-index: 0;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-price {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.55rem, 3.4vw, 2.05rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__input {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-radius: 2px;
+  height: 2.75rem;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-out, ease);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__input:hover {
+  border-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__input:focus {
+  border-color: var(--color-brand-celeste);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-celeste) 20%, transparent);
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__cta--primary {
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.launch-teaser--compact.launch-teaser--inauguration .launch-teaser__actions {
+  border-top-color: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  padding-top: 1.15rem;
+}
+
+.launch-teaser--compact .launch-teaser__notify-hint {
+  width: 100%;
+}
+
+@media (min-width: 720px) {
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__lead {
+    max-width: 40ch;
+  }
+
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__countdown {
+    align-content: center;
+    min-height: 100%;
+  }
+}
+
+@media (min-width: 900px) {
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__title--sentence {
+    font-size: clamp(1.5rem, 2vw, 1.9rem);
+    max-width: 28ch;
+  }
+
+  .launch-teaser--compact.launch-teaser--inauguration .launch-teaser__stage-price {
+    font-size: clamp(1.85rem, 2.2vw, 2.35rem);
+  }
+}
+
+/* Compact live clock — marketing: dígitos display, label oro, ritmo de campaña */
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__countdown {
+  gap: 0.55rem;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__countdown-label {
+  color: var(--color-brand-gold);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__ticker {
+  align-items: flex-start;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__value {
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.7rem, 4.2vw, 2.55rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__sep {
+  color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(1.35rem, 3.4vw, 2rem);
+  font-weight: 700;
+  margin-inline: clamp(0.2rem, 0.8vw, 0.4rem);
+  padding-top: 0.05em;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__unit-label {
+  color: var(--color-text-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.launch-teaser--compact.launch-teaser--live-clock .launch-teaser__when {
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  margin-top: 0.15rem;
+}
+
+@media (min-width: 720px) {
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__countdown {
+    align-content: center;
+  }
+
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__value {
+    font-size: clamp(1.85rem, 2.4vw, 2.65rem);
+  }
+}
+
+@media (max-width: 559px) {
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__ticker {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .launch-teaser--compact.launch-teaser--live-clock .launch-teaser__value {
+    font-size: clamp(1.55rem, 9vw, 2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-teaser__live {
+    animation: none;
+  }
+
+  .launch-teaser__atmosphere {
+    opacity: 0.55;
+  }
+
+  .launch-teaser--inauguration .launch-teaser__stage-mark::after {
+    animation: none;
+  }
+}
+
+/* ── Hero (Home) — cortina de apertura ──────────────────────────
+   Momento insignia: reusa el lenguaje del hero principal (motif-rule,
+   motif-plate) en vez de inventar un tratamiento nuevo. Un solo halo,
+   un solo acento geométrico, sin loops más allá del punto en vivo. */
+
+.launch-teaser--hero .launch-teaser__title {
+  font-size: clamp(2.35rem, 6vw, 4.1rem);
+}
+
+.launch-teaser--hero .launch-teaser__lead {
+  max-width: 38rem;
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+}
+
+.launch-teaser--hero .launch-teaser__atmosphere {
+  inset: -12% -6% auto;
+  height: min(85%, 30rem);
+  background: radial-gradient(
+    ellipse 62% 78% at 18% 22%,
+    color-mix(in srgb, var(--color-brand-gold) 16%, transparent),
+    transparent 68%
+  );
+  opacity: 1;
+}
+
+.launch-teaser__plate {
+  display: none;
+}
+
+.launch-teaser--hero .launch-teaser__plate {
+  display: block;
+  width: min(52vw, 30rem);
+  inset: auto -10% -22% auto;
+  z-index: -1;
+  opacity: 0.5;
+}
+
+@media (max-width: 720px) {
+  .launch-teaser--hero .launch-teaser__plate {
+    width: min(70vw, 22rem);
+    opacity: 0.32;
+  }
+}
+
+/* Hero inauguración: reloj + captura como cortina de lanzamiento */
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__event {
+  color: color-mix(in srgb, var(--color-brand-gold) 78%, #fff);
+  font-family: var(--font-display);
+  font-size: 0.84rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__countdown {
+  gap: 0.85rem;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__countdown-label {
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.16em;
+}
+
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__value {
+  font-size: clamp(2.55rem, 5vw, 4rem);
+  letter-spacing: -0.06em;
+}
+
+.launch-teaser--hero.launch-teaser--live-clock .launch-teaser__sep {
+  color: color-mix(in srgb, var(--color-brand-gold) 70%, transparent);
+  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  margin-inline: clamp(0.2rem, 1.2vw, 0.55rem);
+  opacity: 0.85;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__actions {
+  border-top-color: color-mix(in srgb, var(--color-brand-gold) 28%, transparent);
+  gap: 1.1rem;
+  padding-top: 1.15rem;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__form {
+  width: min(100%, 32rem);
+  gap: 0.55rem;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input,
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__form .launch-teaser__cta--primary,
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__cta {
+  border-radius: 2px;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input {
+  background: color-mix(in srgb, #fff 6%, transparent);
+  border-color: color-mix(in srgb, #fff 18%, transparent);
+  height: 3rem;
+  letter-spacing: 0.01em;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input:focus {
+  border-color: color-mix(in srgb, var(--color-brand-gold) 55%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-gold) 22%, transparent);
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__cta--primary {
+  min-height: 3rem;
+  padding-inline: 1.35rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__secondary {
+  gap: 0.45rem 0.85rem;
+}
+
+.launch-teaser--hero.launch-teaser--inauguration .launch-teaser__link {
+  font-size: 0.84rem;
+  letter-spacing: 0.01em;
+}
+
+/* Home section — banda full-bleed: el contenido usa el ancho útil del viewport
+   (solo gutters), sin tope artificial de 1120px. */
+
+.home-section--launch .home-section__inner {
+  max-width: none;
+  width: 100%;
+}
+
+.home-section--launch .launch-teaser {
+  padding-block: 0;
+  width: 100%;
+}
+
+.home-section--launch .launch-teaser__layout {
+  max-width: none;
+  width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .home-section--launch .launch-teaser--hero .launch-teaser__layout {
+    column-gap: clamp(2.75rem, 5vw, 5.5rem);
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__title {
+    font-size: clamp(2.35rem, 3.4vw, 3.6rem);
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__lead {
+    max-width: min(42rem, 100%);
+  }
+}
+
+@media (min-width: 1600px) {
+  .home-section--immersive.home-section--launch {
+    padding-inline: clamp(48px, 4.5vw, 96px) !important;
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__title {
+    font-size: clamp(2.6rem, 3.2vw, 4rem);
+  }
+
+  .home-section--launch .launch-teaser--hero .launch-teaser__value {
+    font-size: clamp(2.8rem, 4vw, 4.2rem);
+  }
+}
+
+/* Cortina siempre oscura, en los dos temas — mismo criterio que
+   home-section--pitbull-bleed: el momento de apertura no cede al tema claro. */
+.home-section--immersive.home-section--launch {
+  --color-text-primary: #fff;
+  --color-text-secondary: rgba(255, 255, 255, 0.72);
+  --color-text-tertiary: rgba(255, 255, 255, 0.55);
+  --color-text-muted: rgba(255, 255, 255, 0.55);
+  --color-bg-elevated: rgba(255, 255, 255, 0.07);
+  --color-bg-surface: rgba(255, 255, 255, 0.07);
+  background: var(--plu-cool-950, #0a0b0d);
+  color: #fff;
+  isolation: isolate;
+  overflow: clip;
+  padding-block: clamp(4rem, 9vw, 6.5rem) !important;
+  padding-inline: clamp(20px, 5vw, 64px);
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  .launch-teaser__form {
+    grid-template-columns: 1fr;
+  }
+
+  .launch-teaser__form .launch-teaser__cta--primary {
+    grid-column: 1;
+  }
+}
+
+@keyframes launch-stage-shimmer {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateX(-42%);
+  }
+  40% {
+    opacity: 0.75;
+  }
+  70% {
+    opacity: 0;
+    transform: translateX(58%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launch-teaser--inauguration .launch-teaser__stage-mark::after {
+    animation: none;
+  }
+}
+
+/* ── Dossier (Pitbull #inscripcion) — banda de conversión densa ─
+   Sin atmósfera, radios rectos alineados al shell, form inmediato. */
+
+.launch-teaser--dossier {
+  padding-block: clamp(0.35rem, 1.5vw, 0.85rem) clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.launch-teaser--dossier .launch-teaser__atmosphere {
+  display: none;
+}
+
+.launch-teaser--dossier .launch-teaser__rule {
+  margin-bottom: clamp(0.75rem, 1.8vw, 1.1rem);
+  width: min(5.5rem, 22vw);
+}
+
+.launch-teaser--dossier .launch-teaser__layout {
+  gap: clamp(1rem, 2.4vw, 1.45rem);
+  max-width: min(40rem, 100%);
+}
+
+.launch-teaser--dossier .launch-teaser__copy {
+  gap: 0.45rem;
+}
+
+.launch-teaser--dossier .launch-teaser__eyebrow {
+  color: var(--color-brand-celeste);
+  letter-spacing: 0.14em;
+}
+
+.launch-teaser--dossier .launch-teaser__title--sentence {
+  font-size: clamp(1.55rem, 3.2vw, 2.1rem);
+  max-width: 16ch;
+}
+
+.launch-teaser--dossier .launch-teaser__lead {
+  margin-top: 0.1rem;
+  max-width: 36ch;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.launch-teaser--dossier .launch-teaser__actions {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  gap: 0.65rem;
+  padding-top: 0.95rem;
+}
+
+.launch-teaser--dossier .launch-teaser__notify-hint {
+  display: none;
+}
+
+.launch-teaser--dossier .launch-teaser__cta,
+.launch-teaser--dossier .launch-teaser__input,
+.launch-teaser--dossier .launch-teaser__form .launch-teaser__cta--primary {
+  border-radius: 2px;
+}
+
+.launch-teaser--dossier .launch-teaser__form {
+  width: min(100%, 26rem);
+}
+
+.launch-teaser--dossier .launch-teaser__link {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-celeste) 42%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.launch-teaser--dossier .launch-teaser__link:hover {
+  border-bottom-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+/* Con ticker real: split copy | countdown en desktop; form debajo. */
+@media (min-width: 900px) {
+  .launch-teaser--dossier.launch-teaser--full .launch-teaser__layout {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: min(40rem, 100%);
+  }
+
+  .launch-teaser--dossier.launch-teaser--full .launch-teaser__copy,
+  .launch-teaser--dossier.launch-teaser--full .launch-teaser__actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown)
+    .launch-teaser__layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(14rem, 0.9fr);
+    column-gap: clamp(2rem, 5vw, 3.5rem);
+    max-width: min(56rem, 100%);
+    align-items: end;
+  }
+
+  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown) .launch-teaser__copy {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown)
+    .launch-teaser__countdown {
+    border-left: 1px solid color-mix(in srgb, var(--color-brand-gold) 32%, transparent);
+    grid-column: 2;
+    grid-row: 1;
+    padding-left: clamp(1.1rem, 2.5vw, 1.75rem);
+  }
+
+  .launch-teaser--dossier.launch-teaser--full:has(.launch-teaser__countdown)
+    .launch-teaser__actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .launch-teaser--dossier .launch-teaser__value {
+    font-size: clamp(1.85rem, 3.4vw, 2.6rem);
+  }
+
+  .launch-teaser--dossier .launch-teaser__sep {
+    font-size: clamp(1.4rem, 2.8vw, 2rem);
+  }
+}

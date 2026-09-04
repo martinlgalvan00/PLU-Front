@@ -65,3 +65,30 @@ export function eventShowsPublicCategories(event) {
 export function eventShowsPublicLocation(event) {
   return eventPublicSurfaceFromEvent(event).location
 }
+
+/** Los tres textos del hero que cambian por evento. Vacío = cae al default. */
+export const EMPTY_EVENT_PUBLIC_COPY = Object.freeze({
+  publicTitle: '',
+  heroLead: '',
+  ctaLabel: '',
+})
+
+/**
+ * Copy público normalizado. Recorta y no inventa: un campo vacío queda vacío
+ * para que el front caiga a su default de diseño en vez de pintar un string
+ * a medias.
+ */
+export function normalizeEventPublicCopy(source) {
+  const value = source && typeof source === 'object' ? source : {}
+  const text = (key, max) => String(value[key] ?? '').trim().slice(0, max)
+  return {
+    publicTitle: text('publicTitle', 120),
+    heroLead: text('heroLead', 240),
+    ctaLabel: text('ctaLabel', 40),
+  }
+}
+
+/** Título con el que se presenta el evento en público. */
+export function eventPublicTitle(event) {
+  return normalizeEventPublicCopy(event?.publicCopy).publicTitle || (event?.title ?? '')
+}

@@ -139,8 +139,39 @@ export function weighInWindowsNeedDayPrefill(days, existing = []) {
   return suggestWeighInWindowsFromDays(days, existing).length > (existing?.length ?? 0)
 }
 
-/** Agrupa franjas del mismo día para el sitio público. */
-export function groupWeighInWindowsByDay(windows) {
+/**
+ * Fecha de un día de pesaje, legible y sin sorpresas de zona.
+ *
+ * `date` es `YYYY-MM-DD` de pared, así que se arma la fecha en UTC y se
+ * formatea en UTC: pasarla por `new Date('2026-11-14')` la corre un día para
+ * atrás en cualquier huso al oeste de Greenwich, que es donde está el país.
+ */
+export function formatWeighInDay(date, locale = 'es') {
+  const match = String(date ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return ''
+  const [, year, month, day] = match
+  const value = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+  if (Number.isNaN(value.getTime())) return ''
+  const tag = locale?.startsWith('en') ? 'en-GB' : 'es-AR'
+  return new Intl.DateTimeFormat(tag, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(value)
+}
+
+/**
+ * Agrupa franjas del mismo día para el sitio público.
+ *
+ * `dayLabel` es la fecha formateada y es la que manda como encabezado: antes
+ * el público veía solo `label`, así que un "Viernes mañana" mal escrito -- o
+ * un label que no nombraba el día -- dejaba al atleta sin saber cuándo se
+ * pesaba. Los labels editoriales pasan a acompañar cada franja, que además
+ * arregla el caso de dos franjas el mismo día: antes ganaba el label de la
+ * primera y la segunda quedaba sin nombre.
+ */
+export function groupWeighInWindowsByDay(windows, locale = 'es') {
   const groups = []
   const byKey = new Map()
 
@@ -150,6 +181,7 @@ export function groupWeighInWindowsByDay(windows) {
       const group = {
         key,
         date: window.date,
+        dayLabel: formatWeighInDay(window.date, locale),
         label: window.label,
         notes: [],
         slots: [],

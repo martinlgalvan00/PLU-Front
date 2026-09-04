@@ -6423,3 +6423,29 @@
 .standards-grid__doc {
   margin-top: 22px;
 }
+
+/* ── Fecha y label por franja en el cronograma de pesajes ───────────────────
+   El encabezado del día pasó a ser la FECHA (antes solo se veía el label, así
+   que un label que no nombraba el día dejaba al atleta sin saber cuándo se
+   pesaba), y el label editorial acompaña cada franja -- lo que además arregla
+   el caso de dos franjas el mismo día, donde antes ganaba el label de la
+   primera y la segunda quedaba sin nombre. */
+
+.event-weighin__day-date {
+  text-transform: capitalize;
+}
+
+.event-weighin__time {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.event-weighin__slot-label {
+  color: var(--color-text-muted);
+  font-size: 0.8em;
+  font-variant-numeric: normal;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}

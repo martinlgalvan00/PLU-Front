@@ -76,7 +76,7 @@ describe('EventsSection — borrado de eventos', () => {
   // El borrado vive en la consola del evento: abrir el modal es parte del flujo.
   function openConsole() {
     fireEvent.click(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/))
-    return screen.getByRole('dialog', { name: 'Evento seleccionado' })
+    return screen.getByRole('region', { name: 'Evento seleccionado' })
   }
 
   it('no ofrece la acción a quien no puede eliminar eventos', () => {
