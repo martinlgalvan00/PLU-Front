@@ -34,9 +34,16 @@ export function pushAdminEventRoute(eventSlug) {
   }
 }
 
+/**
+ * Vuelve del workspace al listado. Navega a `/` y NO a `/admin`: el panel vive
+ * sobre `/` por estado (`view === 'admin'`), y `/admin` no es un path canónico
+ * —- no está en `PUBLIC_VIEW_PATHS` ni en `isCanonicalPathname` -—, así que
+ * empujarlo hacía que el handler de `popstate` cayera en `setView('notFound')`
+ * y el botón Volver tirara toda la SPA a 404.
+ */
 export function clearAdminEventRoute() {
   if (typeof window !== 'undefined') {
-    window.history.pushState(null, '', '/admin#events')
+    window.history.pushState(null, '', '/')
     window.dispatchEvent(new Event('popstate'))
   }
 }

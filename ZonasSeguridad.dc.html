@@ -1,0 +1,352 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 1040px; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: #6f7280; padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; max-width: 1280px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--danger { color: #ff8a87; border-color: color-mix(in srgb, var(--danger) 26%, transparent); }
+    .icon-btn--square { width: 34px; padding: 0; }
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+    .tab-warn { width: 6px; height: 6px; border-radius: 999px; background: var(--warn); }
+
+    .body { display: grid; grid-template-columns: minmax(0,1fr) 352px; gap: 20px; align-items: start; }
+    .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .add-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--hairline); }
+    .num { font-variant-numeric: tabular-nums; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; }
+    .badge--on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .badge--off { background: rgba(255,255,255,.07); color: var(--muted); }
+    .badge--soft { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .kebab { color: var(--muted); }
+
+    /* zonas */
+    .zone { display: grid; grid-template-columns: 26px minmax(0,1fr) 118px 130px 32px; gap: 13px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--hairline); }
+    .zone:last-of-type { border-bottom: none; }
+    .zone-ord { width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,.06); color: var(--muted); font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .zone-c { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .zone-n { font-size: 13px; font-weight: 600; }
+    .zone-reads { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+    .cred { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600; background: rgba(255,255,255,.06); color: var(--secondary); }
+    .cred--no { color: #6f7280; text-decoration: line-through; }
+    .zone-shift { font-size: 12px; color: var(--secondary); }
+    .members { display: flex; align-items: center; gap: -6px; }
+    .av { width: 24px; height: 24px; border-radius: 999px; border: 2px solid var(--surface); background: linear-gradient(140deg, #2a3340, #1c222b); color: var(--secondary); font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-right: -7px; }
+    .av--more { background: rgba(255,255,255,.08); color: var(--muted); }
+    .members-n { font-size: 11.5px; color: var(--muted); margin-left: 13px; }
+
+    /* cuentas */
+    .acc { display: grid; grid-template-columns: minmax(0,1fr) 128px 96px 32px; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
+    .acc:last-of-type { border-bottom: none; }
+    .acc-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .acc-n { font-size: 12.5px; font-weight: 600; }
+    .acc-e { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .head-row { display: grid; gap: 12px; padding: 10px 16px; font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--hairline); }
+    .head-zone { grid-template-columns: 26px minmax(0,1fr) 118px 130px 32px; }
+    .head-acc { grid-template-columns: minmax(0,1fr) 128px 96px 32px; }
+
+    .gap { display: flex; align-items: flex-start; gap: 11px; padding: 14px 16px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); background: color-mix(in srgb, var(--warn) 10%, transparent); }
+    .gap svg { flex: 0 0 auto; color: #e8a33d; margin-top: 1px; }
+    .gap-c { display: flex; flex-direction: column; gap: 5px; }
+    .gap-t { font-size: 12.5px; font-weight: 600; margin: 0; }
+    .gap-p { font-size: 11.5px; color: var(--secondary); line-height: 1.55; margin: 0; }
+    .link-row { display: flex; align-items: center; gap: 9px; padding: 11px 16px; border-bottom: 1px solid var(--hairline); font-size: 12px; }
+    .link-row:last-child { border-bottom: none; }
+    .link-row svg { color: var(--muted); flex: 0 0 auto; }
+    .link-c { display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0; }
+    .link-t { font-weight: 600; font-size: 12px; }
+    .link-s { font-size: 10.5px; color: var(--muted); }
+  </style>
+</helmet>
+
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><div class="side-mark"></div><span class="side-name">PLU Argentina</span></div>
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/></svg><span>Personas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg><span>Resultados</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/></svg><span>Tarifas</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Acceso y habilitación</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4v11M8 11l4 4 4-4M4 19h16"/></svg><span>Exportaciones</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <span class="back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Eventos</span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span><span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span><span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>Copiar links</button>
+          <button class="icon-btn icon-btn--square icon-btn--danger" type="button" aria-label="Eliminar evento"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab" role="tab" aria-selected="false" type="button">Datos</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Entradas<span class="tab-warn" aria-hidden="true"></span></button>
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Pagos<span class="tab-count">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <div class="body">
+      <div class="stack">
+        <!-- Zonas -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Puestos de control</h2>
+            <span class="card-hint">Qué credenciales puede leer cada puesto, y quién lo cubre</span>
+          </div>
+          <div class="head-row head-zone"><span></span><span>Puesto</span><span>Turno</span><span>Personal</span><span></span></div>
+
+          <div class="zone">
+            <span class="zone-ord num">1</span>
+            <span class="zone-c">
+              <span class="zone-n">Puerta principal</span>
+              <span class="zone-reads">
+                Lee:
+                <span class="cred">Entradas</span>
+                <span class="cred">Inscripciones</span>
+                <span class="cred">Afiliaciones</span>
+              </span>
+            </span>
+            <span class="zone-shift num">08:00 – 20:00</span>
+            <span class="members">
+              <span class="av">MR</span><span class="av">JL</span><span class="av">DC</span>
+              <span class="members-n">3</span>
+            </span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+
+          <div class="zone">
+            <span class="zone-ord num">2</span>
+            <span class="zone-c">
+              <span class="zone-n">Pesaje</span>
+              <span class="zone-reads">
+                Lee:
+                <span class="cred">Inscripciones</span>
+                <span class="cred cred--no">Entradas</span>
+              </span>
+            </span>
+            <span class="zone-shift num">07:00 – 09:00</span>
+            <span class="members">
+              <span class="av">SF</span><span class="av">PA</span>
+              <span class="members-n">2</span>
+            </span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+
+          <div class="zone" style="background: color-mix(in srgb, var(--brand) 5%, transparent);">
+            <span class="zone-ord num">3</span>
+            <span class="zone-c">
+              <span class="zone-n">Entrada en calor</span>
+              <span class="zone-reads">
+                Lee:
+                <span class="cred">Inscripciones</span>
+                <span class="cred">Afiliaciones</span>
+                <span class="cred cred--no">Entradas</span>
+              </span>
+            </span>
+            <span class="zone-shift num">09:00 – 20:00</span>
+            <span class="members">
+              <span class="av">GT</span>
+              <span class="members-n">1</span>
+            </span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+
+          <div class="zone">
+            <span class="zone-ord num">4</span>
+            <span class="zone-c">
+              <span class="zone-n">Plataforma</span>
+              <span class="zone-reads">Solo staff · no lee credenciales de público</span>
+            </span>
+            <span class="zone-shift num">09:00 – 20:00</span>
+            <span class="members">
+              <span class="av">RB</span><span class="av av--more">+2</span>
+              <span class="members-n">3</span>
+            </span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+
+          <div class="add-row">
+            <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar puesto</button>
+            <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-4"/></svg>Cargar preset de meet</button>
+            <span class="card-hint" style="margin-left: auto;">Máximo 20 puestos por evento</span>
+          </div>
+        </section>
+
+        <!-- Cuentas de seguridad -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Personal de seguridad</h2>
+            <span class="card-hint">Cuentas que escanean en puerta, con acceso limitado a este evento</span>
+          </div>
+          <div class="head-row head-acc"><span>Persona</span><span>Puesto</span><span>Estado</span><span></span></div>
+
+          <div class="acc">
+            <span class="acc-c"><span class="acc-n">Martín Ríos</span><span class="acc-e">martin.rios@seguridad.plu.ar</span></span>
+            <span style="font-size: 12px; color: var(--secondary);">Puerta principal</span>
+            <span><span class="badge badge--on">Activa</span></span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+          <div class="acc">
+            <span class="acc-c"><span class="acc-n">Sofía Franco</span><span class="acc-e">sofia.franco@seguridad.plu.ar</span></span>
+            <span style="font-size: 12px; color: var(--secondary);">Pesaje</span>
+            <span><span class="badge badge--on">Activa</span></span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+          <div class="acc">
+            <span class="acc-c"><span class="acc-n">Gastón Tejada</span><span class="acc-e">gaston.tejada@seguridad.plu.ar</span></span>
+            <span style="font-size: 12px; color: var(--secondary);">Entrada en calor</span>
+            <span><span class="badge badge--on">Activa</span></span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+          <div class="acc">
+            <span class="acc-c"><span class="acc-n">Daniela Cruz</span><span class="acc-e">daniela.cruz@seguridad.plu.ar</span></span>
+            <span style="font-size: 12px; color: var(--muted);">Sin asignar</span>
+            <span><span class="badge badge--off">Inactiva</span></span>
+            <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+          </div>
+
+          <div class="add-row">
+            <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Alta individual</button>
+            <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Alta masiva</button>
+            <button class="ghost-btn" type="button" style="margin-left: auto; color: #ff8a87;">Desactivar todas al terminar</button>
+          </div>
+        </section>
+      </div>
+
+      <aside style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- El hueco honesto -->
+        <div class="gap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+          <div class="gap-c">
+            <h3 class="gap-t">El puesto todavía no filtra el ingreso</h3>
+            <p class="gap-p">Hoy el escáner autoriza por permiso de check-in, no por puesto: cualquier cuenta habilitada puede leer cualquier credencial, y una entrada se escanea una sola vez en todo el evento. Para que “Entrada en calor” deje pasar a un entrenador y no a un espectador falta la parte del veredicto por zona.</p>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-h"><h2 class="card-t">Links del evento</h2></div>
+          <div>
+            <div class="link-row">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+              <span class="link-c"><span class="link-t">Página pública</span><span class="link-s">plu.ar/eventos/pitbull-classic-2026</span></span>
+              <button class="ghost-btn" type="button" style="height: 26px; padding: 0 9px;">Copiar</button>
+            </div>
+            <div class="link-row">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5z"/></svg>
+              <span class="link-c"><span class="link-t">Compra de entradas</span><span class="link-s">Sin habilitar</span></span>
+              <button class="ghost-btn" type="button" style="height: 26px; padding: 0 9px;">Copiar</button>
+            </div>
+            <div class="link-row">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg>
+              <span class="link-c"><span class="link-t">Portal de seguridad</span><span class="link-s">plu.ar/evento/pitbull.../seguridad</span></span>
+              <button class="ghost-btn" type="button" style="height: 26px; padding: 0 9px;">Copiar</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Check-in</h2>
+            <span class="card-hint" style="margin-left: auto;">Día del meet</span>
+          </div>
+          <div class="card-b" style="gap: 11px;">
+            <p class="gap-p" style="color: var(--muted);">El escáner funciona sin señal: se descarga la lista de habilitados y sincroniza cuando vuelve la conexión.</p>
+            <button class="btn-gold" type="button" style="width: fit-content;">Abrir Check-in</button>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

@@ -198,7 +198,10 @@ export default async function globalSetup() {
       published: true,
       starts_at: startsAt,
       ends_at: endsAt,
-      pricing: { ticketsEnabled: true },
+      // `events` no tiene columna `pricing`: la habilitación de venta vive en
+      // `rules`, que es de donde la lee `create_ticket_order_v2`. Con la clave
+      // mal puesta el insert fallaba y el E2E de entradas no llegaba a correr.
+      rules: { ticketsEnabled: true },
     })
     .select('id')
     .single()
@@ -206,24 +209,58 @@ export default async function globalSetup() {
     throw new Error(`No se pudo crear el evento de entradas de QA: ${ticketEventError.message}`)
   }
 
-  const { error: ticketTypesError } = await admin.from('ticket_types').insert([
-    {
-      event_id: ticketEvent.id,
-      name: 'Entrenadores',
-      price: 10000,
-      sort_order: 1,
-      active: true,
-    },
-    {
-      event_id: ticketEvent.id,
-      name: 'Público general',
-      price: 20000,
-      sort_order: 2,
-      active: true,
-    },
-  ])
+  const { data: ticketTypes, error: ticketTypesError } = await admin
+    .from('ticket_types')
+    .insert([
+      {
+        event_id: ticketEvent.id,
+        name: 'Entrenadores',
+        // Cupo chico a propósito: alcanza para verificar que el cupo cuenta
+        // COMPRAS y no credenciales -- una entrada de entrenador emite dos.
+        quota: 3,
+        price: 10000,
+        sort_order: 1,
+        active: true,
+      },
+      {
+        event_id: ticketEvent.id,
+        name: 'Público general',
+        price: 20000,
+        sort_order: 2,
+        active: true,
+      },
+    ])
+    .select('id, name')
   if (ticketTypesError) {
     throw new Error(`No se pudieron crear los tipos de entrada de QA: ${ticketTypesError.message}`)
+  }
+
+  const coachTypeId = ticketTypes.find((type) => type.name === 'Entrenadores')?.id
+  const generalTypeId = ticketTypes.find((type) => type.name === 'Público general')?.id
+
+  // Subcategorías: el entrenador paga una vez y recibe DOS credenciales -- la
+  // de espectador para la tribuna y la de ENTRENADOR que abre la entrada en
+  // calor. El público general recibe una sola.
+  const { error: credentialsError } = await admin.rpc('staff_merge_ticket_type_credentials', {
+    p_event_slug: ticketEventSlug,
+    p_credentials: [
+      {
+        ticketTypeId: coachTypeId,
+        credentials: [
+          { label: 'Espectador', zoneScopes: ['gate_tickets'] },
+          { label: 'ENTRENADOR', zoneScopes: ['athletes_coaches'] },
+        ],
+      },
+      {
+        ticketTypeId: generalTypeId,
+        credentials: [{ label: 'Entrada general', zoneScopes: ['gate_tickets'] }],
+      },
+    ],
+  })
+  if (credentialsError) {
+    throw new Error(
+      `No se pudieron crear las credenciales de entrada de QA: ${credentialsError.message}`,
+    )
   }
 
   await writeFile(
@@ -242,6 +279,8 @@ export default async function globalSetup() {
       ticketEventSlug,
       ticketEventTitle,
       ticketEventId: ticketEvent.id,
+      coachTypeId,
+      generalTypeId,
     }),
     'utf8',
   )

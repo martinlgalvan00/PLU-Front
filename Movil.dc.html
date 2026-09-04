@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+
+    .app { min-height: 844px; display: flex; flex-direction: column; }
+
+    /* barra superior: 44px de alto real por botón */
+    .topbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--hairline); background: var(--surface-muted); position: sticky; top: 0; }
+    .tb-btn { width: 44px; height: 44px; border-radius: 10px; border: none; background: transparent; color: var(--secondary); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .tb-title { font-size: 13px; font-weight: 600; flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .hd { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 9px; }
+    .hd-title { font-size: 20px; font-weight: 700; line-height: 1.15; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); width: fit-content; }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
+
+    /* pestañas con scroll horizontal — el rail se corta a propósito */
+    .tabs-wrap { position: relative; padding: 0 16px 14px; }
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+    .tab { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; flex: 0 0 auto; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .fade { position: absolute; top: 0; right: 16px; width: 34px; height: 44px; background: linear-gradient(90deg, transparent, var(--canvas)); pointer-events: none; }
+
+    .content { padding: 0 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 12.5px; font-weight: 600; margin: 0; }
+    .card-b { padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+    .card-hint { font-size: 11px; color: var(--muted); }
+
+    .state-result { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; margin: 0; }
+    .state-result .sub { font-weight: 400; color: var(--muted); }
+    .sep { color: #4a4d57; }
+    .row-label { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .block { display: flex; flex-direction: column; gap: 8px; }
+    .live { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--ok-soft); }
+    .chips { display: flex; gap: 6px; overflow: hidden; }
+    .chip { height: 36px; padding: 0 13px; display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--hairline); background: transparent; color: var(--muted); font-size: 11.5px; font-weight: 500; font-family: var(--font); white-space: nowrap; flex: 0 0 auto; }
+    .chip.is-on { background: color-mix(in srgb, var(--brand) 14%, transparent); border-color: color-mix(in srgb, var(--brand) 30%, transparent); color: var(--ink); font-weight: 600; }
+    .access { display: flex; flex-direction: column; gap: 8px; }
+    .access-opt { display: flex; flex-direction: column; gap: 3px; padding: 11px 13px; border-radius: 9px; border: 1px solid var(--hairline); background: transparent; text-align: left; font-family: var(--font); min-height: 44px; }
+    .access-opt.is-on { border-color: color-mix(in srgb, var(--brand) 34%, transparent); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+    .access-opt strong { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+    .access-opt small { font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .vis-row { display: flex; align-items: center; gap: 10px; }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+
+    .meter { height: 5px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .meter span { display: block; height: 100%; background: var(--brand); }
+
+    /* barra de acción fija abajo */
+    .sticky-save { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-top: 1px solid var(--hairline); background: color-mix(in srgb, var(--surface-muted) 92%, transparent); }
+    .btn-gold { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 44px; padding: 0 18px; border-radius: 10px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 13px; font-weight: 600; font-family: var(--font); flex-grow: 1; }
+  </style>
+</helmet>
+
+<div class="app">
+  <div class="topbar">
+    <button class="tb-btn" type="button" aria-label="Volver a Eventos">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <span class="tb-title">Eventos</span>
+    <button class="tb-btn" type="button" aria-label="Más acciones">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".7"/><circle cx="12" cy="12" r=".7"/><circle cx="12" cy="19" r=".7"/></svg>
+    </button>
+  </div>
+
+  <header class="hd">
+    <h1 class="hd-title">Pitbull Classic 2026</h1>
+    <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+    <p class="hd-meta">14 – 15 de noviembre de 2026<br>Club Atlético Fénix, Pilar</p>
+  </header>
+
+  <div class="tabs-wrap">
+    <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+      <button class="tab is-active" role="tab" aria-selected="true" type="button">Datos</button>
+      <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+      <button class="tab" role="tab" aria-selected="false" type="button">Entrad</button>
+    </nav>
+    <span class="fade" aria-hidden="true"></span>
+  </div>
+
+  <div class="content">
+    <section class="card">
+      <div class="card-h">
+        <h2 class="card-t">Estado del evento</h2>
+      </div>
+      <div class="card-b">
+        <p class="state-result">
+          <span>Inscripción abierta</span>
+          <span class="sep">·</span>
+          <span class="sub">46 de 180</span>
+          <span class="sep">·</span>
+          <span class="sub">Solo afiliados</span>
+        </p>
+
+        <div class="block">
+          <span class="row-label">Inscripciones</span>
+          <div class="vis-row">
+            <span class="live">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+              Habilitadas
+            </span>
+            <button class="ghost-btn" type="button" style="margin-left: auto;">Editar ventana</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <span class="row-label">Estado</span>
+          <div class="chips">
+            <button class="chip" type="button">Próximamente</button>
+            <button class="chip is-on" type="button">Inscripción abierta</button>
+            <button class="chip" type="button">Cupos</button>
+          </div>
+        </div>
+
+        <div class="block">
+          <span class="row-label">Acceso</span>
+          <div class="access">
+            <button class="access-opt is-on" type="button">
+              <strong>Solo afiliados</strong>
+              <small>Se exige afiliación vigente para inscribirse y en la puerta.</small>
+            </button>
+            <button class="access-opt" type="button">
+              <strong>Abierto</strong>
+              <small>Cualquier atleta se inscribe sin afiliación.</small>
+            </button>
+          </div>
+        </div>
+
+        <div class="block">
+          <span class="row-label">Sitio</span>
+          <div class="vis-row">
+            <button class="chip is-on" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" style="margin-right: 6px;"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+              Publicado
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <h2 class="card-t">Ocupación</h2>
+        <span class="card-hint" style="margin-left: auto;">26 %</span>
+      </div>
+      <div class="card-b" style="gap: 10px;">
+        <div class="meter"><span style="width: 26%;"></span></div>
+        <div style="display: flex; align-items: baseline; gap: 7px;">
+          <strong style="font-size: 18px; font-weight: 700;">46</strong>
+          <span class="card-hint">de 180 · quedan 134</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="sticky-save">
+    <button class="btn-gold" type="button">Guardar cambios</button>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

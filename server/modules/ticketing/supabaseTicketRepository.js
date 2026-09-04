@@ -75,10 +75,17 @@ export function createSupabaseTicketRepository(client) {
         { p_event_slug: eventSlug },
         'No se pudo descargar la lista de ingreso.',
       ),
-    checkIn: (qrToken, gate, actor) =>
+    /**
+     * `zoneScope` es el alcance de la zona de quien escanea. Con él, la RPC
+     * exige que la credencial habilite esa zona -- así la de ENTRENADOR abre la
+     * entrada en calor y la de espectador no. Nulo no valida zona: una cuenta
+     * de seguridad sin zona asignada sigue funcionando como antes, de modo que
+     * esto no deja a nadie afuera de un día para el otro.
+     */
+    checkIn: (qrToken, gate, actor, zoneScope = null) =>
       rpc(
         'staff_check_in_ticket',
-        { p_qr_token: qrToken, p_gate: gate, p_actor: actor },
+        { p_qr_token: qrToken, p_gate: gate, p_actor: actor, p_zone_scope: zoneScope },
         'No se pudo registrar el ingreso.',
       ),
     async getRegistrationEventId(registrationId) {

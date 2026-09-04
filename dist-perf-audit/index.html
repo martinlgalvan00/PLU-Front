@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/plu-argentina-favicon.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/brand/plu-argentina-favicon-48.png" />
+    <link rel="apple-touch-icon" href="/brand/plu-argentina-apple-touch.png" />
+    <link rel="shortcut icon" href="/brand/plu-argentina-favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="PLU Argentina — capítulo oficial de Powerlifting United. Afiliaciones, competencias y comunidad de powerlifting en Argentina." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PLU Argentina" />
+    <meta property="og:title" content="PLU Argentina — Powerlifting United" />
+    <meta property="og:description" content="PLU Argentina — capítulo oficial de Powerlifting United. Afiliaciones, competencias y comunidad de powerlifting en Argentina." />
+    <meta property="og:image" content="/brand/plu-argentina-emblem.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://www.powerliftingunited.ar/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <title>PLU Argentina — Powerlifting United</title>
+    <script>
+      /* Tema antes del primer paint. Sin esto el documento pinta el default
+         (dark) y recién al ejecutar main.jsx cambia a light: con la transición
+         de tema activa, ese salto se ve como un flash animado en cada carga.
+         Misma lógica que src/lib/theme.js (resolveTheme('system')). */
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('plu-arg-theme')
+          var theme =
+            stored === 'dark' || stored === 'light'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark'
+          document.documentElement.setAttribute('data-theme', theme)
+          document.documentElement.style.colorScheme = theme
+        } catch (error) {
+          document.documentElement.setAttribute('data-theme', 'dark')
+          document.documentElement.style.colorScheme = 'dark'
+        }
+      })()
+    </script>
+    <script type="module" crossorigin src="/assets/index-lk4NcJL4.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-CNC7AqOf.js">
+    <link rel="modulepreload" crossorigin href="/assets/motion-C2er4A6m.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-2rOrd-jN.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-lucide-CWjU61wL.js">
+    <link rel="modulepreload" crossorigin href="/assets/constants-nPTgUK6t.js">
+    <link rel="modulepreload" crossorigin href="/assets/eventNavigation-CIwrGwnQ.js">
+    <link rel="modulepreload" crossorigin href="/assets/membershipService-DYh9Rj_X.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-CZgWQFsJ.js">
+    <link rel="modulepreload" crossorigin href="/assets/env-BCjFKSx7.js">
+    <link rel="modulepreload" crossorigin href="/assets/status-D-h_qYVF.js">
+    <link rel="modulepreload" crossorigin href="/assets/ticketAddons-jqt8P_e1.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CxA6PG-T.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

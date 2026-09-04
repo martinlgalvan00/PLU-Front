@@ -1,0 +1,1 @@
+import{Gr as e}from"./index-lk4NcJL4.js";import{t}from"./content-CE8lUiqI.js";function n(){let{locale:n}=e();return t(n)}export{n as t};

@@ -1,0 +1,1021 @@
+/* ═══════════════════════════════════════════════════════════════════
+   admin-board.css — PLU ARG
+   Armado de la grilla del torneo (sección Grilla del panel)
+
+   Workspace operativo sobre vidrio: bolsa y días como paneles glass
+   (clase compartida .admin-glass), tandas como bloques reglados dentro
+   del día, drag & drop con estados de drop zone y la MoveBar sticky
+   como camino de teclado/lote. El orden de lectura es cuánto falta
+   repartir → días con carga → roster por tanda.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.admin-page:has(.admin-board) {
+  container-name: admin-board;
+  container-type: inline-size;
+}
+
+.admin-board {
+  container-name: admin-board;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.admin-board--setup {
+  gap: var(--space-md);
+}
+
+.admin-board--setup .admin-board__header {
+  gap: var(--space-sm) var(--space-md);
+  padding-bottom: var(--space-sm);
+}
+
+.admin-board--setup .admin-board__lead {
+  max-width: 42ch;
+  font-size: 13px;
+}
+
+.admin-board__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.admin-board__eyebrow {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__title {
+  margin: 0;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(26px, 3.6vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+}
+
+.admin-board__lead {
+  margin: 2px 0 0;
+  max-width: 46ch;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.admin-board__event-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+
+.admin-board__event-picker > span,
+.admin-board__movebar-field > span,
+.admin-board__autofill-field > span,
+.admin-board__session-edit-field > span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__event-picker select,
+.admin-board__movebar-field select,
+.admin-board__autofill-field input,
+.admin-board__session-edit-field input {
+  min-height: 38px;
+  min-width: 0;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 13.5px;
+  transition: border-color var(--transition-fast);
+}
+
+.admin-board__event-picker select:focus-visible,
+.admin-board__movebar-field select:focus-visible,
+.admin-board__autofill-field input:focus-visible,
+.admin-board__session-edit-field input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-brand-celeste);
+}
+
+/* ── Totales: ledger tipográfico (sin card) ─────────────────────────
+   El pendiente es el trabajo, así que es el único con escala. */
+.admin-board__totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xl) var(--space-2xl);
+  margin: 0;
+  padding: var(--space-sm) 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-board__total dt {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.admin-board__total dd {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--color-text-muted);
+}
+
+.admin-board__total--lead dd {
+  font-size: clamp(28px, 4vw, 36px);
+  color: var(--color-text-primary);
+}
+
+/* ── Setup: copy + CTA primero; secuencia secundaria abajo ────────── */
+.admin-board__setup {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xl);
+  max-width: 36rem;
+  padding: var(--space-lg) 0 var(--space-md);
+}
+
+.admin-board__setup-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.admin-board__setup-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand-gold);
+}
+
+.admin-board__setup-title {
+  margin: 0;
+  font-family: var(--font-display, var(--font-family));
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.admin-board__setup-lead {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.admin-board__setup-copy .btn {
+  margin-top: var(--space-xs);
+}
+
+.admin-board__pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__pipeline-step {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: var(--space-sm);
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 65%, transparent);
+  color: var(--color-text-muted);
+}
+
+.admin-board__pipeline-step:last-child {
+  border-bottom: none;
+}
+
+.admin-board__pipeline-step.is-current {
+  color: var(--color-text-primary);
+}
+
+.admin-board__pipeline-index {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: inherit;
+  opacity: 0.55;
+}
+
+.admin-board__pipeline-step.is-current .admin-board__pipeline-index {
+  color: var(--color-brand-gold);
+  opacity: 1;
+}
+
+.admin-board__pipeline-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.admin-board__pipeline-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: inherit;
+}
+
+.admin-board__pipeline-hint {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.admin-board__pipeline-step.is-current .admin-board__pipeline-hint {
+  color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-text-muted));
+}
+
+.admin-board__setup-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm) var(--space-md);
+  margin: 0;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brand-gold) 45%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.admin-board__setup-banner .admin-board__setup-kicker {
+  flex: none;
+}
+
+.admin-board__day-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+/* ── Barra de movimiento ──────────────────────────────────────────────
+   Glass fuerte + sticky: aparece con la selección y acompaña el scroll
+   del roster. El filo celeste inferior la marca como superficie de
+   acción, no como un panel más. */
+.admin-board__movebar {
+  position: sticky;
+  top: var(--space-sm);
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+  padding: 12px var(--space-md);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 var(--admin-glass-highlight, transparent),
+    inset 0 -2px 0 color-mix(in srgb, var(--color-brand-celeste) 65%, transparent),
+    var(--admin-glass-shadow, 0 12px 32px rgba(0, 0, 0, 0.18));
+}
+
+.admin-board__drag-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.admin-board__movebar-count {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.admin-board__movebar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.admin-board__text-btn {
+  align-self: center;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+
+.admin-board__text-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-board__text-btn:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────
+   Desktop (≥900 del tablero): pendientes sticky a la izquierda.
+   Tablet/notebook: bolsa arriba y días apilados a 100% — se opera
+   desde la sede y el riel de 76px no puede dejar columnas a 36rem. */
+.admin-board__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.admin-board__pool,
+.admin-board__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border-radius: 16px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.admin-board__pool {
+  max-height: min(42vh, 320px);
+  overflow-y: auto;
+}
+
+.admin-board__days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.admin-board__day {
+  flex: none;
+  max-width: none;
+  min-width: 0;
+  width: auto;
+}
+
+.admin-board__panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-board__panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-brand-celeste);
+}
+
+.admin-board__panel-title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__count {
+  flex: none;
+  min-width: 1.5ch;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--color-text-muted);
+}
+
+.admin-board__pool .admin-board__list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.admin-board__pool .admin-board__athlete {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  flex: 0 1 auto;
+  min-height: 44px;
+  padding: 4px 10px;
+}
+
+.admin-board__pool .admin-board__athlete:last-child {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+@container admin-board (min-width: 900px) {
+  .admin-board__layout {
+    grid-template-columns: minmax(260px, 320px) 1fr;
+  }
+
+  .admin-board__pool {
+    max-height: calc(100vh - var(--space-2xl));
+    position: sticky;
+    top: var(--space-md);
+  }
+
+  .admin-board__days {
+    gap: var(--space-lg);
+  }
+
+  .admin-board__pool .admin-board__list {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+
+  .admin-board__pool .admin-board__athlete {
+    border-inline: 0;
+    border-radius: 0;
+    border-top: 0;
+    flex: none;
+    padding: 6px 0;
+  }
+
+  .admin-board__pool .admin-board__athlete:last-child {
+    border-bottom: none;
+  }
+}
+
+/* ── Reparto sugerido ───────────────────────────────────────────────── */
+.admin-board__autofill {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.admin-board__autofill-field {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-board__autofill-field input {
+  width: min(100%, 8rem);
+}
+
+.admin-board__autofill .btn {
+  flex: none;
+  margin-left: auto;
+}
+
+/* ── Tandas ─────────────────────────────────────────────────────────
+   Bloques reglados dentro del día glass; el borde transparente reserva
+   el espacio para que el estado de drop no mueva el layout. */
+.admin-board__session {
+  margin: 0 calc(-1 * var(--space-sm));
+  padding: var(--space-sm) var(--space-sm) var(--space-xs);
+  border: 1px solid transparent;
+  border-top-color: var(--color-border-subtle);
+  border-radius: 10px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.admin-board__session--pending {
+  border-top-color: var(--color-brand-gold);
+}
+
+/* Drop zones: mientras hay arrastre se insinúan; la que está bajo el
+   puntero se confirma con celeste. */
+.admin-board__layout--dragging .admin-board__session {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 20%, transparent);
+}
+
+.admin-board__session.is-drop-active {
+  background: color-mix(in srgb, var(--color-brand-celeste) 9%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 48%, transparent);
+}
+
+.admin-board__pool.is-drop-active,
+.admin-board__day.is-drop-active {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 55%, transparent);
+}
+
+.admin-board__session-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+/* Lápiz de edición inline: aparece al hover para no ensuciar 200 filas;
+   en touch (sin hover) queda visible pero atenuado. */
+.admin-board__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  opacity: 1;
+  transition:
+    opacity var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.admin-board__session-head:hover .admin-board__icon-btn,
+.admin-board__icon-btn:focus-visible {
+  color: var(--color-text-primary);
+}
+
+.admin-board__icon-btn:hover {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
+  color: var(--color-text-primary);
+}
+
+.admin-board__icon-btn:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .admin-board__icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .admin-board__autofill .btn {
+    min-height: 44px;
+  }
+}
+
+/* ── Edición inline de tanda ────────────────────────────────────────── */
+.admin-board__session--editing {
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 32%, transparent);
+  background: color-mix(in srgb, var(--color-brand-celeste) 4%, transparent);
+}
+
+.admin-board__session-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: 2px;
+}
+
+.admin-board__session-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-md);
+}
+
+.admin-board__session-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-board__session-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+@container admin-board (max-width: 719px) {
+  .admin-board__session-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-board__session-name {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.admin-board__session-detail {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ── Atletas ────────────────────────────────────────────────────────── */
+.admin-board__list {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-board__athlete {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  /* 44px de alto real: esto se opera desde una tablet en la sede. */
+  min-height: 44px;
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.admin-board__athlete:last-child {
+  border-bottom: none;
+}
+
+.admin-board__athlete:hover {
+  background: color-mix(in srgb, var(--color-bg-elevated) 55%, transparent);
+}
+
+/* Arrastre: pan-y deja scrollear la lista en touch; el drag se activa
+   con el delay del TouchSensor, no con bloquear el gesto. */
+.admin-board__athlete--draggable {
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.admin-board__athlete--draggable:active {
+  cursor: grabbing;
+}
+
+/* La fila origen se atenúa mientras el chip flota con el puntero. */
+.admin-board__athlete.is-dragging {
+  opacity: 0.35;
+}
+
+.admin-board__drag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: min(320px, 80vw);
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: var(--color-text-primary);
+  cursor: grabbing;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 var(--admin-glass-highlight, transparent),
+    var(--admin-glass-shadow, 0 12px 32px rgba(0, 0, 0, 0.22));
+}
+
+.admin-board__drag-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__drag-chip-count {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-brand-celeste);
+}
+
+.admin-board__athlete:focus-within {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 0;
+}
+
+.admin-board__athlete input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-brand-celeste);
+  cursor: pointer;
+}
+
+.admin-board__athlete-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.admin-board__athlete-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__athlete-meta {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-board__athlete-flag {
+  display: inline-flex;
+  flex: none;
+  color: var(--plu-success-500);
+}
+
+/* El estado no puede quedar solo en el color del ícono: se nombra para quien
+   usa lector de pantalla. `institutional-shell.css` no se carga en el panel,
+   así que la utilidad se define acá. */
+.admin-board .visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* ── Estados ────────────────────────────────────────────────────────── */
+.admin-board__empty {
+  margin: 0;
+  padding: var(--space-md) 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.admin-board__empty--inline {
+  padding: var(--space-sm) 0;
+}
+
+.admin-board__alert,
+.admin-board__notice {
+  margin: 0;
+  padding: 10px 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 13px;
+}
+
+.admin-board__alert {
+  background: transparent;
+  border-bottom-color: var(--color-danger-text);
+  color: var(--color-danger-text);
+}
+
+.admin-board__notice {
+  background: transparent;
+  border-bottom-color: var(--color-brand-celeste);
+  color: var(--color-text-primary);
+}
+
+/* El corte mira el ancho del tablero, no el viewport: con el rail de 76px
+   el contenido ya es angosto aunque el browser mida 1024. */
+@container admin-board (max-width: 719px) {
+  .admin-board {
+    gap: var(--space-sm);
+  }
+
+  .admin-board__header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .admin-board__heading {
+    flex: none;
+  }
+
+  .admin-board__title {
+    font-size: clamp(22px, 6cqi, 26px);
+  }
+
+  .admin-board__lead {
+    max-width: none;
+    font-size: 13px;
+  }
+
+  .admin-board__event-picker,
+  .admin-board__movebar-field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-board__event-picker select,
+  .admin-board__movebar-field select,
+  .admin-board__autofill-field input,
+  .admin-board__session-edit-field input {
+    min-height: 44px;
+  }
+
+  .admin-board__totals {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 12px;
+    padding: 8px 0;
+  }
+
+  .admin-board__total dd {
+    font-size: 18px;
+  }
+
+  .admin-board__total--lead dd {
+    font-size: clamp(22px, 7cqi, 28px);
+  }
+
+  .admin-board__drag-hint {
+    font-size: 12px;
+  }
+
+  .admin-board__movebar {
+    align-items: stretch;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr auto;
+    padding: 10px 12px;
+  }
+
+  .admin-board__movebar-count,
+  .admin-board__movebar-field {
+    grid-column: 1 / -1;
+  }
+
+  .admin-board__movebar-count {
+    margin: 0;
+  }
+
+  .admin-board__movebar .btn,
+  .admin-board__movebar .admin-board__text-btn,
+  .admin-board__autofill .btn {
+    min-height: 44px;
+  }
+
+  .admin-board__text-btn {
+    align-self: stretch;
+    min-height: 44px;
+    padding: 10px 4px;
+  }
+
+  .admin-board__layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .admin-board__pool {
+    max-height: min(36vh, 280px);
+  }
+
+  .admin-board__pool,
+  .admin-board__day {
+    padding: 10px 12px 12px;
+    border-radius: 14px;
+  }
+
+  .admin-board__autofill {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .admin-board__autofill-field {
+    flex: 1 1 7rem;
+  }
+
+  .admin-board__autofill-field input {
+    width: 100%;
+  }
+
+  .admin-board__icon-btn {
+    height: 44px;
+    width: 44px;
+  }
+}
+
+@container admin-board (max-width: 430px) {
+  .admin-board__header {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .admin-board__eyebrow {
+    letter-spacing: 0.1em;
+  }
+
+  .admin-board__title {
+    font-size: 22px;
+  }
+
+  .admin-board__lead {
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .admin-board__totals {
+    gap: 6px 8px;
+  }
+}
+
+/* ── Entrada one-shot: ledger → bolsa → días, 260–420ms ─────────────── */
+.admin-board__totals,
+.admin-board__pool,
+.admin-board__days > * {
+  animation: admin-block-enter 0.36s var(--ease-out, ease) backwards;
+}
+
+.admin-board__pool {
+  animation-delay: 45ms;
+}
+
+.admin-board__days > *:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.admin-board__days > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.admin-board__days > *:nth-child(n + 4) {
+  animation-delay: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-board__totals,
+  .admin-board__pool,
+  .admin-board__days > * {
+    animation: none;
+  }
+}

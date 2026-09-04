@@ -1,0 +1,1 @@
+var e=`plu:admin-toast`;function t(t,n,r){let i=String(n??``).trim();if(!i)return;let a={variant:t,message:i};r?.label&&typeof r.onClick==`function`&&(a.action={label:r.label,onClick:r.onClick}),window.dispatchEvent(new CustomEvent(e,{detail:a}))}function n(e,n){t(`success`,e,n)}function r(e){t(`error`,e)}export{r as n,n as r,e as t};

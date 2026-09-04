@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
-  ArrowLeft,
   CalendarDays,
   EyeOff,
   MapPin,
@@ -12,9 +11,7 @@ import {
   Users,
 } from 'lucide-react'
 import AdminDeleteConfirmDialog from '../../components/admin/AdminDeleteConfirmDialog.jsx'
-import AdminEventConsoleModal, {
-  formatEventVenueLine,
-} from '../../components/admin/AdminEventConsoleModal.jsx'
+import AdminEventWorkspace from '../../components/admin/AdminEventWorkspace.jsx'
 import AdminEventEditor, {
   getAdminEventDraftSignature,
 } from '../../components/admin/AdminEventEditor.jsx'
@@ -31,15 +28,16 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { translateFilterOptions } from '../../i18n/adminHelpers.js'
 import { useAdminTour } from '../../providers/AdminTourProvider.jsx'
 import { getEventsTourSteps } from '../../lib/adminTourSteps.js'
+import { clearAdminEventRoute, pushAdminEventRoute } from '../../lib/adminEventRoute.js'
 import { formatDayMonth, formatMonthYear } from '../../lib/format.js'
 import { getStatusMeta } from '../../lib/status.js'
+import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
 import {
   ADMIN_EVENT_STATUS_OPTIONS,
   buildAdminEventDraft,
   createAdminEventDraft,
   filterAdminEvents,
 } from '../../services/eventAdminService.js'
-import { normalizeEventPublicSurface } from '../../lib/eventPublicSurface.js'
 import {
   buildEventPaymentTriage,
   formatEventPaymentTriageSummary,
@@ -176,8 +174,13 @@ function EventListRow({ row, selected, locale, onSelect, t }) {
   )
 }
 
+/** Pestañas del workspace que no montan el editor del evento. */
+const NON_EDITOR_SECTIONS = new Set(['structure', 'security', 'payments'])
+
 export default function EventsSection({
   adminEvents,
+  /** Deep link `/admin/eventos/:slug`: abre el workspace de ese evento al entrar. */
+  adminEventWorkspaceSlug = null,
   athletes = [],
   canEdit,
   canDeleteEvents = false,
@@ -229,15 +232,15 @@ export default function EventsSection({
   // Alta rápida y editor completo son dos superficies distintas: crear no pide
   // las mismas decisiones que editar (ver AdminEventQuickCreate).
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
-  /** Consola del evento seleccionado, abierta como modal al tocar la fila. */
-  const [consoleOpen, setConsoleOpen] = useState(false)
   /**
-   * Vista de la consola del evento. Zonas se abre a ancho completo: el editor
-   * reescribe el evento entero al guardar, y usarlo para mover a alguien de zona
-   * costaba ese precio. Estructura (tandas) vive en acordeón dentro del modal.
+   * Workspace del evento seleccionado. Reemplaza al listado a ancho completo,
+   * ya no es un modal. El estado local es la fuente de verdad y la URL
+   * (`/admin/eventos/:slug`) es su reflejo: así el componente funciona montado
+   * solo -- un intento anterior dependía del rebote por `popstate` para abrir,
+   * con lo cual tocar una fila no hacía nada fuera de la app completa.
    */
-  const [consoleView, setConsoleView] = useState('list')
-  /** Sección del acordeón abierta en la consola: basics | sales | visibility. */
+  const [consoleOpen, setConsoleOpen] = useState(false)
+  /** Pestaña abierta: basics | structure | sales | security | payments | visibility. */
   const [consoleSection, setConsoleSection] = useState(null)
   const [consoleChapter, setConsoleChapter] = useState(null)
   /** Firma del draft al abrir el acordeón: el dirty sobrevive al cambiar de sección. */
@@ -260,8 +263,19 @@ export default function EventsSection({
   const pendingConsoleSectionRef = useRef(null)
   const pendingConsoleChapterRef = useRef(null)
 
+  /**
+   * Tocar una fila abre el workspace en Datos y sincroniza la URL. El orden
+   * importa: primero se abre por estado -- que es lo que hace que la lista
+   * reaccione al click incluso montada sola -- y después se empuja el path.
+   */
   function handleSelectEvent(id) {
+    const match = adminEvents.find((event) => event.id === id)
     setSelectedId(id)
+    if (match) {
+      openEditForm(match, 'basics')
+      if (match.slug) pushAdminEventRoute(match.slug)
+      return
+    }
     setConsoleOpen(true)
   }
 
@@ -269,30 +283,26 @@ export default function EventsSection({
     setConsoleOpen(false)
     setConsoleSection(null)
     setConsoleChapter(null)
+    setFormOpen(false)
+    setEditorBaselineSignature(null)
+    setDraft(createAdminEventDraft())
     pendingConsoleSectionRef.current = null
     pendingConsoleChapterRef.current = null
+    clearAdminEventRoute()
   }
 
-  /** Zonas y pagos reemplazan al listado: la consola se cierra para dejar el
-   *  ancho completo a la operación. */
-  function openDrillFromConsole(view) {
-    setConsoleOpen(false)
-    setConsoleSection(null)
-    setConsoleChapter(null)
-    setConsoleView(view)
-  }
-
-  function closeDrill() {
-    const returnToConsole = consoleView === 'payments'
-    setConsoleView('list')
-    if (returnToConsole) setConsoleOpen(true)
-  }
-
+  /**
+   * Deep link: entrar por `/admin/eventos/:slug` abre el workspace de ese
+   * evento con Datos listo. Espera a que la lista haya cargado el evento.
+   */
   useEffect(() => {
-    // Cambiar de evento vuelve a la lista: quedarse en "Zonas" mostrando otro
-    // meet es la forma más rápida de asignar gente al operativo equivocado.
-    setConsoleView('list')
-  }, [selectedId])
+    if (!adminEventWorkspaceSlug || consoleOpen) return
+    const match = adminEvents.find((event) => event.slug === adminEventWorkspaceSlug)
+    if (!match) return
+    setSelectedId(match.id)
+    openEditForm(match, 'basics')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al resolver el slug
+  }, [adminEventWorkspaceSlug, adminEvents])
 
   useEffect(() => {
     if (adminEvents.some((event) => event.id === selectedId)) return
@@ -365,6 +375,24 @@ export default function EventsSection({
   }, [locale, rows, t])
 
   const selectedEvent = adminEvents.find((event) => event.id === selectedId) ?? rows[0] ?? null
+
+  /**
+   * Invariante del workspace: si la pestaña activa es del editor, el draft de
+   * ese evento tiene que estar armado. Sin esto, descartar cambios o guardar
+   * dejaba la pestaña Datos sin formulario -- el síntoma más visible del
+   * intento anterior de esta pantalla, donde el editor no se podía abrir.
+   */
+  useEffect(() => {
+    if (!consoleOpen || !canEdit || !selectedEvent) return
+    if (consoleSection && NON_EDITOR_SECTIONS.has(consoleSection)) return
+    if (formOpen && draft.id === selectedEvent.id) {
+      if (!consoleSection) setConsoleSection('basics')
+      return
+    }
+    armEditor(selectedEvent, consoleSection ?? 'basics', consoleChapter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- invariante: no reacciona al capítulo
+  }, [canEdit, consoleOpen, consoleSection, draft.id, formOpen, selectedEvent?.id])
+
   const editingSource = draft.id
     ? (adminEvents.find((event) => event.id === draft.id) ?? selectedEvent)
     : null
@@ -427,59 +455,81 @@ export default function EventsSection({
     return 'basics'
   }
 
-  function openStructureSection(chapter = 'days') {
+  /**
+   * Estructura muestra los tres bloques juntos (`chapter = null` -> `showAll`
+   * en AdminEventStructureEditor), no un capítulo a la vez: jornadas, pesajes y
+   * tandas no son alternativas, son un orden -- sin jornadas no hay pesaje que
+   * cargar, y sin pesaje la tanda no cierra.
+   */
+  function openStructureSection(chapter = null) {
     setFormOpen(false)
     setEditorBaselineSignature(null)
     setDraft(createAdminEventDraft())
     setConsoleSection('structure')
-    setConsoleChapter(chapter ?? 'days')
-    setConsoleView('list')
+    setConsoleChapter(chapter)
     setConsoleOpen(true)
+  }
+
+  /**
+   * Arma el draft del editor para una sección. No toca la selección ni los
+   * mensajes: lo usa tanto la apertura explícita como la invariante de abajo,
+   * y esta última corre justo después de guardar -- limpiar el mensaje ahí se
+   * comía el "Evento actualizado".
+   */
+  function armEditor(event, section, chapter = null) {
+    const nextDraft = buildAdminEventDraft(event)
+    setEditorFocus(section)
+    setConsoleSection(section)
+    setConsoleChapter(section === 'sales' ? (chapter ?? 'cupo') : chapter)
+    setDraft(nextDraft)
+    setEditorBaselineSignature(getAdminEventDraftSignature(nextDraft))
+    setFormOpen(true)
   }
 
   function openEditForm(event, focus = 'basics', chapter = null) {
     if (!event) return
     const section = resolveConsoleSection(focus)
     if (section === 'structure') {
-      openStructureSection(chapter ?? 'days')
+      openStructureSection(chapter)
       return
     }
-    const nextDraft = buildAdminEventDraft(event)
     setSelectedId(event.id)
-    setEditorFocus(section)
-    setConsoleSection(section)
-    setConsoleChapter(section === 'sales' ? (chapter ?? 'cupo') : chapter)
-    setDraft(nextDraft)
-    setEditorBaselineSignature(getAdminEventDraftSignature(nextDraft))
     setMessage(null)
-    setConsoleView('list')
+    armEditor(event, section, chapter)
     setConsoleOpen(true)
-    setFormOpen(true)
   }
 
-  /** Abre o cierra una sección del acordeón sin remountar el editor al cambiar. */
-  function toggleConsoleSection(event, section) {
+  /**
+   * Selecciona una pestaña del workspace. A diferencia del acordeón que
+   * reemplaza, NO alterna: volver a tocar la pestaña activa no cierra nada.
+   * Las pestañas que no son del editor -- estructura, zonas y pagos -- cierran
+   * el draft en vez de intentar abrir uno, y si el editor está sucio se le
+   * pide salir primero (`closeForm` desencola el destino).
+   */
+  function selectConsoleSection(event, section) {
     if (!event) return
-    if (section === 'structure') {
-      if (consoleSection === 'structure') {
-        setConsoleSection(null)
-        setConsoleChapter(null)
-        return
-      }
+
+    if (NON_EDITOR_SECTIONS.has(section)) {
+      if (consoleSection === section) return
       if (formOpen && draft.id) {
-        pendingConsoleSectionRef.current = 'structure'
+        pendingConsoleSectionRef.current = section
         exitEditRef.current?.()
         return
       }
-      openStructureSection('days')
+      if (section === 'structure') {
+        openStructureSection()
+        return
+      }
+      setFormOpen(false)
+      setEditorBaselineSignature(null)
+      setDraft(createAdminEventDraft())
+      setConsoleSection(section)
+      setConsoleChapter(null)
+      setConsoleOpen(true)
       return
     }
 
     if (!canEdit) return
-    if (consoleSection === section && formOpen && draft.id) {
-      exitEditRef.current?.()
-      return
-    }
     if (formOpen && draft.id) {
       setEditorFocus(section)
       setConsoleSection(section)
@@ -513,6 +563,11 @@ export default function EventsSection({
     openEditForm(event, section, chapter)
   }
 
+  /**
+   * Interruptor de un toque de un bloque de la pagina publica. Escribe sobre
+   * el draft y deja abierta la pestaña Vista publica: es el atajo que evita
+   * entrar al formulario para apagar el livestream.
+   */
   function togglePublicModule(event, key) {
     if (!event || !canEdit) return
     const apply = (current) => {
@@ -536,7 +591,6 @@ export default function EventsSection({
     setDraft(apply(baseline))
     setEditorBaselineSignature(getAdminEventDraftSignature(baseline))
     setMessage(null)
-    setConsoleView('list')
     setConsoleOpen(true)
     setFormOpen(true)
   }
@@ -561,7 +615,6 @@ export default function EventsSection({
     setDraft(apply(baseline))
     setEditorBaselineSignature(getAdminEventDraftSignature(baseline))
     setMessage(null)
-    setConsoleView('list')
     setConsoleOpen(true)
     setFormOpen(true)
   }
@@ -577,14 +630,25 @@ export default function EventsSection({
     setDraft(createAdminEventDraft())
     if (pendingSection === 'structure') {
       setConsoleSection('structure')
-      setConsoleChapter(pendingChapter ?? 'days')
+      setConsoleChapter(pendingChapter)
+      setConsoleOpen(true)
+      return
+    }
+    if (pendingSection && NON_EDITOR_SECTIONS.has(pendingSection)) {
+      setConsoleSection(pendingSection)
+      setConsoleChapter(null)
+      setConsoleOpen(true)
+      return
+    }
+    // En el workspace la pestaña NO se cierra al descartar: se queda donde
+    // está y la invariante vuelve a armar el draft desde el evento. Cerrar la
+    // sección acá era lo que dejaba la pestaña Datos sin formulario.
+    if (wasEditingExisting) {
       setConsoleOpen(true)
       return
     }
     setConsoleChapter(null)
     setConsoleSection(null)
-    // Volver a la consola del mismo evento, no cerrar el modal.
-    if (wasEditingExisting) setConsoleOpen(true)
   }
 
   /**
@@ -597,7 +661,6 @@ export default function EventsSection({
     if (saved?.error) throw new Error(saved.error)
     setQuickCreateOpen(false)
     if (saved?.event?.id) setSelectedId(saved.event.id)
-    setConsoleView('list')
     setConsoleOpen(true)
     setMessage({ tone: 'success', text: t('admin.sections.events.created') })
     return saved
@@ -610,8 +673,7 @@ export default function EventsSection({
     closeForm()
     if (saved?.event?.id) setSelectedId(saved.event.id)
     if (wasCreate) {
-      setConsoleView('list')
-      setConsoleOpen(true)
+        setConsoleOpen(true)
     }
     setMessage({
       tone: 'success',
@@ -726,14 +788,6 @@ export default function EventsSection({
     )
   }
 
-  const selectedVenueLine = selectedEvent
-    ? formatEventVenueLine(selectedEvent.venue, selectedEvent.location)
-    : ''
-  const selectedDateLabel = selectedEvent
-    ? selectedEvent.dateISO
-      ? formatDayMonth(selectedEvent.dateISO, locale)
-      : (selectedEvent.date ?? '')
-    : ''
 
   const headerActions =
     onRefresh || canEdit ? (
@@ -786,6 +840,167 @@ export default function EventsSection({
     </div>
   )
 
+  const deleteDialog = pendingDelete ? (
+    <AdminDeleteConfirmDialog
+      busy={deleteBusy}
+      error={deleteError}
+      onCancel={closeDeleteDialog}
+      onConfirm={() => void handleDelete()}
+      title={t('admin.sections.events.delete.confirmTitle')}
+      description={
+        deleteImpact
+          ? t('admin.sections.events.delete.confirmDescription', {
+              title: pendingDelete.title,
+              slug: pendingDelete.slug,
+              registrations: deleteImpact.impact?.registrations ?? 0,
+              tickets: deleteImpact.impact?.tickets ?? 0,
+              orders: deleteImpact.impact?.ticketOrders ?? 0,
+              checkIns: deleteImpact.impact?.checkIns ?? 0,
+            })
+          : t('admin.sections.events.delete.loading')
+      }
+      warning={
+        requiresForce
+          ? t('admin.sections.events.delete.forceWarning', {
+              paidRegistrations: deleteImpact?.impact?.paidRegistrations ?? 0,
+              paidTickets: deleteImpact?.impact?.paidTickets ?? 0,
+              checkIns: deleteImpact?.impact?.checkIns ?? 0,
+            })
+          : t('admin.sections.events.delete.warning')
+      }
+      confirmPhrase={requiresForce ? pendingDelete.slug : null}
+      confirmPhraseLabel={t('admin.sections.events.delete.phraseLabel')}
+      confirmPhraseHint={t('admin.sections.events.delete.phraseHint', {
+        slug: pendingDelete.slug,
+      })}
+      cancelLabel={t('admin.sections.events.delete.cancel')}
+      confirmLabel={t('admin.sections.events.delete.confirm')}
+      busyLabel={t('admin.sections.events.delete.deleting')}
+    />
+  ) : null
+
+  /**
+   * El workspace reemplaza el listado a ancho completo. No es un modal encima
+   * de la lista: es la página del evento, con su propia URL.
+   */
+  if (consoleOpen && selectedEvent) {
+    return (
+      <>
+        <AdminEventWorkspace
+          activeSection={consoleSection}
+          canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
+          canEdit={canEdit}
+          canManageUsers={canManageUsers}
+          editor={
+            formOpen && draft.id && consoleSection && !NON_EDITOR_SECTIONS.has(consoleSection) ? (
+              <AdminEventEditor
+                key={draft.id}
+                accordion
+                embedded
+                baselineSignature={editorBaselineSignature}
+                canEdit={canEdit}
+                draft={draft}
+                forcedTab={consoleSection}
+                forcedChapter={consoleChapter}
+                sourceEvent={editingSource}
+                onCancel={closeForm}
+                onChange={setDraft}
+                onRegisterClose={(fn) => {
+                  exitEditRef.current = fn
+                }}
+                onRequestSection={(section) => {
+                  setEditorFocus(section)
+                  setConsoleSection(section)
+                  setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'cupo') : null)
+                }}
+                onSubmit={handleSubmit}
+              />
+            ) : null
+          }
+          event={selectedEvent}
+          onBack={closeEventConsole}
+          onDelete={openDeleteDialog}
+          onManageCheckin={onManageCheckin}
+          onManageRegistrations={onManageRegistrations}
+          onSelectChapter={selectConsoleChapter}
+          onSelectSection={selectConsoleSection}
+          onSetEventState={onSetEventState}
+          onToggleOccupancy={toggleOccupancy}
+          onTogglePublicModule={togglePublicModule}
+          openChapter={consoleChapter}
+          paymentSummary={selectedPaymentSummary}
+          paymentsAttention={selectedPaymentTriage?.needsAttention?.length ?? null}
+          paymentsSection={
+            canValidatePayments || onManagePayments || onOpenFinanceForEvent ? (
+              <AdminEventPaymentsTriage
+                athletes={athletes}
+                canEdit={canValidatePayments}
+                event={selectedEvent}
+                onApprovePayment={onApprovePayment}
+                onApproveTicketOrder={onApproveTicketOrder}
+                onOpenFinance={
+                  onOpenFinanceForEvent ? () => onOpenFinanceForEvent(selectedEvent) : undefined
+                }
+                onRefresh={onRefreshPayments}
+                onRejectPayment={onRejectPayment}
+                onRejectTicketOrder={onRejectTicketOrder}
+                payments={payments}
+                pendingTicketOrders={pendingTicketOrders}
+              />
+            ) : null
+          }
+          previewDraft={
+            formOpen && draft.id && draft.id === selectedEvent.id ? draft : null
+          }
+          securitySection={
+            canManageUsers ? (
+              <>
+                <AdminEventZonesSection
+                  canManageUsers={canManageUsers}
+                  eventId={selectedEvent.id}
+                  eventSlug={selectedEvent.slug}
+                  onAssignMember={onAssignSecurityZone}
+                  onCreateAccessLink={onCreateSecurityAccessLink}
+                  onCreateZone={onCreateSecurityZone}
+                  onDeleteZone={onDeleteSecurityZone}
+                  onListSecurityUsers={onListSecurityUsers}
+                  onListZones={onListSecurityZones}
+                  onPresetZones={onPresetSecurityZones}
+                  onUpdateZone={onUpdateSecurityZone}
+                  reloadToken={zonesReloadToken}
+                />
+                <AdminEventSecuritySection
+                  canManageUsers={canManageUsers}
+                  eventId={selectedEvent.id}
+                  eventSlug={selectedEvent.slug}
+                  eventEndsAt={selectedEvent.endsAt}
+                  onCreateSecurityUser={onCreateSecurityUser}
+                  onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
+                  onCreateSecurityAccessLink={onCreateSecurityAccessLink}
+                  onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
+                  onListSecurityUsers={onListSecurityUsers}
+                  onTeamChange={() => setZonesReloadToken((current) => current + 1)}
+                  onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
+                />
+              </>
+            ) : null
+          }
+          structureEditor={
+            <AdminEventStructureEditor
+              canEdit={canEdit}
+              chapter={consoleChapter}
+              event={selectedEvent}
+              eventSlug={selectedEvent.slug}
+              onSaveEvent={handleStructureSave}
+            />
+          }
+          tickets={tickets}
+        />
+        {deleteDialog}
+      </>
+    )
+  }
+
   return (
     <AdminListSection
       eyebrow={t('admin.sections.events.eyebrow')}
@@ -831,84 +1046,6 @@ export default function EventsSection({
         </p>
       ) : null}
 
-      {/* Grilla y zonas se abren a ancho completo en lugar de la lista: son
-          tablas de operación, no un panel de 340px. La lista no se destruye por
-          gusto -- el evento seleccionado es el mismo cuando se vuelve. */}
-      {consoleView !== 'list' && selectedEvent ? (
-        <div className="admin-event-drill">
-          <div className="admin-event-drill__crumbs">
-            <button
-              type="button"
-              className="admin-event-drill__back"
-              onClick={closeDrill}
-              aria-label={
-                consoleView === 'payments'
-                  ? t('admin.eventConsole.backToConsole')
-                  : t('admin.eventConsole.back')
-              }
-            >
-              <ArrowLeft size={14} aria-hidden />
-            </button>
-            <strong>{selectedEvent.title}</strong>
-            <span aria-hidden>·</span>
-            <span>
-              {consoleView === 'payments'
-                ? t('admin.eventPayments.crumb')
-                : [selectedDateLabel, selectedVenueLine].filter(Boolean).join(' · ')}
-            </span>
-          </div>
-
-          {consoleView === 'zones' ? (
-            <>
-              <AdminEventZonesSection
-                canManageUsers={canManageUsers}
-                eventId={selectedEvent.id}
-                eventSlug={selectedEvent.slug}
-                onAssignMember={onAssignSecurityZone}
-                onCreateAccessLink={onCreateSecurityAccessLink}
-                onCreateZone={onCreateSecurityZone}
-                onDeleteZone={onDeleteSecurityZone}
-                onListSecurityUsers={onListSecurityUsers}
-                onListZones={onListSecurityZones}
-                onPresetZones={onPresetSecurityZones}
-                onUpdateZone={onUpdateSecurityZone}
-                reloadToken={zonesReloadToken}
-              />
-              <AdminEventSecuritySection
-                canManageUsers={canManageUsers}
-                eventId={selectedEvent.id}
-                eventSlug={selectedEvent.slug}
-                eventEndsAt={selectedEvent.endsAt}
-                onCreateSecurityUser={onCreateSecurityUser}
-                onCreateSecurityUsersBulk={onCreateSecurityUsersBulk}
-                onCreateSecurityAccessLink={onCreateSecurityAccessLink}
-                onDeactivateAllSecurityUsers={onDeactivateAllSecurityUsers}
-                onListSecurityUsers={onListSecurityUsers}
-                onTeamChange={() => setZonesReloadToken((current) => current + 1)}
-                onUpdateSecurityUserStatus={onUpdateSecurityUserStatus}
-              />
-            </>
-          ) : null}
-
-          {consoleView === 'payments' ? (
-            <AdminEventPaymentsTriage
-              athletes={athletes}
-              canEdit={canValidatePayments}
-              event={selectedEvent}
-              onApprovePayment={onApprovePayment}
-              onApproveTicketOrder={onApproveTicketOrder}
-              onOpenFinance={
-                onOpenFinanceForEvent ? () => onOpenFinanceForEvent(selectedEvent) : undefined
-              }
-              onRejectPayment={onRejectPayment}
-              onRejectTicketOrder={onRejectTicketOrder}
-              onRefresh={onRefreshPayments}
-              payments={payments}
-              pendingTicketOrders={pendingTicketOrders}
-            />
-          ) : null}
-        </div>
-      ) : (
         <div className="admin-events-workspace">
           <div className="admin-events-workspace__main">
             {isLoading && adminEvents.length === 0 ? (
@@ -943,83 +1080,6 @@ export default function EventsSection({
             )}
           </div>
         </div>
-      )}
-
-      {/* Consola: Datos / Ventas / Publicación / Estructura en acordeón inline. */}
-      <AdminEventConsoleModal
-        canDelete={canDeleteEvents && Boolean(onDeleteEvent)}
-        canEdit={canEdit}
-        canManageUsers={canManageUsers}
-        editor={
-          formOpen && draft.id && consoleSection && consoleSection !== 'structure' ? (
-            <AdminEventEditor
-              key={draft.id}
-              accordion
-              embedded
-              baselineSignature={editorBaselineSignature}
-              canEdit={canEdit}
-              draft={draft}
-              forcedTab={consoleSection}
-              forcedChapter={consoleChapter}
-              sourceEvent={editingSource}
-              onCancel={closeForm}
-              onChange={setDraft}
-              onRegisterClose={(fn) => {
-                exitEditRef.current = fn
-              }}
-              onRequestSection={(section) => {
-                setEditorFocus(section)
-                setConsoleSection(section)
-                setConsoleChapter(section === 'sales' ? (consoleChapter ?? 'cupo') : null)
-              }}
-              onSubmit={handleSubmit}
-            />
-          ) : null
-        }
-        event={selectedEvent}
-        open={consoleOpen && consoleView === 'list' && Boolean(selectedEvent)}
-        openSection={consoleSection}
-        openChapter={consoleChapter}
-        paymentSummary={selectedPaymentSummary}
-        previewDraft={
-          formOpen && draft.id && selectedEvent && draft.id === selectedEvent.id ? draft : null
-        }
-        structureEditor={
-          consoleSection === 'structure' && selectedEvent ? (
-            <AdminEventStructureEditor
-              canEdit={canEdit}
-              chapter={consoleChapter ?? 'days'}
-              event={selectedEvent}
-              eventSlug={selectedEvent.slug}
-              onSaveEvent={handleStructureSave}
-            />
-          ) : null
-        }
-        tickets={tickets}
-        onClose={closeEventConsole}
-        onDelete={openDeleteDialog}
-        onExitSection={() => {
-          if (consoleSection === 'structure') {
-            setConsoleSection(null)
-            setConsoleChapter(null)
-            return
-          }
-          exitEditRef.current?.()
-        }}
-        onManageCheckin={onManageCheckin}
-        onManagePayments={
-          canValidatePayments || onManagePayments || onOpenFinanceForEvent
-            ? () => openDrillFromConsole('payments')
-            : undefined
-        }
-        onManageRegistrations={onManageRegistrations}
-        onOpenZones={() => openDrillFromConsole('zones')}
-        onSelectChapter={selectConsoleChapter}
-        onSetEventState={onSetEventState}
-        onToggleOccupancy={toggleOccupancy}
-        onTogglePublicModule={togglePublicModule}
-        onToggleSection={toggleConsoleSection}
-      />
 
       {quickCreateOpen ? (
         <AdminEventQuickCreate
@@ -1043,44 +1103,7 @@ export default function EventsSection({
         />
       ) : null}
 
-      {pendingDelete ? (
-        <AdminDeleteConfirmDialog
-          busy={deleteBusy}
-          error={deleteError}
-          onCancel={closeDeleteDialog}
-          onConfirm={() => void handleDelete()}
-          title={t('admin.sections.events.delete.confirmTitle')}
-          description={
-            deleteImpact
-              ? t('admin.sections.events.delete.confirmDescription', {
-                  title: pendingDelete.title,
-                  slug: pendingDelete.slug,
-                  registrations: deleteImpact.impact?.registrations ?? 0,
-                  tickets: deleteImpact.impact?.tickets ?? 0,
-                  orders: deleteImpact.impact?.ticketOrders ?? 0,
-                  checkIns: deleteImpact.impact?.checkIns ?? 0,
-                })
-              : t('admin.sections.events.delete.loading')
-          }
-          warning={
-            requiresForce
-              ? t('admin.sections.events.delete.forceWarning', {
-                  paidRegistrations: deleteImpact?.impact?.paidRegistrations ?? 0,
-                  paidTickets: deleteImpact?.impact?.paidTickets ?? 0,
-                  checkIns: deleteImpact?.impact?.checkIns ?? 0,
-                })
-              : t('admin.sections.events.delete.warning')
-          }
-          confirmPhrase={requiresForce ? pendingDelete.slug : null}
-          confirmPhraseLabel={t('admin.sections.events.delete.phraseLabel')}
-          confirmPhraseHint={t('admin.sections.events.delete.phraseHint', {
-            slug: pendingDelete.slug,
-          })}
-          cancelLabel={t('admin.sections.events.delete.cancel')}
-          confirmLabel={t('admin.sections.events.delete.confirm')}
-          busyLabel={t('admin.sections.events.delete.deleting')}
-        />
-      ) : null}
+      {deleteDialog}
     </AdminListSection>
   )
 }

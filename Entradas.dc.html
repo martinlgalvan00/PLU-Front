@@ -1,0 +1,360 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --border: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 1040px; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: #6f7280; padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; max-width: 1280px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--danger { color: #ff8a87; border-color: color-mix(in srgb, var(--danger) 26%, transparent); }
+    .icon-btn--square { width: 34px; padding: 0; }
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+    .tab-warn { width: 6px; height: 6px; border-radius: 999px; background: var(--warn); }
+
+    /* sub-capítulos */
+    .chapters { display: flex; align-items: center; gap: 22px; border-bottom: 1px solid var(--hairline); }
+    .chapter { padding: 0 0 11px; border: none; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .chapter.is-active { color: var(--ink); border-bottom-color: var(--brand); }
+    .chapter small { display: block; font-size: 10.5px; font-weight: 400; color: #6f7280; margin-top: 3px; }
+
+    .body { display: grid; grid-template-columns: minmax(0,1fr) 336px; gap: 20px; align-items: start; }
+    .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--hairline); }
+    .card-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .card-b { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+    .row-label { font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+
+    /* banda de estado de venta */
+    .gate { display: flex; align-items: flex-start; gap: 13px; padding: 15px 18px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warn) 34%, transparent); background: color-mix(in srgb, var(--warn) 11%, transparent); }
+    .gate svg { flex: 0 0 auto; color: #e8a33d; margin-top: 1px; }
+    .gate-c { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .gate-t { font-size: 13px; font-weight: 600; margin: 0; }
+    .gate-p { font-size: 12px; color: var(--secondary); line-height: 1.55; margin: 0; }
+    .switch-pair { display: flex; flex-direction: column; gap: 8px; margin-top: 3px; }
+    .switch { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+    .sw { width: 34px; height: 19px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; flex: 0 0 auto; }
+    .sw::after { content: ''; position: absolute; top: 2.5px; left: 3px; width: 14px; height: 14px; border-radius: 999px; background: #8b8d97; }
+    .sw.is-on { background: color-mix(in srgb, var(--ok) 55%, transparent); }
+    .sw.is-on::after { left: auto; right: 3px; background: #eafff2; }
+    .switch-where { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+    /* tabla de tipos */
+    .tt { display: flex; flex-direction: column; }
+    .tt-head, .tt-row { display: grid; grid-template-columns: minmax(0,1fr) 104px 78px 104px 96px 32px; gap: 12px; align-items: center; padding: 11px 18px; }
+    .tt-head { font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--hairline); }
+    .tt-row { border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .tt-row:last-child { border-bottom: none; }
+    .tt-name { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .tt-name strong { font-size: 13px; font-weight: 600; }
+    .tt-name small { font-size: 11px; color: var(--muted); }
+    .tt-price { font-weight: 600; }
+    .num { font-variant-numeric: tabular-nums; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; }
+    .badge--on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .badge--off { background: rgba(255,255,255,.07); color: var(--muted); }
+    .badge--soft { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .kebab { color: var(--muted); }
+    .add-row { display: flex; align-items: center; gap: 10px; padding: 13px 18px; border-top: 1px solid var(--hairline); }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .field-l { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+    .input { height: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: #121218; color: var(--ink); font-size: 13px; display: flex; align-items: center; }
+    .input.is-empty { color: #5f626c; }
+
+    /* beneficios */
+    .ad { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--hairline); }
+    .ad:last-child { border-bottom: none; }
+    .ad-c { display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0; }
+    .ad-t { font-size: 12.5px; font-weight: 600; }
+    .ad-s { font-size: 11px; color: var(--muted); }
+    .ad-p { font-size: 12.5px; font-weight: 600; }
+
+    /* rail vacío */
+    .empty { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 26px 18px; text-align: center; }
+    .empty svg { color: #4a4d57; }
+    .empty-t { font-size: 12.5px; font-weight: 600; color: var(--secondary); }
+    .empty-p { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 0; }
+    .stat { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 11px 18px; border-bottom: 1px solid var(--hairline); }
+    .stat:last-child { border-bottom: none; }
+    .stat-l { font-size: 12px; color: var(--muted); }
+    .stat-v { font-size: 14px; font-weight: 700; }
+  </style>
+</helmet>
+
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><div class="side-mark"></div><span class="side-name">PLU Argentina</span></div>
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/><path d="M16 11.2a3 3 0 0 0 0-6"/><path d="M18 20c0-2.4-.9-4.1-2.4-5"/></svg><span>Personas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg><span>Resultados</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/></svg><span>Tarifas</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Acceso y habilitación</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4v11M8 11l4 4 4-4M4 19h16"/></svg><span>Exportaciones</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <span class="back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Eventos</span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span><span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span><span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>Copiar links</button>
+          <button class="icon-btn icon-btn--square icon-btn--danger" type="button" aria-label="Eliminar evento"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
+        </div>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab" role="tab" aria-selected="false" type="button">Datos</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Entradas<span class="tab-warn" aria-hidden="true"></span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Pagos<span class="tab-count">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <nav class="chapters" role="tablist" aria-label="Capítulos de entradas">
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cupo e inscripción<small>180 cupos · abre y cierra</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Precios<small>Inscripción $85.000</small></button>
+      <button class="chapter is-active" role="tab" aria-selected="true" type="button">Entradas de público<small>Sin habilitar</small></button>
+      <button class="chapter" role="tab" aria-selected="false" type="button">Cobro<small>Perfil Fénix</small></button>
+    </nav>
+
+    <div class="body">
+      <div class="stack">
+        <!-- Estado de venta: los dos interruptores reales -->
+        <div class="gate">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+          <div class="gate-c">
+            <h3 class="gate-t">La venta de entradas está cerrada</h3>
+            <p class="gate-p">Hacen falta dos interruptores: el general de la plataforma y el de este evento. Mientras alguno esté apagado, la página pública muestra “entradas en preparación” y nadie puede comprar.</p>
+            <div class="switch-pair">
+              <span class="switch"><span class="sw"></span><span>Venta de entradas en la plataforma</span><span class="switch-where">Acceso y habilitación</span></span>
+              <span class="switch"><span class="sw"></span><span>Entradas para este evento</span><span class="switch-where">acá</span></span>
+            </div>
+          </div>
+          <button class="btn-gold" type="button">Habilitar</button>
+        </div>
+
+        <!-- Ventana de venta -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Ventana de venta</h2>
+            <span class="card-hint">Fuera de estas fechas no se vende, aunque esté habilitado</span>
+          </div>
+          <div class="card-b">
+            <div class="grid-2">
+              <div class="field">
+                <label class="field-l" for="tv-open">Abre la venta</label>
+                <div class="input is-empty" id="tv-open">Sin fecha — abre al habilitar</div>
+              </div>
+              <div class="field">
+                <label class="field-l" for="tv-close">Cierra la venta</label>
+                <div class="input is-empty" id="tv-close">Sin fecha</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tipos de entrada -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Tipos de entrada</h2>
+            <span class="card-hint">Precio, cupo y a qué jornadas da acceso</span>
+          </div>
+          <div class="tt">
+            <div class="tt-head">
+              <span>Entrada</span><span>Precio</span><span>Cupo</span><span>Jornadas</span><span>Estado</span><span></span>
+            </div>
+            <div class="tt-row">
+              <span class="tt-name"><strong>General · un día</strong><small>Acceso a la tribuna</small></span>
+              <span class="tt-price num">$ 12.000</span>
+              <span class="num">Sin límite</span>
+              <span>A elección</span>
+              <span><span class="badge badge--on">Activa</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="tt-row">
+              <span class="tt-name"><strong>General · dos días</strong><small>Sábado y domingo</small></span>
+              <span class="tt-price num">$ 20.000</span>
+              <span class="num">Sin límite</span>
+              <span>Ambas</span>
+              <span><span class="badge badge--on">Activa</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="tt-row">
+              <span class="tt-name"><strong>Palco · dos días</strong><small>Incluye buffet y remera</small></span>
+              <span class="tt-price num">$ 38.000</span>
+              <span class="num">40</span>
+              <span>Ambas</span>
+              <span><span class="badge badge--soft">2 beneficios</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="tt-row">
+              <span class="tt-name"><strong>Menores de 12</strong><small>Con adulto responsable</small></span>
+              <span class="tt-price num">$ 0</span>
+              <span class="num">Sin límite</span>
+              <span>A elección</span>
+              <span><span class="badge badge--off">Pausada</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+          </div>
+          <div class="add-row">
+            <button class="ghost-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Agregar tipo de entrada
+            </button>
+            <span class="card-hint" style="margin-left: auto;">El precio siempre lo calcula el servidor, nunca el navegador</span>
+          </div>
+        </section>
+
+        <!-- Beneficios -->
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Beneficios para canjear</h2>
+            <span class="card-hint">Se cobran con la entrada y se canjean en el venue, una vez cada uno</span>
+          </div>
+          <div>
+            <div class="ad">
+              <span class="ad-c"><span class="ad-t">Buffet libre</span><span class="ad-s">Canje: “Buffet retirado”</span></span>
+              <span class="ad-p num">$ 9.000</span>
+              <span class="badge badge--on">Activo</span>
+            </div>
+            <div class="ad">
+              <span class="ad-c"><span class="ad-t">Remera oficial</span><span class="ad-s">Canje: “Remera entregada”</span></span>
+              <span class="ad-p num">$ 15.000</span>
+              <span class="badge badge--on">Activo</span>
+            </div>
+            <div class="ad">
+              <span class="ad-c"><span class="ad-t">Programa impreso</span><span class="ad-s">Canje: “Programa entregado”</span></span>
+              <span class="ad-p num">$ 3.500</span>
+              <span class="badge badge--off">Pausado</span>
+            </div>
+          </div>
+          <div class="add-row">
+            <button class="ghost-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Agregar beneficio
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="rail" style="display: flex; flex-direction: column; gap: 16px;">
+        <section class="card">
+          <div class="card-h"><h2 class="card-t">Venta</h2></div>
+          <div class="empty">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 9.5V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5z"/><path d="M12 9v6"/></svg>
+            <span class="empty-t">Todavía no hay entradas vendidas</span>
+            <p class="empty-p">Cuando la venta abra, acá vas a ver vendidas, pendientes y recaudado, con el desglose por tipo.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h">
+            <h2 class="card-t">Si abrís hoy</h2>
+            <span class="card-hint" style="margin-left: auto;">Estimado</span>
+          </div>
+          <div>
+            <div class="stat"><span class="stat-l">Aforo declarado</span><span class="stat-v num">1.200</span></div>
+            <div class="stat"><span class="stat-l">Tipos activos</span><span class="stat-v num">3</span></div>
+            <div class="stat"><span class="stat-l">Palcos con cupo</span><span class="stat-v num">40</span></div>
+            <div class="stat"><span class="stat-l">Medios de cobro</span><span class="stat-v" style="font-size: 12px; font-weight: 600;">MP · Transferencia</span></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-h"><h2 class="card-t">Reserva</h2></div>
+          <div class="card-b" style="gap: 9px;">
+            <p class="empty-p" style="text-align: left;">Una compra con Mercado Pago retiene el lugar <strong style="color: var(--secondary);">20 minutos</strong>. Con transferencia, <strong style="color: var(--secondary);">24 horas</strong> para subir el comprobante. Pasado el plazo, la reserva se libera sola.</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

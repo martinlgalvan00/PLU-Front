@@ -1882,6 +1882,95 @@ export default function AdminEventEditor({
                     </span>
                   </label>
 
+                  {/* Cómo se presenta el evento en su página. Son los tres
+                      textos que de verdad cambian por evento; los encabezados
+                      de cada bloque los sigue fijando el diseño, que es lo que
+                      mantiene el sitio coherente entre meets. */}
+                  <fieldset className="admin-event-form__public-copy">
+                    <legend>{t('admin.eventEditor.publicCopyLegend')}</legend>
+                    <p className="admin-event-form__section-note">
+                      {t('admin.eventEditor.publicCopyHint')}
+                    </p>
+
+                    <FormField
+                      htmlFor="event-public-title"
+                      label={t('admin.eventEditor.publicTitleField')}
+                      error={err('publicCopy.publicTitle')}
+                    >
+                      <input
+                        id="event-public-title"
+                        name="publicCopy.publicTitle"
+                        data-field="publicCopy.publicTitle"
+                        type="text"
+                        maxLength={120}
+                        value={draft.publicCopy?.publicTitle ?? ''}
+                        placeholder={draft.title || t('admin.eventEditor.publicTitlePlaceholder')}
+                        disabled={!canEdit}
+                        onChange={(event) =>
+                          patchDraft({
+                            ...draft,
+                            publicCopy: {
+                              ...(draft.publicCopy ?? {}),
+                              publicTitle: event.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </FormField>
+
+                    <FormField
+                      htmlFor="event-hero-lead"
+                      label={t('admin.eventEditor.heroLeadField')}
+                      error={err('publicCopy.heroLead')}
+                    >
+                      <input
+                        id="event-hero-lead"
+                        name="publicCopy.heroLead"
+                        data-field="publicCopy.heroLead"
+                        type="text"
+                        maxLength={240}
+                        value={draft.publicCopy?.heroLead ?? ''}
+                        placeholder={t('admin.eventEditor.heroLeadPlaceholder')}
+                        disabled={!canEdit}
+                        onChange={(event) =>
+                          patchDraft({
+                            ...draft,
+                            publicCopy: {
+                              ...(draft.publicCopy ?? {}),
+                              heroLead: event.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </FormField>
+
+                    <FormField
+                      htmlFor="event-cta-label"
+                      label={t('admin.eventEditor.ctaLabelField')}
+                      error={err('publicCopy.ctaLabel')}
+                    >
+                      <input
+                        id="event-cta-label"
+                        name="publicCopy.ctaLabel"
+                        data-field="publicCopy.ctaLabel"
+                        type="text"
+                        maxLength={40}
+                        value={draft.publicCopy?.ctaLabel ?? ''}
+                        placeholder={t('admin.eventEditor.ctaLabelPlaceholder')}
+                        disabled={!canEdit}
+                        onChange={(event) =>
+                          patchDraft({
+                            ...draft,
+                            publicCopy: {
+                              ...(draft.publicCopy ?? {}),
+                              ctaLabel: event.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </FormField>
+                  </fieldset>
+
                   {essentials ? null : (
                   <fieldset className="admin-event-form__surface">
                     <legend>{t('admin.eventEditor.publicSurfaceLegend')}</legend>

@@ -186,6 +186,13 @@ export const adminEventDraftSchema = z
         location: z.boolean().optional(),
       })
       .optional(),
+    publicCopy: z
+      .object({
+        publicTitle: z.string().trim().max(120, 'publicTitleMax').optional(),
+        heroLead: z.string().trim().max(240, 'heroLeadMax').optional(),
+        ctaLabel: z.string().trim().max(40, 'ctaLabelMax').optional(),
+      })
+      .optional(),
     paymentChannelOverrides: z
       .object({
         mercado_pago: z.boolean().optional(),
@@ -362,6 +369,7 @@ export function validateAdminEventDraft(draft, t) {
     ticketTypes: draft?.ticketTypes ?? [],
     weighInWindows: draft?.weighInWindows ?? [],
     publicSurface: draft?.publicSurface,
+    publicCopy: draft?.publicCopy,
   })
 
   if (result.success) {

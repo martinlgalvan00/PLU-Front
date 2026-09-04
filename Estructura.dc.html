@@ -1,0 +1,292 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8;
+      --brand: #9ec5eb; --brand-deep: #1f5f9e; --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --warn: #b45309;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand); } a:hover { color: #c7dcf1; }
+    * { box-sizing: border-box; }
+    .shell { display: grid; grid-template-columns: 232px 1fr; min-height: 1040px; }
+    .side { background: var(--surface-muted); border-right: 1px solid var(--hairline); padding: 20px 12px; display: flex; flex-direction: column; gap: 22px; }
+    .side-brand { display: flex; align-items: center; gap: 9px; padding: 0 8px 4px; }
+    .side-mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--brand-deep), var(--gold)); }
+    .side-name { font-size: 12.5px; font-weight: 700; }
+    .side-group { display: flex; flex-direction: column; gap: 2px; }
+    .side-label { font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: #6f7280; padding: 0 8px 6px; }
+    .side-item { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+    .side-item.is-active { background: color-mix(in srgb, var(--brand) 10%, transparent); color: var(--ink); font-weight: 600; }
+    .side-item svg { opacity: .75; flex: 0 0 auto; }
+    .side-item.is-active svg { opacity: 1; color: var(--brand); }
+    .side-count { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+
+    .main { padding: 20px 32px 32px; display: flex; flex-direction: column; gap: 18px; max-width: 1280px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+    .hd { display: flex; flex-direction: column; gap: 14px; }
+    .hd-top { display: flex; align-items: flex-start; gap: 16px; }
+    .hd-copy { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+    .hd-title-row { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+    .hd-title { font-size: 23px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+    .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .hd-meta { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+    .sep { color: #4a4d57; }
+    .hd-actions { display: flex; align-items: center; gap: 8px; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: color-mix(in srgb, var(--elevated) 60%, transparent); color: var(--secondary); font-size: 12px; font-weight: 500; font-family: var(--font); }
+    .icon-btn--danger { color: #ff8a87; border-color: color-mix(in srgb, var(--danger) 26%, transparent); }
+    .icon-btn--square { width: 34px; padding: 0; }
+    .tabs { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--elevated) 70%, transparent); border: 1px solid rgba(255,255,255,.08); width: fit-content; }
+    .tab { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; font-family: var(--font); white-space: nowrap; }
+    .tab.is-active { background: color-mix(in srgb, var(--brand) 13%, transparent); border-color: color-mix(in srgb, var(--brand) 24%, transparent); color: var(--ink); }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 2px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 700; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+    .tab.is-active .tab-count { background: color-mix(in srgb, var(--brand) 20%, transparent); }
+    .tab-warn { width: 6px; height: 6px; border-radius: 999px; background: var(--warn); }
+
+    .flow { display: flex; flex-direction: column; gap: 0; }
+    .step { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 16px; }
+    .step-rail { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .step-n { width: 26px; height: 26px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--brand) 32%, transparent); background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand); font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    .step-line { width: 1px; flex-grow: 1; background: var(--hairline); }
+    .step-body { padding-bottom: 20px; display: flex; flex-direction: column; gap: 11px; min-width: 0; }
+    .step-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .step-t { font-size: 14px; font-weight: 600; margin: 0; }
+    .step-s { font-size: 11.5px; color: var(--muted); }
+
+    .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; }
+    .card-hint { font-size: 11.5px; color: var(--muted); }
+    .add-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--hairline); }
+    .ghost-btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--secondary); font-size: 11.5px; font-weight: 500; font-family: var(--font); }
+    .btn-gold { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: var(--gold); color: var(--gold-ink); font-size: 12.5px; font-weight: 600; font-family: var(--font); }
+    .num { font-variant-numeric: tabular-nums; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; }
+    .badge--on { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok-soft); }
+    .badge--lock { background: rgba(255,255,255,.07); color: var(--muted); }
+    .badge--soft { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
+    .kebab { color: var(--muted); }
+
+    /* jornadas */
+    .day { display: grid; grid-template-columns: minmax(0,1fr) 148px 132px 32px; gap: 12px; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--hairline); }
+    .day:last-of-type { border-bottom: none; }
+    .day-n { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .day-n strong { font-size: 13px; font-weight: 600; }
+    .day-n small { font-size: 11px; color: var(--muted); }
+    .cell { font-size: 12.5px; color: var(--secondary); }
+
+    /* pesajes */
+    .wi { display: grid; grid-template-columns: 132px minmax(0,1fr) 118px 32px; gap: 12px; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .wi:last-of-type { border-bottom: none; }
+    .wi-t { color: var(--secondary); }
+    .wi-r { font-weight: 600; }
+
+    /* tandas */
+    .ses { display: grid; grid-template-columns: minmax(0,1fr) 120px 132px 88px 32px; gap: 12px; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--hairline); font-size: 12.5px; }
+    .ses:last-of-type { border-bottom: none; }
+    .ses-n { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .ses-n strong { font-size: 13px; font-weight: 600; }
+    .ses-n small { font-size: 11px; color: var(--muted); }
+    .head-row { display: grid; gap: 12px; padding: 10px 16px; font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--hairline); }
+    .head-day { grid-template-columns: minmax(0,1fr) 148px 132px 32px; }
+    .head-wi { grid-template-columns: 132px minmax(0,1fr) 118px 32px; }
+    .head-ses { grid-template-columns: minmax(0,1fr) 120px 132px 88px 32px; }
+
+    .note { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 9px; background: color-mix(in srgb, var(--brand) 7%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent); }
+    .note svg { color: var(--brand); flex: 0 0 auto; margin-top: 1px; }
+    .note p { margin: 0; font-size: 11.5px; color: var(--secondary); line-height: 1.55; }
+  </style>
+</helmet>
+
+<div class="shell">
+  <aside class="side">
+    <div class="side-brand"><div class="side-mark"></div><span class="side-name">PLU Argentina</span></div>
+    <div class="side-group">
+      <span class="side-label">Plantel</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Resumen</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.1 2.7-5.2 6-5.2s6 2.1 6 5.2"/></svg><span>Personas</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Competencia</span>
+      <div class="side-item is-active"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>Eventos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Grilla</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/></svg><span>Check-in</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M12 14v4M8 21h8"/></svg><span>Resultados</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Cobros</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Shop</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19"/></svg><span>Cobros</span><span class="side-count">3</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v9h14v-9"/></svg><span>Libro de caja</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/></svg><span>Tarifas</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Acceso y habilitación</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 4v11M8 11l4 4 4-4M4 19h16"/></svg><span>Exportaciones</span></div>
+    </div>
+    <div class="side-group">
+      <span class="side-label">Acceso</span>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M12 3l7 3v6c0 4.2-2.8 7.6-7 9-4.2-1.4-7-4.8-7-9V6z"/></svg><span>Usuarios</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="8" cy="13" r="4"/><path d="M11 11l8-8 2 2-2 2 2 2-3 3-2-2-2 2"/></svg><span>Roles y permisos</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 9h7M9 13h7"/></svg><span>Auditoría</span></div>
+      <div class="side-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Analítica</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <span class="back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Eventos</span>
+
+    <header class="hd">
+      <div class="hd-top">
+        <div class="hd-copy">
+          <div class="hd-title-row">
+            <h1 class="hd-title">Pitbull Classic 2026</h1>
+            <span class="pill-state"><span class="dot"></span>Inscripción abierta</span>
+          </div>
+          <div class="hd-meta">
+            <span>14 – 15 de noviembre de 2026</span><span class="sep">·</span>
+            <span>Club Atlético Fénix, Pilar</span><span class="sep">·</span>
+            <span>plu.ar/eventos/pitbull-classic-2026</span>
+          </div>
+        </div>
+        <div class="hd-actions">
+          <button class="icon-btn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>Copiar links</button>
+          <button class="icon-btn icon-btn--square icon-btn--danger" type="button" aria-label="Eliminar evento"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></button>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Secciones del evento">
+        <button class="tab" role="tab" aria-selected="false" type="button">Datos</button>
+        <button class="tab is-active" role="tab" aria-selected="true" type="button">Estructura<span class="tab-count">2</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Entradas<span class="tab-warn" aria-hidden="true"></span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Zonas y seguridad<span class="tab-count">4</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Pagos<span class="tab-count">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Vista pública</button>
+      </nav>
+    </header>
+
+    <div class="note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/></svg>
+      <p>Los tres bloques van en orden porque dependen entre sí: las jornadas definen qué días puede cubrir un pesaje y una tanda. Sin jornadas cargadas, los otros dos quedan vacíos.</p>
+    </div>
+
+    <div class="flow">
+      <!-- 1. Jornadas -->
+      <div class="step">
+        <div class="step-rail">
+          <span class="step-n">1</span>
+          <span class="step-line"></span>
+        </div>
+        <div class="step-body">
+          <div class="step-h">
+            <h2 class="step-t">Jornadas</h2>
+            <span class="step-s">Los días en que se compite. Las entradas se venden contra estos días.</span>
+          </div>
+          <section class="card">
+            <div class="head-row head-day"><span>Jornada</span><span>Fecha</span><span>Entradas</span><span></span></div>
+            <div class="day">
+              <span class="day-n"><strong>Jornada 1</strong><small>Sábado</small></span>
+              <span class="cell num">14/11/2026</span>
+              <span><span class="badge badge--lock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>2 tipos</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="day">
+              <span class="day-n"><strong>Jornada 2</strong><small>Domingo</small></span>
+              <span class="cell num">15/11/2026</span>
+              <span><span class="badge badge--lock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>3 tipos</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="add-row">
+              <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar jornada</button>
+              <span class="card-hint" style="margin-left: auto;">Una jornada con entradas vendidas no se puede borrar</span>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- 2. Pesajes -->
+      <div class="step">
+        <div class="step-rail">
+          <span class="step-n">2</span>
+          <span class="step-line"></span>
+        </div>
+        <div class="step-body">
+          <div class="step-h">
+            <h2 class="step-t">Pesajes</h2>
+            <span class="step-s">Ventanas de pesaje por jornada. Se pueden mostrar en la página pública del evento.</span>
+          </div>
+          <section class="card">
+            <div class="head-row head-wi"><span>Jornada</span><span>Ventana</span><span>En el sitio</span><span></span></div>
+            <div class="wi">
+              <span class="wi-t">Jornada 1</span>
+              <span class="wi-r num">07:00 – 09:00</span>
+              <span><span class="badge badge--on">Visible</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="wi">
+              <span class="wi-t">Jornada 2</span>
+              <span class="wi-r num">07:00 – 08:30</span>
+              <span><span class="badge badge--on">Visible</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="add-row">
+              <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar ventana</button>
+              <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-4M4 14a8 8 0 0 0 14 4"/></svg>Sugerir desde las jornadas</button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- 3. Tandas -->
+      <div class="step">
+        <div class="step-rail">
+          <span class="step-n">3</span>
+        </div>
+        <div class="step-body" style="padding-bottom: 0;">
+          <div class="step-h">
+            <h2 class="step-t">Tandas</h2>
+            <span class="step-s">Grupos que levantan juntos, por plataforma y horario. El armado fino vive en Grilla.</span>
+          </div>
+          <section class="card">
+            <div class="head-row head-ses"><span>Tanda</span><span>Jornada</span><span>Horario</span><span>Atletas</span><span></span></div>
+            <div class="ses">
+              <span class="ses-n"><strong>Tanda A</strong><small>Plataforma 1</small></span>
+              <span class="cell">Jornada 1</span>
+              <span class="cell num">10:00 – 12:30</span>
+              <span><span class="badge badge--soft">14</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="ses">
+              <span class="ses-n"><strong>Tanda B</strong><small>Plataforma 1</small></span>
+              <span class="cell">Jornada 1</span>
+              <span class="cell num">13:30 – 16:00</span>
+              <span><span class="badge badge--soft">16</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="ses">
+              <span class="ses-n"><strong>Tanda C</strong><small>Plataforma 1</small></span>
+              <span class="cell">Jornada 2</span>
+              <span class="cell num">10:00 – 13:00</span>
+              <span><span class="badge badge--soft">16</span></span>
+              <span class="kebab"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="12" cy="19" r=".6"/></svg></span>
+            </div>
+            <div class="add-row">
+              <button class="ghost-btn" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Agregar tanda</button>
+              <span class="card-hint" style="margin-left: auto;">46 inscriptos · 0 sin tanda</span>
+              <button class="btn-gold" type="button">Abrir Grilla</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

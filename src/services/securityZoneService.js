@@ -14,11 +14,25 @@ export const ZONE_SCOPES = ['gate_tickets', 'athletes_only', 'athletes_coaches',
 
 export const ZONE_MEMBERS_MAX = 20
 
-/** Alcance → qué credenciales puede leer el grupo de esa zona. */
+/**
+ * Alcance → qué credenciales puede leer el grupo de esa zona.
+ *
+ * `athletes_coaches` (la entrada en calor) aceptaba `membership`, o sea que
+ * entraba cualquier afiliado con credencial vigente: no había forma de que
+ * seguridad distinguiera a un entrenador que pagó su lugar. Ahora lee la
+ * credencial de ENTRENADOR, que es un `ticket` emitido por una entrada cuya
+ * subcategoría declara este alcance, y deja de leer afiliaciones.
+ *
+ * Ojo que esto es una lista por TIPO de credencial: que una zona lea `ticket`
+ * no quiere decir que lea cualquier entrada. Qué zonas abre cada credencial se
+ * decide por `credential_scopes`, que viaja congelado en la entrada emitida y
+ * lo valida `staff_check_in_ticket` en el servidor. Este mapa es el primer
+ * filtro, no la autorización.
+ */
 const SCOPE_CREDENTIALS = {
   gate_tickets: ['ticket', 'registration', 'membership'],
   athletes_only: ['registration'],
-  athletes_coaches: ['registration', 'membership'],
+  athletes_coaches: ['registration', 'ticket'],
   staff_only: [],
 }
 

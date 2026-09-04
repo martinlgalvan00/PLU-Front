@@ -1,0 +1,965 @@
+/* =============================================
+   DESIGN PAGES — notebook / tablet (641–1199px)
+   Ritmo y distribución unificados para cuerpos
+   de página premium (Pitbull, Members, Events…)
+   ============================================= */
+
+@media (min-width: 641px) and (max-width: 1199px) {
+  .pitbull-page__body,
+  .members-page__body,
+  .events-page--premium .events-page__body,
+  .community-page__inner {
+    gap: clamp(14px, 2.2vw, 20px);
+    padding: clamp(12px, 1.8vw, 18px) var(--layout-gutter-lg) clamp(32px, 4vw, 48px);
+  }
+
+  .pitbull-page--premium .pitbull-page__body {
+    max-width: none;
+    padding-inline: var(--layout-gutter-lg);
+  }
+
+  .pitbull-page--premium .pitbull-hero.design-hero--compact,
+  .members-page--premium .design-hero--compact,
+  .community-page--premium .community-hero.design-hero--compact,
+  .events-page--premium .events-hero.design-hero--compact {
+    padding-inline: var(--layout-gutter-lg);
+  }
+
+  /* ── Members hero: 2 columnas en notebook ─────────────────────────
+     Rail (pricing) necesita más espacio que el intro-text.
+     Proporción: intro ~44%, rail ~56%.
+     ──────────────────────────────────────────────────────────────── */
+
+  .members-page--premium .members-hero .design-hero__inner {
+    align-items: start;
+    gap: clamp(20px, 3vw, 36px);
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  }
+
+  .members-page--premium .members-hero .design-hero__intro {
+    gap: clamp(10px, 1.4vw, 14px);
+    max-width: none;
+    padding-left: clamp(16px, 2.4vw, 22px);
+  }
+
+  /* regla tricolor visible en notebook */
+  .members-page--premium .members-hero .design-hero__intro::before {
+    display: block;
+  }
+
+  /* Título más compacto para caber en la columna estrecha */
+  .members-page--premium .members-hero .design-hero__title {
+    font-size: clamp(28px, 4.8vw, 44px);
+    letter-spacing: -0.044em;
+    line-height: 0.96;
+    max-width: 10ch;
+  }
+
+  .members-page--premium .members-hero .design-hero__desc {
+    font-size: clamp(13px, 1.75vw, 14.5px);
+    max-width: 30ch;
+  }
+
+  /* ── Rail card: panel elevado, más protagonismo visual ── */
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__bar {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: calc(var(--border-radius-lg) + 2px);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 20px 44px rgba(0, 0, 0, 0.28);
+    padding: clamp(18px, 2.8vw, 26px);
+  }
+
+  /* Precios más visibles ahora que el rail tiene más ancho */
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__price dd {
+    font-size: clamp(24px, 3.6vw, 30px);
+    letter-spacing: -0.048em;
+  }
+
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__price dt {
+    font-size: 8.5px;
+    letter-spacing: 0.14em;
+  }
+
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__validity {
+    font-size: 9.5px;
+    gap: 5px;
+    letter-spacing: 0.1em;
+  }
+
+  .members-page--premium .members-hero-rail--luxury .members-hero-rail__cta--primary {
+    flex: 1 0 100%;
+    font-size: 13.5px;
+    justify-content: center;
+    letter-spacing: 0.01em;
+    min-height: 44px;
+    padding: 12px 22px;
+  }
+
+  .members-hero-rail--luxury .members-hero-rail__sample {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  /* ── Intro: 2 columnas en notebook también ── */
+
+  .members-page--premium .members-intro {
+    gap: clamp(24px, 3.5vw, 40px);
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    padding-top: clamp(24px, 3.5vw, 36px);
+  }
+
+  .members-page--premium .members-intro__head {
+    padding-left: clamp(16px, 2.4vw, 24px);
+  }
+
+  .members-page--premium .members-intro__head::before {
+    display: block;
+  }
+
+  .members-benefit-list--luxury .members-benefit-list__item {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  /* ── Members body: una columna legible ── */
+
+  .members-section {
+    padding-block: clamp(14px, 2vw, 22px);
+  }
+
+  .members-section--intro {
+    padding-top: clamp(6px, 1vw, 10px);
+  }
+
+  .members-intro {
+    gap: clamp(24px, 3.5vw, 40px);
+    grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+    padding: 0;
+  }
+
+  .members-intro__head {
+    max-width: none;
+  }
+
+  .members-benefit-list {
+    gap: 8px;
+  }
+
+  .members-requirements {
+    grid-template-columns: 36px minmax(0, 1fr);
+    padding-top: clamp(16px, 2.4vw, 20px);
+  }
+
+  .members-requirements__index {
+    font-size: 16px;
+    padding-top: 4px;
+  }
+
+  /* ── Requirements: split list | validity ── */
+  .members-page--premium .members-requirements {
+    grid-template-columns: clamp(28px, 3.5vw, 36px) minmax(0, 1fr);
+    padding-top: clamp(20px, 3vw, 28px);
+  }
+
+  .members-page--premium .members-requirements__index {
+    font-size: clamp(11px, 1.4vw, 13px);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    padding-top: 5px;
+  }
+
+  .members-page--premium .members-requirements__head .members-section__title {
+    font-size: clamp(22px, 3.2vw, 28px);
+    max-width: none;
+  }
+
+  .members-page--premium .members-requirements__content {
+    column-gap: clamp(36px, 4.8vw, 52px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .members-page--premium .members-requirements__head {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin-bottom: clamp(16px, 2.4vw, 22px);
+  }
+
+  .members-page--premium .members-requirements .members-req-list--editorial {
+    gap: clamp(10px, 1.5vw, 12px);
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: 1fr;
+    padding-right: clamp(4px, 1.2vw, 10px);
+  }
+
+  .members-page--premium .members-req-list--editorial .members-req-list__item {
+    padding: clamp(14px, 1.8vw, 17px) clamp(14px, 1.8vw, 18px);
+  }
+
+  .members-page--premium .members-req-list--editorial .members-req-list__copy {
+    gap: 7px;
+  }
+
+  .members-page--premium .members-req-list--editorial .members-req-list__copy p {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .members-page--premium .members-requirements__validity {
+    border-left: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.06));
+    border-top: none;
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0;
+    padding-left: clamp(24px, 3.2vw, 32px);
+    padding-top: 2px;
+  }
+
+  .members-process--timeline {
+    gap: clamp(12px, 2vw, 16px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .members-process--timeline::before {
+    display: none;
+  }
+
+  .members-process-step {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    padding: 14px 14px 14px 12px;
+  }
+
+  /* Plans: 2 cols en notebook. Combo (red/featured) ocupa el ancho completo */
+  .members-page--premium .membership-grid--editorial {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: 0;
+    max-width: none;
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--red {
+    grid-column: 1 / -1;
+  }
+
+  /* Combo full-width: layout horizontal dentro del body */
+  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr auto;
+    column-gap: clamp(20px, 3vw, 32px);
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__top {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .members-page--premium
+    .membership-grid--editorial
+    .membership-card--red
+    .membership-card__compare-inline {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .members-page--premium
+    .membership-grid--editorial
+    .membership-card--red
+    .membership-card__features-list {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__foot {
+    align-items: flex-end;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    justify-content: flex-end;
+    margin: 0;
+    padding-bottom: 2px;
+  }
+
+  .members-page--premium .membership-grid--editorial .membership-card--red .membership-card__link {
+    min-width: 200px;
+  }
+
+  /* Precio del combo más grande en horizontal */
+  .members-page--premium
+    .membership-grid--editorial
+    .membership-card--red
+    .membership-card__amount {
+    font-size: clamp(22px, 3.2vw, 27px);
+  }
+
+  /* Precios en cards individuales */
+  .members-page--premium .membership-grid--editorial .membership-card__amount {
+    font-size: clamp(20px, 2.8vw, 24px);
+  }
+
+  .members-section__head--center {
+    max-width: 42ch;
+    margin-inline: auto;
+  }
+
+  /* ── Pitbull dossier ── */
+
+  .pitbull-dossier--minimal {
+    gap: clamp(22px, 3.5vw, 32px);
+    padding-top: clamp(16px, 2.4vw, 22px);
+  }
+
+  .pitbull-dossier--minimal > .pitbull-dossier__section,
+  .pitbull-dossier--minimal > .pitbull-dossier__section--benefits {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__visual {
+    display: none;
+  }
+
+  .pitbull-page--premium .pitbull-inscription__inner,
+  .pitbull-page--premium .pitbull-tickets__inner {
+    margin-inline: 0;
+    max-width: none;
+    padding: clamp(18px, 2.5vw, 24px);
+    width: 100%;
+  }
+
+  .pitbull-page--premium .pitbull-tickets {
+    margin-inline: 0;
+    margin-top: clamp(12px, 2vw, 18px);
+    padding: clamp(16px, 2.4vw, 22px) 0;
+  }
+
+  .pitbull-page--premium .pitbull-inscription {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  /* Credential card: sombra más liviana en notebook (menos jank al scrollear) */
+  .pitbull-page--premium .pitbull-credential-showcase--solo .pitbull-credential__card,
+  .pitbull-page--premium .pitbull-credential-showcase__card .pitbull-credential__card {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 24px 48px rgba(0, 0, 0, 0.38);
+    max-width: min(100%, 460px);
+  }
+
+  /* ── Dossier sections: tipografía y layout notebook ── */
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__title,
+  .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__title,
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__title {
+    font-size: clamp(22px, 3.4vw, 28px);
+    max-width: none;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__lead {
+    font-size: clamp(13.5px, 1.85vw, 15px);
+    justify-self: start;
+    max-width: min(100%, 36ch);
+    text-align: left;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--location .pitbull-dossier__lead {
+    font-size: clamp(13.5px, 1.85vw, 15px);
+    justify-self: start;
+    max-width: min(100%, 46ch);
+    text-align: left;
+  }
+
+  .pitbull-benefits-hero__title {
+    font-size: clamp(24px, 3.8vw, 32px);
+    max-width: none;
+  }
+
+  .pitbull-benefits-hero__lead {
+    max-width: min(100%, 48ch);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    row-gap: clamp(16px, 2.4vw, 22px);
+  }
+
+  /* Benefits lane items: single-row (icon + title) solo en notebook angosto.
+     A partir de 700px se restaura la desc para comunicar mejor el valor.       */
+  .pitbull-benefits-lane__desc {
+    display: none;
+  }
+
+  .pitbull-benefits-lane__item {
+    align-items: center;
+    grid-template-rows: auto;
+    padding: clamp(10px, 1.5vw, 13px) 0;
+  }
+
+  .pitbull-benefits-lane__icon {
+    color: var(--color-brand-celeste);
+    grid-row: 1;
+  }
+
+  .pitbull-benefits-lane--spectator .pitbull-benefits-lane__icon {
+    color: var(--plu-gold-400, #ffd23f);
+  }
+
+  .pitbull-benefits-lane__title {
+    font-size: 12.5px;
+    grid-row: 1;
+    letter-spacing: -0.01em;
+  }
+
+  /* Shell header labels más prominentes */
+  .pitbull-benefits-shell__label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+  }
+
+  [data-theme='light'] .members-hero-rail--editorial .members-hero-rail__rail {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+
+  [data-theme='light'] .members-process-step {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+
+  /* ── Events hero + body notebook ── */
+
+  /* ── Events hero: intro + filtros apilados ── */
+
+  .events-page--premium .events-hero .design-hero__inner {
+    align-items: stretch;
+    gap: clamp(14px, 2.2vw, 20px);
+    grid-template-columns: 1fr;
+  }
+
+  .events-page--premium .events-hero .design-hero__intro {
+    gap: clamp(8px, 1.2vw, 10px);
+    max-width: none;
+    padding-left: 0;
+  }
+
+  .events-page--premium .events-hero .design-hero__intro::before {
+    display: none;
+  }
+
+  .events-page--premium .events-hero .design-hero__title {
+    font-size: clamp(26px, 4.2vw, 36px);
+    line-height: 1.06;
+    max-width: none;
+    text-wrap: balance;
+  }
+
+  .events-page--premium .events-hero .design-hero__desc {
+    font-size: clamp(13px, 1.7vw, 14.5px);
+    max-width: min(52ch, 100%);
+  }
+
+  .events-page--premium .events-hero__toolbar {
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 12px 16px;
+    justify-content: space-between;
+    padding-top: clamp(12px, 1.8vw, 16px);
+  }
+
+  .events-page--premium .events-hero__filters {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .events-page--premium .events-hero__count {
+    background: var(--events-toolbar-count-bg, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--events-toolbar-count-border, rgba(255, 255, 255, 0.08));
+    border-radius: var(--border-radius-pill);
+    flex-shrink: 0;
+    padding: 6px 10px;
+  }
+
+  .events-page--premium .events-hero .segmented-switch--editorial {
+    min-height: 34px;
+  }
+
+  .events-page--premium .events-hero .segmented-switch--editorial .segmented-switch__option {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    min-height: 32px;
+    padding-inline: 3px;
+  }
+
+  .events-page--premium .events-hero .segmented-switch__label--full {
+    display: none;
+  }
+
+  .events-page--premium .events-hero .segmented-switch__label--short {
+    display: inline;
+  }
+
+  .events-page--premium .events-main-column {
+    gap: clamp(12px, 1.8vw, 18px);
+  }
+
+  .events-page--premium .pitbull-spotlight--editorial .pitbull-spotlight__media-img {
+    aspect-ratio: 2.4 / 1;
+    max-height: clamp(168px, 22vw, 210px);
+    min-height: 0;
+  }
+
+  .events-page--premium .pitbull-spotlight--events .pitbull-spotlight__title {
+    font-size: clamp(17px, 2.2vw, 22px);
+    max-width: none;
+  }
+
+  .events-page--premium .pitbull-spotlight--events .pitbull-spotlight__lead {
+    font-size: clamp(12.5px, 1.6vw, 13px);
+    max-width: none;
+  }
+
+  /* Sidebar: calendario + detalle en rail horizontal */
+  .events-page--premium .event-calendar--premium {
+    padding: clamp(14px, 2vw, 18px) clamp(14px, 2vw, 18px) clamp(12px, 1.6vw, 16px);
+  }
+
+  .events-page--premium .event-calendar--premium .event-calendar__cell {
+    font-size: 11px;
+    min-height: 34px;
+  }
+
+  .events-page--premium .event-calendar--premium .event-calendar__header {
+    margin-bottom: 10px;
+    padding: 6px 8px;
+  }
+
+  .events-page--premium .events-detail__title {
+    font-size: clamp(15px, 1.8vw, 17px);
+  }
+
+  .events-page--premium .events-detail__calendar-actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .events-page--premium .events-sidebar-card .events-detail__head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .events-page--premium .events-sidebar-card .events-detail__actions {
+    width: 100%;
+  }
+
+  .events-page--premium .events-sidebar-card .events-detail__actions .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: min(100%, 140px);
+  }
+
+  .events-page--premium .events-list--design .event-card {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
+
+  .events-page--premium .events-list--design .event-card__meta {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+  }
+
+  /* ── Community body ── */
+
+  .community-page--premium .community-hero .design-hero__inner {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .community-section__head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .community-section__link {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 4px;
+  }
+
+  .community-stories-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .community-manifesto {
+    margin-top: 2px;
+    max-width: none;
+  }
+
+  .community-manifesto blockquote {
+    font-size: clamp(15px, 2.1vw, 17px);
+    line-height: 1.6;
+    max-width: none;
+  }
+
+  .community-page__grid {
+    gap: clamp(14px, 2.2vw, 18px);
+  }
+
+  .community-section {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding: clamp(14px, 2vw, 18px);
+  }
+
+  .community-section--stories {
+    padding: clamp(16px, 2.2vw, 20px);
+  }
+
+  .community-gym-list {
+    gap: 0;
+  }
+
+  .community-gym-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 10px 0;
+  }
+
+  .community-gym-card:first-child {
+    border-top: none;
+    padding-top: 2px;
+  }
+
+  .community-story-card {
+    min-height: 0;
+  }
+
+  [data-theme='light'] .community-stats-rail {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+
+  [data-theme='light'] .community-section {
+    background: rgba(15, 17, 23, 0.02);
+    border-color: rgba(15, 17, 23, 0.08);
+  }
+
+  [data-theme='light'] .events-page--premium .events-hero__count {
+    background: var(--events-toolbar-count-bg);
+    border-color: var(--events-toolbar-count-border);
+  }
+}
+
+@media (min-width: 700px) and (max-width: 1199px) {
+  /* Spotlight editorial: imagen + panel lado a lado con ancho completo */
+  .events-page--premium .pitbull-spotlight--editorial .pitbull-spotlight__layout {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  }
+
+  .events-page--premium .pitbull-spotlight--editorial .pitbull-spotlight__panel {
+    border-left: 1px solid var(--events-section-divider, rgba(255, 255, 255, 0.06));
+    border-top: none;
+  }
+
+  .events-page--premium .pitbull-spotlight--editorial .pitbull-spotlight__media-img {
+    aspect-ratio: auto;
+    height: 100%;
+    max-height: none;
+    min-height: clamp(180px, 24vw, 220px);
+  }
+
+  /* ── Pitbull benefits: restaurar descripciones de beneficios ──
+     A ≥700px cada lane tiene suficiente ancho (~290px+) para mostrar
+     el copy descriptivo y vender la propuesta de valor del evento.
+     ──────────────────────────────────────────────────────────── */
+  .pitbull-benefits-lane__desc {
+    display: block;
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+
+  /* Restaurar layout de 2-filas (icon | copy con title+desc) */
+  .pitbull-benefits-lane__item {
+    align-items: flex-start;
+    grid-template-rows: auto auto;
+    padding: clamp(12px, 1.8vw, 14px) 0;
+  }
+
+  .pitbull-benefits-lane__icon {
+    grid-row: 1;
+    margin-top: 1px;
+  }
+
+  .pitbull-benefits-lane__title {
+    font-size: 13px;
+    grid-row: unset;
+    letter-spacing: -0.014em;
+  }
+}
+
+/* ── Pitbull dossier: mejoras stacked para notebook medio (700–899px) ──
+   No usamos 2-col (los títulos son demasiado grandes para columnas angostas).
+   Solo mejoramos el layout interno de los widgets dentro del body apilado.
+   ─────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 700px) and (max-width: 899px) {
+  /* Feature facts: 3-col uniformes (con sección apilada el body es ancho completo,
+     3-col a ~214px/fact es legible y evita el layout 2+1 con fact huérfano). */
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    border-top: none;
+    padding: 12px 0 12px clamp(10px, 1.5vw, 14px);
+  }
+
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:first-child {
+    border-left: none;
+    padding-left: 0;
+    padding-top: 12px;
+  }
+
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(odd) {
+    padding-right: 0;
+  }
+
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(even):not(:nth-child(3n + 1)) {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding-left: clamp(10px, 1.5vw, 14px);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .community-page--premium .community-hero .design-hero__inner {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+  }
+
+  /* Events: rail horizontal más equilibrado en notebook ancho */
+  .events-page--premium .events-sidebar-card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .events-page--premium .pitbull-spotlight--editorial .pitbull-spotlight__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .events-page--premium .pitbull-spotlight--editorial .pitbull-spotlight__media-img {
+    max-height: 220px;
+  }
+
+  /* ── Pitbull: benefits en 2-col a 900-1199px ─────────────── */
+  /* Header (kicker+title+lead) a la izquierda, shell a la derecha */
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits {
+    align-items: start;
+    column-gap: clamp(20px, 2.8vw, 32px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.62fr) minmax(0, 1.38fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-hero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--benefits .pitbull-benefits-panel__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  /* ── Pitbull: feature siempre apilada (flujo a ancho completo) ─ */
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__head,
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__body {
+    margin-top: 0;
+  }
+
+  /* Categories: 2-col eficiente en notebook ancho */
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories {
+    align-items: start;
+    column-gap: clamp(20px, 2.8vw, 32px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__head {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__body {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  /* Facts: restaurar 3-col porque la columna body (~67% del ancho) tiene espacio suficiente */
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pitbull-dossier--minimal .pitbull-feature-facts--horizontal .pitbull-feature-facts__item {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    border-top: none;
+    padding: 14px 0 14px clamp(10px, 1.6vw, 14px);
+  }
+
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:first-child {
+    border-left: none;
+    padding-left: 0;
+    padding-top: 14px;
+  }
+
+  /* Resetear reglas odd/even del max-width:1199px */
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(-n + 2) {
+    border-top: none;
+    padding-top: 14px;
+  }
+
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(odd) {
+    padding-right: 0;
+  }
+
+  .pitbull-dossier--minimal
+    .pitbull-feature-facts--horizontal
+    .pitbull-feature-facts__item:nth-child(even) {
+    border-left: 1px solid var(--pitbull-section-divider, rgba(255, 255, 255, 0.06));
+    padding-left: clamp(10px, 1.6vw, 14px);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 767px) {
+  /* Notebook angosto: sidebar apilado vertical */
+  .events-page--premium .events-sidebar-card {
+    grid-template-columns: 1fr;
+  }
+
+  .events-page--premium .events-sidebar-card .event-calendar--premium {
+    border-bottom: 1px solid var(--events-section-divider, rgba(255, 255, 255, 0.07));
+    border-right: none;
+  }
+
+  .events-page--premium .events-hero__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    flex-wrap: wrap;
+  }
+
+  .events-page--premium .events-hero__count {
+    align-self: flex-start;
+  }
+
+  /* ── Members: intro 1-col en notebook angosto ──
+     A 641-767px la columna de head queda ~260px que es muy justo
+     para el título de 28px+ con su descripción.
+     ──────────────────────────────────────────── */
+  .members-page--premium .members-intro {
+    gap: clamp(20px, 3vw, 28px);
+    grid-template-columns: 1fr;
+  }
+
+  .members-page--premium .members-intro__head {
+    padding-left: clamp(14px, 2.2vw, 18px);
+  }
+
+  .members-page--premium .members-section__title--display {
+    font-size: clamp(22px, 3.6vw, 28px);
+    max-width: none;
+  }
+
+  .members-page--premium .members-section__text {
+    max-width: 48ch;
+  }
+
+  /* Requirements en notebook angosto: tipografía ajustada */
+  .members-page--premium .members-requirements__head .members-section__title {
+    font-size: clamp(20px, 3.2vw, 24px);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 899px) {
+  /* Requisitos: vigencia debajo de la lista en notebook angosto */
+  .members-page--premium .members-requirements__content {
+    column-gap: 0;
+    grid-template-columns: 1fr;
+    row-gap: clamp(20px, 3vw, 28px);
+  }
+
+  .members-page--premium .members-requirements .members-req-list--editorial {
+    grid-column: 1;
+    grid-row: 2;
+    padding-right: 0;
+  }
+
+  /* Lista de items: 2-col en 768-899px para aprovechar el ancho */
+  @media (min-width: 768px) {
+    .members-page--premium .members-requirements .members-req-list--editorial {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .members-page--premium .members-requirements__validity {
+    border-left: none;
+    border-top: 1px solid var(--members-section-divider, rgba(255, 255, 255, 0.06));
+    grid-column: 1;
+    grid-row: 3;
+    padding-left: 0;
+    padding-top: clamp(12px, 2vw, 18px);
+  }
+}
+
+/* ── Pitbull dossier: notebook estrecho (1200–1399px) ────────────── */
+@media (min-width: 1200px) and (max-width: 1399px) {
+  /* Feature: apilada; título sin techo de ch */
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature {
+    display: block;
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--feature .pitbull-dossier__title {
+    max-width: none;
+  }
+
+  /* Categories: proporción head/body más equilibrada */
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories {
+    column-gap: clamp(24px, 3.2vw, 40px);
+    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+  }
+
+  .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__title {
+    max-width: none;
+  }
+}

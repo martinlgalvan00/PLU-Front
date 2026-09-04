@@ -717,28 +717,33 @@
   }
 }
 
-.admin-shell .admin-event-console__fold > .admin-event-editor--embedded {
+/* Estas dos cajas venían del modal, donde acotarlas a 70vh era lo correcto:
+   el modal fijaba su alto al viewport y cada panel scrolleaba por dentro. Como
+   página el alto lo pone el contenido y la página ya scrollea, así que el cap
+   solo agregaba un segundo scroll (en mobile dejaba ~460px de Estructura
+   detrás de una barra interna). El scroll de esta pantalla es uno: el de la
+   página. */
+.admin-shell .admin-event-workspace__main-col > .admin-event-editor--embedded {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  max-height: min(70vh, 640px);
+  max-height: none;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.admin-shell .admin-event-console__fold--structure {
-  max-height: min(70vh, 680px);
-  overflow-x: hidden;
-  overflow-y: auto;
+.admin-shell .admin-event-workspace__structure {
+  max-height: none;
+  overflow: visible;
   padding: 12px 18px 16px;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-event-structure {
+.admin-shell .admin-event-workspace__structure .admin-event-structure {
   gap: 12px;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-event-form__block {
+.admin-shell .admin-event-workspace__structure .admin-event-form__block {
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -746,17 +751,17 @@
   padding: 0;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-event-form__block-head {
+.admin-shell .admin-event-workspace__structure .admin-event-form__block-head {
   display: none;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-ticket-types__day-list,
-.admin-shell .admin-event-console__fold--structure .admin-weigh-in-windows__list {
+.admin-shell .admin-event-workspace__structure .admin-ticket-types__day-list,
+.admin-shell .admin-event-workspace__structure .admin-weigh-in-windows__list {
   gap: 0;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-ticket-types__day-item,
-.admin-shell .admin-event-console__fold--structure .admin-weigh-in-windows__row {
+.admin-shell .admin-event-workspace__structure .admin-ticket-types__day-item,
+.admin-shell .admin-event-workspace__structure .admin-weigh-in-windows__row {
   background: transparent;
   border: 0;
   border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 70%, transparent);
@@ -765,29 +770,29 @@
   padding: 10px 0;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-ticket-types__day-item:first-child,
-.admin-shell .admin-event-console__fold--structure .admin-weigh-in-windows__row:first-child {
+.admin-shell .admin-event-workspace__structure .admin-ticket-types__day-item:first-child,
+.admin-shell .admin-event-workspace__structure .admin-weigh-in-windows__row:first-child {
   padding-top: 0;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-ticket-types__remove {
+.admin-shell .admin-event-workspace__structure .admin-ticket-types__remove {
   border: 0;
   height: 44px;
   width: 44px;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-ticket-types__empty {
+.admin-shell .admin-event-workspace__structure .admin-ticket-types__empty {
   background: transparent;
   border: 0;
   border-radius: 0;
   padding: 4px 0 8px;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-event-sessions--embedded {
+.admin-shell .admin-event-workspace__structure .admin-event-sessions--embedded {
   gap: 12px;
 }
 
-.admin-shell .admin-event-console__fold--structure .admin-event-sessions__row {
+.admin-shell .admin-event-workspace__structure .admin-event-sessions__row {
   background: transparent;
   border-color: var(--admin-hairline);
 }
@@ -796,10 +801,17 @@
   justify-content: flex-end;
 }
 
-/* Essentials: el body scrollea; el dock de acciones queda fijo abajo. */
+/* El formulario fluye con la página: no se acota ni scrollea por dentro. El
+   dock de acciones se resuelve más abajo con sticky, que es lo que mantiene
+   "Guardar" a la vista sin necesidad de un scroller propio.
+   `overflow: visible` es obligatorio para eso: admin.css lo pone en `hidden`
+   (base y otra vez en min-width 960px) para recortar las esquinas del modal, y
+   un ancestro con overflow oculto convierte al formulario en el scrollport del
+   dock -- el sticky se ancla a una caja que no scrollea y no pega nunca. */
 .admin-event-editor--accordion .admin-event-form--editor {
-  max-height: 100%;
+  max-height: none;
   min-height: 0;
+  overflow: visible;
 }
 
 .admin-event-editor--accordion .admin-event-form__body {
@@ -807,8 +819,7 @@
   gap: 14px;
   max-height: none;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: visible;
   padding-block: 12px 16px;
 }
 
@@ -818,12 +829,18 @@
   margin: 0 18px 10px;
 }
 
+/* Dentro del modal el dock quedaba fijo porque el body scrolleaba debajo. Con
+   el scroll de la página eso se pierde y "Guardar" se hunde al final de un
+   formulario largo, así que lo sostiene sticky mientras el editor está a la
+   vista. Se despega solo al salir del editor, no antes. */
 .admin-event-editor--accordion .admin-event-form__actions {
   align-items: center;
+  bottom: 0;
   flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 10px 14px;
   justify-content: space-between;
+  position: sticky;
   z-index: 3;
 }
 
@@ -1901,17 +1918,289 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  min-height: 0;
   width: 100%;
 }
 
+/* ── Layout con barra lateral ───────────────────────────────────────────────
+   La identidad del evento y la navegación viven en una columna fija; el panel
+   de la derecha es lo único que cambia al moverse entre pestañas.
+
+   `height: 100vh` estaba de más y era el motivo de que no se pudiera scrollear:
+   el scroll del admin lo hace `.admin-shell__content`, y una sección con alto
+   fijo adentro de ese scroller recorta el panel en vez de crecer con él. */
+.admin-event-workspace--sidebar {
+  flex-direction: column;
+}
+
+@media (min-width: 900px) {
+  .admin-event-workspace--sidebar {
+    align-items: stretch;
+    flex-direction: row;
+    /* Anula el centrado del bloque de 720px, que es del modal y acá dejaba la
+       barra lateral flotando a media altura, separada del panel. Sin esto se
+       ve como dos bloques sueltos en vez de una página. */
+    justify-content: flex-start;
+    padding: 0;
+  }
+}
+
+.admin-event-workspace__sidebar {
+  background: var(--admin-surface);
+  border-right: 1px solid var(--admin-hairline);
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 260px;
+  padding: 24px 20px;
+  z-index: 2;
+}
+
+@media (min-width: 900px) {
+  /* La superficie llega hasta abajo: una columna, no una tarjeta flotando al
+     costado -- que es lo que hacía leer la pantalla como dos bloques sueltos. */
+  .admin-event-workspace__sidebar {
+    align-self: stretch;
+    padding: 24px 20px 32px;
+  }
+
+  /* El contenido sí acompaña al scroll: la navegación del evento tiene que
+     estar siempre a mano, no sólo arriba de todo. Scroll propio recién si no
+     entra en pantalla, así no aparece una segunda barra en el caso normal. */
+  .admin-event-workspace__sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    position: sticky;
+    top: 24px;
+  }
+}
+
+.admin-event-workspace__sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* En pantallas chicas una columna de 260px se come el ancho: la barra pasa a
+   ser una cabecera, y la navegación una tira horizontal deslizable. */
+@media (max-width: 899px) {
+  /* Apilada, la barra se iba con el scroll y la navegación del evento quedaba
+     inalcanzable sin volver arriba de todo. Se queda pegada: es el control
+     principal de la pantalla. Fondo opaco porque el contenido pasa debajo. */
+  .admin-event-workspace__sidebar {
+    background: var(--admin-surface);
+    border-bottom: 1px solid var(--admin-hairline);
+    border-right: 0;
+    flex: 0 0 auto;
+    padding: 16px 14px 0;
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
+    position: sticky;
+    top: 0;
+    z-index: 6;
+  }
+
+  /* Con la barra pegada, el título y la meta ocuparían un tercio de pantalla
+     durante todo el scroll: se quedan sólo el volver y la navegación. */
+  .admin-event-workspace__sidebar-head {
+    margin-bottom: 12px;
+  }
+
+  .admin-event-workspace__back {
+    margin-bottom: 12px;
+  }
+
+}
+
+.admin-event-workspace__back {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 6px;
+  margin-bottom: 24px;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.admin-event-workspace__back:hover {
+  color: var(--admin-ink);
+}
+
+.admin-event-workspace__sidebar-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.admin-event-workspace__sidebar-head .admin-event-workspace__title {
+  font-size: 20px;
+}
+
+.admin-event-workspace__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-event-workspace__nav-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 500;
+  justify-content: space-between;
+  padding: 10px 12px;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-event-workspace__nav-item:hover {
+  background: color-mix(in srgb, var(--admin-ink) 5%, transparent);
+  color: var(--admin-ink);
+}
+
+/* `--admin-primary` y `--admin-danger` no existen en este proyecto, así que
+   estas tres reglas no pintaban nada: la pestaña activa no se distinguía de
+   las demás y el contador salía sin fondo. Los alias reales son
+   `--admin-brand` (celeste: identidad y navegación) y `--admin-status-danger`. */
+.admin-event-workspace__nav-item.is-active {
+  background: var(--admin-brand-soft, color-mix(in srgb, var(--admin-brand) 12%, transparent));
+  color: var(--admin-brand);
+  font-weight: 600;
+}
+
+.admin-event-workspace__nav-item:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--admin-brand));
+  outline-offset: -2px;
+}
+
+.admin-event-workspace__nav-item.has-error {
+  color: var(--admin-status-danger);
+}
+
+/* El contador es un dato, no una alarma: la paleta reserva el rojo para error
+   real. Va neutro, y sólo se tiñe cuando la pestaña además tiene un problema. */
+.admin-event-workspace__nav-count {
+  background: color-mix(in srgb, var(--admin-ink) 10%, transparent);
+  border-radius: 10px;
+  color: var(--admin-text-secondary, var(--admin-muted));
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 20px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.admin-event-workspace__nav-item.is-active .admin-event-workspace__nav-count {
+  background: color-mix(in srgb, var(--admin-brand) 18%, transparent);
+  color: var(--admin-brand);
+}
+
+.admin-event-workspace__nav-item.has-error .admin-event-workspace__nav-count {
+  background: var(--admin-status-danger-bg, color-mix(in srgb, var(--admin-status-danger) 16%, transparent));
+  color: var(--admin-status-danger);
+}
+
+/* En pantallas chicas la navegación es una tira horizontal deslizable, no una
+   columna: apilada verticalmente ocupaba 309px de una pantalla de 844, y con la
+   barra pegada se comía más de la mitad del viewport durante todo el scroll.
+   Va después de las reglas base a propósito: un @media no suma especificidad,
+   así que puesta antes perdía contra `flex-direction: column`. */
+@media (max-width: 899px) {
+  .admin-event-workspace__nav {
+    flex-direction: row;
+    gap: 6px;
+    margin: 0 -14px;
+    overflow-x: auto;
+    padding: 0 14px 12px;
+    scrollbar-width: none;
+  }
+
+  .admin-event-workspace__nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-event-workspace__nav-item {
+    flex: 0 0 auto;
+    gap: 6px;
+    justify-content: flex-start;
+    white-space: nowrap;
+  }
+
+  /* La meta completa (fecha, sede y URL) es referencia, no navegación: con la
+     barra pegada estaría ocupando pantalla en cada scroll. El título y el
+     estado se quedan porque dicen qué evento se está editando. */
+  .admin-event-workspace__sidebar .admin-event-workspace__meta {
+    display: none;
+  }
+
+  .admin-event-workspace__sidebar-head .admin-event-workspace__title {
+    font-size: 16px;
+  }
+}
+
+/* Cabecera mínima del panel: no tenía ninguna regla, así que heredaba el
+   encabezado completo -- fondo opaco, borde y padding de una cabecera con
+   título -- para contener sólo dos íconos. Es una barra de acciones. */
+/* Doble clase a propósito: es un modificador que tiene que pisar a
+   `.admin-event-workspace__head`, y con una sola clase quedaba empatado en
+   especificidad y perdía por orden -- la cabecera seguía siendo sticky y en
+   mobile se superponía con la barra lateral, que también lo es. */
+.admin-event-workspace__head.admin-event-workspace__head--minimal {
+  align-items: center;
+  background: transparent;
+  border-bottom: 0;
+  justify-content: space-between;
+  min-height: 0;
+  padding: 16px 20px 0;
+  position: static;
+}
+
+.admin-event-workspace__section-title {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El pill es una etiqueta: en una columna angosta `stretch` lo estiraba de
+   punta a punta y dejaba de leerse como estado. */
+.admin-event-workspace__sidebar-head > * {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+@media (max-width: 899px) {
+  .admin-event-workspace__head.admin-event-workspace__head--minimal {
+    padding: 12px 14px 0;
+  }
+}
+
+/* Sin `overflow: hidden` a propósito: además de recortar, convertía al panel en
+   scrollport, y entonces el header y el dock de acciones quedaban pegados a una
+   caja que no scrollea en vez de a la página. `min-height: 0` era del modal
+   (dejaba encoger por debajo del contenido); acá el alto lo pone el contenido. */
 .admin-event-workspace__panel {
   background: var(--admin-canvas);
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
   width: 100%;
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -1950,10 +2239,27 @@
   }
 }
 
+/* Alto del encabezado, para anclar el rail debajo. Es medido, no estimado: el
+   encabezado wrappea a dos filas cuando el ancho no alcanza (130px hasta
+   1152px, 76px desde 1280px). Se declara acá para que el offset del sticky y
+   el alto real salgan del mismo lugar. */
+.admin-event-workspace__panel {
+  --admin-event-head-h: 130px;
+}
+
+@media (min-width: 1280px) {
+  .admin-event-workspace__panel {
+    --admin-event-head-h: 76px;
+  }
+}
+
+/* Opaco a propósito: es una barra sticky sobre contenido que scrollea debajo.
+   Con 72% de superficie se leía el formulario a través del encabezado, y el
+   `backdrop-filter` no rescata eso de forma confiable. */
 .admin-event-workspace__head {
   align-items: flex-start;
-  background: color-mix(in srgb, var(--admin-surface) 72%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
+  background: var(--admin-canvas);
+  border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
@@ -1962,7 +2268,12 @@
   padding-top: max(16px, env(safe-area-inset-top, 0px));
   position: sticky;
   top: 0;
-  z-index: 2;
+  /* Por encima de TODO sticky del panel: el dock de acciones (4) y el rail. En
+     una columna el rail va debajo del formulario, así que al pasar el final del
+     form el dock vuelve a su posición natural y cruza la banda del encabezado;
+     con z-index menor le pintaba encima (medido: 95px de solapamiento al 98%
+     del scroll) y, al compartir superficie, se leía como un solo panel. */
+  z-index: 6;
 }
 
 .admin-event-workspace__head-copy {
@@ -2044,6 +2355,172 @@
   flex: none;
   flex-wrap: wrap;
   gap: 6px;
+  margin-left: auto;
+}
+
+/* Dashboard */
+.admin-event-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 16px 0;
+}
+
+.admin-event-dashboard__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.admin-event-dashboard__kpi-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  transition: border-color 0.15s ease;
+}
+
+.admin-event-dashboard__kpi-card:hover {
+  border-color: color-mix(in srgb, var(--admin-ink) 20%, transparent);
+}
+
+.admin-event-dashboard__kpi-icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-primary) 10%, transparent);
+  border-radius: 8px;
+  color: var(--admin-primary);
+  display: flex;
+  flex: none;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+.admin-event-dashboard__kpi-data {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-event-dashboard__kpi-label {
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-event-dashboard__kpi-value {
+  color: var(--admin-ink);
+  font-family: var(--font-display, var(--font-family));
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.admin-event-dashboard__kpi-subtext {
+  color: var(--admin-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.admin-event-dashboard__actions h3 {
+  color: var(--admin-ink);
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.admin-event-dashboard__action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.admin-event-dashboard__action-card {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 16px;
+  text-align: center;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-event-dashboard__action-card svg {
+  color: var(--admin-muted);
+  transition: color 0.15s ease;
+}
+
+.admin-event-dashboard__action-card:hover {
+  background: var(--admin-surface);
+  border-color: color-mix(in srgb, var(--admin-ink) 20%, transparent);
+}
+
+.admin-event-dashboard__action-card:hover svg {
+  color: var(--admin-primary);
+}
+
+.admin-event-dashboard__action-card span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Visual Builder Iframe */
+.admin-event-visual-builder {
+  background: var(--admin-canvas);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 500px;
+  width: 100%;
+}
+
+.admin-event-visual-builder__header {
+  align-items: center;
+  background: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-hairline);
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+}
+
+.admin-event-visual-builder__dot {
+  background: var(--admin-hairline);
+  border-radius: 50%;
+  height: 10px;
+  width: 10px;
+}
+
+.admin-event-visual-builder__url {
+  background: var(--admin-canvas);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 6px;
+  color: var(--admin-muted);
+  flex: 1;
+  font-size: 11px;
+  margin-left: 8px;
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-event-visual-builder__iframe {
+  background: #fff;
+  border: 0;
+  flex: 1;
+  width: 100%;
 }
 
 .admin-event-workspace__edit {
@@ -2343,15 +2820,31 @@
 
 /* En phone el head se compacta: acciones en toolbar, editar solo ícono. */
 @media (max-width: 719px) {
+  /* `nowrap` ponía las pestañas AL LADO del título, y en 390px les quedaba una
+     columna donde entraba una sola ("Datos"): las otras cinco quedaban fuera de
+     un scroll horizontal que no se anunciaba. Envolviendo, las pestañas bajan a
+     su propia fila a todo el ancho. Importa más acá que en cualquier otra
+     pantalla: el encabezado es sticky, así que lo que ocupa se lo saca al
+     contenido durante todo el scroll. */
   .admin-event-workspace__head {
     align-items: center;
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 10px;
     padding: 12px 14px;
     padding-left: max(14px, env(safe-area-inset-left, 0px));
     padding-right: max(14px, env(safe-area-inset-right, 0px));
     padding-top: max(12px, env(safe-area-inset-top, 0px));
+  }
+
+  .admin-event-workspace__head-top {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .admin-event-workspace__head .detail-tabs {
+    flex: 1 1 100%;
+    min-width: 0;
   }
 
   .admin-event-workspace__head-copy {
@@ -2364,11 +2857,8 @@
     -webkit-line-clamp: 1;
   }
 
-  .admin-event-workspace__meta-line {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  /* (La compactación de `__meta` en phone va junto a su regla base, más abajo:
+     acá quedaba ANTES y con igual especificidad ganaba la última. */
 
   .admin-event-workspace__head-actions {
     flex: 0 0 auto;
@@ -2423,7 +2913,6 @@
    Especificidad ≥ admin-minimal (.admin-shell .admin-list-shell--events …). */
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state {
   border-bottom: 1px solid color-mix(in srgb, var(--admin-hairline) 85%, transparent);
@@ -2435,7 +2924,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__workflow {
   align-items: center;
@@ -2445,11 +2933,9 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__workflow-label,
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state
   .admin-filter-group__label {
@@ -2461,7 +2947,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__workflow-actions {
   align-items: center;
@@ -2471,11 +2956,9 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__registration-action,
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__registration-live {
   font-size: 11px;
@@ -2485,7 +2968,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__registration-action--open {
   background: var(--admin-action, var(--color-brand-action));
@@ -2494,7 +2976,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__controls {
   display: grid;
@@ -2503,7 +2984,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row {
   align-items: start;
@@ -2515,7 +2995,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row:first-child {
   border-top: 0;
@@ -2523,7 +3002,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row-label {
   color: var(--admin-muted);
@@ -2535,7 +3013,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row
   .admin-filter-group {
@@ -2544,7 +3021,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row
   .admin-filter-group__label {
@@ -2552,7 +3028,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-event-state__row-label {
@@ -2561,7 +3036,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access {
   display: grid;
@@ -2571,7 +3045,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access-option {
   align-items: start;
@@ -2592,14 +3065,12 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access-option:hover:not(:disabled):not(.is-active) {
   border-left-color: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 28%, transparent);
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access-option:focus-visible {
   outline: 2px solid var(--color-brand-celeste);
@@ -2607,7 +3078,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access-option:disabled {
   cursor: not-allowed;
@@ -2615,7 +3085,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access-option.is-active {
   background: transparent;
@@ -2623,7 +3092,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access-option strong {
   color: var(--admin-ink, var(--color-text-primary));
@@ -2634,7 +3102,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access-option small {
   color: var(--admin-muted, var(--color-text-muted));
@@ -2645,7 +3112,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__access
   .admin-event-state__note {
@@ -2653,14 +3119,12 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--visibility {
   align-items: center;
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--visibility
   .admin-event-state__visibility {
@@ -2670,7 +3134,6 @@
 
 @media (max-width: 519px) {
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state__row {
     grid-template-columns: minmax(0, 1fr);
@@ -2678,7 +3141,6 @@
   }
 
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state__row-label {
     line-height: 1.2;
@@ -2688,12 +3150,10 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row:not(.admin-event-state__row--access)
   .admin-filter-chips,
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row:not(.admin-event-state__row--access)
   .admin-filter-chips-rail {
@@ -2708,7 +3168,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state
   .admin-filter-chips-rail::-webkit-scrollbar {
@@ -2716,7 +3175,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row:not(.admin-event-state__row--access)
   .admin-filter-chip {
@@ -2735,7 +3193,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row:not(.admin-event-state__row--access)
   .admin-filter-chip:hover {
@@ -2744,12 +3201,10 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row:not(.admin-event-state__row--access)
   .admin-filter-chip.is-active,
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row:not(.admin-event-state__row--access)
   .admin-filter-chip[aria-pressed='true'] {
@@ -2761,7 +3216,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state
   .admin-filter-chip__indicator {
@@ -2770,12 +3224,10 @@
 
 /* Acceso: par segmentado denso (después del riel de estado para ganar cascada). */
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-filter-chips,
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-filter-chips-rail {
@@ -2794,7 +3246,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-filter-chip {
@@ -2812,7 +3263,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-filter-chip:hover {
@@ -2820,12 +3270,10 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-filter-chip.is-active,
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__row--access
   .admin-filter-chip[aria-pressed='true'] {
@@ -2836,7 +3284,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__note {
   align-items: flex-start;
@@ -2850,7 +3297,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__note
   svg {
@@ -2860,7 +3306,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__visibility {
   color: var(--admin-muted);
@@ -2872,7 +3317,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__visibility.is-published {
   color: var(--admin-brand);
@@ -2880,7 +3324,6 @@
 }
 
 .admin-shell
-  .admin-list-shell--events
   .admin-event-workspace__panel
   .admin-event-state__pending {
   background: color-mix(in srgb, var(--admin-brand, var(--color-brand-action)) 12%, transparent);
@@ -2892,31 +3335,25 @@
 
 @media (max-width: 719px), (pointer: coarse) {
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state
     .admin-filter-chip,
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state__visibility,
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state__registration-action,
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state__registration-live {
     min-height: 44px;
   }
 
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state__pending-discard,
   .admin-shell
-    .admin-list-shell--events
     .admin-event-workspace__panel
     .admin-event-state__pending-save {
     min-height: 44px;
@@ -3003,16 +3440,18 @@
   flex: 1 1 auto;
   gap: 18px;
   min-height: 0;
-  overflow-y: auto;
+  overflow: visible;
   padding: 18px 18px 22px;
 }
 
 .admin-event-editor--embedded .admin-event-form__section {
   animation: admin-event-editor-section-enter var(--motion-base, 280ms) var(--ease-standard, ease)
     both;
-  border: 0;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
   gap: 16px;
-  padding: 0;
+  padding: 24px;
 }
 
 .admin-event-editor--embedded .admin-event-form__section--sales {
@@ -3030,10 +3469,17 @@
   max-width: 46ch;
 }
 
-/* Dock de acciones: misma superficie que el modal, sin glass anidado. */
+/* Dock de acciones: superficie OPACA, no la del modal. `--admin-modal-bg` es
+   glass (88% en dark, 95% en light) y funciona sobre el overlay oscurecido de
+   un modal; acá el dock es sticky y el formulario le pasa por debajo, así que
+   con esa translucidez se leían los campos atravesando "Guardar".
+   `backdrop-filter: none` porque admin.css aplica blur(12px) a `__actions` y el
+   blur no es una garantía de legibilidad para la acción principal. */
 .admin-event-editor--embedded .admin-event-form__actions {
-  background: var(--admin-modal-bg);
-  border-top: 1px solid var(--admin-modal-hairline);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--admin-surface);
+  border-top: 1px solid var(--admin-hairline);
   gap: 10px;
   justify-content: flex-end;
   margin-top: auto;
@@ -3122,8 +3568,10 @@
     background: transparent;
   }
 
+  /* Con transparencia reducida el dock tenía que quedar MENOS translúcido, y
+     `--admin-modal-bg` sigue teniendo alpha: acá va la superficie plena. */
   .admin-event-editor--embedded .admin-event-form__actions {
-    background: var(--admin-modal-bg);
+    background: var(--admin-surface);
   }
 
   .admin-event-editor--embedded .admin-event-form__occupancy {
@@ -3361,5 +3809,569 @@
 
   .admin-event-workspace .admin-event-ticket-insights__breakdown li:first-child {
     border-left: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §7. Página del evento — piezas propias del workspace
+   ═══════════════════════════════════════════════════════════════════════════
+   El evento pasó de consola-modal a página con seis pestañas. El encabezado,
+   el cuerpo y el rail de pestañas reusan las reglas de arriba (renombradas de
+   `admin-event-console-modal__*`); acá viven solo las piezas nuevas: volver,
+   el split con rail, las tarjetas del rail, los capítulos de Ventas y los
+   interruptores de la página pública.
+
+   Todo sale de los alias `--admin-*`, que ya resuelven claro y oscuro. */
+
+.admin-event-workspace__back {
+  align-items: center;
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm, 6px);
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  margin: 12px 20px 0;
+  min-height: 32px;
+  padding: 0 6px;
+}
+
+.admin-event-workspace__back:hover {
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-event-workspace__back:focus-visible {
+  outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+.admin-event-workspace__head-top {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+}
+
+.admin-event-workspace__meta-sep {
+  color: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 55%, transparent);
+}
+
+.admin-event-workspace__meta-path {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Split: superficie principal + rail ─────────────────────────────────── */
+
+.admin-event-workspace__split {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+@media (min-width: 1080px) {
+  .admin-event-workspace__split {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  /* El rail mide ~340px y la columna principal puede medir varios miles: con el
+     scroll de la página el rail se iba de pantalla y dejaba media pantalla de
+     columna vacía. Pegado debajo del encabezado acompaña al formulario, que es
+     para lo que está (ocupación, accesos, vista previa).
+     El `max-height` es la válvula para un rail más alto que la pantalla -- la
+     vista previa del sitio, por ejemplo: recién ahí gana scroll propio, en vez
+     de quedar con el final inalcanzable debajo del sticky. */
+  .admin-event-workspace__rail {
+    align-self: start;
+    max-height: calc(100dvh - var(--admin-event-head-h) - 32px);
+    overflow-y: auto;
+    position: sticky;
+    top: calc(var(--admin-event-head-h) + 16px);
+  }
+}
+
+.admin-event-workspace__main-col,
+.admin-event-workspace__wide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.admin-event-workspace__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* ── Tarjetas del rail ──────────────────────────────────────────────────── */
+
+.admin-event-workspace__card {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-md, 10px);
+}
+
+.admin-event-workspace__card-head {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.admin-event-workspace__card-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-event-workspace__card-hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+  margin-left: auto;
+}
+
+.admin-event-workspace__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.admin-event-workspace__meter {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 8%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  height: 5px;
+  overflow: hidden;
+}
+
+.admin-event-workspace__meter > span {
+  background: var(--admin-brand, var(--color-brand-celeste));
+  display: block;
+  height: 100%;
+}
+
+.admin-event-workspace__occupancy-copy {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.admin-event-workspace__occupancy-copy strong {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.admin-event-workspace__occupancy-copy span {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+}
+
+/* ── Accesos a otras secciones del panel ────────────────────────────────── */
+
+.admin-event-workspace__gotos {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-event-workspace__goto {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font-family: inherit;
+  gap: 11px;
+  min-height: 44px;
+  padding: 11px 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.admin-event-workspace__goto:last-child {
+  border-bottom: none;
+}
+
+.admin-event-workspace__goto:hover {
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 7%, transparent);
+}
+
+.admin-event-workspace__goto:focus-visible {
+  outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  outline-offset: -2px;
+}
+
+.admin-event-workspace__goto > svg,
+.admin-event-workspace__goto-chevron {
+  color: var(--admin-muted, var(--color-text-muted));
+  flex: 0 0 auto;
+}
+
+.admin-event-workspace__goto-copy {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-event-workspace__goto-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.admin-event-workspace__goto-value {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+}
+
+/* ── Aviso honesto (zonas) ──────────────────────────────────────────────── */
+
+.admin-event-workspace__notice {
+  background: color-mix(in srgb, var(--plu-warning-500) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plu-warning-500) 30%, transparent);
+  border-radius: var(--border-radius-md, 10px);
+  display: flex;
+  gap: 11px;
+  padding: 14px 16px;
+}
+
+.admin-event-workspace__notice > svg {
+  color: var(--plu-gold-400);
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.admin-event-workspace__notice h3 {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0 0 5px;
+}
+
+.admin-event-workspace__notice p {
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Capítulos de Ventas ────────────────────────────────────────────────── */
+
+.admin-event-workspace__chapters {
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-event-workspace__chapters::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-event-workspace__chapter {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--admin-muted, var(--color-text-muted));
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  font-family: inherit;
+  gap: 3px;
+  margin-bottom: -1px;
+  min-height: 44px;
+  padding: 0 0 10px;
+  text-align: left;
+}
+
+.admin-event-workspace__chapter strong {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.admin-event-workspace__chapter em {
+  color: color-mix(in srgb, var(--admin-muted, var(--color-text-muted)) 80%, transparent);
+  font-size: 10.5px;
+  font-style: normal;
+}
+
+.admin-event-workspace__chapter.is-active {
+  border-bottom-color: var(--admin-brand, var(--color-brand-celeste));
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-event-workspace__chapter:focus-visible {
+  outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  outline-offset: 2px;
+}
+
+/* ── Interruptores de la página pública ─────────────────────────────────── */
+
+.admin-event-workspace__surface {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-md, 10px);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-event-workspace__switch-row {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font-family: inherit;
+  gap: 12px;
+  min-height: 44px;
+  padding: 11px 16px;
+  text-align: left;
+  width: 100%;
+}
+
+.admin-event-workspace__switch-row:last-child {
+  border-bottom: none;
+}
+
+.admin-event-workspace__switch-row:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.admin-event-workspace__switch-row:focus-visible {
+  outline: 2px solid var(--admin-brand, var(--color-brand-celeste));
+  outline-offset: -2px;
+}
+
+.admin-event-workspace__switch-row strong {
+  flex-grow: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.admin-event-workspace__switch-row em {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-style: normal;
+}
+
+.admin-event-workspace__switch {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 12%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  flex: 0 0 auto;
+  height: 20px;
+  position: relative;
+  transition: background var(--motion-fast, 160ms) var(--ease-standard, ease);
+  width: 36px;
+}
+
+.admin-event-workspace__switch::after {
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 45%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  content: "";
+  height: 15px;
+  left: 3px;
+  position: absolute;
+  top: 2.5px;
+  transition: transform var(--motion-fast, 160ms) var(--ease-standard, ease);
+  width: 15px;
+}
+
+.admin-event-workspace__switch-row.is-on .admin-event-workspace__switch {
+  background: color-mix(in srgb, var(--plu-success-500) 55%, transparent);
+}
+
+.admin-event-workspace__switch-row.is-on .admin-event-workspace__switch::after {
+  background: var(--plu-success-400);
+  transform: translateX(15px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-event-workspace__switch,
+  .admin-event-workspace__switch::after {
+    transition: none;
+  }
+}
+
+/* La meta del encabezado: `__meta-line` era del modal y traía `max-width:
+   58ch`, que cortaba la línea. Acá fluye y envuelve. */
+.admin-event-workspace__meta {
+  align-items: center;
+  color: var(--admin-muted, var(--color-text-muted));
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: 8px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* En phone la meta va en una línea con ellipsis. La regla del modal apuntaba a
+   `__meta-line`, una clase que el componente no renderiza, así que nunca se
+   aplicó y la meta envolvía en cuatro líneas: con el encabezado sticky eso le
+   comía pantalla a TODO el scroll, no solo al primer viewport (medido a 390px:
+   el encabezado pasó de 204px a 149px con esto y con las pestañas en su fila).
+   Va acá, después de la regla base, porque un @media no suma especificidad. */
+@media (max-width: 719px) {
+  .admin-event-workspace__meta {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-event-workspace__meta > * {
+    display: inline;
+  }
+
+  /* Al salir del flex se pierde el `gap`, y el separador queda pegado
+     ("14 nov·Club Atlético"). En línea el aire lo pone el margen. */
+  .admin-event-workspace__meta .admin-event-workspace__meta-sep {
+    margin-inline: 6px;
+  }
+}
+
+
+/* Mismo criterio que el resto del panel: en touch los controles suben a 44px
+   (ver el bloque `pointer: coarse` de admin.css / admin-minimal.css). */
+@media (pointer: coarse) {
+  .admin-event-workspace__back {
+    min-height: 44px;
+  }
+}
+
+/* El cuerpo del modal era una grilla de dos columnas (main + aside de 340px)
+   con scroll propio. Como página no corresponde ninguna de las dos cosas: el
+   split de cada pestaña define sus columnas, y el scroll es el de la página.
+   Sin esto la columna principal quedaba en ~330px con el resto vacío. */
+.admin-event-workspace__body {
+  display: block;
+  overflow: visible;
+  padding: 16px 20px 24px;
+}
+
+/* ── Estructura en tres pasos ───────────────────────────────────────────────
+   Jornadas, pesajes y tandas dependen entre sí: sin jornadas no hay ventana
+   de pesaje que cargar, y sin pesaje la tanda no cierra. El riel numerado dice
+   eso; la pila plana anterior dejaba los tres bloques al mismo nivel y el
+   guardar suelto en el medio. */
+
+.admin-event-structure--stepped {
+  gap: var(--space-md, 16px);
+}
+
+.admin-event-structure__steps {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-event-structure__step {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 26px minmax(0, 1fr);
+}
+
+.admin-event-structure__step-rail {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-event-structure__step-number {
+  align-items: center;
+  background: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 32%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  color: var(--admin-brand, var(--color-brand-celeste));
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.admin-event-structure__step-line {
+  background: var(--admin-hairline, var(--color-border-subtle));
+  flex-grow: 1;
+  width: 1px;
+}
+
+.admin-event-structure__step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: var(--space-lg, 24px);
+}
+
+.admin-event-structure__step--last .admin-event-structure__step-body {
+  padding-bottom: 0;
+}
+
+.admin-event-structure__step-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.admin-event-structure__step-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.admin-event-structure__step-hint {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 68ch;
+}
+
+/* El guardar de jornadas + pesajes pertenece al paso 2, no al final de todo:
+   ahí se entiende qué guarda. */
+.admin-event-structure__step-body .admin-event-sessions__actions {
+  justify-content: flex-start;
+  margin: 0;
+}
+
+@media (max-width: 719px) {
+  .admin-event-structure__step {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .admin-event-structure__step-number {
+    font-size: 10.5px;
+    height: 22px;
+    width: 22px;
+  }
+
+  .admin-event-structure__step-body {
+    padding-bottom: var(--space-md, 16px);
   }
 }

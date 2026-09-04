@@ -1235,6 +1235,7 @@ export default {
 
   eventConsole: {
     close: 'Close',
+    dashboard: 'Overview',
     configLabel: 'Event setup',
     fichaLabel: 'Event file',
     siteLabel: 'Public site',
@@ -1279,6 +1280,13 @@ export default {
     surfaceOn: 'Visible',
     surfaceOff: 'Hidden',
     paymentChapterValue: 'Payment methods',
+    visibilityLabel: 'Public view',
+    tabsLabel: 'Event sections',
+    occupancy: 'Occupancy',
+    occupancyDetail: 'of {{slots}} spots · {{remaining}} left',
+    zoneScopeNoticeTitle: 'Posts do not gate entry yet',
+    zoneScopeNotice:
+      'Today the scanner authorises by check-in permission, not by post: any enabled account can read any credential, and a ticket is scanned once for the whole event. A post defines which credentials it reads, not who gets in.',
   },
 
   eventPayments: {
@@ -1395,10 +1403,19 @@ export default {
     unassignedShort: 'Unassigned',
     structureLead:
       'Meet days, when athletes can weigh in, and platform flights. Days also feed spectator tickets.',
+    stepDaysTitle: 'Competition days',
+    stepDaysHint: 'The days the meet runs. Tickets are sold against these days.',
+    stepWeighInsTitle: 'Weigh-ins',
+    stepWeighInsHint:
+      'Weigh-in windows per day. Each one can be shown on the public event page.',
+    stepSessionsTitle: 'Sessions',
+    stepSessionsHint:
+      'Athletes lifting together, by platform and time. Fine-grained ordering lives in Grid.',
     structureSave: 'Save days and weigh-ins',
     structureSaving: 'Saving…',
     structureSaveError: 'Days or weigh-ins could not be saved.',
     weighInWindows: {
+      dateRequired: 'Add the date: without it the window is not published.',
       title: 'Public weigh-ins',
       lead: 'Hours when athletes can weigh in. Independent from each flight’s weigh-in time.',
       empty: 'No weigh-in windows yet. Without them the site does not publish times.',
@@ -2753,6 +2770,26 @@ export default {
       ticketTypeAddonsLabel: 'Perks included at no charge (pack)',
       ticketTypeAddonsEmpty:
         'Configure the perks catalog first to be able to bundle them into a pack.',
+      credentialsLabel: 'Credentials issued',
+      credentialName: 'Credential name',
+      credentialNamePrimary: 'Main credential',
+      credentialNamePlaceholder: 'e.g. COACH',
+      credentialZones: 'Zones it opens',
+      credentialAdd: 'Add credential',
+      credentialRemove: 'Remove credential',
+      credentialCoachPreset: 'Set up coach ticket',
+      credentialsPerPurchase: 'Each purchase issues {{count}} credentials and takes a single spot.',
+      credentialsPerPurchaseQuota:
+        'Each purchase issues {{count}} credentials: {{quota}} spots and {{total}} credentials in total.',
+      credentialError: {
+        required: 'Add a name.',
+        zonesRequired: 'Pick at least one zone: a credential that opens nothing is useless.',
+        tooLong: 'Maximum 40 characters.',
+        duplicate: 'Another credential already uses this name: printed they would look alike.',
+        empty: 'The ticket needs at least one credential.',
+        tooMany: 'Maximum 4 credentials per ticket.',
+        invalid: 'Unknown zone.',
+      },
       liveTitle: 'Live stream',
       liveStreamUrl: 'Stream URL',
       liveStreamProvider: 'Platform',
@@ -2802,6 +2839,15 @@ export default {
     sectionVisibility: 'Publishing',
     sectionVisibilityLeadEssentials:
       'Feature the meet and choose which blocks the public sees. Status and access are controlled above in the console.',
+    publicCopyLegend: 'How it reads in public',
+    publicCopyHint:
+      'Empty keeps the event title and the design defaults. Section headings are not editable: they are what keeps the site coherent across meets.',
+    publicTitleField: 'Public title',
+    publicTitlePlaceholder: 'Same as the event title',
+    heroLeadField: 'Hero lead',
+    heroLeadPlaceholder: 'One line saying what the meet is',
+    ctaLabelField: 'Button label',
+    ctaLabelPlaceholder: 'Sign me up',
     publicSurfaceLegend: 'What the site shows',
     publicSurfaceCalendarTitle: 'Calendar',
     publicSurfaceCalendarHint: 'Buttons to add the meet to Google Calendar or download the .ics.',

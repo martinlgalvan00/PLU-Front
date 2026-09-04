@@ -78,9 +78,11 @@ function PitbullHeroPanel({
   canRegister,
   checkoutLocked,
   eventStatus,
+  lead = '',
   onHome,
   onRegister,
   onSecondary,
+  registerLabel = '',
   registrationFee,
   ticketsOpen,
   t,
@@ -100,7 +102,7 @@ function PitbullHeroPanel({
       : athleteStatus === 'pending_payment'
         ? t('pages.events.athleteStatusAction.pending_payment')
         : canRegister
-          ? t('pages.pitbull.register')
+          ? registerLabel || t('pages.pitbull.register')
           : isFinished
             ? t('pages.home.viewResults')
             : isComingSoon
@@ -148,7 +150,7 @@ function PitbullHeroPanel({
         </Item>
 
         <Item {...itemProps}>
-          <p className="pitbull-hero-masthead__lead">{t('pages.pitbull.heroLead')}</p>
+          <p className="pitbull-hero-masthead__lead">{lead || t('pages.pitbull.heroLead')}</p>
         </Item>
       </header>
 
@@ -245,9 +247,17 @@ export default function PitbullHero({
   canRegister,
   checkoutLocked = false,
   eventStatus,
+  /** Bajada editable desde Vista publica. Vacia cae al copy del diseno. */
+  lead = '',
   onHome,
   onRegister,
   onSecondary,
+  /**
+   * Texto editable del boton principal. Solo reemplaza el caso "Inscribirme":
+   * "Ver mi inscripcion" y "Completar el pago" los dicta el estado del atleta
+   * y no pueden quedar tapados por copy editorial.
+   */
+  registerLabel = '',
   registrationFee,
   ticketsOpen,
   title,
@@ -261,9 +271,11 @@ export default function PitbullHero({
       canRegister={canRegister}
       checkoutLocked={checkoutLocked}
       eventStatus={eventStatus}
+      lead={lead}
       onHome={onHome}
       onRegister={onRegister}
       onSecondary={onSecondary}
+      registerLabel={registerLabel}
       registrationFee={registrationFee}
       ticketsOpen={ticketsOpen}
       t={t}

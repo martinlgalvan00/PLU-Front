@@ -2,7 +2,9 @@ import { HelpCircle, Plus, Tag, Trash2 } from 'lucide-react'
 import Button from '../ui/Button.jsx'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { money } from '../../lib/format.js'
+import { defaultTicketCredential } from '../../lib/ticketCredentials.js'
 import AdminEventDaysEditor from './AdminEventDaysEditor.jsx'
+import AdminTicketCredentialsEditor from './AdminTicketCredentialsEditor.jsx'
 
 function createEmptyTicketType(index) {
   return {
@@ -13,6 +15,9 @@ function createEmptyTicketType(index) {
     active: true,
     dayIndexes: [],
     includedAddonIds: [],
+    // Un tipo nuevo arranca emitiendo la credencial de siempre: sin ninguna
+    // vendería una entrada que no abre nada.
+    credentials: [defaultTicketCredential()],
   }
 }
 
@@ -274,6 +279,14 @@ export default function AdminTicketTypesEditor({
                     {t('admin.eventEditor.supabase.ticketTypeAddonsEmpty')}
                   </p>
                 )}
+
+                <AdminTicketCredentialsEditor
+                  canEdit={canEdit}
+                  credentials={type.credentials ?? [defaultTicketCredential()]}
+                  fieldPrefix={`ticketTypes.${index}`}
+                  quota={type.quota}
+                  onChange={(credentials) => patchTicketType(index, { credentials })}
+                />
               </li>
             ))}
           </ul>

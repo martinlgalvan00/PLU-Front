@@ -62,7 +62,15 @@ export default function AdminEventWeighInWindowsEditor({
         <p className="admin-ticket-types__empty">{t('admin.schedule.weighInWindows.empty')}</p>
       ) : (
         <ul className="admin-weigh-in-windows__list">
-          {forms.map((window, index) => (
+          {forms.map((window, index) => {
+            /**
+             * Sin fecha no hay `startsAt`: `weighInWindowFromForm` compone
+             * `${date}T${startTime}`, así que cargar la hora y olvidar la
+             * fecha daba un error señalando el campo HORA -- el operador
+             * miraba el lugar equivocado y la franja no se publicaba.
+             */
+            const dateMissing = !window.date && Boolean(window.startTime || window.endTime)
+            return (
             <li key={window.id ?? `new-${index}`} className="admin-weigh-in-windows__row">
               <label className="admin-event-sessions__field">
                 <span>{t('admin.schedule.weighInWindows.labelField')}</span>
@@ -91,12 +99,13 @@ export default function AdminEventWeighInWindowsEditor({
                   value={window.date}
                   name={`weighInWindows.${index}.date`}
                   data-field={`weighInWindows.${index}.date`}
-                  aria-invalid={Boolean(errors[`weighInWindows.${index}.date`])}
+                  aria-invalid={Boolean(errors[`weighInWindows.${index}.date`]) || dateMissing}
                   onChange={(event) => patchWindow(index, 'date', event.target.value)}
                 />
-                {errors[`weighInWindows.${index}.date`] ? (
+                {errors[`weighInWindows.${index}.date`] || dateMissing ? (
                   <small className="admin-event-form__error" role="alert">
-                    {errors[`weighInWindows.${index}.date`]}
+                    {errors[`weighInWindows.${index}.date`] ||
+                      t('admin.schedule.weighInWindows.dateRequired')}
                   </small>
                 ) : null}
               </label>
@@ -111,7 +120,7 @@ export default function AdminEventWeighInWindowsEditor({
                   aria-invalid={Boolean(errors[`weighInWindows.${index}.startsAt`])}
                   onChange={(event) => patchWindow(index, 'startTime', event.target.value)}
                 />
-                {errors[`weighInWindows.${index}.startsAt`] ? (
+                {errors[`weighInWindows.${index}.startsAt`] && !dateMissing ? (
                   <small className="admin-event-form__error" role="alert">
                     {errors[`weighInWindows.${index}.startsAt`]}
                   </small>
@@ -128,7 +137,7 @@ export default function AdminEventWeighInWindowsEditor({
                   aria-invalid={Boolean(errors[`weighInWindows.${index}.endsAt`])}
                   onChange={(event) => patchWindow(index, 'endTime', event.target.value)}
                 />
-                {errors[`weighInWindows.${index}.endsAt`] ? (
+                {errors[`weighInWindows.${index}.endsAt`] && !dateMissing ? (
                   <small className="admin-event-form__error" role="alert">
                     {errors[`weighInWindows.${index}.endsAt`]}
                   </small>
@@ -160,7 +169,8 @@ export default function AdminEventWeighInWindowsEditor({
                 </button>
               ) : null}
             </li>
-          ))}
+            )
+          })}
         </ul>
       )}
 

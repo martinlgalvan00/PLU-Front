@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test'
+import { TICKETS_PATH } from '../src/lib/ticketsRoute.js'
 
 /**
  * ticket-purchase-helpers.js — PLU ARG
@@ -19,11 +20,15 @@ export async function acceptCookies(page) {
 }
 
 /**
- * Navega a la página de entradas para un evento concreto. El slug se pasa
- * como fragmento de la URL: `/entradas/<slug>`.
+ * Navega a la página de entradas para un evento concreto.
+ *
+ * La ruta se arma con el contrato real (`ticketsRoute.js`) en vez de escribirla
+ * a mano: el helper apuntaba a `/entradas/<slug>`, que no existe, así que la
+ * página respondía 404 y estos tests no llegaban a ejercitar nada. El evento
+ * viaja como query param, no como segmento.
  */
 export async function navigateToTickets(page, eventSlug) {
-  await page.goto(`/entradas/${eventSlug}`)
+  await page.goto(`${TICKETS_PATH}?evento=${encodeURIComponent(eventSlug)}`)
   // Espera a que el hero de la página de entradas esté listo.
   await page.waitForSelector('.tickets-page__hero', { timeout: 15_000 })
 }

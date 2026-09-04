@@ -8,6 +8,7 @@ import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
+import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
 import {
   assertEventBankTransferReady,
   normalizeBankTransferInput,
@@ -29,7 +30,8 @@ const EVENT_SELECT = `
   ticketTypes:ticket_types(
     *,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id)
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
   )
 `
 
@@ -54,7 +56,8 @@ const CATALOG_EVENT_SELECT = `
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id)
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
   )
 `
 
@@ -123,6 +126,20 @@ const nullableQuota = z.preprocess(
   z.coerce.number().int().min(0).max(100_000).nullable(),
 )
 
+/**
+ * Subcategorías de la entrada: qué credenciales emite una compra de este tipo
+ * y qué zonas abre cada una. Una entrada común declara una; la de entrenador,
+ * dos (espectador + entrada en calor). Los topes son espejo de
+ * `staff_merge_ticket_type_credentials` y de `src/lib/ticketCredentials.js`.
+ */
+const ticketCredentialSchema = z.object({
+  label: z.string().trim().min(1).max(40),
+  zoneScopes: z
+    .array(z.enum(['gate_tickets', 'athletes_only', 'athletes_coaches', 'staff_only']))
+    .min(1)
+    .max(4),
+})
+
 const ticketTypeSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(100),
@@ -132,6 +149,7 @@ const ticketTypeSchema = z.object({
   active: z.boolean().optional(),
   dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
   includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
+  credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
 })
 
 const weighInWindowSchema = z.object({
@@ -190,6 +208,15 @@ export const eventSchema = z
         experience: z.boolean().optional(),
         categories: z.boolean().optional(),
         location: z.boolean().optional(),
+      })
+      .optional(),
+    // Copy del hero público. Techos espejo de la RPC de merge y del esquema
+    // del cliente (`src/lib/schemas/adminEvent.js`).
+    publicCopy: z
+      .object({
+        publicTitle: z.string().trim().max(120).optional(),
+        heroLead: z.string().trim().max(240).optional(),
+        ctaLabel: z.string().trim().max(40).optional(),
       })
       .optional(),
     liveStreamUrl: z
@@ -612,6 +639,34 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }),
           'No se pudo guardar la superficie pública del evento.',
         )
+
+        // Mismo motivo que la superficie: `staff_upsert_event` reconstruye
+        // `rules` clave por clave, así que el copy va en su propio merge.
+        assertSupabaseResult(
+          await client.rpc('staff_merge_event_public_copy', {
+            p_slug: pEvent.slug,
+            p_copy: {
+              publicTitle: pEvent.publicCopy?.publicTitle ?? '',
+              heroLead: pEvent.publicCopy?.heroLead ?? '',
+              ctaLabel: pEvent.publicCopy?.ctaLabel ?? '',
+            },
+          }),
+          'No se pudo guardar el copy público del evento.',
+        )
+
+        // Las subcategorías de entrada (qué credenciales emite cada tipo y qué
+        // zonas abre cada una) van en su propio merge por el mismo motivo que
+        // las dos de arriba, y además porque cuelgan de tipos de entrada cuyos
+        // ids recién existen después del guardado.
+        if (Array.isArray(pEvent.ticketTypes) && pEvent.ticketTypes.length > 0) {
+          assertSupabaseResult(
+            await client.rpc('staff_merge_ticket_type_credentials', {
+              p_event_slug: pEvent.slug,
+              p_credentials: buildTicketCredentialsPayload(pEvent.ticketTypes),
+            }),
+            'No se pudieron guardar las credenciales de las entradas.',
+          )
+        }
 
         const events = await readEvents(client)
         const event = events.find((candidate) => candidate.id === savedEvent.id)
