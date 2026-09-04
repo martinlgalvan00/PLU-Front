@@ -60,6 +60,11 @@ export function buildTicketRow(ticket) {
     document: ticket.attendeeDni,
     meta: ticket.ticketTypeName ?? ticket.ticketCode,
     ticketTypeName: ticket.ticketTypeName,
+    // Qué credencial es, no sólo de qué tipo de entrada salió. Una compra de
+    // entrenador emite dos con el mismo nombre y el mismo DNI: sin esto, en la
+    // puerta son indistinguibles.
+    credentialLabel: ticket.credentialLabel ?? null,
+    credentialScopes: ticket.credentialScopes ?? [],
     status: ticket.checkedInAt ? 'usada' : ticket.status,
     checkedInAt: ticket.checkedInAt,
     addons: ticket.addons ?? [],

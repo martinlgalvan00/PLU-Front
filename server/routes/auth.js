@@ -292,7 +292,14 @@ export function createAuthRoutes({
         const user = userId
           ? await prisma.user.findUnique({
               where: { id: userId },
-              include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+              include: {
+                profile: true,
+                accessRole: { include: ACCESS_ROLE_INCLUDE },
+                // El puesto de seguridad viaja con la sesión: sin esto, quien
+                // escanea no sabe a qué sector está habilitado hasta el
+                // siguiente request.
+                securityZone: { select: { id: true, name: true, scope: true } },
+              },
             })
           : null
         const payload = user
@@ -336,7 +343,14 @@ export function createAuthRoutes({
             status: 'active',
             lastLoginAt: now,
           },
-          include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+          include: {
+            profile: true,
+            accessRole: { include: ACCESS_ROLE_INCLUDE },
+            // El puesto de seguridad viaja con la sesión: sin esto, quien
+            // escanea no sabe a qué sector está habilitado hasta el
+            // siguiente request.
+            securityZone: { select: { id: true, name: true, scope: true } },
+          },
         })
         const session = await createSession({ prisma, userId: user.id, req, now })
         const serialized = serializeUser(updated)
@@ -409,6 +423,7 @@ export function createAuthRoutes({
           include: {
             profile: true,
             accessRole: { include: ACCESS_ROLE_INCLUDE },
+            securityZone: { select: { id: true, name: true, scope: true } },
           },
         })
 
@@ -677,7 +692,14 @@ export function createAuthRoutes({
         const session = await createSession({ prisma, userId: current.id, req })
         const refreshed = await prisma.user.findUnique({
           where: { id: current.id },
-          include: { profile: true, accessRole: { include: ACCESS_ROLE_INCLUDE } },
+          include: {
+            profile: true,
+            accessRole: { include: ACCESS_ROLE_INCLUDE },
+            // El puesto de seguridad viaja con la sesión: sin esto, quien
+            // escanea no sabe a qué sector está habilitado hasta el
+            // siguiente request.
+            securityZone: { select: { id: true, name: true, scope: true } },
+          },
         })
 
         res

@@ -18,6 +18,7 @@ function Harness() {
     <I18nProvider>
       <AdminTicketTypesEditor
         canEdit
+        allowEditDays
         eventDays={days}
         onChangeEventDays={setDays}
         onChangeTicketTypes={setTypes}

@@ -62,20 +62,39 @@ describe('Eventos en teléfono', () => {
 describe('Target táctil de los chips de acceso', () => {
   const adminCss = fs.readFileSync(path.resolve('src/styles/pages/admin.css'), 'utf8')
 
-  function coarseBlock(source) {
-    const start = source.indexOf('@media (pointer: coarse)')
-    expect(start).toBeGreaterThan(-1)
-    // Cierre del bloque: archivos pueden venir con LF o CRLF.
-    const lf = source.indexOf('}\n}', start)
-    const crlf = source.indexOf('}\r\n}', start)
-    const end = [lf, crlf].filter((n) => n >= 0).sort((a, b) => a - b)[0]
-    expect(end).toBeGreaterThan(-1)
-    const closeLen = source.startsWith('}\r\n}', end) ? 4 : 3
-    return source.slice(start, end + closeLen)
+  // Un archivo puede tener varios bloques `@media (pointer: coarse)` (uno por
+  // sección que lo necesitó). Se juntan TODOS por conteo de llaves —no solo
+  // el primero— para no quedar ciego a reglas que un bloque posterior agrega.
+  function coarseBlocks(source) {
+    const marker = '@media (pointer: coarse)'
+    const blocks = []
+    let searchFrom = 0
+    while (true) {
+      const start = source.indexOf(marker, searchFrom)
+      if (start === -1) break
+      const braceStart = source.indexOf('{', start)
+      let depth = 0
+      let end = -1
+      for (let i = braceStart; i < source.length; i += 1) {
+        if (source[i] === '{') depth += 1
+        else if (source[i] === '}') {
+          depth -= 1
+          if (depth === 0) {
+            end = i
+            break
+          }
+        }
+      }
+      expect(end).toBeGreaterThan(-1)
+      blocks.push(source.slice(start, end + 1))
+      searchFrom = end + 1
+    }
+    expect(blocks.length).toBeGreaterThan(0)
+    return blocks.join('\n')
   }
 
   it('la consola de operación lleva chips, publicación y acciones a 44px en touch', () => {
-    const coarse = coarseBlock(css)
+    const coarse = coarseBlocks(css)
     expect(coarse).toContain('.admin-event-state .admin-filter-chip')
     expect(coarse).toContain('.admin-event-state__visibility')
     expect(coarse).toContain('.admin-event-state__registration-action')
@@ -83,7 +102,7 @@ describe('Target táctil de los chips de acceso', () => {
   })
 
   it('el editor lleva sus chips a 44px en touch', () => {
-    const coarse = coarseBlock(adminCss)
+    const coarse = coarseBlocks(adminCss)
     expect(coarse).toMatch(/\.admin-event-form \.admin-filter-chip\s*\{[^}]*min-height:\s*44px/)
   })
 

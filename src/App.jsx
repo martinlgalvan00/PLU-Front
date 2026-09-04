@@ -620,6 +620,7 @@ export default function App() {
             onRefreshTickets={app.refreshTickets}
             registrations={app.registrations}
             roleLabel={getRoleLabel(app.session)}
+            securityZone={app.session?.user?.securityZone ?? null}
             tickets={app.tickets}
           />
         </Suspense>

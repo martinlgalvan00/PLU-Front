@@ -1331,6 +1331,16 @@ export default {
     zoneScopeNotice:
       'Hoy el escáner autoriza por permiso de check-in, no por puesto: cualquier cuenta habilitada puede leer cualquier credencial, y una entrada se escanea una sola vez en todo el evento. El puesto define qué credenciales lee, no a quién deja pasar.',
   },
+  eventDashboard: {
+    revenue: 'Recaudación',
+    checkinsLabel: 'Check-ins',
+    quickActions: 'Acciones rápidas',
+    noSlotLimit: 'Sin límite de cupo',
+    ticketsIssued: 'Según {{count}} entradas emitidas',
+    attendanceRate: '{{percent}}% de asistencia',
+    noAttendanceData: 'Sin datos todavía',
+    viewPublicPage: 'Ver página pública',
+  },
 
   eventPayments: {
     label: 'Pagos del evento',
@@ -1409,7 +1419,7 @@ export default {
       athletes_only:
         'Lee solo credenciales de atletas inscriptos al meet. No abre entradas de público.',
       athletes_coaches:
-        'Lee credenciales de atletas inscriptos y de afiliados. No abre entradas de público.',
+        'Lee credenciales de atletas inscriptos y de entrenadores con entrada paga. Ya no abre por afiliación sola.',
       staff_only: 'No escanea credenciales: la zona es de control interno.',
     },
     memberStatus: {
@@ -2829,7 +2839,7 @@ export default {
       ticketTypeUntitled: 'Tipo de entrada sin nombre',
       ticketTypeName: 'Nombre',
       ticketTypeNamePlaceholder: 'Ej. Día 1, Pase completo + choripán',
-      ticketTypePrice: 'Precio (ARS)',
+      ticketTypePrice: 'Precio',
       ticketTypeQuota: 'Cupo propio',
       ticketTypeQuotaHint: 'Vacío = sin límite propio (solo aplica el cupo total del evento).',
       ticketTypeActive: 'A la venta',
@@ -2860,6 +2870,9 @@ export default {
       liveTitle: 'Transmisión en vivo',
       liveStreamUrl: 'URL del stream',
       liveStreamProvider: 'Plataforma',
+      liveProviderYoutube: 'YouTube',
+      liveProviderInstagram: 'Instagram',
+      liveProviderTwitch: 'Twitch',
       liveStatus: 'Estado del directo',
       liveStatusOffline: 'Sin transmisión',
       liveStatusLive: 'En vivo',

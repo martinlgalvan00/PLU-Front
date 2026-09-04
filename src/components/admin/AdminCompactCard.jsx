@@ -56,7 +56,7 @@ export default function AdminCompactCard({ columns, row, className, interactionP
         {badges.length > 0 && (
           <div className="data-table-card__badges">
             {badges.map((col) => (
-              <div key={col.key} className="data-table-card__badge">
+              <div key={col.key} className="data-table-card__badge" data-column={col.key}>
                 {cellValue(col, row)}
               </div>
             ))}

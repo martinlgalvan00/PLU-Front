@@ -23,13 +23,21 @@ test.beforeAll(async () => {
  * BLOQUEADO: la página pública no llega a ofrecer las entradas en el entorno
  * E2E, así que estos pasos no se pueden ejercitar todavía.
  *
- * Se destraban tres cosas ya corregidas (la ruta era `/entradas/<slug>`, que no
- * existe; el fixture escribía una columna `pricing` que la tabla no tiene; y
- * faltaba `VITE_TICKET_SALES_ENABLED`), pero queda una cuarta: el evento llega
- * a la página -- el hero muestra su título -- y aun así `pricing.ticketsEnabled`
- * no resulta `true`, pese a que en la base `rules` lo tiene. O sea que el
- * mapeo `rules -> pricing` del catálogo público no está llegando a
- * `TicketsPage`. Hasta resolverlo la página muestra "Próximamente".
+ * Se destrabaron tres cosas (la ruta era `/entradas/<slug>`, que no existe; el
+ * fixture escribía una columna `pricing` que la tabla no tiene; y faltaba el
+ * flag de venta), pero queda una cuarta, que es del ARNÉS y no del producto:
+ * `VITE_TICKET_SALES_ENABLED` se pasa por el entorno del proceso en
+ * `playwright.config.js`, y Vite sólo expone las `VITE_*` que carga desde
+ * archivos `.env` (`loadEnv(mode, cwd, '')`) -- nunca desde `process.env`. Así
+ * que el flag no llega, `env.ticketSalesEnabled` queda en false y la página
+ * muestra "Próximamente".
+ *
+ * El mapeo `rules -> pricing` SÍ funciona: `fetchPublishedEvents` pasa cada
+ * fila por `mapPublishedEventRow`, que arma `pricing.ticketsEnabled` desde
+ * `rules.ticketsEnabled`. Verificado contra la API real.
+ *
+ * Para destrabarlo hace falta que el flag entre por un archivo `.env` que Vite
+ * cargue (o un `define` en vite.config.js), no por el env del proceso.
  *
  * La emisión de credenciales y el canje por zona SÍ están cubiertos, contra la
  * misma RPC que usa el servidor, en `ticket-credentials.spec.js`.

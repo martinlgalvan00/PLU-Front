@@ -53,10 +53,23 @@ export default function CheckInScanResult({
         <dl className="admin-checkin-result__meta">
           <div>
             <dt>{t('admin.checkin.type')}</dt>
-            <dd>
+            {/* La credencial concreta antes que la categoría: una compra de
+                entrenador emite dos con el mismo nombre y el mismo DNI, y
+                "Espectador" en las dos era justo lo que impedía diferenciarlas
+                en la puerta.
+                Cuando lo que se leyó ES una credencial nombrada, se marca para
+                que el estilo la destaque: es el dato sobre el que actúa quien
+                está en la puerta, y estaba siendo el más chico de la tarjeta. */}
+            <dd
+              className={
+                scanResult.row.type !== 'atleta' && scanResult.row.credentialLabel
+                  ? 'admin-checkin-result__credential'
+                  : undefined
+              }
+            >
               {scanResult.row.type === 'atleta'
                 ? t('admin.checkin.athlete')
-                : t('admin.checkin.spectator')}
+                : (scanResult.row.credentialLabel ?? t('admin.checkin.spectator'))}
             </dd>
           </div>
           {scanResult.status && (

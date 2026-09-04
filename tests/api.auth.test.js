@@ -119,6 +119,9 @@ describe('auth api', () => {
       eventSlug: null,
       // Zona de seguridad del evento: nula en cuentas de staff.
       securityZoneId: null,
+      // El puesto de seguridad (nombre y alcance) viaja con la sesión: sin
+      // él, quien escanea en la puerta no sabe a qué sector está habilitado.
+      securityZone: null,
       lastLoginAt: expect.any(String),
     })
 

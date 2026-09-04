@@ -298,6 +298,28 @@
     min-width: 44px;
     padding: 0 12px;
   }
+
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-list-shell--events .admin-event-state__visibility,
+  .admin-shell .admin-list-shell--events .admin-event-state__registration-action,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-event-workspace .admin-event-state__visibility,
+  .admin-shell .admin-event-workspace .admin-event-state__registration-action {
+    min-height: 44px;
+  }
+
+  /* Toolbar de filtros: con mouse se mantiene compacto (36-42px); en touch
+     los controles suben a 44px. */
+  .admin-shell .admin-filters__primary .admin-filters__search,
+  .admin-shell .admin-filters__toggle,
+  .admin-shell .admin-filters__primary .admin-filters__clear,
+  .admin-shell .admin-filters__advanced-toggle,
+  .admin-shell .admin-filters__select-control,
+  .admin-shell .admin-filters__date-range-fields,
+  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip,
+  .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -2439,6 +2461,104 @@
   border-radius: 0;
 }
 
+/* Rediseño de la barra de filtros: buscador con marco visible, Estado y
+   Canal agrupados lado a lado con un divisor, y el total anclado en su
+   propio bloque con borde en vez de flotar suelto. Antes no había ninguna
+   regla de marco para el buscador en esta pantalla -- salía como texto
+   suelto sobre el fondo. */
+.admin-shell .admin-payments-operations .admin-orders-block__toolbar--athlete {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-lg, 14px);
+  padding: 14px 18px 12px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-filters__search {
+  background: var(--admin-canvas, var(--color-bg-canvas));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-md, 10px);
+  padding: 8px 12px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-filters__search:focus-within {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 45%, transparent);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 22px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets
+  > .admin-filter-group {
+  width: auto;
+  min-width: 0;
+}
+
+/* Con Estado y Canal lado a lado ya no hay ancho para la grilla
+   etiqueta(116px) | chips que usa `.toolbar-facets .admin-filter-group--labeled`
+   en el layout apilado original -- acá la etiqueta pasa a vivir arriba de sus
+   chips, como corresponde cuando el grupo entero es angosto. */
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group--labeled {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* El riel de chips compacto es horizontal-scroll por diseño (pensado para
+   columnas angostas): acá Estado y Canal comparten fila y ese scroll oculto
+   se comía la mitad de los chips sin avisar. Envuelve en dos líneas en vez
+   de esconder contenido detrás de un scroll que nadie ve que existe. */
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets
+  .admin-filter-chips {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  width: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__facet-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--admin-hairline, var(--color-border-subtle));
+  flex: none;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__summary {
+  padding-left: 18px;
+  border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
+}
+
+/* Mobile: Estado y Canal vuelven a apilarse (no entran lado a lado), el
+   divisor vertical no tiene sentido apilado, y el total pasa arriba de los
+   filtros en vez de quedar abajo a la derecha. Va DESPUÉS de las reglas de
+   escritorio de arriba a propósito: mismo selector, misma especificidad --
+   si quedara antes, la regla de escritorio (que no está en un @media) la
+   pisaría igual dentro del breakpoint por venir después en la hoja. */
 @media (max-width: 720px) {
   .admin-shell
     .admin-payments-operations
@@ -2456,6 +2576,69 @@
     order: -1;
     text-align: left;
   }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--athlete
+    .admin-orders-block__toolbar-facets {
+    flex-direction: column;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--athlete
+    .admin-orders-block__facet-divider {
+    display: none;
+  }
+}
+
+/* Nota secundaria ("Declarado por atleta") junto al estado: metadata, no un
+   segundo llamado de atención -- por eso va en gris neutro y no en celeste,
+   que ya usa el link/foco del panel. */
+.admin-shell .admin-payments-operations .admin-orders-block__tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--admin-muted, var(--color-text-muted));
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 6%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  padding: 2px 9px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__status-cell {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Card mobile: el estado y su nota compartían la columna angosta de la
+   derecha con el monto (apilados, alineados a la derecha, junto a "$
+   92.500"). Bajan a su propia fila de ancho completo debajo del nombre --
+   ya no compiten por el mismo espacio que el monto. `display: contents`
+   saca el wrapper de badges de la caja sin tocar el DOM real (el
+   `closest()` de los clicks de fila sigue funcionando igual). */
+#admin-athlete-payments .data-table-card__top {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+#admin-athlete-payments .data-table-card__badges {
+  display: contents;
+}
+
+#admin-athlete-payments .data-table-card__badge[data-column='status'] {
+  flex: 1 1 100%;
+  order: 3;
+  min-width: 0;
+  /* 30px de avatar + 9px de gap, mismo indent que el nombre en modo compacto. */
+  padding-left: 39px;
+}
+
+#admin-athlete-payments .data-table-card__footer .admin-icon-btn {
+  min-height: 34px;
+  min-width: 34px;
 }
 
 .admin-shell .admin-payments-operations .admin-list-section--tickets {
@@ -8271,30 +8454,6 @@
   font-weight: 650;
 }
 
-@media (pointer: coarse) {
-  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
-  .admin-shell .admin-list-shell--events .admin-event-state__visibility,
-  .admin-shell .admin-list-shell--events .admin-event-state__registration-action,
-  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip,
-  .admin-shell .admin-event-workspace .admin-event-state__visibility,
-  .admin-shell .admin-event-workspace .admin-event-state__registration-action {
-    min-height: 44px;
-  }
-
-  /* Toolbar de filtros: con mouse se mantiene compacto (36-42px); en touch
-     los controles suben a 44px. */
-  .admin-shell .admin-filters__primary .admin-filters__search,
-  .admin-shell .admin-filters__toggle,
-  .admin-shell .admin-filters__primary .admin-filters__clear,
-  .admin-shell .admin-filters__advanced-toggle,
-  .admin-shell .admin-filters__select-control,
-  .admin-shell .admin-filters__date-range-fields,
-  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip,
-  .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
-    min-height: 44px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .admin-shell .admin-list-shell--events .admin-event-state__visibility,
   .admin-shell .admin-event-workspace .admin-event-state__visibility {
@@ -8825,18 +8984,26 @@
   display: none;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary > span {
+/* Estas tres van también en el scope de la página. Estaban sólo bajo
+   `.admin-event-editor-modal__panel`, así que en el workspace no aplicaba
+   ninguna y el título y su resumen salían pegados en la misma línea:
+   "Configurar entradasJornadas: 2 · Tipos activos: 3". El editor vive en los
+   dos lugares; el encabezado tiene que leerse igual en ambos. */
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary > span,
+.admin-event-workspace__panel .admin-event-form__ticket-config-summary > span {
   display: grid;
   gap: 2px;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary strong {
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary strong,
+.admin-event-workspace__panel .admin-event-form__ticket-config-summary strong {
   color: var(--admin-ink);
   font-size: 12.5px;
   font-weight: 650;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary small {
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary small,
+.admin-event-workspace__panel .admin-event-form__ticket-config-summary small {
   color: var(--admin-muted);
   font-size: 11.5px;
 }
