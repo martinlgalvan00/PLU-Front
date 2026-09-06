@@ -4,6 +4,7 @@ import {
   resolveEventPricing,
   resolveLiveComboOffer,
   resolveUpcomingPriceChange,
+  ticketPricingFromEvent,
 } from '../src/lib/eventPricing.js'
 
 describe('resolveComboDeal', () => {
@@ -154,5 +155,54 @@ describe('resolveEventPricing con cambio de precio programado', () => {
 
   it('sin programación no agrega anuncio', () => {
     expect(resolveEventPricing(baseEvent, now).upcoming).toBeNull()
+  })
+})
+
+describe('ticketPricingFromEvent — subcategorías de entrada', () => {
+  const event = {
+    ticketTypes: [
+      {
+        id: 'tt-espectador',
+        name: 'Espectador',
+        price: 20000,
+        sortOrder: 0,
+        credentials: [{ label: 'Entrada general', zoneScopes: ['gate_tickets'] }],
+      },
+      {
+        id: 'tt-entrenador',
+        name: 'Entrenador',
+        price: 35000,
+        sortOrder: 1,
+        credentials: [
+          { label: 'Espectador', zoneScopes: ['gate_tickets'] },
+          { label: 'ENTRENADOR', zoneScopes: ['athletes_coaches'] },
+        ],
+      },
+    ],
+  }
+
+  /**
+   * Este map descartaba `credentials`: la base distinguía los tipos y el
+   * comprador veía dos nombres sueltos.
+   */
+  it('lleva las zonas de cada tipo hasta el comprador', () => {
+    const [espectador, entrenador] = ticketPricingFromEvent(event).ticketTypes
+    expect(espectador.zoneScopes).toEqual(['gate_tickets'])
+    expect(entrenador.zoneScopes).toEqual(['gate_tickets', 'athletes_coaches'])
+  })
+
+  it('dice cuántas credenciales emite cada compra', () => {
+    const [espectador, entrenador] = ticketPricingFromEvent(event).ticketTypes
+    expect(espectador.credentialCount).toBe(1)
+    expect(entrenador.credentialCount).toBe(2)
+  })
+
+  /** Un tipo cargado por una versión anterior del panel no puede romper la venta. */
+  it('un tipo sin credenciales se comporta como una entrada común', () => {
+    const [type] = ticketPricingFromEvent({
+      ticketTypes: [{ id: 'tt-1', name: 'General', price: 1000 }],
+    }).ticketTypes
+    expect(type.zoneScopes).toEqual(['gate_tickets'])
+    expect(type.credentialCount).toBe(1)
   })
 })

@@ -5,16 +5,32 @@ import {
   CREDENTIALS_PER_TYPE_MAX,
   buildTicketCredentialsPayload,
   coachTicketCredentials,
+  credentialZoneScopes,
   credentialsPerPurchase,
   defaultTicketCredential,
   groupCredentialsByBundle,
   normalizeTicketCredentials,
+  summarizeTicketCredentials,
   validateTicketCredentials,
 } from '../src/lib/ticketCredentials.js'
 import { canZoneScanCredential } from '../src/services/securityZoneService.js'
 
 const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261107100000_ticket_credential_classes.sql'),
+  'utf8',
+)
+
+const publicMigration = readFileSync(
+  resolve(process.cwd(), 'supabase/migrations/20261109100000_public_ticket_credentials.sql'),
+  'utf8',
+)
+
+// El select del catálogo y el del cliente Supabase son dos caminos al mismo
+// dato: si uno pide las credenciales y el otro no, la pantalla cambia según por
+// dónde entró la lectura.
+const catalogRoute = readFileSync(resolve(process.cwd(), 'server/routes/events.js'), 'utf8')
+const publishedEventsSelect = readFileSync(
+  resolve(process.cwd(), 'src/services/eventAdminService.js'),
   'utf8',
 )
 
@@ -148,5 +164,71 @@ describe('la migración sostiene las dos reglas que se pueden romper en silencio
       'create or replace function public.staff_merge_ticket_type_credentials',
     )
     expect(migration).not.toContain('create or replace function public.staff_upsert_event')
+  })
+})
+
+describe('lo que la venta necesita saber de las credenciales', () => {
+  /**
+   * Una entrada de entrenador abre la puerta con una credencial y la entrada en
+   * calor con la otra. Quien la está por comprar necesita ver las dos juntas.
+   */
+  it('las zonas del tipo son la unión de sus credenciales, sin repetir', () => {
+    expect(credentialZoneScopes(coachTicketCredentials())).toEqual([
+      'gate_tickets',
+      'athletes_coaches',
+    ])
+  })
+
+  it('mantiene el orden canónico de ZONE_SCOPES y no el de carga', () => {
+    const scopes = credentialZoneScopes([
+      { label: 'Calor', zoneScopes: ['athletes_coaches'] },
+      { label: 'Puerta', zoneScopes: ['gate_tickets'] },
+    ])
+    expect(scopes).toEqual(['gate_tickets', 'athletes_coaches'])
+  })
+
+  it('sin credenciales cargadas resuelve la entrada de siempre', () => {
+    expect(summarizeTicketCredentials(undefined)).toEqual({
+      credentials: [defaultTicketCredential()],
+      count: 1,
+      zoneScopes: ['gate_tickets'],
+    })
+  })
+
+  /** `count` son QR emitidos, no lugares: el cupo sigue contando compras. */
+  it('cuenta las credenciales que emite la compra', () => {
+    const summary = summarizeTicketCredentials(coachTicketCredentials())
+    expect(summary.count).toBe(2)
+    expect(summary.credentials.map((credential) => credential.label)).toEqual([
+      'Espectador',
+      'ENTRENADOR',
+    ])
+  })
+
+  /**
+   * La tabla nació con RLS y sin una sola policy: para el navegador no existía,
+   * y el catálogo público mostraba dos entradas sin diferencia visible.
+   */
+  it('la migración de acceso público deja leer las credenciales de un evento publicado', () => {
+    expect(publicMigration).toContain('create policy ticket_type_credentials_select_public_anon')
+    expect(publicMigration).toContain('e.published = true')
+    expect(publicMigration).toContain(
+      'grant select on public.ticket_type_credentials to anon, authenticated',
+    )
+  })
+
+  /** Leer no es escribir: el alta sigue siendo del panel. */
+  it('la escritura pública sigue cerrada', () => {
+    expect(publicMigration).toContain('ticket_type_credentials_insert_admin')
+    expect(publicMigration).not.toMatch(/for insert\s+to anon/)
+  })
+
+  /**
+   * El select del catálogo es el punto exacto donde las credenciales se perdían
+   * antes de llegar al comprador.
+   */
+  it('el catálogo público pide las credenciales de cada tipo', () => {
+    expect(catalogRoute).toContain('credentials:ticket_type_credentials(')
+    expect(publishedEventsSelect).toContain('credentials:ticket_type_credentials(')
   })
 })

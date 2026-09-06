@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../src/lib/api.js'
+import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
 
 /**
  * Render real (jsdom) de la página de verificación — la que abre seguridad
@@ -29,7 +30,8 @@ vi.mock('../src/services/credentialCache.js', () => ({
 }))
 
 const { getMembershipByCodeOrToken } = await import('../src/services/athleteApi.js')
-const { recallCredential } = await import('../src/services/credentialCache.js')
+const { verifyTicketByQrToken } = await import('../src/services/ticketApi.js')
+ const { recallCredential } = await import('../src/services/credentialCache.js')
 const CredentialPage = (await import('../src/pages/CredentialPage.jsx')).default
 
 const CODE = 'a4f1c0de-0000-4000-8000-000000000001'
@@ -73,8 +75,15 @@ function credential(overrides = {}) {
   }
 }
 
+// Con el provider, como en producción: `App` monta esta página dentro de
+// `AppProviders`, que incluye I18nProvider. Renderizarla pelada dejaba sin
+// cubrir todo lo que traduce.
 function renderPage(props = {}) {
-  return render(<CredentialPage code={CODE} eventSlug={EVENT} {...props} />)
+  return render(
+    <I18nProvider>
+      <CredentialPage code={CODE} eventSlug={EVENT} {...props} />
+    </I18nProvider>,
+  )
 }
 
 afterEach(() => {
@@ -257,5 +266,78 @@ describe('verificación de credencial en la puerta', () => {
       'textContent',
       expect.stringContaining('No se pudo confirmar el ingreso'),
     )
+  })
+})
+
+describe('verificación de una entrada', () => {
+  function ticket(overrides = {}) {
+    return {
+      id: 'tkt-1',
+      ticketCode: 'TCK-00000042',
+      qrToken: CODE,
+      attendeeName: 'Marcos Gil',
+      attendeeDni: '28999111',
+      ticketTypeId: 'tt-entrenador',
+      ticketTypeName: 'Entrenador',
+      credentialLabel: 'ENTRENADOR',
+      credentialScopes: ['athletes_coaches'],
+      bundleId: 'bundle-1',
+      isPrimaryCredential: false,
+      status: 'pagada',
+      event: { id: 'evt-1', slug: EVENT, title: 'Pitbull Classic 2026' },
+      checkIn: null,
+      ...overrides,
+    }
+  }
+
+  /**
+   * Una compra de entrenador emite dos credenciales del MISMO tipo. Mostrar el
+   * nombre del tipo las dejaba idénticas, que es exactamente lo que las dos
+   * credenciales venían a evitar. Es el mismo arreglo que la puerta ya tenía.
+   */
+  it('muestra la credencial emitida y no el nombre del tipo', async () => {
+    verifyTicketByQrToken.mockResolvedValue({ ticket: ticket() })
+    renderPage({ type: 'ticket' })
+
+    expect(await screen.findByText('ENTRENADOR')).toBeTruthy()
+    expect(screen.getByText('Acceso')).toBeTruthy()
+    // El tipo no desaparece: baja a dato, donde ubica sin confundir.
+    expect(screen.getByText('Tipo de entrada')).toBeTruthy()
+    expect(screen.getByText('Entrenador')).toBeTruthy()
+  })
+
+  it('dice qué zona abre esa credencial', async () => {
+    verifyTicketByQrToken.mockResolvedValue({ ticket: ticket() })
+    renderPage({ type: 'ticket' })
+
+    expect(await screen.findByText('Entrada en calor')).toBeTruthy()
+  })
+
+  it('la otra credencial del mismo juego abre otra zona', async () => {
+    verifyTicketByQrToken.mockResolvedValue({
+      ticket: ticket({
+        credentialLabel: 'Espectador',
+        credentialScopes: ['gate_tickets'],
+        isPrimaryCredential: true,
+      }),
+    })
+    renderPage({ type: 'ticket' })
+
+    expect(await screen.findByText('Espectador')).toBeTruthy()
+    expect(screen.getByText('Puerta general')).toBeTruthy()
+    expect(screen.queryByText('Entrada en calor')).toBeNull()
+  })
+
+  /** Una entrada anterior a las subcategorías no puede romper la pantalla. */
+  it('sin credencial cargada cae al nombre del tipo y no inventa zonas', async () => {
+    verifyTicketByQrToken.mockResolvedValue({
+      ticket: ticket({ credentialLabel: null, credentialScopes: [] }),
+    })
+    renderPage({ type: 'ticket' })
+
+    // Dos veces: en Acceso, como reemplazo de la etiqueta que falta, y en el
+    // dato de tipo. Es la caída correcta, no un duplicado.
+    expect(await screen.findAllByText('Entrenador')).toHaveLength(2)
+    expect(screen.queryByText('Puerta general')).toBeNull()
   })
 })

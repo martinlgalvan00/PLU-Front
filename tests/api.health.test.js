@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest'
 import { createApp } from '../server/app.js'
 
 describe('api health', () => {
+  it('responde metadata en la raíz del backend', async () => {
+    const app = createApp()
+    const server = app.listen(0)
+    const { port } = server.address()
+
+    const response = await fetch(`http://127.0.0.1:${port}/`)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toMatchObject({
+      service: 'plu-arg-api',
+      health: '/health',
+      ready: '/ready',
+    })
+
+    await new Promise((resolve) => server.close(resolve))
+  })
+
   it('responde ok', async () => {
     const app = createApp()
     const server = app.listen(0)

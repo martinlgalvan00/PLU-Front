@@ -126,6 +126,40 @@ export function credentialsPerPurchase(credentials) {
 }
 
 /**
+ * Zonas que abre una entrada de este tipo, sin repetir y en el orden canónico
+ * de `ZONE_SCOPES`.
+ *
+ * Es la unión de sus credenciales, no la de una sola: una entrada de entrenador
+ * abre la puerta con una credencial y la entrada en calor con la otra, y quien
+ * la está por comprar necesita ver las dos juntas. Que cada credencial abra
+ * sólo lo suyo es cosa del canje, no de la vidriera.
+ */
+export function credentialZoneScopes(credentials) {
+  const scopes = new Set(
+    normalizeTicketCredentials(credentials).flatMap((credential) => credential.zoneScopes),
+  )
+  return ZONE_SCOPES.filter((scope) => scopes.has(scope))
+}
+
+/**
+ * Todo lo que una pantalla de venta necesita saber de las credenciales de un
+ * tipo, resuelto una sola vez.
+ *
+ * Vive acá y no en cada componente porque son tres superficies —la tienda, el
+ * checkout y la vista rápida del evento— contando lo mismo, y ya nos pasó que
+ * cada una normalizara distinto. `count` es la cantidad de QR que emite la
+ * compra; el cupo sigue contando compras, no credenciales.
+ */
+export function summarizeTicketCredentials(credentials) {
+  const normalized = normalizeTicketCredentials(credentials)
+  return {
+    credentials: normalized,
+    count: normalized.length,
+    zoneScopes: credentialZoneScopes(normalized),
+  }
+}
+
+/**
  * Payload para `staff_merge_ticket_type_credentials`.
  *
  * Un tipo recién creado todavía no tiene id -- lo recibe durante el guardado

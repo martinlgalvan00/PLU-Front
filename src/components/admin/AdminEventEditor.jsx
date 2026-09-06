@@ -681,14 +681,10 @@ export default function AdminEventEditor({
     if (syncing) return
     if (dirty) {
       setConfirmDiscard(true)
-      // El banner vive al final del body; el dock de Guardar tiene que
-      // quedar a la vista o el operador cree que no puede persistir.
+      // El dock de confirmación reemplaza las acciones: hay que traerlo a la vista.
       requestAnimationFrame(() => {
         formRef.current
           ?.querySelector('.admin-event-form__actions')
-          ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-        formRef.current
-          ?.querySelector('.admin-event-form__discard-confirmation')
           ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
       })
       return
@@ -2187,12 +2183,15 @@ export default function AdminEventEditor({
             ) : null}
 
             {confirmDiscard ? (
-              <div className="admin-event-form__discard-confirmation" role="alert">
-                <div>
+              <div
+                className="admin-event-form__actions admin-event-form__actions--discard"
+                role="alert"
+              >
+                <div className="admin-event-form__discard-copy">
                   <strong>{t('admin.eventEditor.discardTitle')}</strong>
                   <p>{t('admin.eventEditor.discardLead')}</p>
                 </div>
-                <div>
+                <div className="admin-event-form__action-buttons">
                   <Button
                     type="button"
                     variant="outline"
@@ -2223,8 +2222,7 @@ export default function AdminEventEditor({
                   </Button>
                 </div>
               </div>
-            ) : null}
-
+            ) : (
             <div className="admin-event-form__actions">
               {accordion ? (
                 <div
@@ -2264,6 +2262,7 @@ export default function AdminEventEditor({
                 </Button>
               </div>
             </div>
+            )}
           </form>
 
           {embedded ? null : <AdminEventLivePreview draft={draft} live sourceEvent={sourceEvent} />}

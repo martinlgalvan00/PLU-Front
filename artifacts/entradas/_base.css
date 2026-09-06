@@ -1,0 +1,10 @@
+:root {
+  --canvas: #0a0b0d; --surface: #141518; --elevated: #1e2026; --input: #121218;
+  --hairline: rgba(255,255,255,0.10); --hairline-soft: rgba(255,255,255,0.06); --border: rgba(255,255,255,0.14);
+  --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --ghost: #6f7280;
+  --brand: #74acdf; --brand-soft: #9ec5eb; --brand-deep: #1f5f9e;
+  --gold: #f2b705; --gold-soft: #ffd23f; --gold-ink: #14181f;
+  --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --danger-soft: #ff6b67; --warn: #b45309;
+  --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}

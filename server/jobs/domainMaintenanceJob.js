@@ -5,11 +5,22 @@ const DEFAULT_INTERVAL_MS = 60_000
 export async function runDomainMaintenanceJob({ client } = {}) {
   if (!client) throw new Error('Supabase no está configurado para mantenimiento de dominio.')
 
+  const now = new Date().toISOString()
+
+  // `expire_stale_payment_attempts` va PRIMERO y solo: libera las órdenes que
+  // `expire_domain_orders` puede cancelar recién después. En paralelo con él,
+  // una orden abandonada esperaría hasta el próximo ciclo por nada — el mismo
+  // orden que respeta el cron de `20261110100000_payment_session_expiry_control`.
+  const staleAttempts = assertSupabaseResult(
+    await client.rpc('expire_stale_payment_attempts', { p_now: now }),
+    'Falló el barrido de intentos de pago abandonados.',
+  )
+
   const [ticketReservations, domainOrders, financedOrders] = await Promise.all(
     [
-      client.rpc('expire_ticket_reservations', { p_now: new Date().toISOString() }),
-      client.rpc('expire_domain_orders', { p_now: new Date().toISOString() }),
-      client.rpc('expire_financed_payment_orders', { p_now: new Date().toISOString() }),
+      client.rpc('expire_ticket_reservations', { p_now: now }),
+      client.rpc('expire_domain_orders', { p_now: now }),
+      client.rpc('expire_financed_payment_orders', { p_now: now }),
     ].map(async (request) =>
       assertSupabaseResult(await request, 'Falló el mantenimiento de órdenes.'),
     ),
@@ -27,7 +38,17 @@ export async function runDomainMaintenanceJob({ client } = {}) {
     )
   }
 
-  return { ticketReservations, domainOrders, financedOrders }
+  // Órdenes vencidas que el barrido decidió no tocar porque el intento sí
+  // llegó al proveedor. No es un error del job: es trabajo para una persona,
+  // y si el número no baja solo, alguien tiene que mirarlo.
+  const blockedByProvider = Number(staleAttempts?.blockedByProvider) || 0
+  if (blockedByProvider > 0) {
+    console.warn(
+      `domain-maintenance-job: ${blockedByProvider} orden(es) vencida(s) trabada(s) por un intento con pago en el proveedor.`,
+    )
+  }
+
+  return { staleAttempts, ticketReservations, domainOrders, financedOrders }
 }
 
 export function startDomainMaintenanceJob({ client, env = process.env } = {}) {

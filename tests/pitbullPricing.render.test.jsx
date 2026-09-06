@@ -121,7 +121,7 @@ describe('precio publico de Pitbull Classic', () => {
       </I18nProvider>,
     )
 
-    const prices = [...container.querySelectorAll('.pitbull-inscription-shell__price dd')]
+    const prices = [...container.querySelectorAll('.pitbull-inscription-deck__quote-value')]
       .map((node) => node.textContent)
       .join(' | ')
     expect(prices).toContain('$\u00a075.000')
@@ -151,10 +151,10 @@ describe('precio publico de Pitbull Classic', () => {
         <PitbullPage events={[scheduled]} onNavigate={vi.fn()} onSelectEvent={vi.fn()} />
       </I18nProvider>,
     )
-    const note = container.querySelector('.pitbull-inscription-shell__price-upcoming')
+    const note = container.querySelector('.pitbull-inscription-deck__quote-note')
     expect(note?.textContent).toContain('90.000')
     // El precio vigente sigue siendo el de hoy: el aumento se anuncia, no rige.
-    const prices = [...container.querySelectorAll('.pitbull-inscription-shell__price dd')]
+    const prices = [...container.querySelectorAll('.pitbull-inscription-deck__quote-value')]
       .map((node) => node.textContent)
       .join(' | ')
     expect(prices).toContain('75.000')
@@ -172,10 +172,10 @@ describe('precio publico de Pitbull Classic', () => {
       </I18nProvider>,
     )
     expect(
-      graceView.container.querySelector('.pitbull-inscription-shell__price-upcoming'),
+      graceView.container.querySelector('.pitbull-inscription-deck__quote-note'),
     ).toBeNull()
     const gracePrices = [
-      ...graceView.container.querySelectorAll('.pitbull-inscription-shell__price dd'),
+      ...graceView.container.querySelectorAll('.pitbull-inscription-deck__quote-value'),
     ]
       .map((node) => node.textContent)
       .join(' | ')

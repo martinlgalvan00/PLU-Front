@@ -1,0 +1,47 @@
+{
+  "artboards": [
+    { "file": "Tienda.dc.html", "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Tienda" },
+    { "file": "Main.dc.html", "x": 1600, "y": 0, "w": 1440, "h": 1180, "title": "Elegir tipo de entrada" },
+    { "file": "Credenciales.dc.html", "x": 0, "y": 1360, "w": 1440, "h": 1040, "title": "Credenciales emitidas" },
+    { "file": "Verificacion.dc.html", "x": 1600, "y": 1360, "w": 390, "h": 844, "title": "Verificar el QR" },
+    { "file": "Puerta.dc.html", "x": 2110, "y": 1360, "w": 390, "h": 844, "title": "Puesto de control" }
+  ],
+  "annotations": [
+    {
+      "id": "tesis",
+      "x": 0,
+      "y": -300,
+      "w": 620,
+      "text": "TESIS\n\nLa venta de entradas tiene que decir qué abre cada entrada antes de cobrarla, porque de eso depende que un entrenador pueda estar al lado de su atleta en la entrada en calor.\n\nHoy el comprador elige entre dos chips con un nombre suelto. La base ya distingue espectador de entrenador, ya emite dos QR por una sola compra y ya valida por zona en la puerta: nada de eso llega a la pantalla donde se decide."
+    },
+    {
+      "id": "el-hueco",
+      "x": 1600,
+      "y": -300,
+      "w": 620,
+      "text": "DÓNDE SE CORTA HOY\n\n· ticketPricingFromEvent() arma los tipos sin sus credenciales, así que las zonas nunca llegan al público.\n\n· TicketTypePicker pinta un chip con el nombre: sin precio, sin beneficio, sin qué abre.\n\n· La grilla de precios vive en otra sección, lejos del selector donde realmente se elige.\n\n· groupCredentialsByBundle() ya existe y sólo lo usan los tests: ningún componente muestra el juego de dos credenciales."
+    },
+    {
+      "id": "cupo-y-aforo",
+      "x": 3140,
+      "y": 60,
+      "w": 400,
+      "text": "POR QUÉ EL CUPO SE DICE EN LA TARJETA\n\nUna compra de entrenador emite dos credenciales y descuenta un solo lugar.\n\nSin decirlo, \"quedan 40 lugares\" y \"80 QR emitidos\" parecen contradecirse. La RPC ya cuenta sólo las credenciales primarias; la pantalla tiene que decir lo mismo."
+    },
+    {
+      "id": "certificar-el-qr",
+      "x": 2620,
+      "y": 1360,
+      "w": 420,
+      "text": "LO QUE FALTA PARA CERTIFICAR EL QR\n\nmapApiTicket() descarta credentialLabel, credentialScopes y bundleId. Por eso la página pública de verificación muestra en \"Acceso\" el nombre del TIPO de entrada.\n\nResultado: las dos credenciales de un entrenador se verifican idénticas. Es el mismo bug que la migración 20261108 arregló para el escáner, todavía vivo en la verificación pública.\n\nEl artboard muestra el arreglo: la etiqueta de la credencial emitida y la zona que abre."
+    },
+    {
+      "id": "datos-entre-corchetes",
+      "x": 0,
+      "y": 2500,
+      "w": 620,
+      "text": "LO QUE ESTÁ ENTRE CORCHETES\n\nNo hay precios de entradas en el repo: viven en el catálogo del proyecto real. Lo que está entre corchetes es un hueco para completar, no un número propuesto. Lo mismo con nombres, documentos y códigos.\n\nEvento, sede y fecha sí son los reales: Pitbull Classic, 12-13 Dic 2026, La Troupe Multiespacio, Gallo 148, Banfield."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

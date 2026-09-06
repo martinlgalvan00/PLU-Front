@@ -788,7 +788,8 @@ const PUBLISHED_EVENTS_SELECT = `
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id)
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
   )
 `
 

@@ -39,6 +39,11 @@ const EVENT_SELECT = `
  * Lectura base del catálogo. `access_code` nunca entra; `audience` y
  * `archived_at` sólo viajan hasta sanitizePublicCatalogEvent, que elimina la
  * oferta completa si no corresponde anunciarla.
+ *
+ * `credentials` viaja al público a propósito: es lo que distingue una entrada
+ * de espectador de una de entrenador, y el comprador tiene que poder leerlo
+ * antes de pagar. No autoriza nada — el alcance que vale es el congelado en la
+ * entrada emitida, que valida `staff_check_in_ticket` en el servidor.
  */
 const CATALOG_EVENT_SELECT = `
   id, slug, title, description, venue, location,
@@ -56,7 +61,8 @@ const CATALOG_EVENT_SELECT = `
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id)
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
   )
 `
 

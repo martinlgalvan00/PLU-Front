@@ -5,7 +5,7 @@ import '../styles/pages/pitbull-meet.css'
 import '../styles/pages/pitbull-categories.css'
 import '../styles/layout/design-page-notebook.css'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, FileText } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import { LazyPhoto } from '../components/ui/LazyPhoto.jsx'
 import photoMeetFloor from '../assets/DSC00346-display.jpg'
@@ -210,6 +210,7 @@ function PitbullSectionNav({ items, t }) {
 }
 
 function PitbullInscriptionCounter({
+  className = '',
   registered,
   slots,
   statusLabel,
@@ -238,6 +239,7 @@ function PitbullInscriptionCounter({
         isCompact ? 'pitbull-inscription-counter--compact' : '',
         softLaunch || !capacityLive ? 'pitbull-inscription-counter--soon' : '',
         progressHidden ? 'pitbull-inscription-counter--hidden' : '',
+        className,
       ]
         .filter(Boolean)
         .join(' ')}
@@ -731,7 +733,6 @@ function PitbullInscriptionSection({
         whileInView: 'show',
         viewport: MOTION_VIEWPORT,
       }
-  const Pricing = reducedMotion ? 'dl' : m.dl
   const Footer = reducedMotion ? 'div' : m.div
   const childProps = reducedMotion ? {} : { variants: bodyEntryMotion }
 
@@ -764,7 +765,7 @@ function PitbullInscriptionSection({
       <div
         className={[
           'pitbull-inscription-shell',
-          'pitbull-inscription-shell--compact',
+          'pitbull-inscription-shell--deck',
           softLaunch ? 'pitbull-inscription-shell--soon' : '',
           comboLive ? 'pitbull-inscription-shell--combo' : '',
           hasActiveMembership ? 'pitbull-inscription-shell--affiliated' : '',
@@ -784,90 +785,105 @@ function PitbullInscriptionSection({
           </p>
         ) : null}
 
-        <PitbullInscriptionCounter
-          capacityLive={capacityLive}
-          progressPublic={progressPublic}
-          registered={registered}
-          slots={slots}
-          softLaunch={softLaunch}
-          statusLabel={statusLabel}
-          statusTone={statusTone}
-          t={t}
-          variant="compact"
-        />
+        <header className="pitbull-inscription-deck__masthead">
+          <span className="pitbull-inscription-deck__index motif-num motif-num--ghost" aria-hidden>
+            {t('pages.pitbull.inscriptionIndex')}
+          </span>
+          <div className="pitbull-inscription-deck__intro">
+            <p className="pitbull-inscription-deck__eyebrow">{t('pages.pitbull.inscriptionEyebrow')}</p>
+            <h2 className="pitbull-inscription-deck__title">{t('pages.pitbull.inscriptionTitle')}</h2>
+          </div>
+        </header>
 
-        <Body className="pitbull-inscription-shell__body" {...bodyProps}>
-          {comboLive ? (
-            <SeasonComboOffer
-              variant="inline"
-              className="pitbull-inscription-shell__combo-offer"
-              membershipPrice={pricing.membership}
-              registrationPrice={pricing.registration}
-              comboPrice={comboOffer.price}
-              endsAt={comboOffer.endsAt}
+        <div className="pitbull-inscription-deck__grid">
+          <aside className="pitbull-inscription-deck__capacity" aria-label={t('pages.pitbull.slots')}>
+            <PitbullInscriptionCounter
+              className="pitbull-inscription-counter--deck"
+              capacityLive={capacityLive}
+              progressPublic={progressPublic}
+              registered={registered}
+              slots={slots}
+              softLaunch={softLaunch}
+              statusLabel={statusLabel}
+              statusTone={statusTone}
+              t={t}
+              variant="compact"
             />
-          ) : (
-            <Pricing
-              className="pitbull-inscription-shell__pricing"
-              aria-label={t('pages.pitbull.costsAria')}
+          </aside>
+
+          <Body className="pitbull-inscription-deck__offer" {...bodyProps}>
+            {comboLive ? (
+              <SeasonComboOffer
+                variant="inline"
+                className="pitbull-inscription-shell__combo-offer"
+                membershipPrice={pricing.membership}
+                registrationPrice={pricing.registration}
+                comboPrice={comboOffer.price}
+                endsAt={comboOffer.endsAt}
+              />
+            ) : (
+              <div className="pitbull-inscription-deck__quotes" aria-label={t('pages.pitbull.costsAria')}>
+                {hasActiveMembership ? (
+                  <article className="pitbull-inscription-deck__quote pitbull-inscription-deck__quote--solo">
+                    <h3 className="pitbull-inscription-deck__quote-label">{t('pages.pitbull.costMeet')}</h3>
+                    <p className="pitbull-inscription-deck__quote-value">
+                      {money(pricing.registration, locale)}
+                    </p>
+                  </article>
+                ) : (
+                  <>
+                    <article className="pitbull-inscription-deck__quote pitbull-inscription-deck__quote--primary">
+                      <h3 className="pitbull-inscription-deck__quote-label">{t('pages.pitbull.costMeet')}</h3>
+                      <p className="pitbull-inscription-deck__quote-value">
+                        {money(pricing.registration, locale)}
+                      </p>
+                      {pricing.upcoming ? (
+                        <p className="pitbull-inscription-deck__quote-note">
+                          {t('pages.pitbull.costMeetIncrease', {
+                            amount: money(pricing.upcoming.price, locale),
+                            date: formatShortStamp(pricing.upcoming.effectiveAt, locale),
+                          })}
+                        </p>
+                      ) : null}
+                    </article>
+                    <article className="pitbull-inscription-deck__quote pitbull-inscription-deck__quote--secondary">
+                      <h3 className="pitbull-inscription-deck__quote-label">
+                        {t('pages.pitbull.costMembership')}
+                      </h3>
+                      <p className="pitbull-inscription-deck__quote-value">
+                        {money(pricing.membership, locale)}
+                      </p>
+                      <p className="pitbull-inscription-deck__quote-hint">
+                        {t('pages.pitbull.requirementText')}
+                      </p>
+                    </article>
+                  </>
+                )}
+              </div>
+            )}
+
+            <Footer
+              className={[
+                'pitbull-inscription-deck__footer',
+                comboLive ? 'pitbull-inscription-deck__footer--combo' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               {...childProps}
             >
-              {hasActiveMembership ? (
-                <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--meet-only">
-                  <dt>{t('pages.pitbull.costMeet')}</dt>
-                  <dd>{money(pricing.registration, locale)}</dd>
-                </div>
-              ) : (
-                <div className="pitbull-inscription-shell__compare pitbull-inscription-shell__compare--asymmetric">
-                  <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--primary">
-                    <dt>{t('pages.pitbull.costMeet')}</dt>
-                    <dd>{money(pricing.registration, locale)}</dd>
-                  </div>
-                  <div className="pitbull-inscription-shell__price pitbull-inscription-shell__price--secondary">
-                    <dt>{t('pages.pitbull.costMembership')}</dt>
-                    <dd>{money(pricing.membership, locale)}</dd>
-                  </div>
-                </div>
-              )}
-            </Pricing>
-          )}
+              {!comboLive && !showAthleteState ? (
+                <p className="pitbull-inscription-deck__lead">
+                  {hasActiveMembership
+                    ? t('pages.pitbull.inscriptionActionOpen')
+                    : canRegister
+                      ? t('pages.pitbull.cardDescOpen')
+                      : softLaunch
+                        ? t('pages.pitbull.cardDescComingSoon')
+                        : t('pages.pitbull.cardDescClosed')}
+                </p>
+              ) : null}
 
-          {/* Aumento programado (20260929100000): se anuncia mientras rige el
-              precio actual; cuando llega la fecha, resolveEventPricing ya
-              muestra el nuevo y esta línea desaparece sola. También con el
-              combo vivo: la inscripción suelta sigue comprable y su precio
-              aparece en el comparativo del paquete. */}
-          {pricing.upcoming ? (
-            <p className="pitbull-inscription-shell__price-upcoming">
-              {t('pages.pitbull.costMeetIncrease', {
-                amount: money(pricing.upcoming.price, locale),
-                date: formatShortStamp(pricing.upcoming.effectiveAt, locale),
-              })}
-            </p>
-          ) : null}
-
-          <Footer
-            className={[
-              'pitbull-inscription-shell__footer',
-              comboLive ? 'pitbull-inscription-shell__footer--combo' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            {...childProps}
-          >
-            {!comboLive && !showAthleteState ? (
-              <p className="pitbull-inscription-shell__desc">
-                {hasActiveMembership
-                  ? t('pages.pitbull.inscriptionActionOpen')
-                  : canRegister
-                    ? t('pages.pitbull.cardDescOpen')
-                    : softLaunch
-                      ? t('pages.pitbull.cardDescComingSoon')
-                      : t('pages.pitbull.cardDescClosed')}
-              </p>
-            ) : null}
-
-            <div className="pitbull-inscription-shell__actions">
+              <div className="pitbull-inscription-deck__actions">
               {showAthleteState ? (
                 <>
                   <button
@@ -963,6 +979,7 @@ function PitbullInscriptionSection({
             </div>
           </Footer>
         </Body>
+        </div>
       </div>
 
       {!softLaunch && capacityLive ? (
@@ -1021,18 +1038,11 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
       framed
     >
       <div className="pitbull-cat">
-        <div className="pitbull-cat__meta">
+        <div className="pitbull-cat__toolbar">
           <span className="pitbull-cat__status">
-            <FileText size={14} aria-hidden />
+            <span className="pitbull-cat__status-dot" aria-hidden />
             {t('pages.pitbull.categoriesPendingLabel')}
           </span>
-          <p className="pitbull-cat__totals">
-            {t('pages.pitbull.categoriesTotals', {
-              modalities: pitbullClassic.modalities.length,
-              equipment: pitbullClassic.categories.length,
-              divisions: pitbullClassic.divisions.length,
-            })}
-          </p>
           <button
             type="button"
             className="pitbull-cat__rulebook motion-icon-shift motif-tap-target"
@@ -1047,21 +1057,29 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
           <section className="pitbull-cat__featured" aria-labelledby="pitbull-cat-modalities">
             <header className="pitbull-cat__featured-head">
               <p className="pitbull-cat__featured-hint">{t('pages.pitbull.categoriesModalitiesHint')}</p>
-              <h3 id="pitbull-cat-modalities" className="pitbull-cat__featured-title">
-                {t('pages.pitbull.categoriesModalities')}
-              </h3>
+              <div className="pitbull-cat__headline">
+                <h3 id="pitbull-cat-modalities" className="pitbull-cat__featured-title">
+                  {t('pages.pitbull.categoriesModalities')}
+                </h3>
+                <span className="pitbull-cat__count" aria-hidden>
+                  {pitbullClassic.modalities.length}
+                </span>
+              </div>
             </header>
 
             <ListTag className="pitbull-cat__featured-list" {...listMotion}>
               {pitbullClassic.modalities.map((row, rowIndex) => (
                 <ItemTag key={row} className="pitbull-cat__featured-row" {...itemMotion}>
+                  <span className="pitbull-cat__featured-row-index motif-num" aria-hidden>
+                    {String(rowIndex + 1).padStart(2, '0')}
+                  </span>
+                  <span className="pitbull-cat__featured-row-name">{row}</span>
                   <span
                     className="pitbull-cat__featured-row-ghost motif-num motif-num--ghost"
                     aria-hidden
                   >
                     {String(rowIndex + 1).padStart(2, '0')}
                   </span>
-                  <span className="pitbull-cat__featured-row-name">{row}</span>
                 </ItemTag>
               ))}
             </ListTag>
@@ -1071,9 +1089,14 @@ function PitbullCategoriesSection({ pitbullClassic, onNavigate, t }) {
             {secondaryGroups.map((group) => (
               <section key={group.id} className="pitbull-cat__lane" aria-labelledby={`pitbull-cat-${group.id}`}>
                 <p className="pitbull-cat__lane-hint">{group.hint}</p>
-                <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
-                  {group.label}
-                </h3>
+                <div className="pitbull-cat__headline pitbull-cat__headline--lane">
+                  <h3 id={`pitbull-cat-${group.id}`} className="pitbull-cat__lane-title">
+                    {group.label}
+                  </h3>
+                  <span className="pitbull-cat__count pitbull-cat__count--lane" aria-hidden>
+                    {group.rows.length}
+                  </span>
+                </div>
 
                 <ListTag className="pitbull-cat__list" {...listMotion}>
                   {group.rows.map((row, rowIndex) => (
@@ -1261,14 +1284,6 @@ export default function PitbullPage({
     goToCompetitionCheckout({ checkoutIntent: 'change_method' })
   }
 
-  function handleHeroSecondary() {
-    if (ticketsOpen) {
-      goToTicketsPage()
-      return
-    }
-    scrollToSection('categorias')
-  }
-
   return (
     <main className="page page--design pitbull-page pitbull-page--premium">
       <PitbullHero
@@ -1278,9 +1293,7 @@ export default function PitbullPage({
         eventStatus={eventStatus}
         onHome={() => onNavigate('home')}
         onRegister={handleHeroRegister}
-        onSecondary={handleHeroSecondary}
         registrationFee={money(eventPricing.registration, locale)}
-        ticketsOpen={ticketsOpen}
         title={heroTitle}
         lead={heroLead}
         registerLabel={heroCtaLabel}

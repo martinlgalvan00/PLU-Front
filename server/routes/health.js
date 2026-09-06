@@ -2,6 +2,22 @@ import { Router } from 'express'
 
 export function createHealthRoutes({ getPrisma, getSupabaseAdmin } = {}) {
   const router = Router()
+  // La API no sirve HTML: si alguien abre el puerto del backend en el browser
+  // (o un health checker genérico pega GET /), devolvemos metadata en vez de un
+  // 404 ruidoso. El sitio vive en Vite (APP_URL), no acá.
+  router.get('/', (_req, res) => {
+    res.set('Cache-Control', 'no-store').json({
+      service: 'plu-arg-api',
+      frontend: process.env.APP_URL ?? process.env.VITE_APP_URL ?? null,
+      health: '/health',
+      ready: '/ready',
+    })
+  })
+  // Docker Desktop y otros scanners suelen probar /json/version en puertos
+  // abiertos buscando el daemon. No somos Docker: 404 vacío y sin ruido en logs.
+  router.get('/json/version', (_req, res) => {
+    res.status(404).end()
+  })
   router.get('/health', (_req, res) => {
     res.set('Cache-Control', 'no-store').json({
       status: 'ok',

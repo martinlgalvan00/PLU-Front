@@ -3205,6 +3205,154 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   display: none;
 }
 
+/* Login mobile: banda fotográfica compacta arriba del formulario. El aside
+   sigue en el DOM (misma foto que desktop) pero se recorta a una franja. */
+@media (max-width: 599px) {
+  .auth-layout--login {
+    flex-direction: column;
+  }
+
+  .auth-layout--login .auth-layout__visual {
+    --auth-visual-ink: #f3f5f8;
+    --auth-visual-ink-muted: color-mix(in srgb, var(--auth-visual-ink) 74%, transparent);
+    --auth-visual-gold: var(--plu-gold-400);
+    align-items: stretch;
+    background: var(--plu-cool-950, #0a0c10);
+    border-right: none;
+    display: flex;
+    flex: 0 0 auto;
+    height: clamp(116px, 17vh, 152px);
+    isolation: isolate;
+    min-height: 0;
+    overflow: hidden;
+    padding: calc(var(--header-height) + 8px) clamp(16px, 4.5vw, 24px) 0;
+    position: relative;
+    width: 100%;
+  }
+
+  .auth-layout--login .auth-layout__visual-photo {
+    animation: auth-visual-photo var(--motion-slow) var(--ease-out) both;
+    height: 100%;
+    inset: 0;
+    object-fit: cover;
+    object-position: 42% 24%;
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
+    z-index: 0;
+  }
+
+  .auth-layout--login .auth-layout__visual-scrim {
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 88%, transparent) 0%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 62%, transparent) 55%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 42%, transparent) 100%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 35%, transparent) 0%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 72%, transparent) 100%
+      );
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 1;
+  }
+
+  .auth-layout--login .auth-layout__visual-content {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: clamp(12px, 3.5vw, 18px);
+    height: 100%;
+    justify-content: flex-start;
+    margin: 0;
+    max-width: none;
+    min-height: 0;
+    position: relative;
+    width: 100%;
+    z-index: 2;
+  }
+
+  .auth-layout--login .auth-layout__editorial {
+    align-items: flex-start;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .auth-layout--login .auth-layout__editorial::before {
+    display: none;
+  }
+
+  .auth-layout--login .auth-layout__kicker {
+    color: var(--auth-visual-ink-faint);
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    margin: 0;
+  }
+
+  .auth-layout--login .auth-layout__lead,
+  .auth-layout--login .auth-layout__signals,
+  .auth-layout--login .auth-layout__meta {
+    display: none;
+  }
+
+  .auth-layout--login .auth-layout__slogan {
+    display: inline;
+    font-size: clamp(1.2rem, 4.8vw, 1.45rem);
+    letter-spacing: -0.04em;
+    line-height: 1.08;
+    margin: 0;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .auth-layout--login .auth-layout__slogan-line {
+    display: inline;
+    margin: 0;
+  }
+
+  .auth-layout--login .auth-layout__content {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .auth-layout--login .auth-immersive-page {
+    padding-top: clamp(10px, 2vh, 16px);
+  }
+
+  .auth-layout--login .auth-immersive-glass__logo {
+    display: none;
+  }
+
+  .auth-layout--login .auth-immersive-glass__header {
+    gap: 6px;
+    margin-bottom: clamp(12px, 2vh, 18px);
+  }
+
+  .auth-layout--login.auth-layout--login-home .auth-immersive-glass__title {
+    font-size: clamp(1.3rem, 4.5vw, 1.55rem);
+  }
+
+  .auth-layout--login.auth-layout--login-home .auth-immersive-glass__eyebrow {
+    display: none;
+  }
+}
+
+@media (max-width: 399px) {
+  .auth-layout--login .auth-layout__slogan {
+    font-size: 1.15rem;
+    white-space: normal;
+  }
+}
+
 .auth-layout__content {
   box-sizing: border-box;
   display: flex;
@@ -3520,9 +3668,9 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
   .auth-layout {
     display: grid;
-    /* Retrato protagonista: la foto lleva más peso que el formulario en vez
-       de partir la pantalla al medio. */
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    /* Retrato protagonista en desktop amplio; en anchos medios el formulario
+       conserva un piso legible (~340px) para que no quede aplastado. */
+    grid-template-columns: minmax(0, 1.1fr) minmax(340px, 28rem);
     grid-template-rows: minmax(0, 1fr);
     height: 100%;
     /* Dentro del app-shell equivale a `100%`; fuera (staff / cambio de email)
@@ -3562,7 +3710,7 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     --auth-visual-ink-faint: color-mix(in srgb, var(--auth-visual-ink) 46%, transparent);
     --auth-visual-gold: var(--plu-gold-400);
     background: var(--plu-cool-950, #0a0c10);
-    border-right: 1px solid color-mix(in srgb, var(--auth-visual-ink) 8%, transparent);
+    border-right: none;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -3595,18 +3743,18 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     z-index: 0;
     background:
       linear-gradient(
-        98deg,
-        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 92%, transparent) 0%,
-        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 78%, transparent) 38%,
-        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 42%, transparent) 66%,
+        102deg,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 94%, transparent) 0%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 82%, transparent) 42%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 48%, transparent) 68%,
         transparent 100%
       ),
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 55%, transparent) 0%,
-        transparent 30%,
-        transparent 70%,
-        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 78%, transparent) 100%
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 62%, transparent) 0%,
+        transparent 28%,
+        transparent 72%,
+        color-mix(in srgb, var(--plu-cool-950, #0a0c10) 82%, transparent) 100%
       );
   }
 
@@ -3628,9 +3776,21 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
   .auth-layout__editorial {
     display: grid;
-    gap: clamp(12px, 2vh, 18px);
+    gap: clamp(14px, 2.2vh, 20px);
     position: relative;
     width: 100%;
+  }
+
+  .auth-layout__editorial::before {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--auth-visual-gold) 88%, transparent) 0%,
+      color-mix(in srgb, var(--auth-visual-gold) 18%, transparent) 100%
+    );
+    block-size: 1px;
+    content: '';
+    inline-size: 36px;
+    margin-bottom: 2px;
   }
 
   .auth-layout__kicker {
@@ -3662,14 +3822,14 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
   .auth-layout__slogan {
     font-family: var(--font-display);
-    font-size: clamp(2.75rem, 5vw, 4.1rem);
+    font-size: clamp(2.35rem, 4.4vw, 3.65rem);
     font-weight: 700;
-    letter-spacing: -0.048em;
-    line-height: 0.94;
+    letter-spacing: -0.052em;
+    line-height: 0.96;
     text-transform: none;
     color: var(--auth-visual-ink);
-    margin: clamp(4px, 0.8vh, 8px) 0 0;
-    max-width: 10ch;
+    margin: clamp(2px, 0.4vh, 6px) 0 0;
+    max-width: 11ch;
     animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
     animation-delay: 100ms;
   }
@@ -3705,11 +3865,11 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
   .auth-layout__signals {
     list-style: none;
-    margin: clamp(20px, 3.2vh, 28px) 0 0;
+    margin: clamp(22px, 3.4vh, 32px) 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: clamp(8px, 1.2vh, 11px);
+    gap: clamp(10px, 1.4vh, 13px);
     width: 100%;
     max-width: 34ch;
   }
@@ -3741,28 +3901,28 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     animation-delay: 400ms;
   }
 
-  .auth-layout__signal-n {
-    color: color-mix(in srgb, var(--auth-visual-gold) 78%, var(--auth-visual-ink-faint));
-    font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    line-height: 1;
-  }
-
-  .auth-layout__signal-sep {
-    color: var(--auth-visual-ink-faint);
-    font-weight: 300;
-    line-height: 1;
+  /* Reemplaza al viejo `01 — `: marca el ritmo de la lista sin numerarla. La
+     regla arranca en oro y se apaga, así el ojo entra por la izquierda y
+     descansa en la etiqueta, que es lo que hay que leer. */
+  .auth-layout__signal-rule {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--auth-visual-gold) 72%, transparent) 0%,
+      color-mix(in srgb, var(--auth-visual-gold) 8%, transparent) 100%
+    );
+    block-size: 1px;
+    flex: none;
+    inline-size: 18px;
+    transform: translateY(-3px);
   }
 
   .auth-layout__signal-label {
-    color: color-mix(in srgb, var(--auth-visual-ink) 88%, transparent);
+    color: color-mix(in srgb, var(--auth-visual-ink) 82%, transparent);
     font-family: var(--font-display);
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
-    letter-spacing: -0.008em;
-    line-height: 1.35;
+    letter-spacing: -0.012em;
+    line-height: 1.4;
   }
 
   .auth-layout__meta {
@@ -3793,6 +3953,26 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     overflow: hidden;
     position: relative;
     width: 100%;
+  }
+
+  /* Una sola línea de sujeción entre columnas — reemplaza el borde duro. */
+  .auth-layout__content::before {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-text-primary) 8%, transparent) 18%,
+      color-mix(in srgb, var(--plu-gold-500) 22%, transparent) 50%,
+      color-mix(in srgb, var(--color-text-primary) 8%, transparent) 82%,
+      transparent 100%
+    );
+    bottom: var(--auth-panel-pad-bottom);
+    content: '';
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    top: var(--auth-panel-pad-top);
+    width: 1px;
+    z-index: 3;
   }
 
   .auth-layout__content .auth-immersive-page {
@@ -3831,11 +4011,11 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     box-shadow: none;
     box-sizing: border-box;
     flex: 0 0 auto;
-    gap: clamp(12px, 2vh, 20px);
+    gap: clamp(14px, 2.2vh, 22px);
     justify-content: flex-start;
     margin-block: auto;
     margin-inline: 0;
-    max-width: 26rem;
+    max-width: 100%;
     min-height: 0;
     overflow: visible;
     padding: 0;
@@ -3863,24 +4043,32 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     align-items: flex-start;
     text-align: left;
     gap: 0;
-    margin-bottom: clamp(16px, 2.4vh, 24px);
-    padding-bottom: clamp(14px, 2vh, 20px);
-    border-bottom: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+    margin-bottom: clamp(18px, 2.8vh, 28px);
+    padding-bottom: 0;
+    border-bottom: none;
     width: 100%;
+  }
+
+  /* En split el panel visual ya marca la institución: el formulario de ingreso
+     queda solo con título y campos, sin repetir eyebrow ni lead. */
+  .auth-layout--login.auth-layout--login-home .auth-layout__content .auth-immersive-glass__eyebrow,
+  .auth-layout--login.auth-layout--login-home .auth-layout__content .auth-immersive-glass__lead {
+    display: none;
   }
 
   .auth-layout__content .auth-immersive-glass__copy {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
   }
 
   .auth-layout__content .auth-immersive-glass__title {
-    font-size: clamp(1.75rem, 2.8vw, 2.15rem);
-    letter-spacing: -0.038em;
-    line-height: 1.05;
+    font-size: clamp(1.85rem, 2.6vw, 2.2rem);
+    letter-spacing: -0.042em;
+    line-height: 1.02;
+    max-width: 14ch;
   }
 
   .auth-layout__content .auth-immersive-glass__lead {
@@ -3891,8 +4079,28 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   }
 
   .auth-layout__content .login-form {
-    gap: 18px;
+    gap: 20px;
     width: 100%;
+  }
+
+  /* Campos sin icono en split (solo ingreso): más aire, menos ruido visual. */
+  .auth-layout--login.auth-layout--login-home .auth-layout__content .login-field__icon {
+    display: none;
+  }
+
+  .auth-layout--login.auth-layout--login-home .auth-layout__content .login-field__control {
+    gap: 0;
+  }
+
+  .auth-layout--login.auth-layout--login-home
+    .auth-layout__content
+    .login-field__control:has(.login-field__toggle)
+    input {
+    padding-right: 40px;
+  }
+
+  .auth-layout--login.auth-layout--login-home .auth-layout__content .login-remember__hint {
+    display: none;
   }
 
   .auth-layout__content .auth-immersive-glass .login-submit {
@@ -3919,8 +4127,6 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     z-index: 20;
     letter-spacing: 0.04em;
     white-space: normal;
-    /* Alineado al borde izquierdo de la columna del formulario, no al centro
-       del panel: centrado quedaba desfasado respecto del bloque de lectura. */
     text-align: left;
   }
 
@@ -3957,6 +4163,12 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
     .auth-layout__content .login-page__footer.auth-layout__footer {
       bottom: 12px;
     }
+  }
+}
+
+@media (min-width: 1180px) {
+  .auth-layout {
+    grid-template-columns: minmax(0, 1.28fr) minmax(360px, 30rem);
   }
 }
 
@@ -4017,7 +4229,8 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   .auth-layout__lead,
   .auth-layout__signal,
   .auth-layout__meta,
-  .auth-layout__content .auth-immersive-glass {
+  .auth-layout__content .auth-immersive-glass,
+  .auth-layout--login .auth-layout__visual {
     animation: none;
   }
 
@@ -4043,6 +4256,19 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 /* Light: el panel fotográfico ya usa tinta clara fija; sólo ajustes de borde. */
 [data-theme='light'] .auth-layout__visual {
   border-right-color: color-mix(in srgb, var(--plu-cool-950) 14%, transparent);
+}
+
+/* El letterhead del panel fotográfico es la excepción a la regla de tema.
+   `[data-theme='light'] .brand-logo-letterhead` lo pinta en negro (0,2,0) y le
+   ganaba a `.auth-layout__emblem` (0,1,0), así que en tema claro el logo
+   quedaba negro sobre una foto oscura: invisible. El panel no cambia de color
+   con el tema —siempre es la foto con su scrim— de modo que su logo siempre va
+   en blanco. Se iguala la especificidad en vez de usar `!important`. */
+[data-theme='light'] .auth-layout__visual .brand-logo-letterhead,
+[data-theme='dark'] .auth-layout__visual .brand-logo-letterhead {
+  filter: brightness(0) invert(1);
+  mix-blend-mode: normal;
+  opacity: 0.94;
 }
 
 /* =========================================================================
@@ -4681,9 +4907,22 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Cascada de entrada: una sola secuencia one-shot por panel, con el mismo
-     paso que --stagger-step. Se reejecuta al cambiar de modo porque el panel
-     se vuelve a montar. */
+  @media (max-width: 599px) {
+    .auth-layout--login .auth-layout__kicker,
+    .auth-layout--login .auth-layout__slogan {
+      animation: auth-visual-enter var(--motion-slow) var(--ease-out) both;
+    }
+
+    .auth-layout--login .auth-layout__kicker {
+      animation-delay: 40ms;
+    }
+
+    .auth-layout--login .auth-layout__slogan {
+      animation-delay: 100ms;
+    }
+  }
+
+  /* Cascada de entrada: one-shot por panel; se reejecuta al cambiar de modo. */
   .auth-immersive-glass .login-form > * {
     animation: auth-field-enter var(--motion-base) var(--ease-out) both;
   }
@@ -4691,17 +4930,41 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
   .auth-immersive-glass .login-form > *:nth-child(1) {
     animation-delay: 40ms;
   }
+
   .auth-immersive-glass .login-form > *:nth-child(2) {
     animation-delay: 100ms;
   }
+
   .auth-immersive-glass .login-form > *:nth-child(3) {
     animation-delay: 160ms;
   }
+
   .auth-immersive-glass .login-form > *:nth-child(4) {
     animation-delay: 220ms;
   }
+
   .auth-immersive-glass .login-form > *:nth-child(n + 5) {
     animation-delay: 260ms;
+  }
+
+  .auth-layout--login .auth-immersive-glass .login-form > *:nth-child(1) {
+    animation-delay: calc(var(--stagger-step) * 2.5);
+  }
+
+  .auth-layout--login .auth-immersive-glass .login-form > *:nth-child(2) {
+    animation-delay: calc(var(--stagger-step) * 3.5);
+  }
+
+  .auth-layout--login .auth-immersive-glass .login-form > *:nth-child(3) {
+    animation-delay: calc(var(--stagger-step) * 4.5);
+  }
+
+  .auth-layout--login .auth-immersive-glass .login-form > *:nth-child(4) {
+    animation-delay: calc(var(--stagger-step) * 5.5);
+  }
+
+  .auth-layout--login .auth-immersive-glass .login-form > *:nth-child(n + 5) {
+    animation-delay: calc(var(--stagger-step) * 6.5);
   }
 
   .auth-immersive-glass__title,
@@ -4711,6 +4974,19 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
   .auth-immersive-glass__lead {
     animation-delay: 60ms;
+  }
+
+  .auth-layout--login .auth-immersive-glass__eyebrow {
+    animation: auth-copy-enter var(--motion-base) var(--ease-out) both;
+    animation-delay: 0ms;
+  }
+
+  .auth-layout--login .auth-immersive-glass__title {
+    animation-delay: calc(var(--stagger-step) * 0.75);
+  }
+
+  .auth-layout--login .auth-immersive-glass__lead {
+    animation-delay: calc(var(--stagger-step) * 1.5);
   }
 
   .login-field__hint {
@@ -4791,6 +5067,7 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
 
 @media (prefers-reduced-motion: reduce) {
   .auth-immersive-glass .login-form > *,
+  .auth-immersive-glass__eyebrow,
   .auth-immersive-glass__title,
   .auth-immersive-glass__lead,
   .login-field__hint {
@@ -4815,203 +5092,57 @@ body:not(:has(.app-shell)) .auth-layout .auth-immersive-page {
       declara el estado, el anillo queda estático. */
 }
 
-/* =========================================================================
-   AUTH — GUÍA DE ACCESO ("¿Cómo entro?")
-   Disclosure editorial bajo el submit: los tres caminos reales de entrada.
-   Se expande con grid-template-rows (sin animar height), los pasos entran
-   en stagger y el chevron rota — nada más se mueve.
-   ========================================================================= */
-
-.login-guide {
-  margin-top: 16px;
-}
-
-.login-guide__toggle {
-  align-items: center;
-  background: transparent;
-  border: none;
-  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 500;
-  gap: 7px;
-  justify-content: center;
-  padding: 13px 0 4px;
-  transition: color 180ms var(--ease-out);
-  width: 100%;
-}
-
-.login-guide__toggle:hover {
-  color: var(--color-brand-celeste);
-}
-
-.login-guide__chevron {
-  transition: transform var(--motion-base) var(--ease-out);
-}
-
-.login-guide[data-open='1'] .login-guide__chevron {
-  transform: rotate(180deg);
-}
-
-.login-guide__panel {
+/* Pie del formulario de login: afiliación en bloque secundario. */
+.auth-immersive-glass .login-form__footer {
+  border-top: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
   display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--motion-base) var(--ease-out);
+  gap: 0;
+  margin-top: 6px;
+  padding-top: 16px;
 }
 
-.login-guide[data-open='1'] .login-guide__panel {
-  grid-template-rows: 1fr;
-}
-
-.login-guide__panel-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.login-guide__title {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  line-height: 1;
-  margin: 12px 0 2px;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.login-guide__steps {
+.auth-layout--login .login-form__footer .login-join {
+  align-items: baseline;
   display: flex;
-  flex-direction: column;
-  list-style: none;
+  flex-wrap: wrap;
+  gap: 0.35em 0.55em;
+  line-height: 1.45;
   margin: 0;
-  padding: 0 0 4px;
+  text-align: left;
 }
 
-.login-guide__step {
-  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  display: grid;
-  gap: 0 12px;
-  grid-template-columns: 30px minmax(0, 1fr);
-  padding: 11px 0;
+.auth-layout--login .login-join__prompt {
+  color: color-mix(in srgb, var(--color-text-muted) 88%, transparent);
+  font-size: 12.5px;
+  font-weight: 400;
 }
 
-.login-guide__step:last-child {
-  border-bottom: none;
-}
-
-.login-guide__step-n {
-  color: color-mix(in oklab, var(--plu-gold-500) 78%, var(--color-text-muted));
-  font-family: var(--font-mono, 'JetBrains Mono', 'Courier New', monospace);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.7;
-  padding-top: 1px;
-}
-
-.login-guide__step-title {
+.auth-layout--login .login-form__footer .login-join__link {
+  background: none;
+  border: none;
   color: var(--color-text-primary);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  margin: 0;
-}
-
-.login-guide__step-body {
-  color: var(--color-text-muted);
-  font-size: 12.5px;
-  line-height: 1.55;
-  margin: 3px 0 0;
-}
-
-.login-guide__step-action {
-  align-items: center;
-  background: transparent;
-  border: none;
-  color: var(--color-brand-celeste);
   cursor: pointer;
-  display: inline-flex;
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
-  gap: 6px;
-  margin-top: 7px;
-  padding: 4px 0;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 38%, transparent);
-  text-underline-offset: 3px;
-  transition:
-    color 180ms var(--ease-out),
-    text-decoration-color 180ms var(--ease-out);
+  letter-spacing: -0.01em;
+  padding: 0;
+  text-decoration: none;
+  transition: color 180ms var(--ease-out);
 }
 
-.login-guide__step-action:hover {
-  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 62%, transparent);
+.auth-layout--login .login-form__footer .login-join__link:hover {
+  color: var(--color-brand-celeste);
 }
 
-.login-guide__step-action svg {
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-
-.login-guide__step-action:hover svg {
-  transform: translateX(2px);
-}
-
-/* Apertura: los pasos suben en stagger corto. Solo al abrir — al cerrar el
-   panel se pliega derecho, sin coreografía de salida. */
-@media (prefers-reduced-motion: no-preference) {
-  .login-guide[data-open='1'] .login-guide__step {
-    animation: login-guide-step 240ms var(--ease-out) both;
+@media (min-width: 600px) {
+  .auth-layout--login .login-form__footer {
+    margin-top: 8px;
+    padding-top: 18px;
   }
 
-  .login-guide[data-open='1'] .login-guide__step:nth-child(1) {
-    animation-delay: 30ms;
-  }
-  .login-guide[data-open='1'] .login-guide__step:nth-child(2) {
-    animation-delay: 75ms;
-  }
-  .login-guide[data-open='1'] .login-guide__step:nth-child(3) {
-    animation-delay: 120ms;
-  }
-}
-
-@keyframes login-guide-step {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* Touch: el toggle y las acciones internas llegan a target cómodo sin mover
-   la maqueta (padding + margen negativo, mismo patrón que los links de servicio). */
-@media (pointer: coarse) {
-  .login-guide__toggle {
-    min-height: 44px;
-    padding-bottom: 8px;
-  }
-
-  .login-guide__step-action {
-    margin-bottom: -8px;
-    padding-bottom: 12px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-guide__panel,
-  .login-guide__chevron,
-  .login-guide__step-action svg {
-    transition: none;
-  }
-
-  .login-guide[data-open='1'] .login-guide__step {
-    animation: none;
+  .auth-layout--login .login-join__prompt,
+  .auth-layout--login .login-form__footer .login-join__link {
+    font-size: 13px;
   }
 }
