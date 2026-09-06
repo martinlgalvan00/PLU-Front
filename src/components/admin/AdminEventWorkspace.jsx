@@ -520,13 +520,17 @@ export default function AdminEventWorkspace({
       aria-label={t('admin.sections.events.panelLabel')}
     >
       <aside className="admin-event-workspace__sidebar">
-        {/* La columna llega hasta abajo (es una columna, no una tarjeta suelta)
-            y este envoltorio es lo que acompaña al scroll: sin él habría que
-            elegir entre superficie completa o navegación siempre a mano. */}
+        {/* Columna de chrome: el sticky vive en el aside (CSS). Este inner
+            agrupa volver, identidad y nav sin un segundo ancla. */}
         <div className="admin-event-workspace__sidebar-inner">
-        <button type="button" className="admin-event-workspace__back" onClick={handleBack}>
+        <button
+          type="button"
+          className="admin-event-workspace__back"
+          onClick={handleBack}
+          aria-label={t('admin.eventConsole.backAria')}
+        >
           <ChevronLeft size={14} aria-hidden />
-          {t('admin.eventConsole.back')}
+          <span>{t('admin.eventConsole.back')}</span>
         </button>
 
         <div className="admin-event-workspace__sidebar-head">

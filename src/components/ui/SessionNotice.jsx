@@ -160,7 +160,7 @@ export default function SessionNotice({ onNavigate }) {
 
   return (
     <div
-      className={`session-notice${leaving ? ' is-leaving' : ''}`}
+      className={`session-notice session-notice--${notice.type}${leaving ? ' is-leaving' : ''}`}
       role="status"
       aria-live="polite"
     >

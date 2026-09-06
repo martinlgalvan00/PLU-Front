@@ -1,6 +1,7 @@
 import { PRICING } from './constants.js'
 
 import { getEnabledTicketAddons, normalizeTicketAddons } from './ticketAddons.js'
+import { summarizeTicketCredentials } from './ticketCredentials.js'
 
 /** Precios por defecto cuando un evento no tiene overrides en admin. */
 export const DEFAULT_EVENT_PRICING = {
@@ -159,15 +160,26 @@ export function ticketPricingFromEvent(event) {
   const ticketTypes = (event?.ticketTypes ?? [])
     .filter((type) => type.active !== false)
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-    .map((type) => ({
-      id: type.id,
-      name: type.name,
-      price: Number(type.price) || 0,
-      quota: type.quota ?? null,
-      dayIndexes: type.dayIndexes ?? [],
-      includedAddonIds: type.includedAddonIds ?? [],
-      includedAddons: catalog.filter((addon) => (type.includedAddonIds ?? []).includes(addon.id)),
-    }))
+    .map((type) => {
+      // Subcategorías: qué credenciales emite una compra de este tipo y qué
+      // zona abre cada una. Hasta acá se perdían en este map y el comprador
+      // veía un nombre suelto: dos entradas distintas se leían iguales.
+      const { credentials, count, zoneScopes } = summarizeTicketCredentials(type.credentials)
+      return {
+        id: type.id,
+        name: type.name,
+        price: Number(type.price) || 0,
+        quota: type.quota ?? null,
+        dayIndexes: type.dayIndexes ?? [],
+        includedAddonIds: type.includedAddonIds ?? [],
+        includedAddons: catalog.filter((addon) => (type.includedAddonIds ?? []).includes(addon.id)),
+        credentials,
+        // Cuántos QR emite la compra. El cupo sigue contando compras: un
+        // entrenador ocupa un lugar y recibe dos credenciales.
+        credentialCount: count,
+        zoneScopes,
+      }
+    })
 
   return { eventDays, ticketTypes, addons: catalog }
 }

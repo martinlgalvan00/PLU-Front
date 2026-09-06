@@ -287,6 +287,7 @@ export default function LaunchRegistrationTeaser({
           })}
     >
       <span className="launch-teaser__atmosphere" aria-hidden />
+      {isHero ? <span className="launch-teaser__grid" aria-hidden /> : null}
       {isHero ? <span className="launch-teaser__plate motif-plate" aria-hidden /> : null}
 
       <RuleTag
@@ -369,6 +370,22 @@ export default function LaunchRegistrationTeaser({
               </>
             ) : (
               <div className="launch-teaser__stage">
+                {isHero ? (
+                  <svg
+                    className="launch-teaser__stage-icon"
+                    aria-hidden
+                    width="30"
+                    height="30"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                  >
+                    <circle cx="12" cy="12" r="9.2" />
+                    <circle cx="12" cy="12" r="5.4" />
+                    <path d="M12 2.8v2M12 19.2v2M21.2 12h-2M4.8 12h-2" strokeLinecap="round" />
+                  </svg>
+                ) : null}
                 {showStagePrice ? (
                   <>
                     <p className="launch-teaser__stage-mark">
@@ -379,7 +396,12 @@ export default function LaunchRegistrationTeaser({
                     <p className="launch-teaser__stage-price">{stage.price}</p>
                   </>
                 ) : (
-                  <p className="launch-teaser__pending">{stage?.mark ?? statusCopy}</p>
+                  <>
+                    {isHero && statusLabel ? (
+                      <p className="launch-teaser__stage-label">{statusLabel}</p>
+                    ) : null}
+                    <p className="launch-teaser__pending">{stage?.mark ?? statusCopy}</p>
+                  </>
                 )}
               </div>
             )}
@@ -467,7 +489,22 @@ export default function LaunchRegistrationTeaser({
           <div className="launch-teaser__secondary">
             {secondaryCta ? (
               <button type="button" className="launch-teaser__link" onClick={secondaryCta.onClick}>
-                {secondaryCta.label}
+                <span>{secondaryCta.label}</span>
+                {isHero ? (
+                  <svg
+                    aria-hidden
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m9 6 6 6-6 6" />
+                  </svg>
+                ) : null}
               </button>
             ) : null}
 

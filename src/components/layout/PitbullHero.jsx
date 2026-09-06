@@ -1,4 +1,4 @@
-import { ArrowRight, Ticket } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { m } from 'motion/react'
 import photoPlatformCrew from '../../assets/DSC00286-display.jpg'
 import photoPlatformCrewAvif from '../../assets/DSC00286-display.avif'
@@ -81,10 +81,8 @@ function PitbullHeroPanel({
   lead = '',
   onHome,
   onRegister,
-  onSecondary,
   registerLabel = '',
   registrationFee,
-  ticketsOpen,
   t,
   title,
   motion = false,
@@ -108,9 +106,11 @@ function PitbullHeroPanel({
             : isComingSoon
               ? t('launchTeaser.notifyCta')
               : t('pages.pitbull.joinNow')
-  const secondaryLabel = ticketsOpen
-    ? t('pages.pitbull.heroTickets')
-    : t('pages.pitbull.ctaCategories')
+  const showRegistrationFee =
+    Boolean(registrationFee) &&
+    athleteStatus !== 'registered' &&
+    !isFinished &&
+    !isComingSoon
   const Item = motion ? m.div : 'div'
   const itemProps = motion ? { variants: heroSequenceItem } : {}
 
@@ -155,43 +155,31 @@ function PitbullHeroPanel({
       </header>
 
       <Item {...itemProps}>
-        <div
-          className="pitbull-hero-masthead__actions"
-          aria-label={t('pages.pitbull.heroSecondaryAria')}
-        >
-          <div className="pitbull-hero-masthead__cta-group">
-            <button
-              type="button"
-              className="pitbull-hero-masthead__cta pitbull-hero-masthead__cta--primary motion-icon-shift"
-              onClick={onRegister}
-            >
-              {primaryLabel}
-              <ArrowRight size={14} aria-hidden className="motion-icon-shift__target" />
-            </button>
-            <span className="pitbull-hero-masthead__fee">
-              <span className="pitbull-hero-masthead__fee-label">{t('pages.pitbull.heroFee')}</span>
-              <span className="pitbull-hero-masthead__fee-value">{registrationFee}</span>
-            </span>
-          </div>
+        <div className="pitbull-hero-masthead__actions">
           <button
             type="button"
             className={[
-              'pitbull-hero-masthead__text-link',
-              ticketsOpen ? 'pitbull-hero-masthead__text-link--ticket' : '',
+              'pitbull-hero-masthead__cta',
+              'pitbull-hero-masthead__cta--primary',
+              'motion-icon-shift',
+              showRegistrationFee ? 'pitbull-hero-masthead__cta--decision' : '',
             ]
               .filter(Boolean)
               .join(' ')}
-            onClick={onSecondary}
+            onClick={onRegister}
           >
-            {ticketsOpen ? (
-              <Ticket
-                size={17}
-                strokeWidth={1.6}
-                aria-hidden
-                className="pitbull-hero-masthead__text-link-icon"
-              />
-            ) : null}
-            {secondaryLabel}
+            {showRegistrationFee ? (
+              <span className="pitbull-hero-masthead__cta-body">
+                <span className="pitbull-hero-masthead__cta-label">{primaryLabel}</span>
+                <span className="pitbull-hero-masthead__cta-sep" aria-hidden>·</span>
+                <span className="pitbull-hero-masthead__cta-fee">{registrationFee}</span>
+              </span>
+            ) : (
+              <span className="pitbull-hero-masthead__cta-label">{primaryLabel}</span>
+            )}
+            <span className="pitbull-hero-masthead__cta-icon" aria-hidden>
+              <ArrowRight size={15} strokeWidth={2} className="motion-icon-shift__target" />
+            </span>
           </button>
         </div>
       </Item>
@@ -251,7 +239,6 @@ export default function PitbullHero({
   lead = '',
   onHome,
   onRegister,
-  onSecondary,
   /**
    * Texto editable del boton principal. Solo reemplaza el caso "Inscribirme":
    * "Ver mi inscripcion" y "Completar el pago" los dicta el estado del atleta
@@ -259,7 +246,6 @@ export default function PitbullHero({
    */
   registerLabel = '',
   registrationFee,
-  ticketsOpen,
   title,
 }) {
   const { t } = useI18n()
@@ -274,10 +260,8 @@ export default function PitbullHero({
       lead={lead}
       onHome={onHome}
       onRegister={onRegister}
-      onSecondary={onSecondary}
       registerLabel={registerLabel}
       registrationFee={registrationFee}
-      ticketsOpen={ticketsOpen}
       t={t}
       title={title}
       motion={!reducedMotion}

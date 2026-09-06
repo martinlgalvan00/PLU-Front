@@ -260,9 +260,8 @@ que para Mercado Pago.
   con `apply: true` sobre las ultimas `PAYMENT_REVALIDATION_SINCE_DAYS` (3 por
   defecto) ordenes no aprobadas. En Vercel queda `false`: el cron diario
   autenticado lo ejecuta bajo demanda, complementado cada hora por
-  `.github/workflows/payment-revalidation-cron.yml` (mismo patron que
-  `payment-recovery-cron.yml`) para no depender del limite de una corrida
-  diaria del plan Hobby.
+  `.github/workflows/payment-revalidation-cron.yml` para no depender del
+  limite de una corrida diaria del plan Hobby.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
 - `PAYMENT_ORDER_EXPIRY_JOB_ENABLED` (default on, `=false` lo apaga): reclama

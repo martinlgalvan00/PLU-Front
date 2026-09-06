@@ -17824,9 +17824,32 @@ button.action-queue__proof:focus-visible {
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 10px;
   display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 1fr auto;
-  padding: 12px;
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(160px, 0.9fr) auto;
+  padding: 14px;
+}
+
+.admin-ticket-types__day-item .admin-event-form__field {
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-ticket-types__day-item .admin-event-form__field > span {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-ticket-types__day-item .admin-event-form__field input {
+  box-sizing: border-box;
+  min-height: 40px;
+  width: 100%;
+}
+
+.admin-ticket-types__day-item .admin-ticket-types__remove {
+  align-self: end;
 }
 
 .admin-ticket-types__item {
@@ -17876,13 +17899,12 @@ button.action-queue__proof:focus-visible {
 /* `align-items: start` y no el estiramiento por defecto: la fila la mide el
    campo más alto (Cupo, que lleva su aclaración debajo) y sin esto el input de
    Nombre se estiraba a 66px contra 38 de los demás, y los tres arrancaban a
-   distinta altura. Las columnas dejan de ser iguales: el nombre es texto libre
-   y el precio y el cupo son números cortos. */
+   distinta altura. Nombre flexible; precio con piso para ARS + número. */
 .admin-ticket-types__grid {
   align-items: start;
   display: grid;
-  gap: 12px 14px;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(148px, 1.1fr) minmax(110px, 0.9fr);
 }
 
 .admin-ticket-types__days,
@@ -17998,41 +18020,65 @@ button.action-queue__proof:focus-visible {
   padding: 2px 0 2px 12px;
 }
 
-/* ── Precio: un solo control, con la moneda adentro ─────────────────────────
-   `__rate-card-input` es de las tarjetas de tarifa: un número de 20px sin borde
-   con la moneda al costado, pensado para vivir DENTRO de una tarjeta que pone
-   el marco. Acá no hay tarjeta, así que "ARS" quedaba flotando afuera de la
-   caja del input. En este contexto el marco lo pone el envoltorio. */
+/* ── Precio: número + moneda al final, mismo control que el resto ───────────
+   Prefijo ARS con divisor hacía un control “especial” y angosto. Sufijo quieto
+   alinea con Nombre/Cupo y deja el número como protagonista. */
 .admin-ticket-types .admin-event-form__rate-card-input {
   align-items: center;
-  background: var(--admin-control-bg, transparent);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 8px;
-  gap: 8px;
-  padding: 0 10px;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 11px;
 }
 
 .admin-ticket-types .admin-event-form__rate-card-input:focus-within {
-  border-color: var(--admin-brand);
-  outline: 2px solid var(--admin-focus-soft, transparent);
+  background: rgba(116, 172, 223, 0.04);
+  border-color: rgba(116, 172, 223, 0.5);
+  box-shadow: 0 0 0 3px rgba(116, 172, 223, 0.12);
+  outline: none;
 }
 
 .admin-ticket-types .admin-event-form__rate-card-input > span {
+  border: 0;
   color: var(--admin-muted, var(--color-text-muted));
   flex: 0 0 auto;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
+  padding: 0;
+  text-transform: uppercase;
 }
 
-/* El número vuelve al tamaño de un campo de formulario: 20px y peso 600 es la
-   escala de una tarifa destacada, no la de una celda en una lista de tipos. */
 .admin-ticket-types .admin-event-form__rate-card-input input {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  flex: 1 1 auto;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
   font-weight: 500;
   letter-spacing: 0;
   min-height: 38px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-ticket-types .admin-event-form__rate-card-input input:hover:not(:disabled),
+.admin-ticket-types .admin-event-form__rate-card-input input:focus {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+[data-theme='light'] .admin-ticket-types .admin-event-form__rate-card-input {
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.12);
 }
 
 .admin-ticket-types__add {
@@ -22956,4 +23002,230 @@ button.action-queue__proof:focus-visible {
    tienen. Alineadas por abajo, la credencial y el estado comparten línea. */
 .admin-checkin-result__meta:has(.admin-checkin-result__credential) {
   align-items: end;
+}
+
+/* ---------------------------------------------------------------------------
+   Cierre automático de órdenes (PaymentExpiryPanel)
+
+   Familia operativa: densidad legible antes que composición. Las cuatro cifras
+   son una fila de lectura, no cards de colección — sin sombra ni elevación
+   propia, separadas por hairlines, para que el bloque lea como un instrumento
+   y no como cuatro tarjetas compitiendo. El único acento del bloque es el de
+   alerta, y sólo aparece cuando hay algo trabado esperando a una persona.
+   --------------------------------------------------------------------------- */
+
+.admin-payment-expiry {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 16px;
+  display: grid;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.admin-payment-expiry__header {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.admin-payment-expiry__eyebrow {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-payment-expiry__title {
+  color: var(--admin-ink);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.admin-payment-expiry__subtitle {
+  color: var(--admin-text-secondary, var(--admin-muted));
+  font-size: 13px;
+  margin: 4px 0 0;
+  max-width: 58ch;
+}
+
+.admin-payment-expiry__error {
+  background: var(--admin-status-danger-bg);
+  border: 1px solid var(--admin-status-danger-border);
+  border-radius: 10px;
+  color: var(--admin-status-danger);
+  font-size: 13px;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+/* Cuatro columnas que colapsan a dos y a una. Sin `auto-fit` con minmax
+   grande: en tablet dejaba una huérfana estirada al ancho completo. */
+.admin-payment-expiry__grid {
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  background: var(--admin-hairline);
+}
+
+.admin-payment-expiry__metric {
+  background: var(--admin-surface-muted, var(--admin-surface));
+  display: grid;
+  gap: 2px;
+  padding: var(--space-md);
+}
+
+.admin-payment-expiry__metric-value {
+  color: var(--admin-ink);
+  font-size: clamp(24px, 3vw, 30px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.admin-payment-expiry__metric.is-alert .admin-payment-expiry__metric-value {
+  color: var(--admin-status-warning);
+}
+
+.admin-payment-expiry__metric-label {
+  color: var(--admin-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-payment-expiry__metric-hint {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.admin-payment-expiry__callout {
+  align-items: flex-start;
+  background: var(--admin-status-warning-bg);
+  border: 1px solid var(--admin-status-warning-border);
+  border-radius: 10px;
+  color: var(--admin-status-warning);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.admin-payment-expiry__callout > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.admin-payment-expiry__windows {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: var(--space-lg);
+}
+
+.admin-payment-expiry__window-label {
+  color: var(--admin-ink);
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-payment-expiry__window-hint {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 4px 0 10px;
+  max-width: 46ch;
+}
+
+.admin-payment-expiry__window-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-payment-expiry__window-input {
+  background: var(--admin-control-bg, var(--admin-surface));
+  border: 1px solid var(--admin-hairline-strong, var(--admin-hairline));
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  min-height: 44px;
+  padding: 0 10px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+  width: 9ch;
+}
+
+.admin-payment-expiry__window-input:focus-visible {
+  border-color: var(--admin-focus, var(--color-brand-celeste));
+  box-shadow: 0 0 0 3px var(--admin-focus-soft, var(--color-brand-celeste-dim));
+  outline: none;
+}
+
+.admin-payment-expiry__window-input[aria-invalid='true'] {
+  border-color: var(--admin-status-danger-border);
+}
+
+.admin-payment-expiry__window-unit {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.admin-payment-expiry__window-current {
+  color: var(--admin-muted);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.admin-payment-expiry__window-input[aria-invalid='true']
+  ~ .admin-payment-expiry__window-current,
+.admin-payment-expiry__window:has([aria-invalid='true']) .admin-payment-expiry__window-current {
+  color: var(--admin-status-danger);
+}
+
+.admin-payment-expiry__next {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .admin-payment-expiry__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-payment-expiry__grid,
+  .admin-payment-expiry__windows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-payment-expiry__window-input {
+    flex: 1 1 auto;
+    width: auto;
+  }
 }

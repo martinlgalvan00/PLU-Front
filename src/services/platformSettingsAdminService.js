@@ -70,6 +70,36 @@ export const VALIDATION_DISABLED_CODES = {
   ticket: 'TICKET_VALIDATION_DISABLED',
 }
 
+/**
+ * Plazos de cierre automático, en minutos. Los defaults replican los de
+ * `plu_private.checkout_window_minutes`: 7200 minutos (5 días) para una orden
+ * manual, 30 minutos de gracia antes de dar por abandonado un intento de
+ * checkout que nunca llegó al proveedor.
+ *
+ * Los límites están duplicados del backend a propósito: el panel tiene que
+ * poder deshabilitar el botón antes de mandar, no descubrir el rango por un
+ * 400. La RPC y el check de la tabla siguen siendo la última palabra.
+ */
+export const CHECKOUT_WINDOW_LIMITS = {
+  manual: { min: 1, max: 525600, fallback: 7200 },
+  stale_attempt: { min: 5, max: 1440, fallback: 30 },
+}
+
+function normalizeWindows(windows) {
+  const minutes = (value, { min, max, fallback }) => {
+    const parsed = Number(value)
+    if (!Number.isInteger(parsed) || parsed < min || parsed > max) return fallback
+    return parsed
+  }
+  return {
+    manualMinutes: minutes(windows?.manualMinutes, CHECKOUT_WINDOW_LIMITS.manual),
+    staleAttemptGraceMinutes: minutes(
+      windows?.staleAttemptGraceMinutes,
+      CHECKOUT_WINDOW_LIMITS.stale_attempt,
+    ),
+  }
+}
+
 function mapToggles(result) {
   return {
     ...Object.fromEntries(
@@ -79,6 +109,7 @@ function mapToggles(result) {
       ]),
     ),
     paymentChannels: normalizeChannels(result?.paymentChannels),
+    checkoutWindows: normalizeWindows(result?.checkoutWindows),
     // Variables de entorno que están frenando algo por encima del panel. El
     // panel las muestra para no dejar un interruptor en ON sin efecto.
     environmentHolds: Array.isArray(result?.environmentHolds) ? result.environmentHolds : [],
@@ -106,4 +137,36 @@ export async function savePaymentChannel(concept, channel, enabled) {
     body: JSON.stringify({ concept, channel, enabled }),
   })
   return mapToggles(result)
+}
+
+/** Un plazo de cierre automático. Devuelve el estado completo, como los otros. */
+export async function saveCheckoutWindow(window, minutes) {
+  const result = await apiRequest('/api/platform-settings/windows', {
+    method: 'PUT',
+    body: JSON.stringify({ window, minutes }),
+  })
+  return mapToggles(result)
+}
+
+/**
+ * Diagnóstico del cierre automático. Va por separado de los interruptores
+ * porque son números que cambian solos entre lecturas —los toggles no— y
+ * porque una sección puede querer refrescarlo sin repintar toda la matriz.
+ */
+export async function fetchPaymentExpiryOverview() {
+  const result = await apiGet('/api/platform-settings/expiry-overview')
+  const count = (value) => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
+  }
+  return {
+    manualWindowMinutes: count(result?.manualWindowMinutes) || CHECKOUT_WINDOW_LIMITS.manual.fallback,
+    staleAttemptGraceMinutes:
+      count(result?.staleAttemptGraceMinutes) || CHECKOUT_WINDOW_LIMITS.stale_attempt.fallback,
+    expiredStillOpen: count(result?.expiredStillOpen),
+    heldForProof: count(result?.heldForProof),
+    blockedByProvider: count(result?.blockedByProvider),
+    reapableAttempts: count(result?.reapableAttempts),
+    nextExpiringAt: result?.nextExpiringAt ?? null,
+  }
 }

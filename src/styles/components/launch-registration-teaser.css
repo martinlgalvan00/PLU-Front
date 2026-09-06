@@ -519,6 +519,12 @@
     padding-top: 0.35rem;
   }
 
+  /* Hero: la regla vertical sigue el mismo acento calibrado que el resto
+     de la marca (oro en dark, celeste en light — ver --motif-line). */
+  .launch-teaser--hero .launch-teaser__countdown {
+    border-left-color: var(--motif-line);
+  }
+
   .launch-teaser--full .launch-teaser__actions,
   .launch-teaser--hero .launch-teaser__actions {
     grid-column: 1 / -1;
@@ -1117,14 +1123,46 @@
 }
 
 .launch-teaser--hero .launch-teaser__atmosphere {
-  inset: -12% -6% auto;
-  height: min(85%, 30rem);
-  background: radial-gradient(
-    ellipse 62% 78% at 18% 22%,
-    color-mix(in srgb, var(--color-brand-gold) 16%, transparent),
-    transparent 68%
-  );
+  inset: 0;
+  height: auto;
+  background:
+    radial-gradient(
+      ellipse 60% 70% at 14% 14%,
+      color-mix(in srgb, var(--color-brand-gold) 15%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      ellipse 52% 60% at 94% 102%,
+      color-mix(in srgb, var(--color-brand-celeste) 14%, transparent),
+      transparent 66%
+    );
   opacity: 1;
+}
+
+/* Retícula de calibración — textura de fondo, misma gramática que
+   motif-rule/motif-plate (milimetraje), muy sutil en los dos temas. */
+.launch-teaser--hero .launch-teaser__grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--motif-tick) 1px, transparent 1.5px);
+  background-size: 26px 26px;
+}
+
+.launch-teaser--hero .launch-teaser__grid::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 40px;
+  background-image: repeating-linear-gradient(
+    180deg,
+    var(--motif-tick) 0,
+    var(--motif-tick) 1px,
+    transparent 1px 40px
+  );
+  opacity: 0.6;
 }
 
 .launch-teaser__plate {
@@ -1223,6 +1261,42 @@
   letter-spacing: 0.01em;
 }
 
+/* Ícono + rótulo del estado "pendiente" (hero) — misma jerarquía que el
+   label del countdown real, para que ambos estados lean como un sistema. */
+.launch-teaser--hero .launch-teaser__stage-icon {
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+  margin-bottom: 0.2rem;
+}
+
+.launch-teaser--hero .launch-teaser__stage-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
+
+/* Hero en tema claro — recalibra los valores que el modo oscuro dejaba
+   fijos en blanco/negro (el resto ya hereda de los tokens --color-text
+   y --motif, que son theme-aware). */
+[data-theme='light'] .launch-teaser--hero .launch-teaser__eyebrow {
+  color: #1a6bb0;
+}
+
+[data-theme='light'] .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__event {
+  color: color-mix(in srgb, var(--plu-gold-600) 78%, var(--plu-ink-900));
+}
+
+[data-theme='light'] .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__countdown-label {
+  color: rgba(15, 17, 23, 0.5);
+}
+
+[data-theme='light'] .launch-teaser--hero.launch-teaser--inauguration .launch-teaser__input {
+  background: color-mix(in srgb, #000 4%, transparent);
+  border-color: color-mix(in srgb, #000 14%, transparent);
+}
+
 /* Home section — banda full-bleed: el contenido usa el ancho útil del viewport
    (solo gutters), sin tope artificial de 1120px. */
 
@@ -1269,8 +1343,8 @@
   }
 }
 
-/* Cortina siempre oscura, en los dos temas — mismo criterio que
-   home-section--pitbull-bleed: el momento de apertura no cede al tema claro. */
+/* Cortina de apertura — respeta el tema del sitio: oscura por defecto,
+   clara cuando el usuario elige tema claro (antes quedaba siempre oscura). */
 .home-section--immersive.home-section--launch {
   --color-text-primary: #fff;
   --color-text-secondary: rgba(255, 255, 255, 0.72);
@@ -1285,6 +1359,17 @@
   padding-block: clamp(4rem, 9vw, 6.5rem) !important;
   padding-inline: clamp(20px, 5vw, 64px);
   width: 100%;
+}
+
+[data-theme='light'] .home-section--immersive.home-section--launch {
+  --color-text-primary: var(--plu-ink-900);
+  --color-text-secondary: #2c2f3c;
+  --color-text-tertiary: #636878;
+  --color-text-muted: #636878;
+  --color-bg-elevated: #ffffff;
+  --color-bg-surface: #ffffff;
+  background: var(--plu-warm-50, #f7f6f3);
+  color: var(--plu-ink-900);
 }
 
 @media (max-width: 560px) {

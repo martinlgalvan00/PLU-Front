@@ -1241,7 +1241,8 @@ export default {
     siteLabel: 'Public site',
     operationLabel: 'Operations',
     activityLabel: 'Activity',
-    back: 'Back to the event list',
+    back: 'Back',
+    backAria: 'Back to the event list',
     backToConsole: 'Back to the console',
     closeSection: 'Close section',
     editBasics: 'Details',
@@ -2347,6 +2348,46 @@ export default {
     deleteExpenseWarning: 'The audit trail keeps the original entry.',
     deleteExpenseConfirm: 'Delete',
     deleteExpenseBusy: 'Deleting…',
+  },
+  paymentExpiry: {
+    eyebrow: 'Automatic close',
+    title: 'Order expiry',
+    subtitle:
+      'How long an unpaid order lives, and what got stuck. The sweep runs every 3 minutes.',
+    refresh: 'Refresh',
+    loadError: 'Could not read the expiry status.',
+    saveError: 'Could not save the window.',
+    save: 'Save',
+    minutesUnit: 'min',
+    unitDays: '{{count}} day(s)',
+    unitHours: '{{count}} hour(s)',
+    unitMinutes: '{{count}} minute(s)',
+    blockedLabel: 'Blocked by the provider',
+    blockedHint:
+      'Expired, with a payment that did reach Mercado Pago. The sweep leaves them alone: review them before closing.',
+    heldLabel: 'Held for proof',
+    heldHint:
+      'Expired, with a receipt attached. By design: an order with a receipt is closed by a person, not the cron.',
+    reapableLabel: 'Attempts to close',
+    reapableHint:
+      'Abandoned checkouts that never reached the provider. The next sweep closes them and frees their order.',
+    expiredLabel: 'Expired and still open',
+    expiredHint: 'Total past due. It should be accounted for by the two figures above.',
+    cronWarning:
+      '{{count}} expired order(s) are not explained by holds or the provider: check that the sweep is running.',
+    windowCurrent: 'Current: {{value}}',
+    windowRange: 'Must be a whole number between {{min}} and {{max}} minutes.',
+    nextExpiring: 'The next order expires on {{date}}',
+    window: {
+      manual: {
+        label: 'Manual payment window',
+        hint: 'How long a bank transfer or cash order lives before cancelling itself. Defaults to 5 days.',
+      },
+      stale_attempt: {
+        label: 'Abandoned attempt grace',
+        hint: 'How long the sweep waits before giving up on a checkout that never reached the provider.',
+      },
+    },
   },
   paymentOperations: {
     eyebrow: 'Cash desk',

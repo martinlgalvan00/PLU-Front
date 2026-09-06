@@ -175,7 +175,6 @@ export default function AdminTicketTypesEditor({
                   <label className="admin-event-form__field">
                     <span>{t('admin.eventEditor.supabase.ticketTypePrice')}</span>
                     <span className="admin-event-form__rate-card-input">
-                      <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
                       <input
                         disabled={!canEdit}
                         min={0}
@@ -189,6 +188,7 @@ export default function AdminTicketTypesEditor({
                           patchTicketType(index, { price: Number(event.target.value) || 0 })
                         }
                       />
+                      <span aria-hidden>{t('admin.eventEditor.priceCurrency')}</span>
                     </span>
                     {errors[`ticketTypes.${index}.price`] ? (
                       <small className="admin-event-form__error" role="alert">

@@ -40,6 +40,19 @@ export function getZoneScopeCredentials(scope) {
   return SCOPE_CREDENTIALS[scope] ?? []
 }
 
+/**
+ * Zonas que una entrada puede llegar a abrir, en el orden canónico.
+ *
+ * Se deriva de `SCOPE_CREDENTIALS` en vez de escribirse a mano porque es la
+ * misma pregunta que ya contesta el escáner: si mañana una zona deja de leer
+ * `ticket`, la venta tiene que dejar de ofrecerla en la misma línea de código.
+ * Lo usa la comparación pública de tipos de entrada, que sin esto habría
+ * listado zonas que ninguna entrada habilita nunca.
+ */
+export function zonesTicketsCanOpen() {
+  return ZONE_SCOPES.filter((scope) => canZoneScanCredential(scope, 'ticket'))
+}
+
 export function canZoneScanCredential(scope, credentialKind) {
   return getZoneScopeCredentials(scope).includes(credentialKind)
 }

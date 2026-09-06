@@ -10,6 +10,7 @@ import {
   getZoneScopeCredentials,
   groupSecurityTeamByZone,
   isValidZoneScope,
+  zonesTicketsCanOpen,
   validateZoneForm,
 } from '../src/services/securityZoneService.js'
 
@@ -205,5 +206,24 @@ describe('securityZoneService — iniciales', () => {
   it('sin nombre cae al mail antes de mostrar un signo de pregunta', () => {
     expect(getMemberInitials('', 's.barrios@segur.com')).toBe('SB')
     expect(getMemberInitials('', '')).toBe('?')
+  })
+})
+
+describe('zonesTicketsCanOpen', () => {
+  /**
+   * Es la lista que la comparación pública de entradas usa como filas. Sale de
+   * SCOPE_CREDENTIALS y no de una constante aparte, así que no puede ofrecer
+   * una zona que ninguna entrada habilite nunca.
+   */
+  it('sólo devuelve zonas que leen credenciales de entrada', () => {
+    expect(zonesTicketsCanOpen()).toEqual(['gate_tickets', 'athletes_coaches'])
+  })
+
+  it('deja afuera las zonas que no leen entradas', () => {
+    for (const scope of zonesTicketsCanOpen()) {
+      expect(canZoneScanCredential(scope, 'ticket')).toBe(true)
+    }
+    expect(zonesTicketsCanOpen()).not.toContain('athletes_only')
+    expect(zonesTicketsCanOpen()).not.toContain('staff_only')
   })
 })

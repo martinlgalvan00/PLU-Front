@@ -1284,7 +1284,8 @@ export default {
     siteLabel: 'Sitio público',
     operationLabel: 'Operación',
     activityLabel: 'Actividad',
-    back: 'Volver a la lista de eventos',
+    back: 'Volver',
+    backAria: 'Volver a la lista de eventos',
     backToConsole: 'Volver a la consola',
     closeSection: 'Cerrar sección',
     editBasics: 'Datos',
@@ -2410,6 +2411,47 @@ export default {
     deleteExpenseWarning: 'La auditoría conserva el asiento original.',
     deleteExpenseConfirm: 'Eliminar',
     deleteExpenseBusy: 'Eliminando…',
+  },
+  paymentExpiry: {
+    eyebrow: 'Cierre automático',
+    title: 'Vencimiento de órdenes',
+    subtitle:
+      'Cuánto vive una orden sin pagar y qué quedó trabado. El barrido corre cada 3 minutos.',
+    refresh: 'Actualizar',
+    loadError: 'No se pudo leer el estado de vencimientos.',
+    saveError: 'No se pudo guardar el plazo.',
+    save: 'Guardar',
+    minutesUnit: 'min',
+    unitDays: '{{count}} día/s',
+    unitHours: '{{count}} hora/s',
+    unitMinutes: '{{count}} minuto/s',
+    blockedLabel: 'Trabadas por el proveedor',
+    blockedHint:
+      'Vencidas con un pago que sí llegó a Mercado Pago. El barrido no las cancela: hay que revisarlas a mano antes de cerrarlas.',
+    heldLabel: 'Retenidas por comprobante',
+    heldHint:
+      'Vencidas con comprobante adjunto. Es a propósito: una orden con comprobante la cierra una persona, no el cron.',
+    reapableLabel: 'Intentos por cerrar',
+    reapableHint:
+      'Checkouts abandonados que nunca llegaron al proveedor. El próximo barrido los cierra y libera su orden.',
+    expiredLabel: 'Vencidas todavía abiertas',
+    expiredHint:
+      'Total pendiente con el plazo cumplido. Debería explicarse por las dos primeras cifras.',
+    cronWarning:
+      '{{count}} orden/es vencida/s no se explican por retención ni por el proveedor: revisá que el barrido esté corriendo.',
+    windowCurrent: 'Vigente: {{value}}',
+    windowRange: 'Tiene que ser un número entero entre {{min}} y {{max}} minutos.',
+    nextExpiring: 'La próxima orden vence el {{date}}',
+    window: {
+      manual: {
+        label: 'Plazo de pago manual',
+        hint: 'Cuánto vive una orden de transferencia o efectivo antes de cancelarse sola. Por defecto, 5 días.',
+      },
+      stale_attempt: {
+        label: 'Gracia de intentos abandonados',
+        hint: 'Cuánto espera el barrido antes de dar por muerto un checkout que nunca llegó al proveedor.',
+      },
+    },
   },
   paymentOperations: {
     eyebrow: 'Caja',

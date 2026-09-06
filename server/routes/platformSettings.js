@@ -47,6 +47,39 @@ export const paymentChannelToggleSchema = z.object({
   enabled: z.boolean(),
 })
 
+/**
+ * Los dos plazos que gobiernan el cierre automático de órdenes. `manual` es
+ * cuánto vive una orden de transferencia/efectivo (5 días por defecto);
+ * `stale_attempt` es cuánto espera el barrido antes de dar por abandonado un
+ * intento de checkout embebido que nunca llegó al proveedor.
+ *
+ * El piso de 5 minutos de `stale_attempt` no es una preferencia: por debajo de
+ * eso el cron contradiría a `claim_embedded_payment_attempt`, que da por
+ * vencido un intento propio recién a los 5 minutos. Los rangos se repiten en
+ * la RPC y en un check de la tabla — acá están para responder con un 400 y un
+ * mensaje, no con un 23514 de Postgres.
+ */
+export const CHECKOUT_WINDOW_LIMITS = {
+  manual: { min: 1, max: 525600 },
+  stale_attempt: { min: 5, max: 1440 },
+}
+
+export const checkoutWindowSchema = z
+  .object({
+    window: z.enum(['manual', 'stale_attempt']),
+    minutes: z.number().int(),
+  })
+  .superRefine((value, ctx) => {
+    const { min, max } = CHECKOUT_WINDOW_LIMITS[value.window]
+    if (value.minutes < min || value.minutes > max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['minutes'],
+        message: `El plazo va de ${min} a ${max} minutos.`,
+      })
+    }
+  })
+
 function actor(req) {
   return `${req.auth.user.id}:${req.auth.user.email}`
 }
@@ -129,6 +162,40 @@ export function createPlatformSettingsRoutes({
       }
     },
   )
+
+  /**
+   * Cambiar un plazo de cobro es una decisión con consecuencias para el
+   * atleta —acorta o alarga cuánto tiene para pagar— así que va por el mismo
+   * permiso de escritura y queda asentado en la bitácora desde la RPC.
+   */
+  router.put(
+    '/windows',
+    ...writeGuard,
+    staffLimiter,
+    validateBody(checkoutWindowSchema),
+    async (req, res, next) => {
+      try {
+        const { window, minutes } = req.validatedBody
+        res.json(await repo().setCheckoutWindow(window, minutes, actor(req)))
+      } catch (error) {
+        next(error)
+      }
+    },
+  )
+
+  /**
+   * Diagnóstico del cierre automático. Es lectura pura: responde "¿el barrido
+   * está corriendo?" y "¿qué quedó trabado esperando a una persona?", que son
+   * las dos preguntas que hoy sólo se podían contestar mirando el log del
+   * proceso.
+   */
+  router.get('/expiry-overview', ...readGuard, staffLimiter, async (_req, res, next) => {
+    try {
+      res.json(await repo().expiryOverview())
+    } catch (error) {
+      next(error)
+    }
+  })
 
   return router
 }

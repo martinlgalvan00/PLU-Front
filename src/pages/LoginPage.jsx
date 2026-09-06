@@ -3,10 +3,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ChevronDown,
   Eye,
   EyeOff,
-  HelpCircle,
   AlertCircle,
   Mail,
   Lock,
@@ -53,83 +51,6 @@ function AuthSubmit({ busy, busyLabel, className = '', label, ...props }) {
         {busy ? <span className="plu-spinner" /> : <ArrowRight size={16} />}
       </span>
     </button>
-  )
-}
-
-/**
- * Guía de acceso: los tres caminos reales para entrar (ficha propia, clave
- * temporal, todavía sin cuenta). Disclosure editorial — no tooltip-tour: la
- * persona que llega sin saber si tiene cuenta necesita el mapa completo a un
- * toque, no un carrusel. Los pasos con acción la llevan directo al flujo
- * (recuperar acceso / afiliarse) sin salir del login.
- */
-function LoginAccessGuide({ onRecover, onJoin }) {
-  const { t } = useI18n()
-  const [open, setOpen] = useState(false)
-  const panelId = 'login-access-guide'
-
-  const steps = [
-    { n: '01', title: t('login.howToStep1Title'), body: t('login.howToStep1Body') },
-    {
-      n: '02',
-      title: t('login.howToStep2Title'),
-      body: t('login.howToStep2Body'),
-      action: onRecover,
-      actionLabel: t('login.howToStep2Action'),
-    },
-    {
-      n: '03',
-      title: t('login.howToStep3Title'),
-      body: t('login.howToStep3Body'),
-      action: onJoin,
-      actionLabel: t('login.howToStep3Action'),
-    },
-  ]
-
-  return (
-    <div className="login-guide" data-open={open ? '1' : '0'}>
-      <button
-        type="button"
-        className="login-guide__toggle"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <HelpCircle size={14} aria-hidden />
-        <span>{t('login.howToToggle')}</span>
-        <ChevronDown size={14} className="login-guide__chevron" aria-hidden />
-      </button>
-
-      <div
-        id={panelId}
-        className="login-guide__panel"
-        role="region"
-        aria-label={t('login.howToTitle')}
-      >
-        <div className="login-guide__panel-inner">
-          <p className="login-guide__title">{t('login.howToTitle')}</p>
-          <ol className="login-guide__steps">
-            {steps.map(({ n, title, body, action, actionLabel }) => (
-              <li key={n} className="login-guide__step">
-                <span className="login-guide__step-n" aria-hidden>
-                  {n}
-                </span>
-                <div className="login-guide__step-copy">
-                  <p className="login-guide__step-title">{title}</p>
-                  <p className="login-guide__step-body">{body}</p>
-                  {action ? (
-                    <button type="button" className="login-guide__step-action" onClick={action}>
-                      {actionLabel}
-                      <ArrowRight size={13} aria-hidden />
-                    </button>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-    </div>
   )
 }
 
@@ -327,10 +248,14 @@ export default function LoginPage({ onLogin, onNavigate }) {
           ? t('login.resetLead')
           : t('login.subtitle')
 
+  // Sin numerar: son tres capacidades en paralelo, no tres pasos. El `01/02/03`
+  // prometía una secuencia que no existe y era la única decoración de la
+  // composición. Una regla fina hace el mismo trabajo de ritmo sin afirmar un
+  // orden falso.
   const visualSignals = [
-    { n: '01', label: t('login.featureProfile') },
-    { n: '02', label: t('login.featureMembership') },
-    { n: '03', label: t('login.featureEvents') },
+    t('login.featureProfile'),
+    t('login.featureMembership'),
+    t('login.featureEvents'),
   ]
 
   const capsLockHint = capsLock ? (
@@ -341,7 +266,9 @@ export default function LoginPage({ onLogin, onNavigate }) {
   ) : null
 
   return (
-    <main className="page auth-layout">
+    <main
+      className={`page auth-layout auth-layout--login${mode === 'login' ? ' auth-layout--login-home' : ''}`}
+    >
       <aside className="auth-layout__visual" aria-hidden="true">
         <ResponsivePhoto
           className="auth-layout__visual-photo"
@@ -359,14 +286,13 @@ export default function LoginPage({ onLogin, onNavigate }) {
           alt=""
           width={800}
           height={1200}
-          sizes="(min-width: 1024px) 45vw, 30vw"
+          sizes="(min-width: 600px) 45vw, 100vw"
           loading="eager"
           fetchPriority="high"
         />
         <div className="auth-layout__visual-scrim" />
         <div className="auth-layout__visual-content">
           <div className="auth-layout__editorial">
-            <BrandLogo variant="letterhead" height={34} imgClassName="auth-layout__emblem" />
             <p className="auth-layout__kicker">{t('login.eyebrow')}</p>
             <h2 className="auth-layout__slogan">
               {t('login.visualSlogan')}
@@ -374,14 +300,9 @@ export default function LoginPage({ onLogin, onNavigate }) {
             </h2>
             <p className="auth-layout__lead">{t('login.visualLead')}</p>
             <ul className="auth-layout__signals">
-              {visualSignals.map(({ n, label }) => (
-                <li key={n} className="auth-layout__signal">
-                  <span className="auth-layout__signal-n" aria-hidden>
-                    {n}
-                  </span>
-                  <span className="auth-layout__signal-sep" aria-hidden>
-                    —
-                  </span>
+              {visualSignals.map((label) => (
+                <li key={label} className="auth-layout__signal">
+                  <span className="auth-layout__signal-rule" aria-hidden />
                   <span className="auth-layout__signal-label">{label}</span>
                 </li>
               ))}
@@ -523,10 +444,6 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       label={t('login.submit')}
                     />
 
-                    <LoginAccessGuide
-                      onRecover={openRecover}
-                      onJoin={() => onNavigate('members')}
-                    />
                     {recoverMessage ? (
                       <p className="login-form__notice" role="status">
                         {recoverMessage}
@@ -563,16 +480,18 @@ export default function LoginPage({ onLogin, onNavigate }) {
                       </>
                     ) : null}
 
-                    <p className="login-join">
-                      {t('login.joinPrompt')}{' '}
-                      <button
-                        type="button"
-                        className="login-join__link"
-                        onClick={() => onNavigate('members')}
-                      >
-                        {t('login.joinLink')}
-                      </button>
-                    </p>
+                    <div className="login-form__footer">
+                      <p className="login-join">
+                        <span className="login-join__prompt">{t('login.joinPrompt')}</span>
+                        <button
+                          type="button"
+                          className="login-join__link"
+                          onClick={() => onNavigate('members')}
+                        >
+                          {t('login.joinLink')}
+                        </button>
+                      </p>
+                    </div>
                   </form>
                 )}
 

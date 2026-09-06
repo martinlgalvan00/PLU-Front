@@ -191,9 +191,8 @@
 }
 
 /* ---- Toast de sesión ----
-   Franja compacta de una fila: avatar chico, copy, CTA textual y cierre.
-   Filete dorado = cuenta regresiva. Sin foot ni hint redundante.
-   Centrado arriba en todos los viewports. */
+   Recibo editorial compacto: iniciales, eyebrow + mensaje, enlace opcional.
+   Un filete superior marca el tiempo restante; el acento cambia con el estado. */
 .session-notice {
   align-items: flex-start;
   justify-content: center;
@@ -201,41 +200,45 @@
 }
 
 .session-notice__card {
-  --session-notice-rule: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, var(--color-brand-gold) 55%, transparent) 12%,
-    var(--color-brand-gold) 50%,
-    color-mix(in oklab, var(--color-brand-gold) 55%, transparent) 88%,
-    transparent
-  );
+  --session-notice-accent: var(--color-brand-gold);
 
   background: var(--color-bg-elevated, var(--color-bg-surface));
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  border-radius: 10px;
-  box-shadow: var(--elevation-md);
-  max-width: min(92vw, 380px);
+  border: 1px solid color-mix(in oklab, var(--color-text-primary) 6%, transparent);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, #000 10%, transparent),
+    0 14px 36px color-mix(in srgb, #000 16%, transparent);
+  max-width: min(92vw, 400px);
   overflow: hidden;
-  padding: 10px 10px 10px 12px;
+  padding: 13px 14px 12px;
   pointer-events: auto;
   position: relative;
-  width: min(92vw, 380px);
+  width: min(92vw, 400px);
+}
+
+.session-notice--out .session-notice__card {
+  --session-notice-accent: color-mix(
+    in oklab,
+    var(--color-text-muted) 42%,
+    var(--color-brand-gold)
+  );
 }
 
 .session-notice__card::before {
-  background: var(--session-notice-rule);
+  background: var(--session-notice-accent);
   content: '';
   height: 1px;
   inset: 0 0 auto;
+  opacity: 0.28;
   position: absolute;
 }
 
 /* Filete de cuenta regresiva: retrocede con DISMISS_MS y se congela en
    hover/foco, igual que el timer de JS. Solo con motion habilitado. */
 .session-notice__timer {
-  background: var(--session-notice-rule);
+  background: var(--session-notice-accent);
   display: none;
-  height: 1px;
+  height: 1.5px;
   inset: 0 0 auto;
   position: absolute;
   transform-origin: left center;
@@ -244,49 +247,51 @@
 .session-notice__body {
   align-items: center;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
 .session-notice__avatar {
   align-items: center;
-  background: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--session-notice-accent) 38%, transparent);
   border-radius: 50%;
   color: var(--color-text-primary);
   display: inline-flex;
   flex: none;
   font-family: var(--font-display, var(--font-family));
-  font-size: 11px;
-  font-weight: 500;
-  height: 28px;
+  font-size: 10px;
+  font-weight: 600;
+  height: 32px;
   justify-content: center;
-  letter-spacing: 0.02em;
-  width: 28px;
+  letter-spacing: 0.04em;
+  width: 32px;
 }
 
 .session-notice__copy {
   flex: 1 1 auto;
   min-width: 0;
+  padding-top: 1px;
 }
 
 .session-notice__eyebrow {
-  color: var(--color-brand-gold);
+  color: color-mix(in oklab, var(--session-notice-accent) 78%, var(--color-text-muted));
+  font-family: var(--font-display, var(--font-family));
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .session-notice__title {
   color: var(--color-text-primary);
-  font-family: var(--font-family);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-  margin-top: 3px;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-top: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -296,35 +301,40 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 6px;
-  color: var(--color-brand-celeste);
+  border-radius: 0;
+  color: color-mix(in oklab, var(--color-brand-celeste) 88%, var(--color-text-primary));
   cursor: pointer;
   display: inline-flex;
   flex: none;
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  gap: 4px;
-  letter-spacing: 0.01em;
+  font-size: 11.5px;
+  font-weight: 500;
+  gap: 5px;
+  letter-spacing: -0.01em;
   min-height: 28px;
-  padding: 0 6px;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 28%, transparent);
+  text-underline-offset: 3px;
   transition:
-    color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    background-color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-spring);
+    color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    text-decoration-color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
   white-space: nowrap;
 }
 
 .session-notice__login:active {
-  transform: scale(0.96);
+  transform: scale(0.98);
 }
 
 .session-notice__login svg {
-  transition: transform var(--motion-fast, 160ms) var(--ease-standard, ease);
+  transition: transform var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 .session-notice__login:hover {
-  background: color-mix(in oklab, var(--color-brand-celeste) 10%, transparent);
+  background: transparent;
+  color: var(--color-brand-celeste);
+  text-decoration-color: color-mix(in oklab, var(--color-brand-celeste) 58%, transparent);
 }
 
 .session-notice__login:hover svg {
@@ -333,28 +343,29 @@
 
 .session-notice__corner {
   align-items: center;
-  border-inline-start: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   display: flex;
   flex: none;
-  gap: 4px;
+  flex-direction: column;
+  gap: 2px;
   margin-inline-start: 2px;
-  padding-inline-start: 8px;
+  padding-inline-start: 4px;
 }
 
 .session-notice__countdown {
   align-items: center;
-  background: color-mix(in oklab, var(--color-text-primary) 6%, transparent);
-  border-radius: 6px;
-  color: var(--color-text-secondary);
+  background: transparent;
+  border-radius: 0;
+  color: color-mix(in oklab, var(--color-text-muted) 72%, transparent);
   display: inline-flex;
-  font-size: 11px;
+  font-family: var(--font-display, var(--font-family));
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  height: 26px;
+  font-weight: 500;
+  height: auto;
   justify-content: center;
   letter-spacing: 0.02em;
   line-height: 1;
-  min-width: 26px;
+  min-width: 0;
   text-align: center;
 }
 
@@ -373,18 +384,18 @@
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: color-mix(in oklab, var(--color-text-secondary) 72%, transparent);
+  color: color-mix(in oklab, var(--color-text-muted) 68%, transparent);
   cursor: pointer;
   display: inline-flex;
   flex: none;
-  height: 26px;
+  height: 24px;
   justify-content: center;
   position: relative;
   transition:
-    background-color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-spring);
-  width: 26px;
+    background-color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    color var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform var(--motion-fast, 160ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+  width: 24px;
 }
 
 .session-notice__close:active {
@@ -411,26 +422,29 @@
 }
 
 [data-theme='light'] .session-notice__card {
-  box-shadow: var(--elevation-sm);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, #000 6%, transparent),
+    0 10px 28px color-mix(in srgb, #000 8%, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .email-verification-notice__card {
     animation: session-notice-in var(--motion-slow, 480ms)
-      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+      var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
   }
 
   .session-notice__card {
     animation: session-notice-in var(--motion-slow, 480ms)
-      var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+      var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
   }
 
   .session-notice.is-leaving .session-notice__card {
-    animation: session-notice-out var(--motion-base, 240ms) var(--ease-standard, ease) both;
+    animation: session-notice-out var(--motion-base, 240ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1))
+      both;
   }
 
   .session-notice__card::before {
-    opacity: 0.24;
+    opacity: 0.22;
   }
 
   .session-notice__timer {
@@ -443,7 +457,7 @@
   }
 
   .session-notice__countdown-digit {
-    animation: session-notice-digit-in 140ms var(--ease-standard, ease) both;
+    animation: session-notice-digit-in 160ms var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
   }
 
   .session-notice__card:hover .session-notice__timer,
@@ -455,20 +469,21 @@
 }
 
 @keyframes session-notice-in {
-  0% {
+  from {
     opacity: 0;
-    transform: translateY(-10px) scale(0.98);
+    transform: translateY(-8px);
   }
-  100% {
+
+  to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 @keyframes session-notice-out {
   to {
     opacity: 0;
-    transform: translateY(-6px) scale(0.99);
+    transform: translateY(-5px);
   }
 }
 
@@ -510,12 +525,31 @@
   }
 
   .session-notice__card {
-    max-width: min(100%, 380px);
+    max-width: min(100%, 400px);
     width: 100%;
   }
 
+  .session-notice__body {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .session-notice__copy {
+    flex: 1 1 calc(100% - 88px);
+  }
+
   .session-notice__login {
-    padding: 0 4px;
+    flex: 1 1 100%;
+    margin-inline-start: 44px;
+    min-height: 32px;
+    order: 3;
+    justify-content: flex-start;
+  }
+
+  .session-notice__corner {
+    align-self: flex-start;
+    margin-top: 2px;
   }
 
   .session-notice__title {

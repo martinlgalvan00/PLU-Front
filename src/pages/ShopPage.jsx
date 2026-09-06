@@ -21,6 +21,7 @@ import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import ShopEventDrawer from '../components/ui/ShopEventDrawer.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
+import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useTicketAvailability } from '../hooks/useTicketAvailability.js'
 import { useParallaxShift } from '../hooks/useMotion.js'
@@ -125,6 +126,30 @@ function ShopEventCard({ event, locale, checkoutOpen, onOpenDetail, t }) {
           <StatusPill value={event.status} />
         </div>
         <p className="shop-event-card__meta">{event.venue}</p>
+        {/* La fila decía sólo "desde $X", que es lo único que dos entradas
+            distintas tienen en común. Acá se nombran los tipos y, del que abre
+            algo más que la puerta, también qué abre. */}
+        {salesOpen && pricing.ticketTypes.length > 1 ? (
+          <ul className="shop-event-card__types">
+            {pricing.ticketTypes.map((type) => {
+              // La puerta general la abren todas: lo que informa es lo que
+              // viene además.
+              const extraZones = (type.zoneScopes ?? []).filter(
+                (scope) => scope !== 'gate_tickets',
+              )
+              return (
+                <li key={type.id} className="shop-event-card__type">
+                  <span className="shop-event-card__type-name">{type.name}</span>
+                  {extraZones.map((scope) => (
+                    <span key={scope} className="shop-event-card__type-zone">
+                      {zoneScopeLabel(scope, t)}
+                    </span>
+                  ))}
+                </li>
+              )
+            })}
+          </ul>
+        ) : null}
         {salesOpen ? (
           <TicketAvailabilityBadge
             remaining={remaining}
