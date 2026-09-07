@@ -7,7 +7,6 @@ name: Payment order expiry cron
 # el mismo endpoint cada hora desde afuera. No hay plata en vuelo acá: son
 # avisos informativos sobre una ventana de días, así que una hora de latencia
 # es imperceptible.
-# Desfasado del minuto 0 para no coincidir con payment-revalidation-cron.
 
 on:
   schedule:

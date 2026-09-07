@@ -259,9 +259,8 @@ que para Mercado Pago.
   panel (`server/modules/payments/paymentRevalidationWorkflow.js`), corrido
   con `apply: true` sobre las ultimas `PAYMENT_REVALIDATION_SINCE_DAYS` (3 por
   defecto) ordenes no aprobadas. En Vercel queda `false`: el cron diario
-  autenticado lo ejecuta bajo demanda, complementado cada hora por
-  `.github/workflows/payment-revalidation-cron.yml` para no depender del
-  limite de una corrida diaria del plan Hobby.
+  autenticado lo ejecuta bajo demanda. El staff tambien puede dispararlo a
+  mano desde el panel.
 - `DOMAIN_MAINTENANCE_JOB_ENABLED=true`: vence reservas de tickets y ordenes de inscripcion abandonadas.
 - `MEMBERSHIP_RENEWAL_JOB_ENABLED=true`: envia avisos de renovacion. La migracion cron existente vence afiliaciones por fecha como segunda barrera.
 - `PAYMENT_ORDER_EXPIRY_JOB_ENABLED` (default on, `=false` lo apaga): reclama
@@ -271,8 +270,7 @@ que para Mercado Pago.
   `membership-renewal` (opt-in), este es opt-out: es puramente DB + dispatcher
   idempotente, sin riesgo de doble-cobro contra un proveedor externo. Cron
   `/api/internal/jobs/payment-order-expiry`, diario en Vercel y complementado
-  cada hora por `.github/workflows/payment-order-expiry-cron.yml` (mismo
-  patron que `payment-revalidation-cron.yml`).
+  cada hora por `.github/workflows/payment-order-expiry-cron.yml`.
 - `PAYMENT_PROOF_RETENTION_JOB_ENABLED` (default on): borra de Storage los
   comprobantes de ordenes ya `aprobado`/`rechazado` pasadas
   `PROOF_RETENTION_HOURS` (default 24). No toca pendientes. Cron
