@@ -5,13 +5,21 @@ import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { neutralValue } from '../../lib/adminFilterValue.js'
 
 /**
- * Panel único de facetas para `AdminFilterBar` (`layout="panel"`).
+ * Panel único de facetas para `AdminFilterBar` (`layout="panel"` y el sheet
+ * de «Más criterios»).
  *
  * Composición editorial: cada faceta de chips es una fila horizontal (riel),
- * no una columna densa. Select y fechas van abajo en un par más quieto, con
- * el combobox acotado en altura para no empujar la tabla.
+ * no una columna densa. Select y fechas van en un par más quieto, con
+ * el combobox acotado en altura. `lead="meta"` pone gimnasio/fecha primero
+ * (sheet de avanzados); el default deja los chips arriba.
  */
-export default function AdminFilterPanel({ id, filters }) {
+export default function AdminFilterPanel({
+  id,
+  filters,
+  className = '',
+  lead = 'chips',
+  ariaLabel,
+}) {
   const { t } = useI18n()
 
   function fieldClass(filter) {
@@ -74,14 +82,33 @@ export default function AdminFilterPanel({ id, filters }) {
     (filter) => filter.variant === 'select' || filter.variant === 'dateRange',
   )
 
+  const stack =
+    chipFilters.length > 0 ? (
+      <div className="admin-filter-panel__stack">{chipFilters.map(renderField)}</div>
+    ) : null
+  const meta =
+    metaFilters.length > 0 ? (
+      <div className="admin-filter-panel__meta">{metaFilters.map(renderField)}</div>
+    ) : null
+
   return (
-    <div id={id} className="admin-filter-panel" role="region" aria-label={t('admin.filters.toggle')}>
-      {chipFilters.length > 0 ? (
-        <div className="admin-filter-panel__stack">{chipFilters.map(renderField)}</div>
-      ) : null}
-      {metaFilters.length > 0 ? (
-        <div className="admin-filter-panel__meta">{metaFilters.map(renderField)}</div>
-      ) : null}
+    <div
+      id={id}
+      className={['admin-filter-panel', className].filter(Boolean).join(' ')}
+      role="region"
+      aria-label={ariaLabel ?? t('admin.filters.toggle')}
+    >
+      {lead === 'meta' ? (
+        <>
+          {meta}
+          {stack}
+        </>
+      ) : (
+        <>
+          {stack}
+          {meta}
+        </>
+      )}
     </div>
   )
 }

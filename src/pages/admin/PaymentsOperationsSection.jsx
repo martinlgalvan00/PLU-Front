@@ -384,9 +384,60 @@ export default function PaymentsOperationsSection({
 
   return (
     <div className="admin-payments-operations">
+      <div className="admin-list-section__chrome admin-payments-ops-chrome">
+        <div className="admin-payments-ops-masthead">
+          <header className="admin-list-section__header admin-list-shell__header admin-payments-ops-top">
+            <div className="admin-list-shell__intro">
+              <span className="admin-list-shell__eyebrow">{t('admin.paymentOperations.eyebrow')}</span>
+              <h1 className="admin-list-shell__title">{t('admin.paymentOperations.title')}</h1>
+              <p className="admin-list-shell__subtitle">{t('admin.paymentOperations.subtitle')}</p>
+              <p
+                className={`admin-payments-ops-pulse${
+                  (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
+                }`}
+                aria-label={t('admin.paymentOperations.opsStripAria')}
+              >
+                <span className="admin-payments-ops-pulse__value">
+                  {athletesPending == null ? '—' : athletesPending}
+                </span>
+                <span className="admin-payments-ops-pulse__label">
+                  {t('admin.paymentOperations.pulseLabel')}
+                </span>
+                <span className="admin-payments-ops-pulse__sep" aria-hidden="true">
+                  ·
+                </span>
+                <span className="admin-payments-ops-pulse__hint">
+                  {t('admin.paymentOperations.pulseAmount', {
+                    amount: money(athleteSummary.openAmount ?? 0, locale),
+                  })}
+                </span>
+              </p>
+            </div>
+            <div className="admin-list-shell__actions admin-payments-ops-top__actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--small"
+                onClick={() => void refreshAll()}
+                disabled={loading || recovering}
+              >
+                <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
+              </button>
+            </div>
+          </header>
 
+          <div className="admin-payments-ops-top__tabs">
+            <SegmentedSwitch
+              className="segmented-switch--ops"
+              active={activeTab}
+              ariaLabel={t('admin.paymentOperations.title')}
+              onChange={setActiveTab}
+              options={tabOptions}
+            />
+          </div>
+        </div>
+      </div>
 
-      {showHealthCallout ? (
+      <div className="admin-payments-operations__body">      {showHealthCallout ? (
         <div className="admin-payments-ops-callout" role="status">
           <AlertTriangle size={16} aria-hidden />
           <div className="admin-payments-ops-callout__body">
@@ -581,59 +632,6 @@ export default function PaymentsOperationsSection({
           )}
         </section>
       ) : null}
-
-      <div className="admin-list-section__chrome admin-payments-ops-chrome">
-        <div className="admin-payments-ops-masthead">
-          <header className="admin-list-section__header admin-list-shell__header admin-payments-ops-top">
-            <div className="admin-list-shell__intro">
-              <span className="admin-list-shell__eyebrow">{t('admin.paymentOperations.eyebrow')}</span>
-              <h1 className="admin-list-shell__title">{t('admin.paymentOperations.title')}</h1>
-              <p className="admin-list-shell__subtitle">{t('admin.paymentOperations.subtitle')}</p>
-              <p
-                className={`admin-payments-ops-pulse${
-                  (athletesPending ?? 0) > 0 ? ' admin-payments-ops-pulse--warning' : ''
-                }`}
-                aria-label={t('admin.paymentOperations.opsStripAria')}
-              >
-                <span className="admin-payments-ops-pulse__value">
-                  {athletesPending == null ? '—' : athletesPending}
-                </span>
-                <span className="admin-payments-ops-pulse__label">
-                  {t('admin.paymentOperations.pulseLabel')}
-                </span>
-                <span className="admin-payments-ops-pulse__sep" aria-hidden="true">
-                  ·
-                </span>
-                <span className="admin-payments-ops-pulse__hint">
-                  {t('admin.paymentOperations.pulseAmount', {
-                    amount: money(athleteSummary.openAmount ?? 0, locale),
-                  })}
-                </span>
-              </p>
-            </div>
-            <div className="admin-list-shell__actions admin-payments-ops-top__actions">
-              <button
-                type="button"
-                className="btn btn--ghost btn--small"
-                onClick={() => void refreshAll()}
-                disabled={loading || recovering}
-              >
-                <RefreshCw size={14} aria-hidden /> {t('admin.paymentOperations.refresh')}
-              </button>
-            </div>
-          </header>
-
-          <div className="admin-payments-ops-top__tabs">
-            <SegmentedSwitch
-              className="segmented-switch--ops"
-              active={activeTab}
-              ariaLabel={t('admin.paymentOperations.title')}
-              onChange={setActiveTab}
-              options={tabOptions}
-            />
-          </div>
-        </div>
-      </div>
 
       <div
         className="admin-payments-operations__panel"
@@ -934,6 +932,7 @@ export default function PaymentsOperationsSection({
           />
         )}
       </section>
+      </div>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import {
   buildZoneTeamSummary,
   canZoneScanCredential,
   createZoneForm,
+  credentialOpensZone,
   formatZoneShift,
   getMemberInitials,
   getZoneScopeCredentials,
@@ -72,6 +73,20 @@ describe('securityZoneService — alcance de escaneo', () => {
     expect(isValidZoneScope('cualquier_cosa')).toBe(false)
     expect(getZoneScopeCredentials('cualquier_cosa')).toEqual([])
     expect(canZoneScanCredential(undefined, 'ticket')).toBe(false)
+  })
+
+  it('la credencial de entrenador no abre la puerta y la de tribuna no abre el calor', () => {
+    expect(credentialOpensZone(['athletes_coaches'], 'gate_tickets')).toBe(false)
+    expect(credentialOpensZone(['gate_tickets'], 'athletes_coaches')).toBe(false)
+    expect(credentialOpensZone(['gate_tickets'], 'gate_tickets')).toBe(true)
+    expect(credentialOpensZone(['athletes_coaches'], 'athletes_coaches')).toBe(true)
+  })
+
+  it('sin puesto no filtra, y una entrada sin scopes se lee como tribuna', () => {
+    expect(credentialOpensZone(['athletes_coaches'], null)).toBe(true)
+    expect(credentialOpensZone([], 'gate_tickets')).toBe(true)
+    expect(credentialOpensZone(null, 'gate_tickets')).toBe(true)
+    expect(credentialOpensZone([], 'athletes_coaches')).toBe(false)
   })
 })
 

@@ -228,13 +228,13 @@ export default {
   tags: ['autodocs'],
 }
 
-/** Estado por defecto: los avanzados (Acción/Actor/Entidad) colapsados detrás de "Más filtros". */
+/** Estado por defecto: los avanzados (Acción/Actor/Entidad) colapsados detrás de «Más criterios». */
 export const Default = {
   render: () => <AuditLikeFilterBar />,
 }
 
-/** Con un filtro avanzado activo, el panel arranca abierto -- Acción/Actor/Entidad
- * bajan a su propio panel recesado en vez de sumarse a la fila de Fuente/Estado/Categoría. */
+/** Con un filtro avanzado activo, el sheet de «Más criterios» arranca abierto
+ * (Acción/Actor/Entidad como comboboxes, no como select nativo). */
 export const FiltrosAvanzadosAbiertos = {
   render: () => <AuditLikeFilterBar initialAction="payment.webhook_failed" />,
 }

@@ -24,6 +24,20 @@ const publicMigration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20261109100000_public_ticket_credentials.sql'),
   'utf8',
 )
+const mergeLintMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20261111100000_staff_merge_ticket_credentials_uuid_agg.sql',
+  ),
+  'utf8',
+)
+const revokeBrowserWritesMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20261112100000_revoke_ticket_credential_browser_writes.sql',
+  ),
+  'utf8',
+)
 
 // El select del catálogo y el del cliente Supabase son dos caminos al mismo
 // dato: si uno pide las credenciales y el otro no, la pantalla cambia según por
@@ -165,6 +179,18 @@ describe('la migración sostiene las dos reglas que se pueden romper en silencio
     )
     expect(migration).not.toContain('create or replace function public.staff_upsert_event')
   })
+
+  /**
+   * Postgres no tiene `min(uuid)`. El linter de schema lo ejecuta y CI
+   * cae si el merge vuelve a elegir el tipo nuevo con ese agregado.
+   */
+  it('resuelve el tipo nuevo por sort_order sin min(uuid)', () => {
+    expect(mergeLintMigration).toContain(
+      'create or replace function public.staff_merge_ticket_type_credentials',
+    )
+    expect(mergeLintMigration).toContain('array_agg(id)')
+    expect(mergeLintMigration).not.toContain('min(id) into')
+  })
 })
 
 describe('lo que la venta necesita saber de las credenciales', () => {
@@ -217,10 +243,16 @@ describe('lo que la venta necesita saber de las credenciales', () => {
     )
   })
 
-  /** Leer no es escribir: el alta sigue siendo del panel. */
+  /** Leer no es escribir: el alta sigue siendo del panel, por service_role. */
   it('la escritura pública sigue cerrada', () => {
-    expect(publicMigration).toContain('ticket_type_credentials_insert_admin')
     expect(publicMigration).not.toMatch(/for insert\s+to anon/)
+    expect(revokeBrowserWritesMigration).toContain(
+      'revoke insert, update, delete, truncate, references, trigger',
+    )
+    expect(revokeBrowserWritesMigration).toContain(
+      'on public.ticket_type_credentials',
+    )
+    expect(revokeBrowserWritesMigration).toContain('from anon, authenticated')
   })
 
   /**

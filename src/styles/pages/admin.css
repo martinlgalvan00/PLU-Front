@@ -6267,7 +6267,9 @@
    wrapper de pestaña (display block/none), no como hijos inmediatos. */
 .admin-payments-operations > .admin-orders-block,
 .admin-payments-operations > * > .admin-orders-block,
-.admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
+.admin-payments-operations > .admin-payments-operations__body > * > .admin-orders-block,
+.admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section,
+.admin-payments-operations > .admin-payments-operations__body > .admin-ticket-orders-anchor > .admin-list-section {
   background: var(--admin-surface, var(--color-bg-surface));
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 16px;
@@ -6275,7 +6277,8 @@
 }
 
 .admin-payments-operations > .admin-orders-block,
-.admin-payments-operations > * > .admin-orders-block {
+.admin-payments-operations > * > .admin-orders-block,
+.admin-payments-operations > .admin-payments-operations__body > * > .admin-orders-block {
   border-top: 0;
   gap: 0;
   margin-top: 0;
@@ -6415,7 +6418,8 @@
   padding: 0;
 }
 
-.admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
+.admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section,
+.admin-payments-operations > .admin-payments-operations__body > .admin-ticket-orders-anchor > .admin-list-section {
   display: grid;
   gap: 0;
 }
@@ -23007,34 +23011,54 @@ button.action-queue__proof:focus-visible {
 /* ---------------------------------------------------------------------------
    Cierre automático de órdenes (PaymentExpiryPanel)
 
-   Familia operativa: densidad legible antes que composición. Las cuatro cifras
-   son una fila de lectura, no cards de colección — sin sombra ni elevación
-   propia, separadas por hairlines, para que el bloque lea como un instrumento
-   y no como cuatro tarjetas compitiendo. El único acento del bloque es el de
-   alerta, y sólo aparece cuando hay algo trabado esperando a una persona.
+   Capítulo editorial, no card. Las cuatro cifras son una tira con hairlines.
+   El acento de marca es el oro de la cifra vigente de cada plazo; el warning
+   sólo aparece cuando hay algo trabado esperando a una persona.
    --------------------------------------------------------------------------- */
 
+@keyframes admin-payment-expiry-settle {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .admin-payment-expiry {
-  background: var(--admin-surface, var(--color-bg-surface));
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 16px;
+  animation: admin-payment-expiry-settle var(--motion-base) var(--ease-out) both;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-lg);
-  padding: var(--space-lg);
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 0 2px 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-payment-expiry {
+    animation: none;
+  }
 }
 
 .admin-payment-expiry__header {
   align-items: start;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-md);
+  gap: var(--space-sm) var(--space-md);
   justify-content: space-between;
+}
+
+.admin-payment-expiry__header .admin-icon-btn {
+  height: 44px;
+  min-width: 44px;
 }
 
 .admin-payment-expiry__eyebrow {
   align-items: center;
-  color: var(--admin-muted);
+  color: var(--admin-brand, var(--color-brand-celeste));
   display: inline-flex;
   font-size: 11px;
   font-weight: 700;
@@ -23045,16 +23069,16 @@ button.action-queue__proof:focus-visible {
 
 .admin-payment-expiry__title {
   color: var(--admin-ink);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  margin: 4px 0 0;
+  margin: 2px 0 0;
 }
 
 .admin-payment-expiry__subtitle {
   color: var(--admin-text-secondary, var(--admin-muted));
   font-size: 13px;
   margin: 4px 0 0;
-  max-width: 58ch;
+  max-width: 48ch;
 }
 
 .admin-payment-expiry__error {
@@ -23067,31 +23091,30 @@ button.action-queue__proof:focus-visible {
   padding: 10px 12px;
 }
 
-/* Cuatro columnas que colapsan a dos y a una. Sin `auto-fit` con minmax
-   grande: en tablet dejaba una huérfana estirada al ancho completo. */
 .admin-payment-expiry__grid {
-  border: 1px solid var(--admin-hairline);
-  border-radius: 12px;
   display: grid;
-  gap: 1px;
+  gap: 0;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  overflow: hidden;
-  background: var(--admin-hairline);
 }
 
 .admin-payment-expiry__metric {
-  background: var(--admin-surface-muted, var(--admin-surface));
   display: grid;
   gap: 2px;
-  padding: var(--space-md);
+  min-width: 0;
+  padding: 4px var(--space-md) 4px 0;
+}
+
+.admin-payment-expiry__metric + .admin-payment-expiry__metric {
+  border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  padding-left: var(--space-md);
 }
 
 .admin-payment-expiry__metric-value {
   color: var(--admin-ink);
-  font-size: clamp(24px, 3vw, 30px);
+  font-size: clamp(22px, 2.6vw, 30px);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
 .admin-payment-expiry__metric.is-alert .admin-payment-expiry__metric-value {
@@ -23106,9 +23129,13 @@ button.action-queue__proof:focus-visible {
 
 .admin-payment-expiry__metric-hint {
   color: var(--admin-muted);
-  font-size: 11.5px;
-  line-height: 1.45;
-  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-payment-expiry__callout {
@@ -23131,11 +23158,26 @@ button.action-queue__proof:focus-visible {
 }
 
 .admin-payment-expiry__windows {
-  border-top: 1px solid var(--admin-hairline);
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: grid;
-  gap: var(--space-lg);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding-top: var(--space-lg);
+  gap: 0;
+  padding-top: 12px;
+}
+
+.admin-payment-expiry__window {
+  align-items: center;
+  display: grid;
+  gap: 10px 20px;
+  grid-template-columns: minmax(0, 1.2fr) auto minmax(14rem, 1fr);
+  padding: 12px 0;
+}
+
+.admin-payment-expiry__window + .admin-payment-expiry__window {
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+}
+
+.admin-payment-expiry__window-copy {
+  min-width: 0;
 }
 
 .admin-payment-expiry__window-label {
@@ -23149,8 +23191,27 @@ button.action-queue__proof:focus-visible {
   color: var(--admin-muted);
   font-size: 12px;
   line-height: 1.45;
-  margin: 4px 0 10px;
-  max-width: 46ch;
+  margin: 4px 0 0;
+  max-width: 42ch;
+}
+
+.admin-payment-expiry__window-figure {
+  color: var(--color-brand-gold);
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+}
+
+[data-theme='light'] .admin-payment-expiry__window-figure {
+  color: var(--color-brand-gold-dark, var(--plu-gold-600));
+}
+
+.admin-payment-expiry__window-edit {
+  min-width: 0;
 }
 
 .admin-payment-expiry__window-controls {
@@ -23186,9 +23247,56 @@ button.action-queue__proof:focus-visible {
   border-color: var(--admin-status-danger-border);
 }
 
-.admin-payment-expiry__window-unit {
-  color: var(--admin-muted);
+.admin-payment-expiry__window-units {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.admin-payment-expiry__window-units.is-readonly {
+  opacity: 0.64;
+}
+
+.admin-payment-expiry__unit-switch {
+  --switch-pad: 3px;
+  --switch-thumb-shadow: none;
+  --switch-option-active-fg: var(--admin-ink, var(--color-text-primary));
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
+  border-color: var(--admin-hairline, var(--color-border-subtle));
+  box-shadow: none;
+  cursor: pointer;
+  max-width: 20rem;
+  min-width: 0;
+}
+
+.admin-payment-expiry__unit-switch .segmented-switch__thumb::after {
+  display: none;
+}
+
+.admin-payment-expiry__unit-switch .segmented-switch__option {
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  min-height: 44px;
+  text-transform: none;
+}
+
+.admin-payment-expiry__unit-switch .segmented-switch__option:focus-visible {
+  outline: 2px solid var(--admin-focus, var(--color-brand-celeste));
+  outline-offset: 1px;
+}
+
+[data-theme='light'] .admin-payment-expiry__unit-switch {
+  --switch-track-bg: color-mix(
+    in srgb,
+    var(--admin-ink, var(--color-text-primary)) 4%,
+    var(--admin-surface, var(--color-bg-surface))
+  );
+  --switch-thumb-bg: var(--admin-surface, var(--color-bg-surface));
+  --switch-thumb-border: var(--admin-hairline, var(--color-border-subtle));
+  --switch-option-active-fg: var(--admin-ink, var(--color-text-primary));
+  background: var(--switch-track-bg);
+  border-color: var(--admin-hairline, var(--color-border-subtle));
+  box-shadow: none;
 }
 
 .admin-payment-expiry__window-current {
@@ -23197,8 +23305,6 @@ button.action-queue__proof:focus-visible {
   margin: 8px 0 0;
 }
 
-.admin-payment-expiry__window-input[aria-invalid='true']
-  ~ .admin-payment-expiry__window-current,
 .admin-payment-expiry__window:has([aria-invalid='true']) .admin-payment-expiry__window-current {
   color: var(--admin-status-danger);
 }
@@ -23212,20 +23318,40 @@ button.action-queue__proof:focus-visible {
   margin: 0;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
   .admin-payment-expiry__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
 
-@media (max-width: 640px) {
-  .admin-payment-expiry__grid,
-  .admin-payment-expiry__windows {
+  .admin-payment-expiry__metric:nth-child(2n + 1) {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .admin-payment-expiry__metric:nth-child(n + 3) {
+    border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
+    padding-top: 12px;
+  }
+
+  .admin-payment-expiry__window {
+    align-items: start;
     grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-payment-expiry__window-input {
     flex: 1 1 auto;
     width: auto;
+  }
+
+  .admin-payment-expiry__unit-switch {
+    max-width: none;
+  }
+
+  .admin-payment-expiry__window-figure {
+    white-space: normal;
+  }
+
+  .admin-payment-expiry__metric-hint {
+    white-space: normal;
   }
 }

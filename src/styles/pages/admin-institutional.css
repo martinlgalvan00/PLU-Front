@@ -1829,7 +1829,9 @@
 
 .admin-shell .admin-payments-operations > .admin-orders-block,
 .admin-shell .admin-payments-operations > * > .admin-orders-block,
-.admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section {
+.admin-shell .admin-payments-operations > .admin-payments-operations__body > * > .admin-orders-block,
+.admin-shell .admin-payments-operations > .admin-ticket-orders-anchor > .admin-list-section,
+.admin-shell .admin-payments-operations > .admin-payments-operations__body > .admin-ticket-orders-anchor > .admin-list-section {
   background: var(--admin-surface);
   border: 1px solid var(--admin-hairline);
   border-radius: 14px;

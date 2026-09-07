@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import PaymentExpiryPanel from '../src/components/admin/PaymentExpiryPanel.jsx'
 import { I18nProvider } from '../src/i18n/I18nProvider.jsx'
+import MotionProvider from '../src/motion/MotionProvider.tsx'
 
 const overview = vi.hoisted(() => vi.fn())
 const saveWindow = vi.hoisted(() => vi.fn())
@@ -25,10 +26,25 @@ const HEALTHY = {
 function renderPanel(props = {}) {
   return render(
     <I18nProvider>
-      <PaymentExpiryPanel canEdit {...props} />
+      <MotionProvider>
+        <PaymentExpiryPanel canEdit {...props} />
+      </MotionProvider>
     </I18nProvider>,
   )
 }
+
+beforeAll(() => {
+  window.matchMedia ??= (query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })
+})
 
 afterEach(() => {
   cleanup()
@@ -89,11 +105,22 @@ describe('PaymentExpiryPanel', () => {
   it('no ofrece guardar un plazo por debajo del piso de la gracia', async () => {
     renderPanel()
     const input = await screen.findByLabelText(/Gracia de intentos abandonados/)
+    await waitFor(() => expect(input.disabled).toBe(false))
     // 1 minuto contradiría a `claim_embedded_payment_attempt`, que da por
     // vencido un intento propio recién a los 5.
     fireEvent.change(input, { target: { value: '1' } })
     await waitFor(() => expect(screen.getByText(/Tiene que ser un número entero/)).toBeTruthy())
     expect(saveWindow).not.toHaveBeenCalled()
+  })
+
+  it('guarda 3 días como 4320 minutos', async () => {
+    renderPanel()
+    const input = await screen.findByLabelText(/Plazo de pago manual/)
+    const unitSwitch = (await screen.findAllByLabelText(/Unidad del plazo/))[0]
+    fireEvent.click(within(unitSwitch).getByRole('tab', { name: /días/i }))
+    fireEvent.change(input, { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Guardar$/ }))
+    await waitFor(() => expect(saveWindow).toHaveBeenCalledWith('manual', 4320))
   })
 
   it('desaparece sin ruido cuando el rol no tiene permiso de lectura', async () => {

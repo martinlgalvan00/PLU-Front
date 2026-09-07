@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import AdminFilterChipGroup from './AdminFilterChipGroup.jsx'
 import AdminFilterDateRange from './AdminFilterDateRange.jsx'
@@ -24,6 +24,71 @@ import { filterValueText, filterValueTone, isFilterActive, neutralValue } from '
  * @property {boolean} [advanced] Si es true, queda detrás de «Más criterios».
  * @property {string} [allLabel] Etiqueta corta del valor neutro cuando el grupo es de chips.
  */
+
+const ADVANCED_POPOVER_GAP = 8
+const ADVANCED_POPOVER_MARGIN = 12
+const ADVANCED_POPOVER_MAX_WIDTH = 520
+const ADVANCED_POPOVER_MAX_HEIGHT = 560
+const ADVANCED_POPOVER_MIN_FLIP = 280
+
+function getAdvancedPopoverBounds(toggle) {
+  const host =
+    toggle.closest('#admin-main-content') || toggle.closest('.admin-shell__main')
+  const rect = host?.getBoundingClientRect()
+  const viewportRight = window.innerWidth
+  const viewportBottom = window.innerHeight
+  if (rect && rect.width > 0) {
+    return {
+      left: Math.max(ADVANCED_POPOVER_MARGIN, rect.left + ADVANCED_POPOVER_MARGIN),
+      right: Math.min(viewportRight, rect.right) - ADVANCED_POPOVER_MARGIN,
+      top: Math.max(ADVANCED_POPOVER_MARGIN, rect.top + ADVANCED_POPOVER_MARGIN),
+      bottom: Math.min(viewportBottom, rect.bottom) - ADVANCED_POPOVER_MARGIN,
+    }
+  }
+  return {
+    left: ADVANCED_POPOVER_MARGIN,
+    right: viewportRight - ADVANCED_POPOVER_MARGIN,
+    top: ADVANCED_POPOVER_MARGIN,
+    bottom: viewportBottom - ADVANCED_POPOVER_MARGIN,
+  }
+}
+
+/**
+ * Ancla el sheet al botón, alineado a su izquierda, y lo mantiene dentro del
+ * main de admin — no del viewport entero. Centrar 520px sobre un botón pegado
+ * al riel mandaba `left: 45px` debajo del sidebar y recortaba el título.
+ */
+function placeAdvancedPopover(toggle, popover) {
+  const toggleRect = toggle.getBoundingClientRect()
+  const bounds = getAdvancedPopoverBounds(toggle)
+  const width = Math.min(
+    ADVANCED_POPOVER_MAX_WIDTH,
+    Math.max(280, bounds.right - bounds.left),
+  )
+  const spaceBelow = bounds.bottom - toggleRect.bottom - ADVANCED_POPOVER_GAP
+  const spaceAbove = toggleRect.top - bounds.top - ADVANCED_POPOVER_GAP
+  const flip = spaceBelow < ADVANCED_POPOVER_MIN_FLIP && spaceAbove > spaceBelow
+  const available = Math.max(160, flip ? spaceAbove : spaceBelow)
+
+  let left = toggleRect.left
+  if (left + width > bounds.right) left = bounds.right - width
+  if (left < bounds.left) left = bounds.left
+
+  popover.style.position = 'fixed'
+  popover.style.width = `${width}px`
+  popover.style.maxWidth = `${width}px`
+  popover.style.maxHeight = `${Math.min(ADVANCED_POPOVER_MAX_HEIGHT, available)}px`
+  popover.style.left = `${Math.round(left)}px`
+  popover.style.right = 'auto'
+  if (flip) {
+    popover.style.top = 'auto'
+    popover.style.bottom = `${Math.round(window.innerHeight - toggleRect.top + ADVANCED_POPOVER_GAP)}px`
+  } else {
+    popover.style.top = `${Math.round(toggleRect.bottom + ADVANCED_POPOVER_GAP)}px`
+    popover.style.bottom = 'auto'
+  }
+  popover.dataset.placed = 'true'
+}
 
 /** Toggle binario: una sola opción no-neutra que se prende/apaga. */
 function AdminFilterToggle({
@@ -103,6 +168,8 @@ export default function AdminFilterBar({
   const { t } = useI18n()
   const panelId = useId()
   const filterPanelId = useId()
+  const advancedDialogId = useId()
+  const advancedTitleId = useId()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filterPanelOpen, setFilterPanelOpen] = useState(false)
   const rootRef = useRef(null)
@@ -189,7 +256,9 @@ export default function AdminFilterBar({
       }
     }
     function handleKeyDown(event) {
-      if (event.key === 'Escape') setAdvancedOpen(false)
+      if (event.key !== 'Escape') return
+      setAdvancedOpen(false)
+      advancedToggleRef.current?.focus()
     }
     document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('keydown', handleKeyDown)
@@ -198,6 +267,36 @@ export default function AdminFilterBar({
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [advancedOpen])
+
+  useLayoutEffect(() => {
+    if (!advancedOpen) return undefined
+    const popover = advancedPopoverRef.current
+    const toggle = advancedToggleRef.current
+    if (!popover || !toggle) return undefined
+
+    function place() {
+      placeAdvancedPopover(toggle, popover)
+    }
+
+    place()
+    const raf = window.requestAnimationFrame(place)
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+      popover.style.maxHeight = ''
+      popover.style.maxWidth = ''
+      popover.style.width = ''
+      popover.style.top = ''
+      popover.style.bottom = ''
+      popover.style.left = ''
+      popover.style.right = ''
+      popover.style.position = ''
+      delete popover.dataset.placed
+    }
+  }, [advancedOpen, filteredAdvancedFilters.length])
 
   useEffect(() => {
     if (advancedOpen && showAdvancedSearch) {
@@ -229,6 +328,15 @@ export default function AdminFilterBar({
   function clearAll() {
     activeFilters.forEach((filter) => filter.onChange(neutralValue(filter)))
     if (hasQuery) onQueryChange('')
+  }
+
+  function clearAdvanced() {
+    advancedFilters.filter(isFilterActive).forEach((filter) => filter.onChange(neutralValue(filter)))
+  }
+
+  function closeAdvanced() {
+    setAdvancedOpen(false)
+    requestAnimationFrame(() => advancedToggleRef.current?.focus())
   }
 
   function renderFilter(filter) {
@@ -508,6 +616,7 @@ export default function AdminFilterBar({
                     .join(' ')}
                   aria-expanded={advancedOpen}
                   aria-haspopup="dialog"
+                  aria-controls={advancedDialogId}
                   onClick={() => setAdvancedOpen((current) => !current)}
                 >
                   <span>
@@ -529,21 +638,40 @@ export default function AdminFilterBar({
             </div>
           </div>
 
-          {/* Fuera de `.admin-filters__panel-inner` a propósito: en mobile ese
-              contenedor recorta overflow para la animación de alto del
-              acordeón, y se comía el popover. Como sibling de `panel-inner`
-              (hijo directo de `.admin-filters__panel`, que sí es su ancla
-              posicionada) el popover flota libre sin ese recorte. */}
+          {/* Fuera de `.admin-filters__panel-inner` para no recortarse con el
+              overflow del acordeón mobile. El ancla visual es el botón: JS lo
+              posiciona `fixed` debajo (o arriba si no hay lugar). */}
           {advancedOpen && advancedFilters.length > 0 ? (
             <div
               ref={advancedPopoverRef}
+              id={advancedDialogId}
               className="admin-filters__advanced-popover"
               role="dialog"
-              aria-label={t('admin.filters.advancedLabel')}
+              aria-labelledby={advancedTitleId}
             >
-              <span className="admin-filters__advanced-label">
-                {t('admin.filters.advancedLabel')}
-              </span>
+              <div className="admin-filters__advanced-header">
+                <div className="admin-filters__advanced-heading">
+                  <h2 id={advancedTitleId} className="admin-filters__advanced-title">
+                    {t('admin.filters.advancedLabel')}
+                  </h2>
+                  {advancedActiveCount > 0 ? (
+                    <span
+                      className="admin-filters__advanced-badge"
+                      aria-label={t('admin.filters.activeCount', { count: advancedActiveCount })}
+                    >
+                      {advancedActiveCount}
+                    </span>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  className="admin-filters__advanced-close"
+                  aria-label={t('admin.filters.closeAdvanced')}
+                  onClick={closeAdvanced}
+                >
+                  <X size={16} aria-hidden />
+                </button>
+              </div>
 
               {showAdvancedSearch ? (
                 <div className="admin-filters__advanced-search">
@@ -559,14 +687,40 @@ export default function AdminFilterBar({
                 </div>
               ) : null}
 
-              <div className="admin-filters__advanced-groups">
+              <div className="admin-filters__advanced-body">
                 {filteredAdvancedFilters.length > 0 ? (
-                  filteredAdvancedFilters.map(renderFilter)
+                  <AdminFilterPanel
+                    filters={filteredAdvancedFilters}
+                    className="admin-filter-panel--sheet"
+                    lead="meta"
+                    ariaLabel={t('admin.filters.advancedLabel')}
+                  />
                 ) : (
                   <p className="admin-filters__advanced-empty">
                     {t('admin.filters.noMatchingFilters')}
                   </p>
                 )}
+              </div>
+
+              <div className="admin-filters__advanced-footer">
+                {advancedActiveCount > 0 ? (
+                  <button
+                    type="button"
+                    className="admin-filters__advanced-clear"
+                    onClick={clearAdvanced}
+                  >
+                    {t('admin.filters.clearAdvanced')}
+                  </button>
+                ) : (
+                  <span className="admin-filters__advanced-footer-spacer" aria-hidden />
+                )}
+                <button
+                  type="button"
+                  className="admin-filters__advanced-done"
+                  onClick={closeAdvanced}
+                >
+                  {t('admin.filters.done')}
+                </button>
               </div>
             </div>
           ) : null}

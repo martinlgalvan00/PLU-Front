@@ -23,6 +23,7 @@ export function resolveLocalSupabase() {
   return {
     url: status.API_URL,
     serviceRoleKey: status.SERVICE_ROLE_KEY,
+    anonKey: status.ANON_KEY ?? status.PUBLISHABLE_KEY ?? '',
     databaseUrl: status.DB_URL,
   }
 }

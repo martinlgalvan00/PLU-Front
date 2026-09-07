@@ -62,6 +62,17 @@ export async function assertScanResult(page, { outcome, name, label, status }) {
   if (status) await expect(result).toContainText(status)
 }
 
+export async function assertMarkEntryHidden(page) {
+  await expect(page.getByRole('button', { name: /registrar ingreso/i })).toHaveCount(0)
+}
+
+export async function assertScanHistory(page, { name, label }) {
+  const history = page.locator('.admin-checkin-history')
+  await expect(history).toBeVisible()
+  await expect(history).toContainText(name)
+  if (label) await expect(history).toContainText(label)
+}
+
 export async function markGateEntry(page) {
   await page.getByRole('button', { name: /registrar ingreso/i }).click()
   await expect(page.locator('.admin-checkin-result')).toContainText(/ingreso registrado/i, {

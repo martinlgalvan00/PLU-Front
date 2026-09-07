@@ -1,6 +1,11 @@
 import { Search, X } from 'lucide-react'
 
-export default function AdminFilterSearch({ placeholder = 'Buscar…', query, onQueryChange }) {
+export default function AdminFilterSearch({
+  placeholder = 'Buscar…',
+  query,
+  onQueryChange,
+  labelledBy,
+}) {
   return (
     <div className="admin-filters__search" role="search">
       <Search size={16} className="admin-filters__search-icon" aria-hidden />
@@ -10,7 +15,8 @@ export default function AdminFilterSearch({ placeholder = 'Buscar…', query, on
         placeholder={placeholder}
         value={query ?? ''}
         onChange={(event) => onQueryChange(event.target.value)}
-        aria-label={placeholder}
+        aria-label={labelledBy ? undefined : placeholder}
+        aria-labelledby={labelledBy}
       />
       {query ? (
         <button
