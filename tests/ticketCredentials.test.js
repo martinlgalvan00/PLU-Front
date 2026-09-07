@@ -31,6 +31,13 @@ const mergeLintMigration = readFileSync(
   ),
   'utf8',
 )
+const revokeBrowserWritesMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20261112100000_revoke_ticket_credential_browser_writes.sql',
+  ),
+  'utf8',
+)
 
 // El select del catálogo y el del cliente Supabase son dos caminos al mismo
 // dato: si uno pide las credenciales y el otro no, la pantalla cambia según por
@@ -236,10 +243,16 @@ describe('lo que la venta necesita saber de las credenciales', () => {
     )
   })
 
-  /** Leer no es escribir: el alta sigue siendo del panel. */
+  /** Leer no es escribir: el alta sigue siendo del panel, por service_role. */
   it('la escritura pública sigue cerrada', () => {
-    expect(publicMigration).toContain('ticket_type_credentials_insert_admin')
     expect(publicMigration).not.toMatch(/for insert\s+to anon/)
+    expect(revokeBrowserWritesMigration).toContain(
+      'revoke insert, update, delete, truncate, references, trigger',
+    )
+    expect(revokeBrowserWritesMigration).toContain(
+      'on public.ticket_type_credentials',
+    )
+    expect(revokeBrowserWritesMigration).toContain('from anon, authenticated')
   })
 
   /**
