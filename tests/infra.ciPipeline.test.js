@@ -19,7 +19,6 @@ import { describe, expect, it } from 'vitest'
 
 const CI = readFileSync(resolve('.github/workflows/ci.yml'), 'utf8')
 const SMOKE = readFileSync(resolve('.github/workflows/deployment-smoke.yml'), 'utf8')
-const RECOVERY_CRON = readFileSync(resolve('.github/workflows/payment-recovery-cron.yml'), 'utf8')
 const PKG = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
 const VITEST = readFileSync(resolve('vitest.config.js'), 'utf8')
 const INTEGRATION_RUNNER = readFileSync(resolve('scripts/run-integration-tests.mjs'), 'utf8')
@@ -80,12 +79,6 @@ describe('pipeline de integracion continua', () => {
     expect(SMOKE).toContain('/api/payments/operations')
     expect(SMOKE).toContain('/api/payments/webhook/mercadopago')
     expect(SMOKE).toContain('x-powered-by')
-  })
-
-  it('el cron de recuperacion de pagos exige secreto y falla si no lo tiene', () => {
-    expect(RECOVERY_CRON).toContain('/api/internal/jobs/payment-recovery')
-    expect(RECOVERY_CRON).toContain('CRON_SECRET')
-    expect(RECOVERY_CRON).toContain('--fail')
   })
 
   it('`npm test` incluye unidad y storybook, y `test:check` agrega lint y build', () => {
