@@ -207,7 +207,14 @@ export async function fetchTicketAvailability(eventSlug) {
 
 export async function listTicketsForEvent(eventSlug) {
   const { tickets: rows } = await apiGet(`/api/tickets?eventSlug=${encodeURIComponent(eventSlug)}`)
-  return { tickets: rows.map((row) => toCamelTicket(row.ticket, { checkIn: row.checkIn })) }
+  return {
+    tickets: rows.map((row) =>
+      toCamelTicket(row.ticket, {
+        checkIn: row.checkIn,
+        event: row.event ?? { slug: eventSlug },
+      }),
+    ),
+  }
 }
 
 export async function checkInTicket(qrToken, gate) {
@@ -250,7 +257,7 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     addons: Array.isArray(apiTicket.addons) ? apiTicket.addons : [],
     status: apiTicket.status,
     checkedInAt: apiTicket.checkIn?.scannedAt ?? null,
-    eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug,
+    eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug ?? apiTicket.eventSlug,
     eventTitle: purchaseEvent?.title ?? apiTicket.event?.title,
     eventDate: purchaseEvent?.date ?? apiTicket.event?.eventDate,
     eventVenue: purchaseEvent?.venue ?? apiTicket.event?.venue,

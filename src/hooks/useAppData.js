@@ -254,13 +254,17 @@ export function useAppData() {
   // de acá; los arrays siguen alimentando las tablas y las acciones.
   const [athleteDataTotals, setAthleteDataTotals] = useState(null)
   const [adminDataSummary, setAdminDataSummary] = useState(null)
-  // Las entradas viven en Postgres, no en localStorage — este estado es
-  // solo un cache de lo último que se creó/consultó vía la API real.
-  const [tickets, setTickets] = useState([])
+  // Las entradas viven en Postgres. Este array es cache de lo último que se
+  // creó o consultó. Si hay una orden en curso, se rehidrata desde
+  // sessionStorage para que un reload no deje la confirmación sin QR.
+  const storedOrder = storedData?.createdOrder ?? null
+  const [tickets, setTickets] = useState(() =>
+    Array.isArray(storedOrder?.tickets) ? storedOrder.tickets : [],
+  )
   const [pendingTicketOrders, setPendingTicketOrders] = useState([])
   const [pendingTicketOrdersLoading, setPendingTicketOrdersLoading] = useState(false)
   const [pendingTicketOrdersError, setPendingTicketOrdersError] = useState(null)
-  const [createdOrder, setCreatedOrder] = useState(() => storedData?.createdOrder ?? null)
+  const [createdOrder, setCreatedOrder] = useState(() => storedOrder)
   const [adminEvents, setAdminEvents] = useState(() =>
     getInitialAdminEvents(storedData?.adminEvents, { allowStoredEvents: env.demoMode }),
   )
@@ -1624,6 +1628,7 @@ export function useAppData() {
           mercadoPagoPublicKey:
             mercadoPagoPublicKey ?? checkout?.mercadoPagoPublicKey ?? null,
           createdAt: order.createdAt,
+          tickets: mappedTickets,
         }
         setCreatedOrder(nextOrder)
         return { tickets: mappedTickets, createdOrder: nextOrder }
@@ -1762,13 +1767,20 @@ export function useAppData() {
         return { outcome: 'forbidden' }
       }
       try {
-        const { ticket, checkIn } = await checkInTicketRequest(qrToken)
+        const { ticket, checkIn } = await checkInTicketRequest(
+          qrToken,
+          session.securityZone?.name,
+        )
         const updated = { ...mapApiTicket(ticket), checkedInAt: checkIn.scannedAt }
         setTickets((current) => current.map((item) => (item.qrToken === qrToken ? updated : item)))
         return { outcome: 'ok', ticket: updated }
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) {
-          return { outcome: error.body?.alreadyUsed ? 'already_used' : 'not_paid' }
+          if (error.body?.alreadyUsed) return { outcome: 'already_used' }
+          if (/no habilita esta zona/i.test(error.message ?? '')) {
+            return { outcome: 'wrong_zone', error: error.message }
+          }
+          return { outcome: 'not_paid', error: error.message }
         }
         if (error instanceof ApiError && error.status === 404) {
           return { outcome: 'not_found' }
@@ -1802,7 +1814,7 @@ export function useAppData() {
   const refreshTickets = useCallback(async (eventSlug) => {
     try {
       const { tickets: apiTickets } = await listTicketsForEventRequest(eventSlug)
-      setTickets(apiTickets.map((ticket) => mapApiTicket(ticket)))
+        setTickets(apiTickets.map((ticket) => mapApiTicket(ticket, { slug: eventSlug })))
     } catch (error) {
       console.error('refreshTickets:', error)
     }

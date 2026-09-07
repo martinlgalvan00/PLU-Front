@@ -3,6 +3,7 @@ import AdminTicketAddonRedemption from './AdminTicketAddonRedemption.jsx'
 import { StatusBadge } from '../ui/DataTable.jsx'
 import { formatScheduleSummary, formatSessionDetail } from '../../lib/eventSchedule.js'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { checkinTypeLabel } from '../../services/checkinScanService.js'
 
 export default function CheckInScanResult({
   canCheckIn,
@@ -67,9 +68,7 @@ export default function CheckInScanResult({
                   : undefined
               }
             >
-              {scanResult.row.type === 'atleta'
-                ? t('admin.checkin.athlete')
-                : (scanResult.row.credentialLabel ?? t('admin.checkin.spectator'))}
+              {checkinTypeLabel(scanResult.row, t)}
             </dd>
           </div>
           {scanResult.status && (

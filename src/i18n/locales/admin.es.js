@@ -1568,6 +1568,7 @@ export default {
         not_found: 'Credencial no encontrada',
         invalid: 'Código inválido',
         queued_offline: 'Validado sin conexión, pendiente de sincronizar',
+        wrong_zone: 'Esta credencial no abre esta zona',
       },
     },
     offline: {

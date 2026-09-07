@@ -77,8 +77,10 @@ export function buildCheckinRows({
       name: ticket.attendeeName,
       document: ticket.attendeeDni,
       meta: ticket.ticketTypeName ?? ticket.ticketCode,
+      credentialLabel: ticket.credentialLabel ?? null,
+      credentialScopes: ticket.credentialScopes ?? [],
       dayIndexes: ticketDayIndexes(ticket, ticketTypes),
-      status: ticket.status,
+      status: ticket.checkedInAt ? 'usada' : ticket.status,
       checkedInAt: ticket.checkedInAt,
       addons: ticket.addons ?? [],
     }))
@@ -122,7 +124,8 @@ export function filterCheckinRows(
       !normalizedQuery ||
       row.name?.toLocaleLowerCase('es').includes(normalizedQuery) ||
       row.document?.includes(normalizedQuery) ||
-      row.meta?.toLocaleLowerCase('es').includes(normalizedQuery)
+      row.meta?.toLocaleLowerCase('es').includes(normalizedQuery) ||
+      row.credentialLabel?.toLocaleLowerCase('es').includes(normalizedQuery)
 
     return typeMatch && dayMatch && statusMatch && queryMatch
   })

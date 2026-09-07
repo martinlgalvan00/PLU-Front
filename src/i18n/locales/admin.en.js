@@ -1524,6 +1524,7 @@ export default {
         not_found: 'Credential not found',
         invalid: 'Invalid code',
         queued_offline: 'Validated offline, pending sync',
+        wrong_zone: 'This credential does not open this zone',
       },
     },
     offline: {

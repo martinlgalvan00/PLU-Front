@@ -24,6 +24,7 @@ import LanguageToggle from '../components/ui/LanguageToggle.jsx'
 import ThemeToggle from '../components/ui/ThemeToggle.jsx'
 import { useCheckInWorkspace } from '../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../lib/format.js'
+import { checkinTypeLabel } from '../services/checkinScanService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
 function CheckinMetric({ icon: Icon, label, tone = 'neutral', value }) {
@@ -332,10 +333,7 @@ export default function CheckInAppPage({
                   key: 'type',
                   label: t('admin.checkin.type'),
                   mobile: 'default',
-                  render: (row) =>
-                    row.type === 'atleta'
-                      ? t('admin.checkin.athlete')
-                      : t('admin.checkin.spectator'),
+                  render: (row) => checkinTypeLabel(row, t),
                 },
                 { key: 'meta', label: t('admin.columns.category'), mobile: 'default' },
                 {

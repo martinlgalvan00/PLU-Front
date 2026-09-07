@@ -77,6 +77,30 @@ describe('checkinWorkspaceService', () => {
     expect(rows.map((row) => row.name)).not.toContain('Sin evento')
   })
 
+  it('la fila de una entrada lleva la credencial concreta', () => {
+    const rows = buildCheckinRows({
+      athletes: [],
+      registrations: [],
+      tickets: [
+        {
+          id: 'tkt-coach-a',
+          eventSlug: 'pitbull-2026',
+          attendeeName: 'Nora Coach',
+          attendeeDni: '41333444',
+          ticketTypeId: 'both-type',
+          ticketTypeName: 'Entrenadores',
+          credentialLabel: 'ENTRENADOR',
+          status: 'pagada',
+        },
+      ],
+      eventSlug: 'pitbull-2026',
+      ticketTypes,
+    })
+
+    expect(rows[0].credentialLabel).toBe('ENTRENADOR')
+    expect(filterCheckinRows(rows, { query: 'entrenador' })).toHaveLength(1)
+  })
+
   it('resuelve el día de acceso de cada ticket vía su tipo de entrada', () => {
     const rows = buildCheckinRows({
       athletes,

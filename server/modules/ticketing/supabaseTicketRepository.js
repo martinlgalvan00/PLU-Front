@@ -85,7 +85,7 @@ export function createSupabaseTicketRepository(client) {
     checkIn: (qrToken, gate, actor, zoneScope = null) =>
       rpc(
         'staff_check_in_ticket',
-        { p_qr_token: qrToken, p_gate: gate, p_actor: actor, p_zone_scope: zoneScope },
+        { p_qr_token: qrToken, p_gate: gate || 'Puerta', p_actor: actor, p_zone_scope: zoneScope },
         'No se pudo registrar el ingreso.',
       ),
     async getRegistrationEventId(registrationId) {

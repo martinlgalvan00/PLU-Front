@@ -50,6 +50,12 @@ function buildMembershipOnlyRow(athlete, membership) {
   }
 }
 
+/** Lo que ve la puerta: credencial concreta, no un rótulo genérico. */
+export function checkinTypeLabel(row, t) {
+  if (row?.type === 'atleta') return t('admin.checkin.athlete')
+  return row?.credentialLabel || t('admin.checkin.spectator')
+}
+
 export function buildTicketRow(ticket) {
   return {
     id: `tkt-${ticket.id}`,

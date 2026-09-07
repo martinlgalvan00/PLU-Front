@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock, HelpCircle, XCircle } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { useOfflineCheckinSync } from './useOfflineCheckinSync.js'
@@ -53,6 +53,7 @@ export const SCAN_VERDICT_META = {
   not_found: { Icon: XCircle, tone: 'danger' },
   invalid: { Icon: XCircle, tone: 'danger' },
   queued_offline: { Icon: Clock, tone: 'warning' },
+  wrong_zone: { Icon: AlertTriangle, tone: 'warning' },
 }
 
 function isNetworkError(error) {
@@ -150,6 +151,7 @@ function buildHistoryEntry(resolved, raw) {
         : resolved.kind === 'ticket'
           ? 'espectador'
           : null),
+    credentialLabel: resolved.row?.credentialLabel ?? resolved.ticket?.credentialLabel ?? null,
     rowId: resolved.row?.id ?? null,
     checkedIn: false,
     raw,
@@ -178,6 +180,7 @@ export function useCheckInWorkspace({
   const [checkinStatus, setCheckinStatus] = useState('all')
   const [scanResult, setScanResult] = useState(null)
   const [scanBusy, setScanBusy] = useState(false)
+  const checkInLockRef = useRef(false)
   const [highlightRowId, setHighlightRowId] = useState(null)
   const [scanHistory, setScanHistory] = useState([])
   const [activeHistoryId, setActiveHistoryId] = useState(null)
@@ -350,8 +353,25 @@ export function useCheckInWorkspace({
   }
 
   async function handleScanCheckIn() {
-    if (!scanResult?.canCheckIn || !canCheckIn) return
+    if (!scanResult?.canCheckIn || !canCheckIn || checkInLockRef.current) return
 
+    checkInLockRef.current = true
+    setScanBusy(true)
+    try {
+      await runScanCheckIn()
+    } catch (error) {
+      console.error('checkin:', error)
+      playCheckinFeedback('invalid', feedbackPrefs)
+      setScanResult((current) =>
+        current ? { ...current, outcome: 'invalid', canCheckIn: false } : current,
+      )
+    } finally {
+      checkInLockRef.current = false
+      setScanBusy(false)
+    }
+  }
+
+  async function runScanCheckIn() {
     if (scanResult.offline || !offlineSync.isOnline) {
       await enqueueCheckin({
         eventSlug,
@@ -398,6 +418,16 @@ export function useCheckInWorkspace({
           status: 'usada',
           ticket: nextTicket,
           row: nextTicket ? buildTicketRow(nextTicket) : scanResult.row,
+        })
+        return
+      }
+      if (result?.outcome === 'wrong_zone' || result?.outcome === 'not_paid') {
+        const outcome = result.outcome === 'wrong_zone' ? 'wrong_zone' : 'not_ready'
+        playCheckinFeedback(outcome === 'wrong_zone' ? 'wrong_zone' : 'not_ready', feedbackPrefs)
+        setScanResult({
+          ...scanResult,
+          outcome,
+          canCheckIn: false,
         })
       }
       return
