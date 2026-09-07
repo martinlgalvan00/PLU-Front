@@ -1,7 +1,7 @@
 import { m } from 'motion/react'
 import type { TargetAndTransition, Variants } from 'motion/react'
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
-import { MOTION_VIEWPORT, MOTION_DURATION } from './tokens'
+import { MOTION_VIEWPORT, MOTION_DURATION, scaleDuration } from './tokens'
 import { getRevealVariant, type RevealDirection } from './variants'
 import { useMotionConfig } from './MotionProvider'
 
@@ -55,13 +55,13 @@ export default function Reveal<T extends ElementType = 'div'>({
   amount = MOTION_VIEWPORT.amount,
   ...rest
 }: RevealProps<T>) {
-  const { reducedMotion } = useMotionConfig()
+  const { reducedMotion, tier } = useMotionConfig()
   const Tag = (as ?? 'div') as ElementType
   const MotionTag = resolveMotionTag(Tag)
   const resolvedDirection = direction ?? variant
   const variants = getRevealVariant(resolvedDirection)
 
-  if (reducedMotion) {
+  if (reducedMotion || tier === 'low') {
     const StaticTag = Tag as 'div'
     return (
       <StaticTag className={className.trim() || undefined} {...rest}>
@@ -90,7 +90,7 @@ export default function Reveal<T extends ElementType = 'div'>({
       viewport={{ once, amount, margin: MOTION_VIEWPORT.margin }}
       variants={motionVariants}
       transition={{
-        duration: duration != null ? duration / 1000 : MOTION_DURATION.reveal,
+        duration: scaleDuration(duration != null ? duration / 1000 : MOTION_DURATION.reveal, tier),
         delay: delay / 1000,
         ease: [0.22, 1, 0.36, 1],
       }}

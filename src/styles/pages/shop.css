@@ -776,6 +776,39 @@
   margin: 0;
 }
 
+/* Tipos de entrada en la fila del meet. Es una línea, no una tabla: el detalle
+   completo vive en el panel lateral que la fila abre. */
+.shop-event-card__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.shop-event-card__type {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.shop-event-card__type-name {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shop-event-card__type-zone {
+  background: color-mix(in srgb, var(--color-brand-gold) 15%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  color: var(--color-text-accent);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
 .shop-event-card__availability {
   justify-self: start;
   margin-top: 2px;
@@ -1447,6 +1480,10 @@
   display: flex;
   gap: 18px 24px;
   justify-content: space-between;
+}
+
+.shop-event-drawer__types {
+  margin-top: 18px;
 }
 
 .shop-event-drawer__offer-main {

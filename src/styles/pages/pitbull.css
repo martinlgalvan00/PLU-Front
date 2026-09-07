@@ -933,12 +933,12 @@
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__title {
-  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
+  font-size: clamp(1.55rem, 3.2vw, 2.2rem);
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1.08;
   margin-top: 2px;
-  max-width: min(100%, 22ch);
+  max-width: min(100%, 16ch);
 }
 
 .pitbull-dossier--minimal .pitbull-dossier__section--categories .pitbull-dossier__lead {
@@ -6957,6 +6957,323 @@
   }
 }
 
+/* =============================================
+   PITBULL — INSCRIPTION DECK (conversión editorial)
+   ============================================= */
+
+.pitbull-inscription-shell--deck {
+  border: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 12%, transparent));
+  display: grid;
+  gap: 0;
+  padding: clamp(20px, 3.2vw, 32px);
+}
+
+.pitbull-inscription-deck__masthead {
+  align-items: end;
+  border-bottom: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 10%, transparent));
+  display: grid;
+  gap: 12px 18px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: clamp(18px, 2.8vw, 26px);
+  padding-bottom: clamp(16px, 2.4vw, 22px);
+  position: relative;
+}
+
+.pitbull-inscription-deck__masthead::after {
+  background: var(--color-brand-gold);
+  bottom: -1px;
+  content: '';
+  height: 1.5px;
+  left: 0;
+  position: absolute;
+  width: 2.75rem;
+}
+
+.pitbull-inscription-deck__index {
+  font-size: clamp(2.4rem, 4.5vw, 3.4rem);
+  line-height: 0.9;
+  opacity: 0.22;
+}
+
+.pitbull-inscription-deck__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-deck__title {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.6vw, 1.75rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  margin: 0;
+  max-width: 22ch;
+}
+
+.pitbull-inscription-deck__grid {
+  display: grid;
+  gap: clamp(20px, 3vw, 28px);
+}
+
+.pitbull-inscription-deck__capacity {
+  min-width: 0;
+}
+
+.pitbull-inscription-counter--deck {
+  gap: 14px;
+  height: 100%;
+  padding: 0;
+}
+
+.pitbull-inscription-counter--deck.pitbull-inscription-counter--compact {
+  border-bottom: none;
+  padding: 0;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__row {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__stat {
+  align-items: baseline;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__value {
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__of {
+  font-size: clamp(1rem, 1.8vw, 1.15rem);
+  opacity: 0.5;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__unit {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  max-width: 14ch;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__badge {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__bar {
+  margin-top: 4px;
+  max-width: 12rem;
+}
+
+.pitbull-inscription-counter--deck .pitbull-inscription-counter__hint {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 26ch;
+  opacity: 0.78;
+}
+
+.pitbull-inscription-deck__offer {
+  display: grid;
+  gap: clamp(16px, 2.4vw, 22px);
+  min-width: 0;
+}
+
+.pitbull-inscription-deck__quotes {
+  display: grid;
+  gap: clamp(14px, 2vw, 18px);
+  grid-template-columns: 1fr;
+}
+
+.pitbull-inscription-deck__quote {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pitbull-inscription-deck__quote-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pitbull-inscription-deck__quote-value {
+  color: var(--color-brand-gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.6vw, 2.35rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  margin: 0;
+}
+
+.pitbull-inscription-deck__quote--secondary .pitbull-inscription-deck__quote-value {
+  color: color-mix(in oklab, var(--color-text-primary) 88%, var(--color-text-muted));
+  font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.pitbull-inscription-deck__quote-note,
+.pitbull-inscription-deck__quote-hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 36ch;
+}
+
+.pitbull-inscription-deck__quote-note {
+  color: color-mix(in oklab, var(--plu-gold-500) 42%, var(--color-text-muted));
+}
+
+.pitbull-inscription-deck__footer {
+  border-top: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 9%, transparent));
+  display: grid;
+  gap: 14px;
+  padding-top: clamp(14px, 2vw, 18px);
+}
+
+.pitbull-inscription-deck__lead {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.pitbull-inscription-deck__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+}
+
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--primary,
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--secondary {
+  align-items: center;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 44px;
+  padding: 0 20px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--primary {
+  background: var(--color-brand-gold, #f2b705);
+  border: 1px solid var(--color-brand-gold, #f2b705);
+  color: #14181f;
+  min-width: 12.5rem;
+}
+
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--primary:hover {
+  background: var(--plu-gold-400, #f5c518);
+  border-color: var(--plu-gold-400, #f5c518);
+}
+
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--secondary {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  min-height: 44px;
+  padding-inline: 4px;
+  position: relative;
+}
+
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--secondary::after {
+  background: currentColor;
+  bottom: 10px;
+  content: '';
+  height: 1px;
+  left: 4px;
+  opacity: 0.28;
+  position: absolute;
+  right: 4px;
+  transition: opacity var(--transition-fast);
+}
+
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--secondary:hover {
+  color: var(--color-text-primary);
+}
+
+.pitbull-inscription-deck__actions .pitbull-inscription__cta--secondary:hover::after {
+  opacity: 0.55;
+}
+
+@media (min-width: 640px) {
+  .pitbull-inscription-deck__quotes:not(:has(.pitbull-inscription-deck__quote--solo)) {
+    align-items: end;
+    gap: clamp(18px, 2.8vw, 28px);
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .pitbull-inscription-deck__grid {
+    align-items: stretch;
+    gap: 0;
+    grid-template-columns: minmax(0, 0.36fr) minmax(0, 0.64fr);
+  }
+
+  .pitbull-inscription-deck__capacity {
+    border-right: 1px solid var(--pitbull-chapter-border, color-mix(in oklab, var(--color-text-primary) 10%, transparent));
+    padding-right: clamp(20px, 3vw, 32px);
+  }
+
+  .pitbull-inscription-deck__offer {
+    padding-left: clamp(20px, 3vw, 32px);
+  }
+
+  .pitbull-inscription-deck__actions .pitbull-inscription__cta--primary {
+    min-width: 14rem;
+  }
+}
+
+@media (max-width: 519px) {
+  .pitbull-inscription-deck__actions .pitbull-inscription__cta--primary,
+  .pitbull-inscription-deck__actions .pitbull-inscription__cta--secondary {
+    width: 100%;
+  }
+}
+
+[data-theme='light'] .pitbull-inscription-shell--deck {
+  border-color: rgba(15, 17, 23, 0.1);
+}
+
+[data-theme='light'] .pitbull-inscription-deck__quote--secondary .pitbull-inscription-deck__quote-value {
+  color: rgba(15, 17, 23, 0.82);
+}
+
+.pitbull-page--premium .pitbull-inscription-shell--deck {
+  box-shadow: 0 18px 48px -36px color-mix(in oklab, var(--plu-cool-950) 55%, transparent);
+}
+
 /* Últimos inscriptos — vacío editorial / lista tipográfica */
 .pitbull-recent {
   display: grid;
@@ -9119,30 +9436,26 @@
 }
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__actions {
-  border-top: none;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: clamp(12px, 2vw, 16px);
   max-width: min(36rem, 100%);
   padding-top: 0;
 }
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link {
   align-self: flex-start;
-  color: color-mix(in oklab, var(--plu-warm-50) 78%, transparent);
-  min-height: 0;
-  padding-block: 10px;
+  color: color-mix(in oklab, var(--plu-warm-50) 62%, transparent);
+  min-height: 44px;
+  opacity: 1;
+  padding-block: 6px;
 }
 
 .pitbull-hero-masthead--bleed .pitbull-hero-masthead__text-link:hover {
-  color: var(--plu-warm-50);
+  color: color-mix(in oklab, var(--plu-warm-50) 88%, transparent);
 }
 
-.pitbull-hero-masthead--bleed .pitbull-hero-masthead__fee-label {
-  color: color-mix(in oklab, var(--plu-warm-50) 48%, transparent);
-  opacity: 1;
-}
-
-.pitbull-hero-masthead--bleed .pitbull-hero-masthead__fee-value {
-  color: var(--plu-gold-400);
+.pitbull-hero-masthead--bleed .pitbull-hero-masthead__cta-fee {
+  color: color-mix(in oklab, #14181f 74%, transparent);
 }
 
 /* <900: una sola imagen LCP a sangre. */
@@ -9367,18 +9680,21 @@
 }
 
 .pitbull-hero-masthead__text-link {
+  align-items: center;
   background: none;
   border: none;
   color: var(--color-text-secondary);
   cursor: pointer;
+  display: inline-flex;
   font-family: var(--font-family);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 450;
-  letter-spacing: 0.01em;
-  opacity: 0.7;
-  padding: 8px 2px;
+  gap: 7px;
+  letter-spacing: 0.015em;
+  min-height: 44px;
+  opacity: 0.62;
+  padding: 6px 0;
   text-decoration: none;
-  text-underline-offset: 3px;
   transition:
     color var(--motion-fast, 160ms) var(--ease-standard, ease),
     opacity var(--motion-fast, 160ms) var(--ease-standard, ease),
@@ -9389,12 +9705,11 @@
   color: var(--color-text-primary);
   opacity: 1;
   text-decoration: underline;
-  text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
+  text-decoration-color: color-mix(in oklab, currentColor 38%, transparent);
+  text-underline-offset: 3px;
 }
 
 .pitbull-hero-masthead__text-link--ticket {
-  align-items: center;
-  display: inline-flex;
   gap: 8px;
 }
 
@@ -9524,40 +9839,58 @@
   opacity: 0.55;
 }
 
-.pitbull-hero-masthead__cta-group {
-  align-items: flex-start;
-  display: inline-flex;
-  flex-direction: column;
-  gap: 10px;
+.pitbull-hero-masthead__cta--decision {
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 48px;
+  min-width: min(100%, 19rem);
+  padding: 6px 8px 6px 20px;
+  text-align: left;
 }
 
-.pitbull-hero-masthead__fee {
+.pitbull-hero-masthead__cta-body {
   align-items: baseline;
   display: inline-flex;
-  flex-direction: row;
   flex-wrap: wrap;
-  gap: 0 10px;
+  gap: 0 7px;
+  min-width: 0;
+}
+
+.pitbull-hero-masthead__cta-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
   line-height: 1.15;
-  padding-inline: 2px;
 }
 
-.pitbull-hero-masthead__fee-label {
-  color: var(--color-text-muted);
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  opacity: 0.68;
-  text-transform: uppercase;
+.pitbull-hero-masthead__cta-sep {
+  color: color-mix(in oklab, #14181f 38%, transparent);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  opacity: 0.75;
 }
 
-.pitbull-hero-masthead__fee-value {
-  color: var(--color-brand-gold);
+.pitbull-hero-masthead__cta-fee {
+  color: color-mix(in oklab, #14181f 72%, transparent);
   font-family: var(--font-display);
-  font-size: clamp(1.05rem, 2.1vw, 1.28rem);
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.pitbull-hero-masthead__cta-icon {
+  align-items: center;
+  background: color-mix(in oklab, #14181f 9%, transparent);
+  border-radius: 50%;
+  display: inline-flex;
+  flex: none;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
 }
 
 .pitbull-hero-masthead__date {
@@ -10132,47 +10465,54 @@
 .pitbull-hero-masthead__cta {
   align-items: center;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--border-radius-pill, 999px);
   cursor: pointer;
   display: inline-flex;
-  font-family: var(--font-family);
+  font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 600;
-  gap: 8px;
+  font-weight: 650;
+  gap: 10px;
   justify-content: center;
+  letter-spacing: -0.02em;
   min-height: 48px;
-  padding: 0 18px;
+  padding: 6px 8px 6px 20px;
   transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast),
-    color var(--transition-fast),
-    transform var(--transition-fast);
+    background var(--motion-fast, 160ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
+    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
+    color var(--motion-fast, 160ms) var(--ease-standard, ease);
   width: auto;
+}
+
+.pitbull-hero-masthead__cta:not(.pitbull-hero-masthead__cta--decision) {
+  padding-inline: 20px 8px;
 }
 
 .pitbull-hero-masthead__cta--primary {
   background: var(--plu-gold-500, var(--color-brand-gold, #f2b705));
-  border-color: transparent;
-  box-shadow: 0 10px 24px -10px color-mix(in oklab, var(--plu-gold-500) 75%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-500) 88%, #14181f);
+  box-shadow: none;
   color: #14181f;
 }
 
 .pitbull-hero-masthead__cta--primary:hover {
   background: var(--plu-gold-400, #f5c518);
-  box-shadow: 0 14px 28px -10px color-mix(in oklab, var(--plu-gold-500) 85%, transparent);
+  border-color: color-mix(in oklab, var(--plu-gold-400) 90%, #14181f);
+  box-shadow: 0 10px 28px -16px color-mix(in oklab, var(--plu-gold-500) 70%, transparent);
   color: #14181f;
-  transform: translateY(-1px);
+}
+
+.pitbull-hero-masthead__cta--primary:hover .pitbull-hero-masthead__cta-icon {
+  background: color-mix(in oklab, #14181f 14%, transparent);
 }
 
 .pitbull-hero-masthead__cta--primary:active {
-  box-shadow: 0 6px 14px -8px color-mix(in oklab, var(--plu-gold-500) 70%, transparent);
-  transform: translateY(0);
+  box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pitbull-hero-masthead__cta--primary:hover {
-    transform: none;
+    box-shadow: none;
   }
 }
 
@@ -10267,25 +10607,19 @@
     align-items: stretch;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-  }
-
-  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__cta-group {
-    align-items: center;
-    width: 100%;
+    gap: 6px;
   }
 
   .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__cta {
     width: 100%;
   }
 
-  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__fee {
-    justify-content: center;
+  .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__cta--decision {
+    min-width: 0;
   }
 
   .pitbull-hero-masthead:not(.pitbull-hero-masthead--text) .pitbull-hero-masthead__text-link {
-    align-self: center;
-    min-height: 44px;
+    align-self: flex-start;
   }
 
   .pitbull-hero-masthead--text .pitbull-hero-masthead__actions {
@@ -11508,17 +11842,19 @@
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__actions {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
   gap: 8px;
 }
 
+.pitbull-page--premium .pitbull-hero-masthead__cta--decision {
+  box-shadow: none;
+}
+
+.pitbull-page--premium .pitbull-hero-masthead__cta--primary:hover {
+  box-shadow: 0 12px 32px -18px color-mix(in oklab, var(--plu-gold-500) 75%, transparent);
+}
+
 .pitbull-page--premium .pitbull-hero-masthead__text-link {
-  min-height: 0;
-  padding-block: 10px;
-  padding-inline: 2px;
+  padding-inline: 0;
 }
 
 .pitbull-page--premium .pitbull-hero-masthead__breadcrumb button {

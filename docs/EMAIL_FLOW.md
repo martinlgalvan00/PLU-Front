@@ -77,6 +77,8 @@ Alta de un email nuevo: se declara **solo** en `emailCatalog.js` y se le agrega 
 | `payment_receipt` | Legacy; reemplazado por `payment_confirmation` | no (crítico) |
 | `payment_confirmation` | Pago aprobado por Mercado Pago o aprobación manual, con todos sus derechos | no (crítico) |
 | `payment_pending` | Pago pendiente de acreditación | no |
+| `payment_order_reminder` | Job de vencimiento de pago manual (~2 días antes de los 5) | no |
+| `payment_order_expired` | Job de vencimiento de pago manual (tras cancelarse) | no |
 | `payment_rejected` | Pago rechazado | no |
 | `payment_refunded` | Pago reintegrado por el proveedor, incluyendo la baja asociada | no |
 | `registration_confirmed` | Legacy; la confirmación se incluye en `payment_confirmation` | no |
@@ -150,6 +152,8 @@ identificador externo estable, no al de la orden:
 email:payment-confirmation:<externalPaymentId>
 email:payment-confirmation:manual:<orderId>
 email:membership-renewal:<notificationId>   # incluye el umbral: expires_in_30, expired
+email:payment-order-reminder:<notificationId>
+email:payment-order-expired:<notificationId>
 email:event_announcement:<eventId>:<athleteId>
 ```
 

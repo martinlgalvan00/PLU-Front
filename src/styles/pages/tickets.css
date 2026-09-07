@@ -678,83 +678,137 @@
   margin: 4px 0 0;
 }
 
-.tickets-page__offers-grid {
+/* Los tipos de entrada los dibuja `TicketTypeOptions`, la misma pieza que usa
+   el checkout. Acá sólo se la lleva al registro editorial de la página: filete
+   sin radio y más aire, como el resto de las superficies públicas. */
+.tickets-page .tickets-page__offers-grid {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.tickets-page__offer {
-  background: transparent;
-  border: 1px solid color-mix(in oklab, var(--color-text-primary) 10%, transparent);
+.tickets-page .ticket-type-options__option {
+  border-color: color-mix(in oklab, var(--color-text-primary) 10%, transparent);
   border-radius: 0;
-  display: grid;
-  gap: 18px;
+  gap: 12px;
   padding: clamp(20px, 3vw, 28px);
-  position: relative;
 }
 
-.tickets-page__offer--online {
-  border-color: color-mix(in oklab, var(--plu-gold-500) 42%, transparent);
-}
-
-.tickets-page__offer--online > span {
-  background: var(--plu-gold-500);
-  border-radius: 2px;
-  color: #14181f;
-  display: inline-flex;
-  font-size: 10px;
-  font-weight: 700;
-  justify-self: start;
-  letter-spacing: 0.12em;
-  padding: 5px 10px;
-  text-transform: uppercase;
-}
-
-.tickets-page__offer--door {
-  opacity: 0.78;
-}
-
-.tickets-page__offer--door > span {
-  color: var(--color-text-muted);
-  display: inline-flex;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.tickets-page__offer-prices {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.tickets-page__offer-prices small {
-  color: var(--color-text-muted);
-  display: block;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
-
-.tickets-page__offer-prices strong {
-  color: var(--color-text-primary);
-  display: block;
+.tickets-page .ticket-type-options__name {
   font-family: var(--font-display);
-  font-size: clamp(1.65rem, 3.4vw, 2.25rem);
-  font-weight: 700;
+  font-size: clamp(1.05rem, 1.9vw, 1.25rem);
+}
+
+.tickets-page .ticket-type-options__price {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
   letter-spacing: -0.04em;
   line-height: 1;
 }
 
-.tickets-page__offer p {
-  color: var(--color-text-secondary);
-  font-size: 13.5px;
-  line-height: 1.55;
+/* ── Qué zona abre cada entrada ──────────────── */
+
+.tickets-page__access {
+  display: grid;
+  gap: 16px;
+}
+
+.tickets-page__access-head {
+  display: grid;
+  gap: 8px;
+}
+
+.tickets-page__access-head h3 {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
+}
+
+.tickets-page__access-head p {
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 68ch;
+}
+
+/* La tabla se desplaza dentro de su caja: la página nunca scrollea en
+   horizontal, ni con cuatro tipos de entrada. */
+.tickets-page__access-scroll {
+  overflow-x: auto;
+}
+
+.tickets-page__access-table {
+  border-collapse: collapse;
+  min-width: 30rem;
+  width: 100%;
+}
+
+.tickets-page__access-table th,
+.tickets-page__access-table td {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  padding: 14px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tickets-page__access-table thead th {
+  border-bottom-color: color-mix(in oklab, var(--color-text-primary) 18%, transparent);
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding-bottom: 11px;
+  text-transform: uppercase;
+}
+
+.tickets-page__access-table thead th:not(:first-child),
+.tickets-page__access-cell {
+  text-align: center;
+}
+
+.tickets-page__access-table tbody th {
+  display: grid;
+  font-weight: 500;
+  gap: 3px;
+}
+
+.tickets-page__access-table tbody th strong {
+  color: var(--color-text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.tickets-page__access-table tbody th small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tickets-page__access-cell {
+  color: color-mix(in oklab, var(--color-text-muted) 76%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tickets-page__access-cell svg {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+.tickets-page__access-cell--in {
+  color: var(--color-text-accent);
+}
+
+.tickets-page__access-note {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 68ch;
 }
 
 /* ── Checkout ────────────────────────────────── */
@@ -923,14 +977,14 @@
   color: var(--design-hero-desc, rgba(15, 17, 23, 0.58));
 }
 
-[data-theme='light'] .tickets-page__offer,
+[data-theme='light'] .tickets-page .ticket-type-options__option,
 [data-theme='light'] .tickets-page__event-option {
   background: #fff;
   border-color: rgba(15, 17, 23, 0.08);
 }
 
-[data-theme='light'] .tickets-page__offer--online {
-  border-color: color-mix(in oklab, var(--plu-gold-600) 36%, transparent);
+[data-theme='light'] .tickets-page .ticket-type-options__option.is-selected {
+  background: color-mix(in srgb, var(--color-brand-celeste) 12%, #fff);
 }
 
 [data-theme='light'] .tickets-page__event-option--active {
@@ -944,7 +998,7 @@
 /* ── Responsive ──────────────────────────────── */
 
 @media (max-width: 860px) {
-  .tickets-page__offers-grid {
+  .tickets-page .tickets-page__offers-grid {
     grid-template-columns: 1fr;
   }
 
@@ -974,10 +1028,6 @@
     font-size: clamp(4rem, 30vw, 7rem);
     right: -6%;
     top: 0;
-  }
-
-  .tickets-page__offer-prices {
-    grid-template-columns: 1fr;
   }
 
   .tickets-page__hero-copy {

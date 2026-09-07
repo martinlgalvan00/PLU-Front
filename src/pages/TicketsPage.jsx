@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Clock3, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Clock3, Minus, ShieldCheck } from 'lucide-react'
 import { m } from 'motion/react'
 import heroPhoto from '../assets/DSC00392-display.jpg'
 import heroPhotoAvif from '../assets/DSC00392-display.avif'
@@ -12,6 +12,8 @@ import ResponsivePhoto from '../components/ui/ResponsivePhoto.jsx'
 import TicketAvailabilityBadge from '../components/ui/TicketAvailabilityBadge.jsx'
 import TicketPassPreview from '../components/ui/TicketPassPreview.jsx'
 import TicketPurchaseSection from '../components/ui/TicketPurchaseSection.jsx'
+import TicketTypeOptions, { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
+import { zonesTicketsCanOpen } from '../services/securityZoneService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import {
   useTicketAvailability,
@@ -25,6 +27,77 @@ import { money } from '../lib/format.js'
 import { useMotionConfig } from '../motion/MotionProvider.tsx'
 import { heroSequenceItem, heroStaggerContainer } from '../motion/variants.ts'
 import '../styles/pages/tickets.css'
+
+/**
+ * Qué zona abre cada tipo de entrada.
+ *
+ * Contesta lo que la lista de tipos no puede: qué NO abre ninguna entrada. Las
+ * filas salen de `zonesTicketsCanOpen()`, o sea de las zonas que el escáner
+ * acepta leer con una credencial de entrada, así que la tabla no puede ofrecer
+ * una zona que ninguna entrada habilite. Con un solo tipo no hay nada que
+ * comparar y no se dibuja.
+ */
+function TicketAccessMatrix({ ticketTypes = [], t }) {
+  const zones = zonesTicketsCanOpen()
+  if (ticketTypes.length < 2 || zones.length === 0) return null
+
+  return (
+    <div className="tickets-page__access">
+      <div className="tickets-page__access-head">
+        <h3>{t('pages.ticketsPage.accessTitle')}</h3>
+        <p>{t('pages.ticketsPage.accessLead')}</p>
+      </div>
+
+      <div className="tickets-page__access-scroll">
+        <table className="tickets-page__access-table">
+          <caption className="visually-hidden">{t('pages.ticketsPage.accessAria')}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t('pages.ticketsPage.accessZoneColumn')}</th>
+              {ticketTypes.map((type) => (
+                <th key={type.id} scope="col">
+                  {type.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {zones.map((scope) => (
+              <tr key={scope}>
+                <th scope="row">
+                  <strong>{zoneScopeLabel(scope, t)}</strong>
+                  <small>{t(`pages.tickets.ticketTypes.zoneHint.${scope}`)}</small>
+                </th>
+                {ticketTypes.map((type) => {
+                  const included = (type.zoneScopes ?? []).includes(scope)
+                  return (
+                    <td
+                      key={type.id}
+                      className={
+                        included
+                          ? 'tickets-page__access-cell tickets-page__access-cell--in'
+                          : 'tickets-page__access-cell'
+                      }
+                    >
+                      {/* El estado no se dice sólo con el ícono ni sólo con el
+                          color: va escrito. */}
+                      {included ? <Check size={14} aria-hidden /> : <Minus size={14} aria-hidden />}
+                      {included
+                        ? t('pages.ticketsPage.accessIncluded')
+                        : t('pages.ticketsPage.accessExcluded')}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="tickets-page__access-note">{t('pages.ticketsPage.accessFootnote')}</p>
+    </div>
+  )
+}
 
 function resolveInitialEventId(initialEventSlug, ticketEvents, fallbackEvent) {
   if (initialEventSlug) {
@@ -310,24 +383,16 @@ export default function TicketsPage({
             <p>{t('pages.ticketsPage.offersLead')}</p>
           </header>
 
-          <div className="tickets-page__offers-grid" aria-label={t('pages.ticketsPage.offersAria')}>
-            {pricing.ticketTypes.map((type) => (
-              <article key={type.id} className="tickets-page__offer">
-                <span>{type.name}</span>
-                <div className="tickets-page__offer-prices">
-                  <div>
-                    <strong>{money(type.price, locale)}</strong>
-                  </div>
-                </div>
-                {type.includedAddons.length ? (
-                  <p>
-                    {t('pages.ticketsPage.includesBadge')}:{' '}
-                    {type.includedAddons.map((addon) => addon.label).join(' · ')}
-                  </p>
-                ) : null}
-              </article>
-            ))}
-          </div>
+          {/* Los tipos se muestran con la misma pieza que usa el checkout: la
+              vidriera y el paso donde se elige tienen que decir lo mismo. */}
+          <TicketTypeOptions
+            className="tickets-page__offers-grid"
+            locale={locale}
+            t={t}
+            ticketTypes={pricing.ticketTypes}
+          />
+
+          <TicketAccessMatrix ticketTypes={pricing.ticketTypes} t={t} />
         </section>
       ) : null}
 

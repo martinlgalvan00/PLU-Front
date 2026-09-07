@@ -1278,6 +1278,49 @@
   max-width: 52ch;
 }
 
+/* ─── Credenciales emitidas, agrupadas por compra ───────────────
+   Una compra de entrenador emite dos credenciales. Van bajo un mismo
+   encabezado para que se lean como un juego y no como dos compras. */
+.ticket-purchase__bundles {
+  display: grid;
+  gap: 26px;
+}
+
+.ticket-purchase__bundle {
+  display: grid;
+  gap: 14px;
+}
+
+.ticket-purchase__bundle-head {
+  border-left: 2px solid var(--color-brand-gold);
+  display: grid;
+  gap: 4px;
+  padding-left: 14px;
+}
+
+.ticket-purchase__bundle-head h4 {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.ticket-purchase__bundle-head p {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Qué abre esta credencial. No es un código: sale de la fuente de texto, no de
+   la mono que `__ticket-info span` usa para el número de entrada. */
+.ticket-purchase__ticket-info .ticket-purchase__ticket-zones {
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
 .ticket-purchase__list--passes {
   display: grid;
   gap: 18px;

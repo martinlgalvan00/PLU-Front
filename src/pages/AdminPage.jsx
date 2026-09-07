@@ -74,6 +74,7 @@ export default function AdminPage({
   onDismissQueueItem,
   onUndismissQueueItem,
   adminNavBadges,
+  adminEventWorkspaceSlug,
   getAthleteDetail,
   onApprovePayment,
   onForceSettlePayment,
@@ -172,11 +173,12 @@ export default function AdminPage({
   const { t } = useI18n()
   const [accountOpen, setAccountOpen] = useState(false)
   const preferredSection = isPluUsaPartner ? 'plu-usa' : isCheckinOnly ? 'checkin' : 'dashboard'
-  const [section, setSection] = useState(() =>
-    allowedSections.includes(preferredSection)
+  const [section, setSection] = useState(() => {
+    if (adminEventWorkspaceSlug && allowedSections.includes('events')) return 'events'
+    return allowedSections.includes(preferredSection)
       ? preferredSection
-      : (allowedSections[0] ?? preferredSection),
-  )
+      : (allowedSections[0] ?? preferredSection)
+  })
   const [selectedAthleteId, setSelectedAthleteId] = useState(null)
   // "Personas" (nav.people) reemplaza los antiguos ítems de menú Atletas /
   // Afiliaciones / Inscripciones por uno solo con pestañas internas. Todo
@@ -232,6 +234,12 @@ export default function AdminPage({
     () => unreconciledPayments.filter((entry) => entry.missingRegistration),
     [unreconciledPayments],
   )
+
+  useEffect(() => {
+    if (adminEventWorkspaceSlug && allowedSections.includes('events') && section !== 'events') {
+      setSection('events')
+    }
+  }, [adminEventWorkspaceSlug, allowedSections, section])
 
   useEffect(() => {
     if (allowedSections.length > 0 && !allowedSections.includes(section)) {
@@ -443,6 +451,7 @@ export default function AdminPage({
       return (
         <EventsSection
           adminEvents={adminEvents}
+          adminEventWorkspaceSlug={adminEventWorkspaceSlug}
           athletes={athletes}
           isLoading={adminEventsLoading}
           loadError={adminEventsError}

@@ -3267,6 +3267,131 @@
   max-width: 48ch;
 }
 
+.admin-event-form__lane[hidden] {
+  display: none;
+}
+
+.admin-event-form__section--sales .admin-event-form__lane-head p {
+  display: none;
+}
+
+.admin-event-form__section-head--sales {
+  gap: 10px;
+}
+
+.admin-event-form__sales-nav {
+  background: var(--admin-surface-muted, var(--color-bg-elevated));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  width: 100%;
+}
+
+.admin-event-form__sales-nav-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 1 1 8rem;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.admin-event-form__sales-nav-item:hover {
+  color: var(--color-text-primary);
+}
+
+.admin-event-form__sales-nav-item:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+.admin-event-form__sales-nav-item.is-active {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 0 var(--admin-hairline, var(--color-border-subtle));
+}
+
+.admin-event-form__sales-nav-item.has-error::after {
+  background: var(--color-brand-red);
+  border-radius: 50%;
+  content: '';
+  height: 6px;
+  width: 6px;
+}
+
+.admin-event-editor--accordion .admin-event-form__lane,
+.admin-event-editor--accordion .admin-event-form__lane.admin-event-form__lane--tickets {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.admin-event-editor--accordion .admin-event-form__lane + .admin-event-form__lane {
+  margin-top: 0;
+}
+
+.admin-event-editor--accordion .admin-event-form__occupancy {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 2px 0 6px;
+}
+
+.admin-event-form__section--sales .admin-event-form__lane--payment .admin-event-form__payment-profile {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.admin-event-form__surface {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.admin-event-form__surface legend {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+/* Mínimo táctil de los chips del editor y del selector de pestañas de
+   ventas. `.admin-filter-chip` no declara `min-height`: la altura sale del
+   padding y queda en 26px, así que estado público y acceso al meet quedaban
+   por debajo del target táctil. El editor es un modal que también se usa en
+   tablet. Solo con puntero grueso: en mouse la densidad del panel se
+   conserva. */
+@media (pointer: coarse) {
+  .admin-event-form__sales-nav-item,
+  .admin-event-form .admin-filter-chip {
+    min-height: 44px;
+  }
+}
+
 .admin-event-form__lane--tickets .admin-event-form__lane-title svg {
   color: var(--color-brand-gold);
 }
@@ -3455,19 +3580,6 @@
 .admin-event-form__access-note svg {
   margin-right: 5px;
   vertical-align: -2px;
-}
-
-/* Mínimo táctil de los chips del editor.
-   `.admin-filter-chip` no declara `min-height`: la altura sale del padding y
-   queda en 26px, así que los dos grupos de esta pestaña —estado público y
-   acceso al meet— quedaban por debajo del target táctil. La consola de
-   operación ya lo tenía resuelto (admin-minimal.css, `@media pointer: coarse`)
-   pero el editor es un modal que también se usa en tablet. Solo con puntero
-   grueso: en mouse la densidad del panel se conserva. */
-@media (pointer: coarse) {
-  .admin-event-form .admin-filter-chip {
-    min-height: 44px;
-  }
 }
 
 .admin-event-form__consistency ul {
@@ -4617,47 +4729,31 @@
   gap: 0;
 }
 
-/* Filtros de eventos: pills de vidrio con transición de estado — el
-   activo se lee como material, no como subrayado. */
 .admin-list-shell--events .admin-filter-chip {
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 999px;
+  border: 0;
+  border-radius: 0;
   box-shadow: none;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  min-height: 34px;
-  padding: 6px 13px;
+  min-height: 36px;
+  padding: 6px 12px;
   position: relative;
-  transition:
-    background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
-    color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-list-shell--events .admin-filter-chip:hover {
-  background: var(--admin-glass-bg, rgba(255, 255, 255, 0.04));
-  border-color: var(--admin-glass-border, var(--color-border-subtle));
+  background: transparent;
   color: var(--color-text-primary);
-  transform: translateY(-1px);
 }
 
 .admin-list-shell--events .admin-filter-chip.is-active,
 .admin-list-shell--events .admin-filter-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--color-brand-celeste) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 36%, transparent);
-  box-shadow: inset 0 1px 0 var(--admin-glass-highlight, transparent);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   color: var(--color-text-primary);
-  font-weight: 600;
-}
-
-.admin-list-shell--events .admin-filter-chip.is-active:hover,
-.admin-list-shell--events .admin-filter-chip[aria-pressed='true']:hover {
-  background: color-mix(in srgb, var(--color-brand-celeste) 16%, transparent);
-  border-color: color-mix(in srgb, var(--color-brand-celeste) 44%, transparent);
+  font-weight: 650;
 }
 
 .admin-list-shell--events .admin-filter-chip.is-active .admin-filter-chip__count,
@@ -10622,7 +10718,7 @@
   overflow: hidden;
 }
 
-/* Header editorial: título + meta + acción en una franja */
+/* Header editorial: título + cifras + herramientas de la matriz */
 .admin-roles__matrix-head {
   align-items: start;
   background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 1.5%, transparent);
@@ -10631,7 +10727,11 @@
   flex: 0 0 auto;
   gap: 14px 24px;
   grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.95fr) auto;
-  padding: 20px 22px 18px;
+  padding: 20px 22px 16px;
+}
+
+.admin-roles__matrix-head > .admin-roles__toolbar {
+  grid-column: 1 / -1;
 }
 
 .admin-roles__matrix-title {
@@ -10649,13 +10749,11 @@
 
 /* Chip de nivel — acento editorial a la izquierda */
 .admin-roles__matrix-level {
-  border-left: 2px solid var(--admin-brand, var(--color-brand-celeste));
   color: var(--admin-muted, var(--color-text-muted));
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  padding-left: 8px;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .admin-roles__readonly {
@@ -10698,26 +10796,52 @@
 .admin-roles__meta-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 16px 20px;
   justify-content: flex-end;
 }
 
 .admin-roles__stat {
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 4%, transparent);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: var(--admin-ink, var(--color-text-primary));
+  display: grid;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 550;
+  font-weight: 500;
+  gap: 2px;
   line-height: 1.2;
-  padding: 5px 10px;
+  padding: 0;
+  text-align: right;
   white-space: nowrap;
 }
 
+.admin-roles__stat-value {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.admin-roles__stat-total {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-roles__stat-label {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .admin-roles__stat--accent {
-  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 35%, transparent);
-  color: var(--admin-brand, var(--color-brand-celeste));
+  border: 0;
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+.admin-roles__stat--accent .admin-roles__stat-value {
+  color: var(--admin-ink, var(--color-text-primary));
 }
 
 .admin-roles__meta-line {
@@ -11696,6 +11820,10 @@
 
   .admin-roles__meta-stats {
     justify-content: flex-start;
+  }
+
+  .admin-roles__stat {
+    text-align: left;
   }
 
   .admin-roles__matrix-actions {
@@ -14516,7 +14644,9 @@
    ============================================= */
 
 .admin-action-drawer__backdrop {
-  background: rgba(4, 6, 10, 0.65);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  backdrop-filter: blur(6px) saturate(1.1);
+  background: rgba(4, 6, 10, 0.42);
   border: 0;
   cursor: pointer;
   inset: 0;
@@ -16396,27 +16526,11 @@ button.action-queue__proof:focus-visible {
   flex: none;
 }
 
-/* El badge de estado con otra marca al lado (el "inscripto a un torneo" de
-   Afiliaciones): son dos hechos del mismo renglón, no una explicación arriba de
-   la otra. El motivo sigue yendo debajo, en su propio párrafo. */
-.admin-state-cell__head {
-  align-items: center;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.admin-state-cell__head .pill,
-.admin-state-cell__head .status-badge {
-  flex: none;
-}
-
 .admin-state-cell__provenance {
   display: grid;
   gap: 3px;
   min-width: 0;
+  position: relative;
   width: 100%;
 }
 
@@ -16477,10 +16591,16 @@ button.action-queue__proof:focus-visible {
 
 /* El mail del operador queda en el DOM para Ctrl+F, fuera del layout. */
 .admin-state-cell__actor-search {
-  height: 0;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
   overflow: hidden;
+  padding: 0;
   position: absolute;
-  width: 0;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .admin-state-cell__note {
@@ -16509,17 +16629,87 @@ button.action-queue__proof:focus-visible {
   padding-left: 7px;
 }
 
-/* En la tarjeta mobile la celda de estado vive en una fila angosta: el motivo
-   pasa a ocupar el ancho completo en vez de competir con el badge. */
-@media (max-width: 768px) {
-  .admin-state-cell__reason,
-  .admin-state-cell__note {
-    max-width: none;
-  }
+/* En compact, -webkit-line-clamp no achica el ancho intrínseco: si el badge
+   es `flex: 0 0 auto` la nota estira la card (el caso Iara / switch operativo).
+   Pills a la derecha del nombre; firma y motivo a todo el ancho, debajo.
+   Inscripciones tiene cobro + estado en el mismo slot: no aplanar. */
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell)) {
+  align-items: start;
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
 
-  .admin-state-cell__note {
-    -webkit-line-clamp: 3;
-  }
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  > .data-table-card__primary {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  > .data-table-card__badges,
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .data-table-card__badge:has(.admin-state-cell__provenance),
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .admin-state-cell {
+  display: contents;
+}
+
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .admin-state-cell__head {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.admin-shell
+  .data-table-card--compact
+  .data-table-card__top:has(.admin-state-cell__provenance):not(:has(.admin-payment-cell))
+  .admin-state-cell__provenance {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+  width: 100%;
+}
+
+.data-table-card--compact .data-table-card__badge .admin-state-cell,
+.data-table-card--compact .admin-state-cell__provenance,
+.data-table-card--compact .admin-state-cell__reason,
+.data-table-card--compact .admin-state-cell__note {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.data-table-card--compact .admin-state-cell__note {
+  -webkit-line-clamp: 3;
+}
+
+/* Fallback si `display: contents` no aplica: el badge no puede superar
+   la card. Con contents, max-width sobre el wrapper se ignora. */
+.admin-shell .data-table-card.data-table__row--membership.data-table-card--compact {
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.admin-shell
+  .data-table-card.data-table__row--membership.data-table-card--compact
+  .data-table-card__badges {
+  max-width: min(52%, 280px);
+  min-width: 0;
 }
 
 .athlete-detail__panel .data-table-card__badge .admin-state-cell,
@@ -17634,9 +17824,32 @@ button.action-queue__proof:focus-visible {
   border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 10px;
   display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 1fr auto;
-  padding: 12px;
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(160px, 0.9fr) auto;
+  padding: 14px;
+}
+
+.admin-ticket-types__day-item .admin-event-form__field {
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-ticket-types__day-item .admin-event-form__field > span {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-ticket-types__day-item .admin-event-form__field input {
+  box-sizing: border-box;
+  min-height: 40px;
+  width: 100%;
+}
+
+.admin-ticket-types__day-item .admin-ticket-types__remove {
+  align-self: end;
 }
 
 .admin-ticket-types__item {
@@ -17678,10 +17891,20 @@ button.action-queue__proof:focus-visible {
   flex-shrink: 0;
 }
 
+.admin-ticket-types__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* `align-items: start` y no el estiramiento por defecto: la fila la mide el
+   campo más alto (Cupo, que lleva su aclaración debajo) y sin esto el input de
+   Nombre se estiraba a 66px contra 38 de los demás, y los tres arrancaban a
+   distinta altura. Nombre flexible; precio con piso para ARS + número. */
 .admin-ticket-types__grid {
+  align-items: start;
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(148px, 1.1fr) minmax(110px, 0.9fr);
 }
 
 .admin-ticket-types__days,
@@ -17704,30 +17927,158 @@ button.action-queue__proof:focus-visible {
   gap: 8px;
 }
 
+/* ── Chips de selección: días de acceso y zonas de la credencial ────────────
+   El checkbox nativo era el elemento más pesado de toda la sección -- un
+   cuadrado grande, con el color del sistema (violeta en Windows), repetido
+   hasta ocho veces por tipo de entrada. El estado lo dice el chip entero:
+   borde, fondo y texto en celeste, que es el acento de selección del panel.
+   El input sigue en el DOM y sigue recibiendo foco: no se pierde teclado ni
+   lector de pantalla, sólo deja de dibujarse. */
 .admin-ticket-types__day-chip {
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-subtle);
+  background: var(--admin-control-bg, transparent);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
   border-radius: 999px;
+  color: var(--admin-text-secondary, var(--color-text-muted));
+  cursor: pointer;
   display: inline-flex;
   font-size: 12px;
+  font-weight: 550;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 6px 12px;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 150ms) var(--ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--ease-standard, ease);
 }
 
+.admin-ticket-types__day-chip input[type='checkbox'] {
+  /* Fuera de la vista, no del árbol de accesibilidad. */
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.admin-ticket-types__day-chip:hover:not(:has(input:disabled)) {
+  border-color: var(--admin-hairline-strong, var(--color-border-subtle));
+  color: var(--admin-ink, var(--color-text-primary));
+}
+
+/* El seleccionado tiene que leerse de un vistazo: acá se decide qué días cubre
+   una entrada y qué zonas abre una credencial, y un matiz de más no alcanza.
+   Los valores van explícitos y no vía `--admin-brand-soft` para que el
+   contraste sea el mismo en los dos temas. */
+.admin-ticket-types__day-chip:has(input:checked) {
+  background: color-mix(in srgb, var(--admin-brand) 16%, transparent);
+  border-color: color-mix(in srgb, var(--admin-brand) 62%, transparent);
+  color: var(--admin-brand);
+  font-weight: 650;
+}
+
+/* El foco del input invisible tiene que verse en el chip, o el recorrido por
+   teclado queda a ciegas. */
+.admin-ticket-types__day-chip:has(input:focus-visible) {
+  outline: 2px solid var(--admin-focus, var(--admin-brand));
+  outline-offset: 2px;
+}
+
+.admin-ticket-types__day-chip:has(input:disabled) {
+  cursor: default;
+  opacity: 0.55;
+}
+
+@media (pointer: coarse) {
+  .admin-ticket-types__day-chip {
+    min-height: 44px;
+  }
+}
+
+/* Nota al pie de la grilla: ocupa las tres columnas, así ninguna fila crece por
+   una aclaración y las celdas vecinas no quedan con un hueco al costado. */
+.admin-ticket-types__grid-note {
+  color: var(--admin-muted, var(--color-text-muted));
+  font-size: 11.5px;
+  grid-column: 1 / -1;
+  line-height: 1.4;
+  margin-top: -4px;
+}
+
+/* Una aclaración no es una tarjeta. El recuadro punteado le daba el mismo peso
+   que a un tipo de entrada y metía una card adentro de otra, que es justo lo
+   que el presupuesto de elegancia prohíbe. Una regla al margen alcanza. */
 .admin-ticket-types__empty {
-  background: color-mix(
-    in srgb,
-    var(--admin-surface-muted, rgba(255, 255, 255, 0.02)) 80%,
-    transparent
-  );
-  border: 1px dashed var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--admin-hairline) 80%, transparent);
+  border-radius: 0;
   color: var(--admin-muted, var(--color-text-muted));
   font-size: 12.5px;
   line-height: 1.45;
   margin: 0;
-  padding: 14px 14px;
+  padding: 2px 0 2px 12px;
+}
+
+/* ── Precio: número + moneda al final, mismo control que el resto ───────────
+   Prefijo ARS con divisor hacía un control “especial” y angosto. Sufijo quieto
+   alinea con Nombre/Cupo y deja el número como protagonista. */
+.admin-ticket-types .admin-event-form__rate-card-input {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 8px;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 11px;
+}
+
+.admin-ticket-types .admin-event-form__rate-card-input:focus-within {
+  background: rgba(116, 172, 223, 0.04);
+  border-color: rgba(116, 172, 223, 0.5);
+  box-shadow: 0 0 0 3px rgba(116, 172, 223, 0.12);
+  outline: none;
+}
+
+.admin-ticket-types .admin-event-form__rate-card-input > span {
+  border: 0;
+  color: var(--admin-muted, var(--color-text-muted));
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.admin-ticket-types .admin-event-form__rate-card-input input {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  flex: 1 1 auto;
+  font-family: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0;
+  min-height: 38px;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+  width: 100%;
+}
+
+.admin-ticket-types .admin-event-form__rate-card-input input:hover:not(:disabled),
+.admin-ticket-types .admin-event-form__rate-card-input input:focus {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+[data-theme='light'] .admin-ticket-types .admin-event-form__rate-card-input {
+  background: #fff;
+  border-color: rgba(15, 17, 23, 0.12);
 }
 
 .admin-ticket-types__add {
@@ -19880,34 +20231,32 @@ button.action-queue__proof:focus-visible {
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .admin-roles__toolbar {
   align-items: center;
-  border-bottom: 0;
+  border-top: 1px solid var(--admin-hairline, var(--color-border-subtle));
   display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
   justify-content: space-between;
-  padding: 2px 2px 0;
+  margin: 2px -6px 0;
+  padding: 12px 6px 0;
 }
 
 .admin-roles__search-box {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 2.5%, transparent);
-  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
-  border-radius: 9px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 0;
   display: flex;
   flex: 1 1 220px;
   gap: 8px;
   max-width: 360px;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 2px 6px;
   transition: border-color var(--motion-fast, 140ms) ease;
 }
 
 .admin-roles__search-box:focus-within {
-  border-color: color-mix(
-    in srgb,
-    var(--color-brand-celeste) 55%,
-    var(--admin-hairline, var(--color-border-subtle))
-  );
+  border-bottom-color: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 42%, transparent);
 }
 
 .admin-roles__search-icon {
@@ -21114,6 +21463,121 @@ button.action-queue__proof:focus-visible {
   margin: 0;
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+.admin-event-structure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.admin-ticket-types__need-days {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.admin-weigh-in-windows__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-weigh-in-windows__row {
+  align-items: flex-end;
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) auto;
+  padding: 12px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--border-radius-md);
+}
+
+.admin-weigh-in-windows__note {
+  grid-column: 1 / -2;
+}
+
+.admin-weigh-in-windows__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.admin-weigh-in-windows__preview {
+  display: grid;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+}
+
+.admin-weigh-in-windows__preview-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.admin-event-structure .event-weighins {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-event-structure .event-weighin {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-event-structure .event-weighin__node {
+  display: none;
+}
+
+.admin-event-structure .event-weighin__day {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.admin-event-structure .event-weighin__day-index {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-structure .event-weighin__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-event-structure .event-weighin__time {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-event-structure .event-weighin__note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .admin-weigh-in-windows__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-weigh-in-windows__note {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 720px) {
@@ -22365,5 +22829,403 @@ button.action-queue__proof:focus-visible {
 
   .admin-filter-panel__field--select {
     grid-row: auto;
+  }
+}
+
+/* ── Credenciales por tipo de entrada ─────────────────────────────────────────
+   Una entrada puede emitir más de una credencial: la de entrenador sale con la
+   de espectador y la de ENTRENADOR, cada una con su QR. El bloque va anidado
+   dentro del tipo, así que se apoya en una regla al margen en vez de una card:
+   una card adentro de otra card es justo lo que el presupuesto de elegancia
+   prohíbe, y acá además confundiría el tipo con la credencial. */
+.admin-ticket-credentials {
+  border-left: 2px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+  padding-left: 12px;
+}
+
+.admin-ticket-credentials__head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: space-between;
+}
+
+.admin-ticket-credentials__head .admin-ticket-types__days-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.admin-ticket-credentials__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-ticket-credentials__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-ticket-credentials__item + .admin-ticket-credentials__item {
+  border-top: 1px dashed color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
+  padding-top: 14px;
+}
+
+.admin-ticket-credentials__row {
+  align-items: flex-end;
+  display: flex;
+  gap: 10px;
+}
+
+.admin-ticket-credentials__name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-ticket-credentials__zones {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-ticket-credentials__preset,
+.admin-ticket-credentials__add {
+  align-items: center;
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-brand-celeste);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 6px 12px;
+  transition:
+    background-color var(--motion-fast, 140ms) var(--ease-standard, ease),
+    border-color var(--motion-fast, 140ms) var(--ease-standard, ease);
+}
+
+.admin-ticket-credentials__preset:hover:not(:disabled),
+.admin-ticket-credentials__add:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brand-celeste) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-brand-celeste) 45%, transparent);
+}
+
+.admin-ticket-credentials__preset:focus-visible,
+.admin-ticket-credentials__add:focus-visible {
+  outline: 2px solid var(--color-brand-celeste);
+  outline-offset: 2px;
+}
+
+/* El dato que más se malinterpreta: el cupo son lugares, no credenciales. */
+.admin-ticket-credentials__note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (pointer: coarse) {
+  .admin-ticket-credentials__preset,
+  .admin-ticket-credentials__add {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 639px) {
+  .admin-ticket-credentials__row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-ticket-credentials__row .admin-ticket-types__remove {
+    align-self: flex-end;
+  }
+}
+
+/* ── Resultado del escaneo: jerarquía para leer en la puerta ─────────────────
+   Quien controla el ingreso mira esta tarjeta de pie, apurado y a veces al sol.
+   Los dos datos sobre los que actúa son el veredicto y QUÉ credencial leyó, y
+   eran los dos más chicos: el titular en 14px y la credencial en 13px, debajo
+   de un rótulo diminuto. El resto (nombre, documento, estado) es verificación
+   secundaria y se queda donde está. */
+.admin-checkin-result__header strong {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+/* La credencial, en grande. Es lo que distingue las dos entradas de un
+   entrenador -- mismo nombre y mismo DNI en las dos -- y por lo tanto lo único
+   que decide si esta persona pasa por este puesto. */
+.admin-checkin-result__meta dd.admin-checkin-result__credential {
+  font-family: var(--font-display, var(--font-family));
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+/* El acento sigue el veredicto: no se le pone un color propio, porque una
+   credencial válida y una ya usada se leen distinto y el color ya lo dice. */
+.admin-checkin-result--success .admin-checkin-result__credential {
+  color: var(--admin-status-success, var(--color-text-primary));
+}
+
+.admin-checkin-result--warning .admin-checkin-result__credential {
+  color: var(--admin-status-warning, var(--color-text-primary));
+}
+
+.admin-checkin-result--danger .admin-checkin-result__credential {
+  color: var(--admin-status-danger, var(--color-text-primary));
+}
+
+/* Con la credencial en 19px, el rótulo "TIPO" arriba sobra: la palabra
+   ENTRENADOR no necesita que le expliquen que es un tipo. */
+.admin-checkin-result__meta div:has(.admin-checkin-result__credential) dt {
+  display: none;
+}
+
+/* Al sacar ese rótulo la credencial queda más baja que las columnas que sí lo
+   tienen. Alineadas por abajo, la credencial y el estado comparten línea. */
+.admin-checkin-result__meta:has(.admin-checkin-result__credential) {
+  align-items: end;
+}
+
+/* ---------------------------------------------------------------------------
+   Cierre automático de órdenes (PaymentExpiryPanel)
+
+   Familia operativa: densidad legible antes que composición. Las cuatro cifras
+   son una fila de lectura, no cards de colección — sin sombra ni elevación
+   propia, separadas por hairlines, para que el bloque lea como un instrumento
+   y no como cuatro tarjetas compitiendo. El único acento del bloque es el de
+   alerta, y sólo aparece cuando hay algo trabado esperando a una persona.
+   --------------------------------------------------------------------------- */
+
+.admin-payment-expiry {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: 16px;
+  display: grid;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.admin-payment-expiry__header {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.admin-payment-expiry__eyebrow {
+  align-items: center;
+  color: var(--admin-muted);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-payment-expiry__title {
+  color: var(--admin-ink);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.admin-payment-expiry__subtitle {
+  color: var(--admin-text-secondary, var(--admin-muted));
+  font-size: 13px;
+  margin: 4px 0 0;
+  max-width: 58ch;
+}
+
+.admin-payment-expiry__error {
+  background: var(--admin-status-danger-bg);
+  border: 1px solid var(--admin-status-danger-border);
+  border-radius: 10px;
+  color: var(--admin-status-danger);
+  font-size: 13px;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+/* Cuatro columnas que colapsan a dos y a una. Sin `auto-fit` con minmax
+   grande: en tablet dejaba una huérfana estirada al ancho completo. */
+.admin-payment-expiry__grid {
+  border: 1px solid var(--admin-hairline);
+  border-radius: 12px;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  background: var(--admin-hairline);
+}
+
+.admin-payment-expiry__metric {
+  background: var(--admin-surface-muted, var(--admin-surface));
+  display: grid;
+  gap: 2px;
+  padding: var(--space-md);
+}
+
+.admin-payment-expiry__metric-value {
+  color: var(--admin-ink);
+  font-size: clamp(24px, 3vw, 30px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.admin-payment-expiry__metric.is-alert .admin-payment-expiry__metric-value {
+  color: var(--admin-status-warning);
+}
+
+.admin-payment-expiry__metric-label {
+  color: var(--admin-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-payment-expiry__metric-hint {
+  color: var(--admin-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.admin-payment-expiry__callout {
+  align-items: flex-start;
+  background: var(--admin-status-warning-bg);
+  border: 1px solid var(--admin-status-warning-border);
+  border-radius: 10px;
+  color: var(--admin-status-warning);
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.admin-payment-expiry__callout > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.admin-payment-expiry__windows {
+  border-top: 1px solid var(--admin-hairline);
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: var(--space-lg);
+}
+
+.admin-payment-expiry__window-label {
+  color: var(--admin-ink);
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-payment-expiry__window-hint {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 4px 0 10px;
+  max-width: 46ch;
+}
+
+.admin-payment-expiry__window-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-payment-expiry__window-input {
+  background: var(--admin-control-bg, var(--admin-surface));
+  border: 1px solid var(--admin-hairline-strong, var(--admin-hairline));
+  border-radius: 8px;
+  color: var(--admin-ink);
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  min-height: 44px;
+  padding: 0 10px;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+  width: 9ch;
+}
+
+.admin-payment-expiry__window-input:focus-visible {
+  border-color: var(--admin-focus, var(--color-brand-celeste));
+  box-shadow: 0 0 0 3px var(--admin-focus-soft, var(--color-brand-celeste-dim));
+  outline: none;
+}
+
+.admin-payment-expiry__window-input[aria-invalid='true'] {
+  border-color: var(--admin-status-danger-border);
+}
+
+.admin-payment-expiry__window-unit {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.admin-payment-expiry__window-current {
+  color: var(--admin-muted);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.admin-payment-expiry__window-input[aria-invalid='true']
+  ~ .admin-payment-expiry__window-current,
+.admin-payment-expiry__window:has([aria-invalid='true']) .admin-payment-expiry__window-current {
+  color: var(--admin-status-danger);
+}
+
+.admin-payment-expiry__next {
+  align-items: center;
+  color: var(--admin-muted);
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .admin-payment-expiry__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-payment-expiry__grid,
+  .admin-payment-expiry__windows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-payment-expiry__window-input {
+    flex: 1 1 auto;
+    width: auto;
   }
 }

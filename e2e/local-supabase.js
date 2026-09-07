@@ -20,7 +20,27 @@ export function resolveLocalSupabase() {
       'Supabase local no está corriendo. Corré `npx supabase start` antes de los tests E2E.',
     )
   }
-  return { url: status.API_URL, serviceRoleKey: status.SERVICE_ROLE_KEY }
+  return {
+    url: status.API_URL,
+    serviceRoleKey: status.SERVICE_ROLE_KEY,
+    databaseUrl: status.DB_URL,
+  }
+}
+
+/**
+ * Prisma del E2E vive en el schema `plu_prisma` del Postgres local de
+ * Supabase. El server fuerza ese schema al arrancar
+ * (`buildRuntimeDatabaseUrl`); las tablas de entradas siguen en `public`.
+ */
+export const PRISMA_E2E_SCHEMA = 'plu_prisma'
+
+export function localPrismaDatabaseUrl(status = resolveLocalSupabase()) {
+  if (!status.databaseUrl) {
+    throw new Error('Supabase local no expone DB_URL. ¿Está corriendo `npx supabase start`?')
+  }
+  const url = new URL(status.databaseUrl)
+  url.searchParams.set('schema', PRISMA_E2E_SCHEMA)
+  return url.toString()
 }
 
 /** Organización de QA que ya usan los demás scripts E2E del repo. */

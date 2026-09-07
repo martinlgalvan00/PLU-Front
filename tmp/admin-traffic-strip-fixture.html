@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard traffic strip fixture</title>
+    <link rel="stylesheet" href="../src/styles/tokens/palette.css" />
+    <link rel="stylesheet" href="../src/styles/variables.css" />
+    <link rel="stylesheet" href="../src/styles/themes/dark.css" />
+    <link rel="stylesheet" href="../src/styles/pages/admin-dashboard-bento.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--color-bg-primary, #0b0d10);
+        color: var(--admin-ink);
+        font-family: var(--font-family, system-ui);
+        padding: 24px;
+      }
+      .frame {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 8px 4px 20px;
+      }
+      .admin-dashboard-link {
+        background: transparent;
+        border: 0;
+        color: var(--admin-muted);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-dashboard admin-dashboard--ops">
+      <div class="admin-ops">
+        <div class="frame">
+          <section class="admin-ops__traffic" aria-label="Visitas del sitio">
+            <header class="admin-ops__traffic-head">
+              <p class="admin-ops__eyebrow">Sitio público</p>
+              <button type="button" class="admin-dashboard-link admin-ops__traffic-link">
+                Ver analítica
+                <span aria-hidden>→</span>
+              </button>
+            </header>
+            <div class="admin-ops__traffic-readout">
+              <div class="admin-ops__traffic-now">
+                <p class="admin-ops__traffic-status">
+                  <span class="admin-ops__traffic-pulse" aria-hidden></span>
+                  Ahora
+                </p>
+                <p class="admin-ops__traffic-count">
+                  <span class="admin-ops__traffic-value">3</span>
+                  <span class="admin-ops__traffic-unit">en el sitio</span>
+                </p>
+                <p class="admin-ops__traffic-today">
+                  <span>35 hoy</span>
+                  <span>54 ayer</span>
+                </p>
+              </div>
+              <div class="admin-ops__traffic-spark">
+                <div class="admin-ops__traffic-spark-frame">
+                  <svg class="admin-ops__traffic-spark-plot" viewBox="0 0 100 36" preserveAspectRatio="none" role="img" aria-label="curva">
+                    <polygon class="admin-ops__traffic-spark-area" points="0,36 0,4 16,22 33,26 50,18 66,24 83,20 100,28 100,36"></polygon>
+                    <polyline class="admin-ops__traffic-spark-line" points="0,4 16,22 33,26 50,18 66,24 83,20 100,28" vector-effect="non-scaling-stroke"></polyline>
+                  </svg>
+                  <span class="admin-ops__traffic-spark-dot admin-ops__traffic-spark-dot--peak" style="--spark-x: 0%; --spark-y: 11.1%" aria-hidden></span>
+                  <span class="admin-ops__traffic-spark-dot" style="--spark-x: 100%; --spark-y: 77.8%" aria-hidden></span>
+                </div>
+                <p class="admin-ops__traffic-spark-axis" aria-hidden>
+                  <span>20 ago</span>
+                  <span>2 sept</span>
+                </p>
+              </div>
+            </div>
+            <ul class="admin-ops__traffic-meta">
+              <li>578 en 7 días</li>
+              <li>Récord 345 · 20 ago</li>
+              <li>Pico de hoy 12</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

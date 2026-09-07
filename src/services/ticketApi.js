@@ -56,6 +56,18 @@ function toCamelTicket(row, { event, checkIn } = {}) {
     attendeeDni: row.attendee_dni,
     ticketTypeId: row.ticket_type_id,
     ticketTypeName: row.ticketTypeName ?? row.ticket_type_name ?? null,
+    // La credencial emitida: qué dice impresa y qué zonas abre. Viene
+    // congelada en la fila, no por join con el tipo, así que una entrada ya
+    // vendida conserva el acceso con el que se vendió. Sin esto, las dos
+    // credenciales de un entrenador se leen idénticas en toda la app.
+    credentialLabel: row.credential_label ?? row.credentialLabel ?? null,
+    credentialScopes: Array.isArray(row.credential_scopes)
+      ? row.credential_scopes
+      : (row.credentialScopes ?? []),
+    // Agrupa las credenciales que salieron de una misma compra.
+    bundleId: row.bundle_id ?? row.bundleId ?? null,
+    // La primaria lleva el precio y los adicionales; es la que cuenta el cupo.
+    isPrimaryCredential: row.is_primary_credential ?? row.isPrimaryCredential ?? true,
     unitPrice: row.unit_price,
     addons: Array.isArray(row.addons) ? row.addons : [],
     status: row.status,
@@ -195,7 +207,14 @@ export async function fetchTicketAvailability(eventSlug) {
 
 export async function listTicketsForEvent(eventSlug) {
   const { tickets: rows } = await apiGet(`/api/tickets?eventSlug=${encodeURIComponent(eventSlug)}`)
-  return { tickets: rows.map((row) => toCamelTicket(row.ticket, { checkIn: row.checkIn })) }
+  return {
+    tickets: rows.map((row) =>
+      toCamelTicket(row.ticket, {
+        checkIn: row.checkIn,
+        event: row.event ?? { slug: eventSlug },
+      }),
+    ),
+  }
 }
 
 export async function checkInTicket(qrToken, gate) {
@@ -227,11 +246,18 @@ export function mapApiTicket(apiTicket, purchaseEvent) {
     attendeeDni: apiTicket.attendeeDni,
     ticketTypeId: apiTicket.ticketTypeId,
     ticketTypeName: apiTicket.ticketTypeName,
+    // Lo que separa una credencial de la otra dentro de la misma compra. Sin
+    // esto la verificación pública mostraba el nombre del TIPO ("Entrenador")
+    // para las dos, que es lo mismo que no distinguirlas.
+    credentialLabel: apiTicket.credentialLabel ?? null,
+    credentialScopes: Array.isArray(apiTicket.credentialScopes) ? apiTicket.credentialScopes : [],
+    bundleId: apiTicket.bundleId ?? null,
+    isPrimaryCredential: apiTicket.isPrimaryCredential !== false,
     unitPrice: apiTicket.unitPrice,
     addons: Array.isArray(apiTicket.addons) ? apiTicket.addons : [],
     status: apiTicket.status,
     checkedInAt: apiTicket.checkIn?.scannedAt ?? null,
-    eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug,
+    eventSlug: purchaseEvent?.slug ?? apiTicket.event?.slug ?? apiTicket.eventSlug,
     eventTitle: purchaseEvent?.title ?? apiTicket.event?.title,
     eventDate: purchaseEvent?.date ?? apiTicket.event?.eventDate,
     eventVenue: purchaseEvent?.venue ?? apiTicket.event?.venue,

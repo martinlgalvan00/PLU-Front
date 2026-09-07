@@ -5,12 +5,22 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   // Sin prefijo: también lee PORT del .env para alinear el proxy con la API.
   const env = loadEnv(mode, process.cwd(), '')
-  const apiPort = String(env.PORT || 3001).trim() || '3001'
+  // Playwright (y cualquier proceso que ya traiga PORT) manda: loadEnv no
+  // pisa process.env, así que el E2E en 3011 no se iba al .env de `npm run dev`.
+  const apiPort = String(process.env.PORT || env.PORT || 3001).trim() || '3001'
+  const ticketSalesEnabled =
+    process.env.VITE_TICKET_SALES_ENABLED ?? env.VITE_TICKET_SALES_ENABLED ?? ''
 
   return {
     plugins: [react()],
     // Flags compartidas front/back: PAYMENTS_MOCK / PAID_CHECKOUT_*
     envPrefix: ['VITE_', 'PAYMENTS_', 'APP_', 'PAID_'],
+    // Vite no inyecta VITE_* desde process.env, sólo desde archivos .env.
+    // El arnés E2E setea el flag en el entorno del proceso: sin esto la
+    // página de entradas queda en "Próximamente" aunque el evento esté abierto.
+    define: {
+      'import.meta.env.VITE_TICKET_SALES_ENABLED': JSON.stringify(ticketSalesEnabled),
+    },
     resolve: {
       alias: {
         '@': path.resolve('./src'),

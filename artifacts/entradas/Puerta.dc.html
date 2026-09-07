@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    :root {
+      --canvas: #0a0b0d; --surface: #141518; --surface-muted: #121316; --elevated: #1e2026;
+      --hairline: rgba(255,255,255,0.09); --border: rgba(255,255,255,0.14);
+      --ink: #ffffff; --secondary: #d4d4dc; --muted: #9a9aa8; --ghost: #6f7280;
+      --brand: #74acdf; --brand-soft: #9ec5eb; --brand-deep: #1f5f9e;
+      --gold: #f2b705; --gold-ink: #14181f;
+      --ok: #3d9a62; --ok-soft: #8fd4a8; --danger: #e10600; --danger-soft: #ff6b67;
+      --font: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font); }
+    a { color: var(--brand-soft); } a:hover { color: #c7dcf1; }
+
+    .page { min-height: 844px; display: flex; flex-direction: column; }
+
+    .top { padding: 20px 18px 16px; border-bottom: 1px solid var(--hairline); background: var(--surface-muted); display: flex; flex-direction: column; gap: 11px; }
+    .top-row { display: flex; align-items: flex-start; gap: 12px; }
+    .top-copy { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0; }
+    .zone-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+    .zone-name { font-size: 20px; font-weight: 700; letter-spacing: -.015em; margin: 0; }
+    .zone-scope { font-size: 12px; color: var(--muted); }
+    .live { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 10.5px; font-weight: 600; background: rgba(61,154,98,.16); color: var(--ok-soft); border: 1px solid rgba(61,154,98,.30); flex: 0 0 auto; }
+    .dot { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .who { display: flex; align-items: center; gap: 9px; font-size: 11.5px; color: var(--ghost); }
+    .sep { color: #4a4d57; }
+
+    .scan { padding: 18px; display: flex; flex-direction: column; gap: 16px; flex-grow: 1; }
+
+    .viewfinder { position: relative; height: 218px; border-radius: 12px; background: #0f1013; border: 1px solid var(--hairline); overflow: hidden; display: grid; place-items: center; }
+    .vf-frame { position: absolute; inset: 34px 62px; }
+    .vf-frame span { position: absolute; width: 26px; height: 26px; border: 2px solid var(--brand); }
+    .vf-frame span:nth-child(1) { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 4px; }
+    .vf-frame span:nth-child(2) { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 4px; }
+    .vf-frame span:nth-child(3) { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
+    .vf-frame span:nth-child(4) { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
+    .vf-hint { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 11.5px; color: var(--ghost); }
+    .vf-icon { color: #2c2f37; }
+
+    .results-label { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ghost); }
+
+    .res { border-radius: 10px; border: 1px solid var(--hairline); background: var(--surface); overflow: hidden; }
+    .res--ok { border-color: rgba(61,154,98,.34); }
+    .res--no { border-color: rgba(225,6,0,.30); }
+
+    .res-verdict { display: flex; align-items: center; gap: 11px; padding: 12px 15px; border-bottom: 1px solid var(--hairline); }
+    .res--ok .res-verdict { background: rgba(61,154,98,.12); color: var(--ok-soft); }
+    .res--no .res-verdict { background: rgba(225,6,0,.10); color: var(--danger-soft); }
+    .res-seal { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px currentColor; }
+    .res-vc { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex-grow: 1; }
+    .res-vt { font-size: 15.5px; font-weight: 700; letter-spacing: -.015em; }
+    .res-vs { font-size: 11.5px; color: var(--muted); }
+    .res-time { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+
+    .res-body { padding: 14px 15px; display: flex; flex-direction: column; gap: 12px; }
+    .cred { display: flex; align-items: center; gap: 10px; }
+    .cred-label { font-size: 17px; font-weight: 700; letter-spacing: .01em; }
+    .cred-label--gold { color: var(--gold); }
+    .cred-label--dim { color: var(--muted); }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,.06); color: var(--muted); margin-left: auto; flex: 0 0 auto; }
+    .chip--gold { background: rgba(242,183,5,.14); color: var(--gold); }
+    .chip svg { flex: 0 0 auto; }
+
+    .person { display: flex; flex-direction: column; gap: 3px; }
+    .person-n { font-size: 14px; font-weight: 600; }
+    .person-d { font-size: 12px; color: var(--muted); }
+    .person-c { font-family: var(--mono); font-size: 12px; color: var(--ghost); letter-spacing: .04em; margin-top: 2px; }
+
+    .reason { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border-radius: 8px; background: rgba(225,6,0,.08); border: 1px solid rgba(225,6,0,.22); }
+    .reason svg { flex: 0 0 auto; color: var(--danger-soft); margin-top: 1px; }
+    .reason p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--secondary); }
+    .reason b { color: var(--ink); font-weight: 600; }
+
+    .tally { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-top: 1px solid var(--hairline); background: var(--surface-muted); }
+    .tally-i { display: flex; flex-direction: column; gap: 2px; }
+    .tally-v { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .tally-l { font-size: 10.5px; color: var(--muted); }
+  </style>
+</helmet>
+
+<div class="page">
+
+  <div class="top">
+    <div class="top-row">
+      <div class="top-copy">
+        <span class="zone-eyebrow">Puesto de control</span>
+        <h1 class="zone-name">Entrada en calor</h1>
+        <span class="zone-scope">Atletas y coaches · Pitbull Classic</span>
+      </div>
+      <span class="live"><span class="dot"></span>En línea</span>
+    </div>
+    <div class="who">
+      <span>[OPERADOR]</span>
+      <span class="sep">·</span>
+      <span>Turno sáb 09:00–18:00</span>
+    </div>
+  </div>
+
+  <div class="scan">
+    <div class="viewfinder">
+      <svg class="vf-icon" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3z"/><path d="M19 19h2v2h-2z"/></svg>
+      <div class="vf-frame"><span></span><span></span><span></span><span></span></div>
+      <span class="vf-hint">Apuntá al QR de la credencial</span>
+    </div>
+
+    <span class="results-label">Últimos escaneos</span>
+
+    <div class="res res--ok">
+      <div class="res-verdict">
+        <span class="res-seal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </span>
+        <span class="res-vc">
+          <span class="res-vt">Pase habilitado</span>
+          <span class="res-vs">Canjeada en este puesto</span>
+        </span>
+        <span class="res-time">14:02</span>
+      </div>
+      <div class="res-body">
+        <div class="cred">
+          <span class="cred-label cred-label--gold">ENTRENADOR</span>
+          <span class="chip chip--gold">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9 9 4l2 2-5 5z"/><path d="M13 15l5-5 2 2-5 5z"/><path d="m7.5 7.5 9 9"/></svg>
+            Entrada en calor
+          </span>
+        </div>
+        <div class="person">
+          <span class="person-n">[NOMBRE DEL ASISTENTE]</span>
+          <span class="person-d">DNI [DOCUMENTO] · Entrada Entrenador</span>
+          <span class="person-c">[CÓDIGO]</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="res res--no">
+      <div class="res-verdict">
+        <span class="res-seal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </span>
+        <span class="res-vc">
+          <span class="res-vt">No abre esta zona</span>
+          <span class="res-vs">No se registró ingreso</span>
+        </span>
+        <span class="res-time">13:58</span>
+      </div>
+      <div class="res-body">
+        <div class="cred">
+          <span class="cred-label cred-label--dim">Espectador</span>
+          <span class="chip">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/></svg>
+            Puerta general
+          </span>
+        </div>
+        <div class="person">
+          <span class="person-n">[NOMBRE DEL ASISTENTE]</span>
+          <span class="person-d">DNI [DOCUMENTO] · Entrada Entrenador</span>
+          <span class="person-c">[CÓDIGO]</span>
+        </div>
+        <div class="reason">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2 20h20z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>
+          <p>Es la credencial de <b>Espectador</b> de esta misma compra. Pedile la de <b>ENTRENADOR</b>: es la que habilita la entrada en calor.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tally">
+    <div class="tally-i">
+      <span class="tally-v">[N]</span>
+      <span class="tally-l">Ingresos en este puesto</span>
+    </div>
+    <div class="tally-i">
+      <span class="tally-v">[N]</span>
+      <span class="tally-l">Rechazos</span>
+    </div>
+    <div class="tally-i">
+      <span class="tally-v">[N]</span>
+      <span class="tally-l">Credenciales de entrenador emitidas</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

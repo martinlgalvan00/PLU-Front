@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { runDomainMaintenanceJob } from '../jobs/domainMaintenanceJob.js'
 import { runEmailDispatchJob } from '../jobs/emailDispatchJob.js'
 import { runMembershipRenewalJob } from '../jobs/membershipRenewalJob.js'
+import { runPaymentOrderExpiryJob } from '../jobs/paymentOrderExpiryJob.js'
 import { runPaymentRecoveryJob } from '../jobs/paymentRecoveryJob.js'
 import { runPaymentRevalidationJob } from '../jobs/paymentRevalidationJob.js'
 import { runPaymentProofRetentionJob } from '../jobs/paymentProofRetentionJob.js'
@@ -26,6 +27,7 @@ export function createInternalJobRoutes({
     domainMaintenance: runners.domainMaintenance ?? runDomainMaintenanceJob,
     emailDispatch: runners.emailDispatch ?? runEmailDispatchJob,
     membershipRenewal: runners.membershipRenewal ?? runMembershipRenewalJob,
+    paymentOrderExpiry: runners.paymentOrderExpiry ?? runPaymentOrderExpiryJob,
     paymentRecovery: runners.paymentRecovery ?? runPaymentRecoveryJob,
     paymentRevalidation: runners.paymentRevalidation ?? runPaymentRevalidationJob,
     paymentProofRetention: runners.paymentProofRetention ?? runPaymentProofRetentionJob,
@@ -89,6 +91,19 @@ export function createInternalJobRoutes({
     }
     const result = await run.membershipRenewal({ client: getSupabaseAdmin?.(), env })
     res.json({ status: 'completed', job: 'membership-renewal', result })
+  })
+
+  // Recordatorio + aviso final de vencimiento de órdenes de pago manual
+  // (transferencia/efectivo, 5 días). Opt-out, no opt-in como
+  // membership-renewal: es puramente DB + dispatcher idempotente, sin riesgo
+  // de doble-cobro contra un proveedor externo.
+  router.get('/jobs/payment-order-expiry', async (_req, res) => {
+    if (env.PAYMENT_ORDER_EXPIRY_JOB_ENABLED === 'false') {
+      res.json({ status: 'disabled', job: 'payment-order-expiry' })
+      return
+    }
+    const result = await run.paymentOrderExpiry({ client: getSupabaseAdmin?.(), env })
+    res.json({ status: 'completed', job: 'payment-order-expiry', result })
   })
 
   router.get('/jobs/security-user-lifecycle', async (_req, res) => {

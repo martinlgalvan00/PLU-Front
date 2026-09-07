@@ -11,6 +11,7 @@ import { useContent } from '../hooks/useContent.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 import { formatCacheAge } from '../services/credentialCache.js'
 import { verifyTicketByQrToken } from '../services/ticketApi.js'
+import { zoneScopeLabel } from '../components/ui/TicketTypeOptions.jsx'
 import { getMembershipByCodeOrToken } from '../services/athleteApi.js'
 import { isMembershipCurrent } from '../services/membershipService.js'
 
@@ -704,6 +705,10 @@ function UnverifiableBody({ code, onRetry, retrying }) {
 }
 
 function TicketCredential({ code, onCheckIn }) {
+  // Sólo para nombrar las zonas: los rótulos ya viven en i18n y duplicarlos acá
+  // era la forma más silenciosa de que la verificación pública dijera una zona
+  // distinta de la que dice la venta.
+  const { t } = useI18n()
   const [checkingIn, setCheckingIn] = useState(false)
   const [checkInError, setCheckInError] = useState(null)
 
@@ -752,6 +757,10 @@ function TicketCredential({ code, onCheckIn }) {
   const checkedInAt = ticket.checkIn?.scannedAt ?? null
   const effectiveStatus = checkedInAt ? 'usada' : ticket.status
   const ticketMeta = getStatusMeta(effectiveStatus)
+  // Las zonas viajan congeladas en la entrada emitida. Una entrada vieja, de
+  // antes de las subcategorías, llega sin ellas: no se inventa la puerta, se
+  // omite la línea.
+  const ticketZones = Array.isArray(ticket.credentialScopes) ? ticket.credentialScopes : []
   const verdictKey =
     effectiveStatus === 'pagada' ? 'valid' : effectiveStatus === 'usada' ? 'used' : 'warning'
   const {
@@ -817,20 +826,35 @@ function TicketCredential({ code, onCheckIn }) {
         <IdentityFacts
           facts={[
             ticket.attendeeDni ? { label: 'Documento', value: ticket.attendeeDni } : null,
+            // El tipo baja a dato: una compra de entrenador emite dos
+            // credenciales del mismo tipo, así que acá abajo ubica y arriba
+            // confundiría.
+            ticket.ticketTypeName ? { label: 'Tipo de entrada', value: ticket.ticketTypeName } : null,
           ].filter(Boolean)}
         />
 
         {/* La entrada es un pase de un solo uso, no una identidad: lo que
             manda es a qué da acceso, y por eso ocupa el lugar que en la
-            credencial de atleta ocupa la grilla. */}
+            credencial de atleta ocupa la grilla.
+            Lo que se muestra es la CREDENCIAL, no el tipo: una entrada de
+            entrenador emite "Espectador" y "ENTRENADOR", y mostrar el nombre
+            del tipo las dejaba idénticas — el mismo problema que la puerta ya
+            tenía resuelto. */}
         <div className="credential-page__schedule-block">
           <span className="credential-page__schedule-eyebrow">Acceso</span>
           <p className="credential-page__schedule-day">
-            {ticket.ticketTypeName ?? 'Entrada general'}
+            {ticket.credentialLabel || ticket.ticketTypeName || 'Entrada general'}
           </p>
           {ticket.event?.title && (
             <p className="credential-page__schedule-detail">{ticket.event.title}</p>
           )}
+          {ticketZones.length ? (
+            <ul className="credential-page__zones">
+              {ticketZones.map((scope) => (
+                <li key={scope}>{zoneScopeLabel(scope, t)}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
         <dl className="credential-page__rows">
@@ -916,7 +940,7 @@ function CredentialShell({
 
       <div className="credential-page__panel">
         <header className="credential-page__brand">
-          <img src={BRAND.logoArgentinaUrl} alt="" className="credential-page__logo" />
+          <img src={BRAND.logoArgentinaDisplayUrl} alt="" className="credential-page__logo" />
           <div className="credential-page__brand-text">
             <span className="credential-page__brand-name">PLU Argentina</span>
             <span className="credential-page__brand-mark">{brandMark}</span>

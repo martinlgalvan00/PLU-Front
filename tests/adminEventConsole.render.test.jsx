@@ -91,193 +91,273 @@ function renderEvents(overrides = {}) {
   )
 }
 
-function consolePanel() {
-  // La consola es un modal que se abre al tocar la fila del evento.
+/**
+ * El evento es una PAGINA con pestañas, no un modal con acordeones. Lo que se
+ * protege acá es que cada superficie siga estando y siga trayendo datos reales
+ * -- el intento anterior de este mismo cambio perdió cinco afordancias y dejó
+ * la pestaña Datos imposible de abrir.
+ */
+function workspace() {
   fireEvent.click(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/))
-  return screen.getByRole('dialog', { name: 'Evento seleccionado' })
+  return screen.getByRole('region', { name: 'Evento seleccionado' })
 }
 
-describe('EventsSection — filas de sección de la consola', () => {
-  it('lista configuración y actividad con los valores reales del evento', () => {
+/** El rail de pestañas del evento, para no confundirlo con los capítulos que
+ *  el editor de Ventas dibuja con sus propios `role="tab"`. */
+function tabRail(panel) {
+  return within(panel).getByRole('tablist', { name: /secciones del evento/i })
+}
+
+function openTab(panel, name) {
+  fireEvent.click(within(tabRail(panel)).getByRole('tab', { name }))
+  return screen.getByRole('region', { name: 'Evento seleccionado' })
+}
+
+function mainCol() {
+  return screen
+    .getByRole('region', { name: 'Evento seleccionado' })
+    .querySelector('.admin-event-workspace__main-col')
+}
+
+describe('EventsSection — página del evento', () => {
+  it('abre en Datos con el editor montado', () => {
+    renderEvents()
+    const panel = workspace()
+
+    // La regresión que este test existe para evitar: el intento anterior
+    // arrancaba en 'basics' y retornaba temprano al clickear la pestaña
+    // activa, así que el editor de Datos no se podía abrir nunca.
+    expect(
+      within(tabRail(panel)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(panel.querySelector('.admin-event-editor--accordion')).not.toBeNull()
+    expect(panel.querySelector('.admin-event-workspace__head')).not.toBeNull()
+    // Ya no es un diálogo: es la página del evento.
+    expect(screen.queryAllByRole('dialog')).toHaveLength(0)
+  })
+
+  it('ofrece las seis superficies con los valores reales del evento', () => {
     renderEvents({
       onManageRegistrations: () => {},
       onManageCheckin: () => {},
       onOpenFinanceForEvent: () => {},
     })
-    const panel = consolePanel()
+    const panel = workspace()
+    const rail = tabRail(panel)
 
-    expect(within(panel).getByRole('button', { name: /ventas y cupos/i })).toBeTruthy()
-    // El valor sale del evento, no de un número decorativo.
-    expect(panel.textContent).toContain('1 tipos · 48/80')
-    expect(panel.textContent).toContain('1 días')
+    expect(within(rail).getByRole('tab', { name: /datos/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /estructura/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /^entradas/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /zonas y seguridad/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /pagos/i })).toBeTruthy()
+    expect(within(rail).getByRole('tab', { name: /vista pública/i })).toBeTruthy()
+
+    // Los números salen del evento, no son decorativos.
+    expect(panel.textContent).toContain('Pitbull Classic')
     expect(panel.textContent).toContain('48 de 80')
-    expect(panel.textContent).toContain('Inscripciones abiertas')
     expect(panel.textContent).toContain('1 pendientes')
-    expect(panel.querySelector('.admin-event-preview__readiness')).not.toBeNull()
+    expect(panel.textContent).toContain('Ocupación')
   })
 
-  it('abre el triage de pagos y vuelve a la consola', async () => {
+  it('mantiene Inscripciones y Check-in como accesos, no como pestañas', () => {
+    const onManageRegistrations = vi.fn()
+    const onManageCheckin = vi.fn()
+    renderEvents({ onManageRegistrations, onManageCheckin })
+    const panel = workspace()
+
+    // Son otras secciones del panel: no pueden ser pestañas del evento,
+    // pero tampoco podían desaparecer (el intento anterior las perdió).
+    expect(within(tabRail(panel)).queryByRole('tab', { name: /inscripciones/i })).toBeNull()
+    expect(within(tabRail(panel)).queryByRole('tab', { name: /check-in/i })).toBeNull()
+
+    fireEvent.click(within(panel).getByRole('button', { name: /inscripciones/i }))
+    expect(onManageRegistrations).toHaveBeenCalled()
+    fireEvent.click(
+      within(screen.getByRole('region', { name: 'Evento seleccionado' })).getByRole('button', {
+        name: /check-in/i,
+      }),
+    )
+    expect(onManageCheckin).toHaveBeenCalled()
+  })
+
+  it('volver a tocar la pestaña activa no la cierra', () => {
+    renderEvents()
+    const panel = workspace()
+    const afterOpen = openTab(panel, /estructura/i)
+    const tab = within(tabRail(afterOpen)).getByRole('tab', { name: /estructura/i })
+    expect(tab.getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.click(tab)
+
+    const after = screen.getByRole('region', { name: 'Evento seleccionado' })
+    expect(
+      within(tabRail(after)).getByRole('tab', { name: /estructura/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(after.querySelector('.admin-event-structure')).not.toBeNull()
+  })
+
+  it('al cambiar de pestaña mantiene un solo editor montado', () => {
+    renderEvents()
+    const panel = workspace()
+    expect(panel.querySelector('.admin-event-editor--essentials')).not.toBeNull()
+
+    const after = openTab(panel, /^entradas/i)
+    expect(
+      within(tabRail(after)).getByRole('tab', { name: /^entradas/i }).getAttribute('aria-selected'),
+    ).toBe('true')
+    expect(
+      within(tabRail(after)).getByRole('tab', { name: /datos/i }).getAttribute('aria-selected'),
+    ).toBe('false')
+    expect(after.querySelectorAll('.admin-event-editor--accordion')).toHaveLength(1)
+  })
+
+  it('abre el triage de pagos como pestaña, sin salir del evento', async () => {
     renderEvents({ onOpenFinanceForEvent: () => {} })
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /pagos/i }))
+    const panel = workspace()
+    openTab(panel, /pagos/i)
 
     await waitFor(() => expect(document.querySelector('.admin-event-payments')).not.toBeNull())
-    expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
+    // Antes el triage reemplazaba la lista entera y había que "volver a la
+    // consola": ahora el encabezado del evento no se va.
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
     expect(document.body.textContent).toContain('Ana Pérez')
 
-    fireEvent.click(screen.getByRole('button', { name: /volver a la consola/i }))
-
-    await waitFor(() => {
-      expect(document.querySelector('.admin-event-payments')).toBeNull()
-      expect(screen.getByRole('dialog', { name: 'Evento seleccionado' })).toBeTruthy()
-    })
+    openTab(screen.getByRole('region', { name: 'Evento seleccionado' }), /datos/i)
+    await waitFor(() => expect(document.querySelector('.admin-event-payments')).toBeNull())
   })
 
-  it('mantiene la vista previa al abrir Datos', () => {
+  it('en Zonas no monta el editor del evento', async () => {
     renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /datos/i }))
-    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
-    expect(dialog.querySelector('.admin-event-console-modal__aside')).not.toBeNull()
-    expect(dialog.querySelector('.admin-event-preview')).not.toBeNull()
-    expect(dialog.querySelector('#event-status')).toBeNull()
-  })
+    const panel = workspace()
+    openTab(panel, /zonas y seguridad/i)
 
-  it('en Publicación del acordeón no duplica estado ni acceso', () => {
-    renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /publicación/i }))
-    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
-    const fold = dialog.querySelector('.admin-event-console__fold[data-section="visibility"]')
-    expect(fold).not.toBeNull()
-    expect(fold.querySelector('#event-status')).toBeNull()
-    expect(fold.querySelector('#event-access')).toBeNull()
-    expect(fold.textContent).toContain('Estado, sitio y acceso se controlan arriba')
+    await waitFor(() => expect(document.querySelector('.admin-event-zones')).not.toBeNull())
+    expect(document.querySelector('.admin-event-editor--accordion')).toBeNull()
   })
 
   it('no ofrece zonas a quien no puede gestionar usuarios', () => {
     renderEvents({ canManageUsers: false })
     expect(
-      within(consolePanel()).queryByRole('button', { name: /zonas y seguridad/i }),
+      within(tabRail(workspace())).queryByRole('tab', { name: /zonas y seguridad/i }),
     ).toBeNull()
   })
 
-  it('abre la grilla de tandas en acordeón, sin salir de la consola', async () => {
+  it('vuelve a la lista con Volver, y el evento se puede reabrir', async () => {
     renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
-
-    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
-    expect(
-      within(dialog).getByRole('button', { name: /estructura/i }).getAttribute('aria-expanded'),
-    ).toBe('true')
-    expect(dialog.querySelector('.admin-event-console__fold--structure')).not.toBeNull()
-    expect(document.querySelector('.admin-event-drill')).toBeNull()
-    expect(screen.getAllByRole('dialog')).toHaveLength(1)
-
-    await waitFor(() => {
-      expect(dialog.querySelector('.admin-event-sessions--embedded')).not.toBeNull()
-    })
-  })
-
-  it('cierra Estructura al volver a tocar la fila', () => {
-    renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
-    expect(
-      within(panel).getByRole('button', { name: /estructura/i }).getAttribute('aria-expanded'),
-    ).toBe('true')
-
-    fireEvent.click(within(panel).getByRole('button', { name: /estructura/i }))
-    expect(
-      within(panel).getByRole('button', { name: /estructura/i }).getAttribute('aria-expanded'),
-    ).toBe('false')
-    expect(panel.querySelector('.admin-event-console__fold--structure')).toBeNull()
-  })
-
-  it('vuelve a la lista desde la vista de zonas', async () => {
-    renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /zonas y seguridad/i }))
-    await waitFor(() => expect(document.querySelector('.admin-event-drill')).not.toBeNull())
+    const panel = workspace()
+    openTab(panel, /zonas y seguridad/i)
+    await waitFor(() => expect(document.querySelector('.admin-event-zones')).not.toBeNull())
 
     fireEvent.click(screen.getByRole('button', { name: /volver a la lista de eventos/i }))
 
-    await waitFor(() => {
-      expect(document.querySelector('.admin-event-drill')).toBeNull()
-    })
-    expect(screen.queryByRole('dialog', { name: 'Evento seleccionado' })).toBeNull()
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Evento seleccionado' })).toBeNull(),
+    )
     fireEvent.click(screen.getByTitle(/Pitbull Classic · pitbull-classic-2026/))
-    expect(screen.getByRole('dialog', { name: 'Evento seleccionado' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'Evento seleccionado' })).toBeTruthy()
   })
 
-  it('abre zonas a ancho completo, sin el editor modal', async () => {
+  it('muestra la vista previa pública y el checklist en su pestaña', () => {
     renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /zonas y seguridad/i }))
+    const panel = workspace()
+    expect(panel.querySelector('.admin-event-preview')).toBeNull()
 
-    await waitFor(() => expect(document.querySelector('.admin-event-drill')).not.toBeNull())
-    expect(screen.queryByRole('dialog')).toBeNull()
+    const after = openTab(panel, /vista pública/i)
+    expect(after.querySelector('.admin-event-preview')).not.toBeNull()
+    expect(after.querySelector('.admin-event-preview__readiness')).not.toBeNull()
   })
 
-  it('al tocar Datos abre el editor en acordeón dentro de la consola', () => {
+  it('en Vista pública no duplica estado ni acceso', () => {
     renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /datos/i }))
+    openTab(workspace(), /vista pública/i)
+    const col = mainCol()
 
-    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
-    expect(dialog).toBeTruthy()
-    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(col.querySelector('#event-status')).toBeNull()
+    expect(col.querySelector('#event-access')).toBeNull()
+    expect(within(col).getByRole('group', { name: /qué se muestra en el sitio/i })).toBeTruthy()
+  })
+
+  it('en Entradas muestra cobro sin tipos de entrada', () => {
+    renderEvents()
+    openTab(workspace(), /^entradas/i)
+    const col = mainCol()
+
+    expect(col.querySelector('#event-slots')).not.toBeNull()
+    expect(col.querySelector('[data-field="pricing.registration"]')).not.toBeNull()
+    expect(col.querySelector('[data-field="pricing.registrationManual"]')).not.toBeNull()
+    expect(col.querySelector('.admin-event-form__payment-profile')).not.toBeNull()
+    expect(col.querySelector('.admin-event-form__lane--payment')).not.toBeNull()
+    expect(col.querySelector('#event-bank-alias')).not.toBeNull()
+    expect(col.querySelector('#event-bank-cbu')).not.toBeNull()
+    expect(col.querySelector('#event-bank-holder')).not.toBeNull()
+    expect(col.querySelector('[data-field="bankTransfer.reference"]')).not.toBeNull()
+    expect(col.querySelector('.admin-event-form__ticket-config')).toBeNull()
+  })
+
+  it('divide Entradas en Cupo, Precios, Entradas y Cobro, un capítulo a la vez', () => {
+    renderEvents()
+    openTab(workspace(), /^entradas/i)
+    const col = mainCol()
+
+    expect(within(col).getByRole('tab', { name: /cupo/i })).toBeTruthy()
+    expect(within(col).getByRole('tab', { name: /precios/i })).toBeTruthy()
+    expect(within(col).getByRole('tab', { name: /entradas/i })).toBeTruthy()
+    expect(within(col).getByRole('tab', { name: /cobro/i })).toBeTruthy()
+    expect(col.querySelector('.admin-event-form__lane--cupo').hidden).toBe(false)
+    expect(col.querySelector('.admin-event-form__lane--prices').hidden).toBe(true)
+    expect(col.querySelector('.admin-event-form__lane--tickets').hidden).toBe(true)
+    expect(col.querySelector('.admin-event-form__lane--payment').hidden).toBe(true)
+
+    fireEvent.click(within(col).getByRole('tab', { name: /cobro/i }))
+    expect(mainCol().querySelector('.admin-event-form__lane--payment').hidden).toBe(false)
+    expect(mainCol().querySelector('.admin-event-form__lane--cupo').hidden).toBe(true)
+
+    fireEvent.click(within(mainCol()).getByRole('tab', { name: /entradas/i }))
+    expect(mainCol().querySelector('.admin-event-form__lane--tickets').hidden).toBe(false)
+  })
+
+  it('con entradas habilitadas, Entradas muestra ventana, tipos y add-ons', () => {
+    renderEvents({
+      adminEvents: [{ ...EVENT, pricing: { ...EVENT.pricing, ticketsEnabled: true } }],
+    })
+    openTab(workspace(), /^entradas/i)
+    const col = mainCol()
+
+    expect(col.querySelector('.admin-event-form__ticket-config')).not.toBeNull()
+    expect(col.querySelector('#event-ticket-opens')).not.toBeNull()
+    expect(col.querySelector('#event-ticket-closes')).not.toBeNull()
+    expect(col.querySelector('.admin-ticket-types')).not.toBeNull()
+    expect(col.querySelector('.admin-ticket-addons')).not.toBeNull()
+  })
+
+  it('sin días, Entradas invita a cargarlos en Estructura', () => {
+    renderEvents({
+      adminEvents: [
+        { ...EVENT, eventDays: [], pricing: { ...EVENT.pricing, ticketsEnabled: true } },
+      ],
+    })
+    openTab(workspace(), /^entradas/i)
+    const col = mainCol()
+
+    expect(col.querySelector('.admin-ticket-types__need-days')).not.toBeNull()
+    fireEvent.click(within(col).getByRole('tab', { name: /entradas/i }))
+    expect(within(mainCol()).getByRole('button', { name: /ir a estructura/i })).toBeTruthy()
+  })
+
+  it('en Estructura muestra días, pesajes y tandas en un solo flujo', async () => {
+    renderEvents()
+    const after = openTab(workspace(), /estructura/i)
+
+    // Los tres bloques juntos y en orden: no son alternativas, son un orden.
+    expect(after.querySelector('.admin-event-structure')).not.toBeNull()
+    expect(after.textContent).toMatch(/días del evento/i)
+    expect(after.querySelector('.admin-weigh-in-windows')).not.toBeNull()
     expect(
-      within(dialog).getByRole('button', { name: /datos/i }).getAttribute('aria-expanded'),
-    ).toBe('true')
-    expect(within(dialog).queryByRole('button', { name: /volver a la consola/i })).toBeNull()
-    expect(within(dialog).queryByRole('tablist', { name: /secciones del detalle/i })).toBeNull()
-    expect(within(dialog).getByRole('button', { name: /cerrar sección/i })).toBeTruthy()
-    expect(dialog.querySelector('.admin-event-console-modal__head')).not.toBeNull()
-    expect(dialog.querySelector('.admin-event-console__fold')).not.toBeNull()
-    expect(dialog.querySelector('.admin-event-editor--accordion')).not.toBeNull()
-  })
-
-  it('al cambiar de sección mantiene un solo editor montado', () => {
-    renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /datos/i }))
-    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
-    expect(dialog.querySelector('.admin-event-console__fold[data-section="basics"]')).not.toBeNull()
-    expect(dialog.querySelector('.admin-event-editor--essentials')).not.toBeNull()
-
-    fireEvent.click(within(dialog).getByRole('button', { name: /ventas y cupos/i }))
-    expect(
-      within(dialog).getByRole('button', { name: /ventas y cupos/i }).getAttribute('aria-expanded'),
-    ).toBe('true')
-    expect(
-      within(dialog).getByRole('button', { name: /datos/i }).getAttribute('aria-expanded'),
-    ).toBe('false')
-    expect(dialog.querySelectorAll('.admin-event-editor--accordion')).toHaveLength(1)
-    expect(dialog.querySelector('.admin-event-console__fold[data-section="sales"]')).not.toBeNull()
-    expect(dialog.querySelector('.admin-event-console__fold[data-section="basics"]')).toBeNull()
-  })
-
-  it('en Ventas el acordeón muestra cobro sin tipos de entrada', () => {
-    renderEvents()
-    const panel = consolePanel()
-    fireEvent.click(within(panel).getByRole('button', { name: /ventas y cupos/i }))
-    const dialog = screen.getByRole('dialog', { name: 'Evento seleccionado' })
-    const fold = dialog.querySelector('.admin-event-console__fold[data-section="sales"]')
-    expect(fold).not.toBeNull()
-    expect(fold.querySelector('#event-slots')).not.toBeNull()
-    expect(fold.querySelector('[data-field="pricing.registration"]')).not.toBeNull()
-    expect(fold.querySelector('[data-field="pricing.registrationManual"]')).not.toBeNull()
-    expect(fold.querySelector('.admin-event-form__payment-profile')).not.toBeNull()
-    expect(fold.querySelector('.admin-event-form__lane--payment')).not.toBeNull()
-    expect(fold.querySelector('#event-bank-alias')).not.toBeNull()
-    expect(fold.querySelector('#event-bank-cbu')).not.toBeNull()
-    expect(fold.querySelector('#event-bank-holder')).not.toBeNull()
-    expect(fold.querySelector('[data-field="bankTransfer.reference"]')).not.toBeNull()
-    expect(fold.querySelector('.admin-event-form__lane--athletes .admin-event-form__payment-profile')).toBeNull()
-    expect(fold.querySelector('.admin-event-form__ticket-config')).toBeNull()
-    expect(fold.querySelector('.admin-event-editor__toolbar--accordion')).toBeNull()
+      within(after).getByRole('button', { name: /armar franjas desde los días/i }),
+    ).toBeTruthy()
+    await waitFor(() =>
+      expect(after.querySelector('.admin-event-sessions--embedded')).not.toBeNull(),
+    )
   })
 })
 

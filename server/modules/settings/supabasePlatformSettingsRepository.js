@@ -29,5 +29,24 @@ export function createSupabasePlatformSettingsRepository(client) {
         { p_concept: concept, p_channel: channel, p_enabled: enabled, p_actor: actor },
         'No se pudo actualizar el medio de pago.',
       ),
+
+    // Plazos de vencimiento, en minutos. Mismo payload de vuelta que los otros
+    // setters: el panel repinta interruptores, canales y plazos con una sola
+    // respuesta y no puede quedar mostrando una mezcla de dos lecturas.
+    setCheckoutWindow: (window, minutes, actor) =>
+      rpc(
+        'staff_set_platform_checkout_window',
+        { p_window: window, p_minutes: minutes, p_actor: actor },
+        'No se pudo actualizar el plazo de vencimiento.',
+      ),
+
+    // Sólo lectura y sin efectos: cuántas órdenes están vencidas, cuántas
+    // retiene el cron a propósito y cuántas va a cerrar el próximo barrido.
+    expiryOverview: () =>
+      rpc(
+        'staff_payment_expiry_overview',
+        {},
+        'No se pudo leer el estado de vencimientos.',
+      ),
   }
 }

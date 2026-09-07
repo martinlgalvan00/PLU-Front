@@ -8,6 +8,7 @@ import { validateBody } from '../lib/validate.js'
 import { requirePermission } from '../middleware/auth.js'
 import { publicReadLimiter, staffLimiter } from '../middleware/rateLimit.js'
 import { sanitizePublicCatalogEvent } from '../services/publicEventCatalogService.js'
+import { buildTicketCredentialsPayload } from '../../src/lib/ticketCredentials.js'
 import {
   assertEventBankTransferReady,
   normalizeBankTransferInput,
@@ -29,7 +30,8 @@ const EVENT_SELECT = `
   ticketTypes:ticket_types(
     *,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id)
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
   )
 `
 
@@ -37,6 +39,11 @@ const EVENT_SELECT = `
  * Lectura base del catálogo. `access_code` nunca entra; `audience` y
  * `archived_at` sólo viajan hasta sanitizePublicCatalogEvent, que elimina la
  * oferta completa si no corresponde anunciarla.
+ *
+ * `credentials` viaja al público a propósito: es lo que distingue una entrada
+ * de espectador de una de entrenador, y el comprador tiene que poder leerlo
+ * antes de pagar. No autoriza nada — el alcance que vale es el congelado en la
+ * entrada emitida, que valida `staff_check_in_ticket` en el servidor.
  */
 const CATALOG_EVENT_SELECT = `
   id, slug, title, description, venue, location,
@@ -54,7 +61,8 @@ const CATALOG_EVENT_SELECT = `
   ticketTypes:ticket_types(
     id, name, price, quota, sort_order, active,
     ticketTypeDays:ticket_type_days(event_day_id),
-    includedAddons:ticket_type_included_addons(addon_id)
+    includedAddons:ticket_type_included_addons(addon_id),
+    credentials:ticket_type_credentials(id, label, zone_scopes, sort_order)
   )
 `
 
@@ -123,6 +131,20 @@ const nullableQuota = z.preprocess(
   z.coerce.number().int().min(0).max(100_000).nullable(),
 )
 
+/**
+ * Subcategorías de la entrada: qué credenciales emite una compra de este tipo
+ * y qué zonas abre cada una. Una entrada común declara una; la de entrenador,
+ * dos (espectador + entrada en calor). Los topes son espejo de
+ * `staff_merge_ticket_type_credentials` y de `src/lib/ticketCredentials.js`.
+ */
+const ticketCredentialSchema = z.object({
+  label: z.string().trim().min(1).max(40),
+  zoneScopes: z
+    .array(z.enum(['gate_tickets', 'athletes_only', 'athletes_coaches', 'staff_only']))
+    .min(1)
+    .max(4),
+})
+
 const ticketTypeSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(100),
@@ -132,6 +154,17 @@ const ticketTypeSchema = z.object({
   active: z.boolean().optional(),
   dayIndexes: z.array(z.coerce.number().int().min(0).max(30)).max(31).optional(),
   includedAddonIds: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
+  credentials: z.array(ticketCredentialSchema).min(1).max(4).optional(),
+})
+
+const weighInWindowSchema = z.object({
+  id: z.string().trim().min(1).max(80).optional(),
+  label: z.string().trim().min(1).max(80),
+  date: optionalDate,
+  startsAt: optionalDateTime,
+  endsAt: optionalDateTime,
+  note: z.string().trim().max(160).optional(),
+  sortOrder: z.coerce.number().int().min(0).max(1000).optional(),
 })
 
 export const eventSchema = z
@@ -171,6 +204,26 @@ export const eventSchema = z
     ticketSalesClosesAt: optionalDateTime,
     eventDays: z.array(eventDaySchema).max(31).optional(),
     ticketTypes: z.array(ticketTypeSchema).max(50).optional(),
+    weighInWindows: z.array(weighInWindowSchema).max(60).optional(),
+    publicSurface: z
+      .object({
+        calendar: z.boolean().optional(),
+        weighIns: z.boolean().optional(),
+        livestream: z.boolean().optional(),
+        experience: z.boolean().optional(),
+        categories: z.boolean().optional(),
+        location: z.boolean().optional(),
+      })
+      .optional(),
+    // Copy del hero público. Techos espejo de la RPC de merge y del esquema
+    // del cliente (`src/lib/schemas/adminEvent.js`).
+    publicCopy: z
+      .object({
+        publicTitle: z.string().trim().max(120).optional(),
+        heroLead: z.string().trim().max(240).optional(),
+        ctaLabel: z.string().trim().max(40).optional(),
+      })
+      .optional(),
     liveStreamUrl: z
       .string()
       .trim()
@@ -257,6 +310,50 @@ export const eventSchema = z
           code: z.ZodIssueCode.custom,
           path: ['ticketTypes', index, 'includedAddonIds'],
           message: 'El tipo de entrada referencia un beneficio inexistente.',
+        })
+      }
+    }
+
+    if (event.pricing.ticketsEnabled === true) {
+      if (!(event.eventDays ?? []).length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['eventDays'],
+          message: 'La venta de entradas necesita al menos un día del evento.',
+        })
+      }
+      const sellableTypes = (event.ticketTypes ?? []).filter(
+        (ticketType) => ticketType.active !== false && Number(ticketType.price) > 0,
+      )
+      if (sellableTypes.length === 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ticketTypes'],
+          message: 'La venta de entradas necesita al menos un tipo activo con precio.',
+        })
+      }
+    }
+
+    for (const [index, window] of (event.weighInWindows ?? []).entries()) {
+      if (!window.startsAt) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'startsAt'],
+          message: 'Cada franja de pesaje necesita horario de apertura.',
+        })
+      }
+      if (!window.endsAt) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'endsAt'],
+          message: 'Cada franja de pesaje necesita horario de cierre.',
+        })
+      }
+      if (window.startsAt && window.endsAt && window.startsAt >= window.endsAt) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['weighInWindows', index, 'endsAt'],
+          message: 'El cierre del pesaje tiene que ser después de la apertura.',
         })
       }
     }
@@ -360,11 +457,48 @@ async function removeTicketProofs(client, orderIds) {
   }
 }
 
-async function readEvents(client) {
-  return assertSupabaseResult(
-    await client.from('events').select(EVENT_SELECT).order('starts_at'),
-    'No se pudieron leer los eventos.',
+/**
+ * Select del panel sin las credenciales de entrada. Es el mismo, y existe por
+ * una sola razón: si el código llega a un entorno donde todavía no corrió la
+ * migración de `ticket_type_credentials`, PostgREST no falla el embed, falla la
+ * CONSULTA ENTERA -- y la sección de eventos se cae del todo por una tabla que
+ * sólo hace falta para una subpestaña.
+ */
+const EVENT_SELECT_SIN_CREDENCIALES = EVENT_SELECT.replace(
+  /,\s*credentials:ticket_type_credentials\([^)]*\)/,
+  '',
+)
+
+/**
+ * PostgREST cuando no encuentra algo en el schema cache: PGRST200 es una tabla
+ * o su relación, PGRST202 una función. Los dos casos son "la migración no
+ * corrió acá todavía", no "el pedido estaba mal".
+ */
+function esRelacionFaltante(error) {
+  return (
+    error?.code === 'PGRST200' ||
+    error?.code === 'PGRST202' ||
+    /schema cache/i.test(error?.message ?? '')
   )
+}
+
+async function readEvents(client) {
+  const result = await client.from('events').select(EVENT_SELECT).order('starts_at')
+
+  // Degradar antes que caerse: sin la migración aplicada el panel sigue
+  // funcionando y lo único que falta es el detalle de credenciales por tipo de
+  // entrada. El aviso queda en el log del servidor para que la deuda se vea.
+  if (result.error && esRelacionFaltante(result.error)) {
+    console.warn(
+      '[eventos] `ticket_type_credentials` no existe en esta base: se leen los eventos sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
+    )
+    return assertSupabaseResult(
+      await client.from('events').select(EVENT_SELECT_SIN_CREDENCIALES).order('starts_at'),
+      'No se pudieron leer los eventos.',
+    )
+  }
+
+  return assertSupabaseResult(result, 'No se pudieron leer los eventos.')
 }
 
 function attachRecentRegistrationPortraits(summary) {
@@ -531,6 +665,62 @@ export function createEventRoutes({ getPrisma, getSupabaseAdmin }) {
           }),
           'No se pudo guardar el evento.',
         )
+
+        const publicSurface = {
+          calendar: pEvent.publicSurface?.calendar !== false,
+          weighIns: pEvent.publicSurface?.weighIns !== false,
+          livestream: pEvent.publicSurface?.livestream !== false,
+          experience: pEvent.publicSurface?.experience !== false,
+          categories: pEvent.publicSurface?.categories !== false,
+          location: pEvent.publicSurface?.location !== false,
+        }
+        assertSupabaseResult(
+          await client.rpc('staff_merge_event_public_surface', {
+            p_slug: pEvent.slug,
+            p_surface: publicSurface,
+          }),
+          'No se pudo guardar la superficie pública del evento.',
+        )
+
+        // Mismo motivo que la superficie: `staff_upsert_event` reconstruye
+        // `rules` clave por clave, así que el copy va en su propio merge.
+        assertSupabaseResult(
+          await client.rpc('staff_merge_event_public_copy', {
+            p_slug: pEvent.slug,
+            p_copy: {
+              publicTitle: pEvent.publicCopy?.publicTitle ?? '',
+              heroLead: pEvent.publicCopy?.heroLead ?? '',
+              ctaLabel: pEvent.publicCopy?.ctaLabel ?? '',
+            },
+          }),
+          'No se pudo guardar el copy público del evento.',
+        )
+
+        // Las subcategorías de entrada (qué credenciales emite cada tipo y qué
+        // zonas abre cada una) van en su propio merge por el mismo motivo que
+        // las dos de arriba, y además porque cuelgan de tipos de entrada cuyos
+        // ids recién existen después del guardado.
+        if (Array.isArray(pEvent.ticketTypes) && pEvent.ticketTypes.length > 0) {
+          const credenciales = await client.rpc('staff_merge_ticket_type_credentials', {
+            p_event_slug: pEvent.slug,
+            p_credentials: buildTicketCredentialsPayload(pEvent.ticketTypes),
+          })
+
+          // Mismo criterio que la lectura: sin la migración aplicada, el evento
+          // se guarda igual y lo único que no persiste son las credenciales. Un
+          // guardado de evento no puede fallar entero por una subpestaña.
+          if (credenciales.error && esRelacionFaltante(credenciales.error)) {
+            console.warn(
+              '[eventos] `staff_merge_ticket_type_credentials` no existe en esta base: el evento se guardó sin las credenciales de entrada. Aplicá la migración 20261107100000_ticket_credential_classes.sql.',
+            )
+          } else {
+            assertSupabaseResult(
+              credenciales,
+              'No se pudieron guardar las credenciales de las entradas.',
+            )
+          }
+        }
+
         const events = await readEvents(client)
         const event = events.find((candidate) => candidate.id === savedEvent.id)
         if (!event) {

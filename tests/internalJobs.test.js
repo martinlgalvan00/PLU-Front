@@ -84,4 +84,57 @@ describe('internal scheduled jobs', () => {
     expect(paymentRevalidation).toHaveBeenCalledOnce()
     await target.close()
   })
+
+  it('ejecuta los avisos de vencimiento de pago con autorizacion valida', async () => {
+    const paymentOrderExpiry = vi.fn().mockResolvedValue({ processed: 3, sent: 3, failed: 0 })
+    const env = {
+      CRON_SECRET: 'secret-for-tests',
+    }
+    const target = listen(
+      createApp({
+        env,
+        supabaseAdmin: { kind: 'supabase-double' },
+        jobRunners: { paymentOrderExpiry },
+      }),
+    )
+
+    const response = await fetch(`${target.url}/api/internal/jobs/payment-order-expiry`, {
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      status: 'completed',
+      job: 'payment-order-expiry',
+      result: { processed: 3, sent: 3, failed: 0 },
+    })
+    expect(paymentOrderExpiry).toHaveBeenCalledOnce()
+    await target.close()
+  })
+
+  it('no corre los avisos de vencimiento de pago si el flag los deshabilita', async () => {
+    const paymentOrderExpiry = vi.fn()
+    const env = {
+      CRON_SECRET: 'secret-for-tests',
+      PAYMENT_ORDER_EXPIRY_JOB_ENABLED: 'false',
+    }
+    const target = listen(
+      createApp({
+        env,
+        supabaseAdmin: { kind: 'supabase-double' },
+        jobRunners: { paymentOrderExpiry },
+      }),
+    )
+
+    const response = await fetch(`${target.url}/api/internal/jobs/payment-order-expiry`, {
+      headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ status: 'disabled', job: 'payment-order-expiry' })
+    expect(paymentOrderExpiry).not.toHaveBeenCalled()
+    await target.close()
+  })
 })

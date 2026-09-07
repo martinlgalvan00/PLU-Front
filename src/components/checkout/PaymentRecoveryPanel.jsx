@@ -1,5 +1,6 @@
 import { ArrowRight, Landmark, Mail } from 'lucide-react'
 import { useI18n } from '../../i18n/I18nProvider.jsx'
+import { buildMailtoHref } from '../../lib/contact.js'
 import { money } from '../../lib/format.js'
 import { formatWisePrice } from '../../services/checkoutPricing.js'
 import '../../styles/components/payment-recovery-panel.css'
@@ -16,7 +17,6 @@ export default function PaymentRecoveryPanel({
   const { locale, t } = useI18n()
   const amountLabel =
     currency === 'USD' ? formatWisePrice(amount, locale) : amount == null ? '' : money(amount, locale)
-  const contactEmail = t('contact.sidebarEmail')
   const contactSubject = t('paymentRecovery.contactSubject')
   const contactBody = [
     t('paymentRecovery.contactBody'),
@@ -26,7 +26,7 @@ export default function PaymentRecoveryPanel({
   ]
     .filter(Boolean)
     .join('\n')
-  const contactHref = `mailto:${contactEmail}?subject=${encodeURIComponent(contactSubject)}&body=${encodeURIComponent(contactBody)}`
+  const contactHref = buildMailtoHref({ subject: contactSubject, body: contactBody })
 
   return (
     <aside className="payment-recovery-panel" aria-labelledby="payment-recovery-title">

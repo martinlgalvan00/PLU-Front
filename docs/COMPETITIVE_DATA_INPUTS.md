@@ -57,4 +57,4 @@ Página: `/sponsors`.
 
 ## Contacto operativo
 
-Canal sugerido: `hola@pluarg.com.ar` + owner de contenido del staff PLU ARG.
+Canal sugerido: `Maximalstrengthcorp@gmail.com` + owner de contenido del staff PLU ARG.

@@ -19,6 +19,8 @@ export function notFoundHandler(_req, _res, next) {
 const PAYMENT_PATH =
   /^\/api\/(payments|tickets)|\/(membership-orders|registrations|registration-combos|payment-orders)/
 
+const QUIET_NOT_FOUND_PATHS = new Set(['/json/version', '/favicon.ico'])
+
 export function errorHandler(err, req, res, _next) {
   const status = Number.isInteger(err.status) ? err.status : 500
   const message = status >= 500 ? 'Error interno' : err.message
@@ -42,6 +44,11 @@ export function errorHandler(err, req, res, _next) {
   // El diagnostico convierte el error en algo accionable: causa probable y
   // pasos concretos. Va al log, nunca al cliente.
   const diagnosis = status >= 500 || isPaymentPath ? diagnosePaymentFailure(err) : null
+
+  const pathForQuietCheck = req?.path ?? req?.originalUrl?.split('?')[0] ?? ''
+  if (status === 404 && QUIET_NOT_FOUND_PATHS.has(pathForQuietCheck)) {
+    return res.status(status).json(body)
+  }
 
   logger[status >= 500 ? 'error' : 'warn']('api.error', {
     requestId,

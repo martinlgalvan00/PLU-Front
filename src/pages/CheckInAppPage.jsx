@@ -24,6 +24,7 @@ import LanguageToggle from '../components/ui/LanguageToggle.jsx'
 import ThemeToggle from '../components/ui/ThemeToggle.jsx'
 import { useCheckInWorkspace } from '../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../lib/format.js'
+import { checkinTypeLabel } from '../services/checkinScanService.js'
 import { useI18n } from '../i18n/I18nProvider.jsx'
 
 function CheckinMetric({ icon: Icon, label, tone = 'neutral', value }) {
@@ -53,6 +54,8 @@ export default function CheckInAppPage({
   onRefreshTickets,
   registrations,
   roleLabel,
+  /** Puesto asignado a la cuenta: nombre y alcance. Nulo = sin zona. */
+  securityZone = null,
   ticketTypes = [],
   tickets,
 }) {
@@ -132,7 +135,11 @@ export default function CheckInAppPage({
               {t('admin.checkinApp.operation')}
             </span>
             <strong>{eventLabel}</strong>
-            <span>{roleLabel}</span>
+            {/* El puesto reemplaza al rol cuando la cuenta tiene uno: para
+                quien está en la puerta, "Calentamiento" dice mucho más que
+                "Seguridad" -- es el sector al que está habilitado y lo que
+                decide qué credenciales le van a abrir. */}
+            <span>{securityZone?.name ?? roleLabel}</span>
           </div>
         </div>
         <div className="checkin-app__top-actions">
@@ -202,6 +209,20 @@ export default function CheckInAppPage({
         {tab === 'scan' ? (
           <div className="checkin-app__scan-layout">
             <section className="checkin-app__scan-primary">
+              {/* Qué abre este puesto, dicho antes de escanear y no después de
+                  un rechazo. El alcance es la MISMA regla que aplica el canje
+                  en el servidor, así que esto no es una etiqueta decorativa:
+                  es lo que va a pasar cuando pase un QR. */}
+              {securityZone ? (
+                <p className="checkin-app__zone-notice">
+                  <ShieldCheck size={14} aria-hidden />
+                  <span>
+                    <strong>{securityZone.name}</strong>
+                    {t(`admin.eventZones.scopeHint.${securityZone.scope}`)}
+                  </span>
+                </p>
+              ) : null}
+
               <AdminQrScanner
                 busy={workspace.scanBusy}
                 disabled={!canCheckIn}
@@ -312,10 +333,7 @@ export default function CheckInAppPage({
                   key: 'type',
                   label: t('admin.checkin.type'),
                   mobile: 'default',
-                  render: (row) =>
-                    row.type === 'atleta'
-                      ? t('admin.checkin.athlete')
-                      : t('admin.checkin.spectator'),
+                  render: (row) => checkinTypeLabel(row, t),
                 },
                 { key: 'meta', label: t('admin.columns.category'), mobile: 'default' },
                 {

@@ -11,6 +11,7 @@ import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTab
 import { useI18n } from '../../i18n/I18nProvider.jsx'
 import { useCheckInWorkspace } from '../../hooks/useCheckInWorkspace.js'
 import { formatDocumentWithKind } from '../../lib/format.js'
+import { checkinTypeLabel } from '../../services/checkinScanService.js'
 
 /** Etiqueta del día en el que compite una fila, según la grilla asignada. */
 function dayLabel(dayIndexes, eventDays, t) {
@@ -222,8 +223,7 @@ export default function CheckInSection({
             key: 'type',
             label: t('admin.checkin.type'),
             mobile: 'default',
-            render: (row) =>
-              row.type === 'atleta' ? t('admin.checkin.athlete') : t('admin.checkin.spectator'),
+            render: (row) => checkinTypeLabel(row, t),
           },
           { key: 'meta', label: t('admin.columns.category'), mobile: 'default' },
           {

@@ -5,6 +5,7 @@ import { ArrowRight, CalendarDays, MapPin, X } from 'lucide-react'
 import StatusPill from './StatusPill.jsx'
 import TicketAvailabilityBadge from './TicketAvailabilityBadge.jsx'
 import LaunchInterestForm from './LaunchInterestForm.jsx'
+import TicketTypeOptions from './TicketTypeOptions.jsx'
 import { useTicketAvailability } from '../../hooks/useTicketAvailability.js'
 import {
   cheapestTicketTypePrice,
@@ -150,6 +151,19 @@ export default function ShopEventDrawer({
                     />
                   ) : null}
                 </div>
+
+                {/* "Desde $X" no distingue una entrada de espectador de una de
+                    entrenador, que es justo lo que se viene a mirar acá. Los
+                    tipos se dibujan con la misma pieza que el checkout. */}
+                {canBuy ? (
+                  <TicketTypeOptions
+                    className="shop-event-drawer__types"
+                    locale={locale}
+                    showAddons={false}
+                    t={t}
+                    ticketTypes={pricing.ticketTypes}
+                  />
+                ) : null}
 
                 <div className="shop-event-drawer__cta-wrap">
                   {canBuy ? (

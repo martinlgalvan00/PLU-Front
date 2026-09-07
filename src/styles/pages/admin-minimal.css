@@ -129,116 +129,235 @@
   border-color: var(--admin-action);
 }
 
-/* ---- Masthead editorial: Operaciones (dashboard compact) ---- */
+/* ---- Masthead operativo: una sola línea (dashboard compact) ---- */
 
 .admin-shell .admin-dashboard--compact .admin-page-toolbar,
 .admin-shell .admin-dashboard--compact .admin-page-toolbar--dashboard {
-  align-items: end;
+  align-items: center;
   border-bottom: 1px solid var(--admin-hairline);
-  gap: 20px;
-  margin: 0 0 22px;
-  padding: 4px 0 26px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 12px 16px;
+  grid-template-columns: none;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  min-height: 40px;
+  padding: 0 0 14px;
 }
 
 .admin-shell .admin-dashboard--compact .admin-page-toolbar__headline {
-  gap: 8px;
-  min-width: 0;
-}
-
-.admin-shell .admin-dashboard--compact .admin-page-toolbar__meta {
-  align-items: center;
+  align-items: baseline;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-}
-
-.admin-shell .admin-dashboard--compact .admin-page-toolbar__eyebrow {
-  color: var(--admin-brand);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.admin-shell .admin-dashboard--compact .admin-page-toolbar__date {
-  color: var(--admin-muted);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: capitalize;
-}
-
-.admin-shell .admin-dashboard--compact .admin-page-toolbar__meta > * + *::before {
-  color: var(--admin-hairline-strong, var(--admin-hairline));
-  content: '·';
-  margin-right: 10px;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  gap: 0 14px;
+  min-width: 0;
 }
 
 .admin-shell .admin-dashboard--compact .admin-page-toolbar__headline h1,
 .admin-shell .admin-dashboard--compact .admin-page-toolbar--dashboard h1 {
   color: var(--admin-ink);
+  flex-shrink: 0;
   font-family: var(--font-display);
-  font-size: clamp(30px, 3.2vw, 40px);
-  font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 1;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
   margin: 0;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__headline:has(.admin-page-toolbar__meta) h1 {
+  border-right: 1px solid var(--admin-hairline);
+  padding-right: 14px;
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__meta {
+  align-items: baseline;
+  color: var(--admin-muted);
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__eyebrow {
+  color: var(--admin-brand);
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__date {
+  color: var(--admin-muted);
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: capitalize;
 }
 
 .admin-shell .admin-dashboard--compact .admin-page-toolbar__subtitle {
   color: var(--admin-muted);
+  flex: 1 1 auto;
   font-size: 13px;
   font-weight: 400;
-  line-height: 1.45;
-  margin: 2px 0 0;
-  max-width: 40ch;
+  line-height: 1.2;
+  margin: 0;
+  max-width: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__meta > * + *::before {
+  color: color-mix(in srgb, var(--admin-muted) 55%, transparent);
+  content: '·';
+  margin: 0 8px;
 }
 
 .admin-shell .admin-dashboard--compact .admin-page-toolbar__tools {
   align-items: center;
-  align-self: end;
+  align-self: center;
   display: flex;
+  flex-shrink: 0;
   gap: 8px;
-  padding-bottom: 2px;
+  margin-left: auto;
+  padding: 0;
+  width: auto;
 }
 
 .admin-shell .admin-dashboard--compact .admin-page-toolbar__alert {
+  align-items: center;
   background: transparent;
-  border: 1px solid var(--admin-hairline);
-  border-radius: 8px;
+  border: 0;
+  border-radius: 6px;
   box-shadow: none;
   color: var(--admin-muted);
-  height: 40px;
-  width: 40px;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  height: 32px;
+  justify-content: center;
+  min-width: 32px;
+  padding: 0 8px;
+  width: auto;
 }
 
 .admin-shell .admin-dashboard--compact .admin-page-toolbar__alert:hover {
-  border-color: color-mix(in srgb, var(--admin-ink) 28%, transparent);
+  background: color-mix(in srgb, var(--admin-ink) 6%, transparent);
+  border-color: transparent;
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-dashboard--compact .admin-page-toolbar__alert.has-alerts {
-  border-color: var(--admin-status-danger-border);
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__alert.has-alerts:hover {
+  background: color-mix(in srgb, var(--admin-status-danger) 10%, transparent);
   color: var(--admin-status-danger);
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__alert:focus-visible {
+  outline: 2px solid var(--admin-brand);
+  outline-offset: 2px;
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__alert.has-alerts {
+  border-color: transparent;
+  color: var(--admin-status-danger);
+}
+
+.admin-shell .admin-dashboard--compact .admin-page-toolbar__badge {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  height: auto;
+  letter-spacing: 0;
+  line-height: 1;
+  min-width: 0;
+  padding: 0;
+  position: static;
+  right: auto;
+  top: auto;
+  width: auto;
+}
+
+@media (pointer: coarse) {
+  .admin-shell .admin-dashboard--compact .admin-page-toolbar__alert {
+    height: 44px;
+    min-width: 44px;
+    padding: 0 12px;
+  }
+
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-list-shell--events .admin-event-state__visibility,
+  .admin-shell .admin-list-shell--events .admin-event-state__registration-action,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-event-workspace .admin-event-state__visibility,
+  .admin-shell .admin-event-workspace .admin-event-state__registration-action {
+    min-height: 44px;
+  }
+
+  /* Toolbar de filtros: con mouse se mantiene compacto (36-42px); en touch
+     los controles suben a 44px. */
+  .admin-shell .admin-filters__primary .admin-filters__search,
+  .admin-shell .admin-filters__toggle,
+  .admin-shell .admin-filters__primary .admin-filters__clear,
+  .admin-shell .admin-filters__advanced-toggle,
+  .admin-shell .admin-filters__select-control,
+  .admin-shell .admin-filters__date-range-fields,
+  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip,
+  .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-shell .admin-dashboard--compact .admin-page-toolbar__subtitle {
+    display: none;
+  }
 }
 
 @media (max-width: 860px) {
   .admin-shell .admin-dashboard--compact .admin-page-toolbar,
   .admin-shell .admin-dashboard--compact .admin-page-toolbar--dashboard {
-    align-items: flex-start;
-    gap: 14px;
-    padding-bottom: 20px;
-  }
-
-  .admin-shell .admin-dashboard--compact .admin-page-toolbar__tools {
-    align-self: flex-start;
-    padding-bottom: 0;
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 10px 12px;
+    grid-template-columns: none;
+    justify-content: space-between;
+    padding-bottom: 12px;
   }
 
   .admin-shell .admin-dashboard--compact .admin-page-toolbar__headline h1,
   .admin-shell .admin-dashboard--compact .admin-page-toolbar--dashboard h1 {
-    font-size: clamp(28px, 7vw, 34px);
+    font-size: 18px;
+  }
+
+  .admin-shell
+    .admin-dashboard--compact
+    .admin-page-toolbar__headline:has(.admin-page-toolbar__meta)
+    h1 {
+    padding-right: 12px;
+  }
+
+  .admin-shell .admin-dashboard--compact .admin-page-toolbar__tools {
+    align-self: center;
+    flex-shrink: 0;
+    margin-left: auto;
+    width: auto;
   }
 }
 
@@ -1139,11 +1258,11 @@
 
 .admin-shell .admin-filters--inline .admin-filters__groups--multi,
 .admin-shell .admin-filters__panel .admin-filters__groups--multi {
-  align-items: center;
+  align-items: stretch;
   display: flex !important;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 8px 10px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
   grid-template-columns: none;
 }
 
@@ -1166,9 +1285,9 @@
    fuerza un mínimo. Con el piso, cuando no entran, saltan de línea solos. */
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-  flex: 1 1 160px;
-  min-width: min(100%, 160px);
-  width: auto;
+  flex: none;
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle,
@@ -1259,13 +1378,34 @@
 
 .admin-shell .admin-filters--inline .admin-filter-group--rail,
 .admin-shell .admin-filters__panel .admin-filter-group--rail {
-  align-items: stretch;
-  display: flex;
+  align-items: center;
+  display: grid;
   flex: none;
-  flex-direction: column;
-  gap: 6px;
+  gap: 6px 14px;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   width: 100%;
+}
+
+.admin-shell .admin-filters--inline .admin-filter-group--labeled:not(.admin-filter-group--menu),
+.admin-shell .admin-filters__panel .admin-filter-group--labeled:not(.admin-filter-group--menu),
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group--labeled {
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+}
+
+@media (max-width: 520px) {
+  .admin-shell .admin-filters--inline .admin-filter-group--labeled:not(.admin-filter-group--menu),
+  .admin-shell .admin-filters__panel .admin-filter-group--labeled:not(.admin-filter-group--menu),
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar-facets
+    .admin-filter-group--labeled {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
 }
 
 .admin-shell .admin-filters--inline .admin-filter-group--inline + .admin-filter-group--inline,
@@ -1284,15 +1424,19 @@
 }
 
 .admin-shell .admin-filters--inline .admin-filter-group__label,
-.admin-shell .admin-filters__panel .admin-filter-group__label {
+.admin-shell .admin-filters__panel .admin-filter-group__label,
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group__label {
   color: var(--admin-muted);
   display: block;
   flex: none;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -1301,28 +1445,12 @@
   display: block;
 }
 
-/* Un solo grupo de chips: el label "Estado" sobra si el contexto de la pantalla ya lo dice
-   -- los chips son autodescriptivos. Con 2+ grupos (`.admin-filters__groups--multi`, ver
-   AdminFilterBar.jsx) varios chips comparten el mismo neutro "Todos" y sin la etiqueta
-   arriba de cada riel no se distingue qué filtra cada uno. Antes esto solo se resolvía
-   para Atletas con un opt-in por variante (`.admin-filters--athletes`); ahora es el
-   criterio general -- mismo lenguaje visual en Atletas, Afiliaciones e Inscripciones en
-   vez de una lista de variantes que hay que recordar actualizar cada vez que un filtro
-   nuevo empuja a una pantalla de 1 a 2+ grupos. */
-.admin-shell
-  .admin-filters--inline
-  .admin-filters__groups:not(.admin-filters__groups--multi)
-  .admin-filter-group--inline
-  > .admin-filter-group__label {
-  display: none;
-}
-
-/* Fila que une los chips principales con el toggle de avanzados.
-   Los chips se expanden y el toggle queda pegado a la derecha. */
+/* Fila que une los rieles etiquetados con el toggle de avanzados. */
 .admin-shell .admin-filters__chips-row {
-  align-items: center;
+  align-items: stretch;
   display: flex;
-  gap: 0;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
   width: 100%;
 }
@@ -1330,11 +1458,13 @@
 .admin-shell .admin-filters__chips-row > .admin-filters__groups {
   flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__chips-row > .admin-filters__advanced-toggle {
+  align-self: flex-start;
   flex: 0 0 auto;
-  margin-left: auto;
+  margin-left: 0;
 }
 
 .admin-shell .admin-filters__clear {
@@ -2331,6 +2461,104 @@
   border-radius: 0;
 }
 
+/* Rediseño de la barra de filtros: buscador con marco visible, Estado y
+   Canal agrupados lado a lado con un divisor, y el total anclado en su
+   propio bloque con borde en vez de flotar suelto. Antes no había ninguna
+   regla de marco para el buscador en esta pantalla -- salía como texto
+   suelto sobre el fondo. */
+.admin-shell .admin-payments-operations .admin-orders-block__toolbar--athlete {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-lg, 14px);
+  padding: 14px 18px 12px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-filters__search {
+  background: var(--admin-canvas, var(--color-bg-canvas));
+  border: 1px solid var(--admin-hairline, var(--color-border-subtle));
+  border-radius: var(--border-radius-md, 10px);
+  padding: 8px 12px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-filters__search:focus-within {
+  background: var(--admin-surface, var(--color-bg-surface));
+  border-color: color-mix(in srgb, var(--admin-brand, var(--color-brand-celeste)) 45%, transparent);
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 22px;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets
+  > .admin-filter-group {
+  width: auto;
+  min-width: 0;
+}
+
+/* Con Estado y Canal lado a lado ya no hay ancho para la grilla
+   etiqueta(116px) | chips que usa `.toolbar-facets .admin-filter-group--labeled`
+   en el layout apilado original -- acá la etiqueta pasa a vivir arriba de sus
+   chips, como corresponde cuando el grupo entero es angosto. */
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets
+  .admin-filter-group--labeled {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* El riel de chips compacto es horizontal-scroll por diseño (pensado para
+   columnas angostas): acá Estado y Canal comparten fila y ese scroll oculto
+   se comía la mitad de los chips sin avisar. Envuelve en dos líneas en vez
+   de esconder contenido detrás de un scroll que nadie ve que existe. */
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__toolbar-facets
+  .admin-filter-chips {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  width: auto;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__facet-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--admin-hairline, var(--color-border-subtle));
+  flex: none;
+}
+
+.admin-shell
+  .admin-payments-operations
+  .admin-orders-block__toolbar--athlete
+  .admin-orders-block__summary {
+  padding-left: 18px;
+  border-left: 1px solid var(--admin-hairline, var(--color-border-subtle));
+}
+
+/* Mobile: Estado y Canal vuelven a apilarse (no entran lado a lado), el
+   divisor vertical no tiene sentido apilado, y el total pasa arriba de los
+   filtros en vez de quedar abajo a la derecha. Va DESPUÉS de las reglas de
+   escritorio de arriba a propósito: mismo selector, misma especificidad --
+   si quedara antes, la regla de escritorio (que no está en un @media) la
+   pisaría igual dentro del breakpoint por venir después en la hoja. */
 @media (max-width: 720px) {
   .admin-shell
     .admin-payments-operations
@@ -2348,6 +2576,69 @@
     order: -1;
     text-align: left;
   }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--athlete
+    .admin-orders-block__toolbar-facets {
+    flex-direction: column;
+  }
+
+  .admin-shell
+    .admin-payments-operations
+    .admin-orders-block__toolbar--athlete
+    .admin-orders-block__facet-divider {
+    display: none;
+  }
+}
+
+/* Nota secundaria ("Declarado por atleta") junto al estado: metadata, no un
+   segundo llamado de atención -- por eso va en gris neutro y no en celeste,
+   que ya usa el link/foco del panel. */
+.admin-shell .admin-payments-operations .admin-orders-block__tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--admin-muted, var(--color-text-muted));
+  background: color-mix(in srgb, var(--admin-ink, var(--color-text-primary)) 6%, transparent);
+  border-radius: var(--border-radius-pill, 999px);
+  padding: 2px 9px;
+}
+
+.admin-shell .admin-payments-operations .admin-orders-block__status-cell {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Card mobile: el estado y su nota compartían la columna angosta de la
+   derecha con el monto (apilados, alineados a la derecha, junto a "$
+   92.500"). Bajan a su propia fila de ancho completo debajo del nombre --
+   ya no compiten por el mismo espacio que el monto. `display: contents`
+   saca el wrapper de badges de la caja sin tocar el DOM real (el
+   `closest()` de los clicks de fila sigue funcionando igual). */
+#admin-athlete-payments .data-table-card__top {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+#admin-athlete-payments .data-table-card__badges {
+  display: contents;
+}
+
+#admin-athlete-payments .data-table-card__badge[data-column='status'] {
+  flex: 1 1 100%;
+  order: 3;
+  min-width: 0;
+  /* 30px de avatar + 9px de gap, mismo indent que el nombre en modo compacto. */
+  padding-left: 39px;
+}
+
+#admin-athlete-payments .data-table-card__footer .admin-icon-btn {
+  min-height: 34px;
+  min-width: 34px;
 }
 
 .admin-shell .admin-payments-operations .admin-list-section--tickets {
@@ -3137,7 +3428,7 @@
 
 .admin-shell .admin-filters--inline.admin-filters--compact {
   align-items: stretch;
-  background: color-mix(in srgb, var(--admin-surface-raised) 45%, transparent);
+  background: transparent;
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-direction: column;
@@ -3172,33 +3463,28 @@
 
 .admin-shell .admin-filters__primary .admin-filters__search {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-control-bg) 92%, var(--admin-surface-raised));
-  border: 1px solid color-mix(in srgb, var(--admin-hairline) 88%, transparent);
-  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  border-radius: 0;
   color: var(--admin-muted);
   display: flex;
   flex: 1 1 auto;
   gap: 12px;
-  height: 52px;
+  height: 40px;
   margin: 0;
-  min-height: 52px;
+  min-height: 40px;
   min-width: 0;
-  padding: 0 16px 0 18px;
-  transition:
-    border-color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
+  padding: 0 2px 8px;
+  transition: border-color var(--motion-fast, 160ms) var(--ease-standard, ease);
   width: auto;
 }
 
 .admin-shell .admin-filters__search:focus-within {
-  background: var(--admin-surface-raised);
-  border-color: var(--admin-brand-border, var(--color-brand-celeste));
-  box-shadow:
-    0 6px 16px color-mix(in srgb, var(--admin-ink) 7%, transparent),
-    0 0 0 3px var(--admin-focus-soft);
-  transform: translateY(-1px);
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--admin-ink) 42%, transparent);
+  box-shadow: none;
+  transform: none;
 }
 
 .admin-shell .admin-filters__search-icon {
@@ -3346,13 +3632,13 @@
   overflow: visible;
 }
 
-/* Multi después del panel column: chips + toggle (o selects) en fila. */
+/* Multi: un riel etiquetado por faceta, apilados. */
 .admin-shell .admin-filters__panel .admin-filters__groups--multi {
-  align-items: center;
+  align-items: stretch;
   display: flex !important;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 16px 14px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
 }
 
 .admin-shell
@@ -3365,9 +3651,9 @@
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-  flex: 1 1 160px;
-  min-width: min(100%, 160px);
-  width: auto;
+  flex: none;
+  min-width: 0;
+  width: 100%;
 }
 
 .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group--toggle {
@@ -3410,8 +3696,8 @@
     .admin-filters--athletes.admin-filters--inline
     .admin-filters__groups--multi
     .admin-filter-group {
-    flex: 0 1 auto;
-    width: auto;
+    flex: none;
+    width: 100%;
   }
 }
 
@@ -3640,29 +3926,22 @@
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip {
   background: transparent;
   border: 0;
-  border-radius: 9px;
+  border-radius: 0;
   box-shadow: none;
   color: var(--admin-muted);
   flex: none;
   font-size: 13px;
-  font-weight: 550;
-  gap: 7px;
+  font-weight: 500;
+  gap: 6px;
   justify-content: center;
   letter-spacing: -0.01em;
   min-height: 36px;
   min-width: max-content;
-  padding: 10px 16px;
+  padding: 6px 12px;
   position: relative;
   transform: none;
   transition:
-    color var(--motion-fast, 160ms) var(--ease-standard, ease),
-    background var(--motion-fast, 160ms) var(--ease-standard, ease),
-    box-shadow var(--motion-fast, 160ms) var(--ease-standard, ease),
-    transform var(--motion-fast, 160ms) var(--ease-standard, ease);
-}
-
-.admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip::after {
-  display: none;
+    color var(--motion-fast, 160ms) var(--ease-standard, ease);
 }
 
 .admin-shell
@@ -3672,21 +3951,19 @@
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip:hover {
-  background: color-mix(in srgb, var(--admin-surface-raised) 72%, transparent);
+  background: transparent;
   color: var(--admin-ink);
 }
 
-/* Chip activo: cápsula rellena, sin subrayado. Un solo tono neutro (el
-   mismo `--admin-ink` de la tipografía, no el celeste de marca) para que
-   la cápsula no compita como segundo acento dentro del mismo bloque. */
+/* Chip activo: peso + subrayado de tinta. Un acento, sin cápsula. */
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip.is-active,
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--admin-ink) 9%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--admin-ink) 14%, transparent);
+  background: transparent !important;
+  border: 0 !important;
   box-shadow: none;
   color: var(--admin-ink);
   font-weight: 650;
@@ -3699,24 +3976,32 @@
 .admin-shell
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true']::after {
-  display: none;
+  background: var(--admin-ink);
+  bottom: 4px;
+  content: '';
+  display: block;
+  height: 1px;
+  left: 12px;
+  opacity: 0.55;
+  position: absolute;
+  right: 12px;
 }
 
 .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip__count {
   align-items: center;
-  background: color-mix(in srgb, var(--admin-ink) 6%, transparent);
+  background: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   color: var(--admin-muted);
   display: inline-flex;
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  font-weight: 650;
+  font-weight: 500;
   justify-content: center;
-  letter-spacing: 0.01em;
-  min-width: 1.3em;
+  letter-spacing: 0;
+  min-width: 0;
   opacity: 1;
-  padding: 1px 5px;
+  padding: 0;
 }
 
 .admin-shell
@@ -3727,8 +4012,8 @@
   :is(.admin-filters--compact, .admin-filter-group--compact)
   .admin-filter-chip[aria-pressed='true']
   .admin-filter-chip__count {
-  background: color-mix(in srgb, var(--admin-ink) 16%, transparent);
-  color: var(--admin-ink);
+  background: transparent;
+  color: color-mix(in srgb, var(--admin-ink) 72%, transparent);
   opacity: 1;
 }
 
@@ -5241,22 +5526,14 @@
   }
 
   .admin-shell .admin-filters__panel .admin-filter-group--inline {
-    align-items: stretch;
+    align-items: center;
     display: grid;
-    gap: 7px;
+    gap: 6px 14px;
     width: 100%;
   }
 
-  .admin-shell
-    .admin-filters__panel
-    .admin-filters__groups:not(.admin-filters__groups--multi)
-    .admin-filter-group--inline
-    > .admin-filter-group__label {
-    display: none;
-  }
-
   .admin-shell .admin-filters__panel .admin-filter-group--toggle .admin-filter-group__label {
-    display: inline;
+    display: block;
   }
 
   .admin-shell .admin-filters__panel .admin-filter-chips {
@@ -7318,7 +7595,8 @@
 
 /* Banda de estado en la consola: franja operativa quieta, riel 1 línea,
    un solo acento (underline brand). Sin cajas ni pills. */
-.admin-shell .admin-list-shell--events .admin-event-console-modal__panel .admin-event-state {
+.admin-shell .admin-list-shell--events .admin-event-console-modal__panel .admin-event-state,
+.admin-shell .admin-event-workspace .admin-event-console-modal__panel .admin-event-state {
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-direction: column;
@@ -7447,7 +7725,8 @@
   .admin-event-console-modal__panel
   .admin-event-state__access {
   display: grid;
-  gap: 4px;
+  gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .admin-shell
@@ -7677,22 +7956,26 @@
     min-height: 44px;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-state {
+  .admin-shell .admin-list-shell--events .admin-event-state,
+  .admin-shell .admin-event-workspace .admin-event-state {
     padding: 10px 16px;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-state__controls {
+  .admin-shell .admin-list-shell--events .admin-event-state__controls,
+  .admin-shell .admin-event-workspace .admin-event-state__controls {
     align-items: stretch;
     flex-direction: column;
     gap: 8px;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group {
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-group {
     flex: 1 1 auto;
     width: 100%;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chips {
     display: grid;
     flex-wrap: wrap;
     gap: 0;
@@ -7700,7 +7983,8 @@
     overflow: visible;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip {
     justify-content: center;
     min-width: 0;
     text-align: center;
@@ -7709,7 +7993,9 @@
   }
 
   .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
-  .admin-shell .admin-list-shell--events .admin-event-state__visibility {
+  .admin-shell .admin-list-shell--events .admin-event-state__visibility,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-event-workspace .admin-event-state__visibility {
     min-height: 44px;
   }
 
@@ -7902,7 +8188,8 @@
 
   /* En teléfono angosto la grilla 2×N comprime etiquetas largas.
      Volvemos al rail horizontal del control (mismo AdminFilterChipGroup). */
-  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chips {
     display: flex;
     flex-wrap: nowrap;
     gap: 0;
@@ -7912,7 +8199,8 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+  .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip {
     flex: 0 0 auto;
     justify-content: center;
     min-width: max-content;
@@ -7927,7 +8215,8 @@
     padding: 4px 8px 8px;
   }
 
-  .admin-shell .admin-list-shell--events .admin-event-state {
+  .admin-shell .admin-list-shell--events .admin-event-state,
+  .admin-shell .admin-event-workspace .admin-event-state {
     padding: 8px 12px;
   }
 }
@@ -7946,7 +8235,8 @@
    ============================================= */
 
 /* Banda de estado: chips planos tipo segmented control editorial */
-.admin-shell .admin-list-shell--events .admin-event-state {
+.admin-shell .admin-list-shell--events .admin-event-state,
+.admin-shell .admin-event-workspace .admin-event-state {
   border-bottom: 1px solid var(--admin-hairline);
   display: flex;
   flex-direction: column;
@@ -7954,14 +8244,16 @@
   padding: 10px 0 10px 18px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__workflow {
+.admin-shell .admin-list-shell--events .admin-event-state__workflow,
+.admin-shell .admin-event-workspace .admin-event-state__workflow {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__workflow-label {
+.admin-shell .admin-list-shell--events .admin-event-state__workflow-label,
+.admin-shell .admin-event-workspace .admin-event-state__workflow-label {
   color: var(--admin-muted);
   font-size: 10px;
   font-weight: 700;
@@ -7969,7 +8261,8 @@
   text-transform: uppercase;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__workflow-actions {
+.admin-shell .admin-list-shell--events .admin-event-state__workflow-actions,
+.admin-shell .admin-event-workspace .admin-event-state__workflow-actions {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
@@ -7977,7 +8270,9 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__registration-action,
-.admin-shell .admin-list-shell--events .admin-event-state__registration-live {
+.admin-shell .admin-list-shell--events .admin-event-state__registration-live,
+.admin-shell .admin-event-workspace .admin-event-state__registration-action,
+.admin-shell .admin-event-workspace .admin-event-state__registration-live {
   align-items: center;
   background: transparent;
   border: 1px solid var(--admin-hairline);
@@ -7993,7 +8288,8 @@
   padding: 6px 10px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__registration-action {
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action,
+.admin-shell .admin-event-workspace .admin-event-state__registration-action {
   cursor: pointer;
   transition:
     background-color var(--motion-fast) var(--ease-out),
@@ -8008,17 +8304,20 @@
   color: var(--admin-brand);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__registration-action:focus-visible {
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action:focus-visible,
+.admin-shell .admin-event-workspace .admin-event-state__registration-action:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__registration-action:disabled {
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action:disabled,
+.admin-shell .admin-event-workspace .admin-event-state__registration-action:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__registration-action--open {
+.admin-shell .admin-list-shell--events .admin-event-state__registration-action--open,
+.admin-shell .admin-event-workspace .admin-event-state__registration-action--open {
   background: var(--color-brand-action);
   border-color: var(--color-brand-action);
   color: var(--color-on-brand-action, var(--color-bg-primary));
@@ -8032,12 +8331,14 @@
   color: var(--color-on-brand-action, var(--color-bg-primary));
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__registration-live {
+.admin-shell .admin-list-shell--events .admin-event-state__registration-live,
+.admin-shell .admin-event-workspace .admin-event-state__registration-live {
   border-color: color-mix(in srgb, var(--admin-status-success) 42%, var(--admin-hairline));
   color: var(--admin-status-success);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__controls {
+.admin-shell .admin-list-shell--events .admin-event-state__controls,
+.admin-shell .admin-event-workspace .admin-event-state__controls {
   align-items: stretch;
   display: flex;
   flex-direction: column;
@@ -8046,13 +8347,15 @@
   justify-content: flex-start;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group,
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-group {
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group__label {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group__label,
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-group__label {
   color: var(--admin-muted);
   font-size: 10px;
   font-weight: 700;
@@ -8060,7 +8363,8 @@
   text-transform: uppercase;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip {
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -8073,13 +8377,16 @@
   padding: 6px 10px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip:hover {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip:hover,
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip:hover {
   background: transparent;
   color: var(--admin-ink);
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip.is-active,
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip[aria-pressed='true'] {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip[aria-pressed='true'],
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip.is-active,
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip[aria-pressed='true'] {
   background: transparent;
   border-bottom-color: var(--admin-brand);
   box-shadow: none;
@@ -8087,11 +8394,13 @@
   font-weight: 650;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip__indicator {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip__indicator,
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip__indicator {
   display: none;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+.admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips,
+.admin-shell .admin-event-workspace .admin-event-state .admin-filter-chips {
   flex-wrap: nowrap;
   gap: 0;
   overflow-x: auto;
@@ -8099,7 +8408,8 @@
   row-gap: 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__visibility {
+.admin-shell .admin-list-shell--events .admin-event-state__visibility,
+.admin-shell .admin-event-workspace .admin-event-state__visibility {
   align-items: center;
   align-self: flex-start;
   background: transparent;
@@ -8118,63 +8428,50 @@
   transition: color var(--motion-fast) var(--ease-out);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__visibility:hover:not(:disabled) {
+.admin-shell .admin-list-shell--events .admin-event-state__visibility:hover:not(:disabled),
+.admin-shell .admin-event-workspace .admin-event-state__visibility:hover:not(:disabled) {
   background: transparent;
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__visibility:focus-visible {
+.admin-shell .admin-list-shell--events .admin-event-state__visibility:focus-visible,
+.admin-shell .admin-event-workspace .admin-event-state__visibility:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__visibility:disabled {
+.admin-shell .admin-list-shell--events .admin-event-state__visibility:disabled,
+.admin-shell .admin-event-workspace .admin-event-state__visibility:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__visibility.is-published {
+.admin-shell .admin-list-shell--events .admin-event-state__visibility.is-published,
+.admin-shell .admin-event-workspace .admin-event-state__visibility.is-published {
   background: transparent;
   border-color: transparent;
   color: var(--admin-brand);
   font-weight: 650;
 }
 
-@media (pointer: coarse) {
-  .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
-  .admin-shell .admin-list-shell--events .admin-event-state__visibility,
-  .admin-shell .admin-list-shell--events .admin-event-state__registration-action {
-    min-height: 44px;
-  }
-
-  /* Toolbar de filtros: con mouse se mantiene compacto (36-42px); en touch
-     los controles suben a 44px. */
-  .admin-shell .admin-filters__primary .admin-filters__search,
-  .admin-shell .admin-filters__toggle,
-  .admin-shell .admin-filters__primary .admin-filters__clear,
-  .admin-shell .admin-filters__advanced-toggle,
-  .admin-shell .admin-filters__select-control,
-  .admin-shell .admin-filters__date-range-fields,
-  .admin-shell :is(.admin-filters--compact, .admin-filter-group--compact) .admin-filter-chip,
-  .admin-shell .admin-filter-group--toggle .admin-filter-chip--toggle {
-    min-height: 44px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .admin-shell .admin-list-shell--events .admin-event-state__visibility {
+  .admin-shell .admin-list-shell--events .admin-event-state__visibility,
+  .admin-shell .admin-event-workspace .admin-event-state__visibility {
     transition: none;
   }
 }
 
 /* Acceso + sus dos notas como un solo bloque: la consecuencia tiene que leerse
    como parte de la decisión, no como un pie de la banda entera. */
-.admin-shell .admin-list-shell--events .admin-event-state__access {
+.admin-shell .admin-list-shell--events .admin-event-state__access,
+.admin-shell .admin-event-workspace .admin-event-state__access {
   display: grid;
-  gap: 4px;
+  gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__note {
+.admin-shell .admin-list-shell--events .admin-event-state__note,
+.admin-shell .admin-event-workspace .admin-event-state__note {
   font-size: 11.5px;
   line-height: 1.45;
   margin: 0;
@@ -8182,26 +8479,32 @@
 }
 
 .admin-shell .admin-list-shell--events .admin-event-state__note--full,
-.admin-shell .admin-list-shell--events .admin-event-state__note--info {
+.admin-shell .admin-list-shell--events .admin-event-state__note--info,
+.admin-shell .admin-event-workspace .admin-event-state__note--full,
+.admin-shell .admin-event-workspace .admin-event-state__note--info {
   color: var(--admin-status-warning);
 }
 
 /* La consecuencia del acceso elegido no es una advertencia: es la descripción
    del estado actual. Va en tono apagado para que el amarillo quede reservado a
    lo que de verdad pide una decisión. */
-.admin-shell .admin-list-shell--events .admin-event-state__note--muted {
+.admin-shell .admin-list-shell--events .admin-event-state__note--muted,
+.admin-shell .admin-event-workspace .admin-event-state__note--muted {
   color: var(--admin-muted);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__note--success {
+.admin-shell .admin-list-shell--events .admin-event-state__note--success,
+.admin-shell .admin-event-workspace .admin-event-state__note--success {
   color: var(--admin-status-success);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__note--error {
+.admin-shell .admin-list-shell--events .admin-event-state__note--error,
+.admin-shell .admin-event-workspace .admin-event-state__note--error {
   color: var(--admin-status-danger);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__note svg {
+.admin-shell .admin-list-shell--events .admin-event-state__note svg,
+.admin-shell .admin-event-workspace .admin-event-state__note svg {
   margin-right: 5px;
   vertical-align: -2px;
 }
@@ -8210,7 +8513,8 @@
    Aparece solo cuando hay cambios pre-seleccionados: separa "tocar un chip"
    de "guardar el evento". El guardado es el único acento de la franja (oro
    PLU, la acción principal); descartar es un texto quieto. */
-.admin-shell .admin-list-shell--events .admin-event-state__pending {
+.admin-shell .admin-list-shell--events .admin-event-state__pending,
+.admin-shell .admin-event-workspace .admin-event-state__pending {
   align-items: center;
   background: color-mix(in srgb, var(--color-brand-action) 7%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-brand-action) 32%, transparent);
@@ -8222,20 +8526,23 @@
   padding: 8px 10px 8px 14px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-hint {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-hint,
+.admin-shell .admin-event-workspace .admin-event-state__pending-hint {
   color: var(--admin-ink);
   font-size: 12px;
   font-weight: 650;
   margin: 0;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-actions {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-actions,
+.admin-shell .admin-event-workspace .admin-event-state__pending-actions {
   align-items: center;
   display: flex;
   gap: 8px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-discard {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-discard,
+.admin-shell .admin-event-workspace .admin-event-state__pending-discard {
   align-items: center;
   background: transparent;
   border: 0;
@@ -8258,17 +8565,20 @@
   color: var(--admin-ink);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-discard:focus-visible {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-discard:focus-visible,
+.admin-shell .admin-event-workspace .admin-event-state__pending-discard:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-discard:disabled {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-discard:disabled,
+.admin-shell .admin-event-workspace .admin-event-state__pending-discard:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-save {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save,
+.admin-shell .admin-event-workspace .admin-event-state__pending-save {
   align-items: center;
   background: var(--color-brand-action);
   border: 1px solid var(--color-brand-action);
@@ -8287,24 +8597,29 @@
     border-color var(--motion-fast) var(--ease-out);
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-save:hover:not(:disabled) {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save:hover:not(:disabled),
+.admin-shell .admin-event-workspace .admin-event-state__pending-save:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-brand-action) 88%, var(--admin-ink));
   border-color: color-mix(in srgb, var(--color-brand-action) 88%, var(--admin-ink));
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-save:focus-visible {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save:focus-visible,
+.admin-shell .admin-event-workspace .admin-event-state__pending-save:focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
 
-.admin-shell .admin-list-shell--events .admin-event-state__pending-save:disabled {
+.admin-shell .admin-list-shell--events .admin-event-state__pending-save:disabled,
+.admin-shell .admin-event-workspace .admin-event-state__pending-save:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 @media (pointer: coarse) {
   .admin-shell .admin-list-shell--events .admin-event-state__pending-discard,
-  .admin-shell .admin-list-shell--events .admin-event-state__pending-save {
+  .admin-shell .admin-list-shell--events .admin-event-state__pending-save,
+  .admin-shell .admin-event-workspace .admin-event-state__pending-discard,
+  .admin-shell .admin-event-workspace .admin-event-state__pending-save {
     min-height: 44px;
   }
 }
@@ -8669,18 +8984,26 @@
   display: none;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary > span {
+/* Estas tres van también en el scope de la página. Estaban sólo bajo
+   `.admin-event-editor-modal__panel`, así que en el workspace no aplicaba
+   ninguna y el título y su resumen salían pegados en la misma línea:
+   "Configurar entradasJornadas: 2 · Tipos activos: 3". El editor vive en los
+   dos lugares; el encabezado tiene que leerse igual en ambos. */
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary > span,
+.admin-event-workspace__panel .admin-event-form__ticket-config-summary > span {
   display: grid;
   gap: 2px;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary strong {
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary strong,
+.admin-event-workspace__panel .admin-event-form__ticket-config-summary strong {
   color: var(--admin-ink);
   font-size: 12.5px;
   font-weight: 650;
 }
 
-.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary small {
+.admin-event-editor-modal__panel .admin-event-form__ticket-config-summary small,
+.admin-event-workspace__panel .admin-event-form__ticket-config-summary small {
   color: var(--admin-muted);
   font-size: 11.5px;
 }
@@ -9001,31 +9324,17 @@
     .admin-shell
       .admin-filters__panel
       .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
-      align-items: center;
-      flex-direction: row;
+      align-items: stretch;
+      flex-direction: column;
       flex-wrap: nowrap;
-      gap: 8px 10px;
-    }
-
-    /* Sin piso de ancho el `nowrap` de arriba nunca cede: 2+ grupos de chips
-       se encogen hasta ilegibles en vez de saltar de línea (mismo criterio
-       que la rama ancha, arriba en el archivo). El piso hace innecesario un
-       `flex-wrap: wrap` aparte por variante -- cualquier pantalla con
-       suficientes grupos salta de línea sola. */
-    .admin-shell
-      .admin-filters--inline
-      .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only),
-    .admin-shell
-      .admin-filters__panel
-      .admin-filters__groups--multi:not(.admin-filters__groups--secondary-only) {
-      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group,
     .admin-shell .admin-filters__panel .admin-filters__groups--multi .admin-filter-group {
-      flex: 1 1 160px;
-      min-width: min(100%, 160px);
-      width: auto;
+      flex: none;
+      min-width: 0;
+      width: 100%;
     }
 
     .admin-shell .admin-filters--inline .admin-filters__groups--multi .admin-filter-group--toggle,
@@ -9421,22 +9730,26 @@
     /* (El panel apilado bajo 899px de container fue retirado: la consola se
        abre como modal desde cualquier ancho.) */
 
-    .admin-shell .admin-list-shell--events .admin-event-state {
+    .admin-shell .admin-list-shell--events .admin-event-state,
+    .admin-shell .admin-event-workspace .admin-event-state {
       padding: 10px 16px;
     }
 
-    .admin-shell .admin-list-shell--events .admin-event-state__controls {
+    .admin-shell .admin-list-shell--events .admin-event-state__controls,
+    .admin-shell .admin-event-workspace .admin-event-state__controls {
       align-items: stretch;
       flex-direction: column;
       gap: 8px;
     }
 
-    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group {
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-group,
+    .admin-shell .admin-event-workspace .admin-event-state .admin-filter-group {
       flex: 1 1 auto;
       width: 100%;
     }
 
-    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips,
+    .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chips {
       display: grid;
       flex-wrap: wrap;
       gap: 0;
@@ -9444,7 +9757,8 @@
       overflow: visible;
     }
 
-    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+    .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip {
       justify-content: center;
       min-width: 0;
       text-align: center;
@@ -9453,7 +9767,9 @@
     }
 
     .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
-    .admin-shell .admin-list-shell--events .admin-event-state__visibility {
+    .admin-shell .admin-list-shell--events .admin-event-state__visibility,
+    .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip,
+    .admin-shell .admin-event-workspace .admin-event-state__visibility {
       min-height: 44px;
     }
 
@@ -9595,7 +9911,8 @@
     }
 
     /* Ancho útil ~300–430: rail horizontal para no comprimir estados largos. */
-    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips {
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chips,
+    .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chips {
       display: flex;
       flex-wrap: nowrap;
       gap: 0;
@@ -9605,7 +9922,8 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip {
+    .admin-shell .admin-list-shell--events .admin-event-state .admin-filter-chip,
+    .admin-shell .admin-event-workspace .admin-event-state .admin-filter-chip {
       flex: 0 0 auto;
       justify-content: center;
       min-width: max-content;

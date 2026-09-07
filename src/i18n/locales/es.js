@@ -976,7 +976,7 @@ export default {
     errorDesc: 'Volvé a intentar en un momento, o escribinos directo a {{email}}.',
     errorRetry: 'Reintentar',
     sidebarTitle: 'Datos de contacto',
-    sidebarEmail: 'hola@pluarg.com.ar',
+    sidebarEmail: 'Maximalstrengthcorp@gmail.com',
     sidebarLocation: 'Buenos Aires, Argentina',
     sidebarResponse: '24–48 h hábiles',
     sidebarNote:
@@ -2133,6 +2133,8 @@ export default {
       publicTicketsFromCaption: 'Desde',
       publicTicketsClosed: 'Próximamente',
       publicTicketsCta: 'Comprar entradas',
+      weighInsTitle: 'Pesajes',
+      weighInsEmpty: 'Los horarios de pesaje se publican cuando el organizador los carga.',
       spotlightActionsAria: 'Acciones del meet destacado',
       eventCount_one: '{{count}} evento',
       eventCount_other: '{{count}} eventos',
@@ -2684,6 +2686,7 @@ export default {
         podiumCaption: 'foto: podio Pitbull Classic',
       },
       heroMetricsAria: 'Datos del evento',
+      heroActionsAria: 'Inscripción al evento',
       heroSecondaryAria: 'Accesos secundarios',
       pageNavAria: 'Navegación de Pitbull Classic',
       pageNavLabel: 'Explorar el meet',
@@ -3113,9 +3116,22 @@ export default {
       venue: 'Sede',
       offersAria: 'Precios de entradas',
       offersEyebrow: 'Entradas',
-      offersTitle: 'Elegí tu entrada',
-      offersLead: 'Cada tipo de entrada incluye su QR de ingreso listo para escanear en la puerta.',
+      // No dice "Elegí": acá se compara, se elige más abajo en el checkout.
+      // Un encabezado que promete una acción sobre una lista que no se toca es
+      // una fricción más, no menos.
+      offersTitle: 'Qué incluye cada entrada',
+      offersLead:
+        'Cada tipo de entrada emite su propia credencial con QR, y cada credencial abre la zona que declara.',
       includesBadge: 'Incluye',
+      accessTitle: 'Qué zona abre cada una',
+      accessLead:
+        'Lo que comprás es lo que abre: si después cambia la configuración del evento, tu entrada conserva el acceso con el que se vendió.',
+      accessAria: 'Comparación de accesos por tipo de entrada',
+      accessZoneColumn: 'Zona del meet',
+      accessIncluded: 'Incluida',
+      accessExcluded: 'No incluida',
+      accessFootnote:
+        'La plataforma y el pesaje quedan reservados a atletas inscriptos y staff técnico: ninguna entrada los habilita.',
       checkoutEyebrow: 'Entrada',
       checkoutTitle: 'Reservá tu lugar',
       checkoutLead: 'Indicá cuántas entradas, los datos de cada persona y cómo vas a pagar.',
@@ -3233,6 +3249,35 @@ export default {
       day2: 'Día 2',
       bothDays: 'Ambos días',
       dayOption: 'Día {{n}} · {{label}}',
+      // Subcategorías de entrada. `zone` es el nombre que le decimos al
+      // comprador; el panel usa otro ('Entradas y credenciales') porque
+      // describe el alcance del escáner, no el lugar al que se entra.
+      ticketTypes: {
+        legend: 'Tipo de entrada',
+        opens: 'Qué abre',
+        includes: 'Incluye',
+        credentials_one: '1 credencial · 1 QR',
+        credentials_other: '{{count}} credenciales · {{count}} QR',
+        quotaNote: 'Ocupa un solo lugar del cupo',
+        soloZone: 'Abre {{zones}}',
+        zone: {
+          gate_tickets: 'Puerta general',
+          athletes_only: 'Zona de atletas',
+          athletes_coaches: 'Entrada en calor',
+          staff_only: 'Staff técnico',
+        },
+        zoneHint: {
+          gate_tickets: 'Ingreso al predio y a la tribuna.',
+          athletes_only: 'Sector reservado a atletas inscriptos.',
+          athletes_coaches: 'Zona de calentamiento, detrás de plataforma.',
+          staff_only: 'Control interno del operativo.',
+        },
+      },
+      bundleNote_one: 'Esta compra emite 1 credencial.',
+      bundleNote_other:
+        'Esta compra emite {{count}} credenciales, una por zona, y ocupa un solo lugar del cupo.',
+      credentialOpens: 'Abre {{zones}}',
+      credentialsFor: 'Credenciales de {{name}}',
       paymentMethod: 'Método de pago',
       paymentTransfer: 'Transferencia bancaria',
       paymentMpHint: 'Pago automático · QR habilitado al confirmarse',

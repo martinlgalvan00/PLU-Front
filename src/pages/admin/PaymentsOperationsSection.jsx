@@ -14,6 +14,7 @@ import {
   AdminTableActionsEmpty,
 } from '../../components/admin/AdminTableCells.jsx'
 import AdminDataTable, { StatusBadge } from '../../components/admin/AdminDataTable.jsx'
+import PaymentExpiryPanel from '../../components/admin/PaymentExpiryPanel.jsx'
 import ErrorState from '../../components/ui/ErrorState.jsx'
 import LoadingState from '../../components/ui/LoadingState.jsx'
 import SegmentedSwitch from '../../components/ui/SegmentedSwitch.jsx'
@@ -457,6 +458,11 @@ export default function PaymentsOperationsSection({
           </div>
         </div>
       ) : null}
+
+      {/* Cierre automático: va antes de las divergencias porque responde una
+          pregunta anterior —"¿se están cerrando solas?"— y porque una orden
+          trabada acá es justamente la que después aparece como divergencia. */}
+      <PaymentExpiryPanel canEdit={canEdit} />
 
       {/* Divergencias contra Mercado Pago: qué estado figura acá y cuál dice el
           proveedor, enfrentados. Es el bloque que responde "figura cancelado

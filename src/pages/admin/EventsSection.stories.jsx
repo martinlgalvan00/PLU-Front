@@ -5,6 +5,7 @@ import '../../styles/layout/admin-shell.css'
 import '../../styles/pages/admin.css'
 import '../../styles/pages/admin-minimal.css'
 import '../../styles/pages/admin-event-console.css'
+import '../../styles/pages/admin-modals.css'
 
 const PITBULL = {
   id: 'evt-1',
@@ -76,9 +77,18 @@ export default {
   parameters: { layout: 'fullscreen' },
   decorators: [
     (Story) => (
-      <div className="admin-shell">
-        <div className="admin-page">
-          <Story />
+      // Cadena real del panel: AdminShell -> `.admin-shell__content`
+      // (`overflow: auto`, el ÚNICO scroller del admin) -> `.admin-page`.
+      // Sin `__content` la historia scrolleaba en un lugar que no existe en la
+      // app, y los bugs de scroll y de sticky no aparecían acá.
+      <div className="admin-shell" style={{ display: 'block', height: 'calc(100dvh - 4rem)' }}>
+        <div
+          className="admin-shell__content ant-layout-content"
+          style={{ height: '100%' }}
+        >
+          <div className="admin-page admin-section-enter">
+            <Story />
+          </div>
         </div>
       </div>
     ),

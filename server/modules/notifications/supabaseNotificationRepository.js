@@ -245,5 +245,24 @@ export function createSupabaseNotificationRepository(client) {
         'No se pudo finalizar la renovación.',
       )
     },
+
+    /** Cola de recordatorio/vencimiento de órdenes de pago manual (5 días). */
+    async claimOrderExpiryNotifications({ limit = 100 } = {}) {
+      return assertResult(
+        await client.rpc('claim_payment_order_expiry_notifications', { p_limit: limit }),
+        'No se pudieron reclamar los avisos de vencimiento de pago.',
+      )
+    },
+
+    async completeOrderExpiryNotification(id, { sent, error = null }) {
+      assertResult(
+        await client.rpc('complete_payment_order_expiry_notification', {
+          p_notification_id: id,
+          p_sent: sent,
+          p_error: error,
+        }),
+        'No se pudo finalizar el aviso de vencimiento de pago.',
+      )
+    },
   }
 }

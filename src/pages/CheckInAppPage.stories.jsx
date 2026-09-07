@@ -86,6 +86,9 @@ export default {
     eventTitle: 'Pitbull Classic 2026',
     registrations,
     roleLabel: 'Seguridad',
+    // Puesto asignado: es lo que le dice a quien escanea a qué sector está
+    // habilitado y qué credenciales le van a abrir ahí.
+    securityZone: { id: 'z-calentamiento', name: 'Calentamiento', scope: 'athletes_coaches' },
     ticketTypes,
     tickets,
     onCheckInRegistration: async () => ({ outcome: 'ok' }),

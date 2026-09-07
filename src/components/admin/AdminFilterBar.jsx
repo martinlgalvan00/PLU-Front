@@ -21,7 +21,7 @@ import { filterValueText, filterValueTone, isFilterActive, neutralValue } from '
  *   Obligatorio en `dateRange` (no tiene `options` del que inferirlo): usar `{ from: '', to: '' }`.
  * @property {boolean} [showLabel] Forzá label visible (inline suele ocultarlo si hay un solo grupo).
  * @property {string} [ariaLabel] Nombre accesible cuando el label visual está oculto.
- * @property {boolean} [advanced] Si es true, queda detrás de «Más filtros».
+ * @property {boolean} [advanced] Si es true, queda detrás de «Más criterios».
  * @property {string} [allLabel] Etiqueta corta del valor neutro cuando el grupo es de chips.
  */
 
@@ -49,7 +49,16 @@ function AdminFilterToggle({
 
   return (
     <div
-      className="admin-filter-group admin-filter-group--rail admin-filter-group--compact admin-filter-group--inline admin-filter-group--toggle"
+      className={[
+        'admin-filter-group',
+        'admin-filter-group--rail',
+        'admin-filter-group--compact',
+        'admin-filter-group--inline',
+        'admin-filter-group--toggle',
+        label ? 'admin-filter-group--labeled' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="group"
       aria-label={!label ? ariaLabel || optionLabel : undefined}
       aria-labelledby={labelId}
@@ -223,14 +232,10 @@ export default function AdminFilterBar({
   }
 
   function renderFilter(filter) {
-    // Labels visibles solo si se piden o si es select (campo etiquetado).
-    // En multi-chip/toggle el copy del control ya alcanza — evita "ESTADO / VENCIMIENTO".
-    const sharedLabel =
-      filter.showLabel === false
-        ? undefined
-        : filter.showLabel === true || filter.variant === 'select' || filter.variant === 'dateRange'
-          ? filter.label
-          : undefined
+    // Faceta etiquetada por defecto: "Todos" sin "Estado" / "Canal" no se entiende.
+    // Opt-out explícito con `showLabel: false` cuando el contexto de la pantalla
+    // ya nombra el único criterio.
+    const sharedLabel = filter.showLabel === false ? undefined : filter.label
 
     if (filter.variant === 'dateRange') {
       return (
@@ -241,6 +246,7 @@ export default function AdminFilterBar({
           value={filter.value}
           onChange={filter.onChange}
           disabled={filter.disabled}
+          presentation="popover"
         />
       )
     }
@@ -425,6 +431,47 @@ export default function AdminFilterBar({
 
   return (
     <div ref={rootRef} className={rootClassName}>
+      <div className="admin-filters__primary">
+        <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
+
+        {!alwaysShowFilters && filters.length > 0 ? (
+          <button
+            type="button"
+            className={`admin-filters__toggle${filtersOpen ? ' is-open' : ''}`}
+            aria-controls={panelId}
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((current) => !current)}
+          >
+            <SlidersHorizontal size={14} aria-hidden />
+            <span>{t('admin.filters.toggle')}</span>
+            {activeCount > 0 ? (
+              <span
+                className="admin-filters__active-count"
+                aria-label={t('admin.filters.activeCount', { count: activeCount })}
+              >
+                {activeCount}
+              </span>
+            ) : null}
+            <ChevronDown className="admin-filters__toggle-icon" size={13} aria-hidden />
+          </button>
+        ) : null}
+
+        {activeCount > 0 ? (
+          <button type="button" className="admin-filters__clear" onClick={clearAll}>
+            <X size={12} aria-hidden />
+            <span>{t('admin.filters.clearActive', { count: activeCount })}</span>
+          </button>
+        ) : null}
+
+        {actions ? <div className="admin-filters__actions">{actions}</div> : null}
+
+        {count ? (
+          <span className="admin-filters__count" aria-live="polite">
+            <span className="admin-filters__count-label">{count}</span>
+          </span>
+        ) : null}
+      </div>
+
       {filters.length > 0 ? (
         <div
           id={panelId}
@@ -525,47 +572,6 @@ export default function AdminFilterBar({
           ) : null}
         </div>
       ) : null}
-
-      <div className="admin-filters__primary">
-        <AdminFilterSearch placeholder={placeholder} query={query} onQueryChange={onQueryChange} />
-
-        {!alwaysShowFilters && filters.length > 0 ? (
-          <button
-            type="button"
-            className={`admin-filters__toggle${filtersOpen ? ' is-open' : ''}`}
-            aria-controls={panelId}
-            aria-expanded={filtersOpen}
-            onClick={() => setFiltersOpen((current) => !current)}
-          >
-            <SlidersHorizontal size={14} aria-hidden />
-            <span>{t('admin.filters.toggle')}</span>
-            {activeCount > 0 ? (
-              <span
-                className="admin-filters__active-count"
-                aria-label={t('admin.filters.activeCount', { count: activeCount })}
-              >
-                {activeCount}
-              </span>
-            ) : null}
-            <ChevronDown className="admin-filters__toggle-icon" size={13} aria-hidden />
-          </button>
-        ) : null}
-
-        {activeCount > 0 ? (
-          <button type="button" className="admin-filters__clear" onClick={clearAll}>
-            <X size={12} aria-hidden />
-            <span>{t('admin.filters.clearActive', { count: activeCount })}</span>
-          </button>
-        ) : null}
-
-        {actions ? <div className="admin-filters__actions">{actions}</div> : null}
-
-        {count ? (
-          <span className="admin-filters__count" aria-live="polite">
-            <span className="admin-filters__count-label">{count}</span>
-          </span>
-        ) : null}
-      </div>
     </div>
   )
 }
