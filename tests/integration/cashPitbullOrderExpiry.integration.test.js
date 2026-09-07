@@ -4,6 +4,9 @@ import { createTestAthlete } from './helpers/athleteSession.js'
 import { createSupabaseTestClient } from './helpers/supabaseTestClient.js'
 
 const EVENT_SLUG = 'pitbull-classic-2026'
+const CLOCK_SLACK_MS = 2 * 60 * 1000
+/** Default de `plu_private.checkout_window_minutes('manual')`: 5 días. */
+const DEFAULT_MANUAL_WINDOW_MINUTES = 7200
 
 /**
  * Vigencia de una orden de efectivo en la sede.
@@ -17,13 +20,16 @@ const EVENT_SLUG = 'pitbull-classic-2026'
  * (`PLU10 - La orden ya no admite aprobacion`).
  *
  * La ventana del efectivo tiene que cubrir el evento entero. La de
- * transferencia no cambia: ahí el plazo corto es deliberado, porque el
- * comprobante se sube el mismo día.
+ * transferencia no se ancla al torneo: usa `manual_link_checkout_window()`
+ * (5 días por defecto, configurable en el panel). Volver de efectivo a
+ * transferencia tiene que reinstalar ese plazo, no dejar la orden abierta
+ * hasta el meet.
  */
 describe('vigencia de las órdenes en efectivo', () => {
   const admin = createSupabaseTestClient()
   const athleteIds = []
   let event
+  let transferWindowMs
 
   beforeAll(async () => {
     const result = await admin
@@ -34,6 +40,14 @@ describe('vigencia de las órdenes en efectivo', () => {
     if (result.error) throw new Error(result.error.message)
     if (!result.data) throw new Error(`El evento ${EVENT_SLUG} no existe en esta base.`)
     event = result.data
+
+    let minutes = DEFAULT_MANUAL_WINDOW_MINUTES
+    const toggles = await admin.rpc('staff_get_platform_feature_toggles')
+    if (!toggles.error) {
+      const configured = Number(toggles.data?.checkoutWindows?.manualMinutes)
+      if (Number.isInteger(configured) && configured > 0) minutes = configured
+    }
+    transferWindowMs = minutes * 60 * 1000
   })
 
   afterAll(async () => {
@@ -120,7 +134,7 @@ describe('vigencia de las órdenes en efectivo', () => {
     )
   })
 
-  it('la transferencia conserva su ventana corta', async () => {
+  it('la transferencia usa el plazo configurable, no el del torneo', async () => {
     const athleteId = await newAthlete('transfer-window')
 
     const created = await admin.rpc('create_competition_registration_checkout', {
@@ -139,14 +153,12 @@ describe('vigencia de las órdenes en efectivo', () => {
     if (created.error) throw new Error(created.error.message)
 
     const expiresIn = new Date(created.data.order.expires_at).getTime() - Date.now()
-    expect(expiresIn).toBeGreaterThan(0)
-    // 24 h de margen para adjuntar el comprobante, ni más ni menos.
-    expect(expiresIn).toBeLessThanOrEqual(25 * 60 * 60 * 1000)
+    expect(expiresIn).toBeGreaterThan(transferWindowMs - CLOCK_SLACK_MS)
+    expect(expiresIn).toBeLessThanOrEqual(transferWindowMs + CLOCK_SLACK_MS)
   })
 
-  // Volver atrás no puede dejar una transferencia abierta hasta el torneo: el
-  // comprobante se sube el mismo día.
-  it('volver de efectivo a transferencia reinstala la ventana corta', async () => {
+  // Volver atrás no puede dejar una transferencia abierta hasta el torneo.
+  it('volver de efectivo a transferencia reinstala el plazo de transferencia', async () => {
     const athleteId = await newAthlete('switch-back-window')
     const planCode = await activeAnnualPlanCode()
 
@@ -177,7 +189,14 @@ describe('vigencia de las órdenes en efectivo', () => {
     expect(back.data.order.id).toBe(cash.data.order.id)
     expect(back.data.order.manual_payment_channel).toBe('bank_transfer')
     const expiresIn = new Date(back.data.order.expires_at).getTime() - Date.now()
-    expect(expiresIn).toBeLessThanOrEqual(25 * 60 * 60 * 1000)
+    expect(expiresIn).toBeGreaterThan(0)
+    // `least(expires_at, now() + window)`: recorta el ancla del torneo, nunca
+    // la estira. El techo es el plazo configurable; si el efectivo ya era
+    // más corto, se conserva ese recorte.
+    expect(expiresIn).toBeLessThanOrEqual(transferWindowMs + CLOCK_SLACK_MS)
+    expect(new Date(back.data.order.expires_at).getTime()).toBeLessThanOrEqual(
+      new Date(cash.data.order.expires_at).getTime(),
+    )
   })
 
   /**
